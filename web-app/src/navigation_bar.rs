@@ -4,22 +4,55 @@ use leptos::*;
 #[component]
 pub fn NavigationBar(cx: Scope) -> impl IntoView {
     view! { cx,
-        <header class="text-gray-400 bg-gray-900 body-font">
+        /*<header class="text-gray-400 bg-gray-900 body-font">
             <div class="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center">
                 <a class="flex title-font font-medium items-center text-white mb-4 md:mb-0">
                     <StacksIcon/>
-                    <span class="ml-3 text-xl">"Hello <ProjectName>!"</span>
                 </a>
                 <nav class="md:ml-auto flex flex-wrap items-center text-base justify-center">
-                    <a class="mr-5 hover:text-white">"First Link"</a>
-                    <a class="mr-5 hover:text-white">"Second Link"</a>
-                    <a class="mr-5 hover:text-white">"Third Link"</a>
-                    <a class="mr-5 hover:text-white">"Fourth Link"</a>
+                    <a href="#" class="mr-5 hover:text-white">"Login"</a>
+                    <a href="#" class="mr-5 hover:text-white">"Settings"</a>
                 </nav>
+                <div class="form-control">
+                  //<label class="label">
+                    //<span class="label-text">"Search"</span>
+                    //<span class="label-text-alt">Top Right label</span>
+                  //</label>
+                  <input type="text" placeholder="Search" class="input input-bordered w-full max-w-xs" />
+                  //<label class="label">
+                    //<span class="label-text-alt">Bottom Left label</span>
+                    //<span class="label-text-alt">Bottom Right label</span>
+                  //</label>
+                </div>
                 <button class="inline-flex items-center bg-gray-800 border-0 py-1 px-3 focus:outline-none hover:bg-gray-700 rounded text-base mt-4 md:mt-0">
                     "Button"
                     <RightArrowIcon/>
                 </button>
+            </div>
+        </header>
+             */
+        <header class="bg-blue-500">
+            <div class="container mx-auto p-4 flex flex-wrap flex-row items-center justify-between">
+                <div class="flex flex-wrap flex-row gap-4">
+                    //<!-- SVG button to open sidebar (hidden on large screens) -->
+                    <button class="lg:hidden">
+                      //<!-- Insert your SVG icon here -->
+                        <SideBarIcon/>
+                    </button>
+                    //<!-- SVG logo -->
+                    <div class="text-white text-lg font-bold">
+                      //<!-- Insert your SVG logo here -->
+                        <StacksIcon/>
+                    </div>
+                    //<!-- Text input -->
+                    <input type="text" placeholder="Search" class="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"/>
+                </div>
+                <div>
+                    //<!-- Login button -->
+                    <button class="bg-white text-blue-500 px-4 py-2 rounded-md mx-2">"Login"</button>
+                    //<!-- Parameter button -->
+                    <button class="bg-white text-blue-500 px-4 py-2 rounded-md">"Parameters"</button>
+                </div>
             </div>
         </header>
     }

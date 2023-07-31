@@ -5,10 +5,28 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
+#[derive(Copy, Clone, Debug)]
+struct GlobalState {
+    temp: RwSignal<bool>,
+}
+
+impl GlobalState {
+    pub fn new(cx: Scope) -> Self {
+        Self {
+            temp: create_rw_signal(cx, false)
+        }
+    }
+}
+
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context(cx);
+
+    // Provide global context for app
+    provide_context(cx, GlobalState::new(cx));
+
+    let (show_sidebar, set_show_sidebar) = create_signal(cx, false);
 
     view! {
         cx,
@@ -18,7 +36,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/start-axum.css"/>
 
         // sets the document title
-        <Title text="Welcome to <ProjectName>"/>
+        <Title text="Welcome to [[ProjectName]]"/>
 
         // content for this welcome page
         <Router fallback=|cx| {
@@ -29,7 +47,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             }
             .into_view(cx)
         }>
-            <NavigationBar/>
+            <NavigationBar on_toggle_sidebar=move |_| set_show_sidebar.update(|value| *value = !*value)/>
             <main>
                 <Routes>
                     <Route path="" view=|cx| view! { cx, <HomePage/> }/>

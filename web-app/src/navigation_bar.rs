@@ -2,7 +2,9 @@ use leptos::*;
 
 /// Navigation bar component
 #[component]
-pub fn NavigationBar(cx: Scope) -> impl IntoView {
+pub fn NavigationBar<F>(cx: Scope, on_sidebar_icon_click: F) -> impl IntoView {
+
+
     view! { cx,
         /*<header class="text-gray-400 bg-gray-900 body-font">
             <div class="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center">
@@ -91,11 +93,14 @@ pub fn RightArrowIcon(cx: Scope) -> impl IntoView {
 #[component]
 pub fn SideBarIcon(cx: Scope) -> impl IntoView {
     view! { cx,
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-menu-2" width="44" height="44" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2c3e50" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M4 6l16 0" />
-            <path d="M4 12l16 0" />
-            <path d="M4 18l16 0" />
+        <svg class="w-10 h-10 text-white p-2"
+             fill="white"
+             stroke="currentColor"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             stroke-width="2"
+             viewBox="0 0 448 512">
+            <path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/>
         </svg>
     }
 }

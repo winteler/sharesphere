@@ -1,5 +1,6 @@
 use cfg_if::cfg_if;
 pub mod app;
+pub mod drawer;
 pub mod navigation_bar;
 pub mod footer;
 pub mod error_template;

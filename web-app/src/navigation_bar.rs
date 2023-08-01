@@ -1,43 +1,20 @@
 use leptos::*;
 
+static SIDEBAR_TOGGLE_BUTTON_NAME: &str = "Rust";
+
 /// Navigation bar component
 #[component]
-pub fn NavigationBar<F>(cx: Scope, on_sidebar_icon_click: F) -> impl IntoView {
-
-
+pub fn NavigationBar<F>(
+    cx: Scope,
+    on_sidebar_icon_click: F) -> impl IntoView
+    where
+        F: Fn(leptos::ev::MouseEvent) + 'static, {
     view! { cx,
-        /*<header class="text-gray-400 bg-gray-900 body-font">
-            <div class="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center">
-                <a class="flex title-font font-medium items-center text-white mb-4 md:mb-0">
-                    <StacksIcon/>
-                </a>
-                <nav class="md:ml-auto flex flex-wrap items-center text-base justify-center">
-                    <a href="#" class="mr-5 hover:text-white">"Login"</a>
-                    <a href="#" class="mr-5 hover:text-white">"Settings"</a>
-                </nav>
-                <div class="form-control">
-                  //<label class="label">
-                    //<span class="label-text">"Search"</span>
-                    //<span class="label-text-alt">Top Right label</span>
-                  //</label>
-                  <input type="text" placeholder="Search" class="input input-bordered w-full max-w-xs" />
-                  //<label class="label">
-                    //<span class="label-text-alt">Bottom Left label</span>
-                    //<span class="label-text-alt">Bottom Right label</span>
-                  //</label>
-                </div>
-                <button class="inline-flex items-center bg-gray-800 border-0 py-1 px-3 focus:outline-none hover:bg-gray-700 rounded text-base mt-4 md:mt-0">
-                    "Button"
-                    <RightArrowIcon/>
-                </button>
-            </div>
-        </header>
-             */
-        <header class="bg-blue-500">
+        <header class="sticky top-0 z-30 bg-blue-500">
             <div class="container mx-auto p-4 flex flex-wrap flex-row items-center justify-between">
                 <div class="flex flex-wrap flex-row gap-4">
                     //<!-- SVG button to open sidebar (hidden on large screens) -->
-                    <button class="lg:hidden">
+                    <button name=SIDEBAR_TOGGLE_BUTTON_NAME on:click=on_sidebar_icon_click class="lg:hidden">
                       //<!-- Insert your SVG icon here -->
                         <SideBarIcon/>
                     </button>

@@ -1,10 +1,10 @@
 {
   "scripts": {
-    "build":"npx tailwindcss -i ./input.css -o ./style/main.scss",
-    "watch":"npx tailwindcss -i ./input.css -o ./style/main.scss --watch"
+    "build": "npx tailwindcss -i ./input.css -o ./style/main.scss",
+    "watch": "npx tailwindcss -i ./input.css -o ./style/main.scss --watch"
   },
   "devDependencies": {
-    "tailwindcss": "^3.3.3",
-    "daisyui": "^3.3.1"
+    "daisyui": "^3.3.1",
+    "tailwindcss": "^3.3.3"
   }
 }

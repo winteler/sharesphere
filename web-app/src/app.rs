@@ -1,6 +1,7 @@
 use crate::error_template::{AppError, ErrorTemplate};
 use crate::navigation_bar::*;
-use crate::footer::*;
+use crate::drawer::*;
+//use crate::footer::*;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -28,6 +29,9 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     let (show_sidebar, set_show_sidebar) = create_signal(cx, false);
 
+    let hide_sidebar = move |_mouse_event: leptos::ev::MouseEvent| set_show_sidebar.update(|value| *value = false);
+    let toggle_sidebar = move |_mouse_event: leptos::ev::MouseEvent| set_show_sidebar.update(|value| *value = !*value);
+
     view! {
         cx,
 
@@ -47,13 +51,18 @@ pub fn App(cx: Scope) -> impl IntoView {
             }
             .into_view(cx)
         }>
-            <NavigationBar on_toggle_sidebar=move |_| set_show_sidebar.update(|value| *value = !*value)/>
-            <main>
-                <Routes>
-                    <Route path="" view=|cx| view! { cx, <HomePage/> }/>
-                </Routes>
-            </main>
-            <Footer/>
+            <div class="h-screen">
+                <NavigationBar on:click=hide_sidebar on_sidebar_icon_click=toggle_sidebar/>
+                <main class="flex h-full">
+                    <Drawer show_sidebar=show_sidebar/>
+                    <div on:click=hide_sidebar class="container mx-auto h-full">
+                        <Routes>
+                            <Route path="" view=|cx| view! { cx, <HomePage/> }/>
+                        </Routes>
+                    </div>
+                </main>
+                //<Footer/>
+            </div>
         </Router>
     }
 }
@@ -67,7 +76,7 @@ fn HomePage(cx: Scope) -> impl IntoView {
     let (count, set_count) = create_signal(cx, 0);
 
     view! { cx,
-        <main class="my-0 mx-auto max-w-3xl text-center">
+        <div class="h-full my-0 mx-auto max-w-3xl text-center">
             <h2 class="p-6 text-4xl">"Welcome to Leptos with Tailwind"</h2>
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Tailwind will scan your Rust files for Tailwind class names and compile them into a CSS file."</p>
             <button
@@ -76,13 +85,15 @@ fn HomePage(cx: Scope) -> impl IntoView {
                 on:click=move |_| set_count.update(|count| *count += 1)
             >
                 "Something's here | "
-                {move || if count() == 0 {
-                    "Click me!".to_string()
-                } else {
-                    count().to_string()
-                }}
+                {
+                    move || if count() == 0 {
+                        "Click me!".to_string()
+                    } else {
+                        count().to_string()
+                    }
+                }
                 " | Some more text"
             </button>
-        </main>
+        </div>
     }
 }

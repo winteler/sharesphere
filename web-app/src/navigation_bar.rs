@@ -10,22 +10,23 @@ pub fn NavigationBar<F>(
     where
         F: Fn(leptos::ev::MouseEvent) + 'static, {
     view! { cx,
-        <header class="sticky top-0 z-30 bg-blue-500">
-            <div class="container mx-auto p-4 flex flex-wrap flex-row items-center justify-between">
+        <header class="bg-blue-500">
+            <div class="container mx-auto p-2 flex flex-wrap flex-row items-center justify-between">
                 <div class="flex flex-wrap flex-row gap-4">
                     //<!-- SVG button to open sidebar (hidden on large screens) -->
-                    <button name=SIDEBAR_TOGGLE_BUTTON_NAME on:click=on_sidebar_icon_click class="lg:hidden">
+                    /*<button name=SIDEBAR_TOGGLE_BUTTON_NAME on:click=on_sidebar_icon_click class="lg:hidden">
                       //<!-- Insert your SVG icon here -->
                         <SideBarIcon/>
-                    </button>
+                    </button>*/
+                    <label for="my-drawer" class="drawer-button lg:hidden"><SideBarIcon/></label>
                     //<!-- SVG logo -->
                     <div class="text-white text-lg font-bold">
                       //<!-- Insert your SVG logo here -->
                         <StacksIcon/>
                     </div>
-                    //<!-- Text input -->
-                    <input type="text" placeholder="Search" class="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"/>
                 </div>
+                //<!-- Text input -->
+                <input type="text" placeholder="Search" class="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"/>
                 <div>
                     //<!-- Login button -->
                     <button class="bg-white text-blue-500 px-4 py-2 rounded-md mx-2">"Login"</button>

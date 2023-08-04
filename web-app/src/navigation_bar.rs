@@ -1,47 +1,59 @@
 use leptos::*;
 
-static SIDEBAR_TOGGLE_BUTTON_NAME: &str = "Rust";
-
 /// Navigation bar component
 #[component]
-pub fn NavigationBar<F>(
-    cx: Scope,
-    on_sidebar_icon_click: F) -> impl IntoView
-    where
-        F: Fn(leptos::ev::MouseEvent) + 'static, {
+pub fn NavigationBar(
+    cx: Scope) -> impl IntoView
+{
     view! { cx,
-        <header class="bg-blue-500">
-            <div class="container mx-auto p-2 flex flex-wrap flex-row items-center justify-between">
-                <div class="flex flex-wrap flex-row gap-4">
-                    //<!-- SVG button to open sidebar (hidden on large screens) -->
-                    /*<button name=SIDEBAR_TOGGLE_BUTTON_NAME on:click=on_sidebar_icon_click class="lg:hidden">
-                      //<!-- Insert your SVG icon here -->
-                        <SideBarIcon/>
-                    </button>*/
-                    <label for="my-drawer" class="drawer-button lg:hidden"><SideBarIcon/></label>
-                    //<!-- SVG logo -->
-                    <div class="text-white text-lg font-bold">
-                      //<!-- Insert your SVG logo here -->
+        <div class="navbar bg-blue-500">
+            <div class="navbar-start">
+                <label for="my-drawer" class="drawer-button lg:hidden btn btn-square btn-ghost"><SideBarIcon/></label>
+                <div class="flex-1">
+                    <a class="btn btn-ghost normal-case text-l text-white">
                         <StacksIcon/>
-                    </div>
-                </div>
-                //<!-- Text input -->
-                <input type="text" placeholder="Search" class="px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"/>
-                <div>
-                    //<!-- Login button -->
-                    <button class="bg-white text-blue-500 px-4 py-2 rounded-md mx-2">"Login"</button>
-                    //<!-- Parameter button -->
-                    <button class="bg-white text-blue-500 px-4 py-2 rounded-md">"Parameters"</button>
+                        "[[ProjectName]]"
+                    </a>
                 </div>
             </div>
-        </header>
+            <div class="navbar-end gap-1">
+                <div class="join sm:max-lg:hidden">
+                    <div>
+                        <div>
+                            <input class="input join-item input-md" placeholder="Search"/>
+                        </div>
+                    </div>
+                    <button class="btn join-item button-md"><SearchIcon/></button>
+                </div>
+                <button class="btn btn-ghost btn-circle lg:hidden">
+                    <SearchIcon/>
+                </button>
+                <div class="dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-ghost btn-circle avatar">
+                        <div class="rounded-full">
+                            <UserIcon/>
+                        </div>
+                    </label>
+                    <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                        <li>
+                            <a class="justify-between">
+                                "Profile"
+                                <span class="badge">"New"</span>
+                            </a>
+                        </li>
+                        <li><a>"Settings"</a></li>
+                        <li><a>"Logout"</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     }
 }
 
 #[component]
 pub fn StacksIcon(cx: Scope) -> impl IntoView {
     view! { cx,
-        <svg class="w-10 h-10 text-white p-2 bg-indigo-500 rounded-full"
+        <svg class="w-7 h-7 text-white p-1 bg-indigo-500 rounded-full"
              fill="none"
              stroke="currentColor"
              stroke-linecap="round"
@@ -54,31 +66,30 @@ pub fn StacksIcon(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn RightArrowIcon(cx: Scope) -> impl IntoView {
+pub fn SideBarIcon(cx: Scope) -> impl IntoView {
     view! { cx,
-        <svg class="w-4 h-4 ml-1"
-             fill="none"
-             stroke="currentColor"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             stroke-width="2"
-             viewBox="0 0 24 24">
-            <path d="M5 12h14M12 5l7 7-7 7"></path>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-white">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
     }
 }
 
 #[component]
-pub fn SideBarIcon(cx: Scope) -> impl IntoView {
+pub fn SearchIcon(cx: Scope) -> impl IntoView {
     view! { cx,
-        <svg class="w-10 h-10 text-white p-2"
-             fill="white"
-             stroke="currentColor"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             stroke-width="2"
-             viewBox="0 0 448 512">
-            <path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-5 w-5 stroke-white">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+    }
+}
+
+#[component]
+pub fn UserIcon(cx: Scope) -> impl IntoView {
+    view! { cx,
+        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 icon icon-tabler icon-tabler-user stroke-white">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+              <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
         </svg>
     }
 }

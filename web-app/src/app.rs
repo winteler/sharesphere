@@ -29,16 +29,6 @@ pub fn App(cx: Scope) -> impl IntoView {
     // Provide global context for app
     provide_context(cx, GlobalState::new(cx));
 
-    let (show_sidebar, set_show_sidebar) = create_signal(cx, false);
-
-    let hide_sidebar = (move |_mouse_event: leptos::ev::MouseEvent| {
-
-        let target = _mouse_event.target().unwrap();
-        leptos::log!("{:?}", target);
-        set_show_sidebar.update(|value| *value = false);
-    });
-    let toggle_sidebar = move |_mouse_event: leptos::ev::MouseEvent| set_show_sidebar.update(|value| *value = !*value);
-
     view! {
         cx,
 
@@ -59,10 +49,10 @@ pub fn App(cx: Scope) -> impl IntoView {
             .into_view(cx)
         }>
             <div class="h-screen flex flex-col">
-                <NavigationBar on_sidebar_icon_click=toggle_sidebar/>
+                <NavigationBar/>
                 <main class="h-full drawer lg:drawer-open">
-                    <input id="my-drawer" type="checkbox" class="drawer-toggle" checked=show_sidebar/>
-                    <div class="drawer-content container sm:max-xl:mx-auto h-full">
+                    <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
+                    <div class="drawer-content container mx-auto h-full">
                         <Routes>
                             <Route path="" view=|cx| view! { cx, <HomePage/> }/>
                         </Routes>

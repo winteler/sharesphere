@@ -5,6 +5,7 @@ pub mod navigation_bar;
 pub mod footer;
 pub mod error_template;
 pub mod fileserv;
+pub mod auth;
 
 cfg_if! { if #[cfg(feature = "hydrate")] {
     use leptos::*;

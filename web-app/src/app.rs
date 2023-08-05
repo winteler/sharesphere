@@ -3,6 +3,7 @@ use crate::error_template::{AppError, ErrorTemplate};
 use crate::navigation_bar::*;
 use crate::drawer::*;
 //use crate::footer::*;
+use crate::auth::*;
 use leptos::*;
 use leptos::ev::Event;
 use leptos_meta::*;
@@ -55,6 +56,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <div class="drawer-content container mx-auto h-full">
                         <Routes>
                             <Route path="" view=|cx| view! { cx, <HomePage/> }/>
+                            <Route path="/auth-callback" view=|cx| view! { cx, <AuthCallback/> }/>
                         </Routes>
                     </div>
                     <div class="drawer-side">

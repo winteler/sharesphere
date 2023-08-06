@@ -56,7 +56,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <div class="drawer-content container mx-auto h-full">
                         <Routes>
                             <Route path="" view=|cx| view! { cx, <HomePage/> }/>
-                            <Route path="/auth-callback" view=|cx| view! { cx, <AuthCallback/> }/>
+                            <Route path=AUTH_CALLBACK_ROUTE view=|cx| view! { cx, <AuthCallback/> }/>
                         </Routes>
                     </div>
                     <div class="drawer-side">

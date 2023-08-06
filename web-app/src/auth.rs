@@ -1,5 +1,9 @@
 use cfg_if::cfg_if;
+use std::env;
 use leptos::*;
+
+pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
+pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
@@ -16,6 +20,9 @@ if #[cfg(feature = "ssr")] {
 #[cfg(feature = "ssr")]
 pub async fn get_auth_client() -> Result<(), anyhow::Error> {
 
+    let base_url = env::var(BASE_URL_ENV)?;
+    let redirect_url = base_url + AUTH_CALLBACK_ROUTE;
+
     let provider_metadata = oidc::core::CoreProviderMetadata::discover(
         &oidc::IssuerUrl::new("https://accounts.example.com".to_string())?,
         http_client,
@@ -30,7 +37,7 @@ pub async fn get_auth_client() -> Result<(), anyhow::Error> {
             Some(oidc::ClientSecret::new("client_secret".to_string())),
         )
     // Set the URL the user will be redirected to after the authorization process.
-            .set_redirect_uri(oidc::RedirectUrl::new("http://redirect".to_string())?);
+            .set_redirect_uri(oidc::RedirectUrl::new(redirect_url)?);
 
     // Generate a PKCE challenge.
     let (pkce_challenge, pkce_verifier) = oidc::PkceCodeChallenge::new_random_sha256();

@@ -1,6 +1,8 @@
 use cfg_if::cfg_if;
 use std::env;
 use leptos::*;
+use leptos_router::*;
+use serde::{Deserialize, Serialize};
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
@@ -18,8 +20,7 @@ if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
-pub async fn get_auth_client() -> Result<(), anyhow::Error> {
-
+pub fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
     let base_url = env::var(BASE_URL_ENV)?;
     let redirect_url = base_url + AUTH_CALLBACK_ROUTE;
 
@@ -36,11 +37,18 @@ pub async fn get_auth_client() -> Result<(), anyhow::Error> {
             oidc::ClientId::new("client_id".to_string()),
             Some(oidc::ClientSecret::new("client_secret".to_string())),
         )
-    // Set the URL the user will be redirected to after the authorization process.
+            // Set the URL the user will be redirected to after the authorization process.
             .set_redirect_uri(oidc::RedirectUrl::new(redirect_url)?);
 
+    Ok(client)
+}
+
+#[server(GetAuthUrl, "/api")]
+pub async fn get_auth_url(cx: Scope) -> Result<String, ServerFnError> {
     // Generate a PKCE challenge.
     let (pkce_challenge, pkce_verifier) = oidc::PkceCodeChallenge::new_random_sha256();
+
+    let client = get_auth_client()?;
 
     // Generate the full authorization URL.
     let (auth_url, csrf_token, nonce) = client
@@ -49,10 +57,10 @@ pub async fn get_auth_client() -> Result<(), anyhow::Error> {
             oidc::CsrfToken::new_random,
             oidc::Nonce::new_random,
         )
-    // Set the desired scopes.
+        // Set the desired scopes.
         .add_scope(oidc::Scope::new("read".to_string()))
         .add_scope(oidc::Scope::new("write".to_string()))
-    // Set the PKCE code challenge.
+        // Set the PKCE code challenge.
         .set_pkce_challenge(pkce_challenge)
         .url();
 
@@ -60,27 +68,33 @@ pub async fn get_auth_client() -> Result<(), anyhow::Error> {
     // process.
     println!("Browse to: {}", auth_url);
 
+    Ok(auth_url.to_string())
+}
+
+#[server(GetToken, "/api")]
+pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
+    let client = get_auth_client()?;
+
     // Now you can exchange it for an access token and ID token.
     let token_response =
         client
-            .exchange_code(oidc::AuthorizationCode::new("some authorization code".to_string()))
+            .exchange_code(oidc::AuthorizationCode::new(auth_code))
     // Set the PKCE code verifier.
-            .set_pkce_verifier(pkce_verifier)
+            //.set_pkce_verifier(pkce_verifier)
             .request(http_client)?;
 
     // Extract the ID token claims after verifying its authenticity and nonce.
-    let id_token = token_response
-        .id_token()
-        .ok_or_else(|| anyhow!("Server did not return an ID token"))?;
-    let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
+    let id_token = token_response.id_token().ok_or(ServerFnError::Args("Error getting id token.".to_owned()))?;
+    println!("id_token: {:?}", id_token);
+    //let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
 
     // Verify the access token hash to ensure that the access token hasn't been substituted for
     // another user's.
-    if let Some(expected_access_token_hash) = claims.access_token_hash() {
+    /*if let Some(expected_access_token_hash) = claims.access_token_hash() {
         let actual_access_token_hash = oidc::AccessTokenHash::from_token(
             token_response.access_token(),
             &id_token.signing_alg()?
@@ -96,7 +110,7 @@ pub async fn get_auth_client() -> Result<(), anyhow::Error> {
         "User {} with e-mail address {} has authenticated successfully",
         claims.subject().as_str(),
         claims.email().map(|email| email.as_str()).unwrap_or("<not provided>"),
-    );
+    );*/
 
     // If available, we can use the UserInfo endpoint to request additional information.
 
@@ -105,27 +119,63 @@ pub async fn get_auth_client() -> Result<(), anyhow::Error> {
     // CoreUserInfoClaims type alias.
     let userinfo: oidc::core::CoreUserInfoClaims = client
         .user_info(token_response.access_token().to_owned(), None)
-        .map_err(|err| anyhow!("No user info endpoint: {:?}", err))?
+        .map_err(|err| ServerFnError::Args("No user info endpoint: ".to_owned() + &err.to_string()))?
         .request(http_client)
-        .map_err(|err| anyhow!("Failed requesting user info: {:?}", err))?;
+        .map_err(|err| ServerFnError::Args("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
     // See the OAuth2TokenResponse trait for a listing of other available fields such as
     // access_token() and refresh_token().
-    Ok(())
+    Ok(true)
 }
 
 /// Navigation bar component
 #[component]
+pub fn Auth(
+    cx: Scope) -> impl IntoView
+{
+    let auth_url_resource = create_resource(cx, || (), move |_| get_auth_url(cx));
+
+    view! { cx,
+        <h1>"Welcome to Leptos!"</h1>
+        <Suspense fallback=move || {
+            view! { cx, <div>"Loading..."</div> }
+        }>
+            {move || match auth_url_resource.read(cx) {
+                None => view! { cx, <div>"Loading..."</div> }.into_view(cx),
+                Some(Err(e)) => view! { cx, <div>{e.to_string()}</div> }.into_view(cx),
+                Some(Ok(auth_url)) => view! { cx, <a href=auth_url>"Start Login"</a> }.into_view(cx),
+            }}
+        </Suspense>
+    }
+}
+
+/// Auth callback component
+#[component]
 pub fn AuthCallback(
     cx: Scope) -> impl IntoView
 {
+    let query = move || use_query_map(cx).get();
+    let code = query().get("code").unwrap().to_owned();
+    let token_resource = create_blocking_resource(cx, || (), move |_| get_token(cx, code.clone()));
     view! { cx,
-        <div class="alert alert-warning">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6 stroke-white" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span>"Warning: auth isn't implemented yet!"</span>
-        </div>
+        <h1>"Auth Callback"</h1>
+        <Suspense fallback=|| ()>
+            {move || {
+                token_resource
+                    .with(
+                        cx,
+                        |token| {
+                            let Ok(auth_complete) = token else {
+                            return view! { cx, <div>"Nothing"</div> }.into_view(cx);
+                        };
+                            view! { cx,
+                                <div>"Token Received: " {format!("{:?}", auth_complete)}</div>
+                            }
+                                .into_view(cx)
+                        },
+                    )
+            }}
+        </Suspense>
     }
 }
 

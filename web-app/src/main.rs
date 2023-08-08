@@ -2,12 +2,21 @@
 #[tokio::main]
 async fn main() {
     use axum::{routing::post, Router};
+    use axum_sessions::{
+        async_session::MemoryStore,
+        extractors::{ReadableSession, WritableSession},
+        SessionLayer,
+    };
+    use rand::Rng;
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
     use start_axum::app::*;
     use start_axum::fileserv::file_and_error_handler;
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
+    let store = MemoryStore::new();
+    let secret = rand::thread_rng().gen::<[u8; 128]>();
+    let session_layer = SessionLayer::new(store, &secret).with_secure(false);
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
@@ -23,6 +32,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
         .leptos_routes(&leptos_options, routes, |cx| view! { cx, <App/> })
+        .layer(session_layer)
         .fallback(file_and_error_handler)
         .with_state(leptos_options);
 

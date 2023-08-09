@@ -5,6 +5,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
+pub const AUTH_ROUTE : &str = "/auth";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 
 cfg_if! {
@@ -12,7 +13,7 @@ if #[cfg(feature = "ssr")] {
     use openidconnect as oidc;
     use anyhow::anyhow;
 
-    use openidconnect::reqwest::http_client;
+    use openidconnect::reqwest::*;
     use openidconnect::url::Url;
 
     // Use OpenID Connect Discovery to fetch the provider metadata.
@@ -20,36 +21,38 @@ if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
-pub fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
-    let base_url = env::var(BASE_URL_ENV)?;
-    let redirect_url = base_url + AUTH_CALLBACK_ROUTE;
+pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
 
-    let provider_metadata = oidc::core::CoreProviderMetadata::discover(
-        &oidc::IssuerUrl::new("https://accounts.example.com".to_string())?,
-        http_client,
-    )?;
+    let base_url = env::var(BASE_URL_ENV)?;
+    let redirect_url = String::from("http://") + &base_url + AUTH_CALLBACK_ROUTE;
+    let issuer_url = oidc::IssuerUrl::new("http://127.0.0.1:8080/realms/project".to_string()).expect("Invalid issuer URL");
+
+    let provider_metadata = oidc::core::CoreProviderMetadata::discover_async(
+        issuer_url,
+        async_http_client
+    ).await?;
 
     // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL
     // and token URL.
     let client =
         oidc::core::CoreClient::from_provider_metadata(
             provider_metadata,
-            oidc::ClientId::new("client_id".to_string()),
-            Some(oidc::ClientSecret::new("client_secret".to_string())),
+            oidc::ClientId::new("project-client".to_string()),
+            Some(oidc::ClientSecret::new("psXCKGKe4E5pVHwneYRPizBv84CHKL32".to_string())),
         )
-            // Set the URL the user will be redirected to after the authorization process.
-            .set_redirect_uri(oidc::RedirectUrl::new(redirect_url)?);
+        // Set the URL the user will be redirected to after the authorization process.
+        .set_redirect_uri(oidc::RedirectUrl::new(redirect_url)?);
 
     Ok(client)
 }
 
 #[server(GetAuthUrl, "/api")]
 pub async fn get_auth_url(cx: Scope) -> Result<String, ServerFnError> {
-    // Generate a PKCE challenge.
-    let (pkce_challenge, pkce_verifier) = oidc::PkceCodeChallenge::new_random_sha256();
 
-    let client = get_auth_client()?;
+    println!("get client");
+    let client = get_auth_client().await?;
 
+    println!("generate url");
     // Generate the full authorization URL.
     let (auth_url, csrf_token, nonce) = client
         .authorize_url(
@@ -58,10 +61,8 @@ pub async fn get_auth_url(cx: Scope) -> Result<String, ServerFnError> {
             oidc::Nonce::new_random,
         )
         // Set the desired scopes.
-        .add_scope(oidc::Scope::new("read".to_string()))
-        .add_scope(oidc::Scope::new("write".to_string()))
-        // Set the PKCE code challenge.
-        .set_pkce_challenge(pkce_challenge)
+        //.add_scope(oidc::Scope::new("read".to_string()))
+        //.add_scope(oidc::Scope::new("write".to_string()))
         .url();
 
     // This is the URL you should redirect the user to, in order to trigger the authorization
@@ -77,7 +78,11 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
-    let client = get_auth_client()?;
+    println!("Get token, auth_code = {auth_code}");
+
+    let client = get_auth_client().await?;
+
+    println!("Got client");
 
     // Now you can exchange it for an access token and ID token.
     let token_response =
@@ -85,7 +90,9 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
             .exchange_code(oidc::AuthorizationCode::new(auth_code))
     // Set the PKCE code verifier.
             //.set_pkce_verifier(pkce_verifier)
-            .request(http_client)?;
+            .request_async(async_http_client).await?;
+
+    println!("Got token_response");
 
     // Extract the ID token claims after verifying its authenticity and nonce.
     let id_token = token_response.id_token().ok_or(ServerFnError::Args("Error getting id token.".to_owned()))?;
@@ -120,7 +127,7 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
     let userinfo: oidc::core::CoreUserInfoClaims = client
         .user_info(token_response.access_token().to_owned(), None)
         .map_err(|err| ServerFnError::Args("No user info endpoint: ".to_owned() + &err.to_string()))?
-        .request(http_client)
+        .request_async(async_http_client).await
         .map_err(|err| ServerFnError::Args("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
     // See the OAuth2TokenResponse trait for a listing of other available fields such as
@@ -136,7 +143,7 @@ pub fn Auth(
     let auth_url_resource = create_resource(cx, || (), move |_| get_auth_url(cx));
 
     view! { cx,
-        <h1>"Welcome to Leptos!"</h1>
+        <h1>"You got to the redirect, yay! "</h1>
         <Suspense fallback=move || {
             view! { cx, <div>"Loading..."</div> }
         }>

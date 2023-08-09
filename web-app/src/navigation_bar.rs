@@ -99,8 +99,9 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 
 #[component]
 pub fn LoginButton(cx: Scope) -> impl IntoView {
+    use crate::auth::*;
     view! { cx,
-        <a href="localhost:" class="btn btn-ghost">
+        <a href=AUTH_ROUTE class="btn btn-ghost">
             <UserIcon/>
         </a>
     }

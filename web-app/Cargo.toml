@@ -1,5 +1,5 @@
 [package]
-name = "start-axum"
+name = "project_web_app"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { version = "0.6.4", optional = true }
-axum-sessions = { version = "0.5.0", optional = true }
+axum_session = { version = "0.3.5", features = [ "postgres-rustls"], optional = true }
+axum_session_auth = { version = "0.3.1", features = [ "postgres-rustls" ], optional = true }
 console_error_panic_hook = "0.1"
 console_log = "1"
 cfg-if = "1"
@@ -27,20 +28,25 @@ wasm-bindgen = "=0.2.87"
 thiserror = "1.0.38"
 tracing = { version = "0.1.37", optional = true }
 http = "0.2.8"
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls" ], optional = true }
 openidconnect = { version = "3.3.0", optional = true }
 anyhow = { version = "*", optional = true }
+async-trait = { version = "*", optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "dep:axum",
-    "dep:axum-sessions",
+    "dep:axum_session",
+    "dep:axum_session_auth",
     "dep:tokio",
     "dep:tower",
     "dep:tower-http",
     "dep:leptos_axum",
+    "dep:sqlx",
     "dep:openidconnect",
     "dep:anyhow",
+    "dep:async-trait",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",

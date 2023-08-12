@@ -10,14 +10,56 @@ pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
-    use openidconnect as oidc;
+
+    use sqlx::{PgPool, ConnectOptions, postgres::{PgPoolOptions, PgConnectOptions}};
+    use axum_session_auth::{SessionPgPool, Authentication, HasPermission};
+
     use anyhow::anyhow;
 
+    use openidconnect as oidc;
     use openidconnect::reqwest::*;
     use openidconnect::url::Url;
-
     // Use OpenID Connect Discovery to fetch the provider metadata.
     use openidconnect::{OAuth2TokenResponse, TokenResponse};
+
+    pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
+}}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct User {
+    pub id: i64,
+}
+
+impl Default for User {
+    fn default() -> Self {
+        Self {
+            id: -1,
+        }
+    }
+}
+
+cfg_if! {
+if #[cfg(feature = "ssr")] {
+    use async_trait::async_trait;
+
+    #[async_trait]
+    impl Authentication<User, i64, PgPool> for User {
+        async fn load_user(userid: i64, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+            Ok(User::default())
+        }
+
+        fn is_authenticated(&self) -> bool {
+            true
+        }
+
+        fn is_active(&self) -> bool {
+            true
+        }
+
+        fn is_anonymous(&self) -> bool {
+            false
+        }
+    }
 }}
 
 #[cfg(feature = "ssr")]

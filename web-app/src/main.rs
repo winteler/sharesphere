@@ -58,10 +58,10 @@ cfg_if! {
             let auth_config = AuthConfig::<i64>::default().with_anonymous_user_id(Some(1));
             let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 
-            /*sqlx::migrate!()
+            sqlx::migrate!()
                 .run(&pool)
                 .await
-                .expect("could not run SQLx migrations");*/
+                .expect("could not run SQLx migrations");
 
             // Setting get_configuration(None) means we'll be using cargo-leptos's env values
             // For deployment these variables are:

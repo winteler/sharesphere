@@ -58,6 +58,9 @@ cfg_if! {
             let auth_config = AuthConfig::<i64>::default().with_anonymous_user_id(Some(1));
             let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 
+            //Create the Database table for storing our Session Data.
+            session_store.initiate().await.unwrap();
+
             sqlx::migrate!()
                 .run(&pool)
                 .await
@@ -100,7 +103,7 @@ cfg_if! {
         async fn get_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
             PgPoolOptions::new()
                 .max_connections(5)
-                .connect("postgres://winteler:OneDBToRuleThemAll@localhost/sqlx-content")
+                .connect("postgres://project:project@localhost:5435/project")
                 .await
                 .with_context(|| format!("Failed to connect to DB"))
         }

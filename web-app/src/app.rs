@@ -12,12 +12,14 @@ use leptos_router::*;
 #[derive(Copy, Clone, Debug)]
 struct GlobalState {
     temp: RwSignal<bool>,
+    user: RwSignal<User>,
 }
 
 impl GlobalState {
     pub fn new(cx: Scope) -> Self {
         Self {
-            temp: create_rw_signal(cx, false)
+            temp: create_rw_signal(cx, false),
+            user: create_rw_signal(cx, User::default()),
         }
     }
 }

@@ -28,12 +28,16 @@ if #[cfg(feature = "ssr")] {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub id: i64,
+    pub anonymous: bool,
+    pub username: String,
 }
 
 impl Default for User {
     fn default() -> Self {
         Self {
             id: -1,
+            anonymous: true,
+            username: String::default(),
         }
     }
 }
@@ -42,6 +46,16 @@ cfg_if! {
 if #[cfg(feature = "ssr")] {
     use async_trait::async_trait;
 
+    pub fn get_db_pool(cx: Scope) -> Result<PgPool, ServerFnError> {
+       use_context::<PgPool>(cx)
+            .ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
+    }
+
+    pub fn get_session(cx: Scope) -> Result<AuthSession, ServerFnError> {
+        use_context::<AuthSession>(cx)
+            .ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
+    }
+
     #[async_trait]
     impl Authentication<User, i64, PgPool> for User {
         async fn load_user(userid: i64, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
@@ -49,15 +63,15 @@ if #[cfg(feature = "ssr")] {
         }
 
         fn is_authenticated(&self) -> bool {
-            true
+            !self.anonymous
         }
 
         fn is_active(&self) -> bool {
-            true
+            !self.anonymous
         }
 
         fn is_anonymous(&self) -> bool {
-            false
+            self.anonymous
         }
     }
 }}
@@ -107,6 +121,8 @@ pub async fn get_auth_url(cx: Scope) -> Result<String, ServerFnError> {
         //.add_scope(oidc::Scope::new("write".to_string()))
         .url();
 
+    get_session(cx)?.session.set("nonce", nonce);
+
     // This is the URL you should redirect the user to, in order to trigger the authorization
     // process.
     println!("Browse to: {}", auth_url);
@@ -121,6 +137,8 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
     // parameter returned by the server matches `csrf_state`.
 
     println!("Get token, auth_code = {auth_code}");
+
+    let nonce = oidc::Nonce::new(get_session(cx)?.session.get("nonce").unwrap_or("".to_string()));
 
     let client = get_auth_client().await?;
 
@@ -139,17 +157,17 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
     // Extract the ID token claims after verifying its authenticity and nonce.
     let id_token = token_response.id_token().ok_or(ServerFnError::Args("Error getting id token.".to_owned()))?;
     println!("id_token: {:?}", id_token);
-    //let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
+    let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
 
     // Verify the access token hash to ensure that the access token hasn't been substituted for
     // another user's.
-    /*if let Some(expected_access_token_hash) = claims.access_token_hash() {
+    if let Some(expected_access_token_hash) = claims.access_token_hash() {
         let actual_access_token_hash = oidc::AccessTokenHash::from_token(
             token_response.access_token(),
             &id_token.signing_alg()?
         )?;
         if actual_access_token_hash != *expected_access_token_hash {
-            return Err(anyhow!("Invalid access token"));
+            return Err(ServerFnError::ServerError("Invalid access token".to_owned()));
         }
     }
 
@@ -159,7 +177,7 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
         "User {} with e-mail address {} has authenticated successfully",
         claims.subject().as_str(),
         claims.email().map(|email| email.as_str()).unwrap_or("<not provided>"),
-    );*/
+    );
 
     // If available, we can use the UserInfo endpoint to request additional information.
 
@@ -172,9 +190,27 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
         .request_async(async_http_client).await
         .map_err(|err| ServerFnError::Args("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
+    println!("userinfo = {:?}", userinfo);
+
     // See the OAuth2TokenResponse trait for a listing of other available fields such as
     // access_token() and refresh_token().
     Ok(true)
+}
+
+#[server(Logout, "/api")]
+pub async fn logout(cx: Scope) -> Result<(), ServerFnError> {
+    // TODO: Perform logout in keycloak
+
+    let session = get_session(cx)?;
+    session.logout_user();
+
+    Ok(())
+}
+
+#[server(GetUser, "/api")]
+pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
+    let session = get_session(cx)?;
+    Ok(session.current_user)
 }
 
 /// Navigation bar component

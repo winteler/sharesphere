@@ -1,4 +1,5 @@
 use leptos::*;
+use crate::auth::*;
 
 /// Navigation bar component
 #[component]
@@ -72,38 +73,72 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 
     let is_logged_in = move || { false };
 
+    let login = create_server_action::<GetToken>(cx);
+    let logout = create_server_action::<Logout>(cx);
+
+    let user = create_resource(
+        cx,
+        move || {
+            (
+                login.version().get(),
+                logout.version().get(),
+            )
+        },
+        move |_| get_user(cx),
+    );
+
     view! { cx,
-        <Show when=move || { is_logged_in() }
-              fallback=|cx| view! { cx, <LoginButton/> }
-        >
-            <div class="dropdown dropdown-end">
-                <label tabindex="0" class="btn btn-ghost btn-circle avatar">
-                    <div class="rounded-full">
-                        <UserIcon/>
-                    </div>
-                </label>
-                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                    <li>
-                        <a class="justify-between">
-                            "Profile"
-                            <span class="badge">"New"</span>
-                        </a>
-                    </li>
-                    <li><a>"Settings"</a></li>
-                    <li><a>"Logout"</a></li>
-                </ul>
-            </div>
-        </Show>
+        <div class="dropdown dropdown-end">
+            <label tabindex="0" class="btn btn-ghost btn-circle avatar">
+                <div class="rounded-full">
+                    <UserIcon/>
+                </div>
+            </label>
+
+                <Transition
+                    fallback=move || view! {cx, <li><span>"Loading..."</span></li>}
+                >
+                {move || {
+                    user.read(cx).map(|user| match user {
+                        Err(e) => {
+                            log!("Login error: {}", e);
+                            view! {cx, <LoginMenu/>}.into_view(cx)
+                        },
+                        Ok(None) => view! {cx, <LoginMenu/>}.into_view(cx),
+                        Ok(Some(user)) => {
+                            if (user.anonymous)
+                            {
+                                return view! {cx, <LoginMenu/>}.into_view(cx);
+                            }
+                            view! {cx, <LoggedInMenu user=user/>}.into_view(cx)
+                        },
+                    })
+                }}
+                </Transition>
+
+        </div>
     }
 }
 
 #[component]
-pub fn LoginButton(cx: Scope) -> impl IntoView {
+pub fn LoginMenu(cx: Scope) -> impl IntoView {
     use crate::auth::*;
     view! { cx,
-        <a href=AUTH_ROUTE class="btn btn-ghost">
-            <UserIcon/>
-        </a>
+        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+            <li><a href=AUTH_ROUTE>"Login"</a></li>
+        </ul>
+    }
+}
+
+#[component]
+pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
+    use crate::auth::*;
+    view! { cx,
+        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+            <li><a>"Settings"</a></li>
+            <li><a>"Logout"</a></li>
+            <li><span>{format!("Logged in as: {}", user.username)}</span></li>
+        </ul>
     }
 }
 

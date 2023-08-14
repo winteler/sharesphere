@@ -5,7 +5,6 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
-pub const AUTH_ROUTE : &str = "/auth";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 
 cfg_if! {
@@ -102,8 +101,8 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
     Ok(client)
 }
 
-#[server(GetAuthUrl, "/api")]
-pub async fn get_auth_url(cx: Scope) -> Result<String, ServerFnError> {
+#[server(StartAuth, "/api")]
+pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
 
     println!("get client");
     let client = get_auth_client().await?;
@@ -127,7 +126,9 @@ pub async fn get_auth_url(cx: Scope) -> Result<String, ServerFnError> {
     // process.
     println!("Browse to: {}", auth_url);
 
-    Ok(auth_url.to_string())
+    // and redirect to the home page
+    leptos_axum::redirect(cx, auth_url.as_ref());
+    Ok(())
 }
 
 #[server(GetToken, "/api")]
@@ -211,27 +212,6 @@ pub async fn logout(cx: Scope) -> Result<(), ServerFnError> {
 pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
     let session = get_session(cx)?;
     Ok(session.current_user)
-}
-
-/// Navigation bar component
-#[component]
-pub fn Auth(
-    cx: Scope) -> impl IntoView
-{
-    let auth_url_resource = create_resource(cx, || (), move |_| get_auth_url(cx));
-
-    view! { cx,
-        <h1>"You got to the redirect, yay! "</h1>
-        <Suspense fallback=move || {
-            view! { cx, <div>"Loading..."</div> }
-        }>
-            {move || match auth_url_resource.read(cx) {
-                None => view! { cx, <div>"Loading..."</div> }.into_view(cx),
-                Some(Err(e)) => view! { cx, <div>{e.to_string()}</div> }.into_view(cx),
-                Some(Ok(auth_url)) => view! { cx, <a href=auth_url>"Start Login"</a> }.into_view(cx),
-            }}
-        </Suspense>
-    }
 }
 
 /// Auth callback component

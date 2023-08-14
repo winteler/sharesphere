@@ -1,4 +1,6 @@
 use leptos::*;
+use leptos::ev::submit;
+use leptos_router::ActionForm;
 use crate::auth::*;
 
 /// Navigation bar component
@@ -36,6 +38,88 @@ pub fn NavigationBar(
 }
 
 #[component]
+pub fn UserProfile(cx: Scope) -> impl IntoView {
+
+    let is_logged_in = move || { false };
+
+    let login = create_server_action::<GetToken>(cx);
+    let logout = create_server_action::<Logout>(cx);
+
+    let user = create_resource(
+        cx,
+        move || {
+            (
+                login.version().get(),
+                logout.version().get(),
+            )
+        },
+        move |_| get_user(cx),
+    );
+
+    view! { cx,
+        <Transition fallback=move || view! {cx, <UserIcon/>}>
+        {move || {
+            user.read(cx).map(|user| match user {
+                Err(e) => {
+                    log!("Login error: {}", e);
+                    view! {cx, <LoginButton/>}.into_view(cx)
+                },
+                Ok(None) => view! {cx, <LoginButton/>}.into_view(cx),
+                Ok(Some(user)) => {
+                    if (user.anonymous)
+                    {
+                        return view! {cx, <LoginButton/>}.into_view(cx);
+                    }
+                    view! {cx, <LoggedInMenu user=user/>}.into_view(cx)
+                },
+            })
+        }}
+        </Transition>
+    }
+}
+
+#[component]
+pub fn LoginButton(cx: Scope) -> impl IntoView {
+    let start_auth = create_server_action::<StartAuth>(cx);
+
+    view! { cx,
+        <ActionForm action=start_auth>
+            <button type="submit" class="btn btn-ghost"><UserIcon/></button>
+        </ActionForm>
+    }
+}
+
+#[component]
+pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
+    use crate::auth::*;
+    view! { cx,
+        <div class="dropdown dropdown-end">
+            <label tabindex="0" class="btn btn-ghost btn-circle avatar">
+                <div class="rounded-full">
+                    <UserIcon/>
+                </div>
+            </label>
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                <li><a>"Settings"</a></li>
+                <li><a>"Logout"</a></li>
+                <li><span>{format!("Logged in as: {}", user.username)}</span></li>
+            </ul>
+        </div>
+    }
+}
+
+#[component]
+pub fn UserIcon(cx: Scope) -> impl IntoView {
+    view! { cx,
+        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 icon icon-tabler icon-tabler-user stroke-white">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+              <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+        </svg>
+    }
+}
+
+#[component]
 pub fn StacksIcon(cx: Scope) -> impl IntoView {
     view! { cx,
         <svg class="w-7 h-7 text-white p-1 bg-indigo-500 rounded-full"
@@ -64,91 +148,6 @@ pub fn SearchIcon(cx: Scope) -> impl IntoView {
     view! { cx,
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-5 w-5 stroke-white">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-    }
-}
-
-#[component]
-pub fn UserProfile(cx: Scope) -> impl IntoView {
-
-    let is_logged_in = move || { false };
-
-    let login = create_server_action::<GetToken>(cx);
-    let logout = create_server_action::<Logout>(cx);
-
-    let user = create_resource(
-        cx,
-        move || {
-            (
-                login.version().get(),
-                logout.version().get(),
-            )
-        },
-        move |_| get_user(cx),
-    );
-
-    view! { cx,
-        <div class="dropdown dropdown-end">
-            <label tabindex="0" class="btn btn-ghost btn-circle avatar">
-                <div class="rounded-full">
-                    <UserIcon/>
-                </div>
-            </label>
-
-                <Transition
-                    fallback=move || view! {cx, <li><span>"Loading..."</span></li>}
-                >
-                {move || {
-                    user.read(cx).map(|user| match user {
-                        Err(e) => {
-                            log!("Login error: {}", e);
-                            view! {cx, <LoginMenu/>}.into_view(cx)
-                        },
-                        Ok(None) => view! {cx, <LoginMenu/>}.into_view(cx),
-                        Ok(Some(user)) => {
-                            if (user.anonymous)
-                            {
-                                return view! {cx, <LoginMenu/>}.into_view(cx);
-                            }
-                            view! {cx, <LoggedInMenu user=user/>}.into_view(cx)
-                        },
-                    })
-                }}
-                </Transition>
-
-        </div>
-    }
-}
-
-#[component]
-pub fn LoginMenu(cx: Scope) -> impl IntoView {
-    use crate::auth::*;
-    view! { cx,
-        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-            <li><a href=AUTH_ROUTE>"Login"</a></li>
-        </ul>
-    }
-}
-
-#[component]
-pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
-    use crate::auth::*;
-    view! { cx,
-        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-            <li><a>"Settings"</a></li>
-            <li><a>"Logout"</a></li>
-            <li><span>{format!("Logged in as: {}", user.username)}</span></li>
-        </ul>
-    }
-}
-
-#[component]
-pub fn UserIcon(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 icon icon-tabler icon-tabler-user stroke-white">
-              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-              <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
-              <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
         </svg>
     }
 }

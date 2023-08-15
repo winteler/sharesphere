@@ -219,9 +219,9 @@ pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
 pub fn AuthCallback(
     cx: Scope) -> impl IntoView
 {
-    let query = move || use_query_map(cx).get();
-    let code = query().get("code").unwrap().to_owned();
-    let token_resource = create_blocking_resource(cx, || (), move |_| get_token(cx, code.clone()));
+    let query = use_query_map(cx);
+    let code = move || query().get("code").unwrap().to_owned();
+    let token_resource = create_blocking_resource(cx, || (), move |_| get_token(cx, code()));
     view! { cx,
         <h1>"Auth Callback"</h1>
         <Suspense fallback=|| ()>

@@ -83,9 +83,9 @@ pub fn LoginButton(cx: Scope) -> impl IntoView {
     let start_auth = create_server_action::<StartAuth>(cx);
 
     view! { cx,
-        <ActionForm action=start_auth>
-            <button type="submit" class="btn btn-ghost"><UserIcon/></button>
-        </ActionForm>
+        <a href=start_auth.url() rel="external" class="btn btn-ghost">
+            <UserIcon/>
+        </a>
     }
 }
 

@@ -1,23 +1,21 @@
 use cfg_if::cfg_if;
 use std::env;
 use leptos::*;
-use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
+pub const PKCE_KEY : &str = "pkce";
+pub const NONCE_KEY : &str = "nonce";
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
 
-    use sqlx::{PgPool, ConnectOptions, postgres::{PgPoolOptions, PgConnectOptions}};
-    use axum_session_auth::{SessionPgPool, Authentication, HasPermission};
-
-    use anyhow::anyhow;
+    use sqlx::{PgPool};
+    use axum_session_auth::{SessionPgPool, Authentication};
 
     use openidconnect as oidc;
     use openidconnect::reqwest::*;
-    use openidconnect::url::Url;
     // Use OpenID Connect Discovery to fetch the provider metadata.
     use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
@@ -57,7 +55,7 @@ if #[cfg(feature = "ssr")] {
 
     #[async_trait]
     impl Authentication<User, i64, PgPool> for User {
-        async fn load_user(userid: i64, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+        async fn load_user(_userid: i64, _pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
             Ok(User::default())
         }
 
@@ -77,9 +75,7 @@ if #[cfg(feature = "ssr")] {
 
 #[cfg(feature = "ssr")]
 pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
-
-    let base_url = env::var(BASE_URL_ENV)?;
-    let redirect_url = String::from("http://") + &base_url + AUTH_CALLBACK_ROUTE;
+    let redirect_url = GetToken::url().to_string();
     let issuer_url = oidc::IssuerUrl::new("http://127.0.0.1:8080/realms/project".to_string()).expect("Invalid issuer URL");
 
     let provider_metadata = oidc::core::CoreProviderMetadata::discover_async(
@@ -103,13 +99,13 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
 
 #[server(StartAuth, "/api")]
 pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
-
-    println!("get client");
     let client = get_auth_client().await?;
 
-    println!("generate url");
+    // Generate a PKCE challenge.
+    let (pkce_challenge, pkce_verifier) = oidc::PkceCodeChallenge::new_random_sha256();
+
     // Generate the full authorization URL.
-    let (auth_url, csrf_token, nonce) = client
+    let (auth_url, _csrf_token, nonce) = client
         .authorize_url(
             oidc::core::CoreAuthenticationFlow::AuthorizationCode,
             oidc::CsrfToken::new_random,
@@ -118,15 +114,15 @@ pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
         // Set the desired scopes.
         //.add_scope(oidc::Scope::new("read".to_string()))
         //.add_scope(oidc::Scope::new("write".to_string()))
+        // Set the PKCE code challenge.
+        .set_pkce_challenge(pkce_challenge)
         .url();
 
-    get_session(cx)?.session.set("nonce", nonce);
+    //get_session(cx)?.session.set("authBeginUrl", currentUrl);
+    get_session(cx)?.session.set(PKCE_KEY, pkce_verifier);
+    get_session(cx)?.session.set(NONCE_KEY, nonce);
 
-    // This is the URL you should redirect the user to, in order to trigger the authorization
-    // process.
-    println!("Browse to: {}", auth_url);
-
-    // and redirect to the home page
+    // redirect to the auth url
     leptos_axum::redirect(cx, auth_url.as_ref());
     Ok(())
 }
@@ -137,23 +133,18 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
-    println!("Get token, auth_code = {auth_code}");
-
-    let nonce = oidc::Nonce::new(get_session(cx)?.session.get("nonce").unwrap_or("".to_string()));
+    let pkce_verifier = oidc::PkceCodeVerifier::new(get_session(cx)?.session.get(PKCE_KEY).unwrap_or("".to_string()));
+    let nonce = oidc::Nonce::new(get_session(cx)?.session.get(NONCE_KEY).unwrap_or("".to_string()));
 
     let client = get_auth_client().await?;
-
-    println!("Got client");
 
     // Now you can exchange it for an access token and ID token.
     let token_response =
         client
             .exchange_code(oidc::AuthorizationCode::new(auth_code))
     // Set the PKCE code verifier.
-            //.set_pkce_verifier(pkce_verifier)
+            .set_pkce_verifier(pkce_verifier)
             .request_async(async_http_client).await?;
-
-    println!("Got token_response");
 
     // Extract the ID token claims after verifying its authenticity and nonce.
     let id_token = token_response.id_token().ok_or(ServerFnError::Args("Error getting id token.".to_owned()))?;
@@ -193,6 +184,15 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
 
     println!("userinfo = {:?}", userinfo);
 
+    get_session(cx)?.current_user = Some(User {
+        id: -1,
+        anonymous: false,
+        username: userinfo.preferred_username().unwrap().to_string(),
+    });
+
+    // Redirect to home page
+    leptos_axum::redirect(cx, "/");
+
     // See the OAuth2TokenResponse trait for a listing of other available fields such as
     // access_token() and refresh_token().
     Ok(true)
@@ -201,46 +201,13 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
 #[server(Logout, "/api")]
 pub async fn logout(cx: Scope) -> Result<(), ServerFnError> {
     // TODO: Perform logout in keycloak
-
-    let session = get_session(cx)?;
-    session.logout_user();
-
     Ok(())
 }
 
 #[server(GetUser, "/api")]
 pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
     let session = get_session(cx)?;
+    log!("get_user returns: {:?}", session.current_user);
     Ok(session.current_user)
-}
-
-/// Auth callback component
-#[component]
-pub fn AuthCallback(
-    cx: Scope) -> impl IntoView
-{
-    let query = move || use_query_map(cx).get();
-    let code = query().get("code").unwrap().to_owned();
-    let token_resource = create_blocking_resource(cx, || (), move |_| get_token(cx, code.clone()));
-    view! { cx,
-        <h1>"Auth Callback"</h1>
-        <Suspense fallback=|| ()>
-            {move || {
-                token_resource
-                    .with(
-                        cx,
-                        |token| {
-                            let Ok(auth_complete) = token else {
-                            return view! { cx, <div>"Nothing"</div> }.into_view(cx);
-                        };
-                            view! { cx,
-                                <div>"Token Received: " {format!("{:?}", auth_complete)}</div>
-                            }
-                                .into_view(cx)
-                        },
-                    )
-            }}
-        </Suspense>
-    }
 }
 

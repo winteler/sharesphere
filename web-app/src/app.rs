@@ -1,25 +1,19 @@
-use std::ops::Div;
 use crate::error_template::{AppError, ErrorTemplate};
 use crate::navigation_bar::*;
 use crate::drawer::*;
-//use crate::footer::*;
-use crate::auth::*;
 use leptos::*;
-use leptos::ev::Event;
 use leptos_meta::*;
 use leptos_router::*;
 
 #[derive(Copy, Clone, Debug)]
-struct GlobalState {
-    temp: RwSignal<bool>,
-    user: RwSignal<User>,
+pub struct GlobalState {
+    pub is_logged_in: RwSignal<bool>,
 }
 
 impl GlobalState {
     pub fn new(cx: Scope) -> Self {
         Self {
-            temp: create_rw_signal(cx, false),
-            user: create_rw_signal(cx, User::default()),
+            is_logged_in: create_rw_signal(cx, false),
         }
     }
 }
@@ -57,8 +51,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                     <div class="drawer-content container mx-auto h-full">
                         <Routes>
-                            <Route path="" view=|cx| view! { cx, <HomePage/> }/>
-                            <Route path=AUTH_CALLBACK_ROUTE view=|cx| view! { cx, <AuthCallback/> }/>
+                            <Route path="/" view=|cx| view! { cx, <HomePage/> }/>
                         </Routes>
                     </div>
                     <div class="drawer-side">

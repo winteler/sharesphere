@@ -1,7 +1,6 @@
 use leptos::*;
-use leptos::ev::submit;
-use leptos_router::ActionForm;
 use crate::auth::*;
+use crate::app::GlobalState;
 
 /// Navigation bar component
 #[component]
@@ -40,8 +39,11 @@ pub fn NavigationBar(
 #[component]
 pub fn UserProfile(cx: Scope) -> impl IntoView {
 
-    let is_logged_in = move || { false };
+    //let is_logged_in = move || { false };
 
+    let state = expect_context::<GlobalState>(cx);
+
+    let start_auth = create_server_action::<StartAuth>(cx);
     let login = create_server_action::<GetToken>(cx);
     let logout = create_server_action::<Logout>(cx);
 
@@ -49,6 +51,7 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
         cx,
         move || {
             (
+                start_auth.version().get(),
                 login.version().get(),
                 logout.version().get(),
             )
@@ -62,14 +65,15 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
             user.read(cx).map(|user| match user {
                 Err(e) => {
                     log!("Login error: {}", e);
-                    view! {cx, <LoginButton/>}.into_view(cx)
+                    view! {cx, <LoginButton action=start_auth/>}.into_view(cx)
                 },
-                Ok(None) => view! {cx, <LoginButton/>}.into_view(cx),
+                Ok(None) => view! {cx, <LoginButton action=start_auth/>}.into_view(cx),
                 Ok(Some(user)) => {
-                    if (user.anonymous)
+                    if user.anonymous
                     {
-                        return view! {cx, <LoginButton/>}.into_view(cx);
+                        return view! {cx, <LoginButton action=start_auth/>}.into_view(cx);
                     }
+                    state.is_logged_in.set(true);
                     view! {cx, <LoggedInMenu user=user/>}.into_view(cx)
                 },
             })
@@ -79,13 +83,15 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn LoginButton(cx: Scope) -> impl IntoView {
+pub fn LoginButton(
+    cx: Scope,
+    action: Action<StartAuth, Result<(), ServerFnError>>
+) -> impl IntoView {
     let start_auth = create_server_action::<StartAuth>(cx);
-
     view! { cx,
-        <ActionForm action=start_auth>
-            <button type="submit" class="btn btn-ghost"><UserIcon/></button>
-        </ActionForm>
+        <a href=start_auth.url() rel="external" class="btn btn-ghost">
+            <UserIcon/>
+        </a>
     }
 }
 

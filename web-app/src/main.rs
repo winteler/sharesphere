@@ -17,15 +17,14 @@ cfg_if! {
         use project_web_app::fileserv::file_and_error_handler;
         use project_web_app::state::AppState;
 
-        use rand::Rng;
         use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
         use leptos::{log, view, provide_context, get_configuration};
 
-        use sqlx::{PgPool, ConnectOptions, postgres::{PgPoolOptions, PgConnectOptions}};
-        use axum_session::{SessionPgPool, Session, SessionConfig, SessionLayer, DatabasePool, SessionStore};
-        use axum_session_auth::{AuthSessionLayer, Authentication, AuthConfig};
+        use sqlx::{PgPool, postgres::{PgPoolOptions}};
+        use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore};
+        use axum_session_auth::{AuthSessionLayer, AuthConfig};
 
-        use anyhow::{Context, Result};
+        use anyhow::{Context};
 
         async fn server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery, request: Request<AxumBody>) -> impl IntoResponse {
             log!("{:?}", path);

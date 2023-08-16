@@ -4,6 +4,8 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+use crate::app::{GlobalState};
+
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 pub const PKCE_KEY : &str = "pkce";
@@ -81,6 +83,8 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
     let redirect_url = String::from("http://") + &base_url + AUTH_CALLBACK_ROUTE;
     let issuer_url = oidc::IssuerUrl::new("http://127.0.0.1:8080/realms/project".to_string()).expect("Invalid issuer URL");
 
+    println!("redirect url: {}", redirect_url);
+
     let provider_metadata = oidc::core::CoreProviderMetadata::discover_async(
         issuer_url,
         async_http_client
@@ -137,7 +141,7 @@ pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
 }
 
 #[server(GetToken, "/api")]
-pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnError> {
+pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -199,11 +203,13 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
 
     println!("userinfo = {:?}", userinfo);
 
-    get_session(cx)?.current_user = Some(User {
+    let user = User {
         id: -1,
         anonymous: false,
         username: userinfo.preferred_username().unwrap().to_string(),
-    });
+    };
+
+    get_session(cx)?.current_user = Some(user.clone());
 
     println!("stored user = {:?}", get_session(cx)?.current_user);
 
@@ -212,7 +218,7 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
 
     // See the OAuth2TokenResponse trait for a listing of other available fields such as
     // access_token() and refresh_token().
-    Ok(true)
+    Ok(user)
 }
 
 #[server(Logout, "/api")]
@@ -236,6 +242,8 @@ pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
 pub fn AuthCallback(
     cx: Scope) -> impl IntoView
 {
+    let state = expect_context::<GlobalState>(cx);
+
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
     let token_resource = create_blocking_resource(cx, || (), move |_| get_token(cx, code()));
@@ -247,13 +255,11 @@ pub fn AuthCallback(
                     .with(
                         cx,
                         |token| {
-                            let Ok(auth_complete) = token else {
-                            return view! { cx, <div>"Nothing"</div> }.into_view(cx);
-                        };
-                            view! { cx,
-                                <div>"Token Received: " {format!("{:?}", auth_complete)}</div>
-                            }
-                                .into_view(cx)
+                            let Ok(user) = token else {
+                                return view! { cx, <div>"Nothing"</div> }.into_view(cx);
+                            };
+                            state.user.set(user.clone());
+                            view! { cx, <div>"user: " {format!("{:?}", user)}</div>}.into_view(cx)
                         },
                     )
             }}

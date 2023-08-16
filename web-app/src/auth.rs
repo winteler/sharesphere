@@ -6,18 +6,17 @@ use serde::{Deserialize, Serialize};
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
+pub const PKCE_KEY : &str = "pkce";
+pub const NONCE_KEY : &str = "nonce";
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
 
-    use sqlx::{PgPool, ConnectOptions, postgres::{PgPoolOptions, PgConnectOptions}};
-    use axum_session_auth::{SessionPgPool, Authentication, HasPermission};
-
-    use anyhow::anyhow;
+    use sqlx::{PgPool};
+    use axum_session_auth::{SessionPgPool, Authentication};
 
     use openidconnect as oidc;
     use openidconnect::reqwest::*;
-    use openidconnect::url::Url;
     // Use OpenID Connect Discovery to fetch the provider metadata.
     use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
@@ -57,7 +56,7 @@ if #[cfg(feature = "ssr")] {
 
     #[async_trait]
     impl Authentication<User, i64, PgPool> for User {
-        async fn load_user(userid: i64, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+        async fn load_user(_userid: i64, _pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
             Ok(User::default())
         }
 
@@ -107,9 +106,12 @@ pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
     println!("get client");
     let client = get_auth_client().await?;
 
+    // Generate a PKCE challenge.
+    let (pkce_challenge, pkce_verifier) = oidc::PkceCodeChallenge::new_random_sha256();
+
     println!("generate url");
     // Generate the full authorization URL.
-    let (auth_url, csrf_token, nonce) = client
+    let (auth_url, _csrf_token, nonce) = client
         .authorize_url(
             oidc::core::CoreAuthenticationFlow::AuthorizationCode,
             oidc::CsrfToken::new_random,
@@ -118,9 +120,12 @@ pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
         // Set the desired scopes.
         //.add_scope(oidc::Scope::new("read".to_string()))
         //.add_scope(oidc::Scope::new("write".to_string()))
+        // Set the PKCE code challenge.
+        .set_pkce_challenge(pkce_challenge)
         .url();
 
-    get_session(cx)?.session.set("nonce", nonce);
+    get_session(cx)?.session.set(NONCE_KEY, nonce);
+    get_session(cx)?.session.set(PKCE_KEY, pkce_verifier);
 
     // This is the URL you should redirect the user to, in order to trigger the authorization
     // process.
@@ -139,7 +144,8 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
 
     println!("Get token, auth_code = {auth_code}");
 
-    let nonce = oidc::Nonce::new(get_session(cx)?.session.get("nonce").unwrap_or("".to_string()));
+    let nonce = oidc::Nonce::new(get_session(cx)?.session.get(NONCE_KEY).unwrap_or("".to_string()));
+    let pkce_verifier = oidc::PkceCodeVerifier::new(get_session(cx)?.session.get(PKCE_KEY).unwrap_or("".to_string()));
 
     let client = get_auth_client().await?;
 
@@ -149,8 +155,8 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
     let token_response =
         client
             .exchange_code(oidc::AuthorizationCode::new(auth_code))
-    // Set the PKCE code verifier.
-            //.set_pkce_verifier(pkce_verifier)
+            // Set the PKCE code verifier.
+            .set_pkce_verifier(pkce_verifier)
             .request_async(async_http_client).await?;
 
     println!("Got token_response");
@@ -192,6 +198,17 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<bool, ServerFnErr
         .map_err(|err| ServerFnError::Args("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
     println!("userinfo = {:?}", userinfo);
+
+    get_session(cx)?.current_user = Some(User {
+        id: -1,
+        anonymous: false,
+        username: userinfo.preferred_username().unwrap().to_string(),
+    });
+
+    println!("stored user = {:?}", get_session(cx)?.current_user);
+
+    // Redirect to home page
+    //leptos_axum::redirect(cx, "/");
 
     // See the OAuth2TokenResponse trait for a listing of other available fields such as
     // access_token() and refresh_token().

@@ -1,6 +1,5 @@
 use leptos::*;
-use leptos::ev::submit;
-use leptos_router::ActionForm;
+use crate::app::{GlobalState};
 use crate::auth::*;
 
 /// Navigation bar component
@@ -39,8 +38,8 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile(cx: Scope) -> impl IntoView {
-
-    let is_logged_in = move || { false };
+    use crate::auth::*;
+    let state = expect_context::<GlobalState>(cx);
 
     let login = create_server_action::<GetToken>(cx);
     let logout = create_server_action::<Logout>(cx);
@@ -53,12 +52,16 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
                 logout.version().get(),
             )
         },
-        move |_| get_user(cx),
+        move |_| { get_user(cx) },
     );
 
     view! { cx,
         <Transition fallback=move || view! {cx, <UserIcon/>}>
         {move || {
+            let local_user = state.user.get();
+            if !local_user.anonymous {
+                return Some(view! {cx, <LoggedInMenu user=local_user/>}.into_view(cx));
+            }
             user.read(cx).map(|user| match user {
                 Err(e) => {
                     log!("Login error: {}", e);
@@ -66,13 +69,14 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
                 },
                 Ok(None) => view! {cx, <LoginButton/>}.into_view(cx),
                 Ok(Some(user)) => {
-                    if (user.anonymous)
+                    if user.anonymous
                     {
                         return view! {cx, <LoginButton/>}.into_view(cx);
                     }
                     view! {cx, <LoggedInMenu user=user/>}.into_view(cx)
                 },
             })
+
         }}
         </Transition>
     }
@@ -80,6 +84,7 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 
 #[component]
 pub fn LoginButton(cx: Scope) -> impl IntoView {
+    use crate::auth::*;
     let start_auth = create_server_action::<StartAuth>(cx);
 
     view! { cx,
@@ -91,7 +96,6 @@ pub fn LoginButton(cx: Scope) -> impl IntoView {
 
 #[component]
 pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
-    use crate::auth::*;
     view! { cx,
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle avatar">

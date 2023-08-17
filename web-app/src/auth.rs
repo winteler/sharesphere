@@ -22,12 +22,12 @@ if #[cfg(feature = "ssr")] {
     // Use OpenID Connect Discovery to fetch the provider metadata.
     use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
-    pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
+    pub type AuthSession = axum_session_auth::AuthSession<User, String, SessionPgPool, PgPool>;
 }}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
-    pub id: i64,
+    pub id: String,
     pub anonymous: bool,
     pub username: String,
 }
@@ -35,7 +35,7 @@ pub struct User {
 impl Default for User {
     fn default() -> Self {
         Self {
-            id: -1,
+            id: String::default(),
             anonymous: true,
             username: String::default(),
         }
@@ -57,9 +57,9 @@ if #[cfg(feature = "ssr")] {
     }
 
     #[async_trait]
-    impl Authentication<User, i64, PgPool> for User {
-        async fn load_user(_userid: i64, _pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
-            Ok(User::default())
+    impl Authentication<User, String, PgPool> for User {
+        async fn load_user(_id: String, _pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+            Ok(User::default());
         }
 
         fn is_authenticated(&self) -> bool {
@@ -83,8 +83,6 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
     let redirect_url = String::from("http://") + &base_url + AUTH_CALLBACK_ROUTE;
     let issuer_url = oidc::IssuerUrl::new("http://127.0.0.1:8080/realms/project".to_string()).expect("Invalid issuer URL");
 
-    println!("redirect url: {}", redirect_url);
-
     let provider_metadata = oidc::core::CoreProviderMetadata::discover_async(
         issuer_url,
         async_http_client
@@ -107,13 +105,11 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
 #[server(StartAuth, "/api")]
 pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
 
-    println!("get client");
     let client = get_auth_client().await?;
 
     // Generate a PKCE challenge.
     let (pkce_challenge, pkce_verifier) = oidc::PkceCodeChallenge::new_random_sha256();
 
-    println!("generate url");
     // Generate the full authorization URL.
     let (auth_url, _csrf_token, nonce) = client
         .authorize_url(
@@ -131,11 +127,7 @@ pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
     get_session(cx)?.session.set(NONCE_KEY, nonce);
     get_session(cx)?.session.set(PKCE_KEY, pkce_verifier);
 
-    // This is the URL you should redirect the user to, in order to trigger the authorization
-    // process.
-    println!("Browse to: {}", auth_url);
-
-    // and redirect to the home page
+    // Redirect to the auth page
     leptos_axum::redirect(cx, auth_url.as_ref());
     Ok(())
 }
@@ -146,14 +138,12 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
-    println!("Get token, auth_code = {auth_code}");
+    let auth_session = get_session(cx)?;
 
-    let nonce = oidc::Nonce::new(get_session(cx)?.session.get(NONCE_KEY).unwrap_or("".to_string()));
-    let pkce_verifier = oidc::PkceCodeVerifier::new(get_session(cx)?.session.get(PKCE_KEY).unwrap_or("".to_string()));
+    let nonce = oidc::Nonce::new(auth_session.session.get(NONCE_KEY).unwrap_or("".to_string()));
+    let pkce_verifier = oidc::PkceCodeVerifier::new(auth_session.session.get(PKCE_KEY).unwrap_or("".to_string()));
 
     let client = get_auth_client().await?;
-
-    println!("Got client");
 
     // Now you can exchange it for an access token and ID token.
     let token_response =
@@ -163,15 +153,13 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
             .set_pkce_verifier(pkce_verifier)
             .request_async(async_http_client).await?;
 
-    println!("Got token_response");
-
     // Extract the ID token claims after verifying its authenticity and nonce.
-    let id_token = token_response.id_token().ok_or(ServerFnError::Args("Error getting id token.".to_owned()))?;
+    let id_token = token_response.id_token().ok_or(ServerFnError::ServerError("Error getting id token.".to_owned()))?;
     println!("id_token: {:?}", id_token);
     let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
+    println!("claims: {:?}", claims);
 
-    // Verify the access token hash to ensure that the access token hasn't been substituted for
-    // another user's.
+    // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.
     if let Some(expected_access_token_hash) = claims.access_token_hash() {
         let actual_access_token_hash = oidc::AccessTokenHash::from_token(
             token_response.access_token(),
@@ -197,28 +185,27 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
     // CoreUserInfoClaims type alias.
     let userinfo: oidc::core::CoreUserInfoClaims = client
         .user_info(token_response.access_token().to_owned(), None)
-        .map_err(|err| ServerFnError::Args("No user info endpoint: ".to_owned() + &err.to_string()))?
+        .map_err(|err| ServerFnError::ServerError("No user info endpoint: ".to_owned() + &err.to_string()))?
         .request_async(async_http_client).await
-        .map_err(|err| ServerFnError::Args("Failed requesting user info: ".to_owned() + &err.to_string()))?;
-
-    println!("userinfo = {:?}", userinfo);
+        .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
     let user = User {
-        id: -1,
+        id: claims.subject().to_string(),
         anonymous: false,
         username: userinfo.preferred_username().unwrap().to_string(),
     };
 
-    get_session(cx)?.current_user = Some(user.clone());
+    auth_session.login_user(claims.to_string());
+    auth_session.remember_user(true);
 
     println!("stored user = {:?}", get_session(cx)?.current_user);
 
     // Redirect to home page
-    //leptos_axum::redirect(cx, "/");
+    leptos_axum::redirect(cx, "/");
 
     // See the OAuth2TokenResponse trait for a listing of other available fields such as
     // access_token() and refresh_token().
-    Ok(user)
+    auth_session.current_user.ok_or(ServerFnError::ServerError(String::from("Could not login.")))
 }
 
 #[server(Logout, "/api")]
@@ -234,6 +221,7 @@ pub async fn logout(cx: Scope) -> Result<(), ServerFnError> {
 #[server(GetUser, "/api")]
 pub async fn get_user(cx: Scope) -> Result<Option<User>, ServerFnError> {
     let session = get_session(cx)?;
+    println!("Current user is: {:?}", session.current_user);
     Ok(session.current_user)
 }
 
@@ -258,8 +246,10 @@ pub fn AuthCallback(
                             let Ok(user) = token else {
                                 return view! { cx, <div>"Nothing"</div> }.into_view(cx);
                             };
+
                             state.user.set(user.clone());
-                            view! { cx, <div>"user: " {format!("{:?}", user)}</div>}.into_view(cx)
+                            leptos_router::Redirect(cx, RedirectProps { path: "/", options: None});
+                            view! { cx, <div>"Success!"</div> }.into_view(cx)
                         },
                     )
             }}

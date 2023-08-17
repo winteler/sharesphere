@@ -52,7 +52,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                     <div class="drawer-content container mx-auto h-full">
                         <Routes>
-                            <Route path="" view=|cx| view! { cx, <HomePage/> }/>
+                            <Route path="/" view=|cx| view! { cx, <HomePage/> }/>
                             <Route path=AUTH_CALLBACK_ROUTE view=|cx| view! { cx, <AuthCallback/> }/>
                         </Routes>
                     </div>

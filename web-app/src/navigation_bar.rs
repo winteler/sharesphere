@@ -12,7 +12,7 @@ pub fn NavigationBar(
             <div class="navbar-start">
                 <label for="my-drawer" class="drawer-button lg:hidden btn btn-square btn-ghost"><SideBarIcon/></label>
                 <div class="flex-1">
-                    <a class="btn btn-ghost normal-case text-l text-white">
+                    <a href="/" class="btn btn-ghost normal-case text-l text-white">
                         <StacksIcon/>
                         "[[ProjectName]]"
                     </a>
@@ -41,14 +41,13 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
     use crate::auth::*;
     let state = expect_context::<GlobalState>(cx);
 
-    let login = create_server_action::<GetToken>(cx);
     let logout = create_server_action::<Logout>(cx);
 
     let user = create_resource(
         cx,
         move || {
             (
-                login.version().get(),
+                state.user.get(),
                 logout.version().get(),
             )
         },
@@ -58,10 +57,6 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
     view! { cx,
         <Transition fallback=move || view! {cx, <UserIcon/>}>
         {move || {
-            let local_user = state.user.get();
-            if !local_user.anonymous {
-                return Some(view! {cx, <LoggedInMenu user=local_user/>}.into_view(cx));
-            }
             user.read(cx).map(|user| match user {
                 Err(e) => {
                     log!("Login error: {}", e);
@@ -76,7 +71,6 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
                     view! {cx, <LoggedInMenu user=user/>}.into_view(cx)
                 },
             })
-
         }}
         </Transition>
     }

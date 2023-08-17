@@ -54,7 +54,7 @@ cfg_if! {
 
             let session_config = SessionConfig::default()
                 .with_table_name("sessions");
-            let auth_config = AuthConfig::<i64>::default().with_anonymous_user_id(Some(1));
+            let auth_config = AuthConfig::<String>::default().with_anonymous_user_id(Some(String::default));
             let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 
             //Create the Database table for storing our Session Data.
@@ -85,7 +85,7 @@ cfg_if! {
                 .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
                 .leptos_routes_with_handler(routes, get(leptos_routes_handler))
                 .fallback(file_and_error_handler)
-                .layer(AuthSessionLayer::<User, i64, SessionPgPool, PgPool>::new(Some(pool)).with_config(auth_config))
+                .layer(AuthSessionLayer::<User, String, SessionPgPool, PgPool>::new(Some(pool)).with_config(auth_config))
                 .layer(SessionLayer::new(session_store))
                 .with_state(app_state);
 

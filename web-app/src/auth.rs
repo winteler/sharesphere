@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use crate::app::{GlobalState};
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
+pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
+pub const AUTH_CLIENT_SECRET_ENV : &str = "AUTH_CLIENT_SECRET";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 pub const PKCE_KEY : &str = "pkce";
 pub const NONCE_KEY : &str = "nonce";
@@ -86,12 +88,15 @@ pub fn get_issuer_url() -> Result<oidc::IssuerUrl, ServerFnError> {
 
 #[cfg(feature = "ssr")]
 pub fn get_client_id() -> Result<oidc::ClientId, ServerFnError> {
-    Ok(oidc::ClientId::new(String::from("project-client")))
+    Ok(oidc::ClientId::new(env::var(AUTH_CLIENT_ID_ENV)?))
 }
 
 #[cfg(feature = "ssr")]
 pub fn get_client_secret() -> Option<oidc::ClientSecret> {
-    Some(oidc::ClientSecret::new(String::from("mW5QB9J8CgLjfoEUZzdpxNFN550zrvSi")))
+    match env::var(AUTH_CLIENT_SECRET_ENV) {
+        Ok(secret) => Some(oidc::ClientSecret::new(secret)),
+        Err(_) => None
+    }
 }
 
 #[cfg(feature = "ssr")]

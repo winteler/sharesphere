@@ -270,7 +270,7 @@ pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
     println!("Logout.");
 
     let session = get_session(cx)?;
-    session.session.remove(ID_TOKEN_KEY);
+    let token_response: oidc::core::CoreTokenResponse = session.session.get(ID_TOKEN_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
 
     let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
         get_issuer_url()?,
@@ -286,9 +286,14 @@ pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
         None => return Err(ServerFnError::ServerError(String::from("Cannot get logout endpoint.")))
     };
 
-    let logout_request = oidc::LogoutRequest::from(logout_endpoint_url).set_post_logout_redirect_uri(get_logout_redirect()?);
+    let logout_request = oidc::LogoutRequest::from(logout_endpoint_url)
+        .set_client_id(get_client_id()?)
+        .set_id_token_hint(token_response.id_token().unwrap())
+        .set_post_logout_redirect_uri(get_logout_redirect()?);
 
     leptos_axum::redirect(cx, logout_request.http_get_url().to_string().as_str());
+
+    session.session.remove(ID_TOKEN_KEY);
 
     Ok(())
 }

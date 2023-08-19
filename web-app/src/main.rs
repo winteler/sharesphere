@@ -54,7 +54,7 @@ cfg_if! {
 
             let session_config = SessionConfig::default()
                 .with_table_name("sessions");
-            let auth_config = AuthConfig::<String>::default().with_anonymous_user_id(Some(String::default));
+            let auth_config = AuthConfig::<String>::default().with_anonymous_user_id(Some(String::default()));
             let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 
             //Create the Database table for storing our Session Data.

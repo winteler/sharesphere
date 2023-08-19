@@ -41,7 +41,7 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
     use crate::auth::*;
     let state = expect_context::<GlobalState>(cx);
 
-    let logout = create_server_action::<Logout>(cx);
+    let logout = create_server_action::<EndSession>(cx);
 
     let user = create_resource(
         cx,
@@ -62,8 +62,7 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
                     log!("Login error: {}", e);
                     view! {cx, <LoginButton/>}.into_view(cx)
                 },
-                Ok(None) => view! {cx, <LoginButton/>}.into_view(cx),
-                Ok(Some(user)) => {
+                Ok(user) => {
                     if user.anonymous
                     {
                         return view! {cx, <LoginButton/>}.into_view(cx);
@@ -90,6 +89,10 @@ pub fn LoginButton(cx: Scope) -> impl IntoView {
 
 #[component]
 pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
+    use crate::auth::*;
+
+    let end_session = create_server_action::<EndSession>(cx);
+
     view! { cx,
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle avatar">
@@ -99,7 +102,7 @@ pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
                 <li><a>"Settings"</a></li>
-                <li><a>"Logout"</a></li>
+                <li><a href=end_session.url() rel="external">"Logout"</a></li>
                 <li><span>{format!("Logged in as: {}", user.username)}</span></li>
             </ul>
         </div>

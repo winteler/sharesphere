@@ -40,7 +40,6 @@ pub fn NavigationBar(
 pub fn UserProfile(cx: Scope) -> impl IntoView {
     use crate::auth::*;
     let state = expect_context::<GlobalState>(cx);
-
     let logout = create_server_action::<EndSession>(cx);
 
     let user = create_resource(

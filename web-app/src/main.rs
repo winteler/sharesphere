@@ -21,7 +21,7 @@ cfg_if! {
         use leptos::{log, view, provide_context, get_configuration};
 
         use sqlx::{PgPool, postgres::{PgPoolOptions}};
-        use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore};
+        use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key, SecurityMode};
         use axum_session_auth::{AuthSessionLayer, AuthConfig};
 
         use anyhow::{Context};
@@ -53,7 +53,19 @@ cfg_if! {
             let pool = get_db_pool().await.unwrap();
 
             let session_config = SessionConfig::default()
-                .with_table_name("sessions");
+                .with_table_name("sessions")
+                // 'Key::generate()' will generate a new key each restart of the server.
+                // If you want it to be more permanent then generate and set it to a config file.
+                // If with_key() is used it will set all cookies as private, which guarantees integrity, and authenticity.
+                .with_key(Key::generate())
+                // This is how we would Set a Database Key to encrypt as store our per session keys.
+                // This MUST be set in order to use SecurityMode::PerSession.
+                .with_database_key(Key::generate())
+                // This is How you will enable PerSession SessionID Private Cookie Encryption. When enabled it will
+                // Encrypt the SessionID and Storage with an Encryption key generated and stored per session.
+                // This allows for Key renewing without needing to force the entire Session from being destroyed.
+                // This Also helps prevent impersonation attempts.
+                .with_security_mode(SecurityMode::PerSession);
             let auth_config = AuthConfig::<String>::default().with_anonymous_user_id(Some(String::default()));
             let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 

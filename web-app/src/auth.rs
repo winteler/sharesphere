@@ -12,9 +12,7 @@ pub const AUTH_CLIENT_SECRET_ENV : &str = "AUTH_CLIENT_SECRET";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 pub const PKCE_KEY : &str = "pkce";
 pub const NONCE_KEY : &str = "nonce";
-pub const ID_TOKEN_KEY : &str = "id_token";
-pub const ACCESS_TOKEN_KEY : &str = "access_token";
-pub const REFRESH_TOKEN_KEY : &str = "refresh_token";
+pub const OIDC_TOKENS_KEY : &str = "oidc_token";
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
@@ -24,7 +22,6 @@ if #[cfg(feature = "ssr")] {
 
     use openidconnect as oidc;
     use openidconnect::reqwest::*;
-    // Use OpenID Connect Discovery to fetch the provider metadata.
     use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
     pub type AuthSession = axum_session_auth::AuthSession<User, String, SessionPgPool, PgPool>;
@@ -193,9 +190,7 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
 
     // Extract the ID token claims after verifying its authenticity and nonce.
     let id_token = token_response.id_token().ok_or(ServerFnError::ServerError("Error getting id token.".to_owned()))?;
-    println!("id_token: {:?}", id_token);
     let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
-    println!("claims: {:?}", claims);
 
     // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.
     if let Some(expected_access_token_hash) = claims.access_token_hash() {
@@ -227,36 +222,26 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
         .request_async(async_http_client).await
         .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
-    auth_session.session.set(ID_TOKEN_KEY, token_response.clone());
-
-    println!("stored user = {}", claims.subject().to_string());
-
-    // See the OAuth2TokenResponse trait for a listing of other available fields such as
-    // access_token() and refresh_token().
-
-    // Redirect to home page
-    leptos_axum::redirect(cx, "/");
+    auth_session.session.set(OIDC_TOKENS_KEY, token_response.clone());
 
     Ok(User {
         id: claims.subject().to_string(),
         anonymous: false,
-        username: userinfo.preferred_username().unwrap().to_string(),
+        username: claims.preferred_username().unwrap().to_string(),
     })
 }
 
 #[server(GetUser, "/api")]
 pub async fn get_user(cx: Scope) -> Result<User, ServerFnError> {
     let session = get_session(cx)?;
-    let token_response: oidc::core::CoreTokenResponse = session.session.get(ID_TOKEN_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
+    let token_response: oidc::core::CoreTokenResponse = session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
     let nonce = oidc::Nonce::new(session.session.get(NONCE_KEY).unwrap_or("".to_string()));
 
     let client = get_auth_client().await?;
 
     // Extract the ID token claims, authenticity and nonce already verified in auth callback
     let id_token = token_response.id_token().ok_or(ServerFnError::ServerError("Error getting id token.".to_owned()))?;
-    println!("id_token: {:?}", id_token);
     let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
-    println!("claims: {:?}", claims);
 
     Ok(User {
         id: claims.subject().to_string(),
@@ -270,7 +255,7 @@ pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
     println!("Logout.");
 
     let session = get_session(cx)?;
-    let token_response: oidc::core::CoreTokenResponse = session.session.get(ID_TOKEN_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
+    let token_response: oidc::core::CoreTokenResponse = session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
 
     let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
         get_issuer_url()?,
@@ -293,7 +278,7 @@ pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
 
     leptos_axum::redirect(cx, logout_request.http_get_url().to_string().as_str());
 
-    session.session.remove(ID_TOKEN_KEY);
+    session.session.remove(OIDC_TOKENS_KEY);
 
     Ok(())
 }
@@ -307,25 +292,30 @@ pub fn AuthCallback(
 
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
-    let token_resource = create_blocking_resource(cx, || (), move |_| get_token(cx, code()));
-    view! { cx,
-        <h1>"Auth Callback"</h1>
-        <Suspense fallback=|| ()>
-            {move || {
-                token_resource
-                    .with(
-                        cx,
-                        |token| {
-                            let Ok(user) = token else {
-                                return view! { cx, <div>"Nothing"</div> }.into_view(cx);
-                            };
+    let token_resource = create_resource(cx, || (), move |_| get_token(cx, code()));
 
-                            state.user.set(user.clone());
-                            leptos_router::Redirect(cx, RedirectProps { path: "/", options: None});
-                            view! { cx, <div>"Success!"</div> }.into_view(cx)
-                        },
+    view! { cx,
+        <Suspense fallback=move || (view! {cx, <div>"Loading"</div>})>
+            { move || {
+                token_action.dispatch(());
+                token_resource.read(cx).map(|userResult| {
+                            if let Ok(user) = userResult {
+                                log!("Authenticated as {}", user.username);
+                                state.user.set(user.clone());
+                            }
+                            else {
+                                log!("Authentication failed");
+                            }
+
+                            /*let navigate_to = use_navigate(cx);
+                            request_animation_frame(move || {
+                                _ = navigate_to("http://127.0.0.1:3000/", Default::default());
+                            });*/
+                            view! {cx, <div>"Done."</div>}
+                        }
                     )
-            }}
+                }
+            }
         </Suspense>
     }
 }

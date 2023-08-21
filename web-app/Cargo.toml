@@ -8,6 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { version = "0.6.4", optional = true }
+axum-extra = { version = "*", features = [ "cookie" ], optional = true }
 axum_session = { version = "0.3.5", features = [ "postgres-rustls"], optional = true }
 axum_session_auth = { version = "0.3.1", features = [ "postgres-rustls" ], optional = true }
 console_error_panic_hook = "0.1"
@@ -17,6 +18,7 @@ leptos = { version = "0.4", features = ["nightly"] }
 leptos_axum = { version = "0.4", optional = true }
 leptos_meta = { version = "0.4", features = ["nightly"] }
 leptos_router = { version = "0.4", features = ["nightly"] }
+web-sys = { version = "*", feature = ["Location", "Window"]}
 serde = { version = "*", features = ["derive"] }
 rand = { version = "0.8.5", features = ["min_const_gen"] }
 log = "0.4"
@@ -37,6 +39,7 @@ async-trait = { version = "*", optional = true }
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "dep:axum",
+    "dep:axum-extra",
     "dep:axum_session",
     "dep:axum_session_auth",
     "dep:tokio",

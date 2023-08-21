@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos::leptos_dom::helpers::location;
 use crate::app::{GlobalState};
 use crate::auth::*;
 
@@ -78,11 +79,20 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 pub fn LoginButton(cx: Scope) -> impl IntoView {
     use crate::auth::*;
     let start_auth = create_server_action::<StartAuth>(cx);
+    let current_url = create_rw_signal(cx, String::default());
+    //let current_url =  move || window().location().href().unwrap_or(String::from("/"));
+    let get_current_url = move |_| {
+        let url = window().location().href().unwrap_or(String::from("/"));
+        current_url.set(url.clone());
+    };
 
     view! { cx,
-        <a href=start_auth.url() rel="external" class="btn btn-ghost">
-            <UserIcon/>
-        </a>
+        <form action=start_auth.url() method="post" rel="external">
+            <input type="text" name="redirect_url" class="hidden" value=current_url/>
+            <button type="submit" class="btn btn-ghost" on:click=get_current_url>
+                <UserIcon/>
+            </button>
+        </form>
     }
 }
 

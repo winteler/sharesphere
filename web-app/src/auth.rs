@@ -4,8 +4,6 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::app::{GlobalState};
-
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV : &str = "AUTH_CLIENT_SECRET";
@@ -13,6 +11,7 @@ pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 pub const PKCE_KEY : &str = "pkce";
 pub const NONCE_KEY : &str = "nonce";
 pub const OIDC_TOKENS_KEY : &str = "oidc_token";
+pub const REDIRECT_URL_KEY : &str = "redirect";
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
@@ -137,7 +136,9 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
 }
 
 #[server(StartAuth, "/api")]
-pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
+pub async fn start_auth(cx: Scope, redirect_url: String) -> Result<(), ServerFnError> {
+
+    println!("redirect_url: {}", redirect_url);
 
     let client = get_auth_client().await?;
 
@@ -161,9 +162,11 @@ pub async fn start_auth(cx: Scope) -> Result<(), ServerFnError> {
     let session = get_session(cx)?;
     session.session.set(NONCE_KEY, nonce);
     session.session.set(PKCE_KEY, pkce_verifier);
+    session.session.set(REDIRECT_URL_KEY, redirect_url);
 
     // Redirect to the auth page
     leptos_axum::redirect(cx, auth_url.as_ref());
+
     Ok(())
 }
 
@@ -177,6 +180,9 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
 
     let nonce = oidc::Nonce::new(auth_session.session.get(NONCE_KEY).unwrap_or("".to_string()));
     let pkce_verifier = oidc::PkceCodeVerifier::new(auth_session.session.get(PKCE_KEY).unwrap_or("".to_string()));
+
+    println!("auth_code = {}", auth_code);
+    println!("nonce = {:?}", nonce);
 
     let client = get_auth_client().await?;
 
@@ -216,13 +222,15 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
     // The user_info request uses the AccessToken returned in the token response. To parse custom
     // claims, use UserInfoClaims directly (with the desired type parameters) rather than using the
     // CoreUserInfoClaims type alias.
-    let userinfo: oidc::core::CoreUserInfoClaims = client
+    let _userinfo: oidc::core::CoreUserInfoClaims = client
         .user_info(token_response.access_token().to_owned(), None)
         .map_err(|err| ServerFnError::ServerError("No user info endpoint: ".to_owned() + &err.to_string()))?
         .request_async(async_http_client).await
         .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
     auth_session.session.set(OIDC_TOKENS_KEY, token_response.clone());
+
+    leptos_axum::redirect(cx, "/");
 
     Ok(User {
         id: claims.subject().to_string(),
@@ -288,20 +296,18 @@ pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
 pub fn AuthCallback(
     cx: Scope) -> impl IntoView
 {
-    let state = expect_context::<GlobalState>(cx);
-
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
     let token_resource = create_resource(cx, || (), move |_| get_token(cx, code()));
 
     view! { cx,
         <Suspense fallback=move || (view! {cx, <div>"Loading"</div>})>
-            { move || {
-                token_action.dispatch(());
-                token_resource.read(cx).map(|userResult| {
+            {
+                move || {
+                    token_resource.read(cx).map(|userResult| {
                             if let Ok(user) = userResult {
                                 log!("Authenticated as {}", user.username);
-                                state.user.set(user.clone());
+                                //state.user.set(user.clone());
                             }
                             else {
                                 log!("Authentication failed");

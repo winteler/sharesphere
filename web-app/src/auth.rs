@@ -171,7 +171,7 @@ pub async fn start_auth(cx: Scope, redirect_url: String) -> Result<(), ServerFnE
 }
 
 #[server(GetToken, "/api")]
-pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnError> {
+pub async fn get_token(cx: Scope, auth_code: String) -> Result<(User, String), ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -179,7 +179,8 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
     let auth_session = get_session(cx)?;
 
     let nonce = oidc::Nonce::new(auth_session.session.get(NONCE_KEY).unwrap_or("".to_string()));
-    let pkce_verifier = oidc::PkceCodeVerifier::new(auth_session.session.get(PKCE_KEY).unwrap_or("".to_string()));
+    let pkce_verifier = oidc::PkceCodeVerifier::new(auth_session.session.get(PKCE_KEY).unwrap_or(String::default()));
+    let redirect_url = auth_session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
 
     println!("auth_code = {}", auth_code);
     println!("nonce = {:?}", nonce);
@@ -232,11 +233,13 @@ pub async fn get_token(cx: Scope, auth_code: String) -> Result<User, ServerFnErr
 
     leptos_axum::redirect(cx, "/");
 
-    Ok(User {
+    let user = User {
         id: claims.subject().to_string(),
         anonymous: false,
         username: claims.preferred_username().unwrap().to_string(),
-    })
+    };
+
+    Ok((user, redirect_url))
 }
 
 #[server(GetUser, "/api")]
@@ -259,7 +262,7 @@ pub async fn get_user(cx: Scope) -> Result<User, ServerFnError> {
 }
 
 #[server(EndSession, "/api")]
-pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
+pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFnError> {
     println!("Logout.");
 
     let session = get_session(cx)?;
@@ -282,7 +285,7 @@ pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
     let logout_request = oidc::LogoutRequest::from(logout_endpoint_url)
         .set_client_id(get_client_id()?)
         .set_id_token_hint(token_response.id_token().unwrap())
-        .set_post_logout_redirect_uri(get_logout_redirect()?);
+        .set_post_logout_redirect_uri(oidc::PostLogoutRedirectUrl::new(redirect_url)?);
 
     leptos_axum::redirect(cx, logout_request.http_get_url().to_string().as_str());
 
@@ -294,8 +297,9 @@ pub async fn end_session(cx: Scope) -> Result<(), ServerFnError> {
 /// Auth callback component
 #[component]
 pub fn AuthCallback(
-    cx: Scope) -> impl IntoView
-{
+    cx: Scope) -> impl IntoView {
+    use crate::app::GlobalState;
+    let state = expect_context::<GlobalState>(cx);
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
     let token_resource = create_resource(cx, || (), move |_| get_token(cx, code()));
@@ -305,9 +309,12 @@ pub fn AuthCallback(
             {
                 move || {
                     token_resource.read(cx).map(|userResult| {
-                            if let Ok(user) = userResult {
+                            if let Ok((user, redirect_url)) = userResult {
                                 log!("Authenticated as {}", user.username);
-                                //state.user.set(user.clone());
+                                state.user.set(user.clone());
+                                log!("Redirect to {}", redirect_url);
+                                let go_to = use_navigate(cx);
+                                let _ = go_to("http://127.0.0.1:3000/", Default::default());
                             }
                             else {
                                 log!("Authentication failed");
@@ -320,6 +327,29 @@ pub fn AuthCallback(
                             view! {cx, <div>"Done."</div>}
                         }
                     )
+                    /*token_resource.read(cx).map(|userResult| match userResult {
+                            Ok((user, redirect_url)) => {
+                                log!("Authenticated as {}", user.username);
+                                state.user.set(user.clone());
+                                log!("Redirect to {}", redirect_url);
+                                let go_to = use_navigate(cx);
+                                /*request_animation_frame(move || {
+                                    _ = go_to(redirect_url.as_str(), Default::default());
+                                });*/
+                                _ = go_to("/", Default::default());
+                                view! {cx, <div>"Authenticated"</div>}
+                            }
+                            Err(e) => {
+                                log!("Authentication error: {e}");
+                                view! {cx, <div>"Authentication error"</div>}
+                            }
+
+                            /*let navigate_to = use_navigate(cx);
+                            request_animation_frame(move || {
+                                _ = navigate_to("http://127.0.0.1:3000/", Default::default());
+                            });*/
+                        }
+                    )*/
                 }
             }
         </Suspense>

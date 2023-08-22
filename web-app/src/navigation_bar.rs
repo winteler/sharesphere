@@ -1,7 +1,13 @@
 use leptos::*;
-use leptos::leptos_dom::helpers::location;
 use crate::app::{GlobalState};
 use crate::auth::*;
+
+fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
+    move |_| {
+        let url = window().location().href().unwrap_or(String::from("/"));
+        url_signal.set(url.clone());
+    }
+}
 
 /// Navigation bar component
 #[component]
@@ -80,11 +86,7 @@ pub fn LoginButton(cx: Scope) -> impl IntoView {
     use crate::auth::*;
     let start_auth = create_server_action::<StartAuth>(cx);
     let current_url = create_rw_signal(cx, String::default());
-    //let current_url =  move || window().location().href().unwrap_or(String::from("/"));
-    let get_current_url = move |_| {
-        let url = window().location().href().unwrap_or(String::from("/"));
-        current_url.set(url.clone());
-    };
+    let get_current_url = get_current_url_closure(current_url);
 
     view! { cx,
         <form action=start_auth.url() method="post" rel="external">
@@ -101,6 +103,8 @@ pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
     use crate::auth::*;
 
     let end_session = create_server_action::<EndSession>(cx);
+    let current_url = create_rw_signal(cx, String::default());
+    let get_current_url = get_current_url_closure(current_url);
 
     view! { cx,
         <div class="dropdown dropdown-end">
@@ -111,7 +115,14 @@ pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
                 <li><a>"Settings"</a></li>
-                <li><a href=end_session.url() rel="external">"Logout"</a></li>
+                <li>
+                    <form action=end_session.url() method="post" rel="external">
+                        <input type="text" name="redirect_url" class="hidden" value=current_url/>
+                        <button type="submit" on:click=get_current_url>
+                            "Logout"
+                        </button>
+                    </form>
+                </li>
                 <li><span>{format!("Logged in as: {}", user.username)}</span></li>
             </ul>
         </div>

@@ -9,6 +9,13 @@ fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::e
     }
 }
 
+fn get_current_path_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
+    move |_| {
+        let url = window().location().pathname().unwrap_or(String::from("/"));
+        url_signal.set(url.clone());
+    }
+}
+
 /// Navigation bar component
 #[component]
 pub fn NavigationBar(
@@ -85,13 +92,13 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 pub fn LoginButton(cx: Scope) -> impl IntoView {
     use crate::auth::*;
     let start_auth = create_server_action::<StartAuth>(cx);
-    let current_url = create_rw_signal(cx, String::default());
-    let get_current_url = get_current_url_closure(current_url);
+    let current_path = create_rw_signal(cx, String::default());
+    let get_current_path = get_current_path_closure(current_path);
 
     view! { cx,
         <form action=start_auth.url() method="post" rel="external">
-            <input type="text" name="redirect_url" class="hidden" value=current_url/>
-            <button type="submit" class="btn btn-ghost" on:click=get_current_url>
+            <input type="text" name="redirect_url" class="hidden" value=current_path/>
+            <button type="submit" class="btn btn-ghost" on:click=get_current_path>
                 <UserIcon/>
             </button>
         </form>

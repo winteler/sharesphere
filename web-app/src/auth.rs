@@ -170,8 +170,8 @@ pub async fn start_auth(cx: Scope, redirect_url: String) -> Result<(), ServerFnE
     Ok(())
 }
 
-#[server(GetToken, "/api")]
-pub async fn get_token(cx: Scope, auth_code: String) -> Result<(User, String), ServerFnError> {
+#[server(AuthenticateUser, "/api")]
+pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, String), ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -263,7 +263,7 @@ pub async fn get_user(cx: Scope) -> Result<User, ServerFnError> {
 
 #[server(EndSession, "/api")]
 pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFnError> {
-    println!("Logout.");
+    println!("Logout, redirect_url: {redirect_url}");
 
     let session = get_session(cx)?;
     let token_response: oidc::core::CoreTokenResponse = session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
@@ -302,57 +302,50 @@ pub fn AuthCallback(
     let state = expect_context::<GlobalState>(cx);
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
-    let token_resource = create_resource(cx, || (), move |_| get_token(cx, code()));
+    let auth_resource = create_resource(cx, || (), move |_| authenticate_user(cx, code()));
+
+    let response_signal = create_rw_signal(cx, (User::default(), String::default()));
 
     view! { cx,
         <Suspense fallback=move || (view! {cx, <div>"Loading"</div>})>
             {
                 move || {
-                    token_resource.read(cx).map(|userResult| {
+                    auth_resource.read(cx).map(|userResult| {
                             if let Ok((user, redirect_url)) = userResult {
-                                log!("Authenticated as {}", user.username);
-                                state.user.set(user.clone());
-                                log!("Redirect to {}", redirect_url);
-                                let go_to = use_navigate(cx);
-                                let _ = go_to("http://127.0.0.1:3000/", Default::default());
+                                log!("Store authenticated as {}", user.username);
+                                log!("Store redirect to {}", redirect_url);
+                                response_signal.set((user, redirect_url));
+                                view! {cx, <div>"Authenticated."</div>}
                             }
                             else {
-                                log!("Authentication failed");
+                                view! {cx, <div>"Authentication failed."</div>}
                             }
-
-                            /*let navigate_to = use_navigate(cx);
-                            request_animation_frame(move || {
-                                _ = navigate_to("http://127.0.0.1:3000/", Default::default());
-                            });*/
-                            view! {cx, <div>"Done."</div>}
                         }
                     )
-                    /*token_resource.read(cx).map(|userResult| match userResult {
-                            Ok((user, redirect_url)) => {
-                                log!("Authenticated as {}", user.username);
-                                state.user.set(user.clone());
-                                log!("Redirect to {}", redirect_url);
-                                let go_to = use_navigate(cx);
-                                /*request_animation_frame(move || {
-                                    _ = go_to(redirect_url.as_str(), Default::default());
-                                });*/
-                                _ = go_to("/", Default::default());
-                                view! {cx, <div>"Authenticated"</div>}
-                            }
-                            Err(e) => {
-                                log!("Authentication error: {e}");
-                                view! {cx, <div>"Authentication error"</div>}
-                            }
-
-                            /*let navigate_to = use_navigate(cx);
-                            request_animation_frame(move || {
-                                _ = navigate_to("http://127.0.0.1:3000/", Default::default());
-                            });*/
-                        }
-                    )*/
                 }
             }
         </Suspense>
+
+        <Show
+            when=move || {
+                let (user, redirect_url) = response_signal();
+                log!("Authenticated as {}", user.username);
+                log!("Redirect to {}", redirect_url);
+                !user.anonymous
+            }
+            fallback=|cx| view! { cx, <div>"Anonymous."</div> }
+        >
+            move || {
+                let (user, redirect_url) = response_signal.get();
+                state.user.set(user.clone());
+                let go_to = use_navigate(cx);
+                request_animation_frame(move || {
+                    let go_to_result = go_to(redirect_url.as_str(), Default::default());
+                    log!("go_to result: {:?}", go_to_result);
+                });
+                view! {cx, <div>"Authenticated."</div>}
+            }
+        </Show>
     }
 }
 

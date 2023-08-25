@@ -302,9 +302,7 @@ pub fn AuthCallback(
     let state = expect_context::<GlobalState>(cx);
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
-    let auth_resource = create_resource(cx, || (), move |_| authenticate_user(cx, code()));
-
-    let response_signal = create_rw_signal(cx, (User::default(), String::default()));
+    let auth_resource = create_blocking_resource(cx, || (), move |_| authenticate_user(cx, code()));
 
     view! { cx,
         <Suspense fallback=move || (view! {cx, <div>"Loading"</div>})>
@@ -314,38 +312,17 @@ pub fn AuthCallback(
                             if let Ok((user, redirect_url)) = userResult {
                                 log!("Store authenticated as {}", user.username);
                                 log!("Store redirect to {}", redirect_url);
-                                response_signal.set((user, redirect_url));
-                                view! {cx, <div>"Authenticated."</div>}
+                                state.user.set(user);
+                                view! {cx, <Redirect path=redirect_url/>}.into_view(cx)
                             }
                             else {
-                                view! {cx, <div>"Authentication failed."</div>}
+                                view! {cx, <div>"Authentication failed."</div>}.into_view(cx)
                             }
                         }
                     )
                 }
             }
         </Suspense>
-
-        <Show
-            when=move || {
-                let (user, redirect_url) = response_signal();
-                log!("Authenticated as {}", user.username);
-                log!("Redirect to {}", redirect_url);
-                !user.anonymous
-            }
-            fallback=|cx| view! { cx, <div>"Anonymous."</div> }
-        >
-            move || {
-                let (user, redirect_url) = response_signal.get();
-                state.user.set(user.clone());
-                let go_to = use_navigate(cx);
-                request_animation_frame(move || {
-                    let go_to_result = go_to(redirect_url.as_str(), Default::default());
-                    log!("go_to result: {:?}", go_to_result);
-                });
-                view! {cx, <div>"Authenticated."</div>}
-            }
-        </Show>
     }
 }
 

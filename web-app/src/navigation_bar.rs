@@ -98,7 +98,7 @@ pub fn LoginButton(cx: Scope) -> impl IntoView {
     view! { cx,
         <form action=start_auth.url() method="post" rel="external">
             <input type="text" name="redirect_url" class="hidden" value=current_path/>
-            <button type="submit" class="btn btn-ghost" on:click=get_current_path>
+            <button type="submit" class="btn btn-ghost btn-circle rounded-full" on:click=get_current_path>
                 <UserIcon/>
             </button>
         </form>
@@ -115,18 +115,16 @@ pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
 
     view! { cx,
         <div class="dropdown dropdown-end">
-            <label tabindex="0" class="btn btn-ghost btn-circle avatar">
-                <div class="rounded-full">
-                    <UserIcon/>
-                </div>
+            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
+                <UserIcon/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
                 <li><a href="#">"Settings"</a></li>
                 <li>
                     <form action=end_session.url() method="post" rel="external" class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>
-                        <button type="submit" class="w-full" on:click=get_current_url>
-                            <span>"Logout"</span>
+                        <button type="submit" class="w-full text-left" on:click=get_current_url>
+                            "Logout"
                         </button>
                     </form>
                 </li>

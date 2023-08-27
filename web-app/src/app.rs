@@ -52,8 +52,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                     <div class="drawer-content container mx-auto h-full">
                         <Routes>
-                            <Route path="/" view=|cx| view! { cx, <HomePage/> }/>
-                            <Route path=AUTH_CALLBACK_ROUTE view=|cx| view! { cx, <AuthCallback/> }/>
+                            <Route path="/" view=HomePage/>
+                            <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
+                            <Route path="/login" view=Login/>
+                            // TODO: give path to requested page in ProtectedRoute redirect as parameter
+                            <Route path="/publish" view=LoginGuard/>
                         </Routes>
                     </div>
                     <div class="drawer-side">
@@ -66,8 +69,35 @@ pub fn App(cx: Scope) -> impl IntoView {
     }
 }
 
+/// Components to guard pages requiring a login, and enable the user to login with a redirect
+#[component]
+fn LoginGuard(cx: Scope) -> impl IntoView {
+    // TODO add check for logged in (resource or context?), display Outlet if authenticated, redirect to auth otherwise
+    view! { cx,
+        <div>"TODO"</div>
+    }
+}
 
+/// Renders a page requesting a login
+#[component]
+fn Login(cx: Scope) -> impl IntoView {
+    use crate::navigation_bar::get_current_path_closure;
+    let start_auth = create_server_action::<StartAuth>(cx);
+    let current_path = create_rw_signal(cx, String::default());
+    let get_current_path = get_current_path_closure(current_path);
 
+    view! { cx,
+        <div class="h-full my-0 mx-auto max-w-3xl text-center">
+            <p class="bg-white px-10 py-10 text-black rounded-lg">"Login required to access this page."</p>
+            <form action=start_auth.url() method="post" rel="external">
+                <input type="text" name="redirect_url" class="hidden" value=current_path/>
+                <button type="submit" class="btn btn-primary" on:click=get_current_path>
+                    "Login"
+                </button>
+            </form>
+        </div>
+    }
+}
 
 /// Renders the home page of your application.
 #[component]

@@ -2,14 +2,14 @@ use leptos::*;
 use crate::app::{GlobalState};
 use crate::auth::*;
 
-fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
+pub fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
     move |_| {
         let url = window().location().href().unwrap_or(String::from("/"));
         url_signal.set(url.clone());
     }
 }
 
-fn get_current_path_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
+pub fn get_current_path_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
     move |_| {
         let url = window().location().pathname().unwrap_or(String::from("/"));
         url_signal.set(url.clone());
@@ -44,6 +44,7 @@ pub fn NavigationBar(
                 <button class="btn btn-ghost btn-circle lg:hidden">
                     <SearchIcon/>
                 </button>
+                <PlusMenu/>
                 <UserProfile/>
             </div>
         </div>
@@ -174,6 +175,32 @@ pub fn SearchIcon(cx: Scope) -> impl IntoView {
     view! { cx,
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-5 w-5 stroke-white">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+    }
+}
+
+#[component]
+pub fn PlusMenu(cx: Scope) -> impl IntoView {
+    view! { cx,
+        <div class="dropdown dropdown-end">
+            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
+                <PlusIcon/>
+            </label>
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
+                <li><a href="#">"[[Forum]]"</a></li>
+                <li><a href="#">"[[Content]]"</a></li>
+            </ul>
+        </div>
+    }
+}
+
+#[component]
+pub fn PlusIcon(cx: Scope) -> impl IntoView {
+    view! { cx,
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 stroke-white" width="44" height="44" viewBox="0 0 24 24" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M12 5l0 14" />
+            <path d="M5 12l14 0" />
         </svg>
     }
 }

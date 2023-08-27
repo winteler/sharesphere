@@ -121,12 +121,12 @@ pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
                 </div>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                <li><a>"Settings"</a></li>
+                <li><a href="#">"Settings"</a></li>
                 <li>
-                    <form action=end_session.url() method="post" rel="external">
+                    <form action=end_session.url() method="post" rel="external" class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>
-                        <button type="submit" on:click=get_current_url>
-                            "Logout"
+                        <button type="submit" class="w-full" on:click=get_current_url>
+                            <span>"Logout"</span>
                         </button>
                     </form>
                 </li>

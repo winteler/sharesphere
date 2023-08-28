@@ -5,6 +5,7 @@ pub mod drawer;
 pub mod error_template;
 pub mod fileserv;
 pub mod footer;
+pub mod icons;
 pub mod navigation_bar;
 pub mod session;
 pub mod state;

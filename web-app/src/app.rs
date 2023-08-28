@@ -1,20 +1,24 @@
-use crate::error_template::{AppError, ErrorTemplate};
-use crate::navigation_bar::*;
-use crate::drawer::*;
-use crate::auth::*;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-#[derive(Copy, Clone, Debug)]
+use crate::auth::*;
+use crate::drawer::*;
+use crate::error_template::{AppError, ErrorTemplate};
+use crate::icons::*;
+use crate::navigation_bar::*;
+
+#[derive(Copy, Clone)]
 pub struct GlobalState {
     pub user: RwSignal<User>,
+    pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
 }
 
 impl GlobalState {
     pub fn new(cx: Scope) -> Self {
         Self {
             user: create_rw_signal(cx, User::default()),
+            logout_action: create_server_action::<EndSession>(cx)
         }
     }
 }
@@ -73,8 +77,42 @@ pub fn App(cx: Scope) -> impl IntoView {
 #[component]
 fn LoginGuard(cx: Scope) -> impl IntoView {
     // TODO add check for logged in (resource or context?), display Outlet if authenticated, redirect to auth otherwise
+
+    let state = expect_context::<GlobalState>(cx);
+
+    let auth_resource = create_blocking_resource(
+        cx,
+        move || {
+            (
+                state.user.get(),
+                state.logout_action.version(),
+            )
+        },
+        move |_| {
+            let url = window().location().pathname().unwrap_or(String::from("/"));
+            login(cx, url)
+        }
+    );
+
     view! { cx,
-        <div>"TODO"</div>
+        <Transition fallback=move || view! { cx, <LoadingIcon/> }>
+            { move || {
+                    auth_resource.read(cx).map(|user| match user {
+                        Err(e) => {
+                            log!("Login error: {}", e);
+                            view! {cx, <div>"Error."</div>}.into_view(cx)
+                        },
+                        Ok(user) => {
+                            if user.anonymous
+                            {
+                                return view! {cx, <div>"Error."</div>}.into_view(cx);
+                            }
+                            view! {cx, <Outlet/>}.into_view(cx)
+                        },
+                    });
+                }
+            }
+        </Transition>
     }
 }
 
@@ -82,7 +120,7 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
 #[component]
 fn Login(cx: Scope) -> impl IntoView {
     use crate::navigation_bar::get_current_path_closure;
-    let start_auth = create_server_action::<StartAuth>(cx);
+    let start_auth = create_server_action::<Login>(cx);
     let current_path = create_rw_signal(cx, String::default());
     let get_current_path = get_current_path_closure(current_path);
 
@@ -126,3 +164,5 @@ fn HomePage(cx: Scope) -> impl IntoView {
         </div>
     }
 }
+
+

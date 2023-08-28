@@ -4,6 +4,8 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+use crate::icons::*;
+
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV : &str = "AUTH_CLIENT_SECRET";
@@ -135,8 +137,14 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
     Ok(client)
 }
 
-#[server(StartAuth, "/api")]
-pub async fn start_auth(cx: Scope, redirect_url: String) -> Result<(), ServerFnError> {
+#[server(Login, "/api")]
+pub async fn login(cx: Scope, redirect_url: String) -> Result<User, ServerFnError> {
+
+    let current_user = get_user(cx).await;
+
+    if current_user.is_ok() {
+        return current_user;
+    }
 
     println!("redirect_url: {}", redirect_url);
 
@@ -167,7 +175,7 @@ pub async fn start_auth(cx: Scope, redirect_url: String) -> Result<(), ServerFnE
     // Redirect to the auth page
     leptos_axum::redirect(cx, auth_url.as_ref());
 
-    Ok(())
+    Ok(User::default())
 }
 
 #[server(AuthenticateUser, "/api")]
@@ -176,11 +184,11 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
-    let auth_session = get_session(cx)?;
+    let session = get_session(cx)?;
 
-    let nonce = oidc::Nonce::new(auth_session.session.get(NONCE_KEY).unwrap_or("".to_string()));
-    let pkce_verifier = oidc::PkceCodeVerifier::new(auth_session.session.get(PKCE_KEY).unwrap_or(String::default()));
-    let redirect_url = auth_session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
+    let nonce = oidc::Nonce::new(session.session.get(NONCE_KEY).unwrap_or("".to_string()));
+    let pkce_verifier = oidc::PkceCodeVerifier::new(session.session.get(PKCE_KEY).unwrap_or(String::default()));
+    let redirect_url = session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
 
     println!("auth_code = {}", auth_code);
     println!("nonce = {:?}", nonce);
@@ -229,7 +237,7 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
         .request_async(async_http_client).await
         .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
-    auth_session.session.set(OIDC_TOKENS_KEY, token_response.clone());
+    session.session.set(OIDC_TOKENS_KEY, token_response.clone());
 
     leptos_axum::redirect(cx, "/");
 
@@ -298,14 +306,14 @@ pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFn
 #[component]
 pub fn AuthCallback(
     cx: Scope) -> impl IntoView {
-    use crate::app::GlobalState;
+    use crate::app::*;
     let state = expect_context::<GlobalState>(cx);
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
     let auth_resource = create_blocking_resource(cx, || (), move |_| authenticate_user(cx, code()));
 
     view! { cx,
-        <Suspense fallback=move || (view! {cx, <div>"Loading"</div>})>
+        <Suspense fallback=move || (view! {cx, <LoadingIcon/>})>
             {
                 move || {
                     auth_resource.read(cx).map(|userResult| {

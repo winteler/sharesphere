@@ -1,7 +1,8 @@
 use leptos::*;
-use crate::app::{GlobalState};
+use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::auth::*;
 use crate::icons::*;
+use crate::forum::*;
 
 pub fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
     move |_| {
@@ -133,13 +134,16 @@ pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
 
 #[component]
 pub fn PlusMenu(cx: Scope) -> impl IntoView {
+
+    let create_forum_route = PUBLISH_ROUTE.to_owned() + CREATE_FORUM_ROUTE;
+
     view! { cx,
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
                 <PlusIcon/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
-                <li><a href="#">"[[Forum]]"</a></li>
+                <li><a href=create_forum_route>"[[Forum]]"</a></li>
                 <li><a href="#">"[[Content]]"</a></li>
             </ul>
         </div>

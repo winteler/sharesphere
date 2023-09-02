@@ -5,8 +5,11 @@ use leptos_router::*;
 use crate::auth::*;
 use crate::drawer::*;
 use crate::error_template::{AppError, ErrorTemplate};
+use crate::forum::*;
 use crate::icons::*;
 use crate::navigation_bar::*;
+
+pub const PUBLISH_ROUTE : &str = "/publish";
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {
@@ -60,7 +63,9 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
                             <Route path="/login" view=Login/>
                             // TODO: give path to requested page in ProtectedRoute redirect as parameter
-                            <Route path="/publish" view=LoginGuard/>
+                            <Route path="/publish" view=LoginGuard>
+                                <Route path=CREATE_FORUM_ROUTE view=CreateForum/>
+                            </Route>
                         </Routes>
                     </div>
                     <div class="drawer-side">
@@ -89,7 +94,7 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
             )
         },
         move |_| {
-            let url = window().location().pathname().unwrap_or(String::from("/"));
+            let url = String::from("");//window().location().pathname().unwrap_or(String::from("/"));
             login(cx, url)
         }
     );
@@ -100,14 +105,16 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
                     auth_resource.read(cx).map(|user| match user {
                         Err(e) => {
                             log!("Login error: {}", e);
-                            view! {cx, <div>"Error."</div>}.into_view(cx)
+                            return view! {cx, <div>"Error."</div>}.into_view(cx)
                         },
                         Ok(user) => {
+                            log!("Current user: {:?}", user);
                             if user.anonymous
                             {
                                 return view! {cx, <div>"Error."</div>}.into_view(cx);
                             }
-                            view! {cx, <Outlet/>}.into_view(cx)
+                            //state.user.set(user);
+                            return view! {cx, <Outlet/>}.into_view(cx)
                         },
                     });
                 }

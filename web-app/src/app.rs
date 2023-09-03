@@ -85,28 +85,29 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
 
     let state = expect_context::<GlobalState>(cx);
     let user_signal = state.user;
+    let current_url = window().location().pathname().unwrap_or(String::from("/"));
 
     let auth_resource = create_blocking_resource(
         cx,
         move || {
             (
-                state.user.get(),
+                state.user,
                 state.logout_action.version(),
             )
         },
         move |_| {
-            let url = window().location().pathname().unwrap_or(String::from("/"));
-            login(cx, url)
+            login(cx, current_url.clone())
         }
     );
 
     view! { cx,
         <Transition fallback=move || view! { cx, <LoadingIcon/> }>
+            <h2 class="p-6 text-4xl">"Login guard"</h2>
             { move || {
                     auth_resource.read(cx).map(|user: Result<User, ServerFnError>| match user {
                         Err(e) => {
                             log!("Login error: {}", e);
-                            return view! {cx, <div>"Error."</div>}.into_view(cx)
+                            view! {cx, <div>"Error."</div>}.into_view(cx)
                         },
                         Ok(user) => {
                             if user.anonymous
@@ -115,7 +116,7 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
                             }
                             user_signal.set(user.clone());
                             log!("Current user: {:?}", user);
-                            return view! {cx, <Outlet/>}.into_view(cx)
+                            view! {cx, <Outlet/>}.into_view(cx)
                         },
                     });
                 }

@@ -63,7 +63,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
                             <Route path="/login" view=Login/>
                             // TODO: give path to requested page in ProtectedRoute redirect as parameter
-                            <Route path="/publish" view=LoginGuard>
+                            <Route path=PUBLISH_ROUTE view=LoginGuard>
                                 <Route path=CREATE_FORUM_ROUTE view=CreateForum/>
                             </Route>
                         </Routes>
@@ -84,6 +84,7 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
     // TODO add check for logged in (resource or context?), display Outlet if authenticated, redirect to auth otherwise
 
     let state = expect_context::<GlobalState>(cx);
+    let user_signal = state.user;
 
     let auth_resource = create_blocking_resource(
         cx,
@@ -94,7 +95,7 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
             )
         },
         move |_| {
-            let url = String::from("");//window().location().pathname().unwrap_or(String::from("/"));
+            let url = window().location().pathname().unwrap_or(String::from("/"));
             login(cx, url)
         }
     );
@@ -102,18 +103,18 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
     view! { cx,
         <Transition fallback=move || view! { cx, <LoadingIcon/> }>
             { move || {
-                    auth_resource.read(cx).map(|user| match user {
+                    auth_resource.read(cx).map(|user: Result<User, ServerFnError>| match user {
                         Err(e) => {
                             log!("Login error: {}", e);
                             return view! {cx, <div>"Error."</div>}.into_view(cx)
                         },
                         Ok(user) => {
-                            log!("Current user: {:?}", user);
                             if user.anonymous
                             {
                                 return view! {cx, <div>"Error."</div>}.into_view(cx);
                             }
-                            //state.user.set(user);
+                            user_signal.set(user.clone());
+                            log!("Current user: {:?}", user);
                             return view! {cx, <Outlet/>}.into_view(cx)
                         },
                     });

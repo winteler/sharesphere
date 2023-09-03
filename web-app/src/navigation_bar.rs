@@ -7,14 +7,16 @@ use crate::forum::*;
 pub fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
     move |_| {
         let url = window().location().href().unwrap_or(String::from("/"));
+        log!("Current url: {url}");
         url_signal.set(url.clone());
     }
 }
 
 pub fn get_current_path_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
     move |_| {
-        let url = window().location().pathname().unwrap_or(String::from("/"));
-        url_signal.set(url.clone());
+        let path = window().location().pathname().unwrap_or(String::from("/"));
+        log!("Current path: {path}");
+        url_signal.set(path.clone());
     }
 }
 

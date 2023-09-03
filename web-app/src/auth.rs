@@ -142,16 +142,14 @@ pub async fn login(cx: Scope, redirect_url: String) -> Result<User, ServerFnErro
 
     let current_user = get_user(cx).await;
 
-    if current_user.is_ok() {
+    if current_user.clone().is_ok_and(|user| !user.anonymous) {
+        log!("Current user is: {:?}", current_user.clone().unwrap());
         return current_user;
     }
 
-    println!("redirect_url: {}", redirect_url);
+    log!("User not connected, redirect_url: {}", redirect_url);
 
     let client = get_auth_client().await?;
-
-    // Generate a PKCE challenge.
-    let (pkce_challenge, pkce_verifier) = oidc::PkceCodeChallenge::new_random_sha256();
 
     // Generate the full authorization URL.
     let (auth_url, _csrf_token, nonce) = client
@@ -163,13 +161,10 @@ pub async fn login(cx: Scope, redirect_url: String) -> Result<User, ServerFnErro
         // Set the desired scopes.
         //.add_scope(oidc::Scope::new("read".to_string()))
         //.add_scope(oidc::Scope::new("write".to_string()))
-        // Set the PKCE code challenge.
-        .set_pkce_challenge(pkce_challenge)
         .url();
 
     let session = get_session(cx)?;
     session.session.set(NONCE_KEY, nonce);
-    session.session.set(PKCE_KEY, pkce_verifier);
     session.session.set(REDIRECT_URL_KEY, redirect_url);
 
     // Redirect to the auth page
@@ -187,7 +182,6 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
     let session = get_session(cx)?;
 
     let nonce = oidc::Nonce::new(session.session.get(NONCE_KEY).unwrap_or("".to_string()));
-    let pkce_verifier = oidc::PkceCodeVerifier::new(session.session.get(PKCE_KEY).unwrap_or(String::default()));
     let redirect_url = session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
 
     println!("auth_code = {}", auth_code);
@@ -199,8 +193,6 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
     let token_response =
         client
             .exchange_code(oidc::AuthorizationCode::new(auth_code))
-            // Set the PKCE code verifier.
-            .set_pkce_verifier(pkce_verifier)
             .request_async(async_http_client).await?;
 
     // Extract the ID token claims after verifying its authenticity and nonce.
@@ -307,7 +299,7 @@ pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFn
 pub fn AuthCallback(
     cx: Scope) -> impl IntoView {
     use crate::app::*;
-    let state = expect_context::<GlobalState>(cx);
+    let _state = expect_context::<GlobalState>(cx);
     let query = use_query_map(cx);
     let code = move || query().get("code").unwrap().to_owned();
     let auth_resource = create_blocking_resource(cx, || (), move |_| authenticate_user(cx, code()));
@@ -320,7 +312,6 @@ pub fn AuthCallback(
                             if let Ok((user, redirect_url)) = userResult {
                                 log!("Store authenticated as {}", user.username);
                                 log!("Store redirect to {}", redirect_url);
-                                state.user.set(user);
                                 view! {cx, <Redirect path=redirect_url/>}.into_view(cx)
                             }
                             else {

@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_router::ActionForm;
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::auth::*;
 use crate::icons::*;
@@ -57,23 +58,12 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile(cx: Scope) -> impl IntoView {
-    let state = expect_context::<GlobalState>(cx);
-
-    let user = create_resource(
-        cx,
-        move || {
-            (
-                state.user.get(),
-                state.logout_action.version().get(),
-            )
-        },
-        move |_| { get_user(cx) },
-    );
+    let user_resource = get_user_resource(cx);
 
     view! { cx,
         <Transition fallback=move || view! {cx, <UserIcon/>}>
         {move || {
-            user.read(cx).map(|user| match user {
+            user_resource.read(cx).map(|user| match user {
                 Err(e) => {
                     log!("Login error: {}", e);
                     view! {cx, <LoginButton/>}.into_view(cx)
@@ -93,12 +83,12 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 
 #[component]
 pub fn LoginButton(cx: Scope) -> impl IntoView {
-    let start_auth = create_server_action::<Login>(cx);
+    let state = expect_context::<GlobalState>(cx);
     let current_path = create_rw_signal(cx, String::default());
     let get_current_path = get_current_path_closure(current_path);
 
     view! { cx,
-        <form action=start_auth.url() method="post" rel="external">
+        <form action=state.login_action.url() method="post" rel="external">
             <input type="text" name="redirect_url" class="hidden" value=current_path/>
             <button type="submit" class="btn btn-ghost btn-circle rounded-full" on:click=get_current_path>
                 <UserIcon/>

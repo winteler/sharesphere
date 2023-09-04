@@ -5,6 +5,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::icons::*;
+use crate::app::GlobalState;
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
@@ -142,8 +143,8 @@ pub async fn login(cx: Scope, redirect_url: String) -> Result<User, ServerFnErro
 
     let current_user = get_user(cx).await;
 
-    if current_user.clone().is_ok_and(|user| !user.anonymous) {
-        log!("Current user is: {:?}", current_user.clone().unwrap());
+    if current_user.is_ok() {
+        log!("Already logged in, current user is: {:?}", current_user.clone().unwrap());
         return current_user;
     }
 
@@ -181,7 +182,7 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
 
     let session = get_session(cx)?;
 
-    let nonce = oidc::Nonce::new(session.session.get(NONCE_KEY).unwrap_or("".to_string()));
+    let nonce = oidc::Nonce::new(session.session.get(NONCE_KEY).unwrap_or(String::from("")));
     let redirect_url = session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
 
     println!("auth_code = {}", auth_code);
@@ -251,7 +252,7 @@ pub async fn get_user(cx: Scope) -> Result<User, ServerFnError> {
     let client = get_auth_client().await?;
 
     // Extract the ID token claims, authenticity and nonce already verified in auth callback
-    let id_token = token_response.id_token().ok_or(ServerFnError::ServerError("Error getting id token.".to_owned()))?;
+    let id_token = token_response.id_token().ok_or(ServerFnError::ServerError(String::from("Error getting id token.")))?;
     let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
 
     Ok(User {
@@ -294,6 +295,20 @@ pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFn
     Ok(())
 }
 
+pub fn get_user_resource(cx: Scope) -> Resource<(RwSignal<usize>, RwSignal<usize>), Result<User, ServerFnError>> {
+    let state = expect_context::<GlobalState>(cx);
+    create_blocking_resource(
+        cx,
+        move || {
+            (
+                state.login_action.version(),
+                state.logout_action.version(),
+            )
+        },
+        move |_| { get_user(cx) },
+    )
+}
+
 /// Auth callback component
 #[component]
 pub fn AuthCallback(
@@ -312,6 +327,8 @@ pub fn AuthCallback(
                             if let Ok((user, redirect_url)) = userResult {
                                 log!("Store authenticated as {}", user.username);
                                 log!("Store redirect to {}", redirect_url);
+                                // TODO: try to use create_effect to update user signal
+
                                 view! {cx, <Redirect path=redirect_url/>}.into_view(cx)
                             }
                             else {

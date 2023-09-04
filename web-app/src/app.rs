@@ -14,6 +14,7 @@ pub const PUBLISH_ROUTE : &str = "/publish";
 #[derive(Copy, Clone)]
 pub struct GlobalState {
     pub user: RwSignal<User>,
+    pub login_action: Action<Login, Result<User, ServerFnError>>,
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
 }
 
@@ -21,6 +22,7 @@ impl GlobalState {
     pub fn new(cx: Scope) -> Self {
         Self {
             user: create_rw_signal(cx, User::default()),
+            login_action: create_server_action::<Login>(cx),
             logout_action: create_server_action::<EndSession>(cx)
         }
     }
@@ -62,7 +64,6 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <Route path="/" view=HomePage/>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
                             <Route path="/login" view=Login/>
-                            // TODO: give path to requested page in ProtectedRoute redirect as parameter
                             <Route path=PUBLISH_ROUTE view=LoginGuard>
                                 <Route path=CREATE_FORUM_ROUTE view=CreateForum/>
                             </Route>
@@ -82,43 +83,27 @@ pub fn App(cx: Scope) -> impl IntoView {
 #[component]
 fn LoginGuard(cx: Scope) -> impl IntoView {
     // TODO add check for logged in (resource or context?), display Outlet if authenticated, redirect to auth otherwise
-
-    let state = expect_context::<GlobalState>(cx);
-    let user_signal = state.user;
-    let current_url = window().location().pathname().unwrap_or(String::from("/"));
-
-    let auth_resource = create_blocking_resource(
-        cx,
-        move || {
-            (
-                state.user,
-                state.logout_action.version(),
-            )
-        },
-        move |_| {
-            login(cx, current_url.clone())
-        }
-    );
+    let user_resource = get_user_resource(cx);
 
     view! { cx,
         <Transition fallback=move || view! { cx, <LoadingIcon/> }>
-            <h2 class="p-6 text-4xl">"Login guard"</h2>
             { move || {
-                    auth_resource.read(cx).map(|user: Result<User, ServerFnError>| match user {
+                    user_resource.read(cx).map(|user: Result<User, ServerFnError>| match user {
                         Err(e) => {
+                            // TODO: put component asking for login to solve url issue
                             log!("Login error: {}", e);
-                            view! {cx, <div>"Error."</div>}.into_view(cx)
+                            view! {cx, <Login/>}.into_view(cx)
                         },
                         Ok(user) => {
                             if user.anonymous
                             {
-                                return view! {cx, <div>"Error."</div>}.into_view(cx);
+                                log!("Not logged in.");
+                                return view! {cx, <Login/>}.into_view(cx);
                             }
-                            user_signal.set(user.clone());
                             log!("Current user: {:?}", user);
                             view! {cx, <Outlet/>}.into_view(cx)
                         },
-                    });
+                    })
                 }
             }
         </Transition>
@@ -128,15 +113,14 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
 /// Renders a page requesting a login
 #[component]
 fn Login(cx: Scope) -> impl IntoView {
-    use crate::navigation_bar::get_current_path_closure;
-    let start_auth = create_server_action::<Login>(cx);
+    let state = expect_context::<GlobalState>(cx);
     let current_path = create_rw_signal(cx, String::default());
     let get_current_path = get_current_path_closure(current_path);
 
     view! { cx,
         <div class="h-full my-0 mx-auto max-w-3xl text-center">
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Login required to access this page."</p>
-            <form action=start_auth.url() method="post" rel="external">
+            <form action=state.login_action.url() method="post" rel="external">
                 <input type="text" name="redirect_url" class="hidden" value=current_path/>
                 <button type="submit" class="btn btn-primary" on:click=get_current_path>
                     "Login"

@@ -12,6 +12,7 @@ cfg_if! {
             Router,
         };
 
+        use std::env;
         use project_web_app::app::*;
         use project_web_app::auth::*;
         use project_web_app::fileserv::file_and_error_handler;
@@ -25,6 +26,37 @@ cfg_if! {
         use axum_session_auth::{AuthSessionLayer, AuthConfig};
 
         use anyhow::{Context};
+
+        pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
+        pub const SESSION_DB_KEY_ENV : &str = "SESSION_DB_KEY";
+
+        #[cfg(feature = "ssr")]
+        pub fn get_session_key() -> Key {
+            match env::var(SESSION_KEY_ENV) {
+                Ok(key) => {
+                    log!("Got session key from env variable.");
+                    Key::from(&key.into_bytes())
+                },
+                Err(_) => {
+                    log!("Could not find session key in env variable, generate one.");
+                    Key::generate()
+                }
+            }
+        }
+
+        #[cfg(feature = "ssr")]
+        pub fn get_session_db_key() -> Key {
+            match env::var(SESSION_DB_KEY_ENV) {
+                Ok(key) => {
+                    log!("Got session db key from env variable.");
+                    Key::from(&key.into_bytes())
+                },
+                Err(_) => {
+                    log!("Could not find session db key in env variable, generate one.");
+                    Key::generate()
+                }
+            }
+        }
 
         async fn server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery, request: Request<AxumBody>) -> impl IntoResponse {
             log!("{:?}", path);
@@ -48,7 +80,7 @@ cfg_if! {
 
         #[tokio::main]
         async fn main() {
-            simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
+            simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
 
             let pool = get_db_pool().await.unwrap();
 
@@ -57,10 +89,10 @@ cfg_if! {
                 // 'Key::generate()' will generate a new key each restart of the server.
                 // If you want it to be more permanent then generate and set it to a config file.
                 // If with_key() is used it will set all cookies as private, which guarantees integrity, and authenticity.
-                .with_key(Key::generate())
+                .with_key(get_session_key())
                 // This is how we would Set a Database Key to encrypt as store our per session keys.
                 // This MUST be set in order to use SecurityMode::PerSession.
-                .with_database_key(Key::generate())
+                .with_database_key(get_session_db_key())
                 // This is How you will enable PerSession SessionID Private Cookie Encryption. When enabled it will
                 // Encrypt the SessionID and Storage with an Encryption key generated and stored per session.
                 // This allows for Key renewing without needing to force the entire Session from being destroyed.

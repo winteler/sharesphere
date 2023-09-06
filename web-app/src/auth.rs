@@ -4,8 +4,8 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::icons::*;
 use crate::app::GlobalState;
+use crate::icons::*;
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
@@ -17,17 +17,24 @@ pub const OIDC_TOKENS_KEY : &str = "oidc_token";
 pub const REDIRECT_URL_KEY : &str = "redirect";
 
 cfg_if! {
-if #[cfg(feature = "ssr")] {
+    if #[cfg(feature = "ssr")] {
+        use openidconnect as oidc;
+        use openidconnect::reqwest::*;
+        use openidconnect::{OAuth2TokenResponse, TokenResponse};
+        use sqlx::PgPool;
+        use axum_session::SessionPgPool;
 
-    use sqlx::{PgPool};
-    use axum_session_auth::{SessionPgPool, Authentication};
+        pub type Session = axum_session::Session<SessionPgPool>;
 
-    use openidconnect as oidc;
-    use openidconnect::reqwest::*;
-    use openidconnect::{OAuth2TokenResponse, TokenResponse};
+        pub fn get_db_pool(cx: Scope) -> Result<PgPool, ServerFnError> {
+            use_context::<PgPool>(cx).ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
+        }
 
-    pub type AuthSession = axum_session_auth::AuthSession<User, String, SessionPgPool, PgPool>;
-}}
+        pub fn get_session(cx: Scope) -> Result<Session, ServerFnError> {
+            use_context::<Session>(cx).ok_or_else(|| ServerFnError::ServerError("Session missing.".into()))
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
@@ -45,40 +52,6 @@ impl Default for User {
         }
     }
 }
-
-cfg_if! {
-if #[cfg(feature = "ssr")] {
-    use async_trait::async_trait;
-
-    pub fn get_db_pool(cx: Scope) -> Result<PgPool, ServerFnError> {
-       use_context::<PgPool>(cx)
-            .ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
-    }
-
-    pub fn get_session(cx: Scope) -> Result<AuthSession, ServerFnError> {
-        use_context::<AuthSession>(cx)
-            .ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
-    }
-
-    #[async_trait]
-    impl Authentication<User, String, PgPool> for User {
-        async fn load_user(_id: String, _pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
-            Ok(User::default())
-        }
-
-        fn is_authenticated(&self) -> bool {
-            !self.anonymous
-        }
-
-        fn is_active(&self) -> bool {
-            !self.anonymous
-        }
-
-        fn is_anonymous(&self) -> bool {
-            self.anonymous
-        }
-    }
-}}
 
 #[cfg(feature = "ssr")]
 pub fn get_issuer_url() -> Result<oidc::IssuerUrl, ServerFnError> {
@@ -165,8 +138,8 @@ pub async fn login(cx: Scope, redirect_url: String) -> Result<User, ServerFnErro
         .url();
 
     let session = get_session(cx)?;
-    session.session.set(NONCE_KEY, nonce);
-    session.session.set(REDIRECT_URL_KEY, redirect_url);
+    session.set(NONCE_KEY, nonce);
+    session.set(REDIRECT_URL_KEY, redirect_url);
 
     // Redirect to the auth page
     leptos_axum::redirect(cx, auth_url.as_ref());
@@ -182,8 +155,8 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
 
     let session = get_session(cx)?;
 
-    let nonce = oidc::Nonce::new(session.session.get(NONCE_KEY).unwrap_or(String::from("")));
-    let redirect_url = session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
+    let nonce = oidc::Nonce::new(session.get(NONCE_KEY).unwrap_or(String::from("")));
+    let redirect_url = session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
 
     println!("auth_code = {}", auth_code);
     println!("nonce = {:?}", nonce);
@@ -230,7 +203,7 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
         .request_async(async_http_client).await
         .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
-    session.session.set(OIDC_TOKENS_KEY, token_response.clone());
+    session.set(OIDC_TOKENS_KEY, token_response.clone());
 
     leptos_axum::redirect(cx, "/");
 
@@ -246,8 +219,8 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
 #[server(GetUser, "/api")]
 pub async fn get_user(cx: Scope) -> Result<User, ServerFnError> {
     let session = get_session(cx)?;
-    let token_response: oidc::core::CoreTokenResponse = session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
-    let nonce = oidc::Nonce::new(session.session.get(NONCE_KEY).unwrap_or("".to_string()));
+    let token_response: oidc::core::CoreTokenResponse = session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
+    let nonce = oidc::Nonce::new(session.get(NONCE_KEY).unwrap_or("".to_string()));
 
     let client = get_auth_client().await?;
 
@@ -267,7 +240,7 @@ pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFn
     println!("Logout, redirect_url: {redirect_url}");
 
     let session = get_session(cx)?;
-    let token_response: oidc::core::CoreTokenResponse = session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
+    let token_response: oidc::core::CoreTokenResponse = session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
 
     let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
         get_issuer_url()?,
@@ -290,7 +263,7 @@ pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFn
 
     leptos_axum::redirect(cx, logout_request.http_get_url().to_string().as_str());
 
-    session.session.remove(OIDC_TOKENS_KEY);
+    session.remove(OIDC_TOKENS_KEY);
 
     Ok(())
 }

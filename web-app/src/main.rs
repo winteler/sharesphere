@@ -21,9 +21,8 @@ cfg_if! {
         use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
         use leptos::{log, view, provide_context, get_configuration};
 
-        use sqlx::{PgPool, postgres::{PgPoolOptions}};
+        use sqlx::postgres::PgPoolOptions;
         use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key, SecurityMode};
-        use axum_session_auth::{AuthSessionLayer, AuthConfig};
 
         use anyhow::{Context};
 
@@ -58,19 +57,19 @@ cfg_if! {
             }
         }
 
-        async fn server_fn_handler(State(app_state): State<AppState>, auth_session: AuthSession, path: Path<String>, headers: HeaderMap, raw_query: RawQuery, request: Request<AxumBody>) -> impl IntoResponse {
+        async fn server_fn_handler(State(app_state): State<AppState>, session: Session, path: Path<String>, headers: HeaderMap, raw_query: RawQuery, request: Request<AxumBody>) -> impl IntoResponse {
             log!("{:?}", path);
 
             handle_server_fns_with_context(path, headers, raw_query, move |cx| {
-                provide_context(cx, auth_session.clone());
+                provide_context(cx, session.clone());
                 provide_context(cx, app_state.pool.clone());
             }, request).await
         }
 
-        async fn leptos_routes_handler(auth_session: AuthSession, State(app_state): State<AppState>, req: Request<AxumBody>) -> Response{
+        async fn leptos_routes_handler(session: Session, State(app_state): State<AppState>, req: Request<AxumBody>) -> Response{
                 let handler = leptos_axum::render_app_to_stream_with_context(app_state.leptos_options.clone(),
                 move |cx| {
-                    provide_context(cx, auth_session.clone());
+                    provide_context(cx, session.clone());
                     provide_context(cx, app_state.pool.clone());
                 },
                 |cx| view! { cx, <App/> }
@@ -98,11 +97,7 @@ cfg_if! {
                 // This allows for Key renewing without needing to force the entire Session from being destroyed.
                 // This Also helps prevent impersonation attempts.
                 .with_security_mode(SecurityMode::PerSession);
-            let auth_config = AuthConfig::<String>::default().with_anonymous_user_id(Some(String::default()));
             let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
-
-            //Create the Database table for storing our Session Data.
-            session_store.initiate().await.unwrap();
 
             sqlx::migrate!()
                 .run(&pool)
@@ -129,7 +124,6 @@ cfg_if! {
                 .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
                 .leptos_routes_with_handler(routes, get(leptos_routes_handler))
                 .fallback(file_and_error_handler)
-                .layer(AuthSessionLayer::<User, String, SessionPgPool, PgPool>::new(Some(pool)).with_config(auth_config))
                 .layer(SessionLayer::new(session_store))
                 .with_state(app_state);
 

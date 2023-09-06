@@ -9,8 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 axum = { version = "0.6.4", optional = true }
 axum-extra = { version = "*", features = [ "cookie" ], optional = true }
-axum_session = { version = "0.3.5", features = [ "postgres-rustls"], optional = true }
-axum_session_auth = { version = "0.3.1", features = [ "postgres-rustls" ], optional = true }
+axum_session = { version = "0.5.0", features = [ "postgres-rustls"], optional = true }
 console_error_panic_hook = "0.1"
 console_log = "1"
 cfg-if = "1"
@@ -40,7 +39,6 @@ ssr = [
     "dep:axum",
     "dep:axum-extra",
     "dep:axum_session",
-    "dep:axum_session_auth",
     "dep:tokio",
     "dep:tower",
     "dep:tower-http",

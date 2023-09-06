@@ -61,7 +61,13 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
     let user_resource = get_user_resource(cx);
 
     view! { cx,
-        <Transition fallback=move || view! {cx, <UserIcon/>}>
+        <Transition fallback=move || {
+            view! {cx,
+                <button class="btn btn-ghost btn-circle rounded-full">
+                    <UserIcon/>
+                </button>
+            }
+        }>
         {move || {
             user_resource.read(cx).map(|user| match user {
                 Err(e) => {

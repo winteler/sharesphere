@@ -8,7 +8,6 @@ pub mod footer;
 pub mod forum;
 pub mod icons;
 pub mod navigation_bar;
-pub mod session;
 pub mod state;
 
 cfg_if! { if #[cfg(feature = "hydrate")] {

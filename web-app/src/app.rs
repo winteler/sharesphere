@@ -73,7 +73,6 @@ pub fn App(cx: Scope) -> impl IntoView {
                         <Drawer/>
                     </div>
                 </main>
-                //<Footer/>
             </div>
         </Router>
     }
@@ -82,8 +81,22 @@ pub fn App(cx: Scope) -> impl IntoView {
 /// Components to guard pages requiring a login, and enable the user to login with a redirect
 #[component]
 fn LoginGuard(cx: Scope) -> impl IntoView {
-    // TODO add check for logged in (resource or context?), display Outlet if authenticated, redirect to auth otherwise
-    let user_resource = get_user_resource(cx);
+    let state = expect_context::<GlobalState>(cx);
+    let user_resource = create_local_resource(
+        cx,
+        move || {
+            (
+                state.login_action.version(),
+                state.logout_action.version(),
+            )
+        },
+        move |_| {
+            log!("Start get_user_resources");
+            let path = window().location().pathname().unwrap_or(String::from("/"));
+            log!("Current path: {path}");
+            login(cx, path)
+        },
+    );
 
     view! { cx,
         <Transition fallback=move || view! { cx, <LoadingIcon/> }>
@@ -141,7 +154,6 @@ fn HomePage(cx: Scope) -> impl IntoView {
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Tailwind will scan your Rust files for Tailwind class names and compile them into a CSS file."</p>
             <button
                 class="m-8 bg-amber-600 hover:bg-sky-700 px-5 py-3 text-white rounded-lg"
-                //class="m-10 btn btn-active btn-accent"
                 on:click=move |_| set_count.update(|count| *count += 1)
             >
                 "Something's here | "

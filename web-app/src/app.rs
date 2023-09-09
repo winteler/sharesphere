@@ -81,23 +81,7 @@ pub fn App(cx: Scope) -> impl IntoView {
 /// Components to guard pages requiring a login, and enable the user to login with a redirect
 #[component]
 fn LoginGuard(cx: Scope) -> impl IntoView {
-    let state = expect_context::<GlobalState>(cx);
-    let user_resource = create_local_resource(
-        cx,
-        move || {
-            (
-                state.login_action.version(),
-                state.logout_action.version(),
-            )
-        },
-        move |_| {
-            log!("Start get_user_resources");
-            let path = window().location().pathname().unwrap_or(String::from("/"));
-            log!("Current path: {path}");
-            login(cx, path)
-        },
-    );
-
+    let user_resource = get_user_resource(cx);
     view! { cx,
         <Transition fallback=move || view! { cx, <LoadingIcon/> }>
             { move || {

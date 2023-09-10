@@ -87,8 +87,15 @@ pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, ServerFnErro
 }
 
 #[cfg(feature = "ssr")]
-pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
+pub async fn is_user_authenticated(cx: Scope) -> bool {
+    match get_user(cx).await {
+        Ok(user) => !user.anonymous,
+        Err(_) => false
+    }
+}
 
+#[cfg(feature = "ssr")]
+pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
     let redirect_url = get_auth_redirect()?;
     let issuer_url = get_issuer_url()?;
 
@@ -205,7 +212,7 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
 
     session.set(OIDC_TOKENS_KEY, token_response.clone());
 
-    leptos_axum::redirect(cx, "/");
+    leptos_axum::redirect(cx, redirect_url.as_ref());
 
     let user = User {
         id: claims.subject().to_string(),
@@ -299,9 +306,7 @@ pub fn AuthCallback(
                     auth_resource.read(cx).map(|userResult| {
                             if let Ok((user, redirect_url)) = userResult {
                                 log!("Store authenticated as {}", user.username);
-                                log!("Store redirect to {}", redirect_url);
-                                // TODO: try to use create_effect to update user signal
-
+                                log!("Redirect to {}", redirect_url);
                                 view! {cx, <Redirect path=redirect_url/>}.into_view(cx)
                             }
                             else {

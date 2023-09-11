@@ -26,6 +26,7 @@ cfg_if! {
 
         use anyhow::{Context};
 
+        pub const DB_URL_ENV : &str = "DATABASE_URL";
         pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
         pub const SESSION_DB_KEY_ENV : &str = "SESSION_DB_KEY";
 
@@ -140,7 +141,7 @@ cfg_if! {
         async fn get_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
             PgPoolOptions::new()
                 .max_connections(5)
-                .connect("postgres://project:project@localhost:5435/project")
+                .connect(&env::var(DB_URL_ENV)?)
                 .await
                 .with_context(|| format!("Failed to connect to DB"))
         }

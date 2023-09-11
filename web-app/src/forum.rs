@@ -11,7 +11,7 @@ cfg_if! {
 pub const CREATE_FORUM_ROUTE : &str = "/forum";
 
 #[server(CreateForum, "/api")]
-pub async fn create_forum(cx: Scope, name: String, description: String, nsfw: bool) -> Result<(), ServerFnError> {
+pub async fn create_forum(cx: Scope, name: String, description: String, is_nsfw: bool) -> Result<(), ServerFnError> {
     let user = get_user(cx).await?;
 
     let db_pool = get_db_pool(cx)?;
@@ -20,7 +20,7 @@ pub async fn create_forum(cx: Scope, name: String, description: String, nsfw: bo
     )
         .bind(name)
         .bind(description)
-        .bind (nsfw)
+        .bind (is_nsfw)
         .bind(user.id)
         .execute(&db_pool)
         .await
@@ -40,14 +40,16 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
     view! { cx,
         <h2 class="p-6 text-4xl">"Create forum"</h2>
         <ActionForm action=create_forum>
-            <input type="text" name="name" placeholder="Forum name" class="input input-bordered input-primary w-full max-w-xs"/>
-            //<input type="text" name="description" placeholder="Description" class="input input-bordered input-secondary w-full max-w-xs"/>
-            <textarea class="textarea textarea-secondary" name="description" placeholder="Description"/>
-            <div class="form-control">
-                <label class="cursor-pointer label">
-                    <span class="label-text">"NSFW"</span>
-                    <input type="checkbox" name="nsfw" class="checkbox checkbox-secondary" />
-                </label>
+            <div class="flex flex-col gap-1">
+                <input type="text" name="name" placeholder="Forum name" class="input input-bordered input-primary w-full max-w-xs"/>
+                //<input type="text" name="description" placeholder="Description" class="input input-bordered input-secondary w-full max-w-xs"/>
+                <textarea class="textarea textarea-primary" name="description" placeholder="Description"/>
+                <div class="form-control">
+                    <label class="cursor-pointer label">
+                        <span class="label-text label-primary">"NSFW content"</span>
+                        <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary" />
+                    </label>
+                </div>
             </div>
         </ActionForm>
     }

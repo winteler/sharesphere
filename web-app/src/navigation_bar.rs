@@ -33,12 +33,12 @@ pub fn NavigationBar(
                 <div class="flex-1">
                     <a href="/" class="btn btn-ghost normal-case text-l text-white">
                         <StacksIcon/>
-                        "[[ProjectName]]"
+                        <label class="max-xl:hidden">"[[ProjectName]]"</label>
                     </a>
                 </div>
             </div>
             <div class="navbar-end gap-1">
-                <div class="join sm:max-lg:hidden">
+                <div class="join max-xl:hidden">
                     <div>
                         <div>
                             <input class="input join-item input-md" placeholder="Search"/>

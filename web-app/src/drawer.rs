@@ -13,14 +13,3 @@ pub fn Drawer(
         </ul>
     }
 }
-
-#[component]
-pub fn DrawerContent(
-    cx: Scope) -> impl IntoView {
-    view! { cx,
-        <div class="h-full px-6 py-4">
-            <h2 class="text-lg font-semibold">"Drawer"</h2>
-            <p class="text-gray-500">"This is a drawer."</p>
-        </div>
-    }
-}

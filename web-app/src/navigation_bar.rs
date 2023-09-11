@@ -29,16 +29,16 @@ pub fn NavigationBar(
     view! { cx,
         <div class="navbar bg-blue-500">
             <div class="navbar-start">
-                <label for="my-drawer" class="drawer-button lg:hidden btn btn-square btn-ghost"><SideBarIcon/></label>
+                <label for="my-drawer" class="drawer-button 2xl:hidden btn btn-square btn-ghost"><SideBarIcon/></label>
                 <div class="flex-1">
                     <a href="/" class="btn btn-ghost normal-case text-l text-white">
                         <StacksIcon/>
-                        <label class="max-xl:hidden">"[[ProjectName]]"</label>
+                        <label class="max-2xl:hidden">"[[ProjectName]]"</label>
                     </a>
                 </div>
             </div>
             <div class="navbar-end gap-1">
-                <div class="join max-xl:hidden">
+                <div class="join max-2xl:hidden">
                     <div>
                         <div>
                             <input class="input join-item input-md" placeholder="Search"/>
@@ -46,7 +46,7 @@ pub fn NavigationBar(
                     </div>
                     <button class="btn join-item button-md"><SearchIcon/></button>
                 </div>
-                <button class="btn btn-ghost btn-circle lg:hidden">
+                <button class="btn btn-ghost btn-circle 2xl:hidden">
                     <SearchIcon/>
                 </button>
                 <PlusMenu/>

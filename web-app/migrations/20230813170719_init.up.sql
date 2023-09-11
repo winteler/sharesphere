@@ -2,7 +2,6 @@ CREATE TABLE forums (
                           id BIGSERIAL PRIMARY KEY,
                           name TEXT NOT NULL,
                           description TEXT NOT NULL,
-                          rules TEXT NOT NULL,
                           nsfw BOOLEAN NOT NULL DEFAULT FALSE,
                           creator_id TEXT NOT NULL,
                           timestamp TIMESTAMP NOT NULL DEFAULT NOW()

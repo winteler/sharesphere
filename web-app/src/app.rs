@@ -57,7 +57,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         }>
             <div class="h-screen flex flex-col">
                 <NavigationBar/>
-                <main class="h-full drawer lg:drawer-open">
+                <main class="h-full drawer 2xl:drawer-open">
                     <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                     <div class="drawer-content container mx-auto h-full">
                         <Routes>
@@ -87,7 +87,6 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
             { move || {
                     user_resource.read(cx).map(|user: Result<User, ServerFnError>| match user {
                         Err(e) => {
-                            // TODO: put component asking for login to solve url issue
                             log!("Login error: {}", e);
                             view! {cx, <Login/>}.into_view(cx)
                         },

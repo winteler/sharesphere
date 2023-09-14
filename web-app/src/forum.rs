@@ -60,3 +60,29 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
         </ActionForm>
     }
 }
+
+#[component]
+pub fn ForumBanner(cx: Scope) -> impl IntoView {
+
+    // TODO: add forum banner
+    view! { cx,
+        <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum banner]]"</h2>
+    }
+}
+
+#[component]
+pub fn ForumContents(cx: Scope) -> impl IntoView {
+    // TODO: add list of forum contents
+    view! { cx,
+        <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum contents]]"</h2>
+    }
+}
+
+#[component]
+pub fn Content(cx: Scope) -> impl IntoView {
+
+    // TODO: add content and its comments
+    view! { cx,
+        <h2 class="p-6 text-4xl max-2xl:text-center">"Create [[content]]"</h2>
+    }
+}

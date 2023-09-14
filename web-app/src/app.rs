@@ -62,6 +62,10 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <div class="drawer-content container mx-auto h-full">
                         <Routes>
                             <Route path="/" view=HomePage/>
+                            <Route path="/forums/:name" view=ForumBanner>
+                                <Route path="/contents/:id" view=Content/>
+                                <Route path="" view=ForumContents/>
+                            </Route>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
                             <Route path="/login" view=Login/>
                             <Route path=PUBLISH_ROUTE view=LoginGuard>

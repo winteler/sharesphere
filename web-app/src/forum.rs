@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
 use leptos::*;
-use leptos_router::ActionForm;
+use leptos_router::{ActionForm, Outlet};
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -66,7 +66,11 @@ pub fn ForumBanner(cx: Scope) -> impl IntoView {
 
     // TODO: add forum banner
     view! { cx,
-        <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum banner]]"</h2>
+        <div class="flex flex-col gap-1 w-full">
+            <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum banner]]"</h2>
+            <Outlet/>
+        </div>
+
     }
 }
 
@@ -83,6 +87,6 @@ pub fn Content(cx: Scope) -> impl IntoView {
 
     // TODO: add content and its comments
     view! { cx,
-        <h2 class="p-6 text-4xl max-2xl:text-center">"Create [[content]]"</h2>
+        <h2 class="p-6 text-4xl max-2xl:text-center">"[[content]]"</h2>
     }
 }

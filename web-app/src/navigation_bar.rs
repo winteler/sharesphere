@@ -71,7 +71,7 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
         {move || {
             user_resource.read(cx).map(|user| match user {
                 Err(e) => {
-                    log!("Login error: {}", e);
+                    log!("Get user error: {}", e);
                     view! {cx, <LoginButton/>}.into_view(cx)
                 },
                 Ok(user) => {

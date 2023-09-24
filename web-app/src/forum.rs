@@ -3,7 +3,9 @@ use std::collections::{HashSet};
 use leptos::*;
 use leptos_router::{ActionForm, Outlet};
 
-use crate::icons::LoadingIcon;
+use crate::icons::{ErrorIcon, LoadingIcon};
+
+
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -86,15 +88,18 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
                                         <ActionForm action=create_forum on:submit=on_submit>
                                             <div class="flex flex-col gap-1 w-full max-w-md 2xl:max-w-lg max-2xl:mx-auto">
                                                 <h2 class="p-6 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
-                                                <div class="flex">
+                                                <div class="flex gap-1 items-center">
                                                     <input
                                                         type="text"
                                                         name="name"
                                                         placeholder="[[Forum]] name"
-                                                        class="input input-bordered input-primary"
+                                                        class="input input-bordered input-primary h-16"
                                                         on:input=move |ev| { is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&event_target_value(&ev))); }
                                                     />
-                                                    <span class="text-red" class:hidden=move || !is_name_taken.get()>"Name is already taken"</span>
+                                                    <div class="alert alert-error" class:hidden=move || !is_name_taken.get()>
+                                                        <ErrorIcon/>
+                                                        <span>"Unavailable."</span>
+                                                    </div>
                                                 </div>
                                                 <textarea name="description" placeholder="Description" class="textarea textarea-primary h-40"/>
                                                 <div class="form-control">

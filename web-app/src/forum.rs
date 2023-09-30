@@ -23,6 +23,11 @@ pub async fn create_forum(cx: Scope, name: String, description: String, is_nsfw:
 
     let db_pool = get_db_pool(cx)?;
     log!("Got db pool");
+
+    if name.is_empty() {
+        return Err(ServerFnError::ServerError(String::from("Cannot create forum with empty name.")));
+    }
+
     let result = match sqlx::query(
         "INSERT INTO forums (name, description, nsfw, creator_id) VALUES ($1, $2, $3, $4)",
     )
@@ -68,9 +73,11 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
     // check if the server has returned an error
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
-    let existing_forums = create_blocking_resource(cx, || (), move |_| get_all_forum_names(cx));
+    let existing_forums = create_resource(cx, move || (create_forum.version()) , move |_| get_all_forum_names(cx));
 
+    let is_name_empty = create_rw_signal(cx, true);
     let is_name_taken = create_rw_signal(cx, false);
+    let is_name_invalid = create_memo(cx, move |_| { is_name_empty.get() || is_name_taken.get() });
 
     let on_submit = move |event: leptos::ev::SubmitEvent| {
         let data = CreateForum::from_event(&event);
@@ -99,7 +106,11 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
                                                             name="name"
                                                             placeholder="[[Forum]] name"
                                                             class="input input-bordered input-primary h-16"
-                                                            on:input=move |ev| { is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&event_target_value(&ev))); }
+                                                            on:input=move |ev| {
+                                                                let input = event_target_value(&ev);
+                                                                is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());
+                                                                is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&input));
+                                                            }
                                                         />
                                                         <div class="alert alert-error" class:hidden=move || !is_name_taken.get()>
                                                             <ErrorIcon/>
@@ -113,16 +124,16 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
                                                             <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
                                                         </label>
                                                     </div>
-                                                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_name_taken>"Create"</button>
+                                                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_name_invalid>"Create"</button>
                                                 </div>
                                             </ActionForm>
                                             <Show
                                                 when=has_error
                                                 fallback=move |_| ()
                                             >
-                                                <div class="alert alert-error">
+                                                <div class="alert alert-error flex justify-center">
                                                     <ErrorIcon/>
-                                                    <span>"Server error. Please reload the page"</span>
+                                                    <span>"Server error. Please reload the page and retry."</span>
                                                 </div>
                                             </Show>
                                         </div>

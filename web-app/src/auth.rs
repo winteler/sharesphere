@@ -14,6 +14,7 @@ pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 pub const PKCE_KEY : &str = "pkce";
 pub const NONCE_KEY : &str = "nonce";
 pub const OIDC_TOKENS_KEY : &str = "oidc_token";
+pub const USER_KEY : &str = "user";
 pub const REDIRECT_URL_KEY : &str = "redirect";
 
 cfg_if! {
@@ -220,26 +221,17 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
         username: claims.preferred_username().unwrap().to_string(),
     };
 
+    session.set(USER_KEY, user.clone());
+
     Ok((user, redirect_url))
 }
 
 #[server(GetUser, "/api")]
 pub async fn get_user(cx: Scope) -> Result<User, ServerFnError> {
     let session = get_session(cx)?;
-    let token_response: oidc::core::CoreTokenResponse = session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
-    let nonce = oidc::Nonce::new(session.get(NONCE_KEY).unwrap_or("".to_string()));
+    let user: User = session.get(USER_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
 
-    let client = get_auth_client().await?;
-
-    // Extract the ID token claims, authenticity and nonce already verified in auth callback
-    let id_token = token_response.id_token().ok_or(ServerFnError::ServerError(String::from("Error getting id token.")))?;
-    let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
-
-    Ok(User {
-        id: claims.subject().to_string(),
-        anonymous: false,
-        username: claims.preferred_username().unwrap().to_string(),
-    })
+    Ok(user)
 }
 
 #[server(EndSession, "/api")]

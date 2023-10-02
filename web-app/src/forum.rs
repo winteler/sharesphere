@@ -16,13 +16,13 @@ cfg_if! {
 pub const CREATE_FORUM_ROUTE : &str = "/forum";
 
 #[server(CreateForum, "/api")]
-pub async fn create_forum(cx: Scope, name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
-    log!("Create [[forum]] '{name}', {description}, {:?}", is_nsfw);
-    let user = get_user(cx).await?;
-    log!("Could get user: {:?}", user);
+pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
+    log::info!("Create [[forum]] '{name}', {description}, {:?}", is_nsfw);
+    let user = get_user().await?;
+    log::info!("Could get user: {:?}", user);
 
-    let db_pool = get_db_pool(cx)?;
-    log!("Got db pool");
+    let db_pool = get_db_pool()?;
+    log::info!("Got db pool");
 
     if name.is_empty() {
         return Err(ServerFnError::ServerError(String::from("Cannot create forum with empty name.")));
@@ -40,7 +40,7 @@ pub async fn create_forum(cx: Scope, name: String, description: String, is_nsfw:
     {
         Ok(_row) => Ok(()),
         Err(e) => {
-            error!("Error while creating new [[forum]] {e}");
+            log::error!("Error while creating new [[forum]] {e}");
             Err(ServerFnError::ServerError(e.to_string()))
         },
     };
@@ -50,9 +50,9 @@ pub async fn create_forum(cx: Scope, name: String, description: String, is_nsfw:
 }
 
 #[server(GetAllForumNames, "/api")]
-pub async fn get_all_forum_names(cx: Scope) -> Result<HashSet<String>, ServerFnError> {
-    let db_pool = get_db_pool(cx)?;
-    log!("Got db pool");
+pub async fn get_all_forum_names() -> Result<HashSet<String>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    log::info!("Got db pool");
 
     let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
 
@@ -65,39 +65,29 @@ pub async fn get_all_forum_names(cx: Scope) -> Result<HashSet<String>, ServerFnE
 }
 
 #[component]
-pub fn CreateForum(cx: Scope) -> impl IntoView {
-    use leptos_router::FromFormData;
-
-    let create_forum = create_server_action::<CreateForum>(cx);
+pub fn CreateForum() -> impl IntoView {
+    let create_forum = create_server_action::<CreateForum>();
     let create_forum_result = create_forum.value();
     // check if the server has returned an error
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
-    let existing_forums = create_resource(cx, move || (create_forum.version()) , move |_| get_all_forum_names(cx));
+    let existing_forums = create_resource( move || (create_forum.version()) , move |_| get_all_forum_names());
 
-    let is_name_empty = create_rw_signal(cx, true);
-    let is_name_taken = create_rw_signal(cx, false);
-    let is_name_invalid = create_memo(cx, move |_| { is_name_empty.get() || is_name_taken.get() });
+    let is_name_empty = create_rw_signal( true);
+    let is_name_taken = create_rw_signal( false);
+    let is_name_invalid = create_memo(move |_| { is_name_empty.get() || is_name_taken.get() });
 
-    let on_submit = move |event: leptos::ev::SubmitEvent| {
-        let data = CreateForum::from_event(&event);
-        if data.is_err() || data.unwrap().name == "nope!" {
-            // ev.prevent_default() will prevent form submission
-            event.prevent_default();
-        }
-    };
-
-    view! { cx,
-        <Suspense fallback=move || (view! {cx, <LoadingIcon/>})>
+    view! {
+        <Suspense fallback=move || (view! { <LoadingIcon/>})>
                 {
                     move || {
-                        existing_forums.read(cx).map(|result| {
+                        existing_forums.get().map(|result| {
                             match result {
                                 Ok(forum_set) => {
-                                    log!("Forum name set: {:?}", forum_set);
-                                    view! {cx,
+                                    log::info!("Forum name set: {:?}", forum_set);
+                                    view! {
                                         <div class="flex flex-col gap-1 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
-                                            <ActionForm action=create_forum on:submit=on_submit>
+                                            <ActionForm action=create_forum>
                                                 <div class="flex flex-col gap-1 w-full">
                                                     <h2 class="p-6 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
                                                     <div class="flex gap-1 items-center">
@@ -129,7 +119,7 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
                                             </ActionForm>
                                             <Show
                                                 when=has_error
-                                                fallback=move |_| ()
+                                                fallback=move || ()
                                             >
                                                 <div class="alert alert-error flex justify-center">
                                                     <ErrorIcon/>
@@ -137,11 +127,11 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
                                                 </div>
                                             </Show>
                                         </div>
-                                    }.into_view(cx)
+                                    }.into_view()
                                 }
                                 Err(e) => {
-                                    log!("Error while getting forum names: {}", e);
-                                    view! {cx, <div>"Error"</div>}.into_view(cx)
+                                    log::info!("Error while getting forum names: {}", e);
+                                    view! { <div>"Error"</div>}.into_view()
                                 }
                             }
                         })
@@ -152,31 +142,30 @@ pub fn CreateForum(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn ForumBanner(cx: Scope) -> impl IntoView {
+pub fn ForumBanner() -> impl IntoView {
 
     // TODO: add forum banner
-    view! { cx,
+    view! {
         <div class="flex flex-col gap-1 w-full">
             <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum banner]]"</h2>
             <Outlet/>
         </div>
-
     }
 }
 
 #[component]
-pub fn ForumContents(cx: Scope) -> impl IntoView {
+pub fn ForumContents() -> impl IntoView {
     // TODO: add list of forum contents
-    view! { cx,
+    view! {
         <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum contents]]"</h2>
     }
 }
 
 #[component]
-pub fn Content(cx: Scope) -> impl IntoView {
+pub fn Content() -> impl IntoView {
 
     // TODO: add content and its comments
-    view! { cx,
+    view! {
         <h2 class="p-6 text-4xl max-2xl:text-center">"[[content]]"</h2>
     }
 }

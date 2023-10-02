@@ -8,7 +8,7 @@ use crate::forum::*;
 pub fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
     move |_| {
         let url = window().location().href().unwrap_or(String::from("/"));
-        log!("Current url: {url}");
+        log::info!("Current url: {url}");
         url_signal.set(url.clone());
     }
 }
@@ -16,7 +16,7 @@ pub fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(lepto
 pub fn get_current_path_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
     move |_| {
         let path = window().location().pathname().unwrap_or(String::from("/"));
-        log!("Current path: {path}");
+        log::info!("Current path: {path}");
         url_signal.set(path.clone());
     }
 }
@@ -24,9 +24,9 @@ pub fn get_current_path_closure(url_signal: RwSignal<String>) -> impl FnMut(lept
 /// Navigation bar component
 #[component]
 pub fn NavigationBar(
-    cx: Scope) -> impl IntoView
+    ) -> impl IntoView
 {
-    view! { cx,
+    view! {
         <div class="navbar bg-blue-500">
             <div class="navbar-start">
                 <label for="my-drawer" class="drawer-button 2xl:hidden btn btn-square btn-ghost"><SideBarIcon/></label>
@@ -57,29 +57,29 @@ pub fn NavigationBar(
 }
 
 #[component]
-pub fn UserProfile(cx: Scope) -> impl IntoView {
-    let user_resource = get_user_resource(cx);
+pub fn UserProfile() -> impl IntoView {
+    let user_resource = get_user_resource();
 
-    view! { cx,
+    view! {
         <Transition fallback=move || {
-            view! {cx,
+            view! {
                 <button class="btn btn-ghost btn-circle rounded-full">
                     <UserIcon/>
                 </button>
             }
         }>
         {move || {
-            user_resource.read(cx).map(|user| match user {
+            user_resource.get().map(|user| match user {
                 Err(e) => {
-                    log!("Get user error: {}", e);
-                    view! {cx, <LoginButton/>}.into_view(cx)
+                    log::info!("Get user error: {}", e);
+                    view! { <LoginButton/>}.into_view()
                 },
                 Ok(user) => {
                     if user.anonymous
                     {
-                        return view! {cx, <LoginButton/>}.into_view(cx);
+                        return view! { <LoginButton/>}.into_view();
                     }
-                    view! {cx, <LoggedInMenu user=user/>}.into_view(cx)
+                    view! { <LoggedInMenu user=user/>}.into_view()
                 },
             })
         }}
@@ -88,12 +88,12 @@ pub fn UserProfile(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn LoginButton(cx: Scope) -> impl IntoView {
-    let state = expect_context::<GlobalState>(cx);
-    let current_path = create_rw_signal(cx, String::default());
+pub fn LoginButton() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let current_path = create_rw_signal( String::default());
     let get_current_path = get_current_path_closure(current_path);
 
-    view! { cx,
+    view! {
         <form action=state.login_action.url() method="post" rel="external">
             <input type="text" name="redirect_url" class="hidden" value=current_path/>
             <button type="submit" class="btn btn-ghost btn-circle rounded-full" on:click=get_current_path>
@@ -104,12 +104,12 @@ pub fn LoginButton(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
-    let state = expect_context::<GlobalState>(cx);
-    let current_url = create_rw_signal(cx, String::default());
+pub fn LoggedInMenu( user: User) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let current_url = create_rw_signal( String::default());
     let get_current_url = get_current_url_closure(current_url);
 
-    view! { cx,
+    view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
                 <UserIcon/>
@@ -131,11 +131,11 @@ pub fn LoggedInMenu(cx: Scope, user: User) -> impl IntoView {
 }
 
 #[component]
-pub fn PlusMenu(cx: Scope) -> impl IntoView {
+pub fn PlusMenu() -> impl IntoView {
 
     let create_forum_route = PUBLISH_ROUTE.to_owned() + CREATE_FORUM_ROUTE;
 
-    view! { cx,
+    view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
                 <PlusIcon/>

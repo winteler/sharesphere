@@ -19,25 +19,25 @@ pub struct GlobalState {
 }
 
 impl GlobalState {
-    pub fn new(cx: Scope) -> Self {
+    pub fn new() -> Self {
         Self {
-            user: create_rw_signal(cx, User::default()),
-            login_action: create_server_action::<Login>(cx),
-            logout_action: create_server_action::<EndSession>(cx)
+            user: create_rw_signal( User::default()),
+            login_action: create_server_action::<Login>(),
+            logout_action: create_server_action::<EndSession>()
         }
     }
 }
 
 #[component]
-pub fn App(cx: Scope) -> impl IntoView {
+pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
-    provide_meta_context(cx);
+    provide_meta_context();
 
     // Provide global context for app
-    provide_context(cx, GlobalState::new(cx));
+    provide_context( GlobalState::new());
 
     view! {
-        cx,
+
 
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
@@ -47,13 +47,13 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Title text="Welcome to [[ProjectName]]"/>
 
         // content for this welcome page
-        <Router fallback=|cx| {
+        <Router fallback=|| {
             let mut outside_errors = Errors::default();
             outside_errors.insert_with_default_key(AppError::NotFound);
-            view! { cx,
+            view! {
                 <ErrorTemplate outside_errors/>
             }
-            .into_view(cx)
+            .into_view()
         }>
             <div class="h-screen flex flex-col">
                 <NavigationBar/>
@@ -84,24 +84,24 @@ pub fn App(cx: Scope) -> impl IntoView {
 
 /// Components to guard pages requiring a login, and enable the user to login with a redirect
 #[component]
-fn LoginGuard(cx: Scope) -> impl IntoView {
-    let user_resource = get_user_resource(cx);
-    view! { cx,
-        <Transition fallback=move || view! { cx, <LoadingIcon/> }>
+fn LoginGuard() -> impl IntoView {
+    let user_resource = get_user_resource();
+    view! {
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
             { move || {
-                    user_resource.read(cx).map(|user: Result<User, ServerFnError>| match user {
+                    user_resource.get().map(|user: Result<User, ServerFnError>| match user {
                         Err(e) => {
-                            log!("Login error: {}", e);
-                            view! {cx, <Login/>}.into_view(cx)
+                            log::info!("Login error: {}", e);
+                            view! { <Login/>}.into_view()
                         },
                         Ok(user) => {
                             if user.anonymous
                             {
-                                log!("Not logged in.");
-                                return view! {cx, <Login/>}.into_view(cx);
+                                log::info!("Not logged in.");
+                                return view! { <Login/>}.into_view();
                             }
-                            log!("Current user: {:?}", user);
-                            view! {cx, <Outlet/>}.into_view(cx)
+                            log::info!("Current user: {:?}", user);
+                            view! { <Outlet/>}.into_view()
                         },
                     })
                 }
@@ -112,12 +112,12 @@ fn LoginGuard(cx: Scope) -> impl IntoView {
 
 /// Renders a page requesting a login
 #[component]
-fn Login(cx: Scope) -> impl IntoView {
-    let state = expect_context::<GlobalState>(cx);
-    let current_path = create_rw_signal(cx, String::default());
+fn Login() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let current_path = create_rw_signal( String::default());
     let get_current_path = get_current_path_closure(current_path);
 
-    view! { cx,
+    view! {
         <div class="h-full my-0 mx-auto max-w-3xl text-center">
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Login required to access this page."</p>
             <form action=state.login_action.url() method="post" rel="external">
@@ -132,10 +132,10 @@ fn Login(cx: Scope) -> impl IntoView {
 
 /// Renders the home page of your application.
 #[component]
-fn HomePage(cx: Scope) -> impl IntoView {
-    let (count, set_count) = create_signal(cx, 0);
+fn HomePage() -> impl IntoView {
+    let (count, set_count) = create_signal( 0);
 
-    view! { cx,
+    view! {
         <div class="h-full my-0 mx-auto max-w-3xl text-center">
             <h2 class="p-6 text-4xl">"Welcome to Leptos with Tailwind"</h2>
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Tailwind will scan your Rust files for Tailwind class names and compile them into a CSS file."</p>

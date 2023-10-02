@@ -2,8 +2,8 @@ use leptos::*;
 
 /// Footer component
 #[component]
-pub fn Footer(cx: Scope) -> impl IntoView {
-    view! { cx,
+pub fn Footer() -> impl IntoView {
+    view! {
         <footer class="bg-gray-900">
             <div class="container mx-auto px-4">
                 <div class="grid grid-cols-1 md:grid-cols-3 justify-evenly place-items-center">

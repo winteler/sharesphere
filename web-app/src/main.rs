@@ -11,20 +11,18 @@ cfg_if! {
             body::Body as AxumBody,
             Router,
         };
+        use leptos::*;
+        use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
+        use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key, SecurityMode};
 
         use std::env;
+        use sqlx::postgres::PgPoolOptions;
+        use anyhow::{Context};
+
         use project_web_app::app::*;
         use project_web_app::auth::*;
         use project_web_app::fileserv::file_and_error_handler;
         use project_web_app::state::AppState;
-
-        use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
-        use leptos::{log, view, provide_context, get_configuration};
-
-        use sqlx::postgres::PgPoolOptions;
-        use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key, SecurityMode};
-
-        use anyhow::{Context};
 
         pub const DB_URL_ENV : &str = "DATABASE_URL";
         pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
@@ -34,11 +32,11 @@ cfg_if! {
         pub fn get_session_key() -> Key {
             match env::var(SESSION_KEY_ENV) {
                 Ok(key) => {
-                    log!("Got session key from env variable.");
+                    log::info!("Got session key from env variable.");
                     Key::from(&key.into_bytes())
                 },
                 Err(_) => {
-                    log!("Could not find session key in env variable, generate one.");
+                    log::info!("Could not find session key in env variable, generate one.");
                     Key::generate()
                 }
             }
@@ -48,32 +46,32 @@ cfg_if! {
         pub fn get_session_db_key() -> Key {
             match env::var(SESSION_DB_KEY_ENV) {
                 Ok(key) => {
-                    log!("Got session db key from env variable.");
+                    log::info!("Got session db key from env variable.");
                     Key::from(&key.into_bytes())
                 },
                 Err(_) => {
-                    log!("Could not find session db key in env variable, generate one.");
+                    log::info!("Could not find session db key in env variable, generate one.");
                     Key::generate()
                 }
             }
         }
 
         async fn server_fn_handler(State(app_state): State<AppState>, session: Session, path: Path<String>, headers: HeaderMap, raw_query: RawQuery, request: Request<AxumBody>) -> impl IntoResponse {
-            log!("{:?}", path);
+            log::info!("{:?}", path);
 
-            handle_server_fns_with_context(path, headers, raw_query, move |cx| {
-                provide_context(cx, session.clone());
-                provide_context(cx, app_state.pool.clone());
+            handle_server_fns_with_context(path, headers, raw_query, move || {
+                provide_context( session.clone());
+                provide_context( app_state.pool.clone());
             }, request).await
         }
 
         async fn leptos_routes_handler(session: Session, State(app_state): State<AppState>, req: Request<AxumBody>) -> Response{
                 let handler = leptos_axum::render_app_to_stream_with_context(app_state.leptos_options.clone(),
-                move |cx| {
-                    provide_context(cx, session.clone());
-                    provide_context(cx, app_state.pool.clone());
+                move || {
+                    provide_context( session.clone());
+                    provide_context( app_state.pool.clone());
                 },
-                |cx| view! { cx, <App/> }
+                || view! {  <App/> }
             );
             handler(req).await.into_response()
         }
@@ -113,7 +111,7 @@ cfg_if! {
             let conf = get_configuration(None).await.unwrap();
             let leptos_options = conf.leptos_options;
             let addr = leptos_options.site_addr;
-            let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
+            let routes = generate_route_list(App);
 
             let app_state = AppState {
                 leptos_options,
@@ -130,7 +128,7 @@ cfg_if! {
 
             // run our app with hyper
             // `axum::Server` is a re-export of `hyper::Server`
-            log!("listening on http://{}", &addr);
+            log::info!("listening on http://{}", &addr);
             axum::Server::bind(&addr)
                 .serve(app.into_make_service())
                 .await

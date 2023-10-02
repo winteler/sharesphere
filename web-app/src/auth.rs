@@ -27,12 +27,12 @@ cfg_if! {
 
         pub type Session = axum_session::Session<SessionPgPool>;
 
-        pub fn get_db_pool(cx: Scope) -> Result<PgPool, ServerFnError> {
-            use_context::<PgPool>(cx).ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
+        pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
+            use_context::<PgPool>().ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
         }
 
-        pub fn get_session(cx: Scope) -> Result<Session, ServerFnError> {
-            use_context::<Session>(cx).ok_or_else(|| ServerFnError::ServerError("Session missing.".into()))
+        pub fn get_session() -> Result<Session, ServerFnError> {
+            use_context::<Session>().ok_or_else(|| ServerFnError::ServerError("Session missing.".into()))
         }
     }
 }
@@ -88,8 +88,8 @@ pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, ServerFnErro
 }
 
 #[cfg(feature = "ssr")]
-pub async fn is_user_authenticated(cx: Scope) -> bool {
-    match get_user(cx).await {
+pub async fn is_user_authenticated() -> bool {
+    match get_user().await {
         Ok(user) => !user.anonymous,
         Err(_) => false
     }
@@ -120,16 +120,16 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
 }
 
 #[server(Login, "/api")]
-pub async fn login(cx: Scope, redirect_url: String) -> Result<User, ServerFnError> {
+pub async fn login( redirect_url: String) -> Result<User, ServerFnError> {
 
-    let current_user = get_user(cx).await;
+    let current_user = get_user().await;
 
     if current_user.is_ok() {
-        log!("Already logged in, current user is: {:?}", current_user.clone().unwrap());
+        log::info!("Already logged in, current user is: {:?}", current_user.clone().unwrap());
         return current_user;
     }
 
-    log!("User not connected, redirect_url: {}", redirect_url);
+    log::info!("User not connected, redirect_url: {}", redirect_url);
 
     let client = get_auth_client().await?;
 
@@ -145,23 +145,23 @@ pub async fn login(cx: Scope, redirect_url: String) -> Result<User, ServerFnErro
         //.add_scope(oidc::Scope::new("write".to_string()))
         .url();
 
-    let session = get_session(cx)?;
+    let session = get_session()?;
     session.set(NONCE_KEY, nonce);
     session.set(REDIRECT_URL_KEY, redirect_url);
 
     // Redirect to the auth page
-    leptos_axum::redirect(cx, auth_url.as_ref());
+    leptos_axum::redirect( auth_url.as_ref());
 
     Ok(User::default())
 }
 
 #[server(AuthenticateUser, "/api")]
-pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, String), ServerFnError> {
+pub async fn authenticate_user( auth_code: String) -> Result<(User, String), ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
-    let session = get_session(cx)?;
+    let session = get_session()?;
 
     let nonce = oidc::Nonce::new(session.get(NONCE_KEY).unwrap_or(String::from("")));
     let redirect_url = session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
@@ -213,7 +213,7 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
 
     session.set(OIDC_TOKENS_KEY, token_response.clone());
 
-    leptos_axum::redirect(cx, redirect_url.as_ref());
+    leptos_axum::redirect( redirect_url.as_ref());
 
     let user = User {
         id: claims.subject().to_string(),
@@ -227,18 +227,18 @@ pub async fn authenticate_user(cx: Scope, auth_code: String) -> Result<(User, St
 }
 
 #[server(GetUser, "/api")]
-pub async fn get_user(cx: Scope) -> Result<User, ServerFnError> {
-    let session = get_session(cx)?;
+pub async fn get_user() -> Result<User, ServerFnError> {
+    let session = get_session()?;
     let user: User = session.get(USER_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
 
     Ok(user)
 }
 
 #[server(EndSession, "/api")]
-pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFnError> {
+pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     println!("Logout, redirect_url: {redirect_url}");
 
-    let session = get_session(cx)?;
+    let session = get_session()?;
     let token_response: oidc::core::CoreTokenResponse = session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
 
     let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
@@ -260,49 +260,48 @@ pub async fn end_session(cx: Scope, redirect_url: String) -> Result<(), ServerFn
         .set_id_token_hint(token_response.id_token().unwrap())
         .set_post_logout_redirect_uri(oidc::PostLogoutRedirectUrl::new(redirect_url)?);
 
-    leptos_axum::redirect(cx, logout_request.http_get_url().to_string().as_str());
+    leptos_axum::redirect( logout_request.http_get_url().to_string().as_str());
 
     session.remove(OIDC_TOKENS_KEY);
 
     Ok(())
 }
 
-pub fn get_user_resource(cx: Scope) -> Resource<(RwSignal<usize>, RwSignal<usize>), Result<User, ServerFnError>> {
-    let state = expect_context::<GlobalState>(cx);
+pub fn get_user_resource() -> Resource<(RwSignal<usize>, RwSignal<usize>), Result<User, ServerFnError>> {
+    let state = expect_context::<GlobalState>();
     create_blocking_resource(
-        cx,
         move || {
             (
                 state.login_action.version(),
                 state.logout_action.version(),
             )
         },
-        move |_| { get_user(cx) },
+        move |_| { get_user() },
     )
 }
 
 /// Auth callback component
 #[component]
 pub fn AuthCallback(
-    cx: Scope) -> impl IntoView {
+    ) -> impl IntoView {
     use crate::app::*;
-    let _state = expect_context::<GlobalState>(cx);
-    let query = use_query_map(cx);
+    let _state = expect_context::<GlobalState>();
+    let query = use_query_map();
     let code = move || query().get("code").unwrap().to_owned();
-    let auth_resource = create_blocking_resource(cx, || (), move |_| authenticate_user(cx, code()));
+    let auth_resource = create_blocking_resource( || (), move |_| authenticate_user( code()));
 
-    view! { cx,
-        <Suspense fallback=move || (view! {cx, <LoadingIcon/>})>
+    view! {
+        <Suspense fallback=move || (view! { <LoadingIcon/>})>
             {
                 move || {
-                    auth_resource.read(cx).map(|userResult| {
+                    auth_resource.get().map(|userResult| {
                             if let Ok((user, redirect_url)) = userResult {
-                                log!("Store authenticated as {}", user.username);
-                                log!("Redirect to {}", redirect_url);
-                                view! {cx, <Redirect path=redirect_url/>}.into_view(cx)
+                                log::info!("Store authenticated as {}", user.username);
+                                log::info!("Redirect to {}", redirect_url);
+                                view! { <Redirect path=redirect_url/>}.into_view()
                             }
                             else {
-                                view! {cx, <div>"Authentication failed."</div>}.into_view(cx)
+                                view! { <div>"Authentication failed."</div>}.into_view()
                             }
                         }
                     )

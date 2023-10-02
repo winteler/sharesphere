@@ -211,17 +211,16 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
         .request_async(async_http_client).await
         .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
-    session.set(OIDC_TOKENS_KEY, token_response.clone());
-
-    leptos_axum::redirect( redirect_url.as_ref());
-
     let user = User {
         id: claims.subject().to_string(),
         anonymous: false,
         username: claims.preferred_username().unwrap().to_string(),
     };
 
+    session.set(OIDC_TOKENS_KEY, token_response.clone());
     session.set(USER_KEY, user.clone());
+
+    leptos_axum::redirect( redirect_url.as_ref());
 
     Ok((user, redirect_url))
 }
@@ -236,10 +235,13 @@ pub async fn get_user() -> Result<User, ServerFnError> {
 
 #[server(EndSession, "/api")]
 pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
-    println!("Logout, redirect_url: {redirect_url}");
+    log::info!("Logout, redirect_url: {redirect_url}");
 
     let session = get_session()?;
+    log::info!("Got session.");
     let token_response: oidc::core::CoreTokenResponse = session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
+
+    log::info!("Got id token: {:?}", token_response);
 
     let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
         get_issuer_url()?,
@@ -263,6 +265,7 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     leptos_axum::redirect( logout_request.http_get_url().to_string().as_str());
 
     session.remove(OIDC_TOKENS_KEY);
+    session.remove(USER_KEY);
 
     Ok(())
 }

@@ -71,7 +71,7 @@ pub fn CreateForum() -> impl IntoView {
     // check if the server has returned an error
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
-    let existing_forums = create_resource( move || (create_forum.version()) , move |_| get_all_forum_names());
+    let existing_forums = create_blocking_resource( move || (create_forum.version()) , move |_| get_all_forum_names());
 
     let is_name_empty = create_rw_signal( true);
     let is_name_taken = create_rw_signal( false);

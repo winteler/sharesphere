@@ -72,14 +72,14 @@ pub fn UserProfile() -> impl IntoView {
             user_resource.get().map(|user| match user {
                 Err(e) => {
                     log::info!("Get user error: {}", e);
-                    view! { <LoginButton/>}.into_view()
+                    view! { <LoginButton/> }.into_view()
                 },
                 Ok(user) => {
                     if user.anonymous
                     {
-                        return view! { <LoginButton/>}.into_view();
+                        return view! { <LoginButton/> }.into_view();
                     }
-                    view! { <LoggedInMenu user=user/>}.into_view()
+                    view! { <LoggedInMenu user=user/> }.into_view()
                 },
             })
         }}

@@ -64,6 +64,7 @@ pub async fn get_all_forum_names() -> Result<HashSet<String>, ServerFnError> {
     Ok(forum_name_set)
 }
 
+/// Components to create new forums
 #[component]
 pub fn CreateForum() -> impl IntoView {
     let create_forum = create_server_action::<CreateForum>();
@@ -78,7 +79,7 @@ pub fn CreateForum() -> impl IntoView {
     let is_name_invalid = create_memo(move |_| { is_name_empty.get() || is_name_taken.get() });
 
     view! {
-        <Suspense fallback=move || (view! { <LoadingIcon/>})>
+        <Transition fallback=move || (view! { <LoadingIcon/> })>
                 {
                     move || {
                         existing_forums.get().map(|result| {
@@ -86,11 +87,11 @@ pub fn CreateForum() -> impl IntoView {
                                 Ok(forum_set) => {
                                     log::info!("Forum name set: {:?}", forum_set);
                                     view! {
-                                        <div class="flex flex-col gap-1 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
+                                        <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
                                             <ActionForm action=create_forum>
-                                                <div class="flex flex-col gap-1 w-full">
-                                                    <h2 class="p-6 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
-                                                    <div class="flex gap-1 items-center">
+                                                <div class="flex flex-col gap-2 w-full">
+                                                    <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
+                                                    <div class="flex gap-2 items-center">
                                                         <input
                                                             type="text"
                                                             name="name"
@@ -107,9 +108,9 @@ pub fn CreateForum() -> impl IntoView {
                                                             <span>"Unavailable."</span>
                                                         </div>
                                                     </div>
-                                                    <textarea name="description" placeholder="Description" class="textarea textarea-primary h-40"/>
+                                                    <textarea name="description" placeholder="Description" class="textarea textarea-primary h-40 w-full"/>
                                                     <div class="form-control">
-                                                        <label class="cursor-pointer label">
+                                                        <label class="cursor-pointer label p-0">
                                                             <span class="label-text">"NSFW content"</span>
                                                             <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
                                                         </label>
@@ -137,10 +138,11 @@ pub fn CreateForum() -> impl IntoView {
                         })
                     }
                 }
-        </Suspense>
+        </Transition>
     }
 }
 
+/// Components to display a forum's banner
 #[component]
 pub fn ForumBanner() -> impl IntoView {
 
@@ -153,6 +155,7 @@ pub fn ForumBanner() -> impl IntoView {
     }
 }
 
+/// Components to display a forum's contents
 #[component]
 pub fn ForumContents() -> impl IntoView {
     // TODO: add list of forum contents
@@ -161,6 +164,7 @@ pub fn ForumContents() -> impl IntoView {
     }
 }
 
+/// Components to display a content
 #[component]
 pub fn Content() -> impl IntoView {
 

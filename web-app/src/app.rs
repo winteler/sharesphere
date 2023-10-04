@@ -3,6 +3,7 @@ use leptos_meta::*;
 use leptos_router::*;
 
 use crate::auth::*;
+use crate::content::*;
 use crate::drawer::*;
 use crate::error_template::{AppError, ErrorTemplate};
 use crate::forum::*;
@@ -63,6 +64,9 @@ pub fn App() -> impl IntoView {
                         <Routes>
                             <Route path="/" view=HomePage/>
                             <Route path="/forums/:name" view=ForumBanner>
+                                <Route path=PUBLISH_ROUTE view=LoginGuard>
+                                    <Route path=CREATE_CONTENT_ROUTE view=CreateContent/>
+                                </Route>
                                 <Route path="/contents/:id" view=Content/>
                                 <Route path="" view=ForumContents/>
                             </Route>
@@ -82,7 +86,7 @@ pub fn App() -> impl IntoView {
     }
 }
 
-/// Components to guard pages requiring a login, and enable the user to login with a redirect
+/// Component to guard pages requiring a login, and enable the user to login with a redirect
 #[component]
 fn LoginGuard() -> impl IntoView {
     let user_resource = get_user_resource();
@@ -92,16 +96,16 @@ fn LoginGuard() -> impl IntoView {
                     user_resource.get().map(|user: Result<User, ServerFnError>| match user {
                         Err(e) => {
                             log::info!("Login error: {}", e);
-                            view! { <Login/>}.into_view()
+                            view! { <Login/> }.into_view()
                         },
                         Ok(user) => {
                             if user.anonymous
                             {
                                 log::info!("Not logged in.");
-                                return view! { <Login/>}.into_view();
+                                return view! { <Login/> }.into_view();
                             }
-                            log::info!("Current user: {:?}", user);
-                            view! { <Outlet/>}.into_view()
+                            log::info!("Login guard, current user: {:?}", user);
+                            view! { <Outlet/> }.into_view()
                         },
                     })
                 }

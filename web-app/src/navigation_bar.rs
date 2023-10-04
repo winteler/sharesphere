@@ -132,7 +132,6 @@ pub fn LoggedInMenu( user: User) -> impl IntoView {
 
 #[component]
 pub fn PlusMenu() -> impl IntoView {
-
     let create_forum_route = PUBLISH_ROUTE.to_owned() + CREATE_FORUM_ROUTE;
 
     view! {

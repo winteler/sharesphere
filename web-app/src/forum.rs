@@ -6,7 +6,6 @@ use leptos_router::{ActionForm, Outlet};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
 
-
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::auth::{get_db_pool, get_user};
@@ -64,7 +63,7 @@ pub async fn get_all_forum_names() -> Result<HashSet<String>, ServerFnError> {
     Ok(forum_name_set)
 }
 
-/// Components to create new forums
+/// Component to create new forums
 #[component]
 pub fn CreateForum() -> impl IntoView {
     let create_forum = create_server_action::<CreateForum>();
@@ -142,7 +141,7 @@ pub fn CreateForum() -> impl IntoView {
     }
 }
 
-/// Components to display a forum's banner
+/// Component to display a forum's banner
 #[component]
 pub fn ForumBanner() -> impl IntoView {
 
@@ -155,21 +154,11 @@ pub fn ForumBanner() -> impl IntoView {
     }
 }
 
-/// Components to display a forum's contents
+/// Component to display a forum's contents
 #[component]
 pub fn ForumContents() -> impl IntoView {
     // TODO: add list of forum contents
     view! {
         <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum contents]]"</h2>
-    }
-}
-
-/// Components to display a content
-#[component]
-pub fn Content() -> impl IntoView {
-
-    // TODO: add content and its comments
-    view! {
-        <h2 class="p-6 text-4xl max-2xl:text-center">"[[content]]"</h2>
     }
 }

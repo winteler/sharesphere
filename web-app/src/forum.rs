@@ -79,64 +79,64 @@ pub fn CreateForum() -> impl IntoView {
 
     view! {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
-                {
-                    move || {
-                        existing_forums.get().map(|result| {
-                            match result {
-                                Ok(forum_set) => {
-                                    log::info!("Forum name set: {:?}", forum_set);
-                                    view! {
-                                        <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
-                                            <ActionForm action=create_forum>
-                                                <div class="flex flex-col gap-2 w-full">
-                                                    <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
-                                                    <div class="flex gap-2 items-center">
-                                                        <input
-                                                            type="text"
-                                                            name="name"
-                                                            placeholder="[[Forum]] name"
-                                                            class="input input-bordered input-primary h-16"
-                                                            on:input=move |ev| {
-                                                                let input = event_target_value(&ev);
-                                                                is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());
-                                                                is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&input));
-                                                            }
-                                                        />
-                                                        <div class="alert alert-error" class:hidden=move || !is_name_taken.get()>
-                                                            <ErrorIcon/>
-                                                            <span>"Unavailable."</span>
-                                                        </div>
+            {
+                move || {
+                    existing_forums.get().map(|result| {
+                        match result {
+                            Ok(forum_set) => {
+                                log::info!("Forum name set: {:?}", forum_set);
+                                view! {
+                                    <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
+                                        <ActionForm action=create_forum>
+                                            <div class="flex flex-col gap-2 w-full">
+                                                <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
+                                                <div class="flex gap-2 items-center">
+                                                    <input
+                                                        type="text"
+                                                        name="name"
+                                                        placeholder="[[Forum]] name"
+                                                        class="input input-bordered input-primary h-16"
+                                                        on:input=move |ev| {
+                                                            let input = event_target_value(&ev);
+                                                            is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());
+                                                            is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&input));
+                                                        }
+                                                    />
+                                                    <div class="alert alert-error" class:hidden=move || !is_name_taken.get()>
+                                                        <ErrorIcon/>
+                                                        <span>"Unavailable."</span>
                                                     </div>
-                                                    <textarea name="description" placeholder="Description" class="textarea textarea-primary h-40 w-full"/>
-                                                    <div class="form-control">
-                                                        <label class="cursor-pointer label p-0">
-                                                            <span class="label-text">"NSFW content"</span>
-                                                            <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
-                                                        </label>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_name_invalid>"Create"</button>
                                                 </div>
-                                            </ActionForm>
-                                            <Show
-                                                when=has_error
-                                                fallback=move || ()
-                                            >
-                                                <div class="alert alert-error flex justify-center">
-                                                    <ErrorIcon/>
-                                                    <span>"Server error. Please reload the page and retry."</span>
+                                                <textarea name="description" placeholder="Description" class="textarea textarea-primary h-40 w-full"/>
+                                                <div class="form-control">
+                                                    <label class="cursor-pointer label p-0">
+                                                        <span class="label-text">"NSFW content"</span>
+                                                        <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
+                                                    </label>
                                                 </div>
-                                            </Show>
-                                        </div>
-                                    }.into_view()
-                                }
-                                Err(e) => {
-                                    log::info!("Error while getting forum names: {}", e);
-                                    view! { <div>"Error"</div>}.into_view()
-                                }
+                                                <button type="submit" class="btn btn-active btn-secondary" disabled=is_name_invalid>"Create"</button>
+                                            </div>
+                                        </ActionForm>
+                                        <Show
+                                            when=has_error
+                                            fallback=move || ()
+                                        >
+                                            <div class="alert alert-error flex justify-center">
+                                                <ErrorIcon/>
+                                                <span>"Server error. Please reload the page and retry."</span>
+                                            </div>
+                                        </Show>
+                                    </div>
+                                }.into_view()
                             }
-                        })
-                    }
+                            Err(e) => {
+                                log::info!("Error while getting forum names: {}", e);
+                                view! { <div>"Error"</div>}.into_view()
+                            }
+                        }
+                    })
                 }
+            }
         </Transition>
     }
 }
@@ -148,7 +148,7 @@ pub fn ForumBanner() -> impl IntoView {
     // TODO: add forum banner
     view! {
         <div class="flex flex-col gap-1 w-full">
-            <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum banner]]"</h2>
+            <h2 class="text-4xl max-2xl:text-center">"[[forum banner]]"</h2>
             <Outlet/>
         </div>
     }

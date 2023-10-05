@@ -2,7 +2,8 @@ use cfg_if::cfg_if;
 use leptos::*;
 use leptos_router::{ActionForm};
 
-use crate::icons::{ErrorIcon};
+use crate::forum::get_all_forum_names;
+use crate::icons::{ErrorIcon, LoadingIcon};
 
 
 cfg_if! {
@@ -42,46 +43,75 @@ pub fn CreateContent() -> impl IntoView {
     let is_body_empty = create_rw_signal( true);
     let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });
 
+    // TODO: refresh when new forum created?
+    let existing_forums = create_blocking_resource( move || (), move |_| get_all_forum_names());
+
     view! {
-        <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
-            <ActionForm action=create_content>
-                <div class="flex flex-col gap-2 w-full">
-                    <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[content]]"</h2>
-                    <input
-                        type="text"
-                        name="title"
-                        placeholder="Title"
-                        class="input input-bordered input-primary h-16"
-                        on:input=move |ev| {
-                            is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+        <Transition fallback=move || (view! { <LoadingIcon/> })>
+            {
+                move || {
+                    existing_forums.get().map(|result| {
+                        match result {
+                            Ok(forum_set) => {
+                                log::info!("Forum name set: {:?}", forum_set);
+                                view! {
+                                    <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
+                                        <ActionForm action=create_content>
+                                            <div class="flex flex-col gap-2 w-full">
+                                                <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[content]]"</h2>
+                                                <div class="dropdown dropdown-end">
+                                                    <input tabindex="0" type="text" name="forum" placeholder="[[Forum]]" class="input input-bordered w-full"/>
+                                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                                        <li><a>Item 1</a></li>
+                                                        <li><a>Item 2</a></li>
+                                                    </ul>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    name="title"
+                                                    placeholder="Title"
+                                                    class="input input-bordered input-primary h-16"
+                                                    on:input=move |ev| {
+                                                        is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                    }
+                                                />
+                                                <textarea
+                                                    name="body"
+                                                    placeholder="Text"
+                                                    class="textarea textarea-primary h-40 w-full"
+                                                    on:input=move |ev| {
+                                                        is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                    }
+                                                />
+                                                <select class="select select-bordered w-full max-w-xs">
+                                                    <option disabled selected>"Tag"</option>
+                                                    <option>"This should be"</option>
+                                                    <option>"Customized"</option>
+                                                </select>
+                                                <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
+                                            </div>
+                                        </ActionForm>
+                                        <Show
+                                            when=has_error
+                                            fallback=move || ()
+                                        >
+                                            <div class="alert alert-error flex justify-center">
+                                                <ErrorIcon/>
+                                                <span>"Server error. Please reload the page and retry."</span>
+                                            </div>
+                                        </Show>
+                                    </div>
+                                }.into_view()
+                            }
+                            Err(e) => {
+                                log::info!("Error while getting forum names: {}", e);
+                                view! { <div>"Error"</div>}.into_view()
+                            }
                         }
-                    />
-                    <textarea
-                        name="body"
-                        placeholder="Text"
-                        class="textarea textarea-primary h-40 w-full"
-                        on:input=move |ev| {
-                            is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
-                        }
-                    />
-                    <select class="select select-bordered w-full max-w-xs">
-                        <option disabled selected>"Tag"</option>
-                        <option>"This should be"</option>
-                        <option>"Customized"</option>
-                    </select>
-                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
-                </div>
-            </ActionForm>
-            <Show
-                when=has_error
-                fallback=move || ()
-            >
-                <div class="alert alert-error flex justify-center">
-                    <ErrorIcon/>
-                    <span>"Server error. Please reload the page and retry."</span>
-                </div>
-            </Show>
-        </div>
+                    })
+                }
+            }
+        </Transition>
     }
 }
 

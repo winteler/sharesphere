@@ -4,7 +4,6 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::app::GlobalState;
 use crate::icons::*;
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
@@ -268,19 +267,6 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     session.remove(USER_KEY);
 
     Ok(())
-}
-
-pub fn get_user_resource() -> Resource<(RwSignal<usize>, RwSignal<usize>), Result<User, ServerFnError>> {
-    let state = expect_context::<GlobalState>();
-    create_blocking_resource(
-        move || {
-            (
-                state.login_action.version(),
-                state.logout_action.version(),
-            )
-        },
-        move |_| { get_user() },
-    )
 }
 
 /// Auth callback component

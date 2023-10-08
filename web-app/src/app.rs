@@ -17,6 +17,7 @@ pub struct GlobalState {
     pub user: RwSignal<User>,
     pub login_action: Action<Login, Result<User, ServerFnError>>,
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
+    pub user_resource: Resource<(), Result<User, ServerFnError>>,
 }
 
 impl GlobalState {
@@ -24,7 +25,11 @@ impl GlobalState {
         Self {
             user: create_rw_signal( User::default()),
             login_action: create_server_action::<Login>(),
-            logout_action: create_server_action::<EndSession>()
+            logout_action: create_server_action::<EndSession>(),
+            user_resource: create_blocking_resource(
+                move || (),
+                move |_| { get_user() },
+            ),
         }
     }
 }
@@ -38,8 +43,6 @@ pub fn App() -> impl IntoView {
     provide_context( GlobalState::new());
 
     view! {
-
-
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/start-axum.css"/>
@@ -63,7 +66,7 @@ pub fn App() -> impl IntoView {
                     <div class="drawer-content flex flex-col p-2 max-2xl:items-center h-full">
                         <Routes>
                             <Route path="/" view=HomePage/>
-                            <Route path="/forums/:name" view=ForumBanner>
+                            <Route path=FORUM_ROUTE view=ForumBanner>
                                 <Route path=PUBLISH_ROUTE view=LoginGuard>
                                     <Route path=CREATE_CONTENT_ROUTE view=CreateContent/>
                                 </Route>
@@ -89,7 +92,8 @@ pub fn App() -> impl IntoView {
 /// Component to guard pages requiring a login, and enable the user to login with a redirect
 #[component]
 fn LoginGuard() -> impl IntoView {
-    let user_resource = get_user_resource();
+    let state = expect_context::<GlobalState>();
+    let user_resource = state.user_resource;
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             { move || {

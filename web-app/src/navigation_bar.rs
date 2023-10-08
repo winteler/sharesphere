@@ -58,7 +58,8 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
-    let user_resource = get_user_resource();
+    let state = expect_context::<GlobalState>();
+    let user_resource = state.user_resource;
 
     view! {
         <Transition fallback=move || {

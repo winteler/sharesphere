@@ -39,8 +39,9 @@ pub fn CreateContent() -> impl IntoView {
     // check if the server has returned an error
     let has_error = move || create_content_result.with(|val| matches!(val, Some(Err(_))));
 
-    let is_title_empty = create_rw_signal( true);
-    let is_body_empty = create_rw_signal( true);
+    let forum_name_input = create_rw_signal(String::default());
+    let is_title_empty = create_rw_signal(true);
+    let is_body_empty = create_rw_signal(true);
     let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });
 
     // TODO: refresh when new forum created?
@@ -60,10 +61,30 @@ pub fn CreateContent() -> impl IntoView {
                                             <div class="flex flex-col gap-2 w-full">
                                                 <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[content]]"</h2>
                                                 <div class="dropdown dropdown-end">
-                                                    <input tabindex="0" type="text" name="forum" placeholder="[[Forum]]" class="input input-bordered w-full"/>
-                                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                                                        <li><a>Item 1</a></li>
-                                                        <li><a>Item 2</a></li>
+                                                    <input
+                                                        tabindex="0"
+                                                        type="text"
+                                                        name="forum"
+                                                        placeholder="[[Forum]]"
+                                                        class="input input-bordered input-primary w-full"
+                                                        on:input=move |ev| {
+                                                            forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
+                                                        }
+                                                        prop:value=forum_name_input
+                                                    />
+                                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
+                                                        {
+                                                            let input_forum_value = forum_name_input.get();
+                                                            forum_set.into_iter().filter(|forum| forum.starts_with(input_forum_value.as_str())).map(|forum_name| {
+                                                                view! {
+                                                                    <li>
+                                                                        <button>
+                                                                            {forum_name}
+                                                                        </button>
+                                                                    </li>
+                                                                }
+                                                            }).collect_view()
+                                                        }
                                                     </ul>
                                                 </div>
                                                 <input

@@ -1,7 +1,8 @@
 use cfg_if::cfg_if;
 use std::collections::{HashSet};
 use leptos::*;
-use leptos_router::{ActionForm, Outlet};
+use leptos_router::*;
+use const_format::concatcp;
 
 use crate::icons::{ErrorIcon, LoadingIcon};
 
@@ -13,6 +14,9 @@ cfg_if! {
 }
 
 pub const CREATE_FORUM_ROUTE : &str = "/forum";
+pub const FORUM_ROUTE_PREFIX : &str = "/forums/:";
+pub const FORUM_ROUTE_PARAM_NAME : &str = "name";
+pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, FORUM_ROUTE_PARAM_NAME);
 
 #[server(CreateForum, "/api")]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
@@ -145,10 +149,14 @@ pub fn CreateForum() -> impl IntoView {
 #[component]
 pub fn ForumBanner() -> impl IntoView {
 
+    let params = use_params_map();
+    let forum_id = move || {
+        params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
+    };
     // TODO: add forum banner
     view! {
         <div class="flex flex-col gap-1 w-full">
-            <h2 class="text-4xl max-2xl:text-center">"[[forum banner]]"</h2>
+            <h2 class="text-4xl max-2xl:text-center">{forum_id}</h2>
             <Outlet/>
         </div>
     }

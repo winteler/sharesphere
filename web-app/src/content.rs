@@ -66,6 +66,7 @@ pub fn CreateContent() -> impl IntoView {
                                                         type="text"
                                                         name="forum"
                                                         placeholder="[[Forum]]"
+                                                        autocomplete="off"
                                                         class="input input-bordered input-primary w-full"
                                                         on:input=move |ev| {
                                                             forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
@@ -74,16 +75,17 @@ pub fn CreateContent() -> impl IntoView {
                                                     />
                                                     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
                                                         {
-                                                            let input_forum_value = forum_name_input.get();
-                                                            forum_set.into_iter().filter(|forum| forum.starts_with(input_forum_value.as_str())).map(|forum_name| {
-                                                                view! {
-                                                                    <li>
-                                                                        <button>
-                                                                            {forum_name}
-                                                                        </button>
-                                                                    </li>
-                                                                }
-                                                            }).collect_view()
+                                                            move || {
+                                                                forum_set.iter().filter(|forum| forum.starts_with(forum_name_input.get().as_str())).map(|forum_name| {
+                                                                    view! {
+                                                                        <li>
+                                                                            <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
+                                                                                {forum_name}
+                                                                            </button>
+                                                                        </li>
+                                                                    }
+                                                                }).collect_view()
+                                                            }
                                                         }
                                                     </ul>
                                                 </div>

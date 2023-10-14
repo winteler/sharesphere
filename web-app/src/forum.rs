@@ -153,7 +153,7 @@ pub fn ForumBanner() -> impl IntoView {
 
     let params = use_params_map();
     let forum_id = move || {
-        params.with(|params| { log::info!("Forum params: {:?}", params); params.get(FORUM_ROUTE_PARAM_NAME).cloned() }).unwrap_or_default()
+        params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
     };
     // TODO: add forum banner
     view! {

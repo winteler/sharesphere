@@ -19,7 +19,6 @@ pub struct GlobalState {
     pub login_action: Action<Login, Result<User, ServerFnError>>,
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
     pub user_resource: Resource<(), Result<User, ServerFnError>>,
-    pub forum_name_closure: Fn() -> String,
 }
 
 impl GlobalState {
@@ -32,7 +31,6 @@ impl GlobalState {
                 move || (),
                 move |_| { get_user() },
             ),
-            forum_name_closure: move || String::default()
         }
     }
 }

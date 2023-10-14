@@ -138,29 +138,25 @@ pub fn LoggedInMenu( user: User) -> impl IntoView {
 
 #[component]
 pub fn PlusMenu() -> impl IntoView {
-    let params = use_params_map();
-    let forum_id = move || {
-        params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
+    let current_forum = create_rw_signal(String::default());
+    let get_current_forum = move |_| {
+        let path = window().location().pathname().unwrap_or(String::default());
+        log::info!("Current path: {path}");
+        let mut path_part_it = path.split("/");
+        current_forum.update(|forum_name| *forum_name = String::from(path_part_it.nth(2).unwrap_or("")));
     };
-    let get_create_forum_route = move || {
-        let forum_name = params.with(|params| { log::info!("Params: {:?}", params); params.get(FORUM_ROUTE_PARAM_NAME).cloned() }).unwrap_or_default();
-        log::info!("From params, forum_name: {}", forum_name);
-        if forum_name.is_empty() {
-            String::from(CREATE_CONTENT_ROUTE)
+    /*let create_content_route = move || {
+        let path = window().location().pathname().unwrap_or(String::default());
+        log::info!("Current path: {path}");
+        let mut path_part_it = path.split("/");
+        let forum_name = String::from(path_part_it.nth(1).unwrap_or(""));
+        if path.starts_with(&(String::from(FORUM_ROUTE_PREFIX) + "/")) && !forum_name.is_empty() {
+            FORUM_ROUTE_PREFIX.to_owned() + forum_name.as_ref() + PUBLISH_ROUTE + CREATE_CONTENT_SUFFIX
         }
         else {
-            FORUM_ROUTE_PREFIX.to_owned() + forum_name.as_str() + PUBLISH_ROUTE + CREATE_CONTENT_SUFFIX
+            String::from(CREATE_CONTENT_ROUTE)
         }
-    };
-
-    let current_forum = create_rw_signal(String::default());
-
-    let get_current_forum = move |_| {
-        //forum_name.update(|name| *name = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default());
-        let forum_name = params.with(|params| { log::info!("Params: {:?}", params); params.get(FORUM_ROUTE_PARAM_NAME).cloned() }).unwrap_or_default();
-        log::info!("Current forum_name: {}", forum_name);
-        current_forum.set(forum_name);
-    };
+    };*/
 
     view! {
         <div class="dropdown dropdown-end">
@@ -169,13 +165,12 @@ pub fn PlusMenu() -> impl IntoView {
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
                 <li><a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a></li>
-                <li><A href=forum_id>{forum_id}</A></li>
-                <li><A href=get_create_forum_route>"[[Content1]]"</A></li>
+                //<li><A href=create_content_route>"[[Content1]]"</A></li>
                 <li>
                     <Form action=CREATE_CONTENT_ROUTE class="flex">
                         <input type="text" name="forum" class="hidden" value=current_forum/>
                         <button type="submit" on:click=get_current_forum class="w-full text-left">
-                            "[[Content2]]"
+                            "[[Content]]"
                         </button>
                     </Form>
                 </li>

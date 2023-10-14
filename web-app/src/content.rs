@@ -1,7 +1,9 @@
 use cfg_if::cfg_if;
+use const_format::concatcp;
 use leptos::*;
 use leptos_router::{ActionForm};
 
+use crate::app::PUBLISH_ROUTE;
 use crate::forum::get_all_forum_names;
 use crate::icons::{ErrorIcon, LoadingIcon};
 
@@ -12,7 +14,8 @@ cfg_if! {
     }
 }
 
-pub const CREATE_CONTENT_ROUTE : &str = "/content";
+pub const CREATE_CONTENT_SUFFIX : &str = "/content";
+pub const CREATE_CONTENT_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_CONTENT_SUFFIX);
 
 #[server(CreateContent, "/api")]
 pub async fn create_content( title: String, body: String, tags: Option<String>) -> Result<(), ServerFnError> {

@@ -10,6 +10,7 @@ use crate::forum::*;
 use crate::icons::*;
 use crate::navigation_bar::*;
 
+pub const PARAM_ROUTE_PREFIX : &str = "/:";
 pub const PUBLISH_ROUTE : &str = "/publish";
 
 #[derive(Copy, Clone)]
@@ -18,6 +19,7 @@ pub struct GlobalState {
     pub login_action: Action<Login, Result<User, ServerFnError>>,
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
     pub user_resource: Resource<(), Result<User, ServerFnError>>,
+    pub forum_name_closure: Fn() -> String,
 }
 
 impl GlobalState {
@@ -30,6 +32,7 @@ impl GlobalState {
                 move || (),
                 move |_| { get_user() },
             ),
+            forum_name_closure: move || String::default()
         }
     }
 }
@@ -67,16 +70,14 @@ pub fn App() -> impl IntoView {
                         <Routes>
                             <Route path="/" view=HomePage/>
                             <Route path=FORUM_ROUTE view=ForumBanner>
-                                <Route path=PUBLISH_ROUTE view=LoginGuard>
-                                    <Route path=CREATE_CONTENT_ROUTE view=CreateContent/>
-                                </Route>
-                                <Route path="/contents/:id" view=Content/>
+                                <Route path="contents/:id" view=Content/>
                                 <Route path="" view=ForumContents/>
                             </Route>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
                             <Route path="/login" view=Login/>
                             <Route path=PUBLISH_ROUTE view=LoginGuard>
-                                <Route path=CREATE_FORUM_ROUTE view=CreateForum/>
+                                <Route path=CREATE_FORUM_SUFFIX view=CreateForum/>
+                                <Route path=CREATE_CONTENT_SUFFIX view=CreateContent/>
                             </Route>
                         </Routes>
                     </div>
@@ -93,11 +94,11 @@ pub fn App() -> impl IntoView {
 #[component]
 fn LoginGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let user_resource = state.user_resource;
+
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             { move || {
-                    user_resource.get().map(|user: Result<User, ServerFnError>| match user {
+                     state.user_resource.get().map(|user: Result<User, ServerFnError>| match user {
                         Err(e) => {
                             log::info!("Login error: {}", e);
                             view! { <Login/> }.into_view()

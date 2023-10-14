@@ -1,9 +1,10 @@
 use cfg_if::cfg_if;
-use std::collections::{HashSet};
+use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
-use const_format::concatcp;
+use std::collections::{HashSet};
 
+use crate::app::{PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
 
@@ -13,10 +14,11 @@ cfg_if! {
     }
 }
 
-pub const CREATE_FORUM_ROUTE : &str = "/forum";
-pub const FORUM_ROUTE_PREFIX : &str = "/forums/:";
-pub const FORUM_ROUTE_PARAM_NAME : &str = "name";
-pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, FORUM_ROUTE_PARAM_NAME);
+pub const CREATE_FORUM_SUFFIX : &str = "/forum";
+pub const CREATE_FORUM_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
+pub const FORUM_ROUTE_PREFIX : &str = "/forums";
+pub const FORUM_ROUTE_PARAM_NAME : &str = "forum_name";
+pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, FORUM_ROUTE_PARAM_NAME);
 
 #[server(CreateForum, "/api")]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
@@ -77,8 +79,8 @@ pub fn CreateForum() -> impl IntoView {
 
     let existing_forums = create_blocking_resource( move || (create_forum.version()) , move |_| get_all_forum_names());
 
-    let is_name_empty = create_rw_signal( true);
-    let is_name_taken = create_rw_signal( false);
+    let is_name_empty = create_rw_signal(true);
+    let is_name_taken = create_rw_signal(false);
     let is_name_invalid = create_memo(move |_| { is_name_empty.get() || is_name_taken.get() });
 
     view! {
@@ -151,7 +153,7 @@ pub fn ForumBanner() -> impl IntoView {
 
     let params = use_params_map();
     let forum_id = move || {
-        params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
+        params.with(|params| { log::info!("Forum params: {:?}", params); params.get(FORUM_ROUTE_PARAM_NAME).cloned() }).unwrap_or_default()
     };
     // TODO: add forum banner
     view! {

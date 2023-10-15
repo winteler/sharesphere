@@ -1,5 +1,6 @@
+use cfg_if::cfg_if;
 use leptos::*;
-use leptos_router::{use_params_map, A, Form};
+use leptos_router::{A, Form};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::auth::*;
@@ -61,10 +62,6 @@ pub fn NavigationBar(
 #[component]
 pub fn UserProfile() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    /*let user_resource = create_blocking_resource(
-        move || (),
-        move |_| { get_user() },
-    );*/
 
     view! {
         <Transition fallback=move || {
@@ -145,18 +142,25 @@ pub fn PlusMenu() -> impl IntoView {
         let mut path_part_it = path.split("/");
         current_forum.update(|forum_name| *forum_name = String::from(path_part_it.nth(2).unwrap_or("")));
     };
-    /*let create_content_route = move || {
-        let path = window().location().pathname().unwrap_or(String::default());
-        log::info!("Current path: {path}");
-        let mut path_part_it = path.split("/");
-        let forum_name = String::from(path_part_it.nth(1).unwrap_or(""));
-        if path.starts_with(&(String::from(FORUM_ROUTE_PREFIX) + "/")) && !forum_name.is_empty() {
-            FORUM_ROUTE_PREFIX.to_owned() + forum_name.as_ref() + PUBLISH_ROUTE + CREATE_CONTENT_SUFFIX
+    let create_content_route = move || {
+        cfg_if! {
+            if #[cfg(feature = "ssr")] {
+                String::from(CREATE_CONTENT_ROUTE)
+            }
+            else {
+                let path = window().location().pathname().unwrap_or(String::default());
+                log::info!("Current path: {path}");
+                let mut path_part_it = path.split("/");
+                let forum_name = String::from(path_part_it.nth(2).unwrap_or(""));
+                if path.starts_with(&(String::from(FORUM_ROUTE_PREFIX) + "/")) && !forum_name.is_empty() {
+                    FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_ref() + PUBLISH_ROUTE + CREATE_CONTENT_SUFFIX
+                }
+                else {
+                    String::from(CREATE_CONTENT_ROUTE)
+                }
+            }
         }
-        else {
-            String::from(CREATE_CONTENT_ROUTE)
-        }
-    };*/
+    };
 
     view! {
         <div class="dropdown dropdown-end">
@@ -165,7 +169,7 @@ pub fn PlusMenu() -> impl IntoView {
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
                 <li><a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a></li>
-                //<li><A href=create_content_route>"[[Content1]]"</A></li>
+                <li><A href=create_content_route>"[[Content1]]"</A></li>
                 <li>
                     <Form action=CREATE_CONTENT_ROUTE class="flex">
                         <input type="text" name="forum" class="hidden" value=current_forum/>

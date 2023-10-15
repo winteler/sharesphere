@@ -2,11 +2,10 @@ use cfg_if::cfg_if;
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
-use std::collections::{HashSet};
+use std::collections::{BTreeSet};
 
 use crate::app::{PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon};
-
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -20,14 +19,11 @@ pub const FORUM_ROUTE_PREFIX : &str = "/forums";
 pub const FORUM_ROUTE_PARAM_NAME : &str = "forum_name";
 pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, FORUM_ROUTE_PARAM_NAME);
 
-#[server(CreateForum, "/api")]
+#[server]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
     log::info!("Create [[forum]] '{name}', {description}, {:?}", is_nsfw);
     let user = get_user().await?;
-    log::info!("Could get user: {:?}", user);
-
     let db_pool = get_db_pool()?;
-    log::info!("Got db pool");
 
     if name.is_empty() {
         return Err(ServerFnError::ServerError(String::from("Cannot create forum with empty name.")));
@@ -54,19 +50,51 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
     return result;
 }
 
-#[server(GetAllForumNames, "/api")]
-pub async fn get_all_forum_names() -> Result<HashSet<String>, ServerFnError> {
+#[server]
+pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    log::info!("Got db pool");
-
     let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
 
-    let mut forum_name_set: HashSet<String> = HashSet::with_capacity(forum_name_vec.len());
+    let mut forum_name_set = BTreeSet::<String>::new();
+
     for forum_name in forum_name_vec {
         forum_name_set.insert(forum_name.name);
     }
 
     Ok(forum_name_set)
+}
+
+#[server]
+pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    log::info!("Got db pool");
+
+    let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
+
+    let mut forum_name_set = BTreeSet::<String>::new();
+
+    for forum_name in forum_name_vec {
+        forum_name_set.insert(forum_name.name);
+    }
+
+    Ok(forum_name_set)
+
+    /*let user = get_user().await;
+
+    match user {
+        Ok(user) => {
+        }
+        Err(_) => {
+            let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
+
+            let mut forum_name_set: BTreeSet<String> = BTreeSet::with_capacity(forum_name_vec.len());
+            for forum_name in forum_name_vec {
+                forum_name_set.insert(forum_name.name);
+            }
+
+            Ok(forum_name_set)
+        }
+    }*/
 }
 
 /// Component to create new forums

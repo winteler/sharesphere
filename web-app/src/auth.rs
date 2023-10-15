@@ -118,7 +118,7 @@ pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> 
     Ok(client)
 }
 
-#[server(Login, "/api")]
+#[server]
 pub async fn login( redirect_url: String) -> Result<User, ServerFnError> {
 
     let current_user = get_user().await;
@@ -154,7 +154,7 @@ pub async fn login( redirect_url: String) -> Result<User, ServerFnError> {
     Ok(User::default())
 }
 
-#[server(AuthenticateUser, "/api")]
+#[server]
 pub async fn authenticate_user( auth_code: String) -> Result<(User, String), ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
@@ -224,7 +224,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
     Ok((user, redirect_url))
 }
 
-#[server(GetUser, "/api")]
+#[server]
 pub async fn get_user() -> Result<User, ServerFnError> {
     let session = get_session()?;
     let user: User = session.get(USER_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
@@ -232,7 +232,7 @@ pub async fn get_user() -> Result<User, ServerFnError> {
     Ok(user)
 }
 
-#[server(EndSession, "/api")]
+#[server]
 pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     log::info!("Logout, redirect_url: {redirect_url}");
 

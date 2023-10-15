@@ -17,7 +17,7 @@ cfg_if! {
 pub const CREATE_CONTENT_SUFFIX : &str = "/content";
 pub const CREATE_CONTENT_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_CONTENT_SUFFIX);
 
-#[server(CreateContent, "/api")]
+#[server]
 pub async fn create_content( title: String, body: String, tags: Option<String>) -> Result<(), ServerFnError> {
     log::info!("Create [[content]] '{title}'");
     let user = get_user().await?;

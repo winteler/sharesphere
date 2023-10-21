@@ -1,14 +1,15 @@
 use leptos::*;
 use std::collections::BTreeSet;
 
+use crate::app::GlobalState;
 use crate::forum::{FORUM_ROUTE_PREFIX, get_subscribed_forums};
 use crate::icons::{ ErrorIcon, LoadingIcon};
 
 /// Navigation bar component
 #[component]
 pub fn Drawer() -> impl IntoView {
-
-    let subscribed_forum_set = create_resource(|| (), |_| get_subscribed_forums());
+    let state = expect_context::<GlobalState>();
+    let subscribed_forum_set = create_resource(move || (state.create_forum_action.version().get()), |_| get_subscribed_forums());
 
     view! {
         <label for="my-drawer" class="drawer-overlay"></label>

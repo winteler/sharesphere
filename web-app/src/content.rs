@@ -3,7 +3,7 @@ use const_format::concatcp;
 use leptos::*;
 use leptos_router::{ActionForm};
 
-use crate::app::PUBLISH_ROUTE;
+use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::forum::get_all_forum_names;
 use crate::icons::{ErrorIcon, LoadingIcon};
 
@@ -14,11 +14,11 @@ cfg_if! {
     }
 }
 
-pub const CREATE_CONTENT_SUFFIX : &str = "/content";
-pub const CREATE_CONTENT_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_CONTENT_SUFFIX);
+pub const CREATE_POST_SUFFIX : &str = "/content";
+pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
 
 #[server]
-pub async fn create_content( title: String, body: String, tags: Option<String>) -> Result<(), ServerFnError> {
+pub async fn create_post( title: String, body: String, tags: Option<String>) -> Result<(), ServerFnError> {
     log::info!("Create [[content]] '{title}'");
     let user = get_user().await?;
     log::info!("Could get user: {:?}", user);
@@ -36,11 +36,11 @@ pub async fn create_content( title: String, body: String, tags: Option<String>) 
 
 /// Component to create a new content
 #[component]
-pub fn CreateContent() -> impl IntoView {
-    let create_content = create_server_action::<CreateContent>();
-    let create_content_result = create_content.value();
+pub fn CreatePost() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let create_post_result = state.create_post_action.value();
     // check if the server has returned an error
-    let has_error = move || create_content_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || create_post_result.with(|val| matches!(val, Some(Err(_))));
 
     let forum_name_input = create_rw_signal(String::default());
     let is_title_empty = create_rw_signal(true);
@@ -48,7 +48,7 @@ pub fn CreateContent() -> impl IntoView {
     let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });
 
     // TODO: refresh when new forum created?
-    let existing_forums = create_blocking_resource( move || (), move |_| get_all_forum_names());
+    let existing_forums = create_blocking_resource( move || (state.create_forum_action.version().get()), move |_| get_all_forum_names());
 
     view! {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
@@ -60,7 +60,7 @@ pub fn CreateContent() -> impl IntoView {
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
                                     <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
-                                        <ActionForm action=create_content>
+                                        <ActionForm action=state.create_post_action>
                                             <div class="flex flex-col gap-2 w-full">
                                                 <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[content]]"</h2>
                                                 <div class="dropdown dropdown-end">
@@ -131,7 +131,7 @@ pub fn CreateContent() -> impl IntoView {
                             }
                             Err(e) => {
                                 log::info!("Error while getting forum names: {}", e);
-                                view! { <div>"Error"</div>}.into_view()
+                                view! { <ErrorIcon/> }.into_view()
                             }
                         }
                     })

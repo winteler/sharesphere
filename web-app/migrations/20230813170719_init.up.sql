@@ -1,19 +1,60 @@
-CREATE TABLE forums (
-                          id BIGSERIAL PRIMARY KEY,
-                          name TEXT UNIQUE NOT NULL,
-                          description TEXT NOT NULL,
-                          nsfw BOOLEAN NOT NULL,
-                          creator_id TEXT NOT NULL,
-                          timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    oidc_id TEXT UNIQUE NOT NULL,
+    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE contents (
-                          id BIGSERIAL PRIMARY KEY,
-                          title TEXT NOT NULL,
-                          body TEXT NOT NULL,
-                          edited BOOLEAN NOT NULL DEFAULT FALSE,
-                          score INT NOT NULL DEFAULT 0,
-                          parent_id BIGINT,
-                          forum_id BIGINT,
-                          timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+CREATE TABLE forums (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT NOT NULL,
+    nsfw BOOLEAN NOT NULL,
+    banned BOOLEAN NOT NULL DEFAULT FALSE,
+    tags TEXT,
+    creator_id TEXT NOT NULL,
+    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE posts (
+    id BIGSERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    is_meta_post BOOLEAN NOT NULL DEFAULT FALSE,
+    is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
+    spoiler_level INT NOT NULL DEFAULT 0,
+    tags TEXT NOT NULL,
+    edited BOOLEAN NOT NULL DEFAULT FALSE,
+    moderated_body TEXT,
+    meta_post_id BIGINT,
+    forum_id BIGINT NOT NULL,
+    creator_id TEXT NOT NULL,
+    score INT NOT NULL DEFAULT 0,
+    score_minus INT NOT NULL DEFAULT 0,
+    recommended_score INT NOT NULL DEFAULT 0,
+    trending_score INT NOT NULL DEFAULT 0,
+    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE comments (
+    id BIGSERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    edited BOOLEAN NOT NULL DEFAULT FALSE,
+    moderated_body TEXT,
+    forum_id BIGINT,
+    post_id BIGINT,
+    score INT NOT NULL DEFAULT 0,
+    score_minus INT NOT NULL DEFAULT 0,
+    recommended_score INT NOT NULL DEFAULT 0,
+    trending_score INT NOT NULL DEFAULT 0,
+    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE vote (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    content_id BIGINT NOT NULL,
+    is_post BOOLEAN NOT NULL,
+    value smallint CHECK (value IN (-1, 1)),
+    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
 );

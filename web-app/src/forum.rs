@@ -4,7 +4,7 @@ use leptos::*;
 use leptos_router::*;
 use std::collections::{BTreeSet};
 
-use crate::app::{PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
 cfg_if! {
@@ -29,25 +29,27 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
         return Err(ServerFnError::ServerError(String::from("Cannot create forum with empty name.")));
     }
 
-    let result = match sqlx::query(
+    match sqlx::query(
         "INSERT INTO forums (name, description, nsfw, creator_id) VALUES ($1, $2, $3, $4)",
     )
-        .bind(name)
+        .bind(name.clone())
         .bind(description)
         .bind (is_nsfw.is_some())
         .bind(user.id)
         .execute(&db_pool)
         .await
     {
-        Ok(_row) => Ok(()),
+        Ok(_row) => {
+            // Redirect to the new forum
+            let new_forum_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + name.as_str());
+            leptos_axum::redirect(new_forum_path);
+            Ok(())
+        },
         Err(e) => {
             log::error!("Error while creating new [[forum]] {e}");
             Err(ServerFnError::ServerError(e.to_string()))
         },
-    };
-
-    // TODO: on success redirect to new forum
-    return result;
+    }
 }
 
 #[server]
@@ -67,7 +69,6 @@ pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
 #[server]
 pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    log::info!("Got db pool");
 
     let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
 
@@ -100,12 +101,12 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
 /// Component to create new forums
 #[component]
 pub fn CreateForum() -> impl IntoView {
-    let create_forum = create_server_action::<CreateForum>();
-    let create_forum_result = create_forum.value();
+    let state = expect_context::<GlobalState>();
+    let create_forum_result = state.create_forum_action.value();
     // check if the server has returned an error
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
-    let existing_forums = create_blocking_resource( move || (create_forum.version()) , move |_| get_all_forum_names());
+    let existing_forums = create_blocking_resource( move || (state.create_forum_action.version().get()) , move |_| get_all_forum_names());
 
     let is_name_empty = create_rw_signal(true);
     let is_name_taken = create_rw_signal(false);
@@ -121,7 +122,7 @@ pub fn CreateForum() -> impl IntoView {
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
                                     <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
-                                        <ActionForm action=create_forum>
+                                        <ActionForm action=state.create_forum_action>
                                             <div class="flex flex-col gap-2 w-full">
                                                 <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
                                                 <div class="flex gap-2 items-center">

@@ -18,6 +18,8 @@ pub struct GlobalState {
     pub user: RwSignal<User>,
     pub login_action: Action<Login, Result<User, ServerFnError>>,
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
+    pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
+    pub create_post_action: Action<CreatePost, Result<(), ServerFnError>>,
     pub user_resource: Resource<(), Result<User, ServerFnError>>,
 }
 
@@ -27,6 +29,8 @@ impl GlobalState {
             user: create_rw_signal( User::default()),
             login_action: create_server_action::<Login>(),
             logout_action: create_server_action::<EndSession>(),
+            create_forum_action: create_server_action::<CreateForum>(),
+            create_post_action: create_server_action::<CreatePost>(),
             user_resource: create_blocking_resource(
                 move || (),
                 move |_| { get_user() },
@@ -75,7 +79,7 @@ pub fn App() -> impl IntoView {
                             <Route path="/login" view=Login/>
                             <Route path=PUBLISH_ROUTE view=LoginGuard>
                                 <Route path=CREATE_FORUM_SUFFIX view=CreateForum/>
-                                <Route path=CREATE_CONTENT_SUFFIX view=CreateContent/>
+                                <Route path=CREATE_POST_SUFFIX view=CreatePost/>
                             </Route>
                         </Routes>
                     </div>

@@ -3,7 +3,7 @@ use leptos_meta::*;
 use leptos_router::*;
 
 use crate::auth::*;
-use crate::content::*;
+use crate::post::*;
 use crate::drawer::*;
 use crate::error_template::{AppError, ErrorTemplate};
 use crate::forum::*;

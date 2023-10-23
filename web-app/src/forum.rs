@@ -9,7 +9,21 @@ use crate::icons::{ErrorIcon, LoadingIcon};
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
+        use sqlx::types::uuid::Timestamp;
+
         use crate::auth::{get_db_pool, get_user};
+
+        #[derive(sqlx::FromRow, Clone)]
+        struct ForumSql {
+            id: i64,
+            name: String,
+            description: String,
+            is_nsfw: bool,
+            is_banned: bool,
+            tags: Option<String>,
+            creator_id: i64,
+            timestamp: Timestamp,
+        }
     }
 }
 

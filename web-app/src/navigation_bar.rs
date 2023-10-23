@@ -4,7 +4,7 @@ use leptos_router::{A, Form};
 
 use crate::app::{GlobalState};
 use crate::auth::*;
-use crate::content::{CREATE_POST_ROUTE};
+use crate::post::{CREATE_POST_ROUTE};
 use crate::icons::*;
 use crate::forum::*;
 
@@ -149,7 +149,7 @@ pub fn PlusMenu() -> impl IntoView {
             }
             else {
                 use crate::app::{PUBLISH_ROUTE};
-                use crate::content::{CREATE_POST_SUFFIX};
+                use crate::post::{CREATE_POST_SUFFIX};
                 let path = window().location().pathname().unwrap_or(String::default());
                 log::info!("Current path: {path}");
                 let mut path_part_it = path.split("/");

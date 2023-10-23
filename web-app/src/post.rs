@@ -4,7 +4,7 @@ use leptos::*;
 use leptos_router::{ActionForm};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
-use crate::forum::get_all_forum_names;
+use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
 
@@ -18,20 +18,39 @@ pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
 
 #[server]
-pub async fn create_post( title: String, body: String, tags: Option<String>) -> Result<(), ServerFnError> {
+pub async fn create_post(forum_id: i64, title: String, body: String, is_nsfw: Option<String>, tag: Option<String>) -> Result<(), ServerFnError> {
     log::info!("Create [[content]] '{title}'");
     let user = get_user().await?;
-    log::info!("Could get user: {:?}", user);
-
     let db_pool = get_db_pool()?;
-    log::info!("Got db pool");
 
     if title.is_empty() || body.is_empty() {
         return Err(ServerFnError::ServerError(String::from("Cannot create content with empty title.")));
     }
 
-    // TODO: on success redirect to new content
-    return Ok(());
+    match sqlx::query(
+        "INSERT INTO posts (title, body, nsfw, tag, forum_id, creator_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    )
+        .bind(title.clone())
+        .bind(body)
+        .bind(is_nsfw.is_some())
+        .bind(tag.unwrap_or_default())
+        .bind(forum_id)
+        .bind(user.id)
+        .execute(&db_pool)
+        .await
+    {
+        Ok(_row) => {
+            // Redirect to the new post
+            // TODO: redirect to new post
+            let new_post_path : &str = "/";
+            leptos_axum::redirect(new_post_path);
+            Ok(())
+        },
+        Err(e) => {
+            log::error!("Error while creating new [[forum]] {e}");
+            Err(ServerFnError::ServerError(e.to_string()))
+        },
+    }
 }
 
 /// Component to create a new content
@@ -47,7 +66,6 @@ pub fn CreatePost() -> impl IntoView {
     let is_body_empty = create_rw_signal(true);
     let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });
 
-    // TODO: refresh when new forum created?
     let existing_forums = create_blocking_resource( move || (state.create_forum_action.version().get()), move |_| get_all_forum_names());
 
     view! {
@@ -109,7 +127,7 @@ pub fn CreatePost() -> impl IntoView {
                                                         is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                                                     }
                                                 />
-                                                <select class="select select-bordered w-full max-w-xs">
+                                                <select name="tag" class="select select-bordered w-full max-w-xs">
                                                     <option disabled selected>"Tag"</option>
                                                     <option>"This should be"</option>
                                                     <option>"Customized"</option>

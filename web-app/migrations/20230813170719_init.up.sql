@@ -1,6 +1,7 @@
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     oidc_id TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
     timestamp TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -50,7 +51,7 @@ CREATE TABLE comments (
     timestamp TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE vote (
+CREATE TABLE votes (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     content_id BIGINT NOT NULL,

@@ -40,21 +40,27 @@ cfg_if! {
         use openidconnect::reqwest::*;
         use openidconnect::{OAuth2TokenResponse, TokenResponse};
         use sqlx::PgPool;
+        use sqlx::types::time::*;
 
         pub type AuthSession = axum_session_auth::AuthSession<User, String, SessionPgPool, PgPool>;
 
         impl User {
-        pub async fn get(id: String, pool: &PgPool) -> Option<Self> {
-            // TODO: insert user if not already present
-            let sqluser = sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE oidc_id = ?")
-                .bind(id)
-                .fetch_one(pool)
-                .await
-                .ok()?;
+            pub async fn get(id: String, pool: &PgPool) -> Option<Self> {
+                // TODO: insert user if not already present
+                log::info!("Try to get user from the DB");
+                match sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE oidc_id = $1")
+                    .bind(id)
+                    .fetch_one(pool)
+                    .await {
 
-            Some(sqluser.into_user())
+                    Ok(sql_user) => Some(sql_user.into_user()),
+                    Err(e) => {
+                        log::info!("Could not get user {:?}", e);
+                        Some(User::default())
+                    }
+                }
+            }
         }
-    }
 
         pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
             use_context::<PgPool>().ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
@@ -92,6 +98,7 @@ cfg_if! {
             pub id: i64,
             pub oidc_id: String,
             pub username: String,
+            pub timestamp: OffsetDateTime,
         }
 
         impl SqlUser {
@@ -176,7 +183,7 @@ pub async fn login( redirect_url: String) -> Result<User, ServerFnError> {
 
     let current_user = get_user().await;
 
-    if current_user.is_ok() {
+    if current_user.as_ref().is_ok_and(|user| user.is_authenticated()) {
         log::info!("Already logged in, current user is: {:?}", current_user.clone().unwrap());
         return current_user;
     }
@@ -274,7 +281,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
 #[server]
 pub async fn get_user() -> Result<User, ServerFnError> {
     let auth_session = get_session()?;
-    Ok(auth_session.current_user.unwrap_or_default())
+    auth_session.current_user.ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))
 }
 
 #[server]

@@ -96,7 +96,7 @@ cfg_if! {
                 // This Also helps prevent impersonation attempts.
                 .with_security_mode(SecurityMode::PerSession);
 
-            let auth_config = AuthConfig::<String>::default().with_anonymous_user_id(Some(String::default()));
+            let auth_config = AuthConfig::<OidcUserInfo>::default().with_anonymous_user_id(Some(OidcUserInfo::default()));
             let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 
             sqlx::migrate!()
@@ -124,7 +124,7 @@ cfg_if! {
                 .route("/api/*fn_name", get(server_fn_handler).post(server_fn_handler))
                 .leptos_routes_with_handler(routes, get(leptos_routes_handler))
                 .fallback(file_and_error_handler)
-                .layer(AuthSessionLayer::<User, String, SessionPgPool, PgPool>::new(Some(pool)).with_config(auth_config))
+                .layer(AuthSessionLayer::<User, OidcUserInfo, SessionPgPool, PgPool>::new(Some(pool)).with_config(auth_config))
                 .layer(SessionLayer::new(session_store))
                 .with_state(app_state);
 

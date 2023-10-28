@@ -13,6 +13,7 @@ pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
 pub const PKCE_KEY : &str = "pkce";
 pub const NONCE_KEY : &str = "nonce";
 pub const OIDC_TOKENS_KEY : &str = "oidc_token";
+pub const OIDC_USERNAME_KEY : &str = "oidc_username";
 pub const REDIRECT_URL_KEY : &str = "redirect";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,6 +33,12 @@ impl Default for User {
     }
 }
 
+#[derive(Clone, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+pub struct OidcUserInfo {
+    pub oidc_id: String,
+    pub username: String,
+}
+
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use async_trait::async_trait;
@@ -40,27 +47,9 @@ cfg_if! {
         use openidconnect::reqwest::*;
         use openidconnect::{OAuth2TokenResponse, TokenResponse};
         use sqlx::PgPool;
-        use sqlx::types::time::*;
+        use sqlx::types::time::PrimitiveDateTime;
 
-        pub type AuthSession = axum_session_auth::AuthSession<User, String, SessionPgPool, PgPool>;
-
-        impl User {
-            pub async fn get(id: String, pool: &PgPool) -> Option<Self> {
-                // TODO: insert user if not already present
-                log::info!("Try to get user from the DB");
-                match sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE oidc_id = $1")
-                    .bind(id)
-                    .fetch_one(pool)
-                    .await {
-
-                    Ok(sql_user) => Some(sql_user.into_user()),
-                    Err(e) => {
-                        log::info!("Could not get user {:?}", e);
-                        Some(User::default())
-                    }
-                }
-            }
-        }
+        pub type AuthSession = axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
 
         pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
             use_context::<PgPool>().ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
@@ -70,10 +59,47 @@ cfg_if! {
             use_context::<AuthSession>().ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
         }
 
+        impl User {
+            #[cfg(feature = "ssr")]
+            pub async fn get(oidc_info: OidcUserInfo, pool: &PgPool) -> Option<Self> {
+                log::info!("Try to get user from the DB");
+                match sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE oidc_id = $1")
+                    .bind(oidc_info.oidc_id.clone())
+                    .fetch_one(pool)
+                    .await {
+                    Ok(sql_user) => Some(sql_user.into_user()),
+                    Err(select_error) => {
+                        log::info!("User not found with error: {}", select_error);
+                        if let sqlx::Error::RowNotFound = select_error {
+                            log::info!("Try to insert new user");
+                            match sqlx::query_as::<_, SqlUser>(
+                                "INSERT INTO users (oidc_id, username) VALUES ($1, $2) RETURNING *",
+                            )
+                                .bind(oidc_info.oidc_id)
+                                .bind(oidc_info.username)
+                                .fetch_one(pool)
+                                .await
+                            {
+                                Ok(sql_user) => Some(sql_user.into_user()),
+                                Err(insert_error) => {
+                                    log::error!("Error while storing new user: {}", insert_error);
+                                    None
+                                },
+                            }
+                        }
+                        else {
+                            log::error!("Could not get user {}", select_error);
+                            None
+                        }
+                    }
+                }
+            }
+        }
+
         #[async_trait]
-        impl Authentication<User, String, PgPool> for User {
-            async fn load_user(id: String, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
-                let pool = pool.unwrap();
+        impl Authentication<User, OidcUserInfo, PgPool> for User {
+            async fn load_user(id: OidcUserInfo, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+                let pool = pool.ok_or(anyhow::anyhow!("Cannot get DB pool"))?;
 
                 User::get(id, pool)
                     .await
@@ -98,7 +124,7 @@ cfg_if! {
             pub id: i64,
             pub oidc_id: String,
             pub username: String,
-            pub timestamp: OffsetDateTime,
+            pub timestamp: PrimitiveDateTime,
         }
 
         impl SqlUser {
@@ -271,7 +297,13 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
         .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
     auth_session.session.set(OIDC_TOKENS_KEY, token_response.clone());
-    auth_session.login_user(claims.subject().to_string());
+
+    let oidc_user_info = OidcUserInfo {
+        oidc_id: claims.subject().to_string(),
+        username: claims.preferred_username().unwrap().to_string(),
+    };
+
+    auth_session.login_user(oidc_user_info);
 
     leptos_axum::redirect( redirect_url.as_ref());
 
@@ -313,9 +345,10 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
         .set_id_token_hint(token_response.id_token().unwrap())
         .set_post_logout_redirect_uri(oidc::PostLogoutRedirectUrl::new(redirect_url)?);
 
-    leptos_axum::redirect( logout_request.http_get_url().to_string().as_str());
+    leptos_axum::redirect(logout_request.http_get_url().to_string().as_str());
 
     auth_session.session.remove(OIDC_TOKENS_KEY);
+    auth_session.logout_user();
 
     Ok(())
 }

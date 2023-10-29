@@ -175,6 +175,7 @@ pub fn CreateForum() -> impl IntoView {
                                                         type="text"
                                                         name="name"
                                                         placeholder="[[Forum]] name"
+                                                        autocomplete="off"
                                                         class="input input-bordered input-primary h-16"
                                                         on:input=move |ev| {
                                                             let input = event_target_value(&ev);

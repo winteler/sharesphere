@@ -12,7 +12,7 @@ CREATE TABLE forums (
     nsfw BOOLEAN NOT NULL,
     banned BOOLEAN NOT NULL DEFAULT FALSE,
     tags TEXT,
-    creator_id TEXT NOT NULL,
+    creator_id BIGINT NOT NULL,
     timestamp TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -28,7 +28,7 @@ CREATE TABLE posts (
     moderated_body TEXT,
     meta_post_id BIGINT,
     forum_id BIGINT NOT NULL,
-    creator_id TEXT NOT NULL,
+    creator_id BIGINT NOT NULL,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,
@@ -42,8 +42,10 @@ CREATE TABLE comments (
     body TEXT NOT NULL,
     edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
-    forum_id BIGINT,
-    post_id BIGINT,
+    parent_id BIGINT NOT NULL,
+    post_id BIGINT NOT NULL,
+    forum_id BIGINT NOT NULL,
+    creator_id BIGINT NOT NULL,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,
@@ -53,7 +55,7 @@ CREATE TABLE comments (
 
 CREATE TABLE votes (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    creator_id BIGINT NOT NULL,
     content_id BIGINT NOT NULL,
     is_post BOOLEAN NOT NULL,
     value smallint CHECK (value IN (-1, 1)),

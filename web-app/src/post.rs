@@ -1,12 +1,18 @@
 use cfg_if::cfg_if;
 use const_format::concatcp;
 use leptos::*;
-use leptos_router::{ActionForm};
+use leptos_router::*;
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::forum::{get_all_forum_names};
+use crate::forum::{get_all_forum_names, FORUM_ROUTE_PREFIX};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
+pub const CREATE_POST_SUFFIX : &str = "/content";
+pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
+pub const CREATE_POST_FORUM_QUERY_PARAM : &str = "forum";
+pub const POST_ROUTE_PREFIX : &str = "/posts";
+pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
+pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -15,31 +21,25 @@ cfg_if! {
         #[derive(sqlx::FromRow)]
         struct SqlPost {
             id: i64,
-            _title: String,
-            _body: String,
-            _is_meta_post: bool,
-            _is_nsfw: bool,
-            _spoiler_level: i32,
-            _tags: String,
-            _edited: bool,
-            _moderated_body: String,
-            _meta_post_id: Option<i64>,
-            _forum_id: i64,
-            _creator_id: i64,
-            _score: i32,
-            _score_minus: i32,
-            _recommended_score: i32,
-            _trending_score: i32,
-            _timestamp: time::PrimitiveDateTime,
+            title: String,
+            body: String,
+            is_meta_post: bool,
+            is_nsfw: bool,
+            spoiler_level: i32,
+            tags: String,
+            edited: bool,
+            moderated_body: Option<String>,
+            meta_post_id: Option<i64>,
+            forum_id: i64,
+            creator_id: i64,
+            score: i32,
+            score_minus: i32,
+            recommended_score: i32,
+            trending_score: i32,
+            timestamp: time::PrimitiveDateTime,
         }
     }
 }
-
-pub const CREATE_POST_SUFFIX : &str = "/content";
-pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
-pub const POST_ROUTE_PREFIX : &str = "/posts";
-pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
-pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 
 #[server]
 pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Option<String>, tag: Option<String>) -> Result<(), ServerFnError> {
@@ -52,24 +52,23 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
     }
 
     let new_post = sqlx::query_as::<_, SqlPost>(
-        "INSERT INTO posts (title, body, nsfw, tag, forum_id, creator_id)
+        "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, creator_id)
          VALUES (
             $1, $2, $3, $4,
-            (SELECT forum_id FROM forums WHERE forum_name = $5),
+            (SELECT id FROM forums WHERE name = $5),
             $6
-        ) RETURNING *"
-    )
+        ) RETURNING *")
         .bind(title.clone())
         .bind(body)
         .bind(is_nsfw.is_some())
         .bind(tag.unwrap_or_default())
-        .bind(forum)
+        .bind(forum.clone())
         .bind(user.id)
         .fetch_one(&db_pool)
         .await?;
 
     log::info!("New post id: {}", new_post.id);
-    let new_post_path : &str = &(POST_ROUTE_PREFIX.to_owned() + "/" + new_post.id.to_string().as_ref());
+    let new_post_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum.as_str() + "/" + POST_ROUTE_PREFIX + "/" + new_post.id.to_string().as_ref());
     leptos_axum::redirect(new_post_path);
     Ok(())
 }
@@ -82,7 +81,10 @@ pub fn CreatePost() -> impl IntoView {
     // check if the server has returned an error
     let has_error = move || create_post_result.with(|val| matches!(val, Some(Err(_))));
 
-    let forum_name_input = create_rw_signal(String::default());
+    let query = use_query_map();
+    let forum_query = move || query.with(|query| query.get(CREATE_POST_FORUM_QUERY_PARAM).unwrap_or(&String::default()).to_string());
+
+    let forum_name_input = create_rw_signal(forum_query());
     let is_title_empty = create_rw_signal(true);
     let is_body_empty = create_rw_signal(true);
     let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });

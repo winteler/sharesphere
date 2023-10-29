@@ -4,7 +4,7 @@ use leptos_router::{A, Form};
 
 use crate::app::{GlobalState};
 use crate::auth::*;
-use crate::post::{CREATE_POST_ROUTE};
+use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
 use crate::icons::*;
 use crate::forum::*;
 
@@ -171,12 +171,12 @@ pub fn PlusMenu() -> impl IntoView {
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
                 <li><a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a></li>
-                <li><A href=create_post_route>"[[Content1]]"</A></li>
+                <li><A href=create_post_route>"[[Post-1]]"</A></li>
                 <li>
                     <Form action=CREATE_POST_ROUTE class="flex">
-                        <input type="text" name="forum" class="hidden" value=current_forum/>
+                        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
                         <button type="submit" on:click=get_current_forum class="w-full text-left">
-                            "[[Content]]"
+                            "[[Post]]"
                         </button>
                     </Form>
                 </li>

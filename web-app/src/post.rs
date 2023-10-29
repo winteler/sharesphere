@@ -3,7 +3,7 @@ use const_format::concatcp;
 use leptos::*;
 use leptos_router::{ActionForm};
 
-use crate::app::{GlobalState, PUBLISH_ROUTE};
+use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
@@ -11,46 +11,67 @@ use crate::icons::{ErrorIcon, LoadingIcon};
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::auth::{get_db_pool, get_user};
+
+        #[derive(sqlx::FromRow)]
+        struct SqlPost {
+            id: i64,
+            _title: String,
+            _body: String,
+            _is_meta_post: bool,
+            _is_nsfw: bool,
+            _spoiler_level: i32,
+            _tags: String,
+            _edited: bool,
+            _moderated_body: String,
+            _meta_post_id: Option<i64>,
+            _forum_id: i64,
+            _creator_id: i64,
+            _score: i32,
+            _score_minus: i32,
+            _recommended_score: i32,
+            _trending_score: i32,
+            _timestamp: time::PrimitiveDateTime,
+        }
     }
 }
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
+pub const POST_ROUTE_PREFIX : &str = "/posts";
+pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
+pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 
 #[server]
-pub async fn create_post(forum_id: i64, title: String, body: String, is_nsfw: Option<String>, tag: Option<String>) -> Result<(), ServerFnError> {
+pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Option<String>, tag: Option<String>) -> Result<(), ServerFnError> {
     log::info!("Create [[content]] '{title}'");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    if title.is_empty() || body.is_empty() {
-        return Err(ServerFnError::ServerError(String::from("Cannot create content with empty title.")));
+    if forum.is_empty() || title.is_empty() {
+        return Err(ServerFnError::ServerError(String::from("Cannot create content without a valid forum and title.")));
     }
 
-    match sqlx::query(
-        "INSERT INTO posts (title, body, nsfw, tag, forum_id, creator_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    let new_post = sqlx::query_as::<_, SqlPost>(
+        "INSERT INTO posts (title, body, nsfw, tag, forum_id, creator_id)
+         VALUES (
+            $1, $2, $3, $4,
+            (SELECT forum_id FROM forums WHERE forum_name = $5),
+            $6
+        ) RETURNING *"
     )
         .bind(title.clone())
         .bind(body)
         .bind(is_nsfw.is_some())
         .bind(tag.unwrap_or_default())
-        .bind(forum_id)
+        .bind(forum)
         .bind(user.id)
-        .execute(&db_pool)
-        .await
-    {
-        Ok(_row) => {
-            // Redirect to the new post
-            // TODO: redirect to new post
-            let new_post_path : &str = "/";
-            leptos_axum::redirect(new_post_path);
-            Ok(())
-        },
-        Err(e) => {
-            log::error!("Error while creating new [[forum]] {e}");
-            Err(ServerFnError::ServerError(e.to_string()))
-        },
-    }
+        .fetch_one(&db_pool)
+        .await?;
+
+    log::info!("New post id: {}", new_post.id);
+    let new_post_path : &str = &(POST_ROUTE_PREFIX.to_owned() + "/" + new_post.id.to_string().as_ref());
+    leptos_axum::redirect(new_post_path);
+    Ok(())
 }
 
 /// Component to create a new content

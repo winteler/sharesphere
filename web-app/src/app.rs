@@ -72,7 +72,7 @@ pub fn App() -> impl IntoView {
                         <Routes>
                             <Route path="/" view=HomePage/>
                             <Route path=FORUM_ROUTE view=ForumBanner>
-                                <Route path="contents/:id" view=Content/>
+                                <Route path=POST_ROUTE view=Content/>
                                 <Route path="" view=ForumContents/>
                             </Route>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>

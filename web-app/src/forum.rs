@@ -2,19 +2,29 @@ use cfg_if::cfg_if;
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
-use std::collections::{BTreeSet};
+use std::collections::{BTreeMap, BTreeSet};
+use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct Forum {
+    pub id: i64,
+    pub name: String,
+    pub description: String,
+    pub is_nsfw: bool,
+    pub is_banned: bool,
+    pub tags: Option<String>,
+    pub creator_id: i64,
+}
+
 cfg_if! {
     if #[cfg(feature = "ssr")] {
-        use sqlx::types::uuid::Timestamp;
-
         use crate::auth::{get_db_pool, get_user};
 
         #[derive(sqlx::FromRow, Clone)]
-        struct ForumSql {
+        struct SqlForum {
             id: i64,
             name: String,
             description: String,
@@ -22,7 +32,21 @@ cfg_if! {
             is_banned: bool,
             tags: Option<String>,
             creator_id: i64,
-            timestamp: Timestamp,
+            _timestamp: sqlx::types::time::PrimitiveDateTime,
+        }
+
+        impl SqlForum {
+            pub fn into_forum(self) -> Forum {
+                Forum {
+                    id: self.id,
+                    name: self.name,
+                    description: self.description,
+                    is_nsfw: self.is_nsfw,
+                    is_banned: self.is_banned,
+                    tags: self.tags,
+                    creator_id: self.creator_id,
+                }
+            }
         }
     }
 }
@@ -43,7 +67,7 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
         return Err(ServerFnError::ServerError(String::from("Cannot create forum with empty name.")));
     }
 
-    match sqlx::query(
+    sqlx::query(
         "INSERT INTO forums (name, description, nsfw, creator_id) VALUES ($1, $2, $3, $4)",
     )
         .bind(name.clone())
@@ -51,19 +75,26 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
         .bind (is_nsfw.is_some())
         .bind(user.id)
         .execute(&db_pool)
-        .await
-    {
-        Ok(_row) => {
-            // Redirect to the new forum
-            let new_forum_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + name.as_str());
-            leptos_axum::redirect(new_forum_path);
-            Ok(())
-        },
-        Err(e) => {
-            log::error!("Error while creating new [[forum]] {e}");
-            Err(ServerFnError::ServerError(e.to_string()))
-        },
+        .await?;
+
+    // Redirect to the new forum
+    let new_forum_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + name.as_str());
+    leptos_axum::redirect(new_forum_path);
+    Ok(())
+}
+
+#[server]
+pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let sql_forum_vec = sqlx::query_as::<_, SqlForum>("SELECT * FROM forums").fetch_all(&db_pool).await?;
+
+    let mut forum_by_name_map = BTreeMap::<String, Forum>::new();
+
+    for sql_forum in sql_forum_vec {
+        forum_by_name_map.insert(sql_forum.name.clone(), sql_forum.into_forum());
     }
+
+    Ok(forum_by_name_map)
 }
 
 #[server]

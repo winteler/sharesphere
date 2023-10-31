@@ -2,9 +2,10 @@ use cfg_if::cfg_if;
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
+use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::forum::{get_all_forum_names, FORUM_ROUTE_PREFIX};
+use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
@@ -14,9 +15,31 @@ pub const POST_ROUTE_PREFIX : &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
 pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct Post {
+    pub id: i64,
+    pub title: String,
+    pub body: String,
+    pub is_meta_post: bool,
+    pub is_nsfw: bool,
+    pub spoiler_level: i32,
+    pub tags: Option<String>,
+    pub edited: bool,
+    pub moderated_body: Option<String>,
+    pub meta_post_id: Option<i64>,
+    pub forum_id: i64,
+    pub creator_id: i64,
+    pub score: i32,
+    pub score_minus: i32,
+    pub recommended_score: i32,
+    pub trending_score: i32,
+    pub timestamp: String,
+}
+
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::auth::{get_db_pool, get_user};
+        use crate::forum::FORUM_ROUTE_PREFIX;
 
         #[derive(sqlx::FromRow)]
         struct SqlPost {
@@ -26,7 +49,7 @@ cfg_if! {
             is_meta_post: bool,
             is_nsfw: bool,
             spoiler_level: i32,
-            tags: String,
+            tags: Option<String>,
             edited: bool,
             moderated_body: Option<String>,
             meta_post_id: Option<i64>,
@@ -38,7 +61,42 @@ cfg_if! {
             trending_score: i32,
             timestamp: time::PrimitiveDateTime,
         }
+
+        impl SqlPost {
+            pub fn into_post(self) -> Post {
+                Post {
+                    id: self.id,
+                    title: self.title,
+                    body: self.body,
+                    is_meta_post: self.is_meta_post,
+                    is_nsfw: self.is_nsfw,
+                    spoiler_level: self.spoiler_level,
+                    tags: self.tags,
+                    edited: self.edited,
+                    moderated_body: self.moderated_body,
+                    meta_post_id: self.meta_post_id,
+                    forum_id: self.forum_id,
+                    creator_id: self.creator_id,
+                    score: self.score,
+                    score_minus: self.score_minus,
+                    recommended_score: self.recommended_score,
+                    trending_score: self.trending_score,
+                    timestamp: self.timestamp.to_string()
+                }
+            }
+        }
     }
+}
+
+#[server]
+pub async fn load_post(id: i64) -> Result<Post, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let sql_post = sqlx::query_as::<_, SqlPost>("SELECT * FROM posts WHERE id = $1")
+        .bind(id)
+        .fetch_one(&db_pool)
+        .await?;
+
+    Ok(sql_post.into_post())
 }
 
 #[server]
@@ -68,7 +126,7 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
         .await?;
 
     log::info!("New post id: {}", new_post.id);
-    let new_post_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum.as_str() + "/" + POST_ROUTE_PREFIX + "/" + new_post.id.to_string().as_ref());
+    let new_post_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum.as_str() + POST_ROUTE_PREFIX + "/" + new_post.id.to_string().as_ref());
     leptos_axum::redirect(new_post_path);
     Ok(())
 }
@@ -184,10 +242,30 @@ pub fn CreatePost() -> impl IntoView {
 
 /// Component to display a content
 #[component]
-pub fn Content() -> impl IntoView {
+pub fn Post() -> impl IntoView {
+    let params = use_params_map();
 
-    // TODO: add content and its comments
+    let post_resource = create_blocking_resource(
+        move || params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().parse::<i64>().unwrap_or_default(),
+        move |post_id| load_post(post_id));
+
     view! {
-        <h2 class="p-6 text-4xl max-2xl:text-center">"[[content]]"</h2>
+        <Suspense fallback=move || (view! { <LoadingIcon/> })>
+            {
+                post_resource.get().map(|result| {
+                    match result {
+                        Ok(post) => {
+                            view! {
+                                <h2 class="p-6 text-4xl max-2xl:text-center">{post.title}</h2>
+                            }.into_view()
+                        },
+                        Err(e) => {
+                            log::info!("Error while getting forum names: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        }
+                    }
+                })
+            }
+        </Suspense>
     }
 }

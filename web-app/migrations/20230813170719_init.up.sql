@@ -23,7 +23,7 @@ CREATE TABLE posts (
     is_meta_post BOOLEAN NOT NULL DEFAULT FALSE,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     spoiler_level INT NOT NULL DEFAULT 0,
-    tags TEXT NOT NULL,
+    tags TEXT,
     edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
     meta_post_id BIGINT,

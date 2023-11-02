@@ -89,7 +89,7 @@ cfg_if! {
 }
 
 #[server]
-pub async fn load_post(id: i64) -> Result<Post, ServerFnError> {
+pub async fn load_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     let db_pool = get_db_pool()?;
     let sql_post = sqlx::query_as::<_, SqlPost>("SELECT * FROM posts WHERE id = $1")
         .bind(id)
@@ -97,6 +97,27 @@ pub async fn load_post(id: i64) -> Result<Post, ServerFnError> {
         .await?;
 
     Ok(sql_post.into_post())
+}
+
+#[server]
+pub async fn load_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let sql_post_vec = sqlx::query_as::<_, SqlPost>(
+        "SELECT posts.* FROM posts \
+        join forums on forums.id = posts.forum_id \
+        WHERE forums.name = $1"
+    )
+        .bind(forum_name)
+        .fetch_all(&db_pool)
+        .await?;
+
+    let mut post_vec = Vec::<Post>::with_capacity(sql_post_vec.len());
+
+    for sql_post in sql_post_vec {
+        post_vec.push(sql_post.into_post());
+    }
+
+    Ok(post_vec)
 }
 
 #[server]
@@ -245,18 +266,21 @@ pub fn CreatePost() -> impl IntoView {
 pub fn Post() -> impl IntoView {
     let params = use_params_map();
 
-    let post_resource = create_blocking_resource(
+    let post = create_blocking_resource(
         move || params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().parse::<i64>().unwrap_or_default(),
-        move |post_id| load_post(post_id));
+        move |post_id| load_post_by_id(post_id));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>
             {
-                post_resource.get().map(|result| {
+                post.get().map(|result| {
                     match result {
                         Ok(post) => {
                             view! {
-                                <h2 class="p-6 text-4xl max-2xl:text-center">{post.title}</h2>
+                                <div class="flex flex-col gap-1 w-full">
+                                    <h2 class="p-6 text-4xl max-2xl:text-center">{post.title}</h2>
+                                    {post.body}
+                                </div>
                             }.into_view()
                         },
                         Err(e) => {

@@ -361,13 +361,13 @@ pub fn AuthCallback(
     let _state = expect_context::<GlobalState>();
     let query = use_query_map();
     let code = move || query().get("code").unwrap().to_owned();
-    let auth_resource = create_blocking_resource( || (), move |_| authenticate_user( code()));
+    let auth = create_blocking_resource( || (), move |_| authenticate_user( code()));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/>})>
             {
                 move || {
-                    auth_resource.get().map(|userResult| {
+                    auth.get().map(|userResult| {
                             if let Ok((user, redirect_url)) = userResult {
                                 log::info!("Store authenticated as {}", user.username);
                                 log::info!("Redirect to {}", redirect_url);

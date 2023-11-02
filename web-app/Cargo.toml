@@ -14,10 +14,10 @@ axum_session_auth = { version = "0.8.0", features = [ "postgres-rustls" ], optio
 console_error_panic_hook = "0.1"
 console_log = "1"
 cfg-if = "1"
-leptos = { git = "https://github.com/leptos-rs/leptos.git", rev = "a3af4eb8fe09af1d7d538a660094940a17ff2285", features = ["nightly"] }
-leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", rev = "a3af4eb8fe09af1d7d538a660094940a17ff2285", optional = true }
-leptos_meta = { git = "https://github.com/leptos-rs/leptos.git", rev = "a3af4eb8fe09af1d7d538a660094940a17ff2285", features = ["nightly"] }
-leptos_router = { git = "https://github.com/leptos-rs/leptos.git", rev = "a3af4eb8fe09af1d7d538a660094940a17ff2285", features = ["nightly"] }
+leptos = { version="0.5.2", features = ["nightly"] }
+leptos_axum = { version="0.5.2", optional = true }
+leptos_meta = { version="0.5.2", features = ["nightly"] }
+leptos_router = { version="0.5.2", features = ["nightly"] }
 serde = { version = "*", features = ["derive"] }
 rand = { version = "0.8.5", features = ["min_const_gen"] }
 log = "0.4"

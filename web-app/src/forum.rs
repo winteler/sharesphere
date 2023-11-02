@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon};
+use crate::post::{load_posts_by_forum_name, POST_ROUTE_PREFIX};
 
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Forum {
@@ -227,13 +228,15 @@ pub fn CreateForum() -> impl IntoView {
 pub fn ForumBanner() -> impl IntoView {
 
     let params = use_params_map();
-    let forum_id = move || {
+    let forum_name = move || {
         params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
     };
     // TODO: add forum banner
     view! {
         <div class="flex flex-col gap-1 w-full">
-            <h2 class="text-4xl max-2xl:text-center">{forum_id}</h2>
+            <div class="bg-gradient-to-tl from-blue-800 to-blue-500">
+                <h2 class="text-4xl max-2xl:text-center">{forum_name}</h2>
+            </div>
             <Outlet/>
         </div>
     }
@@ -242,8 +245,40 @@ pub fn ForumBanner() -> impl IntoView {
 /// Component to display a forum's contents
 #[component]
 pub fn ForumContents() -> impl IntoView {
-    // TODO: add list of forum contents
+    let state = expect_context::<GlobalState>();
+
+    let params = use_params_map();
+    let forum_name = move || {
+        params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
+    };
+
+    let post_vec = create_resource(move || (state.create_post_action.version().get()), move |_| load_posts_by_forum_name(forum_name()));
+
     view! {
-        <h2 class="p-6 text-4xl max-2xl:text-center">"[[forum contents]]"</h2>
+        <ul class="p-4 h-full bg-base-200 text-base-content">
+            <Transition fallback=move || view! {  <LoadingIcon/> }>
+                { move || {
+                         post_vec.get().map(|result| match result {
+                            Ok(post_vec) => {
+                                post_vec.iter().map(|post| {
+                                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name() + POST_ROUTE_PREFIX + "/" + &post.id.to_string();
+                                    view! {
+                                        <li>
+                                            <a href=post_path>
+                                                {post.title.clone()}
+                                            </a>
+                                        </li>
+                                    }
+                                }).collect_view()
+                            },
+                            Err(e) => {
+                                log::info!("Error: {}", e);
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                        })
+                    }
+                }
+            </Transition>
+        </ul>
     }
 }

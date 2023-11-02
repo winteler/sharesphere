@@ -72,7 +72,7 @@ pub fn UserProfile() -> impl IntoView {
             }
         }>
         {move || {
-            state.user_resource.get().map(|user| match user {
+            state.user.get().map(|user| match user {
                 Err(e) => {
                     log::info!("Get user error: {}", e);
                     view! { <LoginButton/> }.into_view()

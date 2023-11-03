@@ -13,7 +13,7 @@ pub fn Drawer() -> impl IntoView {
 
     view! {
         <label for="my-drawer" class="drawer-overlay"></label>
-        <ul class="menu p-4 w-40 h-full bg-base-200 text-base-content">
+        <ul class="menu p-4 w-40 h-full bg-base text-base-content">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { move || {
                          subscribed_forum_set.get().map(|subscribed_forum_set: Result<BTreeSet<String>, ServerFnError>| match subscribed_forum_set {

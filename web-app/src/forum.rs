@@ -233,8 +233,8 @@ pub fn ForumBanner() -> impl IntoView {
     };
     // TODO: add forum banner
     view! {
-        <div class="flex flex-col gap-1 w-full">
-            <div class="bg-gradient-to-tl from-blue-800 to-blue-500">
+        <div class="flex flex-col w-full">
+            <div class="p-4 rounded-lg bg-base-400 text-white font-mono">
                 <h2 class="text-4xl max-2xl:text-center">{forum_name}</h2>
             </div>
             <Outlet/>
@@ -255,7 +255,7 @@ pub fn ForumContents() -> impl IntoView {
     let post_vec = create_resource(move || (state.create_post_action.version().get()), move |_| load_posts_by_forum_name(forum_name()));
 
     view! {
-        <ul class="p-4 h-full bg-base-200 text-base-content">
+        <ul class="menu w-full bg-base text-lg">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { move || {
                          post_vec.get().map(|result| match result {
@@ -265,7 +265,9 @@ pub fn ForumContents() -> impl IntoView {
                                     view! {
                                         <li>
                                             <a href=post_path>
-                                                {post.title.clone()}
+                                                <div class="w-full text-left">
+                                                    {post.title.clone()}
+                                                </div>
                                             </a>
                                         </li>
                                     }

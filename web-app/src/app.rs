@@ -66,7 +66,7 @@ pub fn App() -> impl IntoView {
                 <NavigationBar/>
                 <main class="h-full drawer 2xl:drawer-open">
                     <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
-                    <div class="drawer-content flex flex-col p-2 max-2xl:items-center h-full">
+                    <div class="drawer-content flex flex-col max-2xl:items-center h-full">
                         <Routes>
                             <Route path="/" view=HomePage/>
                             <Route path=FORUM_ROUTE view=ForumBanner>

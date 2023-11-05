@@ -99,7 +99,7 @@ pub async fn load_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     Ok(sql_post.into_post())
 }
 
-#[server]
+#[server(endpoint = "forums/posts_by_name")]
 pub async fn load_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let sql_post_vec = sqlx::query_as::<_, SqlPost>(
@@ -161,7 +161,7 @@ pub fn CreatePost() -> impl IntoView {
     let has_error = move || create_post_result.with(|val| matches!(val, Some(Err(_))));
 
     let query = use_query_map();
-    let forum_query = move || query.with(|query| query.get(CREATE_POST_FORUM_QUERY_PARAM).unwrap_or(&String::default()).to_string());
+    let forum_query = move || query.with_untracked(|query| query.get(CREATE_POST_FORUM_QUERY_PARAM).unwrap_or(&String::default()).to_string());
 
     let forum_name_input = create_rw_signal(forum_query());
     let is_title_empty = create_rw_signal(true);
@@ -179,7 +179,7 @@ pub fn CreatePost() -> impl IntoView {
                             Ok(forum_set) => {
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
-                                    <div class="flex flex-col gap-2 w-3/5 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
+                                    <div class="flex flex-col gap-2 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
                                         <ActionForm action=state.create_post_action>
                                             <div class="flex flex-col gap-2 w-full">
                                                 <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[content]]"</h2>

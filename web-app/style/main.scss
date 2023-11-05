@@ -2474,10 +2474,6 @@ html {
   height: 100vh;
 }
 
-.w-3\/5 {
-  width: 60%;
-}
-
 .w-40 {
   width: 10rem;
 }
@@ -2516,6 +2512,10 @@ html {
 
 .flex-1 {
   flex: 1 1 0%;
+}
+
+.flex-none {
+  flex: none;
 }
 
 .shrink-0 {
@@ -2570,6 +2570,19 @@ html {
 
 .rounded-lg {
   border-radius: 0.5rem;
+}
+
+.border-2 {
+  border-width: 2px;
+}
+
+.border-transparent {
+  border-color: transparent;
+}
+
+.border-r-gray-600 {
+  --tw-border-opacity: 1;
+  border-right-color: rgb(75 85 99 / var(--tw-border-opacity));
 }
 
 .bg-amber-600 {
@@ -2718,39 +2731,6 @@ html {
 
 .filter {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
-}
-
-@media (min-width: 1536px) {
-  .\32xl\:drawer-open > .drawer-toggle {
-    display: none;
-  }
-
-  .\32xl\:drawer-open > .drawer-toggle ~ .drawer-side {
-    pointer-events: auto;
-    visibility: visible;
-    position: sticky;
-    display: block;
-    width: auto;
-    overscroll-behavior: auto;
-  }
-
-  .\32xl\:drawer-open > .drawer-toggle ~ .drawer-side > *:not(.drawer-overlay) {
-    transform: translateX(0%);
-  }
-
-  [dir="rtl"] .\32xl\:drawer-open > .drawer-toggle ~ .drawer-side > *:not(.drawer-overlay) {
-    transform: translateX(0%);
-  }
-
-  .\32xl\:drawer-open > .drawer-toggle:checked ~ .drawer-side {
-    pointer-events: auto;
-    visibility: visible;
-  }
-
-  .\32xl\:drawer-open > .drawer-toggle ~ .drawer-side > .drawer-overlay {
-    cursor: default;
-    background-color: transparent;
-  }
 }
 
 .hover\:bg-sky-700:hover {

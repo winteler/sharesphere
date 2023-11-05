@@ -62,11 +62,14 @@ pub fn App() -> impl IntoView {
             }
             .into_view()
         }>
-            <div class="h-screen flex flex-col">
-                <NavigationBar/>
-                <main class="h-full drawer 2xl:drawer-open">
-                    <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
-                    <div class="drawer-content flex flex-col max-2xl:items-center h-full">
+            <main class="h-screen drawer 2xl:drawer-close">
+                <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
+                <div class="drawer-content h-full flex flex-col max-2xl:items-center">
+                    <NavigationBar/>
+                    <div class="flex h-full">
+                        <div class="h-full max-2xl:hidden">
+                            <Drawer/>
+                        </div>
                         <Routes>
                             <Route path="/" view=HomePage/>
                             <Route path=FORUM_ROUTE view=ForumBanner>
@@ -81,11 +84,12 @@ pub fn App() -> impl IntoView {
                             </Route>
                         </Routes>
                     </div>
-                    <div class="drawer-side">
-                        <Drawer/>
-                    </div>
-                </main>
-            </div>
+                </div>
+                <div class="drawer-side">
+                    <label for="my-drawer" class="drawer-overlay"></label>
+                    <Drawer/>
+                </div>
+            </main>
         </Router>
     }
 }
@@ -127,7 +131,7 @@ fn Login() -> impl IntoView {
     let get_current_path = get_current_path_closure(current_path);
 
     view! {
-        <div class="h-full my-0 mx-auto max-w-3xl text-center">
+        <div class="my-0 mx-auto max-w-3xl text-center">
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Login required to access this page."</p>
             <form action=state.login_action.url() method="post" rel="external">
                 <input type="text" name="redirect_url" class="hidden" value=current_path/>
@@ -145,7 +149,7 @@ fn HomePage() -> impl IntoView {
     let (count, set_count) = create_signal( 0);
 
     view! {
-        <div class="h-full my-0 mx-auto max-w-3xl text-center">
+        <div class="my-0 mx-auto max-w-3xl text-center">
             <h2 class="p-6 text-4xl">"Welcome to Leptos with Tailwind"</h2>
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Tailwind will scan your Rust files for Tailwind class names and compile them into a CSS file."</p>
             <button

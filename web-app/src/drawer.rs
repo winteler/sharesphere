@@ -12,8 +12,7 @@ pub fn Drawer() -> impl IntoView {
     let subscribed_forum_set = create_resource(move || (state.create_forum_action.version().get()), |_| get_subscribed_forums());
 
     view! {
-        <label for="my-drawer" class="drawer-overlay"></label>
-        <ul class="menu p-4 w-40 h-full bg-base text-base-content">
+        <ul class="menu h-full p-4 w-40 text-base-content bg-base-100 border-1 border-transparent border-r-gray-600">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { move || {
                          subscribed_forum_set.get().map(|subscribed_forum_set: Result<BTreeSet<String>, ServerFnError>| match subscribed_forum_set {

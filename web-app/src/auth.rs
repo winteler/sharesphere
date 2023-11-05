@@ -360,7 +360,7 @@ pub fn AuthCallback(
     use crate::app::*;
     let _state = expect_context::<GlobalState>();
     let query = use_query_map();
-    let code = move || query().get("code").unwrap().to_owned();
+    let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
     let auth = create_blocking_resource( || (), move |_| authenticate_user( code()));
 
     view! {

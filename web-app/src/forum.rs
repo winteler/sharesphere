@@ -167,17 +167,17 @@ pub fn CreateForum() -> impl IntoView {
                             Ok(forum_set) => {
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
-                                    <div class="flex flex-col gap-2 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
+                                    <div class="flex flex-col gap-2 w-1/2 2xl:w-1/3 max-2xl:mx-auto">
                                         <ActionForm action=state.create_forum_action>
                                             <div class="flex flex-col gap-2 w-full">
                                                 <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
-                                                <div class="flex gap-2 items-center">
+                                                <div class="flex gap-2">
                                                     <input
                                                         type="text"
                                                         name="name"
                                                         placeholder="[[Forum]] name"
                                                         autocomplete="off"
-                                                        class="input input-bordered input-primary h-16"
+                                                        class="input input-bordered input-primary h-16 flex-none w-1/2"
                                                         on:input=move |ev| {
                                                             let input = event_target_value(&ev);
                                                             is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());

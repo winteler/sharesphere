@@ -179,7 +179,7 @@ pub fn CreatePost() -> impl IntoView {
                             Ok(forum_set) => {
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
-                                    <div class="flex flex-col gap-2 max-w-md 2xl:max-w-lg max-2xl:mx-auto">
+                                    <div class="flex flex-col gap-2 w-1/2 2xl:w-1/3 max-2xl:mx-auto">
                                         <ActionForm action=state.create_post_action>
                                             <div class="flex flex-col gap-2 w-full">
                                                 <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[content]]"</h2>

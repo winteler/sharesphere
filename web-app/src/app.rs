@@ -66,7 +66,7 @@ pub fn App() -> impl IntoView {
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                 <div class="drawer-content h-full flex flex-col max-2xl:items-center">
                     <NavigationBar/>
-                    <div class="flex h-full">
+                    <div class="flex h-full w-full">
                         <div class="h-full max-2xl:hidden">
                             <Drawer/>
                         </div>

@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 pub mod app;
 pub mod auth;
 pub mod post;
-pub mod drawer;
+pub mod sidebar;
 pub mod error_template;
 pub mod fileserv;
 pub mod footer;

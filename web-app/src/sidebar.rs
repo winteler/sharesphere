@@ -5,9 +5,9 @@ use crate::app::GlobalState;
 use crate::forum::{FORUM_ROUTE_PREFIX, get_subscribed_forums};
 use crate::icons::{ ErrorIcon, LoadingIcon};
 
-/// Navigation bar component
+/// Left sidebar component
 #[component]
-pub fn Drawer() -> impl IntoView {
+pub fn LeftSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let subscribed_forum_set = create_resource(move || (state.create_forum_action.version().get()), |_| get_subscribed_forums());
 
@@ -25,7 +25,7 @@ pub fn Drawer() -> impl IntoView {
                                     let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
                                     view! {
                                         <li>
-                                            <a href=forum_path>
+                                            <a href=forum_path class="bg-black">
                                                 {forum_name}
                                             </a>
                                         </li>
@@ -37,5 +37,13 @@ pub fn Drawer() -> impl IntoView {
                 }
             </Transition>
         </ul>
+    }
+}
+
+/// Right sidebar component
+#[component]
+pub fn RightSidebar() -> impl IntoView {
+    view! {
+        <div class="h-full p-4 w-40"></div>
     }
 }

@@ -4,7 +4,7 @@ use leptos_router::*;
 
 use crate::auth::*;
 use crate::post::*;
-use crate::drawer::*;
+use crate::sidebar::*;
 use crate::error_template::{AppError, ErrorTemplate};
 use crate::forum::*;
 use crate::icons::*;
@@ -68,7 +68,7 @@ pub fn App() -> impl IntoView {
                     <NavigationBar/>
                     <div class="flex h-full w-full">
                         <div class="h-full max-2xl:hidden">
-                            <Drawer/>
+                            <LeftSidebar/>
                         </div>
                         <Routes>
                             <Route path="/" view=HomePage/>
@@ -83,11 +83,14 @@ pub fn App() -> impl IntoView {
                                 <Route path=CREATE_POST_SUFFIX view=CreatePost/>
                             </Route>
                         </Routes>
+                        <div class="h-full max-2xl:hidden">
+                            <RightSidebar/>
+                        </div>
                     </div>
                 </div>
                 <div class="drawer-side">
                     <label for="my-drawer" class="drawer-overlay"></label>
-                    <Drawer/>
+                    <LeftSidebar/>
                 </div>
             </main>
         </Router>

@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::icons::{ErrorIcon, LoadingIcon};
-use crate::post::{load_posts_by_forum_name, POST_ROUTE_PREFIX};
+use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
+use crate::post::{get_posts_by_forum_name, POST_ROUTE_PREFIX};
 
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Forum {
@@ -17,7 +17,10 @@ pub struct Forum {
     pub is_nsfw: bool,
     pub is_banned: bool,
     pub tags: Option<String>,
+    pub icon_url: Option<String>,
+    pub banner_url: Option<String>,
     pub creator_id: i64,
+    pub timestamp: String,
 }
 
 cfg_if! {
@@ -33,7 +36,7 @@ cfg_if! {
             is_banned: bool,
             tags: Option<String>,
             creator_id: i64,
-            _timestamp: sqlx::types::time::PrimitiveDateTime,
+            timestamp: time::OffsetDateTime,
         }
 
         impl SqlForum {
@@ -45,7 +48,10 @@ cfg_if! {
                     is_nsfw: self.is_nsfw,
                     is_banned: self.is_banned,
                     tags: self.tags,
+                    icon_url: None,
+                    banner_url: None,
                     creator_id: self.creator_id,
+                    timestamp: self.timestamp.to_string(),
                 }
             }
         }
@@ -69,7 +75,7 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
     }
 
     sqlx::query(
-        "INSERT INTO forums (name, description, nsfw, creator_id) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO forums (name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
     )
         .bind(name.clone())
         .bind(description)
@@ -82,6 +88,17 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
     let new_forum_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + name.as_str());
     leptos_axum::redirect(new_forum_path);
     Ok(())
+}
+
+#[server]
+pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let sql_forum = sqlx::query_as::<_, SqlForum>("SELECT * FROM forums where name = $1")
+        .bind(forum_name)
+        .fetch_one(&db_pool)
+        .await?;
+
+    Ok(sql_forum.into_forum())
 }
 
 #[server]
@@ -126,13 +143,14 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
 
     Ok(forum_name_set)
 
+    // TODO: get subscribed forum
     /*let user = get_user().await;
 
     match user {
         Ok(user) => {
         }
         Err(_) => {
-            let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
+            let forum_name_vec = sqlx::query("SELECT name FROM forums").fetch_all(&db_pool).await?;
 
             let mut forum_name_set: BTreeSet<String> = BTreeSet::with_capacity(forum_name_vec.len());
             for forum_name in forum_name_vec {
@@ -167,10 +185,10 @@ pub fn CreateForum() -> impl IntoView {
                             Ok(forum_set) => {
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
-                                    <div class="flex flex-col gap-2 w-1/2 2xl:w-1/3 max-2xl:mx-auto">
+                                    <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
                                         <ActionForm action=state.create_forum_action>
                                             <div class="flex flex-col gap-2 w-full">
-                                                <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[forum]]"</h2>
+                                                <h2 class="py-4 text-4xl text-center">"Create [[forum]]"</h2>
                                                 <div class="flex gap-2">
                                                     <input
                                                         type="text"
@@ -231,14 +249,50 @@ pub fn ForumBanner() -> impl IntoView {
     let forum_name = move || {
         params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
     };
+    let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name().as_str();
+
+    let forum = create_resource(move || (), move |_| get_forum_by_name(forum_name()));
     // TODO: add forum banner
     view! {
-        <div class="flex flex-col w-full">
-            <div class="p-4 rounded-lg bg-base-400 text-white font-mono">
-                <h2 class="text-4xl max-2xl:text-center">{forum_name}</h2>
-            </div>
-            <Outlet/>
-        </div>
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || {
+                     forum.get().map(|result| match result {
+                        Ok(forum) => {
+                            view! {
+                                <div class="flex flex-col w-full">
+                                    <div
+                                        class="hero bg-blue-500"
+                                        /*style:background-image=move || {
+                                            if forum.banner_url.is_some() {
+                                                format!("url({})", forum.banner_url.clone().unwrap())
+                                            }
+                                            else {
+                                                String::from("none")
+                                            }
+                                        }*/
+                                        style="background-image: url(https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg);"
+                                    >
+                                        <div class="hero-overlay bg-opacity-60"></div>
+                                        <div class="hero-content text-neutral-content text-left">
+                                            <a href=forum_path class="btn btn-ghost normal-case text-l">
+                                                <StacksIcon/>
+                                                <h2 class="text-4xl">{forum_name}</h2>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <Outlet/>
+                                </div>
+                            }.into_view()
+                        },
+                        Err(e) => {
+                            log::info!("Error: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                    })
+                }
+            }
+        </Transition>
     }
 }
 
@@ -252,19 +306,20 @@ pub fn ForumContents() -> impl IntoView {
         params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default()
     };
 
-    let post_vec = create_resource(move || (state.create_post_action.version().get()), move |_| load_posts_by_forum_name(forum_name()));
+    let post_vec = create_resource(move || (state.create_post_action.version().get()), move |_| get_posts_by_forum_name(forum_name()));
 
     view! {
-        <ul class="menu w-full bg-base text-lg">
+        <ul class="menu w-full text-lg">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
-                { move || {
+                {
+                    move || {
                          post_vec.get().map(|result| match result {
                             Ok(post_vec) => {
                                 post_vec.iter().map(|post| {
                                     let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name() + POST_ROUTE_PREFIX + "/" + &post.id.to_string();
                                     view! {
                                         <li>
-                                            <a href=post_path>
+                                            <a href=post_path class="bg-black">
                                                 <div class="w-full text-left">
                                                     {post.title.clone()}
                                                 </div>

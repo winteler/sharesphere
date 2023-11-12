@@ -24,7 +24,7 @@ pub struct Post {
     pub is_nsfw: bool,
     pub spoiler_level: i32,
     pub tags: Option<String>,
-    pub edited: bool,
+    pub is_edited: bool,
     pub moderated_body: Option<String>,
     pub meta_post_id: Option<i64>,
     pub forum_id: i64,
@@ -33,7 +33,7 @@ pub struct Post {
     pub score_minus: i32,
     pub recommended_score: i32,
     pub trending_score: i32,
-    pub timestamp: String,
+    pub timestamp: time::OffsetDateTime,
 }
 
 cfg_if! {
@@ -50,7 +50,7 @@ cfg_if! {
             is_nsfw: bool,
             spoiler_level: i32,
             tags: Option<String>,
-            edited: bool,
+            is_edited: bool,
             moderated_body: Option<String>,
             meta_post_id: Option<i64>,
             forum_id: i64,
@@ -59,7 +59,7 @@ cfg_if! {
             score_minus: i32,
             recommended_score: i32,
             trending_score: i32,
-            timestamp: time::PrimitiveDateTime,
+            timestamp: time::OffsetDateTime,
         }
 
         impl SqlPost {
@@ -72,7 +72,7 @@ cfg_if! {
                     is_nsfw: self.is_nsfw,
                     spoiler_level: self.spoiler_level,
                     tags: self.tags,
-                    edited: self.edited,
+                    is_edited: self.is_edited,
                     moderated_body: self.moderated_body,
                     meta_post_id: self.meta_post_id,
                     forum_id: self.forum_id,
@@ -81,7 +81,7 @@ cfg_if! {
                     score_minus: self.score_minus,
                     recommended_score: self.recommended_score,
                     trending_score: self.trending_score,
-                    timestamp: self.timestamp.to_string()
+                    timestamp: self.timestamp,
                 }
             }
         }
@@ -89,7 +89,7 @@ cfg_if! {
 }
 
 #[server]
-pub async fn load_post_by_id(id: i64) -> Result<Post, ServerFnError> {
+pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     let db_pool = get_db_pool()?;
     let sql_post = sqlx::query_as::<_, SqlPost>("SELECT * FROM posts WHERE id = $1")
         .bind(id)
@@ -100,7 +100,7 @@ pub async fn load_post_by_id(id: i64) -> Result<Post, ServerFnError> {
 }
 
 #[server(endpoint = "forums/posts_by_name")]
-pub async fn load_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
+pub async fn get_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let sql_post_vec = sqlx::query_as::<_, SqlPost>(
         "SELECT posts.* FROM posts \
@@ -179,10 +179,10 @@ pub fn CreatePost() -> impl IntoView {
                             Ok(forum_set) => {
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
-                                    <div class="flex flex-col gap-2 w-1/2 2xl:w-1/3 max-2xl:mx-auto">
+                                    <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
                                         <ActionForm action=state.create_post_action>
                                             <div class="flex flex-col gap-2 w-full">
-                                                <h2 class="py-4 text-4xl max-2xl:text-center">"Create [[content]]"</h2>
+                                                <h2 class="py-4 text-4xl text-center">"Create [[content]]"</h2>
                                                 <div class="dropdown dropdown-end">
                                                     <input
                                                         tabindex="0"
@@ -268,7 +268,7 @@ pub fn Post() -> impl IntoView {
 
     let post = create_blocking_resource(
         move || params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().parse::<i64>().unwrap_or_default(),
-        move |post_id| load_post_by_id(post_id));
+        move |post_id| get_post_by_id(post_id));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>
@@ -277,9 +277,13 @@ pub fn Post() -> impl IntoView {
                     match result {
                         Ok(post) => {
                             view! {
-                                <div class="flex flex-col gap-1 w-full">
-                                    <h2 class="p-6 text-4xl max-2xl:text-center">{post.title}</h2>
-                                    {post.body}
+                                <div class="flex flex-col gap-1">
+                                    <div class="card shadow-xl">
+                                        <div class="card-body">
+                                            <h2 class="card-title">{post.title}</h2>
+                                            {post.body}
+                                        </div>
+                                    </div>
                                 </div>
                             }.into_view()
                         },

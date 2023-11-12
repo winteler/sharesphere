@@ -2,18 +2,18 @@ CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
-    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE forums (
     id BIGSERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
     description TEXT NOT NULL,
-    nsfw BOOLEAN NOT NULL,
-    banned BOOLEAN NOT NULL DEFAULT FALSE,
+    is_nsfw BOOLEAN NOT NULL,
+    is_banned BOOLEAN NOT NULL DEFAULT FALSE,
     tags TEXT,
     creator_id BIGINT NOT NULL,
-    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE posts (
@@ -24,7 +24,7 @@ CREATE TABLE posts (
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     spoiler_level INT NOT NULL DEFAULT 0,
     tags TEXT,
-    edited BOOLEAN NOT NULL DEFAULT FALSE,
+    is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
     meta_post_id BIGINT,
     forum_id BIGINT NOT NULL,
@@ -33,14 +33,14 @@ CREATE TABLE posts (
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,
     trending_score INT NOT NULL DEFAULT 0,
-    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE comments (
     id BIGSERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     body TEXT NOT NULL,
-    edited BOOLEAN NOT NULL DEFAULT FALSE,
+    is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
     parent_id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE comments (
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,
     trending_score INT NOT NULL DEFAULT 0,
-    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE votes (
@@ -59,5 +59,5 @@ CREATE TABLE votes (
     content_id BIGINT NOT NULL,
     is_post BOOLEAN NOT NULL,
     value smallint CHECK (value IN (-1, 1)),
-    timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

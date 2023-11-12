@@ -47,7 +47,6 @@ cfg_if! {
         use openidconnect::reqwest::*;
         use openidconnect::{OAuth2TokenResponse, TokenResponse};
         use sqlx::PgPool;
-        use sqlx::types::time::PrimitiveDateTime;
 
         pub type AuthSession = axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
 
@@ -124,7 +123,7 @@ cfg_if! {
             pub id: i64,
             pub oidc_id: String,
             pub username: String,
-            pub timestamp: PrimitiveDateTime,
+            pub timestamp: time::OffsetDateTime,
         }
 
         impl SqlUser {

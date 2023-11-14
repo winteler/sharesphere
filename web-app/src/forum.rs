@@ -9,6 +9,7 @@ use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
 use crate::post::{get_posts_by_forum_name, POST_ROUTE_PREFIX};
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Forum {
     pub id: i64,
@@ -26,35 +27,6 @@ pub struct Forum {
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::auth::{get_db_pool, get_user};
-
-        #[derive(sqlx::FromRow, Clone)]
-        struct SqlForum {
-            id: i64,
-            name: String,
-            description: String,
-            is_nsfw: bool,
-            is_banned: bool,
-            tags: Option<String>,
-            creator_id: i64,
-            timestamp: time::OffsetDateTime,
-        }
-
-        impl SqlForum {
-            pub fn into_forum(self) -> Forum {
-                Forum {
-                    id: self.id,
-                    name: self.name,
-                    description: self.description,
-                    is_nsfw: self.is_nsfw,
-                    is_banned: self.is_banned,
-                    tags: self.tags,
-                    icon_url: None,
-                    banner_url: None,
-                    creator_id: self.creator_id,
-                    timestamp: self.timestamp.to_string(),
-                }
-            }
-        }
     }
 }
 
@@ -93,23 +65,23 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
 #[server]
 pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let sql_forum = sqlx::query_as::<_, SqlForum>("SELECT * FROM forums where name = $1")
+    let forum = sqlx::query_as::<_, Forum>("SELECT * FROM forums where name = $1")
         .bind(forum_name)
         .fetch_one(&db_pool)
         .await?;
 
-    Ok(sql_forum.into_forum())
+    Ok(forum)
 }
 
 #[server]
 pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let sql_forum_vec = sqlx::query_as::<_, SqlForum>("SELECT * FROM forums").fetch_all(&db_pool).await?;
+    let sql_forum_vec = sqlx::query_as::<_, Forum>("SELECT * FROM forums").fetch_all(&db_pool).await?;
 
     let mut forum_by_name_map = BTreeMap::<String, Forum>::new();
 
-    for sql_forum in sql_forum_vec {
-        forum_by_name_map.insert(sql_forum.name.clone(), sql_forum.into_forum());
+    for forum in sql_forum_vec {
+        forum_by_name_map.insert(forum.name.clone(), forum);
     }
 
     Ok(forum_by_name_map)
@@ -263,15 +235,15 @@ pub fn ForumBanner() -> impl IntoView {
                                 <div class="flex flex-col w-full">
                                     <div
                                         class="hero bg-blue-500"
-                                        /*style:background-image=move || {
+                                        style:background-image=move || {
                                             if forum.banner_url.is_some() {
                                                 format!("url({})", forum.banner_url.clone().unwrap())
                                             }
                                             else {
-                                                String::from("none")
+                                                String::from("url(https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg)")
+                                                //String::from("none")
                                             }
-                                        }*/
-                                        style="background-image: url(https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg);"
+                                        }
                                     >
                                         <div class="hero-overlay bg-opacity-60"></div>
                                         <div class="hero-content text-neutral-content text-left">

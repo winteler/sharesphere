@@ -15,6 +15,7 @@ pub const POST_ROUTE_PREFIX : &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
 pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Post {
     pub id: i64,
@@ -40,69 +41,24 @@ cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::auth::{get_db_pool, get_user};
         use crate::forum::FORUM_ROUTE_PREFIX;
-
-        #[derive(sqlx::FromRow)]
-        struct SqlPost {
-            id: i64,
-            title: String,
-            body: String,
-            is_meta_post: bool,
-            is_nsfw: bool,
-            spoiler_level: i32,
-            tags: Option<String>,
-            is_edited: bool,
-            moderated_body: Option<String>,
-            meta_post_id: Option<i64>,
-            forum_id: i64,
-            creator_id: i64,
-            score: i32,
-            score_minus: i32,
-            recommended_score: i32,
-            trending_score: i32,
-            timestamp: time::OffsetDateTime,
-        }
-
-        impl SqlPost {
-            pub fn into_post(self) -> Post {
-                Post {
-                    id: self.id,
-                    title: self.title,
-                    body: self.body,
-                    is_meta_post: self.is_meta_post,
-                    is_nsfw: self.is_nsfw,
-                    spoiler_level: self.spoiler_level,
-                    tags: self.tags,
-                    is_edited: self.is_edited,
-                    moderated_body: self.moderated_body,
-                    meta_post_id: self.meta_post_id,
-                    forum_id: self.forum_id,
-                    creator_id: self.creator_id,
-                    score: self.score,
-                    score_minus: self.score_minus,
-                    recommended_score: self.recommended_score,
-                    trending_score: self.trending_score,
-                    timestamp: self.timestamp,
-                }
-            }
-        }
     }
 }
 
 #[server]
 pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let sql_post = sqlx::query_as::<_, SqlPost>("SELECT * FROM posts WHERE id = $1")
+    let post = sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1")
         .bind(id)
         .fetch_one(&db_pool)
         .await?;
 
-    Ok(sql_post.into_post())
+    Ok(post)
 }
 
 #[server(endpoint = "forums/posts_by_name")]
 pub async fn get_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let sql_post_vec = sqlx::query_as::<_, SqlPost>(
+    let post_vec = sqlx::query_as::<_, Post>(
         "SELECT posts.* FROM posts \
         join forums on forums.id = posts.forum_id \
         WHERE forums.name = $1"
@@ -110,12 +66,6 @@ pub async fn get_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, Se
         .bind(forum_name)
         .fetch_all(&db_pool)
         .await?;
-
-    let mut post_vec = Vec::<Post>::with_capacity(sql_post_vec.len());
-
-    for sql_post in sql_post_vec {
-        post_vec.push(sql_post.into_post());
-    }
 
     Ok(post_vec)
 }
@@ -130,7 +80,7 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
         return Err(ServerFnError::ServerError(String::from("Cannot create content without a valid forum and title.")));
     }
 
-    let new_post = sqlx::query_as::<_, SqlPost>(
+    let new_post = sqlx::query_as::<_, Post>(
         "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, creator_id)
          VALUES (
             $1, $2, $3, $4,

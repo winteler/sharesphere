@@ -16,11 +16,13 @@ pub const OIDC_TOKENS_KEY : &str = "oidc_token";
 pub const OIDC_USERNAME_KEY : &str = "oidc_username";
 pub const REDIRECT_URL_KEY : &str = "redirect";
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub id: i64,
     pub anonymous: bool,
     pub username: String,
+    pub timestamp: time::OffsetDateTime,
 }
 
 impl Default for User {
@@ -29,6 +31,7 @@ impl Default for User {
             id: -1,
             anonymous: true,
             username: String::default(),
+            timestamp: time::OffsetDateTime::now_utc(),
         }
     }
 }
@@ -62,16 +65,16 @@ cfg_if! {
             #[cfg(feature = "ssr")]
             pub async fn get(oidc_info: OidcUserInfo, pool: &PgPool) -> Option<Self> {
                 log::info!("Try to get user from the DB");
-                match sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE oidc_id = $1")
+                match sqlx::query_as::<_, User>("SELECT * FROM users WHERE oidc_id = $1")
                     .bind(oidc_info.oidc_id.clone())
                     .fetch_one(pool)
                     .await {
-                    Ok(sql_user) => Some(sql_user.into_user()),
+                    Ok(user) => Some(user),
                     Err(select_error) => {
                         log::info!("User not found with error: {}", select_error);
                         if let sqlx::Error::RowNotFound = select_error {
                             log::info!("Try to insert new user");
-                            match sqlx::query_as::<_, SqlUser>(
+                            match sqlx::query_as::<_, User>(
                                 "INSERT INTO users (oidc_id, username) VALUES ($1, $2) RETURNING *",
                             )
                                 .bind(oidc_info.oidc_id)
@@ -79,7 +82,7 @@ cfg_if! {
                                 .fetch_one(pool)
                                 .await
                             {
-                                Ok(sql_user) => Some(sql_user.into_user()),
+                                Ok(user) => Some(user),
                                 Err(insert_error) => {
                                     log::error!("Error while storing new user: {}", insert_error);
                                     None
@@ -115,24 +118,6 @@ cfg_if! {
 
             fn is_anonymous(&self) -> bool {
                 self.anonymous
-            }
-        }
-
-        #[derive(sqlx::FromRow, Clone)]
-        pub struct SqlUser {
-            pub id: i64,
-            pub oidc_id: String,
-            pub username: String,
-            pub timestamp: time::OffsetDateTime,
-        }
-
-        impl SqlUser {
-            pub fn into_user(self) -> User {
-                User {
-                    id: self.id,
-                    anonymous: false,
-                    username: self.username,
-                }
             }
         }
     }

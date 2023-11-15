@@ -18,10 +18,10 @@ pub struct Forum {
     pub is_nsfw: bool,
     pub is_banned: bool,
     pub tags: Option<String>,
-    pub icon_url: Option<String>,
-    pub banner_url: Option<String>,
+    pub icon_path: Option<String>,
+    pub banner_path: Option<String>,
     pub creator_id: i64,
-    pub timestamp: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 cfg_if! {
@@ -46,13 +46,13 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
         return Err(ServerFnError::ServerError(String::from("Cannot create forum with empty name.")));
     }
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO forums (name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
+        name.clone(),
+        description,
+        is_nsfw.is_some(),
+        user.id
     )
-        .bind(name.clone())
-        .bind(description)
-        .bind (is_nsfw.is_some())
-        .bind(user.id)
         .execute(&db_pool)
         .await?;
 
@@ -65,8 +65,11 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
 #[server]
 pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum = sqlx::query_as::<_, Forum>("SELECT * FROM forums where name = $1")
-        .bind(forum_name)
+    let forum = sqlx::query_as!(
+        Forum,
+        "SELECT * FROM forums where name = $1",
+        forum_name
+    )
         .fetch_one(&db_pool)
         .await?;
 
@@ -76,11 +79,16 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
 #[server]
 pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let sql_forum_vec = sqlx::query_as::<_, Forum>("SELECT * FROM forums").fetch_all(&db_pool).await?;
+    let forum_vec = sqlx::query_as!(
+        Forum,
+        "SELECT * FROM forums"
+    )
+        .fetch_all(&db_pool)
+        .await?;
 
     let mut forum_by_name_map = BTreeMap::<String, Forum>::new();
 
-    for forum in sql_forum_vec {
+    for forum in forum_vec {
         forum_by_name_map.insert(forum.name.clone(), forum);
     }
 
@@ -122,7 +130,7 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
         Ok(user) => {
         }
         Err(_) => {
-            let forum_name_vec = sqlx::query("SELECT name FROM forums").fetch_all(&db_pool).await?;
+            let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
 
             let mut forum_name_set: BTreeSet<String> = BTreeSet::with_capacity(forum_name_vec.len());
             for forum_name in forum_name_vec {
@@ -236,11 +244,11 @@ pub fn ForumBanner() -> impl IntoView {
                                     <div
                                         class="hero bg-blue-500"
                                         style:background-image=move || {
-                                            if forum.banner_url.is_some() {
-                                                format!("url({})", forum.banner_url.clone().unwrap())
+                                            if forum.banner_path.is_some() {
+                                                format!("url({})", forum.banner_path.clone().unwrap())
                                             }
                                             else {
-                                                String::from("url(https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg)")
+                                                String::from("url(/home/winteler/images/forums/banners/photo-1507358522600-9f71e620c44e.jpg)")
                                                 //String::from("none")
                                             }
                                         }

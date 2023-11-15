@@ -34,7 +34,7 @@ pub struct Post {
     pub score_minus: i32,
     pub recommended_score: i32,
     pub trending_score: i32,
-    pub timestamp: time::OffsetDateTime,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 cfg_if! {
@@ -47,8 +47,11 @@ cfg_if! {
 #[server]
 pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let post = sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = $1")
-        .bind(id)
+    let post = sqlx::query_as!(
+        Post,
+        "SELECT * FROM posts WHERE id = $1",
+        id
+    )
         .fetch_one(&db_pool)
         .await?;
 
@@ -58,12 +61,13 @@ pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
 #[server(endpoint = "forums/posts_by_name")]
 pub async fn get_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let post_vec = sqlx::query_as::<_, Post>(
+    let post_vec = sqlx::query_as!(
+        Post,
         "SELECT posts.* FROM posts \
         join forums on forums.id = posts.forum_id \
-        WHERE forums.name = $1"
+        WHERE forums.name = $1",
+        forum_name
     )
-        .bind(forum_name)
         .fetch_all(&db_pool)
         .await?;
 
@@ -80,19 +84,21 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
         return Err(ServerFnError::ServerError(String::from("Cannot create content without a valid forum and title.")));
     }
 
-    let new_post = sqlx::query_as::<_, Post>(
+    let new_post = sqlx::query_as!(
+        Post,
         "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, creator_id)
          VALUES (
             $1, $2, $3, $4,
             (SELECT id FROM forums WHERE name = $5),
             $6
-        ) RETURNING *")
-        .bind(title.clone())
-        .bind(body)
-        .bind(is_nsfw.is_some())
-        .bind(tag.unwrap_or_default())
-        .bind(forum.clone())
-        .bind(user.id)
+        ) RETURNING *",
+        title.clone(),
+        body,
+        is_nsfw.is_some(),
+        tag.unwrap_or_default(),
+        forum.clone(),
+        user.id,
+    )
         .fetch_one(&db_pool)
         .await?;
 

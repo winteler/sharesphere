@@ -20,18 +20,18 @@ pub const REDIRECT_URL_KEY : &str = "redirect";
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub id: i64,
-    pub anonymous: bool,
     pub username: String,
-    pub timestamp: time::OffsetDateTime,
+    pub anonymous: bool,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 impl Default for User {
     fn default() -> Self {
         Self {
             id: -1,
-            anonymous: true,
             username: String::default(),
-            timestamp: time::OffsetDateTime::now_utc(),
+            anonymous: true,
+            timestamp: chrono::DateTime::default(),
         }
     }
 }
@@ -53,6 +53,14 @@ cfg_if! {
 
         pub type AuthSession = axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
 
+        #[derive(sqlx::FromRow, Clone)]
+        pub struct SqlUser {
+            pub id: i64,
+            pub oidc_id: String,
+            pub username: String,
+            pub timestamp: chrono::DateTime<chrono::Utc>,
+        }
+
         pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
             use_context::<PgPool>().ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
         }
@@ -61,28 +69,43 @@ cfg_if! {
             use_context::<AuthSession>().ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
         }
 
+        impl SqlUser {
+            pub fn into_user(self) -> User {
+                User {
+                    id: self.id,
+                    anonymous: false,
+                    username: self.username,
+                    timestamp: self.timestamp,
+                }
+            }
+        }
+
         impl User {
             #[cfg(feature = "ssr")]
             pub async fn get(oidc_info: OidcUserInfo, pool: &PgPool) -> Option<Self> {
                 log::info!("Try to get user from the DB");
-                match sqlx::query_as::<_, User>("SELECT * FROM users WHERE oidc_id = $1")
-                    .bind(oidc_info.oidc_id.clone())
+                match sqlx::query_as!(
+                    SqlUser,
+                    "SELECT * FROM users WHERE oidc_id = $1",
+                    oidc_info.oidc_id.clone()
+                )
                     .fetch_one(pool)
                     .await {
-                    Ok(user) => Some(user),
+                    Ok(sql_user) => Some(sql_user.into_user()),
                     Err(select_error) => {
                         log::info!("User not found with error: {}", select_error);
                         if let sqlx::Error::RowNotFound = select_error {
                             log::info!("Try to insert new user");
-                            match sqlx::query_as::<_, User>(
+                            match sqlx::query_as!(
+                                SqlUser,
                                 "INSERT INTO users (oidc_id, username) VALUES ($1, $2) RETURNING *",
+                                oidc_info.oidc_id,
+                                oidc_info.username
                             )
-                                .bind(oidc_info.oidc_id)
-                                .bind(oidc_info.username)
                                 .fetch_one(pool)
                                 .await
                             {
-                                Ok(user) => Some(user),
+                                Ok(sql_user) => Some(sql_user.into_user()),
                                 Err(insert_error) => {
                                     log::error!("Error while storing new user: {}", insert_error);
                                     None

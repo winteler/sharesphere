@@ -253,7 +253,7 @@ pub fn ForumBanner() -> impl IntoView {
                                             }
                                         }
                                     >
-                                        <div class="hero-overlay bg-opacity-60"></div>
+                                        <div class="hero-overlay bg-opacity-0"></div>
                                         <div class="hero-content text-neutral-content text-left">
                                             <a href=forum_path class="btn btn-ghost normal-case text-l">
                                                 <StacksIcon/>

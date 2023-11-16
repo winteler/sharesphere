@@ -12,8 +12,8 @@ CREATE TABLE forums (
     is_nsfw BOOLEAN NOT NULL,
     is_banned BOOLEAN NOT NULL DEFAULT FALSE,
     tags TEXT,
-    icon_path TEXT,
-    banner_path TEXT,
+    icon_url TEXT,
+    banner_url TEXT,
     creator_id BIGINT NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -18,8 +18,8 @@ pub struct Forum {
     pub is_nsfw: bool,
     pub is_banned: bool,
     pub tags: Option<String>,
-    pub icon_path: Option<String>,
-    pub banner_path: Option<String>,
+    pub icon_url: Option<String>,
+    pub banner_url: Option<String>,
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -244,11 +244,11 @@ pub fn ForumBanner() -> impl IntoView {
                                     <div
                                         class="hero bg-blue-500"
                                         style:background-image=move || {
-                                            if forum.banner_path.is_some() {
-                                                format!("url({})", forum.banner_path.clone().unwrap())
+                                            if forum.banner_url.is_some() {
+                                                format!("url({})", forum.banner_url.clone().unwrap())
                                             }
                                             else {
-                                                String::from("url(/home/winteler/images/forums/banners/photo-1507358522600-9f71e620c44e.jpg)")
+                                                String::from("url(https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg)")
                                                 //String::from("none")
                                             }
                                         }

@@ -30,6 +30,7 @@ pub struct Post {
     pub meta_post_id: Option<i64>,
     pub forum_id: i64,
     pub creator_id: i64,
+    pub creator_name: String,
     pub score: i32,
     pub score_minus: i32,
     pub recommended_score: i32,
@@ -58,7 +59,7 @@ pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     Ok(post)
 }
 
-#[server(endpoint = "forums/posts_by_name")]
+#[server]
 pub async fn get_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let post_vec = sqlx::query_as!(
@@ -86,11 +87,11 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
 
     let new_post = sqlx::query_as!(
         Post,
-        "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, creator_id)
+        "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, creator_id, creator_name)
          VALUES (
             $1, $2, $3, $4,
             (SELECT id FROM forums WHERE name = $5),
-            $6
+            $6, $7
         ) RETURNING *",
         title.clone(),
         body,
@@ -98,6 +99,7 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
         tag.unwrap_or_default(),
         forum.clone(),
         user.id,
+        user.username,
     )
         .fetch_one(&db_pool)
         .await?;
@@ -234,7 +236,7 @@ pub fn Post() -> impl IntoView {
                         Ok(post) => {
                             view! {
                                 <div class="flex flex-col gap-1">
-                                    <div class="card shadow-xl">
+                                    <div class="card">
                                         <div class="card-body">
                                             <h2 class="card-title">{post.title}</h2>
                                             {post.body}

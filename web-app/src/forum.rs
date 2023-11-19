@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
-use crate::post::{get_posts_by_forum_name, POST_ROUTE_PREFIX};
+use crate::icons::{AuthorIcon, ErrorIcon, LoadingIcon, ScoreIcon, StacksIcon};
+use crate::post::{get_posts_by_forum_name, Post, POST_ROUTE_PREFIX};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -289,33 +289,55 @@ pub fn ForumContents() -> impl IntoView {
     let post_vec = create_resource(move || (state.create_post_action.version().get()), move |_| get_posts_by_forum_name(forum_name()));
 
     view! {
-        <ul class="menu w-full text-lg">
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || {
-                         post_vec.get().map(|result| match result {
-                            Ok(post_vec) => {
-                                post_vec.iter().map(|post| {
-                                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name() + POST_ROUTE_PREFIX + "/" + &post.id.to_string();
-                                    view! {
-                                        <li>
-                                            <a href=post_path class="bg-black">
-                                                <div class="w-full text-left">
-                                                    {post.title.clone()}
-                                                </div>
-                                            </a>
-                                        </li>
-                                    }
-                                }).collect_view()
-                            },
-                            Err(e) => {
-                                log::info!("Error: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                        })
-                    }
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || {
+                     post_vec.get().map(|result| match result {
+                        Ok(post_vec) => {
+                            view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
+                        },
+                        Err(e) => {
+                            log::info!("Error: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                    })
                 }
-            </Transition>
+            }
+        </Transition>
+    }
+}
+
+/// Component to display a given set of forum posts
+#[component]
+pub fn ForumPostMiniatures(post_vec: Vec<Post>, forum_name: String) -> impl IntoView {
+    view! {
+        <ul class="menu w-full text-lg">
+            {
+                post_vec.iter().map(move |post| {
+                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.id.to_string();
+                    view! {
+                        <li>
+                            <a href=post_path>
+                                <div class="flex flex-col">
+                                    <div class="w-full text-left">
+                                        {post.title.clone()}
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <div class="flex rounded-btn p-1 gap-1">
+                                            <ScoreIcon/>
+                                            {post.score.clone()}
+                                        </div>
+                                        <div class="flex rounded-btn p-1 gap-1">
+                                            <AuthorIcon/>
+                                            {post.creator_name.clone()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </li>
+                    }
+                }).collect_view()
+            }
         </ul>
     }
 }

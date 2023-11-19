@@ -31,6 +31,7 @@ CREATE TABLE posts (
     meta_post_id BIGINT,
     forum_id BIGINT NOT NULL,
     creator_id BIGINT NOT NULL,
+    creator_name TEXT NOT NULL,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,

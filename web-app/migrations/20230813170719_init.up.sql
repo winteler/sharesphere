@@ -32,6 +32,7 @@ CREATE TABLE posts (
     forum_id BIGINT NOT NULL,
     creator_id BIGINT NOT NULL,
     creator_name TEXT NOT NULL,
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,

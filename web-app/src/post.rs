@@ -31,6 +31,7 @@ pub struct Post {
     pub forum_id: i64,
     pub creator_id: i64,
     pub creator_name: String,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub score: i32,
     pub score_minus: i32,
     pub recommended_score: i32,

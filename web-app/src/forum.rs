@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
+use crate::fl;
 use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, ScoreIcon, StacksIcon};
+use crate::localization;
 use crate::post::{get_posts_by_forum_name, Post, POST_ROUTE_PREFIX};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -326,6 +328,7 @@ pub fn ForumPostMiniatures(post_vec: Vec<Post>, forum_name: String) -> impl Into
                                     <div class="flex gap-1 content-center">
                                         <div class="flex rounded-btn p-1 gap-1">
                                             <ScoreIcon/>
+                                            {fl!("hello-world")}
                                             {post.score.clone()}
                                         </div>
                                         <div class="flex rounded-btn p-1 gap-1">
@@ -344,7 +347,8 @@ pub fn ForumPostMiniatures(post_vec: Vec<Post>, forum_name: String) -> impl Into
                                                     },
                                                     seconds if seconds < SECONDS_IN_HOUR => {
                                                         let minutes = seconds/SECONDS_IN_MINUTE;
-                                                        format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
+                                                        //format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
+                                                        fl!("time_unit_count", count=minutes, unit="minutes")
                                                     },
                                                     seconds if seconds < SECONDS_IN_DAY => {
                                                         let hours = seconds/SECONDS_IN_HOUR;

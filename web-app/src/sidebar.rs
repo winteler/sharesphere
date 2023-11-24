@@ -1,5 +1,4 @@
 use leptos::*;
-use std::collections::BTreeSet;
 
 use crate::app::GlobalState;
 use crate::forum::{FORUM_ROUTE_PREFIX, get_subscribed_forums};
@@ -15,12 +14,8 @@ pub fn LeftSidebar() -> impl IntoView {
         <ul class="menu h-full p-4 w-40">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { move || {
-                         subscribed_forum_set.get().map(|subscribed_forum_set: Result<BTreeSet<String>, ServerFnError>| match subscribed_forum_set {
-                            Err(e) => {
-                                log::info!("Error: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                            Ok(subscribed_forum_set) => {
+                         subscribed_forum_set.with(|subscribed_forum_set| match subscribed_forum_set {
+                            Some(Ok(subscribed_forum_set)) => {
                                 subscribed_forum_set.iter().map(|forum_name| {
                                     let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
                                     view! {
@@ -32,6 +27,14 @@ pub fn LeftSidebar() -> impl IntoView {
                                     }
                                 }).collect_view()
                             },
+                            Some(Err(e)) => {
+                                log::info!("Error: {}", e);
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                            None => {
+                                log::info!("Could not load subscribed forums");
+                                view! { <ErrorIcon/> }.into_view()
+                            }
                         })
                     }
                 }

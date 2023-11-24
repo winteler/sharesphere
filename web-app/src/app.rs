@@ -104,13 +104,10 @@ fn LoginGuard() -> impl IntoView {
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
-            { move || {
-                     state.user.get().map(|user: Result<User, ServerFnError>| match user {
-                        Err(e) => {
-                            log::info!("Login error: {}", e);
-                            view! { <Login/> }.into_view()
-                        },
-                        Ok(user) => {
+            {
+                move || {
+                     state.user.with(|user| match user {
+                        Some(Ok(user)) => {
                             if user.anonymous
                             {
                                 log::info!("Not logged in.");
@@ -119,6 +116,14 @@ fn LoginGuard() -> impl IntoView {
                             log::info!("Login guard, current user: {:?}", user);
                             view! { <Outlet/> }.into_view()
                         },
+                        Some(Err(e)) => {
+                            log::info!("Login error: {}", e);
+                            view! { <Login/> }.into_view()
+                        },
+                        None => {
+                            log::info!("User not loaded.");
+                            view!  { <ErrorIcon/> }.into_view()
+                        }
                     })
                 }
             }

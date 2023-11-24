@@ -240,21 +240,14 @@ pub fn ForumBanner() -> impl IntoView {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             {
                 move || {
-                     forum.get().map(|result| match result {
-                        Ok(forum) => {
+                     forum.with(|result| match result {
+                        Some(Ok(forum)) => {
+                            let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
                             view! {
                                 <div class="flex flex-col w-full">
                                     <div
                                         class="hero bg-blue-500"
-                                        style:background-image=move || {
-                                            if forum.banner_url.is_some() {
-                                                format!("url({})", forum.banner_url.clone().unwrap())
-                                            }
-                                            else {
-                                                String::from("url(https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg)")
-                                                //String::from("none")
-                                            }
-                                        }
+                                        style:background-image=forum_banner_image
                                     >
                                         <div class="hero-overlay bg-opacity-0"></div>
                                         <div class="hero-content text-neutral-content text-left">
@@ -268,8 +261,12 @@ pub fn ForumBanner() -> impl IntoView {
                                 </div>
                             }.into_view()
                         },
-                        Err(e) => {
+                        Some(Err(e)) => {
                             log::info!("Error: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                        None => {
+                            log::info!("Failed to load forum.");
                             view! { <ErrorIcon/> }.into_view()
                         },
                     })
@@ -295,12 +292,16 @@ pub fn ForumContents() -> impl IntoView {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             {
                 move || {
-                     post_vec.get().map(|result| match result {
-                        Ok(post_vec) => {
+                     post_vec.with(|result| match result {
+                        Some(Ok(post_vec)) => {
                             view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
                         },
-                        Err(e) => {
+                        Some(Err(e)) => {
                             log::info!("Error: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                        None => {
+                            log::info!("Failed to load forum content.");
                             view! { <ErrorIcon/> }.into_view()
                         },
                     })
@@ -312,7 +313,7 @@ pub fn ForumContents() -> impl IntoView {
 
 /// Component to display a given set of forum posts
 #[component]
-pub fn ForumPostMiniatures(post_vec: Vec<Post>, forum_name: String) -> impl IntoView {
+pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>, forum_name: String) -> impl IntoView {
     view! {
         <ul class="menu w-full text-lg">
             {
@@ -328,7 +329,6 @@ pub fn ForumPostMiniatures(post_vec: Vec<Post>, forum_name: String) -> impl Into
                                     <div class="flex gap-1 content-center">
                                         <div class="flex rounded-btn p-1 gap-1">
                                             <ScoreIcon/>
-                                            {fl!("hello-world")}
                                             {post.score.clone()}
                                         </div>
                                         <div class="flex rounded-btn p-1 gap-1">
@@ -347,8 +347,8 @@ pub fn ForumPostMiniatures(post_vec: Vec<Post>, forum_name: String) -> impl Into
                                                     },
                                                     seconds if seconds < SECONDS_IN_HOUR => {
                                                         let minutes = seconds/SECONDS_IN_MINUTE;
-                                                        //format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
-                                                        fl!("time_unit_count", count=minutes, unit="minutes")
+                                                        format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
+                                                        //fl!("time_unit_count", count=minutes, unit="minute")
                                                     },
                                                     seconds if seconds < SECONDS_IN_DAY => {
                                                         let hours = seconds/SECONDS_IN_HOUR;

@@ -232,22 +232,26 @@ pub fn Post() -> impl IntoView {
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>
             {
-                post.get().map(|result| {
+                post.with(|result| {
                     match result {
-                        Ok(post) => {
+                        Some(Ok(post)) => {
                             view! {
                                 <div class="flex flex-col gap-1">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h2 class="card-title">{post.title}</h2>
-                                            {post.body}
+                                            <h2 class="card-title">{post.title.clone()}</h2>
+                                            {post.body.clone()}
                                         </div>
                                     </div>
                                 </div>
                             }.into_view()
                         },
-                        Err(e) => {
+                        Some(Err(e)) => {
                             log::info!("Error while getting forum names: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                        None => {
+                            log::info!("Could not load post");
                             view! { <ErrorIcon/> }.into_view()
                         }
                     }

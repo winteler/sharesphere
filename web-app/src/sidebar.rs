@@ -11,7 +11,7 @@ pub fn LeftSidebar() -> impl IntoView {
     let subscribed_forum_set = create_resource(move || (state.create_forum_action.version().get()), |_| get_subscribed_forums());
 
     view! {
-        <ul class="menu h-full p-4 w-40">
+        <ul class="menu h-full p-4 w-40 max-2xl:bg-base-200">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { move || {
                          subscribed_forum_set.with(|subscribed_forum_set| match subscribed_forum_set {

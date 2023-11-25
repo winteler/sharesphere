@@ -2562,6 +2562,10 @@ html {
   padding-bottom: 0.5rem;
 }
 
+.static {
+  position: static;
+}
+
 .relative {
   position: relative;
 }
@@ -2704,8 +2708,8 @@ html {
   place-items: center;
 }
 
-.content-center {
-  align-content: center;
+.items-center {
+  align-items: center;
 }
 
 .justify-center {
@@ -2798,6 +2802,11 @@ html {
 
 .p-6 {
   padding: 1.5rem;
+}
+
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 .px-10 {
@@ -2898,6 +2907,11 @@ html {
 
   .max-2xl\:items-center {
     align-items: center;
+  }
+
+  .max-2xl\:bg-base-200 {
+    --tw-bg-opacity: 1;
+    background-color: hsl(var(--b2) / var(--tw-bg-opacity));
   }
 }
 

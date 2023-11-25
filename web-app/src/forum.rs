@@ -322,20 +322,18 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>, forum_name: String) -> i
                     view! {
                         <li>
                             <a href=post_path>
-                                <div class="flex flex-col">
-                                    <div class="w-full text-left">
-                                        {post.title.clone()}
-                                    </div>
-                                    <div class="flex gap-1 content-center">
-                                        <div class="flex rounded-btn p-1 gap-1">
+                                <div class="flex flex-col gap-1">
+                                    <h2 class="card-title">{post.title.clone()}</h2>
+                                    <div class="flex gap-1">
+                                        <div class="flex rounded-btn px-1 gap-1 items-center">
                                             <ScoreIcon/>
                                             {post.score.clone()}
                                         </div>
-                                        <div class="flex rounded-btn p-1 gap-1">
+                                        <div class="flex rounded-btn px-1 gap-1 items-center">
                                             <AuthorIcon/>
                                             {post.creator_name.clone()}
                                         </div>
-                                        <div class="flex rounded-btn p-1 gap-1">
+                                        <div class="flex rounded-btn px-1 gap-1 items-center">
                                             <ClockIcon/>
                                             {
                                                 let post_age = chrono::Utc::now().signed_duration_since(post.create_timestamp);

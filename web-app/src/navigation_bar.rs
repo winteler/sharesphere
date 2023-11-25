@@ -71,18 +71,22 @@ pub fn UserProfile() -> impl IntoView {
             }
         }>
         {move || {
-            state.user.get().map(|user| match user {
-                Err(e) => {
-                    log::info!("Get user error: {}", e);
-                    view! { <LoginButton/> }.into_view()
-                },
-                Ok(user) => {
+            state.user.with(|user| match user {
+                Some(Ok(user)) => {
                     if user.anonymous
                     {
                         return view! { <LoginButton/> }.into_view();
                     }
                     view! { <LoggedInMenu user=user/> }.into_view()
                 },
+                Some(Err(e)) => {
+                    log::info!("Get user error: {}", e);
+                    view! { <LoginButton/> }.into_view()
+                },
+                None => {
+                    log::info!("Could not load user.");
+                    view! { <LoginButton/> }.into_view()
+                }
             })
         }}
         </Transition>
@@ -106,7 +110,7 @@ pub fn LoginButton() -> impl IntoView {
 }
 
 #[component]
-pub fn LoggedInMenu( user: User) -> impl IntoView {
+pub fn LoggedInMenu<'a>( user: &'a User) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let current_url = create_rw_signal( String::default());
     let get_current_url = get_current_url_closure(current_url);

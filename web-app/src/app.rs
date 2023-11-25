@@ -64,6 +64,10 @@ pub fn App() -> impl IntoView {
         }>
             <main class="h-screen drawer 2xl:drawer-close">
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
+                <div class="drawer-side">
+                    <label for="my-drawer" class="drawer-overlay"></label>
+                    <LeftSidebar/>
+                </div>
                 <div class="drawer-content h-full flex flex-col max-2xl:items-center">
                     <NavigationBar/>
                     <div class="flex h-full w-full">
@@ -87,10 +91,6 @@ pub fn App() -> impl IntoView {
                             <RightSidebar/>
                         </div>
                     </div>
-                </div>
-                <div class="drawer-side">
-                    <label for="my-drawer" class="drawer-overlay"></label>
-                    <LeftSidebar/>
                 </div>
             </main>
         </Router>

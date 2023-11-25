@@ -163,9 +163,10 @@ pub fn CreateForum() -> impl IntoView {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
             {
                 move || {
-                    existing_forums.get().map(|result| {
+                    existing_forums.with(|result| {
                         match result {
-                            Ok(forum_set) => {
+                            Some(Ok(forum_set)) => {
+                                let forum_set = forum_set.clone();
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
                                     <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
@@ -212,9 +213,13 @@ pub fn CreateForum() -> impl IntoView {
                                     </div>
                                 }.into_view()
                             }
-                            Err(e) => {
+                            Some(Err(e)) => {
                                 log::info!("Error while getting forum names: {}", e);
-                                view! { <div>"Error"</div>}.into_view()
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                            None => {
+                                log::info!("Could not get existing forum names.");
+                                view! { <ErrorIcon/> }.into_view()
                             }
                         }
                     })

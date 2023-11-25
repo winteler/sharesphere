@@ -374,17 +374,16 @@ pub fn AuthCallback(
         <Suspense fallback=move || (view! { <LoadingIcon/>})>
             {
                 move || {
-                    auth.get().map(|userResult| {
-                            if let Ok((user, redirect_url)) = userResult {
-                                log::info!("Store authenticated as {}", user.username);
-                                log::info!("Redirect to {}", redirect_url);
-                                view! { <Redirect path=redirect_url/>}.into_view()
-                            }
-                            else {
-                                view! { <div>"Authentication failed."</div>}.into_view()
-                            }
+                    auth.with(|result| {
+                        if let Some(Ok((user, redirect_url))) = result {
+                            log::info!("Store authenticated as {}", user.username);
+                            log::info!("Redirect to {}", redirect_url);
+                            view! { <Redirect path=redirect_url.clone()/>}.into_view()
                         }
-                    )
+                        else {
+                            view! { <div>"Authentication failed."</div>}.into_view()
+                        }
+                    })
                 }
             }
         </Suspense>

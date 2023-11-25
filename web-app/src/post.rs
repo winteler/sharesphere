@@ -133,10 +133,23 @@ pub fn CreatePost() -> impl IntoView {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
             {
                 move || {
-                    existing_forums.get().map(|result| {
+                    existing_forums.with(|result| {
                         match result {
-                            Ok(forum_set) => {
+                            Some(Ok(forum_set)) => {
                                 log::info!("Forum name set: {:?}", forum_set);
+
+                                let matching_forum_list = forum_set
+                                    .iter()
+                                    .filter(|forum| forum.starts_with(forum_name_input.get().as_str())).map(|forum_name| {
+                                        view! {
+                                            <li>
+                                                <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
+                                                    {forum_name}
+                                                </button>
+                                            </li>
+                                        }
+                                    }).collect_view();
+
                                 view! {
                                     <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
                                         <ActionForm action=state.create_post_action>
@@ -156,19 +169,7 @@ pub fn CreatePost() -> impl IntoView {
                                                         prop:value=forum_name_input
                                                     />
                                                     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
-                                                        {
-                                                            move || {
-                                                                forum_set.iter().filter(|forum| forum.starts_with(forum_name_input.get().as_str())).map(|forum_name| {
-                                                                    view! {
-                                                                        <li>
-                                                                            <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
-                                                                                {forum_name}
-                                                                            </button>
-                                                                        </li>
-                                                                    }
-                                                                }).collect_view()
-                                                            }
-                                                        }
+                                                        {matching_forum_list}
                                                     </ul>
                                                 </div>
                                                 <input
@@ -208,8 +209,12 @@ pub fn CreatePost() -> impl IntoView {
                                     </div>
                                 }.into_view()
                             }
-                            Err(e) => {
+                            Some(Err(e)) => {
                                 log::info!("Error while getting forum names: {}", e);
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                            None => {
+                                log::info!("Could not load existing forums.");
                                 view! { <ErrorIcon/> }.into_view()
                             }
                         }

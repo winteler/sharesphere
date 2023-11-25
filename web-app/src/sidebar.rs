@@ -32,7 +32,7 @@ pub fn LeftSidebar() -> impl IntoView {
                                 view! { <ErrorIcon/> }.into_view()
                             },
                             None => {
-                                log::info!("Could not load subscribed forums");
+                                log::trace!("Resource not loaded yet.");
                                 view! { <ErrorIcon/> }.into_view()
                             }
                         })

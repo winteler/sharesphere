@@ -84,7 +84,7 @@ pub fn UserProfile() -> impl IntoView {
                     view! { <LoginButton/> }.into_view()
                 },
                 None => {
-                    log::info!("Could not load user.");
+                    log::trace!("Resource not loaded yet.");
                     view! { <LoginButton/> }.into_view()
                 }
             })

@@ -214,7 +214,7 @@ pub fn CreatePost() -> impl IntoView {
                                 view! { <ErrorIcon/> }.into_view()
                             },
                             None => {
-                                log::info!("Could not load existing forums.");
+                                log::trace!("Resource not loaded yet.");
                                 view! { <ErrorIcon/> }.into_view()
                             }
                         }
@@ -256,7 +256,7 @@ pub fn Post() -> impl IntoView {
                             view! { <ErrorIcon/> }.into_view()
                         },
                         None => {
-                            log::info!("Could not load post");
+                            log::trace!("Resource not loaded yet.");
                             view! { <ErrorIcon/> }.into_view()
                         }
                     }

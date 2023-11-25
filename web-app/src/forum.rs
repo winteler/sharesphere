@@ -218,7 +218,7 @@ pub fn CreateForum() -> impl IntoView {
                                 view! { <ErrorIcon/> }.into_view()
                             },
                             None => {
-                                log::info!("Could not get existing forum names.");
+                                log::trace!("Resource not loaded yet.");
                                 view! { <ErrorIcon/> }.into_view()
                             }
                         }
@@ -271,8 +271,8 @@ pub fn ForumBanner() -> impl IntoView {
                             view! { <ErrorIcon/> }.into_view()
                         },
                         None => {
-                            log::info!("Failed to load forum.");
-                            view! { <ErrorIcon/> }.into_view()
+                            log::trace!("Resource not loaded yet.");
+                            view! { <Outlet/> }.into_view()
                         },
                     })
                 }
@@ -306,7 +306,7 @@ pub fn ForumContents() -> impl IntoView {
                             view! { <ErrorIcon/> }.into_view()
                         },
                         None => {
-                            log::info!("Failed to load forum content.");
+                            log::trace!("Resource not loaded yet.");
                             view! { <ErrorIcon/> }.into_view()
                         },
                     })

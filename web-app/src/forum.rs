@@ -46,7 +46,11 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
     let db_pool = get_db_pool()?;
 
     if name.is_empty() {
-        return Err(ServerFnError::ServerError(String::from("Cannot create forum with empty name.")));
+        return Err(ServerFnError::ServerError(String::from("Cannot create [[forum]] with empty name.")));
+    }
+
+    if !name.chars().all(char::is_alphanumeric) {
+        return Err(ServerFnError::ServerError(String::from("[[Forum]] name can only contain alphanumeric characters.")));
     }
 
     sqlx::query!(
@@ -157,7 +161,8 @@ pub fn CreateForum() -> impl IntoView {
 
     let is_name_empty = create_rw_signal(true);
     let is_name_taken = create_rw_signal(false);
-    let is_name_invalid = create_memo(move |_| { is_name_empty.get() || is_name_taken.get() });
+    let is_name_alphanumeric = create_rw_signal(false);
+    let is_name_invalid = create_memo(move |_| { is_name_empty.get() || is_name_taken.get() || !is_name_alphanumeric.get() });
 
     view! {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
@@ -169,7 +174,7 @@ pub fn CreateForum() -> impl IntoView {
                                 let forum_set = forum_set.clone();
                                 log::info!("Forum name set: {:?}", forum_set);
                                 view! {
-                                    <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
+                                    <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/3">
                                         <ActionForm action=state.create_forum_action>
                                             <div class="flex flex-col gap-2 w-full">
                                                 <h2 class="py-4 text-4xl text-center">"Create [[forum]]"</h2>
@@ -179,16 +184,21 @@ pub fn CreateForum() -> impl IntoView {
                                                         name="name"
                                                         placeholder="[[Forum]] name"
                                                         autocomplete="off"
-                                                        class="input input-bordered input-primary h-16 flex-none w-1/2"
+                                                        class="input input-bordered input-primary h-20 flex-none w-1/2"
                                                         on:input=move |ev| {
                                                             let input = event_target_value(&ev);
                                                             is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());
+                                                            is_name_alphanumeric.update(|is_alphanumeric: &mut bool| *is_alphanumeric = input.chars().all(char::is_alphanumeric));
                                                             is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&input));
                                                         }
                                                     />
-                                                    <div class="alert alert-error" class:hidden=move || !is_name_taken.get()>
+                                                    <div class="alert alert-error h-20 flex content-center" class:hidden=move || !is_name_taken.get()>
                                                         <ErrorIcon/>
                                                         <span>"Unavailable."</span>
+                                                    </div>
+                                                    <div class="alert alert-error h-20 flex content-center" class:hidden=move || is_name_empty.get() || is_name_alphanumeric.get()>
+                                                        <ErrorIcon/>
+                                                        <span>"Only alphanumeric characters."</span>
                                                     </div>
                                                 </div>
                                                 <textarea name="description" placeholder="Description" class="textarea textarea-primary h-40 w-full"/>

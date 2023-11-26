@@ -2620,6 +2620,10 @@ html {
   height: 4rem;
 }
 
+.h-20 {
+  height: 5rem;
+}
+
 .h-40 {
   height: 10rem;
 }
@@ -2646,6 +2650,10 @@ html {
 
 .w-1\/2 {
   width: 50%;
+}
+
+.w-4\/5 {
+  width: 80%;
 }
 
 .w-40 {
@@ -2706,6 +2714,10 @@ html {
 
 .place-items-center {
   place-items: center;
+}
+
+.content-center {
+  align-content: center;
 }
 
 .items-center {

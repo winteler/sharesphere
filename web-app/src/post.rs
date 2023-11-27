@@ -229,10 +229,19 @@ pub fn CreatePost() -> impl IntoView {
 #[component]
 pub fn Post() -> impl IntoView {
     let params = use_params_map();
+    let post_id = create_rw_signal(0i64);
+    let get_post_id = move || {
+        let post_id_parse_result = params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().parse::<i64>();
+        if post_id_parse_result.is_ok() {
+            post_id.update(|value: &mut i64| *value = post_id_parse_result.unwrap());
+        }
+        post_id.get()
+    };
+
 
     let post = create_blocking_resource(
-        move || params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().parse::<i64>().unwrap_or_default(),
-        move |post_id| get_post_by_id(post_id));
+        move || (),
+        move |post_id| get_post_by_id(get_post_id()));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>

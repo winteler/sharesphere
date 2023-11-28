@@ -2792,6 +2792,14 @@ html {
   stroke: currentColor;
 }
 
+.stroke-error {
+  stroke: hsl(var(--er) / 1);
+}
+
+.stroke-success {
+  stroke: hsl(var(--su) / 1);
+}
+
 .stroke-white {
   stroke: #fff;
 }
@@ -2910,6 +2918,18 @@ html {
 .hover\:bg-sky-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(3 105 161 / var(--tw-bg-opacity));
+}
+
+.hover\:fill-error:hover {
+  fill: hsl(var(--er) / 1);
+}
+
+.hover\:fill-secondary:hover {
+  fill: hsl(var(--s) / 1);
+}
+
+.hover\:fill-success:hover {
+  fill: hsl(var(--su) / 1);
 }
 
 @media not all and (min-width: 1536px) {

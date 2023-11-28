@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::forum::{get_all_forum_names};
-use crate::icons::{ErrorIcon, LoadingIcon};
+use crate::icons::{ErrorIcon, LoadingIcon, ScoreDownIcon, ScoreUpIcon};
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -252,8 +252,20 @@ pub fn Post() -> impl IntoView {
                                 <div class="flex flex-col gap-1">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h2 class="card-title">{post.title.clone()}</h2>
-                                            {post.body.clone()}
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex flex-col gap-1">
+                                                    <button class="hover:fill-secondary">
+                                                        <ScoreUpIcon/>
+                                                    </button>
+                                                    <button class="hover:fill-secondary">
+                                                        <ScoreDownIcon/>
+                                                    </button>
+                                                </div>
+                                                <div class="flex flex-col gap-1">
+                                                    <h2 class="card-title">{post.title.clone()}</h2>
+                                                    {post.body.clone()}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

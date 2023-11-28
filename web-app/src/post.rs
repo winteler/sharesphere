@@ -238,10 +238,9 @@ pub fn Post() -> impl IntoView {
         post_id.get()
     };
 
-
     let post = create_blocking_resource(
-        move || (),
-        move |post_id| get_post_by_id(get_post_id()));
+        move || get_post_id(),
+        move |post_id| get_post_by_id(post_id));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>

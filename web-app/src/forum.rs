@@ -259,7 +259,7 @@ pub fn ForumBanner() -> impl IntoView {
     let get_forum_name = get_current_forum_name_closure(params, forum_name);
     let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().as_ref();
 
-    let forum = create_resource(move || (), move |_| get_forum_by_name(get_forum_name()));
+    let forum = create_resource(move || get_forum_name(), move |forum_name| get_forum_by_name(forum_name));
     // TODO: add forum banner
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
@@ -309,7 +309,7 @@ pub fn ForumContents() -> impl IntoView {
     let forum_name = create_rw_signal(String::default());
     let params = use_params_map();
     let get_forum_name = get_current_forum_name_closure(params, forum_name);
-    let post_vec = create_resource(move || (state.create_post_action.version().get()), move |_| get_posts_by_forum_name(get_forum_name()));
+    let post_vec = create_resource(move || (get_forum_name(), state.create_post_action.version().get()), move |(forum_name, _)| get_posts_by_forum_name(forum_name));
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>

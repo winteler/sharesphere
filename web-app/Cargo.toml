@@ -35,11 +35,6 @@ openidconnect = { version = "3.3.0", optional = true }
 anyhow = { version = "*", optional = true }
 async-trait = { version = "*", optional = true }
 const_format = "0.2.31"
-i18n-embed = { version = "0.14", features = ["fluent-system", "web-sys-requester"]}
-i18n-embed-fl = "*"
-rust-embed = "8"
-unic-langid = "0.9"
-once_cell = "*"
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]

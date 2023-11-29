@@ -5,8 +5,11 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
+use crate::fl;
 use crate::forum::{get_all_forum_names};
-use crate::icons::{ErrorIcon, LoadingIcon, ScoreDownIcon, ScoreUpIcon};
+use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, ScoreIcon};
+use crate::localization;
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -252,18 +255,13 @@ pub fn Post() -> impl IntoView {
                                 <div class="flex flex-col gap-1">
                                     <div class="card">
                                         <div class="card-body">
-                                            <div class="flex items-center gap-2">
-                                                <div class="flex flex-col gap-1">
-                                                    <button class="hover:fill-secondary">
-                                                        <ScoreUpIcon/>
-                                                    </button>
-                                                    <button class="hover:fill-secondary">
-                                                        <ScoreDownIcon/>
-                                                    </button>
-                                                </div>
-                                                <div class="flex flex-col gap-1">
-                                                    <h2 class="card-title">{post.title.clone()}</h2>
-                                                    {post.body.clone()}
+                                            <div class="flex flex-col gap-2">
+                                                <h2 class="card-title">{post.title.clone()}</h2>
+                                                {post.body.clone()}
+                                                <div class="flex gap-2">
+                                                    <PostVote post=post/>
+                                                    <PostAuthor post=post/>
+                                                    <PostTime post=post/>
                                                 </div>
                                             </div>
                                         </div>
@@ -283,5 +281,84 @@ pub fn Post() -> impl IntoView {
                 })
             }
         </Suspense>
+    }
+}
+
+/// Component to display a post's score
+#[component]
+pub fn PostScore<'a>(post: &'a Post) -> impl IntoView {
+    view! {
+        <div class="flex rounded-btn px-1 gap-1 items-center">
+            <ScoreIcon/>
+            {post.score.clone()}
+        </div>
+    }
+}
+
+/// Component to display and modify post's score
+#[component]
+pub fn PostVote<'a>(post: &'a Post) -> impl IntoView {
+    view! {
+        <div class="flex items-center gap-1">
+            <button class="btn btn-sm hover:btn-success">
+                "+"
+            </button>
+            <PostScore post=post/>
+            <button class="btn btn-sm hover:btn-error">
+                "-"
+            </button>
+        </div>
+    }
+}
+
+/// Component to display a post's author
+#[component]
+pub fn PostAuthor<'a>(post: &'a Post) -> impl IntoView {
+    view! {
+        <div class="flex rounded-btn px-1 gap-1 items-center">
+            <AuthorIcon/>
+            {post.creator_name.clone()}
+        </div>
+    }
+}
+
+/// Component to display the creation time of a post
+#[component]
+pub fn PostTime<'a>(post: &'a Post) -> impl IntoView {
+    view! {
+        <div class="flex rounded-btn px-1 gap-1 items-center">
+            <ClockIcon/>
+            {
+                let post_age = chrono::Utc::now().signed_duration_since(post.create_timestamp);
+                let seconds = post_age.num_seconds();
+
+                match seconds {
+                    seconds if seconds < SECONDS_IN_MINUTE => {
+                        format!("{} {}", seconds, if seconds == 1 { "second" } else { "seconds" })
+                    },
+                    seconds if seconds < SECONDS_IN_HOUR => {
+                        let minutes = seconds/SECONDS_IN_MINUTE;
+                        format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
+                        //fl!("time_unit_count", count=minutes, unit="minute")
+                    },
+                    seconds if seconds < SECONDS_IN_DAY => {
+                        let hours = seconds/SECONDS_IN_HOUR;
+                        format!("{} {}", hours, if hours == 1 { "hour" } else { "hours" })
+                    },
+                    seconds if seconds < SECONDS_IN_MONTH => {
+                        let days = seconds/SECONDS_IN_DAY;
+                        format!("{} {}", days, if days == 1 { "day" } else { "days" })
+                    },
+                    seconds if seconds < SECONDS_IN_YEAR => {
+                        let months = seconds/SECONDS_IN_MONTH;
+                        format!("{} {}", months, if months == 1 { "month" } else { "months" })
+                    },
+                    _ => {
+                        let years = seconds/SECONDS_IN_YEAR;
+                        format!("{} {}", years, if years == 1 { "year" } else { "years" })
+                    },
+                }
+            }
+        </div>
     }
 }

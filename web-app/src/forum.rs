@@ -6,11 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
-use crate::fl;
-use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, ScoreIcon, StacksIcon};
-use crate::localization;
-use crate::post::{get_posts_by_forum_name, Post, POST_ROUTE_PREFIX};
+use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
+use crate::post::{get_posts_by_forum_name, Post, PostAuthor, PostScore, PostTime, POST_ROUTE_PREFIX};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -347,49 +344,10 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>, forum_name: String) -> i
                             <a href=post_path>
                                 <div class="flex flex-col gap-1">
                                     <h2 class="card-title">{post.title.clone()}</h2>
-                                    <div class="flex gap-1">
-                                        <div class="flex rounded-btn px-1 gap-1 items-center">
-                                            <ScoreIcon/>
-                                            {post.score.clone()}
-                                        </div>
-                                        <div class="flex rounded-btn px-1 gap-1 items-center">
-                                            <AuthorIcon/>
-                                            {post.creator_name.clone()}
-                                        </div>
-                                        <div class="flex rounded-btn px-1 gap-1 items-center">
-                                            <ClockIcon/>
-                                            {
-                                                let post_age = chrono::Utc::now().signed_duration_since(post.create_timestamp);
-                                                let seconds = post_age.num_seconds();
-
-                                                match seconds {
-                                                    seconds if seconds < SECONDS_IN_MINUTE => {
-                                                        format!("{} {}", seconds, if seconds == 1 { "second" } else { "seconds" })
-                                                    },
-                                                    seconds if seconds < SECONDS_IN_HOUR => {
-                                                        let minutes = seconds/SECONDS_IN_MINUTE;
-                                                        format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
-                                                        //fl!("time_unit_count", count=minutes, unit="minute")
-                                                    },
-                                                    seconds if seconds < SECONDS_IN_DAY => {
-                                                        let hours = seconds/SECONDS_IN_HOUR;
-                                                        format!("{} {}", hours, if hours == 1 { "hour" } else { "hours" })
-                                                    },
-                                                    seconds if seconds < SECONDS_IN_MONTH => {
-                                                        let days = seconds/SECONDS_IN_DAY;
-                                                        format!("{} {}", days, if days == 1 { "day" } else { "days" })
-                                                    },
-                                                    seconds if seconds < SECONDS_IN_YEAR => {
-                                                        let months = seconds/SECONDS_IN_MONTH;
-                                                        format!("{} {}", months, if months == 1 { "month" } else { "months" })
-                                                    },
-                                                    _ => {
-                                                        let years = seconds/SECONDS_IN_YEAR;
-                                                        format!("{} {}", years, if years == 1 { "year" } else { "years" })
-                                                    },
-                                                }
-                                            }
-                                        </div>
+                                    <div class="flex gap-2">
+                                        <PostScore post=post/>
+                                        <PostAuthor post=post/>
+                                        <PostTime post=post/>
                                     </div>
                                 </div>
                             </a>

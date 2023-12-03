@@ -4,7 +4,9 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+use crate::app::{GlobalState};
 use crate::icons::*;
+use crate::navigation_bar::get_current_path_closure;
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
@@ -328,10 +330,10 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     log::info!("Logout, redirect_url: {redirect_url}");
 
     let auth_session = get_session()?;
-    log::info!("Got session.");
+    log::debug!("Got session.");
     let token_response: oidc::core::CoreTokenResponse = auth_session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
 
-    log::info!("Got id token: {:?}", token_response);
+    log::debug!("Got id token: {:?}", token_response);
 
     let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
         get_issuer_url()?,
@@ -358,6 +360,24 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     auth_session.logout_user();
 
     Ok(())
+}
+
+#[component]
+pub fn LoginButton(
+    children: Children,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let current_path = create_rw_signal( String::default());
+    let get_current_path = get_current_path_closure(current_path);
+
+    view! {
+        <form action=state.login_action.url() method="post" rel="external">
+            <input type="text" name="redirect_url" class="hidden" value=current_path/>
+            <button type="submit" on:click=get_current_path>
+                {children()}
+            </button>
+        </form>
+    }
 }
 
 /// Auth callback component

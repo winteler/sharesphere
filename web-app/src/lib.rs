@@ -9,7 +9,6 @@ pub mod fileserv;
 pub mod footer;
 pub mod forum;
 pub mod icons;
-pub mod localization;
 pub mod navigation_bar;
 pub mod state;
 

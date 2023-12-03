@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
-use crate::post::{get_posts_by_forum_name, Post, PostAuthor, PostScore, PostTime, POST_ROUTE_PREFIX};
+use crate::post::{get_post_vec_by_forum_name, Post, PostAuthor, ScoreIndicator, PostTime, POST_ROUTE_PREFIX};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -306,7 +306,7 @@ pub fn ForumContents() -> impl IntoView {
     let forum_name = create_rw_signal(String::default());
     let params = use_params_map();
     let get_forum_name = get_current_forum_name_closure(params, forum_name);
-    let post_vec = create_resource(move || (get_forum_name(), state.create_post_action.version().get()), move |(forum_name, _)| get_posts_by_forum_name(forum_name));
+    let post_vec = create_resource(move || (get_forum_name(), state.create_post_action.version().get()), move |(forum_name, _)| get_post_vec_by_forum_name(forum_name));
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
@@ -345,7 +345,7 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>, forum_name: String) -> i
                                 <div class="flex flex-col gap-1">
                                     <h2 class="card-title">{post.title.clone()}</h2>
                                     <div class="flex gap-2">
-                                        <PostScore post=post/>
+                                        <ScoreIndicator score=post.score/>
                                         <PostAuthor post=post/>
                                         <PostTime post=post/>
                                     </div>

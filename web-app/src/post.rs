@@ -5,6 +5,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::auth::{LoginButton, User};
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, ScoreIcon};
@@ -15,6 +16,12 @@ pub const CREATE_POST_FORUM_QUERY_PARAM : &str = "forum";
 pub const POST_ROUTE_PREFIX : &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
 pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PostWithContext {
+    pub post: Post,
+    pub user: User,
+}
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -32,11 +39,12 @@ pub struct Post {
     pub forum_id: i64,
     pub creator_id: i64,
     pub creator_name: String,
-    pub create_timestamp: chrono::DateTime<chrono::Utc>,
+    pub num_comments: i32,
     pub score: i32,
     pub score_minus: i32,
     pub recommended_score: i32,
     pub trending_score: i32,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
@@ -48,7 +56,7 @@ cfg_if! {
 }
 
 #[server]
-pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
+pub async fn get_post_with_context_by_id(id: i64) -> Result<PostWithContext, ServerFnError> {
     let db_pool = get_db_pool()?;
     let post = sqlx::query_as!(
         Post,
@@ -58,11 +66,14 @@ pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
         .fetch_one(&db_pool)
         .await?;
 
-    Ok(post)
+    Ok(PostWithContext {
+        post: post,
+        user: get_user().await.unwrap_or_default()
+    })
 }
 
 #[server]
-pub async fn get_posts_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
+pub async fn get_post_vec_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let post_vec = sqlx::query_as!(
         Post,
@@ -239,9 +250,10 @@ pub fn Post() -> impl IntoView {
         post_id.get()
     };
 
+    // TODO: create PostDetail struct with additional info, like comments, login status, vote of user. Load this here instead of normal post
     let post = create_blocking_resource(
         move || get_post_id(),
-        move |post_id| get_post_by_id(post_id));
+        move |post_id| get_post_with_context_by_id(post_id));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>
@@ -254,12 +266,12 @@ pub fn Post() -> impl IntoView {
                                     <div class="card">
                                         <div class="card-body">
                                             <div class="flex flex-col gap-2">
-                                                <h2 class="card-title">{post.title.clone()}</h2>
-                                                {post.body.clone()}
+                                                <h2 class="card-title">{post.post.title.clone()}</h2>
+                                                {post.post.body.clone()}
                                                 <div class="flex gap-2">
-                                                    <PostVote post=post/>
-                                                    <PostAuthor post=post/>
-                                                    <PostTime post=post/>
+                                                    <VotePanel is_logged_in=!post.user.anonymous score=post.post.score/>
+                                                    <PostAuthor post=&post.post/>
+                                                    <PostTime post=&post.post/>
                                                 </div>
                                             </div>
                                         </div>
@@ -284,27 +296,37 @@ pub fn Post() -> impl IntoView {
 
 /// Component to display a post's score
 #[component]
-pub fn PostScore<'a>(post: &'a Post) -> impl IntoView {
+pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
         <div class="flex rounded-btn px-1 gap-1 items-center">
             <ScoreIcon/>
-            {post.score.clone()}
+            {score}
         </div>
     }
 }
 
 /// Component to display and modify post's score
 #[component]
-pub fn PostVote<'a>(post: &'a Post) -> impl IntoView {
+pub fn VotePanel(score: i32, is_logged_in: bool) -> impl IntoView {
     view! {
         <div class="flex items-center gap-1">
-            <button class="btn btn-sm hover:btn-success">
-                "+"
-            </button>
-            <PostScore post=post/>
-            <button class="btn btn-sm hover:btn-error">
-                "-"
-            </button>
+            <Show
+                when=move || { is_logged_in }
+                fallback=|| view! { <LoginButton><div class="btn btn-circle btn-sm hover:btn-success">"+"</div></LoginButton> }
+            >
+                <button class="btn btn-circle btn-sm hover:btn-success">
+                    "+"
+                </button>
+            </Show>
+            <ScoreIndicator score=score/>
+            <Show
+                when=move || { is_logged_in }
+                fallback=|| view! { <LoginButton><div class="btn btn-circle btn-sm hover:btn-error">"-"</div></LoginButton> }
+            >
+                <button class="btn btn-circle btn-sm hover:btn-error">
+                    "-"
+                </button>
+            </Show>
         </div>
     }
 }

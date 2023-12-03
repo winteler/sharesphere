@@ -11,7 +11,7 @@ pub fn LoadingIcon() -> impl IntoView {
 #[component]
 pub fn UserIcon() -> impl IntoView {
     view! {
-        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 icon icon-tabler icon-tabler-user stroke-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 icon icon-tabler icon-tabler-user stroke-white" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
               <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
               <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />

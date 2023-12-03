@@ -75,37 +75,21 @@ pub fn UserProfile() -> impl IntoView {
                 Some(Ok(user)) => {
                     if user.anonymous
                     {
-                        return view! { <LoginButton/> }.into_view();
+                        return view! { <LoginButton><div class="btn btn-ghost btn-circle rounded-full"><UserIcon/></div></LoginButton> }.into_view();
                     }
                     view! { <LoggedInMenu user=user/> }.into_view()
                 },
                 Some(Err(e)) => {
                     log::info!("Get user error: {}", e);
-                    view! { <LoginButton/> }.into_view()
+                    view! { <LoginButton><div class="btn btn-ghost btn-circle rounded-full"><UserIcon/></div></LoginButton> }.into_view()
                 },
                 None => {
                     log::trace!("Resource not loaded yet.");
-                    view! { <LoginButton/> }.into_view()
+                    view! { <LoginButton><div class="btn btn-ghost btn-circle rounded-full"><UserIcon/></div></LoginButton> }.into_view()
                 }
             })
         }}
         </Transition>
-    }
-}
-
-#[component]
-pub fn LoginButton() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let current_path = create_rw_signal( String::default());
-    let get_current_path = get_current_path_closure(current_path);
-
-    view! {
-        <form action=state.login_action.url() method="post" rel="external">
-            <input type="text" name="redirect_url" class="hidden" value=current_path/>
-            <button type="submit" class="btn btn-ghost btn-circle rounded-full" on:click=get_current_path>
-                <UserIcon/>
-            </button>
-        </form>
     }
 }
 

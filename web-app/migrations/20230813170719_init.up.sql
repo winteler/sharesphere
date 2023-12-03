@@ -32,11 +32,12 @@ CREATE TABLE posts (
     forum_id BIGINT NOT NULL,
     creator_id BIGINT NOT NULL,
     creator_name TEXT NOT NULL,
-    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    num_comments INT NOT NULL DEFAULT 0,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,
     trending_score INT NOT NULL DEFAULT 0,
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

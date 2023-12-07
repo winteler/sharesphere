@@ -1,6 +1,7 @@
 use cfg_if::cfg_if;
 pub mod app;
 pub mod auth;
+pub mod comment;
 pub mod constants;
 pub mod post;
 pub mod sidebar;

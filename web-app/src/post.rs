@@ -174,7 +174,7 @@ pub fn CreatePost() -> impl IntoView {
                                                         name="forum"
                                                         placeholder="[[Forum]]"
                                                         autocomplete="off"
-                                                        class="input input-bordered input-primary w-full"
+                                                        class="input input-bordered input-primary w-full h-16"
                                                         on:input=move |ev| {
                                                             forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
                                                         }
@@ -265,7 +265,7 @@ pub fn Post() -> impl IntoView {
                                 <div class="flex flex-col gap-1">
                                     <div class="card">
                                         <div class="card-body">
-                                            <div class="flex flex-col gap-2">
+                                            <div class="flex flex-col gap-4">
                                                 <h2 class="card-title">{post.post.title.clone()}</h2>
                                                 {post.post.body.clone()}
                                                 <div class="flex gap-2">

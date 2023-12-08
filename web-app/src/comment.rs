@@ -1,6 +1,7 @@
 use leptos::*;
 use leptos_router::*;
 
+use crate::icons::ErrorIcon;
 use crate::post::Post;
 
 #[server]
@@ -8,66 +9,46 @@ pub async fn create_comment(
     post_id: i64,
     parent_comment_id: Option<i64>,
     comment: String,
-    is_spoiler: Option<String>,
-    is_nsfw: Option<String>
 ) -> Result<(), ServerFnError> {
     Ok(())
 }
 
 /// Component to display a post's author
 #[component]
-pub fn CreateComment<'a>(_post: &'a Post) -> impl IntoView {
+pub fn CreateComment<'a>(post: &'a Post) -> impl IntoView {
     let create_comment_action = create_server_action::<CreateComment>();
     let create_comment_result = create_comment_action.value();
 
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
+    let is_empty = create_rw_signal(true);
 
+    let post_id = post.id;
 
     view! {
-        <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
+        <div class="flex flex-col gap-2 w-1/2 2xl:w-1/3">
             <ActionForm action=create_comment_action>
                 <div class="flex flex-col gap-2 w-full">
-                    <h2 class="py-4 text-4xl text-center">"Create [[content]]"</h2>
-                    <div class="dropdown dropdown-end">
-                        <input
-                            tabindex="0"
-                            type="text"
-                            name="forum"
-                            placeholder="[[Forum]]"
-                            autocomplete="off"
-                            class="input input-bordered input-primary w-full h-16"
-                            on:input=move |ev| {
-                                forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
-                            }
-                            prop:value=forum_name_input
-                        />
-                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
-                            {matching_forum_list}
-                        </ul>
-                    </div>
                     <input
                         type="text"
-                        name="title"
-                        placeholder="Title"
-                        class="input input-bordered input-primary h-16"
-                        on:input=move |ev| {
-                            is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
-                        }
+                        name="post_id"
+                        class="hidden"
+                        value=post_id
+                    />
+                    <input
+                        type="text"
+                        name="parent_comment_id"
+                        class="hidden"
                     />
                     <textarea
-                        name="body"
-                        placeholder="Text"
-                        class="textarea textarea-primary h-40 w-full"
+                        name="comment"
+                        placeholder="Comment"
+                        class="textarea textarea-primary h-textarea_s w-full transition-all ease-in-out focus:h-textarea_m"
                         on:input=move |ev| {
-                            is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                            is_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                         }
                     />
-                    <select name="tag" class="select select-bordered w-full max-w-xs">
-                        <option disabled selected>"Tag"</option>
-                        <option>"This should be"</option>
-                        <option>"Customized"</option>
-                    </select>
-                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
+                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_empty>"Publish"</button>
+
                 </div>
             </ActionForm>
             <Show

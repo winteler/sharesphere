@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::{LoginButton, User};
+use crate::comment::CreateComment;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, ScoreIcon};
@@ -201,6 +202,7 @@ pub fn CreatePost() -> impl IntoView {
                                                         is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                                                     }
                                                 />
+
                                                 <select name="tag" class="select select-bordered w-full max-w-xs">
                                                     <option disabled selected>"Tag"</option>
                                                     <option>"This should be"</option>
@@ -262,7 +264,7 @@ pub fn Post() -> impl IntoView {
                     match result {
                         Some(Ok(post)) => {
                             view! {
-                                <div class="flex flex-col gap-1">
+                                <div class="flex flex-col content-start gap-1">
                                     <div class="card">
                                         <div class="card-body">
                                             <div class="flex flex-col gap-4">
@@ -276,6 +278,7 @@ pub fn Post() -> impl IntoView {
                                             </div>
                                         </div>
                                     </div>
+                                    <CreateComment post=&post.post/>
                                 </div>
                             }.into_view()
                         },

@@ -4,7 +4,12 @@ module.exports = {
     files: ["*.html", "./src/**/*.rs"],
   },
   theme: {
-    extend: {},
+    extend: {
+      height: {
+        textarea_s: "2.5rem",
+        textarea_m: "10rem",
+      },
+    },
   },
   daisyui: {
     themes: [

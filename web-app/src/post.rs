@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::{LoginButton, User};
 use crate::comment::CreateComment;
+use crate::common_components::FormTextEditor;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, ScoreIcon};
@@ -194,10 +195,9 @@ pub fn CreatePost() -> impl IntoView {
                                                         is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                                                     }
                                                 />
-                                                <textarea
+                                                <FormTextEditor
                                                     name="body"
-                                                    placeholder="Text"
-                                                    class="textarea textarea-primary h-40 w-full"
+                                                    placeholder="Content"
                                                     on:input=move |ev| {
                                                         is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                                                     }

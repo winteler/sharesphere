@@ -43,18 +43,11 @@ pub fn CreateComment<'a>(post: &'a Post) -> impl IntoView {
                     <FormTextEditor
                         name="comment"
                         placeholder="Comment"
-                        on_input=move |ev| {
-                            is_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
-                        }
-                        unfold_on_focus=true/>
-                    /*<textarea
-                        name="comment"
-                        placeholder="Comment"
-                        class="textarea textarea-primary h-textarea_s w-full transition-all ease-in-out focus:h-textarea_m"
                         on:input=move |ev| {
                             is_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                         }
-                    />*/
+                        unfold_on_focus=true
+                    />
                     <button type="submit" class="btn btn-active btn-secondary" disabled=is_empty>"Publish"</button>
 
                 </div>

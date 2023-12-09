@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::common_components::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
 use crate::post::{get_post_vec_by_forum_name, Post, PostAuthor, ScoreIndicator, PostTime, POST_ROUTE_PREFIX};
 
@@ -170,7 +171,10 @@ pub fn CreateForum() -> impl IntoView {
     let is_name_empty = create_rw_signal(true);
     let is_name_taken = create_rw_signal(false);
     let is_name_alphanumeric = create_rw_signal(false);
-    let is_name_invalid = create_memo(move |_| { is_name_empty.get() || is_name_taken.get() || !is_name_alphanumeric.get() });
+    let is_description_empty = create_rw_signal(true);
+    let are_inputs_invalid = create_memo(move |_| {
+        is_name_empty.get() || is_name_taken.get() || !is_name_alphanumeric.get() || is_description_empty.get()
+    });
 
     view! {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
@@ -209,14 +213,20 @@ pub fn CreateForum() -> impl IntoView {
                                                         <span>"Only alphanumeric characters."</span>
                                                     </div>
                                                 </div>
-                                                <textarea name="description" placeholder="Description" class="textarea textarea-primary h-40 w-full"/>
+                                                <FormTextEditor
+                                                    name="description"
+                                                    placeholder="Description"
+                                                    on:input=move |ev| {
+                                                        is_description_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                    }
+                                                />
                                                 <div class="form-control">
                                                     <label class="cursor-pointer label p-0">
                                                         <span class="label-text">"NSFW content"</span>
                                                         <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
                                                     </label>
                                                 </div>
-                                                <button type="submit" class="btn btn-active btn-secondary" disabled=is_name_invalid>"Create"</button>
+                                                <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
                                             </div>
                                         </ActionForm>
                                         <Show

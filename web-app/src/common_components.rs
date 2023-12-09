@@ -4,8 +4,6 @@ use leptos::*;
 pub fn FormTextEditor(
     name: &'static str,
     placeholder: &'static str,
-    #[prop(into)]
-    on_input: Callback<ev::InputEvent>,
     #[prop(default = false)]
     unfold_on_focus: bool,
 ) -> impl IntoView {
@@ -21,7 +19,6 @@ pub fn FormTextEditor(
             name=name
             placeholder=placeholder
             class=css_class
-            on:input=on_input
         />
     }
 }

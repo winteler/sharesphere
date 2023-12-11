@@ -2570,6 +2570,10 @@ html {
   padding-bottom: 0.5rem;
 }
 
+.static {
+  position: static;
+}
+
 .relative {
   position: relative;
 }
@@ -2620,18 +2624,6 @@ html {
   display: none;
 }
 
-.h-16 {
-  height: 4rem;
-}
-
-.h-20 {
-  height: 5rem;
-}
-
-.h-40 {
-  height: 10rem;
-}
-
 .h-5 {
   height: 1.25rem;
 }
@@ -2648,8 +2640,20 @@ html {
   height: 100%;
 }
 
+.h-input_l {
+  height: 5rem;
+}
+
+.h-input_m {
+  height: 4rem;
+}
+
 .h-screen {
   height: 100vh;
+}
+
+.h-textarea_m {
+  height: 10rem;
 }
 
 .h-textarea_s {

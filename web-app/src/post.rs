@@ -5,8 +5,8 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::auth::{LoginButton, User};
-use crate::comment::CreateComment;
+use crate::auth::{LoginButton};
+use crate::comment::PublishComment;
 use crate::common_components::FormTextEditor;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::forum::{get_all_forum_names};
@@ -18,12 +18,6 @@ pub const CREATE_POST_FORUM_QUERY_PARAM : &str = "forum";
 pub const POST_ROUTE_PREFIX : &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
 pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PostWithContext {
-    pub post: Post,
-    pub user: User,
-}
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -58,20 +52,15 @@ cfg_if! {
 }
 
 #[server]
-pub async fn get_post_with_context_by_id(id: i64) -> Result<PostWithContext, ServerFnError> {
+pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let post = sqlx::query_as!(
+    Ok(sqlx::query_as!(
         Post,
         "SELECT * FROM posts WHERE id = $1",
         id
     )
         .fetch_one(&db_pool)
-        .await?;
-
-    Ok(PostWithContext {
-        post: post,
-        user: get_user().await.unwrap_or_default()
-    })
+        .await?)
 }
 
 #[server]
@@ -176,7 +165,7 @@ pub fn CreatePost() -> impl IntoView {
                                                         name="forum"
                                                         placeholder="[[Forum]]"
                                                         autocomplete="off"
-                                                        class="input input-bordered input-primary w-full h-16"
+                                                        class="input input-bordered input-primary w-full h-input_m"
                                                         on:input=move |ev| {
                                                             forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
                                                         }
@@ -190,7 +179,7 @@ pub fn CreatePost() -> impl IntoView {
                                                     type="text"
                                                     name="title"
                                                     placeholder="Title"
-                                                    class="input input-bordered input-primary h-16"
+                                                    class="input input-bordered input-primary h-input_m"
                                                     on:input=move |ev| {
                                                         is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                                                     }
@@ -242,6 +231,7 @@ pub fn CreatePost() -> impl IntoView {
 /// Component to display a content
 #[component]
 pub fn Post() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let post_id = create_rw_signal(0i64);
     let get_post_id = move || {
@@ -252,10 +242,15 @@ pub fn Post() -> impl IntoView {
         post_id.get()
     };
 
+    let is_user_logged_in = move || state.user.with(|user| match user {
+        Some(Ok(user)) => !user.anonymous,
+        _ => false,
+    });
+
     // TODO: create PostDetail struct with additional info, like comments, login status, vote of user. Load this here instead of normal post
     let post = create_blocking_resource(
-        move || get_post_id(),
-        move |post_id| get_post_with_context_by_id(post_id));
+        move || (get_post_id(), state.create_comment_action.version().get()),
+        move |(post_id, _)| get_post_by_id(post_id));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>
@@ -268,17 +263,18 @@ pub fn Post() -> impl IntoView {
                                     <div class="card">
                                         <div class="card-body">
                                             <div class="flex flex-col gap-4">
-                                                <h2 class="card-title">{post.post.title.clone()}</h2>
-                                                {post.post.body.clone()}
+                                                <h2 class="card-title">{post.title.clone()}</h2>
+                                                {post.body.clone()}
                                                 <div class="flex gap-2">
-                                                    <VotePanel is_logged_in=!post.user.anonymous score=post.post.score/>
-                                                    <PostAuthor post=&post.post/>
-                                                    <PostTime post=&post.post/>
+                                                    <VotePanel is_logged_in=is_user_logged_in() score=post.score/>
+                                                    <PostAuthor post=&post/>
+                                                    <PostTime post=&post/>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <CreateComment post=&post.post/>
+                                    // TODO: add new component CommentSection with PublishComment and the comment list
+                                    <PublishComment post=&post/>
                                 </div>
                             }.into_view()
                         },

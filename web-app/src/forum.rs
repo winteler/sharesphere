@@ -196,7 +196,7 @@ pub fn CreateForum() -> impl IntoView {
                                                         name="name"
                                                         placeholder="[[Forum]] name"
                                                         autocomplete="off"
-                                                        class="input input-bordered input-primary h-20 flex-none w-1/2"
+                                                        class="input input-bordered input-primary h-input_l flex-none w-1/2"
                                                         on:input=move |ev| {
                                                             let input = event_target_value(&ev);
                                                             is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());
@@ -204,11 +204,11 @@ pub fn CreateForum() -> impl IntoView {
                                                             is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&input));
                                                         }
                                                     />
-                                                    <div class="alert alert-error h-20 flex content-center" class:hidden=move || !is_name_taken.get()>
+                                                    <div class="alert alert-error h-input_l flex content-center" class:hidden=move || !is_name_taken.get()>
                                                         <ErrorIcon/>
                                                         <span>"Unavailable."</span>
                                                     </div>
-                                                    <div class="alert alert-error h-20 flex content-center" class:hidden=move || is_name_empty.get() || is_name_alphanumeric.get()>
+                                                    <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty.get() || is_name_alphanumeric.get()>
                                                         <ErrorIcon/>
                                                         <span>"Only alphanumeric characters."</span>
                                                     </div>

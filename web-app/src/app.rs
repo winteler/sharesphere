@@ -3,6 +3,7 @@ use leptos_meta::*;
 use leptos_router::*;
 
 use crate::auth::*;
+use crate::comment::CreateComment;
 use crate::post::*;
 use crate::sidebar::*;
 use crate::error_template::{AppError, ErrorTemplate};
@@ -19,6 +20,7 @@ pub struct GlobalState {
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
     pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
     pub create_post_action: Action<CreatePost, Result<(), ServerFnError>>,
+    pub create_comment_action: Action<CreateComment, Result<(), ServerFnError>>,
     pub user: Resource<(), Result<User, ServerFnError>>,
 }
 
@@ -29,6 +31,7 @@ impl GlobalState {
             logout_action: create_server_action::<EndSession>(),
             create_forum_action: create_server_action::<CreateForum>(),
             create_post_action: create_server_action::<CreatePost>(),
+            create_comment_action: create_server_action::<CreateComment>(),
             user: create_blocking_resource(
                 move || (),
                 move |_| { get_user() },

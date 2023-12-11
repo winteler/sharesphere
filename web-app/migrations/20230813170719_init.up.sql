@@ -43,13 +43,11 @@ CREATE TABLE posts (
 
 CREATE TABLE comments (
     id BIGSERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
     body TEXT NOT NULL,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
-    parent_id BIGINT NOT NULL,
+    parent_id BIGINT,
     post_id BIGINT NOT NULL,
-    forum_id BIGINT NOT NULL,
     creator_id BIGINT NOT NULL,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,

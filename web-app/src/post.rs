@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::{LoginButton};
-use crate::comment::PublishComment;
+use crate::comment::CommentSection;
 use crate::common_components::FormTextEditor;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::forum::{get_all_forum_names};
@@ -247,7 +247,7 @@ pub fn Post() -> impl IntoView {
         _ => false,
     });
 
-    // TODO: create PostDetail struct with additional info, like comments, login status, vote of user. Load this here instead of normal post
+    // TODO: create PostDetail struct with additional info, like vote of user. Load this here instead of normal post
     let post = create_blocking_resource(
         move || (get_post_id(), state.create_comment_action.version().get()),
         move |(post_id, _)| get_post_by_id(post_id));
@@ -273,8 +273,7 @@ pub fn Post() -> impl IntoView {
                                             </div>
                                         </div>
                                     </div>
-                                    // TODO: add new component CommentSection with PublishComment and the comment list
-                                    <PublishComment post=&post/>
+                                    <CommentSection post=&post/>
                                 </div>
                             }.into_view()
                         },

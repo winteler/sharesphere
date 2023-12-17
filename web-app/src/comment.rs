@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::app::GlobalState;
 use crate::common_components::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon};
-use crate::post::{get_post_vec_by_forum_name, Post};
+use crate::post::{Post};
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -175,5 +175,9 @@ pub fn CommentTree<'a>(post: &'a Post) -> impl IntoView {
 /// Comment box component
 #[component]
 pub fn CommentBox<'a>(comment: &'a Comment) -> impl IntoView {
-
+    view! {
+        <div>
+            {comment.body.clone()}
+        </div>
+    }
 }

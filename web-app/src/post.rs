@@ -130,7 +130,9 @@ pub fn CreatePost() -> impl IntoView {
     let is_body_empty = create_rw_signal(true);
     let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });
 
-    let existing_forums = create_blocking_resource( move || (state.create_forum_action.version().get()), move |_| get_all_forum_names());
+    let existing_forums = create_blocking_resource(
+        move || state.create_forum_action.version().get(),
+        move |_| get_all_forum_names());
 
     view! {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
@@ -249,8 +251,8 @@ pub fn Post() -> impl IntoView {
 
     // TODO: create PostDetail struct with additional info, like vote of user. Load this here instead of normal post
     let post = create_blocking_resource(
-        move || (get_post_id(), state.create_comment_action.version().get()),
-        move |(post_id, _)| get_post_by_id(post_id));
+        move || get_post_id(),
+        move |post_id| get_post_by_id(post_id));
 
     view! {
         <Suspense fallback=move || (view! { <LoadingIcon/> })>

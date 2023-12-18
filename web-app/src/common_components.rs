@@ -5,14 +5,9 @@ pub fn FormTextEditor(
     name: &'static str,
     placeholder: &'static str,
     #[prop(default = false)]
-    unfold_on_focus: bool,
+    minimize: bool,
 ) -> impl IntoView {
-
-    /*let css_class = if unfold_on_focus {
-        "textarea textarea-primary w-full h-textarea_s transition-all ease-in-out focus:h-textarea_m"
-    } else {
-        "textarea textarea-primary w-full h-textarea_m"
-    };*/
+    let do_minimize = create_rw_signal(minimize);
 
     view! {
         /*<div class="collapse ">
@@ -24,10 +19,18 @@ pub fn FormTextEditor(
                 <p>hello</p>
             </div>
         </div>*/
-        <textarea
-            name=name
-            placeholder=placeholder
-            class="textarea textarea-primary w-full h-full"
-        />
+        <div
+            on:focusin=move |_| { do_minimize.update(|do_minimize: &mut bool| *do_minimize = false); }
+            on:focusout=move |_| { do_minimize.update(|do_minimize: &mut bool| *do_minimize = minimize); }
+            class="rounded-btn border border-primary w-full transition-all ease-in-out"
+            class=("h-textarea_s", move || do_minimize())
+            class=("h-textarea_m", move || !do_minimize())
+        >
+            <textarea
+                name=name
+                placeholder=placeholder
+                class="textarea w-full h-full"
+            />
+        </div>
     }
 }

@@ -119,7 +119,7 @@ pub fn PublishComment<'a>(post: &'a Post) -> impl IntoView {
                         on:input=move |ev| {
                             is_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                         }
-                        unfold_on_focus=true
+                        minimize=true
                     />
                     <button type="submit" class="btn btn-active btn-secondary" disabled=is_empty>"Publish"</button>
 

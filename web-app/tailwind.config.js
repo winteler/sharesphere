@@ -8,7 +8,7 @@ module.exports = {
       height: {
         input_m: "4rem",
         input_l: "5rem",
-        textarea_s: "2.5rem",
+        textarea_s: "4rem",
         textarea_m: "10rem",
       },
     },

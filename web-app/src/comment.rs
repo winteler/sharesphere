@@ -92,9 +92,7 @@ pub fn CommentSection<'a>(post: &'a Post) -> impl IntoView {
 pub fn PublishComment<'a>(post: &'a Post) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let create_comment_result = state.create_comment_action.value();
-
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
-    let is_empty = create_rw_signal(true);
 
     let post_id = post.id;
 
@@ -116,13 +114,9 @@ pub fn PublishComment<'a>(post: &'a Post) -> impl IntoView {
                     <FormTextEditor
                         name="comment"
                         placeholder="Comment"
-                        on:input=move |ev| {
-                            is_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
-                        }
                         minimize=true
+                        with_publish_button=true
                     />
-                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_empty>"Publish"</button>
-
                 </div>
             </ActionForm>
             <Show

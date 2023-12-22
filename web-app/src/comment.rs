@@ -113,7 +113,7 @@ pub fn PublishComment<'a>(post: &'a Post) -> impl IntoView {
                     />
                     <FormTextEditor
                         name="comment"
-                        placeholder="Comment"
+                        placeholder="Your comment..."
                         minimize=true
                         with_publish_button=true
                     />

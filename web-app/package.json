@@ -4,7 +4,9 @@
     "watch": "npx tailwindcss -i ./input.css -o ./style/main.scss --watch"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.16",
     "daisyui": "^3.3.1",
-    "tailwindcss": "^3.3.3"
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
   }
 }

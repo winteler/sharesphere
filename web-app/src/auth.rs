@@ -322,7 +322,17 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
 #[server]
 pub async fn get_user() -> Result<User, ServerFnError> {
     let auth_session = get_session()?;
-    auth_session.current_user.ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))
+    match auth_session.current_user {
+        Some(user) => {
+            if user.anonymous {
+                Ok(user)
+            }
+            else {
+                Err(ServerFnError::ServerError(String::from("Anonymous user.")))
+            }
+        },
+        None => Err(ServerFnError::ServerError(String::from("Not authenticated."))),
+    }
 }
 
 #[server]
@@ -361,6 +371,21 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 
     Ok(())
 }
+
+/// Component to guard other components that require a login, e.g. a button to publish a comment
+/*#[component]
+pub fn LoginComponentGuard(
+    children: Children,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+
+    move || state.user.with(|user| match user {
+        Some(Ok(user)) => {
+            children().into_view()
+        },
+        _ => view! { <LoginButton>"Test"</LoginButton> }.into_view(),
+    })
+}*/
 
 #[component]
 pub fn LoginButton(

@@ -81,7 +81,7 @@ pub fn App() -> impl IntoView {
                             </Route>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
                             <Route path="/login" view=Login/>
-                            <Route path=PUBLISH_ROUTE view=LoginGuard>
+                            <Route path=PUBLISH_ROUTE view=LoginPageGuard>
                                 <Route path=CREATE_FORUM_SUFFIX view=CreateForum/>
                                 <Route path=CREATE_POST_SUFFIX view=CreatePost/>
                             </Route>
@@ -102,7 +102,7 @@ pub fn App() -> impl IntoView {
 
 /// Component to guard pages requiring a login, and enable the user to login with a redirect
 #[component]
-fn LoginGuard() -> impl IntoView {
+fn LoginPageGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {

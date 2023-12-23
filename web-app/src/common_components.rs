@@ -24,11 +24,12 @@ pub fn FormTextEditor(
 
     view! {
         <div
-            on:focusin=move |_| { do_minimize.update(|do_minimize: &mut bool| *do_minimize = false); }
-            on:focusout=move |_| { do_minimize.update(|do_minimize: &mut bool| *do_minimize = minimize && is_empty()); }
+            on:focusin=move |_| { log::info!("on::focusin"); do_minimize.update(|do_minimize: &mut bool| *do_minimize = false); }
+            on:focusout=move |_| { log::info!("on::focusout"); do_minimize.update(|do_minimize: &mut bool| *do_minimize = minimize && is_empty()); }
+            //on:click=move |_| { log::info!("on::click"); do_minimize.update(|do_minimize: &mut bool| *do_minimize = false); }
             class="w-full mb-4 border border-primary rounded-lg bg-base-100"
         >
-            <div class="px-2 py-2 rounded-t-lg">
+            <div class="px-2 py-2 rounded-t-lg" tabindex="0">
                 <label for="comment" class="sr-only">"Your comment"</label>
                 <textarea
                     id="comment"
@@ -42,11 +43,16 @@ pub fn FormTextEditor(
                 />
             </div>
 
-            <div class="flex justify-between px-2 pb-2"
-                 class:hidden=do_minimize
+            <div
+                class="flex justify-between px-2 pb-2"
+                class:hidden=do_minimize
+                tabindex="1"
             >
                 <div class="flex">
-                    <button class="btn btn-ghost">
+                    <button
+                        type="button"
+                        class="btn btn-ghost"
+                    >
                         <BoldIcon/>
                     </button>
                 </div>

@@ -324,7 +324,7 @@ pub async fn get_user() -> Result<User, ServerFnError> {
     let auth_session = get_session()?;
     match auth_session.current_user {
         Some(user) => {
-            if user.anonymous {
+            if !user.anonymous {
                 Ok(user)
             }
             else {

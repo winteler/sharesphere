@@ -3069,6 +3069,10 @@ html {
   background-color: rgb(3 105 161 / var(--tw-bg-opacity));
 }
 
+.group:focus-within .group-focus-within\:visible {
+  visibility: visible;
+}
+
 @media not all and (min-width: 1536px) {
   .max-2xl\:hidden {
     display: none;

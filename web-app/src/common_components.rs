@@ -11,31 +11,17 @@ pub fn FormTextEditor(
     #[prop(default = false)]
     with_publish_button: bool,
 ) -> impl IntoView {
-    let do_minimize = create_rw_signal(minimize);
     let is_empty = create_rw_signal(true);
-    let row_num = move || {
-        if do_minimize() {
-            1
-        }
-        else {
-            4
-        }
-    };
+    let hide_buttons = move || minimize && is_empty();
 
     view! {
-        <div
-            on:focusin=move |_| { log::info!("on::focusin"); do_minimize.update(|do_minimize: &mut bool| *do_minimize = false); }
-            on:focusout=move |_| { log::info!("on::focusout"); do_minimize.update(|do_minimize: &mut bool| *do_minimize = minimize && is_empty()); }
-            //on:click=move |_| { log::info!("on::click"); do_minimize.update(|do_minimize: &mut bool| *do_minimize = false); }
-            class="w-full mb-4 border border-primary rounded-lg bg-base-100"
-        >
-            <div class="px-2 py-2 rounded-t-lg" tabindex="0">
+        <div class="group w-full mb-4 border border-primary rounded-lg bg-base-100">
+            <div class="px-2 py-2 rounded-t-lg">
                 <label for="comment" class="sr-only">"Your comment"</label>
                 <textarea
                     id="comment"
                     name=name
                     placeholder=placeholder
-                    rows=row_num
                     class="w-full px-0 bg-base-100 outline-none border-none"
                     on:input=move |ev| {
                         is_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
@@ -44,9 +30,10 @@ pub fn FormTextEditor(
             </div>
 
             <div
+                id="toolbar"
                 class="flex justify-between px-2 pb-2"
-                class:hidden=do_minimize
-                tabindex="1"
+                class:invisible=hide_buttons
+                class=("group-focus-within:visible", move || minimize)
             >
                 <div class="flex">
                     <button
@@ -56,7 +43,7 @@ pub fn FormTextEditor(
                         <BoldIcon/>
                     </button>
                 </div>
-                <div>
+                <div id="publish">
                     <button
                         type:submit=move || with_publish_button
                         class="btn btn-active btn-secondary"

@@ -15,7 +15,7 @@ pub fn FormTextEditor(
     let hide_buttons = move || minimize && is_empty();
 
     view! {
-        <div class="group w-full mb-4 border border-primary rounded-lg bg-base-100">
+        <div class="group w-full my-2 border border-primary rounded-lg bg-base-100">
             <div class="px-2 py-2 rounded-t-lg">
                 <label for="comment" class="sr-only">"Your comment"</label>
                 <textarea
@@ -30,7 +30,6 @@ pub fn FormTextEditor(
             </div>
 
             <div
-                id="toolbar"
                 class="flex justify-between px-2 pb-2"
                 class:invisible=hide_buttons
                 class=("group-focus-within:visible", move || minimize)
@@ -39,15 +38,18 @@ pub fn FormTextEditor(
                     <button
                         type="button"
                         class="btn btn-ghost"
+                        class:invisible=hide_buttons
+                        class=("group-focus-within:visible", move || minimize)
                     >
                         <BoldIcon/>
                     </button>
                 </div>
-                <div id="publish">
+                <div>
                     <button
                         type:submit=move || with_publish_button
                         class="btn btn-active btn-secondary"
-                        class:hidden=move || !with_publish_button
+                        class:invisible=move || !with_publish_button || hide_buttons()
+                        class=("group-focus-within:visible", move || minimize)
                         disabled=is_empty
                     >
                         "Publish"

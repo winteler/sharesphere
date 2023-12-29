@@ -1,5 +1,5 @@
 /*
-! tailwindcss v3.3.3 | MIT License | https://tailwindcss.com
+! tailwindcss v3.4.0 | MIT License | https://tailwindcss.com
 */
 
 /*
@@ -32,9 +32,11 @@
 4. Use the user's configured `sans` font-family by default.
 5. Use the user's configured `sans` font-feature-settings by default.
 6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
 */
 
-html {
+html,
+:host {
   line-height: 1.5;
   /* 1 */
   -webkit-text-size-adjust: 100%;
@@ -44,12 +46,14 @@ html {
   -o-tab-size: 4;
      tab-size: 4;
   /* 3 */
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   /* 4 */
   font-feature-settings: normal;
   /* 5 */
   font-variation-settings: normal;
   /* 6 */
+  -webkit-tap-highlight-color: transparent;
+  /* 7 */
 }
 
 /*
@@ -121,8 +125,10 @@ strong {
 }
 
 /*
-1. Use the user's configured `mono` font family by default.
-2. Correct the odd `em` font sizing in all browsers.
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
 */
 
 code,
@@ -131,8 +137,12 @@ samp,
 pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   /* 1 */
-  font-size: 1em;
+  font-feature-settings: normal;
   /* 2 */
+  font-variation-settings: normal;
+  /* 3 */
+  font-size: 1em;
+  /* 4 */
 }
 
 /*
@@ -448,14 +458,14 @@ html {
   --p: 199 100% 45%;
   --pf: 199 100% 38%;
   --sf: 142 72% 22%;
-  --af: 25 95% 46%;
+  --af: 117 100% 78%;
   --nf: 0 0% 93%;
   --b2: 221 39% 4%;
   --b3: 0 0% 0%;
   --bc: 226 5% 80%;
   --pc: 210 76% 92%;
   --sc: 128 26% 86%;
-  --ac: 24 58% 12%;
+  --ac: 115 14% 17%;
   --nc: 146 0% 19%;
   --inc: 216 25% 15%;
   --suc: 131 32% 12%;
@@ -472,7 +482,7 @@ html {
   --tab-border: 1px;
   --tab-radius: 0.5rem;
   --s: 142 72% 29%;
-  --a: 25 95% 53%;
+  --a: 117 100% 85%;
   --n: 0 0% 100%;
   --b1: 221 39% 11%;
   --in: 214 100% 73%;
@@ -1062,6 +1072,13 @@ html {
     background-color: hsl(var(--sf) / var(--tw-bg-opacity));
   }
 
+  .btn-accent:hover {
+    --tw-border-opacity: 1;
+    border-color: hsl(var(--af) / var(--tw-border-opacity));
+    --tw-bg-opacity: 1;
+    background-color: hsl(var(--af) / var(--tw-bg-opacity));
+  }
+
   .btn.glass:hover {
     --glass-opacity: 25%;
     --glass-border-opacity: 15%;
@@ -1089,6 +1106,15 @@ html {
     background-color: hsl(var(--sf) / var(--tw-bg-opacity));
     --tw-text-opacity: 1;
     color: hsl(var(--sc) / var(--tw-text-opacity));
+  }
+
+  .btn-outline.btn-accent:hover {
+    --tw-border-opacity: 1;
+    border-color: hsl(var(--af) / var(--tw-border-opacity));
+    --tw-bg-opacity: 1;
+    background-color: hsl(var(--af) / var(--tw-bg-opacity));
+    --tw-text-opacity: 1;
+    color: hsl(var(--ac) / var(--tw-text-opacity));
   }
 
   .btn-disabled:hover,
@@ -1495,6 +1521,16 @@ html {
   background-color: hsl(var(--sf) / var(--tw-bg-opacity));
 }
 
+.btn-accent {
+  --tw-border-opacity: 1;
+  border-color: hsl(var(--a) / var(--tw-border-opacity));
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--a) / var(--tw-bg-opacity));
+  --tw-text-opacity: 1;
+  color: hsl(var(--ac) / var(--tw-text-opacity));
+  outline-color: hsl(var(--a) / 1);
+}
+
 .btn-accent.btn-active {
   --tw-border-opacity: 1;
   border-color: hsl(var(--af) / var(--tw-border-opacity));
@@ -1607,6 +1643,11 @@ html {
   background-color: hsl(var(--sf) / var(--tw-bg-opacity));
   --tw-text-opacity: 1;
   color: hsl(var(--sc) / var(--tw-text-opacity));
+}
+
+.btn-outline.btn-accent {
+  --tw-text-opacity: 1;
+  color: hsl(var(--a) / var(--tw-text-opacity));
 }
 
 .btn-outline.btn-accent.btn-active {
@@ -2577,12 +2618,28 @@ html {
   position: static;
 }
 
+.absolute {
+  position: absolute;
+}
+
 .relative {
   position: relative;
 }
 
+.z-10 {
+  z-index: 10;
+}
+
 .z-\[1\] {
   z-index: 1;
+}
+
+.float-left {
+  float: left;
+}
+
+.m-1 {
+  margin: 0.25rem;
 }
 
 .m-8 {
@@ -2710,6 +2767,10 @@ html {
 
 .shrink-0 {
   flex-shrink: 0;
+}
+
+.origin-top-right {
+  transform-origin: top right;
 }
 
 .cursor-pointer {
@@ -3072,10 +3133,6 @@ html {
 .hover\:bg-sky-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(3 105 161 / var(--tw-bg-opacity));
-}
-
-.group:focus-within .group-focus-within\:visible {
-  visibility: visible;
 }
 
 @media not all and (min-width: 1536px) {

@@ -82,14 +82,38 @@ pub async fn create_comment(
 #[component]
 pub fn CommentSection<'a>(post: &'a Post) -> impl IntoView {
     view! {
-        <PublishComment post=post/>
+        <CommentButton post=post/>
         <CommentTree post=post/>
+    }
+}
+
+/// Comment section component
+#[component]
+pub fn CommentButton<'a>(post: &'a Post) -> impl IntoView {
+    let hide_comment_form = create_rw_signal(true);
+
+    view! {
+        <div>
+            <button
+                class="btn m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
+                class=("btn-accent", move || !hide_comment_form())
+                on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
+            >
+                    "Comment"
+            </button>
+            <div
+                class="absolute float-left z-10 w-1/2 2xl:w-1/3 origin-top-right" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1"
+                class:hidden=hide_comment_form
+            >
+                <CommentForm post=post on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)/>
+            </div>
+        </div>
     }
 }
 
 /// Component to publish a comment
 #[component]
-pub fn PublishComment<'a>(post: &'a Post) -> impl IntoView {
+pub fn CommentForm<'a>(post: &'a Post) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let create_comment_result = state.create_comment_action.value();
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
@@ -97,7 +121,7 @@ pub fn PublishComment<'a>(post: &'a Post) -> impl IntoView {
     let post_id = post.id;
 
     view! {
-        <div class="flex flex-col gap-2 w-1/2 2xl:w-1/3">
+        <div class="flex flex-col gap-2">
             <ActionForm action=state.create_comment_action>
                 <div class="flex flex-col gap-2 w-full">
                     <input
@@ -114,7 +138,6 @@ pub fn PublishComment<'a>(post: &'a Post) -> impl IntoView {
                     <FormTextEditor
                         name="comment"
                         placeholder="Your comment..."
-                        minimize=true
                         with_publish_button=true
                     />
                 </div>

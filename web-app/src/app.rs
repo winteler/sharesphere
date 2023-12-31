@@ -125,7 +125,7 @@ fn LoginPageGuard() -> impl IntoView {
                         },
                         None => {
                             log::trace!("Resource not loaded yet.");
-                            view!  { <Outlet/> }.into_view()
+                            view! { <Outlet/> }.into_view()
                         }
                     })
                 }

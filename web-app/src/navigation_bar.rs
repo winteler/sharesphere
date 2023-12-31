@@ -65,9 +65,7 @@ pub fn UserProfile() -> impl IntoView {
     view! {
         <Transition fallback=move || {
             view! {
-                <button class="btn btn-ghost btn-circle rounded-full">
-                    <UserIcon/>
-                </button>
+                <button class="btn btn-ghost btn-circle rounded-full"><UserIcon/></button>
             }
         }>
         {move || {
@@ -85,7 +83,7 @@ pub fn UserProfile() -> impl IntoView {
                 },
                 None => {
                     log::trace!("Resource not loaded yet.");
-                    view! { <LoginButton><div class="btn btn-ghost btn-circle rounded-full"><UserIcon/></div></LoginButton> }.into_view()
+                    view! { <button class="btn btn-ghost btn-circle rounded-full"><UserIcon/></button> }.into_view()
                 }
             })
         }}

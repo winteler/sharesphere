@@ -81,9 +81,34 @@ pub async fn create_comment(
 /// Comment section component
 #[component]
 pub fn CommentSection<'a>(post: &'a Post) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let post_id = post.id;
+    let comment_vec = create_resource(move || (state.create_comment_action.version().get()), move |_| get_post_comments(post_id));
+
     view! {
-        <CommentButton post=post/>
-        <CommentTree post=post/>
+        <div class="flex flex-col h-full">
+            <Transition fallback=move || view! {  <LoadingIcon/> }>
+                {
+                    move || {
+                         comment_vec.with(|result| match result {
+                            Some(Ok(comment_vec)) => {
+                                comment_vec.iter().map(|comment| {
+                                    view! { <CommentBox comment=comment/> }.into_view()
+                                }).collect_view()
+                            },
+                            Some(Err(e)) => {
+                                log::info!("Error: {}", e);
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                            None => {
+                                log::trace!("Resource not loaded yet.");
+                                view! { <LoadingIcon/> }.into_view()
+                            },
+                        })
+                    }
+                }
+            </Transition>
+        </div>
     }
 }
 
@@ -151,40 +176,6 @@ pub fn CommentForm<'a>(post: &'a Post) -> impl IntoView {
                     <span>"Server error. Please reload the page and retry."</span>
                 </div>
             </Show>
-        </div>
-    }
-}
-
-/// Comment tree component
-#[component]
-pub fn CommentTree<'a>(post: &'a Post) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let post_id = post.id;
-    let comment_vec = create_resource(move || (state.create_comment_action.version().get()), move |_| get_post_comments(post_id));
-
-    view! {
-        <div class="flex flex-col h-full">
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || {
-                         comment_vec.with(|result| match result {
-                            Some(Ok(comment_vec)) => {
-                                comment_vec.iter().map(|comment| {
-                                    view! { <CommentBox comment=comment/> }.into_view()
-                                }).collect_view()
-                            },
-                            Some(Err(e)) => {
-                                log::info!("Error: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                            None => {
-                                log::trace!("Resource not loaded yet.");
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                        })
-                    }
-                }
-            </Transition>
         </div>
     }
 }

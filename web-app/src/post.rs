@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::{LoginButton};
-use crate::comment::CommentSection;
+use crate::comment::{CommentButton, CommentSection};
 use crate::common_components::FormTextEditor;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::forum::{get_all_forum_names};
@@ -130,7 +130,7 @@ pub fn CreatePost() -> impl IntoView {
     let is_body_empty = create_rw_signal(true);
     let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });
 
-    let existing_forums = create_blocking_resource(
+    let existing_forums = create_resource(
         move || state.create_forum_action.version().get(),
         move |_| get_all_forum_names());
 
@@ -220,7 +220,7 @@ pub fn CreatePost() -> impl IntoView {
                             },
                             None => {
                                 log::trace!("Resource not loaded yet.");
-                                view! { <ErrorIcon/> }.into_view()
+                                view! { <LoadingIcon/> }.into_view()
                             }
                         }
                     })
@@ -250,7 +250,7 @@ pub fn Post() -> impl IntoView {
     });
 
     // TODO: create PostDetail struct with additional info, like vote of user. Load this here instead of normal post
-    let post = create_blocking_resource(
+    let post = create_resource(
         move || get_post_id(),
         move |post_id| get_post_by_id(post_id));
 
@@ -268,13 +268,14 @@ pub fn Post() -> impl IntoView {
                                                 <h2 class="card-title">{post.title.clone()}</h2>
                                                 {post.body.clone()}
                                                 <div class="flex gap-2">
-                                                    <VotePanel is_logged_in=is_user_logged_in() score=post.score/>
+                                                    <VotePanel is_logged_in=false score=post.score/>
                                                     <PostAuthor post=&post/>
                                                     <PostTime post=&post/>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <CommentButton post=&post/>
                                     <CommentSection post=&post/>
                                 </div>
                             }.into_view()
@@ -285,7 +286,7 @@ pub fn Post() -> impl IntoView {
                         },
                         None => {
                             log::trace!("Resource not loaded yet.");
-                            view! { <ErrorIcon/> }.into_view()
+                            view! { <Outlet/> }.into_view()
                         }
                     }
                 })

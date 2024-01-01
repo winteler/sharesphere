@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
 use crate::common_components::FormTextEditor;
-use crate::icons::{ErrorIcon, LoadingIcon};
-use crate::post::{Post};
+use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon};
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -80,10 +79,9 @@ pub async fn create_comment(
 
 /// Comment section component
 #[component]
-pub fn CommentSection<'a>(post: &'a Post) -> impl IntoView {
+pub fn CommentSection(post_id: i64) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post_id = post.id;
-    let comment_vec = create_resource(move || (state.create_comment_action.version().get()), move |_| get_post_comments(post_id));
+    let comment_vec = create_resource(move || state.create_comment_action.version().get(), move |_| get_post_comments(post_id));
 
     view! {
         <div class="flex flex-col h-full">
@@ -114,7 +112,7 @@ pub fn CommentSection<'a>(post: &'a Post) -> impl IntoView {
 
 /// Comment section component
 #[component]
-pub fn CommentButton<'a>(post: &'a Post) -> impl IntoView {
+pub fn CommentButton(post_id: i64) -> impl IntoView {
     let hide_comment_form = create_rw_signal(true);
 
     view! {
@@ -122,15 +120,16 @@ pub fn CommentButton<'a>(post: &'a Post) -> impl IntoView {
             <button
                 class="btn m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
                 class=("btn-accent", move || !hide_comment_form())
+                class=("btn-ghost", move || hide_comment_form())
                 on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
             >
-                    "Comment"
+                <CommentIcon/>
             </button>
             <div
                 class="absolute float-left z-10 w-1/2 2xl:w-1/3 origin-top-right" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1"
                 class:hidden=hide_comment_form
             >
-                <CommentForm post=post on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)/>
+                <CommentForm post_id=post_id on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)/>
             </div>
         </div>
     }
@@ -138,12 +137,10 @@ pub fn CommentButton<'a>(post: &'a Post) -> impl IntoView {
 
 /// Component to publish a comment
 #[component]
-pub fn CommentForm<'a>(post: &'a Post) -> impl IntoView {
+pub fn CommentForm(post_id: i64) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let create_comment_result = state.create_comment_action.value();
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
-
-    let post_id = post.id;
 
     view! {
         <div class="flex flex-col gap-2">

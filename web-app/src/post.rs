@@ -10,7 +10,7 @@ use crate::comment::{CommentButton, CommentSection};
 use crate::common_components::FormTextEditor;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::forum::{get_all_forum_names};
-use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, ScoreIcon};
+use crate::icons::{AuthorIcon, ClockIcon, ErrorIcon, LoadingIcon, MinusIcon, PlusIcon, ScoreIcon};
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -255,7 +255,7 @@ pub fn Post() -> impl IntoView {
         move |post_id| get_post_by_id(post_id));
 
     view! {
-        <Suspense fallback=move || (view! { <LoadingIcon/> })>
+        <Suspense fallback=move || view! { <LoadingIcon/> }>
             {
                 post.with(|result| {
                     match result {
@@ -268,15 +268,15 @@ pub fn Post() -> impl IntoView {
                                                 <h2 class="card-title">{post.title.clone()}</h2>
                                                 {post.body.clone()}
                                                 <div class="flex gap-2">
-                                                    <VotePanel is_logged_in=false score=post.score/>
+                                                    <VotePanel is_logged_in=is_user_logged_in() score=post.score/>
+                                                    <CommentButton post_id=post.id/>
                                                     <PostAuthor post=&post/>
                                                     <PostTime post=&post/>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <CommentButton post=&post/>
-                                    <CommentSection post=&post/>
+                                    <CommentSection post_id=post.id/>
                                 </div>
                             }.into_view()
                         },
@@ -286,7 +286,7 @@ pub fn Post() -> impl IntoView {
                         },
                         None => {
                             log::trace!("Resource not loaded yet.");
-                            view! { <Outlet/> }.into_view()
+                            view! { <CommentSection post_id=get_post_id()/> }.into_view()
                         }
                     }
                 })
@@ -313,19 +313,19 @@ pub fn VotePanel(score: i32, is_logged_in: bool) -> impl IntoView {
         <div class="flex items-center gap-1">
             <Show
                 when=move || { is_logged_in }
-                fallback=|| view! { <LoginButton><div class="btn btn-circle btn-sm hover:btn-success">"+"</div></LoginButton> }
+                fallback=|| view! { <LoginButton><div class="btn btn-ghost btn-circle btn-sm hover:btn-success"><PlusIcon/></div></LoginButton> }
             >
-                <button class="btn btn-circle btn-sm hover:btn-success">
-                    "+"
+                <button class="btn btn-ghost btn-circle btn-sm hover:btn-success">
+                    <PlusIcon/>
                 </button>
             </Show>
             <ScoreIndicator score=score/>
             <Show
                 when=move || { is_logged_in }
-                fallback=|| view! { <LoginButton><div class="btn btn-circle btn-sm hover:btn-error">"-"</div></LoginButton> }
+                fallback=|| view! { <LoginButton><div class="btn btn-ghost btn-circle btn-sm hover:btn-error"><MinusIcon/></div></LoginButton> }
             >
-                <button class="btn btn-circle btn-sm hover:btn-error">
-                    "-"
+                <button class="btn btn-ghost btn-circle btn-sm hover:btn-error">
+                    <MinusIcon/>
                 </button>
             </Show>
         </div>

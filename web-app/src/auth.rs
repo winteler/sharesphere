@@ -372,23 +372,42 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     Ok(())
 }
 
-/// Component to guard other components that require a login, e.g. a button to publish a comment
-/*#[component]
-pub fn LoginComponentGuard(
+/// Component to guard a button requiring a login. If the user is logged in, a simple button with the given class and
+/// children will be rendered. Otherwise, it will be replace by a form/button with the same appearance redirecting to a
+/// login screen.
+#[component]
+pub fn LoginGuardedButton(
+    class: &'static str,
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
-    move || state.user.with(|user| match user {
-        Some(Ok(user)) => {
-            children().into_view()
-        },
-        _ => view! { <LoginButton>"Test"</LoginButton> }.into_view(),
-    })
-}*/
+    view! {
+        <Suspense fallback=move || view! { <LoadingIcon/> }>
+            {
+                state.user.with(|result| {
+                    match result {
+                        Some(Ok(user)) => {
+                            view! {<button class=class>{children}</button>}.into_view()
+                        },
+                        Some(Err(e)) => {
+                            log::info!("Error while getting user: {}", e);
+                            view! { <LoginButton class=class>{children}</LoginButton> }.into_view()
+                        },
+                        None => {
+                            log::trace!("Resource not loaded yet.");
+                            view! { <button class=class>{children}</button> }.into_view()
+                        }
+                    }
+                })
+            }
+        </Suspense>
+    }
+}
 
 #[component]
 pub fn LoginButton(
+    class: &'static str,
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -398,7 +417,7 @@ pub fn LoginButton(
     view! {
         <form action=state.login_action.url() method="post" rel="external">
             <input type="text" name="redirect_url" class="hidden" value=current_path/>
-            <button type="submit" on:click=get_current_path>
+            <button type="submit" class=class on:click=get_current_path>
                 {children()}
             </button>
         </form>

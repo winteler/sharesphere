@@ -32,7 +32,7 @@ impl GlobalState {
             create_forum_action: create_server_action::<CreateForum>(),
             create_post_action: create_server_action::<CreatePost>(),
             create_comment_action: create_server_action::<CreateComment>(),
-            user: create_blocking_resource(
+            user: create_resource(
                 move || (),
                 move |_| { get_user() },
             ),

@@ -309,32 +309,19 @@ pub fn VotePanel(score: i32) -> impl IntoView {
                 login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
                 login_button_content=move || view! { <PlusIcon/> }
             >
-                <PlusIcon/>
+                <button class="btn btn-ghost btn-circle btn-sm hover:btn-success">
+                    <PlusIcon/>
+                </button>
             </LoginGuardButton>
             <ScoreIndicator score=score/>
             <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
                 login_button_content=move || view! { <MinusIcon/> }
             >
-                <MinusIcon/>
-            </LoginGuardButton>
-            /*<Show
-                when=move || { is_logged_in }
-                fallback=|| view! { <LoginButton><div class="btn btn-ghost btn-circle btn-sm hover:btn-success"><PlusIcon/></div></LoginButton> }
-            >
-                <button class="btn btn-ghost btn-circle btn-sm hover:btn-success">
-                    <PlusIcon/>
-                </button>
-            </Show>
-            <ScoreIndicator score=score/>
-            <Show
-                when=move || { is_logged_in }
-                fallback=|| view! { <LoginButton><div class="btn btn-ghost btn-circle btn-sm hover:btn-error"><MinusIcon/></div></LoginButton> }
-            >
                 <button class="btn btn-ghost btn-circle btn-sm hover:btn-error">
                     <MinusIcon/>
                 </button>
-            </Show>*/
+            </LoginGuardButton>
         </div>
     }
 }

@@ -377,10 +377,10 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 /// login screen.
 #[component]
 pub fn LoginGuardButton(
-    children: Children,
     login_button_class: &'static str,
     #[prop(into)]
     login_button_content: ViewFn,
+    children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
@@ -390,27 +390,21 @@ pub fn LoginGuardButton(
         }
     });
 
-    view! {
-        <Suspense fallback=|| view! { <LoadingIcon/> }>
-            {
-                state.user.with(|result| {
-                    match result {
-                        Some(Ok(_)) => {
-                            view! {children()}.into_view()
-                        },
-                        Some(Err(e)) => {
-                            log::info!("Error while getting user: {}", e);
-                            view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
-                        },
-                        None => {
-                            log::trace!("Resource not loaded yet.");
-                            view! { children() }.into_view()
-                        }
-                    }
-                })
+    state.user.with(|result| {
+        match result {
+            Some(Ok(_user)) => {
+                children().into_view()
+            },
+            Some(Err(e)) => {
+                log::info!("Error while getting user: {}", e);
+                view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
+            },
+            None => {
+                log::trace!("Resource not loaded yet.");
+                view! { <LoadingIcon/> }.into_view()
             }
-        </Suspense>
-    }
+        }
+    })
 }
 
 #[component]

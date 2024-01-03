@@ -372,31 +372,39 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     Ok(())
 }
 
-/// Component to guard a button requiring a login. If the user is logged in, a simple button with the given class and
+/// Component to guard a component requiring a login. If the user is logged in, a simple button with the given class and
 /// children will be rendered. Otherwise, it will be replace by a form/button with the same appearance redirecting to a
 /// login screen.
 #[component]
-pub fn LoginGuardedButton(
-    class: &'static str,
+pub fn LoginGuardButton(
     children: Children,
+    login_button_class: &'static str,
+    #[prop(into)]
+    login_button_content: ViewFn,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
+    let login_button_content = create_memo({
+        move |_| {
+            login_button_content.run()
+        }
+    });
+
     view! {
-        <Suspense fallback=move || view! { <LoadingIcon/> }>
+        <Suspense fallback=|| view! { <LoadingIcon/> }>
             {
                 state.user.with(|result| {
                     match result {
-                        Some(Ok(user)) => {
-                            view! {<button class=class>{children}</button>}.into_view()
+                        Some(Ok(_)) => {
+                            view! {children()}.into_view()
                         },
                         Some(Err(e)) => {
                             log::info!("Error while getting user: {}", e);
-                            view! { <LoginButton class=class>{children}</LoginButton> }.into_view()
+                            view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
                         },
                         None => {
                             log::trace!("Resource not loaded yet.");
-                            view! { <button class=class>{children}</button> }.into_view()
+                            view! { children() }.into_view()
                         }
                     }
                 })

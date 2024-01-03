@@ -73,13 +73,13 @@ pub fn UserProfile() -> impl IntoView {
                 Some(Ok(user)) => {
                     if user.anonymous
                     {
-                        return view! { <LoginButton><div class="btn btn-ghost btn-circle rounded-full"><UserIcon/></div></LoginButton> }.into_view();
+                        return view! { <LoginButton class="btn btn-ghost btn-circle rounded-full"><UserIcon/></LoginButton> }.into_view();
                     }
                     view! { <LoggedInMenu user=user/> }.into_view()
                 },
                 Some(Err(e)) => {
                     log::info!("Get user error: {}", e);
-                    view! { <LoginButton><div class="btn btn-ghost btn-circle rounded-full"><UserIcon/></div></LoginButton> }.into_view()
+                    view! { <LoginButton class="btn btn-ghost btn-circle rounded-full"><UserIcon/></LoginButton> }.into_view()
                 },
                 None => {
                     log::trace!("Resource not loaded yet.");

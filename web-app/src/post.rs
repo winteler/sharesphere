@@ -5,7 +5,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::auth::{LoginButton};
+use crate::auth::{LoginGuardButton};
 use crate::comment::{CommentButton, CommentSection};
 use crate::common_components::FormTextEditor;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
@@ -233,7 +233,6 @@ pub fn CreatePost() -> impl IntoView {
 /// Component to display a content
 #[component]
 pub fn Post() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let post_id = create_rw_signal(0i64);
     let get_post_id = move || {
@@ -243,11 +242,6 @@ pub fn Post() -> impl IntoView {
         }
         post_id.get()
     };
-
-    let is_user_logged_in = move || state.user.with(|user| match user {
-        Some(Ok(user)) => !user.anonymous,
-        _ => false,
-    });
 
     // TODO: create PostDetail struct with additional info, like vote of user. Load this here instead of normal post
     let post = create_resource(
@@ -268,7 +262,7 @@ pub fn Post() -> impl IntoView {
                                                 <h2 class="card-title">{post.title.clone()}</h2>
                                                 {post.body.clone()}
                                                 <div class="flex gap-2">
-                                                    <VotePanel is_logged_in=is_user_logged_in() score=post.score/>
+                                                    <VotePanel score=post.score/>
                                                     <CommentButton post_id=post.id/>
                                                     <PostAuthor post=&post/>
                                                     <PostTime post=&post/>
@@ -308,10 +302,23 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
 
 /// Component to display and modify post's score
 #[component]
-pub fn VotePanel(score: i32, is_logged_in: bool) -> impl IntoView {
+pub fn VotePanel(score: i32) -> impl IntoView {
     view! {
         <div class="flex items-center gap-1">
-            <Show
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
+                login_button_content=move || view! { <PlusIcon/> }
+            >
+                <PlusIcon/>
+            </LoginGuardButton>
+            <ScoreIndicator score=score/>
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
+                login_button_content=move || view! { <MinusIcon/> }
+            >
+                <MinusIcon/>
+            </LoginGuardButton>
+            /*<Show
                 when=move || { is_logged_in }
                 fallback=|| view! { <LoginButton><div class="btn btn-ghost btn-circle btn-sm hover:btn-success"><PlusIcon/></div></LoginButton> }
             >
@@ -327,7 +334,7 @@ pub fn VotePanel(score: i32, is_logged_in: bool) -> impl IntoView {
                 <button class="btn btn-ghost btn-circle btn-sm hover:btn-error">
                     <MinusIcon/>
                 </button>
-            </Show>
+            </Show>*/
         </div>
     }
 }

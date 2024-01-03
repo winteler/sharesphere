@@ -4,6 +4,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
+use crate::auth::LoginGuardButton;
 use crate::common_components::FormTextEditor;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon};
 
@@ -117,20 +118,25 @@ pub fn CommentButton(post_id: i64) -> impl IntoView {
 
     view! {
         <div>
-            <button
-                class="btn m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
-                class=("btn-accent", move || !hide_comment_form())
-                class=("btn-ghost", move || hide_comment_form())
-                on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
+            <LoginGuardButton
+                login_button_class="btn btn-ghost"
+                login_button_content=move || view! { <CommentIcon/> }
             >
-                <CommentIcon/>
-            </button>
-            <div
-                class="absolute float-left z-10 w-1/2 2xl:w-1/3 origin-top-right" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1"
-                class:hidden=hide_comment_form
-            >
-                <CommentForm post_id=post_id on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)/>
-            </div>
+                <button
+                    class="btn m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
+                    class=("btn-accent", move || !hide_comment_form())
+                    class=("btn-ghost", move || hide_comment_form())
+                    on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
+                >
+                    <CommentIcon/>
+                </button>
+                <div
+                    class="absolute float-left z-10 w-1/2 2xl:w-1/3 origin-top-right" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1"
+                    class:hidden=hide_comment_form
+                >
+                    <CommentForm post_id=post_id on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)/>
+                </div>
+            </LoginGuardButton>
         </div>
     }
 }

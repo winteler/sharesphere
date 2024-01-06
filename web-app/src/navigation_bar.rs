@@ -60,10 +60,16 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
+    //let state = expect_context::<GlobalState>();
+    // TODO: use LoginGuardButton
 
     view! {
-        <Transition fallback=move || {
+        <LoginGuardButtonWithUser
+            login_button_class="btn btn-ghost btn-circle rounded-full"
+            login_button_content=move || view! { <UserIcon/> }
+            children_content=move |user: &User| view! { <LoggedInMenu user=user/> }
+        />
+        /*<Transition fallback=move || {
             view! {
                 <button class="btn btn-ghost btn-circle rounded-full"><UserIcon/></button>
             }
@@ -87,7 +93,7 @@ pub fn UserProfile() -> impl IntoView {
                 }
             })
         }}
-        </Transition>
+        </Transition>*/
     }
 }
 

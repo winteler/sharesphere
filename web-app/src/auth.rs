@@ -401,10 +401,66 @@ pub fn LoginGuardButton(
             },
             None => {
                 log::trace!("Resource not loaded yet.");
-                view! { <LoadingIcon/> }.into_view()
+                view! { <button class=login_button_class/> }.into_view()
             }
         }
     })
+}
+
+#[component]
+pub fn LoginGuardButtonWithUser<F>(
+    login_button_class: &'static str,
+    #[prop(into)]
+    login_button_content: ViewFn,
+    children_content: F,
+) -> impl IntoView
+    where
+        F: Fn(&User) -> View + 'static,
+{
+    let state = expect_context::<GlobalState>();
+
+    let login_button_memo = create_memo({
+        move |_| {
+            login_button_content.run()
+        }
+    });
+
+    let content = create_memo({
+        move |_| {
+            state.user.with(|result| {
+                match result {
+                    Some(Ok(user)) => {
+                        children_content(&user)
+                    },
+                    Some(Err(e)) => {
+                        log::info!("Error while getting user: {}", e);
+                        view! { <LoginButton class=login_button_class>{login_button_memo()}</LoginButton> }.into_view()
+                    },
+                    None => {
+                        log::trace!("Resource not loaded yet.");
+                        view! { <button class=login_button_class/> }.into_view()
+                    }
+                }
+            })
+        }
+    });
+
+    content.get()
+    /*state.user.with(|result| {
+        match result {
+            Some(Ok(user)) => {
+                children_content()
+            },
+            Some(Err(e)) => {
+                log::info!("Error while getting user: {}", e);
+                view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
+            },
+            None => {
+                log::trace!("Resource not loaded yet.");
+                view! { <button class=login_button_class/> }.into_view()
+            }
+        }
+    })*/
 }
 
 #[component]

@@ -60,40 +60,12 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
-    //let state = expect_context::<GlobalState>();
-    // TODO: use LoginGuardButton
-
     view! {
         <LoginGuardButtonWithUser
             login_button_class="btn btn-ghost btn-circle rounded-full"
             login_button_content=move || view! { <UserIcon/> }
             children_content=move |user: &User| view! { <LoggedInMenu user=user/> }
         />
-        /*<Transition fallback=move || {
-            view! {
-                <button class="btn btn-ghost btn-circle rounded-full"><UserIcon/></button>
-            }
-        }>
-        {move || {
-            state.user.with(|user| match user {
-                Some(Ok(user)) => {
-                    if user.anonymous
-                    {
-                        return view! { <LoginButton class="btn btn-ghost btn-circle rounded-full"><UserIcon/></LoginButton> }.into_view();
-                    }
-                    view! { <LoggedInMenu user=user/> }.into_view()
-                },
-                Some(Err(e)) => {
-                    log::info!("Get user error: {}", e);
-                    view! { <LoginButton class="btn btn-ghost btn-circle rounded-full"><UserIcon/></LoginButton> }.into_view()
-                },
-                None => {
-                    log::trace!("Resource not loaded yet.");
-                    view! { <button class="btn btn-ghost btn-circle rounded-full"><UserIcon/></button> }.into_view()
-                }
-            })
-        }}
-        </Transition>*/
     }
 }
 
@@ -142,7 +114,7 @@ pub fn PlusMenu() -> impl IntoView {
     view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
-                <PlusIcon/>
+                <AddIcon/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
                 <li><a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a></li>

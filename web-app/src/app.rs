@@ -34,7 +34,7 @@ impl GlobalState {
             create_comment_action: create_server_action::<CreateComment>(),
             user: create_resource(
                 move || (),
-                move |_| { get_user() },
+                move |_| get_user(),
             ),
         }
     }
@@ -46,7 +46,7 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     // Provide global context for app
-    provide_context( GlobalState::new());
+    provide_context(GlobalState::new());
 
     view! {
         // injects a stylesheet into the document <head>

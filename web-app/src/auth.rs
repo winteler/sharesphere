@@ -182,14 +182,6 @@ pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, ServerFnErro
 }
 
 #[cfg(feature = "ssr")]
-pub async fn is_user_authenticated() -> bool {
-    match get_user().await {
-        Ok(user) => !user.anonymous,
-        Err(_) => false
-    }
-}
-
-#[cfg(feature = "ssr")]
 pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
     let redirect_url = get_auth_redirect()?;
     let issuer_url = get_issuer_url()?;
@@ -392,7 +384,7 @@ pub fn LoginGuardButton(
 
     state.user.with(|result| {
         match result {
-            Some(Ok(_user)) => {
+            Some(Ok(_)) => {
                 children().into_view()
             },
             Some(Err(e)) => {
@@ -425,42 +417,33 @@ pub fn LoginGuardButtonWithUser<F>(
         }
     });
 
-    let content = create_memo({
+    let children_memo = create_memo({
         move |_| {
-            state.user.with(|result| {
-                match result {
-                    Some(Ok(user)) => {
-                        children_content(&user)
-                    },
-                    Some(Err(e)) => {
-                        log::info!("Error while getting user: {}", e);
-                        view! { <LoginButton class=login_button_class>{login_button_memo()}</LoginButton> }.into_view()
-                    },
-                    None => {
-                        log::trace!("Resource not loaded yet.");
-                        view! { <button class=login_button_class/> }.into_view()
-                    }
-                }
-            })
+            children_content(&state.user.get().unwrap().unwrap())
         }
     });
 
-    content.get()
-    /*state.user.with(|result| {
-        match result {
-            Some(Ok(user)) => {
-                children_content()
-            },
-            Some(Err(e)) => {
-                log::info!("Error while getting user: {}", e);
-                view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
-            },
-            None => {
-                log::trace!("Resource not loaded yet.");
-                view! { <button class=login_button_class/> }.into_view()
+    view! {
+        <Transition fallback=move || (view! { <LoadingIcon/> })>
+            {
+                move || state.user.with(|result| {
+                    match result {
+                        Some(Ok(_)) => {
+                            children_memo.get()
+                        },
+                        Some(Err(e)) => {
+                            log::info!("Error while getting user: {}", e);
+                            view! { <LoginButton class=login_button_class>{login_button_memo.get()}</LoginButton> }.into_view()
+                        },
+                        None => {
+                            log::trace!("Resource not loaded yet.");
+                            view! { <button class=login_button_class/> }.into_view()
+                        }
+                    }
+                })
             }
-        }
-    })*/
+        </Transition>
+    }
 }
 
 #[component]

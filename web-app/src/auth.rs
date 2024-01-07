@@ -419,7 +419,11 @@ pub fn LoginGuardButtonWithUser<F>(
 
     let children_memo = create_memo({
         move |_| {
-            children_content(&state.user.get().unwrap().unwrap())
+            let user = match state.user.get() {
+                Some(Ok(user)) => user,
+                _ => User::default()
+            };
+            children_content(&user)
         }
     });
 

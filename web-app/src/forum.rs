@@ -6,9 +6,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::common_components::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
-use crate::post::{get_post_vec_by_forum_name, Post, PostAuthor, ScoreIndicator, PostTime, POST_ROUTE_PREFIX};
+use crate::post::{get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
+use crate::score::{ScoreIndicator};
+use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -356,8 +357,8 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>, forum_name: String) -> i
                                     <h2 class="card-title">{post.title.clone()}</h2>
                                     <div class="flex gap-2">
                                         <ScoreIndicator score=post.score/>
-                                        <PostAuthor post=post/>
-                                        <PostTime post=post/>
+                                        <AuthorWidget author=&post.creator_name/>
+                                        <TimeSinceWidget timestamp=&post.create_timestamp/>
                                     </div>
                                 </div>
                             </a>

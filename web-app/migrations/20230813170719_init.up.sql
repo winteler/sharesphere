@@ -38,6 +38,7 @@ CREATE TABLE posts (
     recommended_score INT NOT NULL DEFAULT 0,
     trending_score INT NOT NULL DEFAULT 0,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    edit_timestamp TIMESTAMPTZ,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -49,10 +50,13 @@ CREATE TABLE comments (
     parent_id BIGINT,
     post_id BIGINT NOT NULL,
     creator_id BIGINT NOT NULL,
+    creator_name TEXT NOT NULL,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score INT NOT NULL DEFAULT 0,
     trending_score INT NOT NULL DEFAULT 0,
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    edit_timestamp TIMESTAMPTZ,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

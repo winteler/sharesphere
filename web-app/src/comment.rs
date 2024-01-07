@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
-use crate::common_components::FormTextEditor;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon};
+use crate::score::{VotePanel};
+use crate::widget::{AuthorWidget, TimeSinceWidget, FormTextEditor};
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -24,10 +25,13 @@ pub struct Comment {
     pub parent_id: Option<i64>,
     pub post_id: i64,
     pub creator_id: i64,
+    pub creator_name: String,
     pub score: i32,
     pub score_minus: i32,
     pub recommended_score: i32,
     pub trending_score: i32,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
+    pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
@@ -189,6 +193,20 @@ pub fn CommentBox<'a>(comment: &'a Comment) -> impl IntoView {
     view! {
         <div>
             {comment.body.clone()}
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="flex flex-col gap-4">
+                    {comment.body.clone()}
+                    <div class="flex gap-2">
+                        <VotePanel score=comment.score/>
+                        // TODO, pass comment id as optional prop
+                        <CommentButton post_id=comment.post_id/>
+                        <AuthorWidget author=&comment.creator_name/>
+                        <TimeSinceWidget timestamp=&comment.create_timestamp/>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 }

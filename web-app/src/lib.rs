@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 pub mod app;
 pub mod auth;
 pub mod comment;
-pub mod common_components;
+pub mod widget;
 pub mod constants;
 pub mod post;
 pub mod sidebar;
@@ -12,6 +12,7 @@ pub mod footer;
 pub mod forum;
 pub mod icons;
 pub mod navigation_bar;
+pub mod score;
 pub mod state;
 
 cfg_if! { if #[cfg(feature = "hydrate")] {

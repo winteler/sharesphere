@@ -60,12 +60,27 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     view! {
-        <LoginGuardButtonWithUser
-            login_button_class="btn btn-ghost btn-circle rounded-full"
-            login_button_content=move || view! { <UserIcon/> }
-            children_content=move |user: &User| view! { <LoggedInMenu user=user/> }
-        />
+        <Transition fallback=move || (view! { <LoadingIcon/> })>
+            {
+                move || state.user.with(|result| {
+                    match result {
+                        Some(Ok(user)) => {
+                            view! { <LoggedInMenu user=user/> }.into_view()
+                        },
+                        Some(Err(e)) => {
+                            log::info!("Error while getting user: {}", e);
+                            view! { <LoginButton class="btn btn-ghost btn-circle rounded-full"><UserIcon/></LoginButton> }.into_view()
+                        },
+                        None => {
+                            log::trace!("Resource not loaded yet.");
+                            view! { <button class="btn btn-ghost btn-circle rounded-full"/> }.into_view()
+                        }
+                    }
+                })
+            }
+        </Transition>
     }
 }
 

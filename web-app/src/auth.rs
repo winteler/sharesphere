@@ -372,7 +372,7 @@ pub fn LoginGuardButton(
     login_button_class: &'static str,
     #[prop(into)]
     login_button_content: ViewFn,
-    children: Children,
+    children: ChildrenFn,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
@@ -382,21 +382,23 @@ pub fn LoginGuardButton(
         }
     });
 
-    state.user.with(|result| {
-        match result {
-            Some(Ok(_)) => {
-                children().into_view()
-            },
-            Some(Err(e)) => {
-                log::info!("Error while getting user: {}", e);
-                view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
-            },
-            None => {
-                log::trace!("Resource not loaded yet.");
-                view! { <button class=login_button_class/> }.into_view()
+    view! {
+        {
+            move || match state.user.get() {
+                Some(Ok(_)) => {
+                    children().into_view()
+                },
+                Some(Err(e)) => {
+                    log::info!("Error while getting user: {}", e);
+                    view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
+                },
+                None => {
+                    log::trace!("Resource not loaded yet.");
+                    view! { <button class=login_button_class/> }.into_view()
+                }
             }
         }
-    })
+    }
 }
 
 #[component]

@@ -40,7 +40,7 @@ pub fn FormTextEditor(
                 </div>
                 <button
                     class="btn btn-active btn-secondary"
-                    class:invisible=move || !with_publish_button
+                    class:hidden=move || !with_publish_button
                     disabled=is_empty
                 >
                     "Publish"

@@ -70,11 +70,12 @@ pub async fn create_comment(
     }
 
     sqlx::query!(
-        "INSERT INTO comments (body, parent_id, post_id, creator_id) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO comments (body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5)",
         comment,
         parent_comment_id,
         post_id,
         user.id,
+        user.username,
     )
         .execute(&db_pool)
         .await?;
@@ -191,9 +192,6 @@ pub fn CommentForm(post_id: i64) -> impl IntoView {
 #[component]
 pub fn CommentBox<'a>(comment: &'a Comment) -> impl IntoView {
     view! {
-        <div>
-            {comment.body.clone()}
-        </div>
         <div class="card">
             <div class="card-body">
                 <div class="flex flex-col gap-4">

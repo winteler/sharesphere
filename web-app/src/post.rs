@@ -249,13 +249,13 @@ pub fn Post() -> impl IntoView {
         move |post_id| get_post_by_id(post_id));
 
     view! {
-        <Suspense fallback=move || view! { <LoadingIcon/> }>
-            {
-                post.with(|result| {
-                    match result {
-                        Some(Ok(post)) => {
-                            view! {
-                                <div class="flex flex-col content-start gap-1">
+        <div class="flex flex-col content-start gap-1">
+            <Suspense fallback=move || view! { <LoadingIcon/> }>
+                {
+                    post.with(|result| {
+                        match result {
+                            Some(Ok(post)) => {
+                                view! {
                                     <div class="card">
                                         <div class="card-body">
                                             <div class="flex flex-col gap-4">
@@ -270,21 +270,21 @@ pub fn Post() -> impl IntoView {
                                             </div>
                                         </div>
                                     </div>
-                                    <CommentSection post_id=post.id/>
-                                </div>
-                            }.into_view()
-                        },
-                        Some(Err(e)) => {
-                            log::info!("Error while getting forum names: {}", e);
-                            view! { <ErrorIcon/> }.into_view()
-                        },
-                        None => {
-                            log::trace!("Resource not loaded yet.");
-                            view! { <CommentSection post_id=get_post_id()/> }.into_view()
+                                }.into_view()
+                            },
+                            Some(Err(e)) => {
+                                log::info!("Error while getting forum names: {}", e);
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                            None => {
+                                log::trace!("Resource not loaded yet.");
+                                view! { <LoadingIcon/> }.into_view()
+                            }
                         }
-                    }
-                })
-            }
-        </Suspense>
+                    })
+                }
+            </Suspense>
+            <CommentSection post_id=get_post_id()/>
+        </div>
     }
 }

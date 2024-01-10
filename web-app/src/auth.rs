@@ -385,7 +385,8 @@ pub fn LoginGuardButton(
     view! {
         {
             move || match state.user.get() {
-                Some(Ok(_)) => {
+                Some(Ok(user)) => {
+                    provide_context(user);
                     children().into_view()
                 },
                 Some(Err(e)) => {
@@ -398,57 +399,6 @@ pub fn LoginGuardButton(
                 }
             }
         }
-    }
-}
-
-#[component]
-pub fn LoginGuardButtonWithUser<F>(
-    login_button_class: &'static str,
-    #[prop(into)]
-    login_button_content: ViewFn,
-    children_content: F,
-) -> impl IntoView
-    where
-        F: Fn(&User) -> View + 'static,
-{
-    let state = expect_context::<GlobalState>();
-
-    let login_button_memo = create_memo({
-        move |_| {
-            login_button_content.run()
-        }
-    });
-
-    let children_memo = create_memo({
-        move |_| {
-            let user = match state.user.get() {
-                Some(Ok(user)) => user,
-                _ => User::default()
-            };
-            children_content(&user)
-        }
-    });
-
-    view! {
-        <Transition fallback=move || (view! { <LoadingIcon/> })>
-            {
-                move || state.user.with(|result| {
-                    match result {
-                        Some(Ok(_)) => {
-                            children_memo.get()
-                        },
-                        Some(Err(e)) => {
-                            log::info!("Error while getting user: {}", e);
-                            view! { <LoginButton class=login_button_class>{login_button_memo.get()}</LoginButton> }.into_view()
-                        },
-                        None => {
-                            log::trace!("Resource not loaded yet.");
-                            view! { <button class=login_button_class/> }.into_view()
-                        }
-                    }
-                })
-            }
-        </Transition>
     }
 }
 

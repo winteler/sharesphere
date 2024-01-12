@@ -114,6 +114,23 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
     Ok(())
 }
 
+/// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
+pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
+    create_memo(move |current_post_id: Option<&i64>| {
+        if let Some(new_post_id_string) = params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()) {
+            if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
+                new_post_id
+            }
+            else {
+                current_post_id.cloned().unwrap_or_default()
+            }
+        }
+        else {
+            current_post_id.cloned().unwrap_or_default()
+        }
+    })
+}
+
 /// Component to create a new content
 #[component]
 pub fn CreatePost() -> impl IntoView {
@@ -234,18 +251,11 @@ pub fn CreatePost() -> impl IntoView {
 #[component]
 pub fn Post() -> impl IntoView {
     let params = use_params_map();
-    let post_id = create_rw_signal(0i64);
-    let get_post_id = move || {
-        let post_id_parse_result = params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().parse::<i64>();
-        if post_id_parse_result.is_ok() {
-            post_id.update(|value: &mut i64| *value = post_id_parse_result.unwrap());
-        }
-        post_id.get()
-    };
+    let post_id = get_post_id_memo(params);
 
     // TODO: create PostDetail struct with additional info, like vote of user. Load this here instead of normal post
     let post = create_resource(
-        move || get_post_id(),
+        move || post_id(),
         move |post_id| get_post_by_id(post_id));
 
     view! {
@@ -284,7 +294,7 @@ pub fn Post() -> impl IntoView {
                     })
                 }
             </Suspense>
-            <CommentSection post_id=get_post_id()/>
+            <CommentSection/>
         </div>
     }
 }

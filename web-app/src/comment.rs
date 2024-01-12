@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon};
+use crate::post::{get_post_id_memo};
 use crate::score::{VotePanel};
 use crate::widget::{AuthorWidget, TimeSinceWidget, FormTextEditor};
 
@@ -85,9 +86,13 @@ pub async fn create_comment(
 
 /// Comment section component
 #[component]
-pub fn CommentSection(post_id: i64) -> impl IntoView {
+pub fn CommentSection() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let comment_vec = create_resource(move || state.create_comment_action.version().get(), move |_| get_post_comments(post_id));
+    let params = use_params_map();
+    let post_id = get_post_id_memo(params);
+    let comment_vec = create_resource(
+        move || (post_id(), state.create_comment_action.version().get()),
+        move |(post_id, _)| get_post_comments(post_id));
 
     view! {
         <div class="flex flex-col h-full">

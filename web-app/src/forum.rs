@@ -149,14 +149,17 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
 }
 
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page
-pub fn get_current_forum_name_closure(params: Memo<ParamsMap>, forum_name_signal: RwSignal<String>) -> impl Fn() -> String {
-    move || {
-        let current_forum = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned());
-        if current_forum.is_some() {
-            forum_name_signal.update(|value: &mut String| *value = current_forum.unwrap().clone())
+pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
+    create_memo(move |current_forum_name: Option<&String>| {
+        if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()) {
+            log::info!("Got new valid forum name {new_forum_name}");
+            new_forum_name
         }
-        forum_name_signal.get()
-    }
+        else {
+            current_forum_name.cloned().unwrap_or_default()
+        }
+
+    })
 }
 
 /// Component to create new forums
@@ -261,13 +264,11 @@ pub fn CreateForum() -> impl IntoView {
 /// Component to display a forum's banner
 #[component]
 pub fn ForumBanner() -> impl IntoView {
-
-    let forum_name = create_rw_signal(String::default());
     let params = use_params_map();
-    let get_forum_name = get_current_forum_name_closure(params, forum_name);
+    let forum_name = get_forum_name_memo(params);
     let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().as_ref();
 
-    let forum = create_resource(move || get_forum_name(), move |forum_name| get_forum_by_name(forum_name));
+    let forum = create_resource(move || forum_name(), move |forum_name| get_forum_by_name(forum_name));
     // TODO: add forum banner
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
@@ -286,7 +287,7 @@ pub fn ForumBanner() -> impl IntoView {
                                         <div class="hero-content text-neutral-content text-left">
                                             <a href=forum_path() class="btn btn-ghost normal-case text-l">
                                                 <StacksIcon/>
-                                                <h2 class="text-4xl">{forum_name}</h2>
+                                                <h2 class="text-4xl">{forum_name()}</h2>
                                             </a>
                                         </div>
                                     </div>
@@ -314,10 +315,11 @@ pub fn ForumBanner() -> impl IntoView {
 pub fn ForumContents() -> impl IntoView {
 
     let state = expect_context::<GlobalState>();
-    let forum_name = create_rw_signal(String::default());
     let params = use_params_map();
-    let get_forum_name = get_current_forum_name_closure(params, forum_name);
-    let post_vec = create_resource(move || (get_forum_name(), state.create_post_action.version().get()), move |(forum_name, _)| get_post_vec_by_forum_name(forum_name));
+    let forum_name = get_forum_name_memo(params);
+    let post_vec = create_resource(
+        move || (forum_name(), state.create_post_action.version().get()),
+        move |(forum_name, _)| get_post_vec_by_forum_name(forum_name));
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>

@@ -376,12 +376,6 @@ pub fn LoginGuardButton(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
-    let login_button_content = create_memo({
-        move |_| {
-            login_button_content.run()
-        }
-    });
-
     view! {
         {
             move || match state.user.get() {
@@ -391,7 +385,8 @@ pub fn LoginGuardButton(
                 },
                 Some(Err(e)) => {
                     log::info!("Error while getting user: {}", e);
-                    view! { <LoginButton class=login_button_class>{login_button_content()}</LoginButton> }.into_view()
+                    let login_button_view = login_button_content.run();
+                    view! { <LoginButton class=login_button_class>{login_button_view}</LoginButton> }.into_view()
                 },
                 None => {
                     log::trace!("Resource not loaded yet.");

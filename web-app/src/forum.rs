@@ -277,42 +277,39 @@ pub fn ForumBanner() -> impl IntoView {
         });
     // TODO: add forum banner
     view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || {
-                     forum.with(|result| match result {
-                        Some(Ok(forum)) => {
-                            let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
-                            view! {
-                                <div class="flex flex-col w-full">
-                                    <div
-                                        class="hero bg-blue-500"
-                                        style:background-image=forum_banner_image
-                                    >
-                                        <div class="hero-overlay bg-opacity-0"></div>
-                                        <div class="hero-content text-neutral-content text-left">
-                                            <a href=forum_path() class="btn btn-ghost normal-case text-l">
-                                                <StacksIcon/>
-                                                <h2 class="text-4xl">{forum_name()}</h2>
-                                            </a>
+        <div class="flex flex-col w-full">
+            <Transition fallback=move || view! {  <LoadingIcon/> }>
+                {
+                    move || {
+                         forum.map(|result| match result {
+                            Ok(forum) => {
+                                let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
+                                view! {
+                                        <div
+                                            class="hero bg-blue-500"
+                                            style:background-image=forum_banner_image
+                                        >
+                                            <div class="hero-overlay bg-opacity-0"></div>
+                                            <div class="hero-content text-neutral-content text-left">
+                                                <a href=forum_path() class="btn btn-ghost normal-case text-l">
+                                                    <StacksIcon/>
+                                                    <h2 class="text-4xl">{forum_name()}</h2>
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <Outlet/>
-                                </div>
-                            }.into_view()
-                        },
-                        Some(Err(e)) => {
-                            log::info!("Error: {}", e);
-                            view! { <ErrorIcon/> }.into_view()
-                        },
-                        None => {
-                            log::trace!("Resource not loaded yet.");
-                            view! { <Outlet/> }.into_view()
-                        },
-                    })
+
+                                }.into_view()
+                            },
+                            Err(e) => {
+                                log::info!("Error: {}", e);
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                        })
+                    }
                 }
-            }
-        </Transition>
+            </Transition>
+            <Outlet/>
+        </div>
     }
 }
 

@@ -21,6 +21,8 @@ pub struct GlobalState {
     pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
     pub create_post_action: Action<CreatePost, Result<(), ServerFnError>>,
     pub create_comment_action: Action<CreateComment, Result<(), ServerFnError>>,
+    pub current_forum_name: Option<Memo<String>>,
+    pub current_post_id: Option<Memo<i64>>,
     pub user: Resource<(), Result<User, ServerFnError>>,
 }
 
@@ -32,6 +34,8 @@ impl GlobalState {
             create_forum_action: create_server_action::<CreateForum>(),
             create_post_action: create_server_action::<CreatePost>(),
             create_comment_action: create_server_action::<CreateComment>(),
+            current_forum_name: None,
+            current_post_id: None,
             user: create_local_resource(
                 move || (),
                 move |_| get_user(),

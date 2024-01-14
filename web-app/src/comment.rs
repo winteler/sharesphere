@@ -92,7 +92,10 @@ pub fn CommentSection() -> impl IntoView {
     let post_id = get_post_id_memo(params);
     let comment_vec = create_resource(
         move || (post_id(), state.create_comment_action.version().get()),
-        move |(post_id, _)| get_post_comments(post_id));
+        move |(post_id, _)| {
+            log::info!("Load comments for post: {post_id}");
+            get_post_comments(post_id)
+        });
 
     view! {
         <div class="flex flex-col h-full">

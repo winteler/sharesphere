@@ -152,10 +152,11 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
 pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     create_memo(move |current_forum_name: Option<&String>| {
         if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()) {
-            log::info!("Got new valid forum name {new_forum_name}");
+            log::info!("Current forum name {:?}, new forum name: {new_forum_name}", current_forum_name);
             new_forum_name
         }
         else {
+            log::info!("No valid forum name, keep current value: {:?}", current_forum_name);
             current_forum_name.cloned().unwrap_or_default()
         }
 
@@ -268,7 +269,12 @@ pub fn ForumBanner() -> impl IntoView {
     let forum_name = get_forum_name_memo(params);
     let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().as_ref();
 
-    let forum = create_resource(move || forum_name(), move |forum_name| get_forum_by_name(forum_name));
+    let forum = create_resource(
+        move || forum_name(),
+        move |forum_name| {
+            log::info!("Load data for forum: {forum_name}");
+            get_forum_by_name(forum_name)
+        });
     // TODO: add forum banner
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>

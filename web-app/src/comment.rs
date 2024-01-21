@@ -36,6 +36,12 @@ pub struct Comment {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct CommentWithChildren {
+    pub comment: Comment,
+    pub child_comments: Vec<CommentWithChildren>,
+}
+
 #[server]
 pub async fn get_post_comments(
     post_id: i64,
@@ -43,7 +49,7 @@ pub async fn get_post_comments(
     let db_pool = get_db_pool()?;
 
     if post_id < 1 {
-        return Err(ServerFnError::ServerError(String::from("Cannot create empty comment.")));
+        return Err(ServerFnError::ServerError(String::from("Invalid post id.")));
     }
 
     let comment_vec = sqlx::query_as!(
@@ -56,6 +62,89 @@ pub async fn get_post_comments(
 
     Ok(comment_vec)
 }
+
+#[server]
+pub async fn get_post_comment_tree(
+    post_id: i64,
+) -> Result<Vec<CommentWithChildren>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+
+    if post_id < 1 {
+        return Err(ServerFnError::ServerError(String::from("Invalid post id.")));
+    }
+
+    let _comment_vec = sqlx::query_as!(
+        Comment,
+        "WITH RECURSIVE comment_tree AS (
+            SELECT 1 AS depth,
+                   id,
+                   ARRAY[(create_timestamp, id)] AS path
+            FROM comments
+            WHERE post_id = $1
+            UNION ALL
+            SELECT r.depth + 1,
+                   n.id,
+                   r.path || (n.create_timestamp, n.id)
+            FROM comment_tree r
+            JOIN comments n ON n.parent_id = r.id
+        )
+        SELECT c.*
+        FROM comments c
+        INNER JOIN comment_tree r ON c.id = r.id
+        ORDER BY r.path",
+        post_id,
+    )
+        .fetch_all(&db_pool)
+        .await?;
+
+    let mut comment_tree = Vec::<CommentWithChildren>::new();
+    let mut stack = Vec::<CommentWithChildren>::new();
+    for comment in _comment_vec {
+        log::info!("Got comment {:?}", comment);
+        let current = CommentWithChildren {
+            comment: comment,
+            child_comments: Vec::<CommentWithChildren>::default(),
+        };
+
+
+        while let Some(top) = stack.last() {
+            if current.comment.parent_id.is_some() && current.comment.parent_id.unwrap() == top.comment.id {
+                // current comment is child of the previous one, keep building stack
+                break;
+            } else {
+                // current comment is not a child of the previous one, previous comment is complete. Add it in its parent.
+                let complete_comment = stack.pop().unwrap();
+                if let Some(new_top) = stack.last_mut() {
+                    // add the complete comment in its parent
+                    new_top.child_comments.push(complete_comment);
+                }
+                else {
+                    // root comment, add it in the comment_tree
+                    comment_tree.push(complete_comment);
+                }
+            }
+        }
+
+        stack.push(current);
+    }
+
+    // add last comments in comment_tree
+    while !stack.is_empty() {
+        // previous comment is complete. Add it in its parent.
+        let complete_comment = stack.pop().unwrap();
+        if let Some(new_top) = stack.last_mut() {
+            // add the complete comment in its parent
+            new_top.child_comments.push(complete_comment);
+        }
+        else {
+            // root comment, add it in the comment_tree
+            comment_tree.push(complete_comment);
+        }
+    }
+
+    Ok(comment_tree)
+}
+
 #[server]
 pub async fn create_comment(
     post_id: i64,
@@ -84,59 +173,23 @@ pub async fn create_comment(
     Ok(())
 }
 
-/// Comment section component
+/// Component to open the comment form
 #[component]
-pub fn CommentSection() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let post_id = get_post_id_memo(params);
-    let comment_vec = create_resource(
-        move || (post_id(), state.create_comment_action.version().get()),
-        move |(post_id, _)| {
-            log::info!("Load comments for post: {post_id}");
-            get_post_comments(post_id)
-        });
-
-    view! {
-        <div class="flex flex-col h-full">
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || {
-                         comment_vec.with(|result| match result {
-                            Some(Ok(comment_vec)) => {
-                                comment_vec.iter().map(|comment| {
-                                    view! { <CommentBox comment=comment/> }.into_view()
-                                }).collect_view()
-                            },
-                            Some(Err(e)) => {
-                                log::info!("Error: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                            None => {
-                                log::trace!("Resource not loaded yet.");
-                                view! { <LoadingIcon/> }.into_view()
-                            },
-                        })
-                    }
-                }
-            </Transition>
-        </div>
-    }
-}
-
-/// Comment section component
-#[component]
-pub fn CommentButton(post_id: i64) -> impl IntoView {
+pub fn CommentButton(
+    post_id: i64,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+) -> impl IntoView {
     let hide_comment_form = create_rw_signal(true);
 
     view! {
         <div>
             <LoginGuardButton
-                login_button_class="btn btn-ghost"
+                login_button_class="btn btn-circle btn-ghost"
                 login_button_content=move || view! { <CommentIcon/> }
             >
                 <button
-                    class="btn m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
+                    class="btn btn-circle m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
                     class=("btn-accent", move || !hide_comment_form())
                     class=("btn-ghost", move || hide_comment_form())
                     on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
@@ -147,7 +200,11 @@ pub fn CommentButton(post_id: i64) -> impl IntoView {
                     class="absolute float-left z-10 w-1/2 2xl:w-1/3 origin-top-right" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1"
                     class:hidden=hide_comment_form
                 >
-                    <CommentForm post_id=post_id on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)/>
+                    <CommentForm
+                        post_id=post_id
+                        parent_comment_id=parent_comment_id
+                        on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)
+                    />
                 </div>
             </LoginGuardButton>
         </div>
@@ -156,7 +213,11 @@ pub fn CommentButton(post_id: i64) -> impl IntoView {
 
 /// Component to publish a comment
 #[component]
-pub fn CommentForm(post_id: i64) -> impl IntoView {
+pub fn CommentForm(
+    post_id: i64,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let create_comment_result = state.create_comment_action.value();
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
@@ -175,6 +236,7 @@ pub fn CommentForm(post_id: i64) -> impl IntoView {
                         type="text"
                         name="parent_comment_id"
                         class="hidden"
+                        value=parent_comment_id
                     />
                     <FormTextEditor
                         name="comment"
@@ -196,22 +258,58 @@ pub fn CommentForm(post_id: i64) -> impl IntoView {
     }
 }
 
+/// Comment section component
+#[component]
+pub fn CommentSection() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let params = use_params_map();
+    let post_id = get_post_id_memo(params);
+    let comment_vec = create_resource(
+        move || (post_id(), state.create_comment_action.version().get()),
+        move |(post_id, _)| {
+            log::trace!("Load comments for post: {post_id}");
+            get_post_comment_tree(post_id)
+        });
+
+    view! {
+        <div class="flex flex-col h-full gap-4">
+            <Transition fallback=move || view! {  <LoadingIcon/> }>
+                {
+                    move || {
+                         comment_vec.with(|result| match result {
+                            Some(Ok(comment_vec)) => {
+                                comment_vec.iter().map(|comment| {
+                                    view! { <CommentBox comment=&comment.comment/> }.into_view()
+                                }).collect_view()
+                            },
+                            Some(Err(e)) => {
+                                log::info!("Error: {}", e);
+                                view! { <ErrorIcon/> }.into_view()
+                            },
+                            None => {
+                                log::trace!("Resource not loaded yet.");
+                                view! { <LoadingIcon/> }.into_view()
+                            },
+                        })
+                    }
+                }
+            </Transition>
+        </div>
+    }
+}
+
+
 /// Comment box component
 #[component]
 pub fn CommentBox<'a>(comment: &'a Comment) -> impl IntoView {
     view! {
-        <div class="card">
-            <div class="card-body">
-                <div class="flex flex-col gap-4">
-                    {comment.body.clone()}
-                    <div class="flex gap-2">
-                        <VotePanel score=comment.score/>
-                        // TODO, pass comment id as optional prop
-                        <CommentButton post_id=comment.post_id/>
-                        <AuthorWidget author=&comment.creator_name/>
-                        <TimeSinceWidget timestamp=&comment.create_timestamp/>
-                    </div>
-                </div>
+        <div class="flex flex-col">
+            {comment.body.clone()}
+            <div class="flex gap-2">
+                <VotePanel score=comment.score/>
+                <CommentButton post_id=comment.post_id parent_comment_id=Some(comment.id)/>
+                <AuthorWidget author=&comment.creator_name/>
+                <TimeSinceWidget timestamp=&comment.create_timestamp/>
             </div>
         </div>
     }

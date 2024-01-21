@@ -152,11 +152,11 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
 pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     create_memo(move |current_forum_name: Option<&String>| {
         if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()) {
-            log::info!("Current forum name {:?}, new forum name: {new_forum_name}", current_forum_name);
+            log::trace!("Current forum name {:?}, new forum name: {new_forum_name}", current_forum_name);
             new_forum_name
         }
         else {
-            log::info!("No valid forum name, keep current value: {:?}", current_forum_name);
+            log::trace!("No valid forum name, keep current value: {:?}", current_forum_name);
             current_forum_name.cloned().unwrap_or_default()
         }
 

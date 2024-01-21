@@ -80,7 +80,9 @@ pub async fn get_post_comment_tree(
                    id,
                    ARRAY[(create_timestamp, id)] AS path
             FROM comments
-            WHERE post_id = $1
+            WHERE
+                post_id = $1 AND
+                parent_id IS NULL
             UNION ALL
             SELECT r.depth + 1,
                    n.id,

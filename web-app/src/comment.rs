@@ -281,7 +281,7 @@ pub fn CommentSection() -> impl IntoView {
                          comment_vec.with(|result| match result {
                             Some(Ok(comment_vec)) => {
                                 comment_vec.iter().map(|comment| {
-                                    view! { <CommentBox comment=&comment.comment/> }.into_view()
+                                    view! { <CommentBox comment=&comment/> }.into_view()
                                 }).collect_view()
                             },
                             Some(Err(e)) => {
@@ -303,15 +303,32 @@ pub fn CommentSection() -> impl IntoView {
 
 /// Comment box component
 #[component]
-pub fn CommentBox<'a>(comment: &'a Comment) -> impl IntoView {
+pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
     view! {
-        <div class="flex flex-col">
-            {comment.body.clone()}
-            <div class="flex gap-2">
-                <VotePanel score=comment.score/>
-                <CommentButton post_id=comment.post_id parent_comment_id=Some(comment.id)/>
-                <AuthorWidget author=&comment.creator_name/>
-                <TimeSinceWidget timestamp=&comment.create_timestamp/>
+        <div class="flex">
+            <div class="flex flex-col gap-1">
+                <button class="btn btn-circle">
+                    "T"
+                </button>
+                <div class="bg-red rounded-full h-full w-full"/>
+            </div>
+            <div class="flex flex-col">
+                {comment.comment.body.clone()}
+                <div class="flex gap-2">
+                    <VotePanel score=comment.comment.score/>
+                    <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.id)/>
+                    <AuthorWidget author=&comment.comment.creator_name/>
+                    <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
+                </div>
+                <div class="flex flex-col">
+                {
+                    comment.child_comments.iter().map(move |child_comment| {
+                        view! {
+                            <CommentBox comment=child_comment/>
+                        }
+                    }).collect_view()
+                }
+                </div>
             </div>
         </div>
     }

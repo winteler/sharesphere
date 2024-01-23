@@ -306,13 +306,13 @@ pub fn CommentSection() -> impl IntoView {
 pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
     view! {
         <div class="flex">
-            <div class="flex flex-col gap-1">
-                <button class="btn btn-circle">
+            <div class="flex flex-col gap-1 p-1 justify-start items-center">
+                <button class="btn btn-ghost btn-sm">
                     "T"
                 </button>
-                <div class="bg-red rounded-full h-full w-full"/>
+                <div class="bg-red-500 rounded-full h-full w-2"/>
             </div>
-            <div class="flex flex-col">
+            <div class="flex flex-col pt-2">
                 {comment.comment.body.clone()}
                 <div class="flex gap-2">
                     <VotePanel score=comment.comment.score/>

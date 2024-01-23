@@ -2775,6 +2775,10 @@ html {
   width: 50%;
 }
 
+.w-2 {
+  width: 0.5rem;
+}
+
 .w-4\/5 {
   width: 80%;
 }
@@ -2853,6 +2857,10 @@ html {
 
 .items-center {
   align-items: center;
+}
+
+.justify-start {
+  justify-content: flex-start;
 }
 
 .justify-center {
@@ -2934,6 +2942,11 @@ html {
 .bg-indigo-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(99 102 241 / var(--tw-bg-opacity));
+}
+
+.bg-red-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(239 68 68 / var(--tw-bg-opacity));
 }
 
 .bg-white {
@@ -3025,6 +3038,10 @@ html {
 
 .pb-2 {
   padding-bottom: 0.5rem;
+}
+
+.pt-2 {
+  padding-top: 0.5rem;
 }
 
 .text-left {

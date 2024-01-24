@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
-use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon};
+use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::{get_post_id_memo};
 use crate::score::{VotePanel};
 use crate::widget::{AuthorWidget, TimeSinceWidget, FormTextEditor};
@@ -102,7 +102,6 @@ pub async fn get_post_comment_tree(
     let mut comment_tree = Vec::<CommentWithChildren>::new();
     let mut stack = Vec::<CommentWithChildren>::new();
     for comment in _comment_vec {
-        log::info!("Got comment {:?}", comment);
         let current = CommentWithChildren {
             comment: comment,
             child_comments: Vec::<CommentWithChildren>::default(),
@@ -304,23 +303,45 @@ pub fn CommentSection() -> impl IntoView {
 /// Comment box component
 #[component]
 pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
+
+    let maximize = create_rw_signal(true);
+    let sidebar_css = move || {
+        if maximize() {
+            "flex flex-col gap-1 m-1 justify-start items-center"
+        } else {
+            "flex flex-col gap-1 m-1 justify-center items-center"
+        }
+    };
+
     view! {
         <div class="flex">
-            <div class="flex flex-col gap-1 p-1 justify-start items-center">
-                <button class="btn btn-ghost btn-sm">
-                    "T"
-                </button>
-                <div class="bg-red-500 rounded-full h-full w-2"/>
+            <div class=sidebar_css>
+                <label class="btn btn-ghost btn-sm swap swap-rotate">
+                    <input
+                        type="checkbox"
+                        value=maximize
+                        on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
+                    />
+                    <MinimizeIcon class="swap-on"/>
+                    <MaximizeIcon class="swap-off"/>
+                </label>
+                <div
+                    class="bg-red-500 rounded-full h-full w-2"
+                    class:hidden=move || !maximize()
+                />
             </div>
-            <div class="flex flex-col pt-2">
-                {comment.comment.body.clone()}
-                <div class="flex gap-2">
-                    <VotePanel score=comment.comment.score/>
-                    <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.id)/>
-                    <AuthorWidget author=&comment.comment.creator_name/>
-                    <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
+            <div class="flex flex-col p-2">
+                <div
+                    class="text-white"
+                    class:hidden=move || !maximize()
+                >
+                    {comment.comment.body.clone()}
                 </div>
-                <div class="flex flex-col">
+                <CommentWidgetBar comment=&comment.comment/>
+                <div
+                    class="flex flex-col"
+                    class:hidden=move || !maximize()
+                >
                 {
                     comment.child_comments.iter().map(move |child_comment| {
                         view! {
@@ -330,6 +351,20 @@ pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
                 }
                 </div>
             </div>
+        </div>
+    }
+}
+
+
+/// Component to encapsulate the widgets associated with each comment
+#[component]
+fn CommentWidgetBar<'a>(comment: &'a Comment) -> impl IntoView {
+    view! {
+        <div class="flex gap-2">
+            <VotePanel score=comment.score/>
+            <CommentButton post_id=comment.post_id parent_comment_id=Some(comment.id)/>
+            <AuthorWidget author=&comment.creator_name/>
+            <TimeSinceWidget timestamp=&comment.create_timestamp/>
         </div>
     }
 }

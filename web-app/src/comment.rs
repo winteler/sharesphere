@@ -42,6 +42,16 @@ pub struct CommentWithChildren {
     pub child_comments: Vec<CommentWithChildren>,
 }
 
+const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
+const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-orange-500",
+    "bg-red-500",
+    "bg-violet-500",
+];
+
 #[server]
 pub async fn get_post_comments(
     post_id: i64,
@@ -277,10 +287,17 @@ pub fn CommentSection() -> impl IntoView {
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || {
-                         comment_vec.with(|result| match result {
+                        comment_vec.with(|result| match result {
                             Some(Ok(comment_vec)) => {
+                                let mut comment_ranking = 0;
                                 comment_vec.iter().map(|comment| {
-                                    view! { <CommentBox comment=&comment/> }.into_view()
+                                    comment_ranking = comment_ranking + 1;
+                                    view! {
+                                        <CommentBox
+                                            comment=&comment
+                                            ranking=comment_ranking - 1
+                                        />
+                                    }.into_view()
                                 }).collect_view()
                             },
                             Some(Err(e)) => {
@@ -302,7 +319,13 @@ pub fn CommentSection() -> impl IntoView {
 
 /// Comment box component
 #[component]
-pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
+pub fn CommentBox<'a>(
+    comment: &'a CommentWithChildren,
+    #[prop(default = 0)]
+    depth: usize,
+    #[prop(default = 0)]
+    ranking: usize,
+) -> impl IntoView {
 
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
@@ -312,6 +335,7 @@ pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
             "flex flex-col gap-1 m-1 justify-center items-center"
         }
     };
+    let color_bar_css = format!("{} rounded-full h-full w-2 ", DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]);
 
     view! {
         <div class="flex">
@@ -326,7 +350,7 @@ pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
                     <MaximizeIcon class="swap-off"/>
                 </label>
                 <div
-                    class="bg-red-500 rounded-full h-full w-2"
+                    class=color_bar_css
                     class:hidden=move || !maximize()
                 />
             </div>
@@ -343,9 +367,15 @@ pub fn CommentBox<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
                     class:hidden=move || !maximize()
                 >
                 {
+                    let mut child_ranking = 0;
                     comment.child_comments.iter().map(move |child_comment| {
+                        child_ranking = child_ranking + 1;
                         view! {
-                            <CommentBox comment=child_comment/>
+                            <CommentBox
+                                comment=child_comment
+                                depth=depth + 1
+                                ranking=child_ranking - 1
+                            />
                         }
                     }).collect_view()
                 }

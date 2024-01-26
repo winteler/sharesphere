@@ -54,7 +54,7 @@ pub fn FormTextEditor(
 #[component]
 pub fn AuthorWidget<'a>(author: &'a String) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center">
+        <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
             <AuthorIcon/>
             {author.clone()}
         </div>
@@ -65,7 +65,7 @@ pub fn AuthorWidget<'a>(author: &'a String) -> impl IntoView {
 #[component]
 pub fn TimeSinceWidget<'a>(timestamp: &'a chrono::DateTime<chrono::Utc>) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center">
+        <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
             <ClockIcon/>
             {
                 let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);

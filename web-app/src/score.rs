@@ -7,7 +7,7 @@ use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 #[component]
 pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center">
+        <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
             <ScoreIcon/>
             {score}
         </div>

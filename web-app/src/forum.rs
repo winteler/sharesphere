@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::icons::{ErrorIcon, LoadingIcon, StacksIcon};
+use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon};
 use crate::post::{get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
 use crate::score::{ScoreIndicator};
 use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget};
@@ -292,7 +292,7 @@ pub fn ForumBanner() -> impl IntoView {
                                             <div class="hero-overlay bg-opacity-0"></div>
                                             <div class="hero-content text-neutral-content text-left">
                                                 <a href=forum_path() class="btn btn-ghost normal-case text-l">
-                                                    <StacksIcon/>
+                                                    <LogoIcon/>
                                                     <h2 class="text-4xl">{forum_name()}</h2>
                                                 </a>
                                             </div>

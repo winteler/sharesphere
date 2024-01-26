@@ -330,33 +330,33 @@ pub fn CommentBox<'a>(
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
-            "flex flex-col gap-1 m-1 justify-start items-center"
+            "flex flex-col justify-start items-center"
         } else {
-            "flex flex-col gap-1 m-1 justify-center items-center"
+            "flex flex-col justify-center items-center"
         }
     };
-    let color_bar_css = format!("{} rounded-full h-full w-2 ", DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]);
+    let color_bar_css = format!("{} rounded-full h-full w-1 ", DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]);
 
     view! {
         <div class="flex">
             <div class=sidebar_css>
-                <label class="btn btn-ghost btn-sm swap swap-rotate">
+                <label class="btn btn-ghost btn-sm swap swap-rotate w-5">
                     <input
                         type="checkbox"
                         value=maximize
                         on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
                     />
-                    <MinimizeIcon class="swap-on"/>
-                    <MaximizeIcon class="swap-off"/>
+                    <MinimizeIcon class="swap-on" size=5/>
+                    <MaximizeIcon class="swap-off" size=5/>
                 </label>
                 <div
                     class=color_bar_css
                     class:hidden=move || !maximize()
                 />
             </div>
-            <div class="flex flex-col p-2">
+            <div class="flex flex-col py-1">
                 <div
-                    class="text-white"
+                    class="text-white pl-2"
                     class:hidden=move || !maximize()
                 >
                     {comment.comment.body.clone()}
@@ -374,7 +374,7 @@ pub fn CommentBox<'a>(
                             <CommentBox
                                 comment=child_comment
                                 depth=depth + 1
-                                ranking=child_ranking - 1
+                                ranking=ranking + child_ranking - 1
                             />
                         }
                     }).collect_view()

@@ -275,8 +275,8 @@ pub fn Post() -> impl IntoView {
                                     <div class="card">
                                         <div class="card-body">
                                             <div class="flex flex-col gap-4">
-                                                <h2 class="card-title">{post.title.clone()}</h2>
-                                                {post.body.clone()}
+                                                <h2 class="card-title text-white">{post.title.clone()}</h2>
+                                                <div class="text-white">{post.body.clone()}</div>
                                                 <div class="flex gap-2">
                                                     <VotePanel score=post.score/>
                                                     <CommentButton post_id=post.id/>

@@ -34,7 +34,7 @@ pub fn NavigationBar(
                 <label for="my-drawer" class="drawer-button 2xl:hidden btn btn-square btn-ghost"><SideBarIcon/></label>
                 <div class="flex-1">
                     <a href="/" class="btn btn-ghost normal-case text-l text-white">
-                        <StacksIcon/>
+                        <LogoIcon/>
                         <label class="max-2xl:hidden">"[[ProjectName]]"</label>
                     </a>
                 </div>
@@ -116,7 +116,7 @@ pub fn PlusMenu() -> impl IntoView {
     view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
-                <AddIcon/>
+                <PlusIcon class="h-6 w-6 text-white"/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
                 <li><a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a></li>

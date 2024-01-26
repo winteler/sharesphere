@@ -283,7 +283,7 @@ pub fn CommentSection() -> impl IntoView {
         });
 
     view! {
-        <div class="flex flex-col h-full gap-4">
+        <div class="flex flex-col h-full divide-y">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || {
@@ -338,7 +338,7 @@ pub fn CommentBox<'a>(
     let color_bar_css = format!("{} rounded-full h-full w-1 ", DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]);
 
     view! {
-        <div class="flex">
+        <div class="flex py-1">
             <div class=sidebar_css>
                 <label class="btn btn-ghost btn-sm swap swap-rotate w-5">
                     <input
@@ -354,7 +354,7 @@ pub fn CommentBox<'a>(
                     class:hidden=move || !maximize()
                 />
             </div>
-            <div class="flex flex-col py-1">
+            <div class="flex flex-col">
                 <div
                     class="text-white pl-2"
                     class:hidden=move || !maximize()
@@ -363,7 +363,7 @@ pub fn CommentBox<'a>(
                 </div>
                 <CommentWidgetBar comment=&comment.comment/>
                 <div
-                    class="flex flex-col"
+                    class="flex flex-col divide-y"
                     class:hidden=move || !maximize()
                 >
                 {
@@ -389,9 +389,19 @@ pub fn CommentBox<'a>(
 /// Component to encapsulate the widgets associated with each comment
 #[component]
 fn CommentWidgetBar<'a>(comment: &'a Comment) -> impl IntoView {
+
+    let score = create_rw_signal(comment.score);
+
+    let on_up_vote = move |_| { log::info!("upvote"); score.update(|score| *score = *score + 1); };
+    let on_down_vote = move |_| { log::info!("upvote"); score.update(|score| *score = *score - 1);};
+
     view! {
         <div class="flex gap-2">
-            <VotePanel score=comment.score/>
+            <VotePanel
+                score=&score
+                on_up_vote=on_up_vote
+                on_down_vote=on_down_vote
+            />
             <CommentButton post_id=comment.post_id parent_comment_id=Some(comment.id)/>
             <AuthorWidget author=&comment.creator_name/>
             <TimeSinceWidget timestamp=&comment.create_timestamp/>

@@ -7,17 +7,31 @@ use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 #[component]
 pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
+        <div class="flex rounded-btn px-1 gap-1 items-center">
             <ScoreIcon/>
-            {score}
+            <div class="w-2 text-sm text-center">
+                {score}
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
+    view! {
+        <div class="flex rounded-btn px-1 gap-1 items-center">
+            <ScoreIcon/>
+            <div class="w-2 text-sm text-center">
+                {move || score.get()}
+            </div>
         </div>
     }
 }
 
 /// Component to display and modify post's score
 #[component]
-pub fn VotePanel<'a>(
-    score: &'a RwSignal<i32>,
+pub fn VotePanel(
+    score: RwSignal<i32>,
     #[prop(into)]
     on_up_vote: Callback<ev::MouseEvent>,
     #[prop(into)]
@@ -37,7 +51,7 @@ pub fn VotePanel<'a>(
                     <PlusIcon/>
                 </button>
             </LoginGuardButton>
-            <ScoreIndicator score=score.get()/>
+            <DynScoreIndicator score=score/>
             <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
                 login_button_content=move || view! { <MinusIcon/> }

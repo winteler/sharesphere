@@ -2854,6 +2854,10 @@ html {
   width: 50%;
 }
 
+.w-2 {
+  width: 0.5rem;
+}
+
 .w-4\/5 {
   width: 80%;
 }
@@ -2966,6 +2970,12 @@ html {
   --tw-space-x-reverse: 0;
   margin-right: calc(1rem * var(--tw-space-x-reverse));
   margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+.divide-y > :not([hidden]) ~ :not([hidden]) {
+  --tw-divide-y-reverse: 0;
+  border-top-width: calc(1px * calc(1 - var(--tw-divide-y-reverse)));
+  border-bottom-width: calc(1px * var(--tw-divide-y-reverse));
 }
 
 .rounded-full {

@@ -312,13 +312,13 @@ fn CommentWidgetBar<'a>(post: &'a Post) -> impl IntoView {
 
     let score = create_rw_signal(post.score);
 
-    let on_up_vote = move |_| { log::info!("upvote"); };
-    let on_down_vote = move |_| { log::info!("upvote"); };
+    let on_up_vote = move |_| { log::info!("upvote"); score.update(|score| *score = *score + 1); };
+    let on_down_vote = move |_| { log::info!("downvote"); score.update(|score| *score = *score - 1);};
 
     view! {
         <div class="flex gap-2">
             <VotePanel
-                score=&score
+                score=score
                 on_up_vote=on_up_vote
                 on_down_vote=on_down_vote
             />

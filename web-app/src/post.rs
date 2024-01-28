@@ -9,7 +9,7 @@ use crate::comment::{CommentButton, CommentSection};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon};
 use crate::score::{VotePanel};
-use crate::widget::{AuthorWidget, TimeSinceWidget, FormTextEditor};
+use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -277,13 +277,7 @@ pub fn Post() -> impl IntoView {
                                             <div class="flex flex-col gap-4">
                                                 <h2 class="card-title text-white">{post.title.clone()}</h2>
                                                 <div class="text-white">{post.body.clone()}</div>
-                                                <CommentWidgetBar post=post/>
-                                                /*<div class="flex gap-2">
-                                                    <VotePanel score=post.score/>
-                                                    <CommentButton post_id=post.id/>
-                                                    <AuthorWidget author=&post.creator_name/>
-                                                    <TimeSinceWidget timestamp=&post.create_timestamp/>
-                                                </div>*/
+                                                <PostWidgetBar post=post/>
                                             </div>
                                         </div>
                                     </div>
@@ -308,7 +302,7 @@ pub fn Post() -> impl IntoView {
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
-fn CommentWidgetBar<'a>(post: &'a Post) -> impl IntoView {
+fn PostWidgetBar<'a>(post: &'a Post) -> impl IntoView {
 
     let score = create_rw_signal(post.score);
 

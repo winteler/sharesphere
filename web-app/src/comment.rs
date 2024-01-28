@@ -8,7 +8,7 @@ use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::{get_post_id_memo};
 use crate::score::{VotePanel};
-use crate::widget::{AuthorWidget, TimeSinceWidget, FormTextEditor};
+use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -196,11 +196,11 @@ pub fn CommentButton(
     view! {
         <div>
             <LoginGuardButton
-                login_button_class="btn btn-circle btn-ghost"
+                login_button_class="btn btn-circle btn-ghost btn-sm"
                 login_button_content=move || view! { <CommentIcon/> }
             >
                 <button
-                    class="btn btn-circle m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
+                    class="btn btn-circle btn-sm m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
                     class=("btn-accent", move || !hide_comment_form())
                     class=("btn-ghost", move || hide_comment_form())
                     on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
@@ -283,7 +283,7 @@ pub fn CommentSection() -> impl IntoView {
         });
 
     view! {
-        <div class="flex flex-col h-full divide-y">
+        <div class="flex flex-col h-full">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || {
@@ -356,14 +356,14 @@ pub fn CommentBox<'a>(
             </div>
             <div class="flex flex-col">
                 <div
-                    class="text-white pl-2"
+                    class="text-white pl-2 pt-1"
                     class:hidden=move || !maximize()
                 >
                     {comment.comment.body.clone()}
                 </div>
                 <CommentWidgetBar comment=&comment.comment/>
                 <div
-                    class="flex flex-col divide-y"
+                    class="flex flex-col"
                     class:hidden=move || !maximize()
                 >
                 {

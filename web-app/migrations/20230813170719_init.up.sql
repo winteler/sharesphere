@@ -60,11 +60,18 @@ CREATE TABLE comments (
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE votes (
+CREATE TABLE post_votes (
     id BIGSERIAL PRIMARY KEY,
     creator_id BIGINT NOT NULL,
-    content_id BIGINT NOT NULL,
-    is_post BOOLEAN NOT NULL,
-    value smallint CHECK (value IN (-1, 1)),
+    post_id BIGINT NOT NULL,
+    value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE comment_votes (
+    id BIGSERIAL PRIMARY KEY,
+    creator_id BIGINT NOT NULL,
+    comment_id BIGINT NOT NULL,
+    value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

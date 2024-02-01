@@ -71,6 +71,7 @@ CREATE TABLE post_votes (
 CREATE TABLE comment_votes (
     id BIGSERIAL PRIMARY KEY,
     creator_id BIGINT NOT NULL,
+    post_id BIGINT NOT NULL,
     comment_id BIGINT NOT NULL,
     value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()

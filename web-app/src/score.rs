@@ -27,6 +27,7 @@ pub struct CommentVote {
     pub id: i64,
     pub creator_id: i64,
     pub comment_id: i64,
+    pub post_id: i64,
     pub value: i16,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -100,6 +101,7 @@ pub async fn vote_on_post(
 #[server]
 pub async fn vote_on_comment(
     comment_id: i64,
+    post_id: i64,
     vote: i16,
     previous_vote_id: Option<i64>,
     previous_vote: Option<i16>,
@@ -140,9 +142,10 @@ pub async fn vote_on_comment(
     } else {
         Some(sqlx::query_as!(
             CommentVote,
-            "INSERT INTO comment_votes (creator_id, comment_id, value) VALUES ($1, $2, $3) RETURNING *",
+            "INSERT INTO comment_votes (creator_id, comment_id, post_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
             user.id,
             comment_id,
+            post_id,
             vote,
         )
             .fetch_one(&db_pool)

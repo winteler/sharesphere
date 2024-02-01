@@ -7,7 +7,7 @@ use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, MinusIcon, PlusIcon};
 use crate::post::{get_post_id_memo};
-use crate::score::{DynScoreIndicator, VoteOnComment};
+use crate::score::{CommentVote, DynScoreIndicator, VoteOnComment};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 cfg_if! {
@@ -39,6 +39,7 @@ pub struct Comment {
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct CommentWithChildren {
     pub comment: Comment,
+    pub vote: Option<CommentVote>,
     pub child_comments: Vec<CommentWithChildren>,
 }
 
@@ -114,6 +115,7 @@ pub async fn get_post_comment_tree(
     for comment in _comment_vec {
         let current = CommentWithChildren {
             comment: comment,
+            vote: None,
             child_comments: Vec::<CommentWithChildren>::default(),
         };
 
@@ -361,7 +363,7 @@ pub fn CommentBox<'a>(
                 >
                     {comment.comment.body.clone()}
                 </div>
-                <CommentWidgetBar comment=&comment.comment/>
+                <CommentWidgetBar comment=&comment/>
                 <div
                     class="flex flex-col"
                     class:hidden=move || !maximize()
@@ -388,14 +390,14 @@ pub fn CommentBox<'a>(
 
 /// Component to encapsulate the widgets associated with each comment
 #[component]
-fn CommentWidgetBar<'a>(comment: &'a Comment) -> impl IntoView {
+fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
 
     view! {
         <div class="flex gap-2">
             <CommentVotePanel comment=comment/>
-            <CommentButton post_id=comment.post_id parent_comment_id=Some(comment.id)/>
-            <AuthorWidget author=&comment.creator_name/>
-            <TimeSinceWidget timestamp=&comment.create_timestamp/>
+            <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.id)/>
+            <AuthorWidget author=&comment.comment.creator_name/>
+            <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
         </div>
     }
 }
@@ -403,13 +405,23 @@ fn CommentWidgetBar<'a>(comment: &'a Comment) -> impl IntoView {
 /// Component to display and modify post's score
 #[component]
 pub fn CommentVotePanel<'a>(
-    comment: &'a Comment,
+    comment: &'a CommentWithChildren,
 ) -> impl IntoView {
 
-    let score = create_rw_signal(comment.score);
-    let comment_id = comment.id;
+    let score = create_rw_signal(comment.comment.score);
+    let comment_id = comment.comment.id;
+    let post_id = comment.comment.post_id;
+    let has_vote = comment.vote.is_some();
+    let comment_vote_id = match &comment.vote {
+        Some(vote) => Some(vote.id),
+        None => None,
+    };
+    let comment_vote_value = match &comment.vote {
+        Some(vote) => Some(vote.value),
+        None => None,
+    };
 
-    let score_server_action = create_server_action::<VoteOnComment>();
+    let vote_server_action = create_server_action::<VoteOnComment>();
 
     view! {
         <div class="flex items-center gap-1">
@@ -420,11 +432,18 @@ pub fn CommentVotePanel<'a>(
                 <button
                     class="btn btn-ghost btn-circle btn-sm hover:btn-success"
                     on:click=move |_| {
-                        let current_vote = score_server_action.value();
-                        let current_vote_id = current_vote.get_untracked();
+                        let (current_vote_id, current_vote) = if has_vote {
+                            (comment_vote_id, comment_vote_value)
+                        } else {
+                            match vote_server_action.value().get_untracked() {
+                                Some(Ok(Some(vote))) => (Some(vote.id), Some(vote.value)),
+                                _ => (None, None),
+                            }
+                        };
 
-                        score_server_action.dispatch(VoteOnComment {
+                        vote_server_action.dispatch(VoteOnComment {
                             comment_id,
+                            post_id,
                             vote: 1,
                             previous_vote_id: None,
                             previous_vote: None,

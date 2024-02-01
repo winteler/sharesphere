@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
-use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
+use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, MinusIcon, PlusIcon};
 use crate::post::{get_post_id_memo};
-use crate::score::{VotePanel};
+use crate::score::{DynScoreIndicator, VoteOnComment};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 cfg_if! {
@@ -390,21 +390,65 @@ pub fn CommentBox<'a>(
 #[component]
 fn CommentWidgetBar<'a>(comment: &'a Comment) -> impl IntoView {
 
-    let score = create_rw_signal(comment.score);
-
-    let on_up_vote = move |_| { log::info!("upvote"); score.update(|score| *score = *score + 1); };
-    let on_down_vote = move |_| { log::info!("downvote"); score.update(|score| *score = *score - 1);};
-
     view! {
         <div class="flex gap-2">
-            <VotePanel
-                score=score
-                on_up_vote=on_up_vote
-                on_down_vote=on_down_vote
-            />
+            <CommentVotePanel comment=comment/>
             <CommentButton post_id=comment.post_id parent_comment_id=Some(comment.id)/>
             <AuthorWidget author=&comment.creator_name/>
             <TimeSinceWidget timestamp=&comment.create_timestamp/>
+        </div>
+    }
+}
+
+/// Component to display and modify post's score
+#[component]
+pub fn CommentVotePanel<'a>(
+    comment: &'a Comment,
+) -> impl IntoView {
+
+    let score = create_rw_signal(comment.score);
+    let comment_id = comment.id;
+
+    let score_server_action = create_server_action::<VoteOnComment>();
+
+    view! {
+        <div class="flex items-center gap-1">
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
+                login_button_content=move || view! { <PlusIcon/> }
+            >
+                <button
+                    class="btn btn-ghost btn-circle btn-sm hover:btn-success"
+                    on:click=move |_| {
+                        let current_vote = score_server_action.value();
+                        let current_vote_id = current_vote.get_untracked();
+
+                        score_server_action.dispatch(VoteOnComment {
+                            comment_id,
+                            vote: 1,
+                            previous_vote_id: None,
+                            previous_vote: None,
+                        });
+                        score.update(|score| *score = *score + 1);
+                    }
+                >
+                    <PlusIcon/>
+                </button>
+            </LoginGuardButton>
+            <DynScoreIndicator score=score/>
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
+                login_button_content=move || view! { <MinusIcon/> }
+            >
+                <button
+                    class="btn btn-ghost btn-circle btn-sm hover:btn-error"
+                    on:click=move |_| {
+                        score.update(|score| *score = *score - 1);
+                    }
+                >
+                    <MinusIcon/>
+                </button>
+            </LoginGuardButton>
         </div>
     }
 }

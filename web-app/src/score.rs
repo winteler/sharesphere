@@ -12,7 +12,7 @@ cfg_if! {
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct PostVote {
     pub id: i64,
     pub creator_id: i64,
@@ -22,7 +22,7 @@ pub struct PostVote {
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct CommentVote {
     pub id: i64,
     pub creator_id: i64,
@@ -122,6 +122,7 @@ pub async fn vote_on_comment(
 
     let comment_vote = if previous_vote_id.is_some() {
         if vote != 0 {
+            log::info!("Update vote");
             Some(sqlx::query_as!(
                 CommentVote,
                 "UPDATE comment_votes SET value = $1 WHERE id = $2 RETURNING *",
@@ -131,6 +132,7 @@ pub async fn vote_on_comment(
                 .fetch_one(&db_pool)
                 .await?)
         } else {
+            log::info!("Delete vote");
             sqlx::query!(
                 "DELETE from comment_votes WHERE id = $1",
                 previous_vote_id.unwrap(),
@@ -140,6 +142,7 @@ pub async fn vote_on_comment(
             None
         }
     } else {
+        log::info!("Create vote");
         Some(sqlx::query_as!(
             CommentVote,
             "INSERT INTO comment_votes (creator_id, comment_id, post_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
@@ -155,7 +158,7 @@ pub async fn vote_on_comment(
     let comment_score_delta = vote - previous_vote.unwrap_or_default();
 
     sqlx::query!(
-            "UPDATE posts set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where id = $3",
+            "UPDATE comments set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where id = $3",
             i32::from(comment_score_delta),
             i32::from(-comment_score_delta.signum()),
             comment_id,
@@ -172,7 +175,7 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
         <div class="flex rounded-btn px-1 gap-1 items-center">
             <ScoreIcon/>
-            <div class="w-2 text-sm text-center">
+            <div class="w-3 text-sm text-right">
                 {score}
             </div>
         </div>
@@ -183,9 +186,9 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
 #[component]
 pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center">
+        <div class="flex rounded-btn pr-1 gap-1 items-center">
             <ScoreIcon/>
-            <div class="w-2 text-sm text-center">
+            <div class="w-3 text-sm text-right">
                 {move || score.get()}
             </div>
         </div>

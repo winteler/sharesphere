@@ -408,10 +408,19 @@ pub fn CommentVotePanel<'a>(
     comment: &'a CommentWithChildren,
 ) -> impl IntoView {
 
-    let score = create_rw_signal(comment.comment.score);
     let comment_id = comment.comment.id;
     let post_id = comment.comment.post_id;
     let has_vote = comment.vote.is_some();
+    let original_score = comment.comment.score;
+
+    let score = create_rw_signal(comment.comment.score);
+    let vote = create_rw_signal(
+        match comment.vote.clone() {
+            Some(vote) => vote.value,
+            None => 0,
+        }
+    );
+
     let comment_vote_id = match &comment.vote {
         Some(vote) => Some(vote.id),
         None => None,
@@ -423,6 +432,33 @@ pub fn CommentVotePanel<'a>(
 
     let vote_server_action = create_server_action::<VoteOnComment>();
 
+    let get_current_vote = move || {
+        if has_vote {
+            (comment_vote_id, comment_vote_value)
+        } else {
+            match vote_server_action.value().get_untracked() {
+                Some(Ok(Some(vote))) => (Some(vote.id), Some(vote.value)),
+                _ => (None, None),
+            }
+        }
+    };
+
+    let upvote_button_css = move || {
+        if vote() == 1 {
+            "btn btn-circle btn-sm btn-success"
+        } else {
+            "btn btn-circle btn-sm btn-ghost hover:btn-success"
+        }
+    };
+
+    let downvote_button_css = move || {
+        if vote() == -1 {
+            "btn btn-circle btn-sm btn-error"
+        } else {
+            "btn btn-circle btn-sm btn-ghost hover:btn-error"
+        }
+    };
+
     view! {
         <div class="flex items-center gap-1">
             <LoginGuardButton
@@ -430,25 +466,25 @@ pub fn CommentVotePanel<'a>(
                 login_button_content=move || view! { <PlusIcon/> }
             >
                 <button
-                    class="btn btn-ghost btn-circle btn-sm hover:btn-success"
+                    class=upvote_button_css()
                     on:click=move |_| {
-                        let (current_vote_id, current_vote) = if has_vote {
-                            (comment_vote_id, comment_vote_value)
-                        } else {
-                            match vote_server_action.value().get_untracked() {
-                                Some(Ok(Some(vote))) => (Some(vote.id), Some(vote.value)),
-                                _ => (None, None),
-                            }
-                        };
+                        vote.update(|vote| *vote = match *vote {
+                            1 => 0,
+                            _ => 1,
+                        });
+
+                        log::info!("Vote value: {}", vote());
+
+                        let (current_vote_id, current_vote_value) = get_current_vote();
 
                         vote_server_action.dispatch(VoteOnComment {
                             comment_id,
                             post_id,
-                            vote: 1,
-                            previous_vote_id: None,
-                            previous_vote: None,
+                            vote: vote.get_untracked(),
+                            previous_vote_id: current_vote_id,
+                            previous_vote: current_vote_value,
                         });
-                        score.update(|score| *score = *score + 1);
+                        score.update(|score| *score = original_score + i32::from(vote.get_untracked()));
                     }
                 >
                     <PlusIcon/>
@@ -460,9 +496,25 @@ pub fn CommentVotePanel<'a>(
                 login_button_content=move || view! { <MinusIcon/> }
             >
                 <button
-                    class="btn btn-ghost btn-circle btn-sm hover:btn-error"
+                    class=downvote_button_css()
                     on:click=move |_| {
-                        score.update(|score| *score = *score - 1);
+                        vote.update(|vote| *vote = match *vote {
+                            -1 => 0,
+                            _ => -1,
+                        });
+
+                        log::info!("Vote value: {}", vote());
+
+                        let (current_vote_id, current_vote_value) = get_current_vote();
+
+                        vote_server_action.dispatch(VoteOnComment {
+                            comment_id,
+                            post_id,
+                            vote: vote.get_untracked(),
+                            previous_vote_id: current_vote_id,
+                            previous_vote: current_vote_value,
+                        });
+                        score.update(|score| *score = original_score + i32::from(vote.get_untracked()));
                     }
                 >
                     <MinusIcon/>

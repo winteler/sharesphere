@@ -169,6 +169,24 @@ pub async fn vote_on_comment(
     Ok(comment_vote)
 }
 
+pub fn get_vote_button_css(
+    vote: RwSignal<i16>,
+    is_upvote: bool,
+) -> impl Fn() -> String {
+    let (button_css, activated_value) = match is_upvote {
+        true => ("success", 1),
+        false => ("error", -1),
+    };
+
+    move || {
+        if vote() == activated_value {
+            format!("btn btn-circle btn-sm btn-{button_css}")
+        } else {
+            format!("btn btn-circle btn-sm btn-ghost hover:btn-{button_css}")
+        }
+    }
+}
+
 /// Component to display a post's score
 #[component]
 pub fn ScoreIndicator(score: i32) -> impl IntoView {

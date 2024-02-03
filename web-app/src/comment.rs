@@ -7,7 +7,7 @@ use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, MinusIcon, PlusIcon};
 use crate::post::{get_post_id_memo};
-use crate::score::{CommentVote, DynScoreIndicator, VoteOnComment};
+use crate::score::{get_vote_button_css, CommentVote, DynScoreIndicator, VoteOnComment};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 cfg_if! {
@@ -402,6 +402,48 @@ fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
     }
 }
 
+/// Function to react to an comment's upvote or downvote button being clicked.
+fn on_vote_btn_click(
+    vote: RwSignal<i16>,
+    score: RwSignal<i32>,
+    comment_id: i64,
+    post_id: i64,
+    initial_score: i32,
+    comment_vote_id: Option<i64>,
+    comment_vote_value: Option<i16>,
+    vote_action: Action<VoteOnComment, Result<Option<CommentVote>, ServerFnError>>,
+    is_upvote: bool,
+) -> impl Fn(ev::MouseEvent) {
+
+    move |_| {
+        vote.update(|vote| *vote = match *vote {
+            1 => if is_upvote { 0 } else { -1 },
+            -1 => if is_upvote { 1 } else { 0 },
+            _ => if is_upvote { 1 } else { -1 },
+        });
+
+        log::info!("Vote value: {}", vote());
+
+        let (current_vote_id, current_vote_value) = if comment_vote_id.is_some() {
+            (comment_vote_id, comment_vote_value)
+        } else {
+            match vote_action.value().get_untracked() {
+                Some(Ok(Some(vote))) => (Some(vote.id), Some(vote.value)),
+                _ => (None, None),
+            }
+        };
+
+        vote_action.dispatch(VoteOnComment {
+            comment_id,
+            post_id,
+            vote: vote.get_untracked(),
+            previous_vote_id: current_vote_id,
+            previous_vote: current_vote_value,
+        });
+        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
+    }
+}
+
 /// Component to display and modify post's score
 #[component]
 pub fn CommentVotePanel<'a>(
@@ -410,8 +452,7 @@ pub fn CommentVotePanel<'a>(
 
     let comment_id = comment.comment.id;
     let post_id = comment.comment.post_id;
-    let has_vote = comment.vote.is_some();
-    let original_score = comment.comment.score;
+    let initial_score = comment.comment.score;
 
     let score = create_rw_signal(comment.comment.score);
     let vote = create_rw_signal(
@@ -432,32 +473,8 @@ pub fn CommentVotePanel<'a>(
 
     let vote_server_action = create_server_action::<VoteOnComment>();
 
-    let get_current_vote = move || {
-        if has_vote {
-            (comment_vote_id, comment_vote_value)
-        } else {
-            match vote_server_action.value().get_untracked() {
-                Some(Ok(Some(vote))) => (Some(vote.id), Some(vote.value)),
-                _ => (None, None),
-            }
-        }
-    };
-
-    let upvote_button_css = move || {
-        if vote() == 1 {
-            "btn btn-circle btn-sm btn-success"
-        } else {
-            "btn btn-circle btn-sm btn-ghost hover:btn-success"
-        }
-    };
-
-    let downvote_button_css = move || {
-        if vote() == -1 {
-            "btn btn-circle btn-sm btn-error"
-        } else {
-            "btn btn-circle btn-sm btn-ghost hover:btn-error"
-        }
-    };
+    let upvote_button_css = get_vote_button_css(vote, true);
+    let downvote_button_css = get_vote_button_css(vote, false);
 
     view! {
         <div class="flex items-center gap-1">
@@ -467,25 +484,16 @@ pub fn CommentVotePanel<'a>(
             >
                 <button
                     class=upvote_button_css()
-                    on:click=move |_| {
-                        vote.update(|vote| *vote = match *vote {
-                            1 => 0,
-                            _ => 1,
-                        });
-
-                        log::info!("Vote value: {}", vote());
-
-                        let (current_vote_id, current_vote_value) = get_current_vote();
-
-                        vote_server_action.dispatch(VoteOnComment {
-                            comment_id,
-                            post_id,
-                            vote: vote.get_untracked(),
-                            previous_vote_id: current_vote_id,
-                            previous_vote: current_vote_value,
-                        });
-                        score.update(|score| *score = original_score + i32::from(vote.get_untracked()));
-                    }
+                    on:click=on_vote_btn_click(
+                        vote,
+                        score,
+                        comment_id,
+                        post_id,
+                        initial_score,
+                        comment_vote_id,
+                        comment_vote_value,
+                        vote_server_action,
+                        true)
                 >
                     <PlusIcon/>
                 </button>
@@ -497,25 +505,15 @@ pub fn CommentVotePanel<'a>(
             >
                 <button
                     class=downvote_button_css()
-                    on:click=move |_| {
-                        vote.update(|vote| *vote = match *vote {
-                            -1 => 0,
-                            _ => -1,
-                        });
-
-                        log::info!("Vote value: {}", vote());
-
-                        let (current_vote_id, current_vote_value) = get_current_vote();
-
-                        vote_server_action.dispatch(VoteOnComment {
-                            comment_id,
-                            post_id,
-                            vote: vote.get_untracked(),
-                            previous_vote_id: current_vote_id,
-                            previous_vote: current_vote_value,
-                        });
-                        score.update(|score| *score = original_score + i32::from(vote.get_untracked()));
-                    }
+                    on:click=on_vote_btn_click(vote,
+                        score,
+                        comment_id,
+                        post_id,
+                        initial_score,
+                        comment_vote_id,
+                        comment_vote_value,
+                        vote_server_action,
+                        false)
                 >
                     <MinusIcon/>
                 </button>

@@ -5,10 +5,11 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::auth::LoginGuardButton;
 use crate::comment::{CommentButton, CommentSection};
 use crate::forum::{get_all_forum_names};
-use crate::icons::{ErrorIcon, LoadingIcon};
-use crate::score::{VotePanel};
+use crate::icons::{ErrorIcon, LoadingIcon, MinusIcon, PlusIcon};
+use crate::score::{get_vote_button_css, DynScoreIndicator, PostVote, VoteOnPost};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
@@ -21,7 +22,7 @@ pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, P
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Post {
-    pub id: i64,
+    pub post_id: i64,
     pub title: String,
     pub body: String,
     pub is_meta_post: bool,
@@ -56,7 +57,7 @@ pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
     let db_pool = get_db_pool()?;
     Ok(sqlx::query_as!(
         Post,
-        "SELECT * FROM posts WHERE id = $1",
+        "SELECT * FROM posts WHERE post_id = $1",
         id
     )
         .fetch_one(&db_pool)
@@ -69,8 +70,8 @@ pub async fn get_post_vec_by_forum_name(forum_name: String) -> Result<Vec<Post>,
     let post_vec = sqlx::query_as!(
         Post,
         "SELECT posts.* FROM posts \
-        join forums on forums.id = posts.forum_id \
-        WHERE forums.name = $1",
+        join forums on forums.forum_id = posts.forum_id \
+        WHERE forums.forum_name = $1",
         forum_name
     )
         .fetch_all(&db_pool)
@@ -94,7 +95,7 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
         "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, creator_id, creator_name)
          VALUES (
             $1, $2, $3, $4,
-            (SELECT id FROM forums WHERE name = $5),
+            (SELECT forum_id FROM forums WHERE forum_name = $5),
             $6, $7
         ) RETURNING *",
         title.clone(),
@@ -102,14 +103,14 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
         is_nsfw.is_some(),
         tag.unwrap_or_default(),
         forum.clone(),
-        user.id,
+        user.user_id,
         user.username,
     )
         .fetch_one(&db_pool)
         .await?;
 
-    log::info!("New post id: {}", new_post.id);
-    let new_post_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum.as_str() + POST_ROUTE_PREFIX + "/" + new_post.id.to_string().as_ref());
+    log::info!("New post id: {}", new_post.post_id);
+    let new_post_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum.as_str() + POST_ROUTE_PREFIX + "/" + new_post.post_id.to_string().as_ref());
     leptos_axum::redirect(new_post_path);
     Ok(())
 }
@@ -132,6 +133,46 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
             current_post_id.cloned().unwrap_or_default()
         }
     })
+}
+
+/// Function to react to an post's upvote or downvote button being clicked.
+fn get_on_post_vote_closure(
+    vote: RwSignal<i16>,
+    score: RwSignal<i32>,
+    post_id: i64,
+    initial_score: i32,
+    post_vote_id: Option<i64>,
+    post_vote_value: Option<i16>,
+    vote_action: Action<VoteOnPost, Result<Option<PostVote>, ServerFnError>>,
+    is_upvote: bool,
+) -> impl Fn(ev::MouseEvent) {
+
+    move |_| {
+        vote.update(|vote| *vote = match *vote {
+            1 => if is_upvote { 0 } else { -1 },
+            -1 => if is_upvote { 1 } else { 0 },
+            _ => if is_upvote { 1 } else { -1 },
+        });
+
+        log::info!("Vote value: {}", vote());
+
+        let (current_vote_id, current_vote_value) = if post_vote_id.is_some() {
+            (post_vote_id, post_vote_value)
+        } else {
+            match vote_action.value().get_untracked() {
+                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
+                _ => (None, None),
+            }
+        };
+
+        vote_action.dispatch(VoteOnPost {
+            post_id,
+            vote: vote.get_untracked(),
+            previous_vote_id: current_vote_id,
+            previous_vote: current_vote_value,
+        });
+        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
+    }
 }
 
 /// Component to create a new content
@@ -303,22 +344,92 @@ pub fn Post() -> impl IntoView {
 /// Component to encapsulate the widgets associated with each post
 #[component]
 fn PostWidgetBar<'a>(post: &'a Post) -> impl IntoView {
-
-    let score = create_rw_signal(post.score);
-
-    let on_up_vote = move |_| { log::info!("upvote"); score.update(|score| *score = *score + 1); };
-    let on_down_vote = move |_| { log::info!("downvote"); score.update(|score| *score = *score - 1);};
-
     view! {
         <div class="flex gap-2">
-            <VotePanel
-                score=score
-                on_up_vote=on_up_vote
-                on_down_vote=on_down_vote
+            <PostVotePanel
+                post=post
+                post_vote=&None
             />
-            <CommentButton post_id=post.id/>
+            <CommentButton post_id=post.post_id/>
             <AuthorWidget author=&post.creator_name/>
             <TimeSinceWidget timestamp=&post.create_timestamp/>
+        </div>
+    }
+}
+
+/// Component to display and modify a post's score
+#[component]
+pub fn PostVotePanel<'a>(
+    post: &'a Post,
+    post_vote: &'a Option<PostVote>,
+) -> impl IntoView {
+
+    let post_id = post.post_id;
+    let initial_score = post.score;
+
+    let score = create_rw_signal(post.score);
+    let vote = create_rw_signal(
+        match &post_vote {
+            Some(vote) => vote.value,
+            None => 0,
+        }
+    );
+
+    let comment_vote_id = match &post_vote {
+        Some(vote) => Some(vote.vote_id),
+        None => None,
+    };
+    let comment_vote_value = match &post_vote {
+        Some(vote) => Some(vote.value),
+        None => None,
+    };
+
+    let vote_action = create_server_action::<VoteOnPost>();
+
+    let upvote_button_css = get_vote_button_css(vote, true);
+    let downvote_button_css = get_vote_button_css(vote, false);
+
+    view! {
+        <div class="flex items-center gap-1">
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
+                login_button_content=move || view! { <PlusIcon/> }
+            >
+                <button
+                    class=upvote_button_css()
+                    on:click=get_on_post_vote_closure(
+                        vote,
+                        score,
+                        post_id,
+                        initial_score,
+                        comment_vote_id,
+                        comment_vote_value,
+                        vote_action,
+                        true)
+                >
+                    <PlusIcon/>
+                </button>
+            </LoginGuardButton>
+            <DynScoreIndicator score=score/>
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
+                login_button_content=move || view! { <MinusIcon/> }
+            >
+                <button
+                    class=downvote_button_css()
+                    on:click=get_on_post_vote_closure(
+                        vote,
+                        score,
+                        post_id,
+                        initial_score,
+                        comment_vote_id,
+                        comment_vote_value,
+                        vote_action,
+                        false)
+                >
+                    <MinusIcon/>
+                </button>
+            </LoginGuardButton>
         </div>
     }
 }

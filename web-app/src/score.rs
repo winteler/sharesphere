@@ -2,8 +2,7 @@ use cfg_if::cfg_if;
 use leptos::*;
 use serde::{Deserialize, Serialize};
 
-use crate::auth::{LoginGuardButton};
-use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
+use crate::icons::{ScoreIcon};
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
@@ -14,7 +13,7 @@ cfg_if! {
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct PostVote {
-    pub id: i64,
+    pub vote_id: i64,
     pub creator_id: i64,
     pub post_id: i64,
     pub value: i16,
@@ -24,7 +23,7 @@ pub struct PostVote {
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct CommentVote {
-    pub id: i64,
+    pub vote_id: i64,
     pub creator_id: i64,
     pub comment_id: i64,
     pub post_id: i64,
@@ -57,7 +56,7 @@ pub async fn vote_on_post(
         if vote != 0 {
             Some(sqlx::query_as!(
                 PostVote,
-                "UPDATE post_votes SET value = $1 WHERE id = $2 RETURNING *",
+                "UPDATE post_votes SET value = $1 WHERE vote_id = $2 RETURNING *",
                 vote,
                 previous_vote_id.unwrap(),
             )
@@ -65,7 +64,7 @@ pub async fn vote_on_post(
                 .await?)
         } else {
             sqlx::query!(
-                "DELETE from post_votes WHERE id = $1",
+                "DELETE from post_votes WHERE vote_id = $1",
                 previous_vote_id.unwrap(),
             )
                 .execute(&db_pool)
@@ -76,7 +75,7 @@ pub async fn vote_on_post(
         Some(sqlx::query_as!(
             PostVote,
             "INSERT INTO post_votes (creator_id, post_id, value) VALUES ($1, $2, $3) RETURNING *",
-            user.id,
+            user.user_id,
             post_id,
             vote,
         )
@@ -87,7 +86,7 @@ pub async fn vote_on_post(
     let post_score_delta = vote - previous_vote.unwrap_or_default();
 
     sqlx::query!(
-            "UPDATE posts set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where id = $3",
+            "UPDATE posts set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where post_id = $3",
             i32::from(post_score_delta),
             i32::from(-post_score_delta.signum()),
             post_id,
@@ -125,7 +124,7 @@ pub async fn vote_on_comment(
             log::info!("Update vote");
             Some(sqlx::query_as!(
                 CommentVote,
-                "UPDATE comment_votes SET value = $1 WHERE id = $2 RETURNING *",
+                "UPDATE comment_votes SET value = $1 WHERE vote_id = $2 RETURNING *",
                 vote,
                 previous_vote_id.unwrap(),
             )
@@ -134,7 +133,7 @@ pub async fn vote_on_comment(
         } else {
             log::info!("Delete vote");
             sqlx::query!(
-                "DELETE from comment_votes WHERE id = $1",
+                "DELETE from comment_votes WHERE vote_id = $1",
                 previous_vote_id.unwrap(),
             )
                 .execute(&db_pool)
@@ -146,7 +145,7 @@ pub async fn vote_on_comment(
         Some(sqlx::query_as!(
             CommentVote,
             "INSERT INTO comment_votes (creator_id, comment_id, post_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
-            user.id,
+            user.user_id,
             comment_id,
             post_id,
             vote,
@@ -158,7 +157,7 @@ pub async fn vote_on_comment(
     let comment_score_delta = vote - previous_vote.unwrap_or_default();
 
     sqlx::query!(
-            "UPDATE comments set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where id = $3",
+            "UPDATE comments set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where comment_id = $3",
             i32::from(comment_score_delta),
             i32::from(-comment_score_delta.signum()),
             comment_id,
@@ -209,45 +208,6 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
             <div class="w-3 text-sm text-right">
                 {move || score.get()}
             </div>
-        </div>
-    }
-}
-
-/// Component to display and modify post's score
-#[component]
-pub fn VotePanel(
-    score: RwSignal<i32>,
-    #[prop(into)]
-    on_up_vote: Callback<ev::MouseEvent>,
-    #[prop(into)]
-    on_down_vote: Callback<ev::MouseEvent>,
-) -> impl IntoView {
-
-    view! {
-        <div class="flex items-center gap-1">
-            <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
-                login_button_content=move || view! { <PlusIcon/> }
-            >
-                <button
-                    class="btn btn-ghost btn-circle btn-sm hover:btn-success"
-                    on:click=on_up_vote
-                >
-                    <PlusIcon/>
-                </button>
-            </LoginGuardButton>
-            <DynScoreIndicator score=score/>
-            <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
-                login_button_content=move || view! { <MinusIcon/> }
-            >
-                <button
-                    class="btn btn-ghost btn-circle btn-sm hover:btn-error"
-                    on:click=on_down_vote
-                >
-                    <MinusIcon/>
-                </button>
-            </LoginGuardButton>
         </div>
     }
 }

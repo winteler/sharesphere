@@ -19,7 +19,7 @@ cfg_if! {
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Comment {
-    pub id: i64,
+    pub comment_id: i64,
     pub body: String,
     pub is_edited: bool,
     pub moderated_body: Option<String>,
@@ -88,22 +88,22 @@ pub async fn get_post_comment_tree(
         Comment,
         "WITH RECURSIVE comment_tree AS (
             SELECT 1 AS depth,
-                   id,
-                   ARRAY[(create_timestamp, id)] AS path
+                   comment_id,
+                   ARRAY[(create_timestamp, comment_id)] AS path
             FROM comments
             WHERE
                 post_id = $1 AND
                 parent_id IS NULL
             UNION ALL
             SELECT r.depth + 1,
-                   n.id,
-                   r.path || (n.create_timestamp, n.id)
+                   n.comment_id,
+                   r.path || (n.create_timestamp, n.comment_id)
             FROM comment_tree r
-            JOIN comments n ON n.parent_id = r.id
+            JOIN comments n ON n.parent_id = r.comment_id
         )
         SELECT c.*
         FROM comments c
-        INNER JOIN comment_tree r ON c.id = r.id
+        INNER JOIN comment_tree r ON c.comment_id = r.comment_id
         ORDER BY r.path",
         post_id,
     )
@@ -121,7 +121,7 @@ pub async fn get_post_comment_tree(
 
 
         while let Some(top) = stack.last() {
-            if current.comment.parent_id.is_some() && current.comment.parent_id.unwrap() == top.comment.id {
+            if current.comment.parent_id.is_some() && current.comment.parent_id.unwrap() == top.comment.comment_id {
                 // current comment is child of the previous one, keep building stack
                 break;
             } else {
@@ -177,7 +177,7 @@ pub async fn create_comment(
         comment,
         parent_comment_id,
         post_id,
-        user.id,
+        user.user_id,
         user.username,
     )
         .execute(&db_pool)
@@ -395,7 +395,7 @@ fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
     view! {
         <div class="flex gap-2">
             <CommentVotePanel comment=comment/>
-            <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.id)/>
+            <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.comment_id)/>
             <AuthorWidget author=&comment.comment.creator_name/>
             <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
         </div>
@@ -403,7 +403,7 @@ fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
 }
 
 /// Function to react to an comment's upvote or downvote button being clicked.
-fn on_vote_btn_click(
+fn get_on_comment_vote_closure(
     vote: RwSignal<i16>,
     score: RwSignal<i32>,
     comment_id: i64,
@@ -428,7 +428,7 @@ fn on_vote_btn_click(
             (comment_vote_id, comment_vote_value)
         } else {
             match vote_action.value().get_untracked() {
-                Some(Ok(Some(vote))) => (Some(vote.id), Some(vote.value)),
+                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
                 _ => (None, None),
             }
         };
@@ -444,13 +444,13 @@ fn on_vote_btn_click(
     }
 }
 
-/// Component to display and modify post's score
+/// Component to display and modify a comment's score
 #[component]
 pub fn CommentVotePanel<'a>(
     comment: &'a CommentWithChildren,
 ) -> impl IntoView {
 
-    let comment_id = comment.comment.id;
+    let comment_id = comment.comment.comment_id;
     let post_id = comment.comment.post_id;
     let initial_score = comment.comment.score;
 
@@ -463,7 +463,7 @@ pub fn CommentVotePanel<'a>(
     );
 
     let comment_vote_id = match &comment.vote {
-        Some(vote) => Some(vote.id),
+        Some(vote) => Some(vote.vote_id),
         None => None,
     };
     let comment_vote_value = match &comment.vote {
@@ -471,7 +471,7 @@ pub fn CommentVotePanel<'a>(
         None => None,
     };
 
-    let vote_server_action = create_server_action::<VoteOnComment>();
+    let vote_action = create_server_action::<VoteOnComment>();
 
     let upvote_button_css = get_vote_button_css(vote, true);
     let downvote_button_css = get_vote_button_css(vote, false);
@@ -484,7 +484,7 @@ pub fn CommentVotePanel<'a>(
             >
                 <button
                     class=upvote_button_css()
-                    on:click=on_vote_btn_click(
+                    on:click=get_on_comment_vote_closure(
                         vote,
                         score,
                         comment_id,
@@ -492,7 +492,7 @@ pub fn CommentVotePanel<'a>(
                         initial_score,
                         comment_vote_id,
                         comment_vote_value,
-                        vote_server_action,
+                        vote_action,
                         true)
                 >
                     <PlusIcon/>
@@ -505,14 +505,15 @@ pub fn CommentVotePanel<'a>(
             >
                 <button
                     class=downvote_button_css()
-                    on:click=on_vote_btn_click(vote,
+                    on:click=get_on_comment_vote_closure(
+                        vote,
                         score,
                         comment_id,
                         post_id,
                         initial_score,
                         comment_vote_id,
                         comment_vote_value,
-                        vote_server_action,
+                        vote_action,
                         false)
                 >
                     <MinusIcon/>

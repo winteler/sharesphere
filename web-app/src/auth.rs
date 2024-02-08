@@ -21,7 +21,7 @@ pub const REDIRECT_URL_KEY : &str = "redirect";
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
-    pub id: i64,
+    pub user_id: i64,
     pub username: String,
     pub anonymous: bool,
     pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -30,7 +30,7 @@ pub struct User {
 impl Default for User {
     fn default() -> Self {
         Self {
-            id: -1,
+            user_id: -1,
             username: String::default(),
             anonymous: true,
             timestamp: chrono::DateTime::default(),
@@ -57,7 +57,7 @@ cfg_if! {
 
         #[derive(sqlx::FromRow, Clone)]
         pub struct SqlUser {
-            pub id: i64,
+            pub user_id: i64,
             pub oidc_id: String,
             pub username: String,
             pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -74,7 +74,7 @@ cfg_if! {
         impl SqlUser {
             pub fn into_user(self) -> User {
                 User {
-                    id: self.id,
+                    user_id: self.user_id,
                     anonymous: false,
                     username: self.username,
                     timestamp: self.timestamp,
@@ -125,10 +125,10 @@ cfg_if! {
 
         #[async_trait]
         impl Authentication<User, OidcUserInfo, PgPool> for User {
-            async fn load_user(id: OidcUserInfo, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+            async fn load_user(oidc_id: OidcUserInfo, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
                 let pool = pool.ok_or(anyhow::anyhow!("Cannot get DB pool"))?;
 
-                User::get(id, pool)
+                User::get(oidc_id, pool)
                     .await
                     .ok_or_else(|| anyhow::anyhow!("Cannot get user"))
             }

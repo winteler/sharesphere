@@ -1,13 +1,13 @@
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    user_id BIGSERIAL PRIMARY KEY,
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE forums (
-    id BIGSERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
+    forum_id BIGSERIAL PRIMARY KEY,
+    forum_name TEXT UNIQUE NOT NULL,
     description TEXT NOT NULL,
     is_nsfw BOOLEAN NOT NULL,
     is_banned BOOLEAN NOT NULL DEFAULT FALSE,
@@ -19,7 +19,7 @@ CREATE TABLE forums (
 );
 
 CREATE TABLE posts (
-    id BIGSERIAL PRIMARY KEY,
+    post_id BIGSERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     is_meta_post BOOLEAN NOT NULL DEFAULT FALSE,
@@ -43,7 +43,7 @@ CREATE TABLE posts (
 );
 
 CREATE TABLE comments (
-    id BIGSERIAL PRIMARY KEY,
+    comment_id BIGSERIAL PRIMARY KEY,
     body TEXT NOT NULL,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
@@ -61,7 +61,7 @@ CREATE TABLE comments (
 );
 
 CREATE TABLE post_votes (
-    id BIGSERIAL PRIMARY KEY,
+    vote_id BIGSERIAL PRIMARY KEY,
     creator_id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
     value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
@@ -69,7 +69,7 @@ CREATE TABLE post_votes (
 );
 
 CREATE TABLE comment_votes (
-    id BIGSERIAL PRIMARY KEY,
+    vote_id BIGSERIAL PRIMARY KEY,
     creator_id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
     comment_id BIGINT NOT NULL,

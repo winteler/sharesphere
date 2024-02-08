@@ -14,8 +14,8 @@ use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget};
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Forum {
-    pub id: i64,
-    pub name: String,
+    pub forum_id: i64,
+    pub forum_name: String,
     pub description: String,
     pub is_nsfw: bool,
     pub is_banned: bool,
@@ -53,11 +53,11 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
     }
 
     sqlx::query!(
-        "INSERT INTO forums (name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO forums (forum_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
         name.clone(),
         description,
         is_nsfw.is_some(),
-        user.id
+        user.user_id
     )
         .execute(&db_pool)
         .await?;
@@ -73,7 +73,7 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
     let db_pool = get_db_pool()?;
     let forum = sqlx::query_as!(
         Forum,
-        "SELECT * FROM forums where name = $1",
+        "SELECT * FROM forums where forum_name = $1",
         forum_name
     )
         .fetch_one(&db_pool)
@@ -95,7 +95,7 @@ pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFn
     let mut forum_by_name_map = BTreeMap::<String, Forum>::new();
 
     for forum in forum_vec {
-        forum_by_name_map.insert(forum.name.clone(), forum);
+        forum_by_name_map.insert(forum.forum_name.clone(), forum);
     }
 
     Ok(forum_by_name_map)
@@ -104,12 +104,12 @@ pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFn
 #[server]
 pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
+    let forum_name_vec = sqlx::query!("SELECT forum_name FROM forums").fetch_all(&db_pool).await?;
 
     let mut forum_name_set = BTreeSet::<String>::new();
 
-    for forum_name in forum_name_vec {
-        forum_name_set.insert(forum_name.name);
+    for row in forum_name_vec {
+        forum_name_set.insert(row.forum_name);
     }
 
     Ok(forum_name_set)
@@ -119,12 +119,12 @@ pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
 pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
 
-    let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
+    let forum_name_vec = sqlx::query!("SELECT forum_name FROM forums").fetch_all(&db_pool).await?;
 
     let mut forum_name_set = BTreeSet::<String>::new();
 
-    for forum_name in forum_name_vec {
-        forum_name_set.insert(forum_name.name);
+    for row in forum_name_vec {
+        forum_name_set.insert(row.forum_name);
     }
 
     Ok(forum_name_set)
@@ -354,7 +354,7 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>, forum_name: String) -> i
         <ul class="menu w-full text-lg">
             {
                 post_vec.iter().map(move |post| {
-                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.id.to_string();
+                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.post_id.to_string();
                     view! {
                         <li>
                             <a href=post_path>

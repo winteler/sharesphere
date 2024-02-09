@@ -43,6 +43,45 @@ pub struct CommentWithChildren {
     pub child_comments: Vec<CommentWithChildren>,
 }
 
+cfg_if! {
+    if #[cfg(feature = "ssr")] {
+        #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
+        pub struct CommentWithVote {
+            #[sqlx(flatten)]
+            pub comment: Comment,
+            pub vote_id: Option<i64>,
+            pub vote_creator_id: Option<i64>,
+            pub vote_comment_id: Option<i64>,
+            pub vote_post_id: Option<i64>,
+            pub value: Option<i16>,
+            pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+        }
+
+        impl CommentWithVote {
+            pub fn into_comment_with_children(self) -> CommentWithChildren {
+                let comment_vote = if self.vote_id.is_some() {
+                    Some(CommentVote {
+                        vote_id: self.vote_id.unwrap(),
+                        creator_id: self.vote_creator_id.unwrap(),
+                        comment_id: self.vote_comment_id.unwrap(),
+                        post_id: self.vote_post_id.unwrap(),
+                        value: self.value.unwrap(),
+                        timestamp: self.vote_timestamp.unwrap(),
+                    })
+                } else {
+                    None
+                };
+
+                CommentWithChildren {
+                    comment: self.comment,
+                    vote: comment_vote,
+                    child_comments: Vec::<CommentWithChildren>::new(),
+                }
+            }
+        }
+    }
+}
+
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
 const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
     "bg-blue-500",
@@ -84,8 +123,7 @@ pub async fn get_post_comment_tree(
         return Err(ServerFnError::ServerError(String::from("Invalid post id.")));
     }
 
-    let _comment_vec = sqlx::query_as!(
-        Comment,
+    let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
         "WITH RECURSIVE comment_tree AS (
             SELECT 1 AS depth,
                    comment_id,
@@ -101,24 +139,27 @@ pub async fn get_post_comment_tree(
             FROM comment_tree r
             JOIN comments n ON n.parent_id = r.comment_id
         )
-        SELECT c.*
+        SELECT
+            c.*,
+            v.vote_id,
+            v.creator_id as vote_creator_id,
+            v.post_id as vote_post_id,
+            v.comment_id as vote_comment_id,
+            v.value,
+            v.timestamp as vote_timestamp
         FROM comments c
         INNER JOIN comment_tree r ON c.comment_id = r.comment_id
+        LEFT JOIN comment_votes v on v.comment_id = c.comment_id
         ORDER BY r.path",
-        post_id,
     )
+        .bind(post_id)
         .fetch_all(&db_pool)
         .await?;
 
     let mut comment_tree = Vec::<CommentWithChildren>::new();
     let mut stack = Vec::<CommentWithChildren>::new();
-    for comment in _comment_vec {
-        let current = CommentWithChildren {
-            comment: comment,
-            vote: None,
-            child_comments: Vec::<CommentWithChildren>::default(),
-        };
-
+    for comment_with_vote in comment_with_vote_vec {
+        let current = comment_with_vote.into_comment_with_children();
 
         while let Some(top) = stack.last() {
             if current.comment.parent_id.is_some() && current.comment.parent_id.unwrap() == top.comment.comment_id {

@@ -125,32 +125,36 @@ pub async fn get_post_comment_tree(
 
     let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
         "WITH RECURSIVE comment_tree AS (
-            SELECT 1 AS depth,
-                   comment_id,
-                   ARRAY[(create_timestamp, comment_id)] AS path
-            FROM comments
+            SELECT c.*,
+                   v.vote_id,
+                   v.creator_id as vote_creator_id,
+                   v.post_id as vote_post_id,
+                   v.comment_id as vote_comment_id,
+                   v.value,
+                   v.timestamp as vote_timestamp,
+                   1 AS depth,
+                   ARRAY[(c.create_timestamp, c.comment_id)] AS path
+            FROM comments c
+            LEFT JOIN comment_votes v on v.comment_id = c.comment_id
             WHERE
-                post_id = $1 AND
-                parent_id IS NULL
+                c.post_id = $1 AND
+                c.parent_id IS NULL
             UNION ALL
-            SELECT r.depth + 1,
-                   n.comment_id,
+            SELECT n.*,
+                   vr.vote_id,
+                   vr.creator_id as vote_creator_id,
+                   vr.post_id as vote_post_id,
+                   vr.comment_id as vote_comment_id,
+                   vr.value,
+                   vr.timestamp as vote_timestamp,
+                   r.depth + 1,
                    r.path || (n.create_timestamp, n.comment_id)
             FROM comment_tree r
             JOIN comments n ON n.parent_id = r.comment_id
+            LEFT JOIN comment_votes vr on vr.comment_id = n.comment_id
         )
-        SELECT
-            c.*,
-            v.vote_id,
-            v.creator_id as vote_creator_id,
-            v.post_id as vote_post_id,
-            v.comment_id as vote_comment_id,
-            v.value,
-            v.timestamp as vote_timestamp
-        FROM comments c
-        INNER JOIN comment_tree r ON c.comment_id = r.comment_id
-        LEFT JOIN comment_votes v on v.comment_id = c.comment_id
-        ORDER BY r.path",
+        SELECT * FROM comment_tree
+        ORDER BY path",
     )
         .bind(post_id)
         .fetch_all(&db_pool)

@@ -45,23 +45,78 @@ pub struct Post {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct PostWithVote {
+    pub post: Post,
+    pub vote: Option<PostVote>
+}
+
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::auth::{get_db_pool, get_user};
         use crate::forum::FORUM_ROUTE_PREFIX;
+
+        #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
+        pub struct PostJoinVote {
+            #[sqlx(flatten)]
+            pub post: Post,
+            pub vote_id: Option<i64>,
+            pub vote_creator_id: Option<i64>,
+            pub vote_post_id: Option<i64>,
+            pub value: Option<i16>,
+            pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+        }
+
+        impl PostJoinVote {
+            pub fn into_post_with_vote(self) -> PostWithVote {
+                let post_vote = if self.vote_id.is_some() {
+                    Some(PostVote {
+                        vote_id: self.vote_id.unwrap(),
+                        creator_id: self.vote_creator_id.unwrap(),
+                        post_id: self.vote_post_id.unwrap(),
+                        value: self.value.unwrap(),
+                        timestamp: self.vote_timestamp.unwrap(),
+                    })
+                } else {
+                    None
+                };
+
+                PostWithVote {
+                    post: self.post,
+                    vote: post_vote,
+                }
+            }
+        }
     }
 }
 
 #[server]
-pub async fn get_post_by_id(id: i64) -> Result<Post, ServerFnError> {
+pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, ServerFnError> {
     let db_pool = get_db_pool()?;
-    Ok(sqlx::query_as!(
-        Post,
-        "SELECT * FROM posts WHERE post_id = $1",
-        id
+    let user_id = match get_user().await {
+        Ok(user) => Some(user.user_id),
+        Err(_) => None
+    };
+
+    let post_join_vote = sqlx::query_as::<_, PostJoinVote>(
+        "SELECT p.*,
+                v.vote_id,
+                v.creator_id as vote_creator_id,
+                v.post_id as vote_post_id,
+                v.value,
+                v.timestamp as vote_timestamp
+        FROM posts p
+        LEFT JOIN post_votes v
+        ON v.post_id = p.post_id AND
+           v.creator_id = $1
+        WHERE p.post_id = $2",
     )
+        .bind(user_id)
+        .bind(post_id)
         .fetch_one(&db_pool)
-        .await?)
+        .await?;
+
+    Ok(post_join_vote.into_post_with_vote())
 }
 
 #[server]
@@ -302,7 +357,7 @@ pub fn Post() -> impl IntoView {
         move || post_id(),
         move |post_id| {
             log::trace!("Load data for post: {post_id}");
-            get_post_by_id(post_id)
+            get_post_with_vote_by_id(post_id)
         });
 
     view! {
@@ -316,8 +371,8 @@ pub fn Post() -> impl IntoView {
                                     <div class="card">
                                         <div class="card-body">
                                             <div class="flex flex-col gap-4">
-                                                <h2 class="card-title text-white">{post.title.clone()}</h2>
-                                                <div class="text-white">{post.body.clone()}</div>
+                                                <h2 class="card-title text-white">{post.post.title.clone()}</h2>
+                                                <div class="text-white">{post.post.body.clone()}</div>
                                                 <PostWidgetBar post=post/>
                                             </div>
                                         </div>
@@ -343,16 +398,15 @@ pub fn Post() -> impl IntoView {
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
-fn PostWidgetBar<'a>(post: &'a Post) -> impl IntoView {
+fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
     view! {
         <div class="flex gap-2">
             <PostVotePanel
                 post=post
-                post_vote=&None
             />
-            <CommentButton post_id=post.post_id/>
-            <AuthorWidget author=&post.creator_name/>
-            <TimeSinceWidget timestamp=&post.create_timestamp/>
+            <CommentButton post_id=post.post.post_id/>
+            <AuthorWidget author=&post.post.creator_name/>
+            <TimeSinceWidget timestamp=&post.post.create_timestamp/>
         </div>
     }
 }
@@ -360,26 +414,25 @@ fn PostWidgetBar<'a>(post: &'a Post) -> impl IntoView {
 /// Component to display and modify a post's score
 #[component]
 pub fn PostVotePanel<'a>(
-    post: &'a Post,
-    post_vote: &'a Option<PostVote>,
+    post: &'a PostWithVote,
 ) -> impl IntoView {
 
-    let post_id = post.post_id;
-    let initial_score = post.score;
+    let post_id = post.post.post_id;
+    let initial_score = post.post.score;
 
-    let score = create_rw_signal(post.score);
+    let score = create_rw_signal(post.post.score);
     let vote = create_rw_signal(
-        match &post_vote {
+        match &post.vote {
             Some(vote) => vote.value,
             None => 0,
         }
     );
 
-    let comment_vote_id = match &post_vote {
+    let comment_vote_id = match &post.vote {
         Some(vote) => Some(vote.vote_id),
         None => None,
     };
-    let comment_vote_value = match &post_vote {
+    let comment_vote_value = match &post.vote {
         Some(vote) => Some(vote.value),
         None => None,
     };

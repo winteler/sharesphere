@@ -117,6 +117,10 @@ pub async fn get_post_comments(
 pub async fn get_post_comment_tree(
     post_id: i64,
 ) -> Result<Vec<CommentWithChildren>, ServerFnError> {
+    let user_id = match get_user().await {
+        Ok(user) => Some(user.user_id),
+        Err(_) => None
+    };
     let db_pool = get_db_pool()?;
 
     if post_id < 1 {
@@ -135,9 +139,11 @@ pub async fn get_post_comment_tree(
                    1 AS depth,
                    ARRAY[(c.create_timestamp, c.comment_id)] AS path
             FROM comments c
-            LEFT JOIN comment_votes v on v.comment_id = c.comment_id
+            LEFT JOIN comment_votes v
+            ON v.comment_id = c.comment_id AND
+               v.creator_id = $1
             WHERE
-                c.post_id = $1 AND
+                c.post_id = $2 AND
                 c.parent_id IS NULL
             UNION ALL
             SELECT n.*,
@@ -151,11 +157,14 @@ pub async fn get_post_comment_tree(
                    r.path || (n.create_timestamp, n.comment_id)
             FROM comment_tree r
             JOIN comments n ON n.parent_id = r.comment_id
-            LEFT JOIN comment_votes vr on vr.comment_id = n.comment_id
+            LEFT JOIN comment_votes vr
+            ON vr.comment_id = n.comment_id AND
+               vr.creator_id = $1
         )
         SELECT * FROM comment_tree
         ORDER BY path",
     )
+        .bind(user_id)
         .bind(post_id)
         .fetch_all(&db_pool)
         .await?;

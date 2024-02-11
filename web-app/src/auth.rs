@@ -1,12 +1,28 @@
-use cfg_if::cfg_if;
 use std::env;
 use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "ssr")]
+use crate::app::get_session;
 use crate::app::{GlobalState};
 use crate::icons::*;
 use crate::navigation_bar::get_current_path_closure;
+
+#[cfg(feature = "ssr")]
+use async_trait::async_trait;
+#[cfg(feature = "ssr")]
+use axum_session::SessionPgPool;
+#[cfg(feature = "ssr")]
+use axum_session_auth::Authentication;
+#[cfg(feature = "ssr")]
+use openidconnect as oidc;
+#[cfg(feature = "ssr")]
+use openidconnect::reqwest::*;
+#[cfg(feature = "ssr")]
+use openidconnect::{OAuth2TokenResponse, TokenResponse};
+#[cfg(feature = "ssr")]
+use sqlx::PgPool;
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
@@ -18,11 +34,15 @@ pub const OIDC_TOKENS_KEY : &str = "oidc_token";
 pub const OIDC_USERNAME_KEY : &str = "oidc_username";
 pub const REDIRECT_URL_KEY : &str = "redirect";
 
+#[cfg(feature = "ssr")]
+pub type AuthSession = axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub user_id: i64,
     pub username: String,
+    pub email: String,
     pub anonymous: bool,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -32,6 +52,7 @@ impl Default for User {
         Self {
             user_id: -1,
             username: String::default(),
+            email: String::default(),
             anonymous: true,
             timestamp: chrono::DateTime::default(),
         }
@@ -42,114 +63,103 @@ impl Default for User {
 pub struct OidcUserInfo {
     pub oidc_id: String,
     pub username: String,
+    pub email: String,
 }
 
 impl std::fmt::Display for OidcUserInfo {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(fmt, "User {} with OIDC Id {}", self.username, self.oidc_id)
+        write!(fmt, "OidcUserInfo {{{}, {}, {}}}", self.oidc_id, self.username, self.email)
     }
 }
 
-cfg_if! {
-    if #[cfg(feature = "ssr")] {
-        use async_trait::async_trait;
-        use axum_session_auth::{SessionPgPool, Authentication};
-        use openidconnect as oidc;
-        use openidconnect::reqwest::*;
-        use openidconnect::{OAuth2TokenResponse, TokenResponse};
-        use sqlx::PgPool;
+#[cfg(feature = "ssr")]
+pub mod ssr {
+    use super::User;
 
-        pub type AuthSession = axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
+    #[derive(sqlx::FromRow, Clone)]
+    pub struct SqlUser {
+        pub user_id: i64,
+        pub oidc_id: String,
+        pub username: String,
+        pub email: String,
+        pub timestamp: chrono::DateTime<chrono::Utc>,
+    }
 
-        #[derive(sqlx::FromRow, Clone)]
-        pub struct SqlUser {
-            pub user_id: i64,
-            pub oidc_id: String,
-            pub username: String,
-            pub timestamp: chrono::DateTime<chrono::Utc>,
-        }
-
-        pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
-            use_context::<PgPool>().ok_or_else(|| ServerFnError::ServerError("Pool missing.".into()))
-        }
-
-        pub fn get_session() -> Result<AuthSession, ServerFnError> {
-            use_context::<AuthSession>().ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
-        }
-
-        impl SqlUser {
-            pub fn into_user(self) -> User {
-                User {
-                    user_id: self.user_id,
-                    anonymous: false,
-                    username: self.username,
-                    timestamp: self.timestamp,
-                }
+    impl SqlUser {
+        pub fn into_user(self) -> User {
+            User {
+                user_id: self.user_id,
+                username: self.username,
+                email: self.email,
+                anonymous: false,
+                timestamp: self.timestamp,
             }
         }
+    }
+}
 
-        impl User {
-            #[cfg(feature = "ssr")]
-            pub async fn get(oidc_info: OidcUserInfo, pool: &PgPool) -> Option<Self> {
-                match sqlx::query_as!(
-                    SqlUser,
-                    "SELECT * FROM users WHERE oidc_id = $1",
-                    oidc_info.oidc_id.clone()
-                )
-                    .fetch_one(pool)
-                    .await {
-                    Ok(sql_user) => Some(sql_user.into_user()),
-                    Err(select_error) => {
-                        log::info!("User not found with error: {}", select_error);
-                        if let sqlx::Error::RowNotFound = select_error {
-                            log::info!("Try to insert new user");
-                            match sqlx::query_as!(
-                                SqlUser,
-                                "INSERT INTO users (oidc_id, username) VALUES ($1, $2) RETURNING *",
-                                oidc_info.oidc_id,
-                                oidc_info.username
-                            )
-                                .fetch_one(pool)
-                                .await
-                            {
-                                Ok(sql_user) => Some(sql_user.into_user()),
-                                Err(insert_error) => {
-                                    log::error!("Error while storing new user: {}", insert_error);
-                                    None
-                                },
-                            }
-                        }
-                        else {
-                            log::error!("Could not get user {}", select_error);
+#[cfg(feature = "ssr")]
+impl User {
+    pub async fn get(oidc_info: OidcUserInfo, pool: &PgPool) -> Option<Self> {
+        match sqlx::query_as!(
+                ssr::SqlUser,
+                "SELECT * FROM users WHERE oidc_id = $1",
+                oidc_info.oidc_id.clone()
+            )
+            .fetch_one(pool)
+            .await {
+            Ok(sql_user) => Some(sql_user.into_user()),
+            Err(select_error) => {
+                log::info!("User not found with error: {}", select_error);
+                if let sqlx::Error::RowNotFound = select_error {
+                    log::info!("Try to insert new user");
+                    match sqlx::query_as!(
+                            ssr::SqlUser,
+                            "INSERT INTO users (oidc_id, username, email) VALUES ($1, $2, $3) RETURNING *",
+                            oidc_info.oidc_id,
+                            oidc_info.username,
+                            oidc_info.email,
+                        )
+                        .fetch_one(pool)
+                        .await
+                    {
+                        Ok(sql_user) => Some(sql_user.into_user()),
+                        Err(insert_error) => {
+                            log::error!("Error while storing new user: {}", insert_error);
                             None
-                        }
+                        },
                     }
                 }
+                else {
+                    log::error!("Could not get user {}", select_error);
+                    None
+                }
             }
         }
+    }
+}
 
-        #[async_trait]
-        impl Authentication<User, OidcUserInfo, PgPool> for User {
-            async fn load_user(oidc_id: OidcUserInfo, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
-                let pool = pool.ok_or(anyhow::anyhow!("Cannot get DB pool"))?;
+#[cfg(feature = "ssr")]
+#[async_trait]
+impl Authentication<User, OidcUserInfo, PgPool> for User {
+    async fn load_user(oidc_id: OidcUserInfo, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+        let pool = pool.ok_or(anyhow::anyhow!("Cannot get DB pool"))?;
 
-                User::get(oidc_id, pool)
-                    .await
-                    .ok_or_else(|| anyhow::anyhow!("Cannot get user"))
-            }
+        User::get(oidc_id, pool)
+            .await
+            .ok_or_else(|| anyhow::anyhow!("Cannot get user"))
+    }
 
-            fn is_authenticated(&self) -> bool {
-                !self.anonymous
-            }
+    fn is_authenticated(&self) -> bool {
+        !self.anonymous
+    }
 
-            fn is_active(&self) -> bool {
-                !self.anonymous
-            }
+    fn is_active(&self) -> bool {
+        !self.anonymous
+    }
 
-            fn is_anonymous(&self) -> bool {
-                self.anonymous
-            }
-        }
+    fn is_anonymous(&self) -> bool {
+        self.anonymous
     }
 }
 
@@ -307,6 +317,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
     let oidc_user_info = OidcUserInfo {
         oidc_id: claims.subject().to_string(),
         username: claims.preferred_username().unwrap().to_string(),
+        email: claims.email().unwrap().to_string(),
     };
 
     auth_session.login_user(oidc_user_info);

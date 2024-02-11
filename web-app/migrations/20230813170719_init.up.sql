@@ -2,6 +2,7 @@ CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

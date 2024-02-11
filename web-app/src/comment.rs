@@ -1,4 +1,3 @@
-use cfg_if::cfg_if;
 use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
@@ -10,11 +9,8 @@ use crate::post::{get_post_id_memo};
 use crate::score::{get_vote_button_css, CommentVote, DynScoreIndicator, VoteOnComment};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
-cfg_if! {
-    if #[cfg(feature = "ssr")] {
-        use crate::auth::{get_db_pool, get_user};
-    }
-}
+#[cfg(feature = "ssr")]
+use crate::{app::get_db_pool, auth::get_user};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -43,40 +39,40 @@ pub struct CommentWithChildren {
     pub child_comments: Vec<CommentWithChildren>,
 }
 
-cfg_if! {
-    if #[cfg(feature = "ssr")] {
-        #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
-        pub struct CommentWithVote {
-            #[sqlx(flatten)]
-            pub comment: Comment,
-            pub vote_id: Option<i64>,
-            pub vote_creator_id: Option<i64>,
-            pub vote_comment_id: Option<i64>,
-            pub vote_post_id: Option<i64>,
-            pub value: Option<i16>,
-            pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-        }
+#[cfg(feature = "ssr")]
+pub mod ssr {
+    use super::*;
+    #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
+    pub struct CommentWithVote {
+        #[sqlx(flatten)]
+        pub comment: Comment,
+        pub vote_id: Option<i64>,
+        pub vote_creator_id: Option<i64>,
+        pub vote_comment_id: Option<i64>,
+        pub vote_post_id: Option<i64>,
+        pub value: Option<i16>,
+        pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    }
 
-        impl CommentWithVote {
-            pub fn into_comment_with_children(self) -> CommentWithChildren {
-                let comment_vote = if self.vote_id.is_some() {
-                    Some(CommentVote {
-                        vote_id: self.vote_id.unwrap(),
-                        creator_id: self.vote_creator_id.unwrap(),
-                        comment_id: self.vote_comment_id.unwrap(),
-                        post_id: self.vote_post_id.unwrap(),
-                        value: self.value.unwrap(),
-                        timestamp: self.vote_timestamp.unwrap(),
-                    })
-                } else {
-                    None
-                };
+    impl CommentWithVote {
+        pub fn into_comment_with_children(self) -> CommentWithChildren {
+            let comment_vote = if self.vote_id.is_some() {
+                Some(CommentVote {
+                    vote_id: self.vote_id.unwrap(),
+                    creator_id: self.vote_creator_id.unwrap(),
+                    comment_id: self.vote_comment_id.unwrap(),
+                    post_id: self.vote_post_id.unwrap(),
+                    value: self.value.unwrap(),
+                    timestamp: self.vote_timestamp.unwrap(),
+                })
+            } else {
+                None
+            };
 
-                CommentWithChildren {
-                    comment: self.comment,
-                    vote: comment_vote,
-                    child_comments: Vec::<CommentWithChildren>::new(),
-                }
+            CommentWithChildren {
+                comment: self.comment,
+                vote: comment_vote,
+                child_comments: Vec::<CommentWithChildren>::new(),
             }
         }
     }
@@ -127,7 +123,7 @@ pub async fn get_post_comment_tree(
         return Err(ServerFnError::new("Invalid post id."));
     }
 
-    let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
+    let comment_with_vote_vec = sqlx::query_as::<_, ssr::CommentWithVote>(
         "WITH RECURSIVE comment_tree AS (
             SELECT c.*,
                    v.vote_id,

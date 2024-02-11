@@ -1,4 +1,3 @@
-use cfg_if::cfg_if;
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
@@ -11,6 +10,11 @@ use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon, MinusIcon, PlusIcon};
 use crate::score::{get_vote_button_css, DynScoreIndicator, PostVote, VoteOnPost};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
+
+#[cfg(feature = "ssr")]
+use crate::{app::get_db_pool, auth::get_user};
+#[cfg(feature = "ssr")]
+use crate::forum::FORUM_ROUTE_PREFIX;
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -51,40 +55,38 @@ pub struct PostWithVote {
     pub vote: Option<PostVote>
 }
 
-cfg_if! {
-    if #[cfg(feature = "ssr")] {
-        use crate::auth::{get_db_pool, get_user};
-        use crate::forum::FORUM_ROUTE_PREFIX;
+#[cfg(feature = "ssr")]
+pub mod ssr {
+    use super::*;
 
-        #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
-        pub struct PostJoinVote {
-            #[sqlx(flatten)]
-            pub post: Post,
-            pub vote_id: Option<i64>,
-            pub vote_creator_id: Option<i64>,
-            pub vote_post_id: Option<i64>,
-            pub value: Option<i16>,
-            pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-        }
+    #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
+    pub struct PostJoinVote {
+        #[sqlx(flatten)]
+        pub post: super::Post,
+        pub vote_id: Option<i64>,
+        pub vote_creator_id: Option<i64>,
+        pub vote_post_id: Option<i64>,
+        pub value: Option<i16>,
+        pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    }
 
-        impl PostJoinVote {
-            pub fn into_post_with_vote(self) -> PostWithVote {
-                let post_vote = if self.vote_id.is_some() {
-                    Some(PostVote {
-                        vote_id: self.vote_id.unwrap(),
-                        creator_id: self.vote_creator_id.unwrap(),
-                        post_id: self.vote_post_id.unwrap(),
-                        value: self.value.unwrap(),
-                        timestamp: self.vote_timestamp.unwrap(),
-                    })
-                } else {
-                    None
-                };
+    impl PostJoinVote {
+        pub fn into_post_with_vote(self) -> PostWithVote {
+            let post_vote = if self.vote_id.is_some() {
+                Some(PostVote {
+                    vote_id: self.vote_id.unwrap(),
+                    creator_id: self.vote_creator_id.unwrap(),
+                    post_id: self.vote_post_id.unwrap(),
+                    value: self.value.unwrap(),
+                    timestamp: self.vote_timestamp.unwrap(),
+                })
+            } else {
+                None
+            };
 
-                PostWithVote {
-                    post: self.post,
-                    vote: post_vote,
-                }
+            PostWithVote {
+                post: self.post,
+                vote: post_vote,
             }
         }
     }
@@ -98,7 +100,7 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
         Err(_) => None
     };
 
-    let post_join_vote = sqlx::query_as::<_, PostJoinVote>(
+    let post_join_vote = sqlx::query_as::<_, ssr::PostJoinVote>(
         "SELECT p.*,
                 v.vote_id,
                 v.creator_id as vote_creator_id,

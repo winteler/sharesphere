@@ -12,7 +12,6 @@ axum_session = { version = "0.12", features = [ "postgres-rustls"], optional = t
 axum_session_auth = { version = "0.12", features = [ "postgres-rustls" ], optional = true }
 console_error_panic_hook = "0.1"
 console_log = "1"
-cfg-if = "1"
 leptos = { version="0.6", features = ["nightly"] }
 leptos_axum = { version="0.6", optional = true }
 leptos_meta = { version="0.6", features = ["nightly"] }

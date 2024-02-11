@@ -1,4 +1,3 @@
-use cfg_if::cfg_if;
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
@@ -10,6 +9,9 @@ use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon};
 use crate::post::{get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
 use crate::score::{ScoreIndicator};
 use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget};
+
+#[cfg(feature = "ssr")]
+use crate::{app::get_db_pool, auth::get_user};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -24,12 +26,6 @@ pub struct Forum {
     pub banner_url: Option<String>,
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
-}
-
-cfg_if! {
-    if #[cfg(feature = "ssr")] {
-        use crate::auth::{get_db_pool, get_user};
-    }
 }
 
 pub const CREATE_FORUM_SUFFIX : &str = "/forum";
@@ -272,7 +268,7 @@ pub fn ForumBanner() -> impl IntoView {
     let forum = create_resource(
         move || forum_name(),
         move |forum_name| {
-            log::info!("Load data for forum: {forum_name}");
+            log::trace!("Load data for forum: {forum_name}");
             get_forum_by_name(forum_name)
         });
     // TODO: add forum banner

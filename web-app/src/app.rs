@@ -2,9 +2,6 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-#[cfg(feature = "ssr")]
-use sqlx::PgPool;
-
 use crate::auth::*;
 use crate::comment::CreateComment;
 use crate::post::*;
@@ -49,13 +46,17 @@ impl GlobalState {
 }
 
 #[cfg(feature = "ssr")]
-pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
-    use_context::<PgPool>().ok_or_else(|| ServerFnError::new("Pool missing."))
-}
+pub mod ssr {
+    use sqlx::PgPool;
+    use crate::auth::ssr::AuthSession;
+    use super::*;
+    pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
+        use_context::<PgPool>().ok_or_else(|| ServerFnError::new("Pool missing."))
+    }
 
-#[cfg(feature = "ssr")]
-pub fn get_session() -> Result<AuthSession, ServerFnError> {
-    use_context::<AuthSession>().ok_or_else(|| ServerFnError::new("Auth session missing."))
+    pub fn get_session() -> Result<AuthSession, ServerFnError> {
+        use_context::<AuthSession>().ok_or_else(|| ServerFnError::new("Auth session missing."))
+    }
 }
 
 #[component]

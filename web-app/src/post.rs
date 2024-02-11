@@ -12,7 +12,7 @@ use crate::score::{get_vote_button_css, DynScoreIndicator, PostVote, VoteOnPost}
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
-use crate::{app::get_db_pool, auth::get_user};
+use crate::{app::ssr::get_db_pool, auth::get_user};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 

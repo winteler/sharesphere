@@ -19,6 +19,7 @@ use std::env;
  use project_web_app::{
     app::*,
     auth::*,
+    auth::ssr::*,
     fallback::file_and_error_handler,
     state::AppState,
 };

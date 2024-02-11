@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::icons::{ScoreIcon};
 
 #[cfg(feature = "ssr")]
-use crate::{app::get_db_pool, auth::get_user};
+use crate::{app::ssr::get_db_pool, auth::get_user};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]

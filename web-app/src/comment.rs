@@ -240,6 +240,46 @@ pub async fn create_comment(
     Ok(())
 }
 
+/// Function to react to an comment's upvote or downvote button being clicked.
+fn get_on_comment_vote_closure(
+    vote: RwSignal<i16>,
+    score: RwSignal<i32>,
+    comment_id: i64,
+    post_id: i64,
+    initial_score: i32,
+    comment_vote_id: Option<i64>,
+    comment_vote_value: Option<i16>,
+    vote_action: Action<VoteOnComment, Result<Option<CommentVote>, ServerFnError>>,
+    is_upvote: bool,
+) -> impl Fn(ev::MouseEvent) {
+
+    move |_| {
+        vote.update(|vote| *vote = match *vote {
+            1 => if is_upvote { 0 } else { -1 },
+            -1 => if is_upvote { 1 } else { 0 },
+            _ => if is_upvote { 1 } else { -1 },
+        });
+
+        let (current_vote_id, current_vote_value) = if comment_vote_id.is_some() {
+            (comment_vote_id, comment_vote_value)
+        } else {
+            match vote_action.value().get_untracked() {
+                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
+                _ => (None, None),
+            }
+        };
+
+        vote_action.dispatch(VoteOnComment {
+            comment_id,
+            post_id,
+            vote: vote.get_untracked(),
+            previous_vote_id: current_vote_id,
+            previous_vote: current_vote_value,
+        });
+        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
+    }
+}
+
 /// Component to open the comment form
 #[component]
 pub fn CommentButton(
@@ -453,48 +493,6 @@ fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
             <AuthorWidget author=&comment.comment.creator_name/>
             <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
         </div>
-    }
-}
-
-/// Function to react to an comment's upvote or downvote button being clicked.
-fn get_on_comment_vote_closure(
-    vote: RwSignal<i16>,
-    score: RwSignal<i32>,
-    comment_id: i64,
-    post_id: i64,
-    initial_score: i32,
-    comment_vote_id: Option<i64>,
-    comment_vote_value: Option<i16>,
-    vote_action: Action<VoteOnComment, Result<Option<CommentVote>, ServerFnError>>,
-    is_upvote: bool,
-) -> impl Fn(ev::MouseEvent) {
-
-    move |_| {
-        vote.update(|vote| *vote = match *vote {
-            1 => if is_upvote { 0 } else { -1 },
-            -1 => if is_upvote { 1 } else { 0 },
-            _ => if is_upvote { 1 } else { -1 },
-        });
-
-        log::info!("Vote value: {}", vote());
-
-        let (current_vote_id, current_vote_value) = if comment_vote_id.is_some() {
-            (comment_vote_id, comment_vote_value)
-        } else {
-            match vote_action.value().get_untracked() {
-                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
-                _ => (None, None),
-            }
-        };
-
-        vote_action.dispatch(VoteOnComment {
-            comment_id,
-            post_id,
-            vote: vote.get_untracked(),
-            previous_vote_id: current_vote_id,
-            previous_vote: current_vote_value,
-        });
-        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
     }
 }
 

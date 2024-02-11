@@ -209,8 +209,6 @@ fn get_on_post_vote_closure(
             _ => if is_upvote { 1 } else { -1 },
         });
 
-        log::info!("Vote value: {}", vote());
-
         let (current_vote_id, current_vote_value) = if post_vote_id.is_some() {
             (post_vote_id, post_vote_value)
         } else {

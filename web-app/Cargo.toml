@@ -34,6 +34,7 @@ openidconnect = { version = "3.3.0", optional = true }
 anyhow = { version = "*", optional = true }
 async-trait = { version = "*", optional = true }
 const_format = "0.2.31"
+tracing-subscriber = "0.3.18"
 
 [features]
 default = ["ssr"]

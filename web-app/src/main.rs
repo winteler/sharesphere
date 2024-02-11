@@ -14,8 +14,9 @@ use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key
 use axum_session_auth::{AuthSessionLayer, AuthConfig};
 use sqlx::{PgPool, postgres::{PgPoolOptions}};
 use std::env;
+ use wasm_bindgen::UnwrapThrowExt;
 
-use project_web_app::{
+ use project_web_app::{
     app::*,
     auth::*,
     fallback::file_and_error_handler,
@@ -90,6 +91,9 @@ async fn server_fn_handler(
 #[tokio::main]
 async fn main() {
     simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
+
+    let subscriber = tracing_subscriber::fmt().with_max_level(tracing::Level::ERROR).finish();
+    tracing::subscriber::set_global_default(subscriber).unwrap_throw();
 
     let pool = get_db_pool().await.unwrap();
 

@@ -91,7 +91,6 @@ cfg_if! {
         impl User {
             #[cfg(feature = "ssr")]
             pub async fn get(oidc_info: OidcUserInfo, pool: &PgPool) -> Option<Self> {
-                log::info!("Try to get user from the DB");
                 match sqlx::query_as!(
                     SqlUser,
                     "SELECT * FROM users WHERE oidc_id = $1",

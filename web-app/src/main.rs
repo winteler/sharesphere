@@ -10,7 +10,7 @@ use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
 
 use anyhow::{Context};
-use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key, SecurityMode};
+use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key};
 use axum_session_auth::{AuthSessionLayer, AuthConfig};
 use sqlx::{PgPool, postgres::{PgPoolOptions}};
 use std::env;
@@ -106,7 +106,9 @@ async fn main() {
         // Encrypt the SessionID and Storage with an Encryption key generated and stored per session.
         // This allows for Key renewing without needing to force the entire Session from being destroyed.
         // This Also helps prevent impersonation attempts.
-        .with_security_mode(SecurityMode::PerSession);
+        // TODO: security mode disappeared?
+        //.with_security_mode(SecurityMode::PerSession)
+    ;
 
     let auth_config = AuthConfig::<OidcUserInfo>::default().with_anonymous_user_id(Some(OidcUserInfo::default()));
     let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();

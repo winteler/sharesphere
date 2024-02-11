@@ -44,6 +44,12 @@ pub struct OidcUserInfo {
     pub username: String,
 }
 
+impl std::fmt::Display for OidcUserInfo {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(fmt, "User {} with OIDC Id {}", self.username, self.oidc_id)
+    }
+}
+
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use async_trait::async_trait;

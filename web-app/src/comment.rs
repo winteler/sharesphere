@@ -99,7 +99,7 @@ pub async fn get_post_comments(
     let db_pool = get_db_pool()?;
 
     if post_id < 1 {
-        return Err(ServerFnError::ServerError(String::from("Invalid post id.")));
+        return Err(ServerFnError::new("Invalid post id."));
     }
 
     let comment_vec = sqlx::query_as!(
@@ -124,7 +124,7 @@ pub async fn get_post_comment_tree(
     let db_pool = get_db_pool()?;
 
     if post_id < 1 {
-        return Err(ServerFnError::ServerError(String::from("Invalid post id.")));
+        return Err(ServerFnError::new("Invalid post id."));
     }
 
     let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
@@ -223,7 +223,7 @@ pub async fn create_comment(
     let db_pool = get_db_pool()?;
 
     if comment.is_empty() {
-        return Err(ServerFnError::ServerError(String::from("Cannot create empty comment.")));
+        return Err(ServerFnError::new("Cannot create empty comment."));
     }
 
     sqlx::query!(

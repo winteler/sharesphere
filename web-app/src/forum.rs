@@ -45,11 +45,11 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
     let db_pool = get_db_pool()?;
 
     if name.is_empty() {
-        return Err(ServerFnError::ServerError(String::from("Cannot create [[forum]] with empty name.")));
+        return Err(ServerFnError::new("Cannot create [[forum]] with empty name."));
     }
 
     if !name.chars().all(char::is_alphanumeric) {
-        return Err(ServerFnError::ServerError(String::from("[[Forum]] name can only contain alphanumeric characters.")));
+        return Err(ServerFnError::new("[[Forum]] name can only contain alphanumeric characters."));
     }
 
     sqlx::query!(

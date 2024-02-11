@@ -43,11 +43,11 @@ pub async fn vote_on_post(
     let db_pool = get_db_pool()?;
 
     if post_id < 1 {
-        return Err(ServerFnError::ServerError(String::from("Invalid post id.")));
+        return Err(ServerFnError::new("Invalid post id."));
     }
 
     if vote == previous_vote.unwrap_or_default() {
-        return Err(ServerFnError::ServerError(String::from("Identical to previous vote.")));
+        return Err(ServerFnError::new("Identical to previous vote."));
     }
 
     // TODO: add unique index to prevent multiple votes by same user
@@ -110,11 +110,11 @@ pub async fn vote_on_comment(
     let db_pool = get_db_pool()?;
 
     if comment_id < 1 {
-        return Err(ServerFnError::ServerError(String::from("Invalid post id.")));
+        return Err(ServerFnError::new("Invalid post id."));
     }
 
     if vote == previous_vote.unwrap_or_default() {
-        return Err(ServerFnError::ServerError(String::from("Identical to previous vote.")));
+        return Err(ServerFnError::new("Identical to previous vote."));
     }
 
     // TODO: add unique index to prevent multiple votes by same user

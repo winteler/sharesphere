@@ -142,7 +142,7 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
     let db_pool = get_db_pool()?;
 
     if forum.is_empty() || title.is_empty() {
-        return Err(ServerFnError::ServerError(String::from("Cannot create content without a valid forum and title.")));
+        return Err(ServerFnError::new("Cannot create content without a valid forum and title."));
     }
 
     let new_post = sqlx::query_as!(

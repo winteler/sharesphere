@@ -264,7 +264,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
             .request_async(async_http_client).await?;
 
     // Extract the ID token claims after verifying its authenticity and nonce.
-    let id_token = token_response.id_token().ok_or(ServerFnError::ServerError("Error getting id token.".to_owned()))?;
+    let id_token = token_response.id_token().ok_or(ServerFnError::new("Error getting id token."))?;
     let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
 
     // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.
@@ -274,7 +274,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
             &id_token.signing_alg()?
         )?;
         if actual_access_token_hash != *expected_access_token_hash {
-            return Err(ServerFnError::ServerError("Invalid access token".to_owned()));
+            return Err(ServerFnError::new("Invalid access token"));
         }
     }
 
@@ -293,9 +293,9 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
     // CoreUserInfoClaims type alias.
     let _userinfo: oidc::core::CoreUserInfoClaims = client
         .user_info(token_response.access_token().to_owned(), None)
-        .map_err(|err| ServerFnError::ServerError("No user info endpoint: ".to_owned() + &err.to_string()))?
+        .map_err(|err| ServerFnError::new("No user info endpoint: ".to_owned() + &err.to_string()))?
         .request_async(async_http_client).await
-        .map_err(|err| ServerFnError::ServerError("Failed requesting user info: ".to_owned() + &err.to_string()))?;
+        .map_err(|err| ServerFnError::new("Failed requesting user info: ".to_owned() + &err.to_string()))?;
 
     auth_session.session.set(OIDC_TOKENS_KEY, token_response.clone());
 
@@ -320,10 +320,10 @@ pub async fn get_user() -> Result<User, ServerFnError> {
                 Ok(user)
             }
             else {
-                Err(ServerFnError::ServerError(String::from("Anonymous user.")))
+                Err(ServerFnError::new("Anonymous user."))
             }
         },
-        None => Err(ServerFnError::ServerError(String::from("Not authenticated."))),
+        None => Err(ServerFnError::new("Not authenticated.")),
     }
 }
 
@@ -333,7 +333,7 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 
     let auth_session = get_session()?;
     log::debug!("Got session.");
-    let token_response: oidc::core::CoreTokenResponse = auth_session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::ServerError(String::from("Not authenticated.")))?;
+    let token_response: oidc::core::CoreTokenResponse = auth_session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::new("Not authenticated."))?;
 
     log::debug!("Got id token: {:?}", token_response);
 
@@ -348,7 +348,7 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 
     let logout_endpoint_url = match logout_endpoint {
         Some(url) => url.clone(),
-        None => return Err(ServerFnError::ServerError(String::from("Cannot get logout endpoint.")))
+        None => return Err(ServerFnError::new("Cannot get logout endpoint."))
     };
 
     let logout_request = oidc::LogoutRequest::from(logout_endpoint_url)

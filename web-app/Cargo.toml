@@ -1,68 +1,50 @@
-[package]
-name = "project_web_app"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = ["app", "frontend", "server"]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+# need to be applied only to wasm build
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
 
-[dependencies]
-axum = { version = "0.7", features = [ "macros" ], optional = true }
-axum_session = { version = "0.12", features = [ "postgres-rustls"], optional = true }
-axum_session_auth = { version = "0.12", features = [ "postgres-rustls" ], optional = true }
-console_error_panic_hook = "0.1"
+[workspace.dependencies]
+leptos = { version = "0.6", features = ["nightly"] }
+leptos_meta = { version = "0.6", features = ["nightly"] }
+leptos_router = { version = "0.6", features = ["nightly"] }
+leptos_axum = { version = "0.6" }
+
+anyhow = "*"
+axum = {  version = "0.7", features = [ "macros" ] }
+axum_session = { version = "0.12", features = [ "postgres-rustls"] }
+axum_session_auth = { version = "0.12", features = [ "postgres-rustls" ] }
+console_error_panic_hook = "0.1.7"
 console_log = "1"
-leptos = { version="0.6", features = ["nightly"] }
-leptos_axum = { version="0.6", optional = true }
-leptos_meta = { version="0.6", features = ["nightly"] }
-leptos_router = { version="0.6", features = ["nightly"] }
-serde = { version = "*", features = ["derive"] }
-rand = { version = "0.8.5", features = ["min_const_gen"] }
-log = "0.4"
-simple_logger = "4"
-tokio = { version = "1", optional = true }
-tower = { version = "0.4", optional = true }
-tower-http = { version = "0.5", features = ["fs"], optional = true }
-wasm-bindgen = "=0.2.87"
-thiserror = "1.0.38"
-tracing = { version = "0.1.37", optional = true }
-http = "1"
-sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "chrono" ], optional = true }
 chrono = { version = "*", features = [ "serde" ] }
-openidconnect = { version = "3.3.0", optional = true }
-anyhow = { version = "*", optional = true }
-async-trait = { version = "*", optional = true }
-const_format = "0.2.31"
-tracing-subscriber = "0.3.18"
+http = "1"
+log = "0.4.20"
+serde = { version = "*", features = ["derive"] }
+simple_logger = "4.2.0"
+sqlx = { version = "0.7", features = [ "chrono", "postgres", "runtime-tokio", "tls-rustls" ] }
+thiserror = "1"
+tokio = { version = "1.33.0", features = ["full"] }
+tower = { version = "0.4.13", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+wasm-bindgen = "=0.2.87"
 
-[features]
-default = ["ssr"]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
-ssr = [
-    "dep:axum",
-    "dep:axum_session",
-    "dep:axum_session_auth",
-    "dep:tokio",
-    "dep:tower",
-    "dep:tower-http",
-    "dep:leptos_axum",
-    "dep:sqlx",
-    "dep:openidconnect",
-    "dep:anyhow",
-    "dep:async-trait",
-    "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptos_router/ssr",
-    "dep:tracing",
-]
+# See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
 
-[package.metadata.cargo-all-features]
-denylist = ["axum", "tokio", "tower", "tower-http", "leptos_axum"]
-skip_feature_sets = [["ssr", "hydrate"]]
+# A leptos project defines which workspace members
+# that are used together frontend (lib) & server (bin)
+[[workspace.metadata.leptos]]
+# this name is used for the wasm, js and css file names
+name = "start-axum-workspace"
 
-[package.metadata.leptos]
-# The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name
-output-name = "start-axum"
+# the package in the workspace that contains the server binary (binary crate)
+bin-package = "server"
+
+# the package in the workspace that contains the frontend wasm binary (library crate)
+lib-package = "frontend"
 
 # The site root folder is where cargo-leptos generate all output. WARNING: all content of this folder will be erased on a rebuild. Use it in your server setup.
 site-root = "target/site"
@@ -73,6 +55,7 @@ site-pkg-dir = "pkg"
 
 # [Optional] The source CSS file. If it ends with .sass or .scss then it will be compiled by dart-sass into CSS. The CSS is optimized by Lightning CSS before being written to <site-root>/<site-pkg>/app.css
 style-file = "style/main.scss"
+
 # Assets source dir. All files found here will be copied and synchronized to site-root.
 # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
 #
@@ -103,7 +86,7 @@ env = "DEV"
 # The features to use when compiling the bin target
 #
 # Optional. Can be over-ridden with the command line parameter --bin-features
-bin-features = ["ssr"]
+bin-features = []
 
 # If the --no-default-features flag should be used when compiling the bin target
 #
@@ -113,7 +96,7 @@ bin-default-features = false
 # The features to use when compiling the lib target
 #
 # Optional. Can be over-ridden with the command line parameter --lib-features
-lib-features = ["hydrate"]
+lib-features = []
 
 # If the --no-default-features flag should be used when compiling the lib target
 #

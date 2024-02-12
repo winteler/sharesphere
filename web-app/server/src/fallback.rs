@@ -1,4 +1,4 @@
-use crate::{error_template::ErrorTemplate, errors::AppError};
+use app::{error_template::ErrorTemplate, errors::AppError};
 use axum::{
     body::Body,
     extract::State,

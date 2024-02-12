@@ -1,4 +1,4 @@
- use axum::{
+use axum::{
     response::{Response, IntoResponse},
     routing::get,
     extract::{Path, State},
@@ -14,15 +14,19 @@ use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key
 use axum_session_auth::{AuthSessionLayer, AuthConfig};
 use sqlx::{PgPool, postgres::{PgPoolOptions}};
 use std::env;
- use wasm_bindgen::UnwrapThrowExt;
+use wasm_bindgen::UnwrapThrowExt;
 
- use project_web_app::{
+use app::{
     app::*,
     auth::*,
     auth::ssr::*,
-    fallback::file_and_error_handler,
-    state::AppState,
 };
+
+mod fallback;
+mod state;
+
+use crate::fallback::file_and_error_handler;
+use crate::state::AppState;
 
 pub const DB_URL_ENV : &str = "DATABASE_URL";
 pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
@@ -118,7 +122,7 @@ async fn main() {
     let auth_config = AuthConfig::<OidcUserInfo>::default().with_anonymous_user_id(Some(OidcUserInfo::default()));
     let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 
-    sqlx::migrate!()
+    sqlx::migrate!("../migrations/")
         .run(&pool)
         .await
         .expect("could not run SQLx migrations");

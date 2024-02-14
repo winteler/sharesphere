@@ -42,4 +42,7 @@ ssr = [
     "dep:openidconnect",
     "dep:sqlx",
 ]
+server = [
+    "dep:sqlx",
+]
 

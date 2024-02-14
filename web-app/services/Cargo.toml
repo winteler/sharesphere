@@ -1,0 +1,28 @@
+[package]
+name = "services"
+version = "0.1.0"
+edition = "2021"
+
+#[lib]
+#crate-type = ["cdylib", "rlib"]
+
+# Example of customizing binaries in Cargo.toml.
+[[bin]]
+name = "scoring"
+
+[dependencies]
+app = { path = "../app", default-features = false, features = ["ssr", "server"] }
+
+anyhow.workspace = true
+axum.workspace = true
+axum_session.workspace = true
+axum_session_auth.workspace = true
+log.workspace = true
+simple_logger.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+wasm-bindgen.workspace = true
+
+tracing-subscriber = "0.3.18"

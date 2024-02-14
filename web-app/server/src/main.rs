@@ -9,15 +9,15 @@ use axum::{
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
 
-use anyhow::{Context};
 use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key};
 use axum_session_auth::{AuthSessionLayer, AuthConfig};
-use sqlx::{PgPool, postgres::{PgPoolOptions}};
+use sqlx::{PgPool};
 use std::env;
 use wasm_bindgen::UnwrapThrowExt;
 
 use app::{
     app::*,
+    app::ssr::create_db_pool,
     auth::*,
     auth::ssr::*,
 };
@@ -28,7 +28,6 @@ mod state;
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
 
-pub const DB_URL_ENV : &str = "DATABASE_URL";
 pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
 pub const SESSION_DB_KEY_ENV : &str = "SESSION_DB_KEY";
 
@@ -100,7 +99,7 @@ async fn main() {
     let subscriber = tracing_subscriber::fmt().with_max_level(tracing::Level::ERROR).finish();
     tracing::subscriber::set_global_default(subscriber).unwrap_throw();
 
-    let pool = get_db_pool().await.unwrap();
+    let pool = create_db_pool().await.unwrap();
 
     let session_config = SessionConfig::default()
         .with_table_name("sessions")
@@ -166,13 +165,4 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
-}
-
-
-async fn get_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
-    PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&env::var(DB_URL_ENV)?)
-        .await
-        .with_context(|| format!("Failed to connect to DB"))
 }

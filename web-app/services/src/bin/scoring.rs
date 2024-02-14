@@ -1,24 +1,17 @@
-use anyhow::Context;
-use std::env;
-use sqlx::{postgres::{PgPoolOptions}};
-
-/*use app::{
+use app::{
     forum::get_all_forum_names
-};*/
+};
 
 pub const DB_URL_ENV : &str = "DATABASE_URL";
 
 #[tokio::main]
 async fn main() {
-    let _pool = get_db_pool().await.unwrap();
 
-    println!("Hello, world!");
-}
+    println!("Get forum names from DB");
+    let forum_name_vec = get_all_forum_names().await.unwrap();
 
-async fn get_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
-    PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&env::var(DB_URL_ENV)?)
-        .await
-        .with_context(|| format!("Failed to connect to DB"))
+    println!("Got all forum names, here they are:");
+    for forum_name in forum_name_vec {
+        println!("Got forum: {forum_name}");
+    }
 }

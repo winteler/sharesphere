@@ -47,15 +47,63 @@ impl GlobalState {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use sqlx::PgPool;
+    use anyhow::Context;
+    use cfg_if::cfg_if;
+    use sqlx::{PgPool, postgres::{PgPoolOptions}};
+    use std::env;
     use crate::auth::ssr::AuthSession;
     use super::*;
-    pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
-        use_context::<PgPool>().ok_or_else(|| ServerFnError::new("Pool missing."))
-    }
+
+    pub const DB_URL_ENV : &str = "DATABASE_URL";
 
     pub fn get_session() -> Result<AuthSession, ServerFnError> {
         use_context::<AuthSession>().ok_or_else(|| ServerFnError::new("Auth session missing."))
+    }
+
+    pub async fn create_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
+        PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&env::var(DB_URL_ENV)?)
+            .await
+            .with_context(|| format!("Failed to connect to DB"))
+    }
+
+    cfg_if! {
+        if #[cfg(feature = "server")] {
+            use std::sync::OnceLock;
+            use tokio::runtime::Handle;
+
+            struct DbPoolGetter {
+                pool: Result<PgPool, ServerFnError>,
+            }
+
+            impl DbPoolGetter {
+                fn new() -> Self {
+                    // Create the runtime
+                    let handle = Handle::current();
+                    let pool = std::thread::spawn(move || {
+                        // Using Handle::block_on to run async code in the new thread.
+                        handle.block_on(async {
+                            create_db_pool().await.or_else(|_| Err(ServerFnError::new("Pool missing.")))
+                        })
+                    }).join().expect("Failed to create DB pool.");
+
+                    Self {
+                        pool: pool,
+                    }
+                }
+}
+
+            static POOL: OnceLock<DbPoolGetter> = OnceLock::new();
+
+            pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
+                POOL.get_or_init(|| DbPoolGetter::new()).pool.clone()
+            }
+        } else {
+            pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
+                use_context::<PgPool>().ok_or_else(|| ServerFnError::new("Pool missing."))
+            }
+        }
     }
 }
 

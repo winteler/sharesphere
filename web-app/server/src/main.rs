@@ -17,7 +17,7 @@ use wasm_bindgen::UnwrapThrowExt;
 
 use app::{
     app::*,
-    app::ssr::create_db_pool,
+    app::ssr::get_db_pool,
     auth::*,
     auth::ssr::*,
 };
@@ -58,7 +58,7 @@ pub fn get_session_db_key() -> Key {
 }
 
 async fn server_fn_handler(
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     auth_session: AuthSession,
     path: Path<String>,
     request: Request<AxumBody>,
@@ -68,7 +68,6 @@ async fn server_fn_handler(
     handle_server_fns_with_context(
         move || {
             provide_context(auth_session.clone());
-            provide_context(app_state.pool.clone());
         },
         request,
     )
@@ -85,7 +84,6 @@ async fn server_fn_handler(
          app_state.routes.clone(),
          move || {
              provide_context(auth_session.clone());
-             provide_context(app_state.pool.clone());
          },
          App,
      );
@@ -99,7 +97,7 @@ async fn main() {
     let subscriber = tracing_subscriber::fmt().with_max_level(tracing::Level::ERROR).finish();
     tracing::subscriber::set_global_default(subscriber).unwrap_throw();
 
-    let pool = create_db_pool().await.unwrap();
+    let pool = get_db_pool().unwrap();
 
     let session_config = SessionConfig::default()
         .with_table_name("sessions")
@@ -138,7 +136,6 @@ async fn main() {
 
     let app_state = AppState {
         leptos_options,
-        pool: pool.clone(),
         routes: routes.clone(),
     };
 

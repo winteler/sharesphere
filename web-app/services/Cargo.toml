@@ -11,7 +11,7 @@ edition = "2021"
 name = "scoring"
 
 [dependencies]
-app = { path = "../app", default-features = false, features = ["ssr", "server"] }
+app = { path = "../app", default-features = false, features = ["ssr"] }
 
 anyhow.workspace = true
 axum.workspace = true

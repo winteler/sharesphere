@@ -43,9 +43,6 @@ ssr = [
     "dep:leptos_axum",
     "dep:openidconnect",
     "dep:sqlx",
-]
-server = [
-    "dep:sqlx",
     "dep:tokio",
 ]
 

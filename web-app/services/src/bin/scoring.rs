@@ -1,17 +1,27 @@
 use app::{
-    forum::get_all_forum_names
+    post::ssr::get_post_to_rank_vec
 };
-
-pub const DB_URL_ENV : &str = "DATABASE_URL";
+use tokio::task::JoinSet;
 
 #[tokio::main]
 async fn main() {
 
-    println!("Get forum names from DB");
-    let forum_name_vec = get_all_forum_names().await.unwrap();
+    let mut join_set: JoinSet<Result<(), anyhow::Error>> = JoinSet::new();
 
-    println!("Got all forum names, here they are:");
-    for forum_name in forum_name_vec {
-        println!("Got forum: {forum_name}");
+    println!("Get posts to rank");
+    let post_to_rank_vec = get_post_to_rank_vec().await.unwrap();
+
+    println!("Got all posts to rank, update their score.");
+    for post in post_to_rank_vec {
+        join_set.spawn(async move {
+            log::info!("Update score of post: {}", post.post_id);
+
+        });
+    }
+
+    while let Some(result) = join_set.join_next().await {
+        if let Err(error) = result {
+            println!("Failed to update score of post with error: {error}");
+        }
     }
 }

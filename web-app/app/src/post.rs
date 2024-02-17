@@ -90,6 +90,29 @@ pub mod ssr {
             }
         }
     }
+
+    pub async fn get_post_to_rank_vec() -> Result<Vec<Post>, ServerFnError> {
+        let db_pool = get_db_pool()?;
+        Ok(sqlx::query_as!(
+            Post,
+            "SELECT * FROM posts \
+            WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
+        )
+            .fetch_all(&db_pool)
+            .await?)
+    }
+
+    /*pub async fn update_post_scores() -> Result<Vec<Post>, ServerFnError> {
+        let db_pool = get_db_pool()?;
+        Ok(sqlx::query_as!(
+            Post,
+            "UPDATE posts \
+            SET recommended_score =
+            WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
+        )
+            .fetch_all(&db_pool)
+            .await?)
+    }*/
 }
 
 #[server]

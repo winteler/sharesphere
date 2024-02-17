@@ -46,7 +46,7 @@ pub struct Post {
     pub trending_score: i32,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub scoring_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -102,17 +102,18 @@ pub mod ssr {
             .await?)
     }
 
-    /*pub async fn update_post_scores() -> Result<Vec<Post>, ServerFnError> {
+    pub async fn update_post_scores() -> Result<(), ServerFnError> {
         let db_pool = get_db_pool()?;
-        Ok(sqlx::query_as!(
-            Post,
+        sqlx::query!(
             "UPDATE posts \
-            SET recommended_score =
+            SET scoring_timestamp = CURRENT_TIMESTAMP \
             WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
         )
-            .fetch_all(&db_pool)
-            .await?)
-    }*/
+            .execute(&db_pool)
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[server]

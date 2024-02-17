@@ -1,5 +1,5 @@
 use app::{
-    post::ssr::get_post_to_rank_vec
+    post::ssr::{get_post_to_rank_vec, update_post_scores}
 };
 use tokio::task::JoinSet;
 
@@ -7,6 +7,9 @@ use tokio::task::JoinSet;
 async fn main() {
 
     let mut join_set: JoinSet<Result<(), anyhow::Error>> = JoinSet::new();
+
+    println!("Recompute posts rankings, trigger the refresh of their generated columns");
+    update_post_scores().await?;
 
     println!("Get posts to rank");
     let post_to_rank_vec = get_post_to_rank_vec().await.unwrap();

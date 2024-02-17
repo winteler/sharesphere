@@ -36,11 +36,15 @@ CREATE TABLE posts (
     num_comments INT NOT NULL DEFAULT 0,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
-    recommended_score INT NOT NULL DEFAULT 0,
-    trending_score INT NOT NULL DEFAULT 0,
+    recommended_score INT GENERATED ALWAYS AS (
+            score * (1 + 1/(1 + EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))))
+        ) STORED,
+    trending_score INT GENERATED ALWAYS AS (
+            score * (1 + 10/(1 + EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))))
+        ) STORED,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    scoring_timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE comments (

@@ -80,11 +80,18 @@ pub async fn vote_on_post(
     };
 
     let post_score_delta = vote - previous_vote.unwrap_or_default();
+    let minus_delta = if vote == -1 {
+        1
+    } else if previous_vote == Some(-1) {
+        -1
+    } else {
+        0
+    };
 
     sqlx::query!(
             "UPDATE posts set score = score + $1, score_minus = score_minus + $2, scoring_timestamp = CURRENT_TIMESTAMP where post_id = $3",
             i32::from(post_score_delta),
-            i32::from(-post_score_delta.signum()),
+            minus_delta,
             post_id,
         )
         .execute(&db_pool)
@@ -164,20 +171,31 @@ pub async fn vote_on_comment(
     Ok(comment_vote)
 }
 
+pub fn update_vote_value(vote: &mut i16, is_upvote: bool) {
+    *vote = match *vote {
+        1 => if is_upvote { 0 } else { -1 },
+        -1 => if is_upvote { 1 } else { 0 },
+        _ => if is_upvote { 1 } else { -1 },
+    };
+}
+
 pub fn get_vote_button_css(
     vote: RwSignal<i16>,
     is_upvote: bool,
 ) -> impl Fn() -> String {
     let (button_css, activated_value) = match is_upvote {
-        true => ("success", 1),
-        false => ("error", -1),
+        true => ("btn-success", 1),
+        false => ("btn-error", -1),
     };
 
     move || {
+        let vote_value = vote();
         if vote() == activated_value {
-            format!("btn btn-circle btn-sm btn-{button_css}")
+            log::info!("Activated vote button, value: {vote_value}, css: {button_css}");
+            format!("btn btn-circle btn-sm {button_css}")
         } else {
-            format!("btn btn-circle btn-sm btn-ghost hover:btn-{button_css}")
+            log::info!("Deactivated vote button, value: {vote_value}, css: {button_css}");
+            format!("btn btn-circle btn-sm btn-ghost hover:{button_css}")
         }
     }
 }

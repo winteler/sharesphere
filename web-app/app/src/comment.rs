@@ -6,7 +6,7 @@ use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, MinusIcon, PlusIcon};
 use crate::post::{get_post_id_memo};
-use crate::score::{get_vote_button_css, CommentVote, DynScoreIndicator, VoteOnComment};
+use crate::score::{get_vote_button_css, update_vote_value, CommentVote, DynScoreIndicator, VoteOnComment};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -250,11 +250,7 @@ fn get_on_comment_vote_closure(
 ) -> impl Fn(ev::MouseEvent) {
 
     move |_| {
-        vote.update(|vote| *vote = match *vote {
-            1 => if is_upvote { 0 } else { -1 },
-            -1 => if is_upvote { 1 } else { 0 },
-            _ => if is_upvote { 1 } else { -1 },
-        });
+        vote.update(|vote| update_vote_value(vote, is_upvote));
 
         let (current_vote_id, current_vote_value) = if comment_vote_id.is_some() {
             (comment_vote_id, comment_vote_value)

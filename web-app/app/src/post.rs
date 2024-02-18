@@ -8,7 +8,7 @@ use crate::auth::LoginGuardButton;
 use crate::comment::{CommentButton, CommentSection};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon, MinusIcon, PlusIcon};
-use crate::score::{get_vote_button_css, DynScoreIndicator, PostVote, VoteOnPost};
+use crate::score::{get_vote_button_css, update_vote_value, DynScoreIndicator, PostVote, VoteOnPost};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -229,18 +229,18 @@ fn get_on_post_vote_closure(
 ) -> impl Fn(ev::MouseEvent) {
 
     move |_| {
-        vote.update(|vote| *vote = match *vote {
-            1 => if is_upvote { 0 } else { -1 },
-            -1 => if is_upvote { 1 } else { 0 },
-            _ => if is_upvote { 1 } else { -1 },
-        });
+        vote.update(|vote| update_vote_value(vote, is_upvote));
 
-        let (current_vote_id, current_vote_value) = if post_vote_id.is_some() {
-            (post_vote_id, post_vote_value)
-        } else {
-            match vote_action.value().get_untracked() {
-                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
-                _ => (None, None),
+        log::info!("Post vote value {}", vote.get_untracked());
+
+        let (current_vote_id, current_vote_value) = match vote_action.value().get_untracked() {
+            Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
+            _ => {
+                if post_vote_id.is_some() {
+                    (post_vote_id, post_vote_value)
+                } else {
+                    (None, None)
+                }
             }
         };
 
@@ -442,15 +442,13 @@ pub fn PostVotePanel<'a>(
 ) -> impl IntoView {
 
     let post_id = post.post.post_id;
-    let initial_score = post.post.score;
+    let (vote, initial_score ) = match &post.vote {
+        Some(vote) => (vote.value, post.post.score - i32::from(vote.value)),
+        None => (0, post.post.score),
+    };
 
     let score = create_rw_signal(post.post.score);
-    let vote = create_rw_signal(
-        match &post.vote {
-            Some(vote) => vote.value,
-            None => 0,
-        }
-    );
+    let vote = create_rw_signal(vote);
 
     let comment_vote_id = match &post.vote {
         Some(vote) => Some(vote.vote_id),

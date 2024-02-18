@@ -82,7 +82,7 @@ pub async fn vote_on_post(
     let post_score_delta = vote - previous_vote.unwrap_or_default();
 
     sqlx::query!(
-            "UPDATE posts set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where post_id = $3",
+            "UPDATE posts set score = score + $1, score_minus = score_minus + $2, scoring_timestamp = CURRENT_TIMESTAMP where post_id = $3",
             i32::from(post_score_delta),
             i32::from(-post_score_delta.signum()),
             post_id,

@@ -17,6 +17,7 @@ anyhow.workspace = true
 axum.workspace = true
 axum_session.workspace = true
 axum_session_auth.workspace = true
+leptos.workspace = true
 log.workspace = true
 simple_logger.workspace = true
 sqlx.workspace = true

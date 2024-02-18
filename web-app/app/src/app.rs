@@ -86,7 +86,7 @@ pub mod ssr {
             }).join().expect("Failed to create DB pool.");
 
             Self {
-                pool: pool,
+                pool,
             }
         }
     }

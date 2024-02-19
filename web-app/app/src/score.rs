@@ -160,7 +160,7 @@ pub async fn vote_on_comment(
     let comment_score_delta = vote - previous_vote.unwrap_or_default();
 
     sqlx::query!(
-            "UPDATE comments set score = score + $1, score_minus = score_minus + $2, timestamp = CURRENT_TIMESTAMP where comment_id = $3",
+            "UPDATE comments set score = score + $1, score_minus = score_minus + $2 where comment_id = $3",
             i32::from(comment_score_delta),
             i32::from(-comment_score_delta.signum()),
             comment_id,

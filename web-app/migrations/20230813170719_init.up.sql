@@ -37,10 +37,10 @@ CREATE TABLE posts (
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score REAL NOT NULL GENERATED ALWAYS AS (
-            score * (1 + 2^(3 * (2 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24))))
+            score * (2^(3 * (2 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24))))
         ) STORED,
     trending_score REAL NOT NULL GENERATED ALWAYS AS (
-            score * (1 + 2^(8 * (1 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24))))
+            score * (2^(8 * (1 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24))))
         ) STORED,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,
@@ -58,11 +58,8 @@ CREATE TABLE comments (
     creator_name TEXT NOT NULL,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
-    recommended_score INT NOT NULL DEFAULT 0,
-    trending_score INT NOT NULL DEFAULT 0,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    edit_timestamp TIMESTAMPTZ,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    edit_timestamp TIMESTAMPTZ
 );
 
 CREATE TABLE post_votes (

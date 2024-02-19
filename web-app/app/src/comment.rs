@@ -25,11 +25,8 @@ pub struct Comment {
     pub creator_name: String,
     pub score: i32,
     pub score_minus: i32,
-    pub recommended_score: i32,
-    pub trending_score: i32,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]

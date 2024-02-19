@@ -179,27 +179,6 @@ pub fn update_vote_value(vote: &mut i16, is_upvote: bool) {
     };
 }
 
-pub fn get_vote_button_css(
-    vote: RwSignal<i16>,
-    is_upvote: bool,
-) -> impl Fn() -> String {
-    let (button_css, activated_value) = match is_upvote {
-        true => ("btn-success", 1),
-        false => ("btn-error", -1),
-    };
-
-    move || {
-        let vote_value = vote();
-        if vote() == activated_value {
-            log::info!("Activated vote button, value: {vote_value}, css: {button_css}");
-            format!("btn btn-circle btn-sm {button_css}")
-        } else {
-            log::info!("Deactivated vote button, value: {vote_value}, css: {button_css}");
-            format!("btn btn-circle btn-sm btn-ghost hover:{button_css}")
-        }
-    }
-}
-
 /// Component to display a post's score
 #[component]
 pub fn ScoreIndicator(score: i32) -> impl IntoView {
@@ -223,5 +202,26 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
                 {move || score.get()}
             </div>
         </div>
+    }
+}
+
+pub fn get_vote_button_css(
+    vote: RwSignal<i16>,
+    is_upvote: bool,
+) -> impl Fn() -> String {
+    let (button_css, activated_value) = match is_upvote {
+        true => ("btn-success", 1),
+        false => ("btn-error", -1),
+    };
+
+    move || {
+        let vote_value = vote();
+        if vote() == activated_value {
+            log::info!("Activated vote button, value: {vote_value}, css: {button_css}");
+            format!("btn btn-circle btn-sm {button_css}")
+        } else {
+            log::info!("Deactivated vote button, value: {vote_value}, css: {button_css}");
+            format!("btn btn-circle btn-sm btn-ghost hover:{button_css}")
+        }
     }
 }

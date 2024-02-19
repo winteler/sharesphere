@@ -24,7 +24,7 @@ pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
 pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Post {
     pub post_id: i64,
     pub title: String,
@@ -42,14 +42,14 @@ pub struct Post {
     pub num_comments: i32,
     pub score: i32,
     pub score_minus: i32,
-    pub recommended_score: i32,
-    pub trending_score: i32,
+    pub recommended_score: f32,
+    pub trending_score: f32,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub scoring_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithVote {
     pub post: Post,
     pub vote: Option<PostVote>
@@ -59,7 +59,7 @@ pub struct PostWithVote {
 pub mod ssr {
     use super::*;
 
-    #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
+    #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
     pub struct PostJoinVote {
         #[sqlx(flatten)]
         pub post: super::Post,
@@ -89,17 +89,6 @@ pub mod ssr {
                 vote: post_vote,
             }
         }
-    }
-
-    pub async fn get_post_to_rank_vec() -> Result<Vec<Post>, ServerFnError> {
-        let db_pool = get_db_pool()?;
-        Ok(sqlx::query_as!(
-            Post,
-            "SELECT * FROM posts \
-            WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
-        )
-            .fetch_all(&db_pool)
-            .await?)
     }
 
     pub async fn update_post_scores() -> Result<(), ServerFnError> {
@@ -214,44 +203,6 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
             current_post_id.cloned().unwrap_or_default()
         }
     })
-}
-
-/// Function to react to an post's upvote or downvote button being clicked.
-fn get_on_post_vote_closure(
-    vote: RwSignal<i16>,
-    score: RwSignal<i32>,
-    post_id: i64,
-    initial_score: i32,
-    post_vote_id: Option<i64>,
-    post_vote_value: Option<i16>,
-    vote_action: Action<VoteOnPost, Result<Option<PostVote>, ServerFnError>>,
-    is_upvote: bool,
-) -> impl Fn(ev::MouseEvent) {
-
-    move |_| {
-        vote.update(|vote| update_vote_value(vote, is_upvote));
-
-        log::info!("Post vote value {}", vote.get_untracked());
-
-        let (current_vote_id, current_vote_value) = match vote_action.value().get_untracked() {
-            Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
-            _ => {
-                if post_vote_id.is_some() {
-                    (post_vote_id, post_vote_value)
-                } else {
-                    (None, None)
-                }
-            }
-        };
-
-        vote_action.dispatch(VoteOnPost {
-            post_id,
-            vote: vote.get_untracked(),
-            previous_vote_id: current_vote_id,
-            previous_vote: current_vote_value,
-        });
-        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
-    }
 }
 
 /// Component to create a new content
@@ -506,5 +457,41 @@ pub fn PostVotePanel<'a>(
                 </button>
             </LoginGuardButton>
         </div>
+    }
+}
+
+/// Function to react to an post's upvote or downvote button being clicked.
+fn get_on_post_vote_closure(
+    vote: RwSignal<i16>,
+    score: RwSignal<i32>,
+    post_id: i64,
+    initial_score: i32,
+    post_vote_id: Option<i64>,
+    post_vote_value: Option<i16>,
+    vote_action: Action<VoteOnPost, Result<Option<PostVote>, ServerFnError>>,
+    is_upvote: bool,
+) -> impl Fn(ev::MouseEvent) {
+
+    move |_| {
+        vote.update(|vote| update_vote_value(vote, is_upvote));
+
+        log::info!("Post vote value {}", vote.get_untracked());
+
+        let (current_vote_id, current_vote_value) = if vote_action.version().get_untracked() == 0 && post_vote_id.is_some() {
+            (post_vote_id, post_vote_value)
+        } else {
+            match vote_action.value().get_untracked() {
+                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
+                _ => (None, None),
+            }
+        };
+
+        vote_action.dispatch(VoteOnPost {
+            post_id,
+            vote: vote.get_untracked(),
+            previous_vote_id: current_vote_id,
+            previous_vote: current_vote_value,
+        });
+        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
     }
 }

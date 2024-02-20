@@ -27,6 +27,42 @@ pub struct CommentVote {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+pub fn update_vote_value(vote: &mut i16, is_upvote: bool) {
+    *vote = match *vote {
+        1 => if is_upvote { 0 } else { -1 },
+        -1 => if is_upvote { 1 } else { 0 },
+        _ => if is_upvote { 1 } else { -1 },
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::score::update_vote_value;
+
+    #[test]
+    fn test_update_vote_value() {
+        let mut vote = 12i16;
+        update_vote_value(&mut vote, true);
+        assert_eq!(vote, 1);
+        vote = -20i16;
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, -1);
+        update_vote_value(&mut vote, true);
+        assert_eq!(vote, 1);
+        update_vote_value(&mut vote, true);
+        assert_eq!(vote, 0);
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, -1);
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, 0);
+        update_vote_value(&mut vote, true);
+        assert_eq!(vote, 1);
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, -1);
+    }
+}
+
+
 #[server]
 pub async fn vote_on_post(
     post_id: i64,
@@ -169,14 +205,6 @@ pub async fn vote_on_comment(
         .await?;
 
     Ok(comment_vote)
-}
-
-pub fn update_vote_value(vote: &mut i16, is_upvote: bool) {
-    *vote = match *vote {
-        1 => if is_upvote { 0 } else { -1 },
-        -1 => if is_upvote { 1 } else { 0 },
-        _ => if is_upvote { 1 } else { -1 },
-    };
 }
 
 /// Component to display a post's score

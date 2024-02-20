@@ -282,9 +282,22 @@ pub fn CommentForm(
     let create_comment_result = state.create_comment_action.value();
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
 
+    let form_ref = create_node_ref::<html::Form>();
+
+    let response_ok = move || state.create_comment_action.value().with(|val| matches!(val, Some(Ok(_))));
+
+    create_effect(move |_| {
+        if response_ok() {
+            form_ref.get().expect("form node should be loaded").reset()
+        }
+    });
+
     view! {
         <div class="flex flex-col gap-2">
-            <ActionForm action=state.create_comment_action>
+            <ActionForm
+                action=state.create_comment_action
+                node_ref=form_ref
+            >
                 <div class="flex flex-col gap-2 w-full">
                     <input
                         type="text"
@@ -387,7 +400,7 @@ pub fn CommentBox<'a>(
     let color_bar_css = format!("{} rounded-full h-full w-1 ", DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]);
 
     view! {
-        <div class="flex py-1">
+        <div class="flex pl-2 py-1">
             <div class=sidebar_css>
                 <label class="btn btn-ghost btn-sm swap swap-rotate w-5">
                     <input

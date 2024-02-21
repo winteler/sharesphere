@@ -62,19 +62,11 @@ CREATE TABLE comments (
     edit_timestamp TIMESTAMPTZ
 );
 
-CREATE TABLE post_votes (
+CREATE TABLE votes (
     vote_id BIGSERIAL PRIMARY KEY,
-    creator_id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
-    value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE comment_votes (
-    vote_id BIGSERIAL PRIMARY KEY,
+    comment_id BIGINT,
     creator_id BIGINT NOT NULL,
-    post_id BIGINT NOT NULL,
-    comment_id BIGINT NOT NULL,
     value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

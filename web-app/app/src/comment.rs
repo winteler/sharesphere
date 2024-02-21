@@ -6,7 +6,7 @@ use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, MinusIcon, PlusIcon};
 use crate::post::{get_post_id_memo};
-use crate::score::{get_vote_button_css, update_vote_value, CommentVote, DynScoreIndicator, VoteOnComment};
+use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -32,7 +32,7 @@ pub struct Comment {
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct CommentWithChildren {
     pub comment: Comment,
-    pub vote: Option<CommentVote>,
+    pub vote: Option<Vote>,
     pub child_comments: Vec<CommentWithChildren>,
 }
 
@@ -44,9 +44,9 @@ pub mod ssr {
         #[sqlx(flatten)]
         pub comment: Comment,
         pub vote_id: Option<i64>,
-        pub vote_creator_id: Option<i64>,
-        pub vote_comment_id: Option<i64>,
         pub vote_post_id: Option<i64>,
+        pub vote_comment_id: Option<Option<i64>>,
+        pub vote_creator_id: Option<i64>,
         pub value: Option<i16>,
         pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
@@ -54,7 +54,7 @@ pub mod ssr {
     impl CommentWithVote {
         pub fn into_comment_with_children(self) -> CommentWithChildren {
             let comment_vote = if self.vote_id.is_some() {
-                Some(CommentVote {
+                Some(Vote {
                     vote_id: self.vote_id.unwrap(),
                     creator_id: self.vote_creator_id.unwrap(),
                     comment_id: self.vote_comment_id.unwrap(),
@@ -132,7 +132,7 @@ pub async fn get_post_comment_tree(
                    1 AS depth,
                    ARRAY[(c.create_timestamp, c.comment_id)] AS path
             FROM comments c
-            LEFT JOIN comment_votes v
+            LEFT JOIN votes v
             ON v.comment_id = c.comment_id AND
                v.creator_id = $1
             WHERE
@@ -150,7 +150,7 @@ pub async fn get_post_comment_tree(
                    r.path || (n.create_timestamp, n.comment_id)
             FROM comment_tree r
             JOIN comments n ON n.parent_id = r.comment_id
-            LEFT JOIN comment_votes vr
+            LEFT JOIN votes vr
             ON vr.comment_id = n.comment_id AND
                vr.creator_id = $1
         )
@@ -468,28 +468,27 @@ pub fn CommentVotePanel<'a>(
     comment: &'a CommentWithChildren,
 ) -> impl IntoView {
 
-    let comment_id = comment.comment.comment_id;
     let post_id = comment.comment.post_id;
-    let initial_score = comment.comment.score;
+    let comment_id = comment.comment.comment_id;
+
+    let (vote, initial_score ) = match &comment.vote {
+        Some(vote) => (vote.value, comment.comment.score - i32::from(vote.value)),
+        None => (0, comment.comment.score),
+    };
 
     let score = create_rw_signal(comment.comment.score);
-    let vote = create_rw_signal(
-        match comment.vote.clone() {
-            Some(vote) => vote.value,
-            None => 0,
-        }
-    );
+    let vote = create_rw_signal(vote);
 
-    let comment_vote_id = match &comment.vote {
+    let current_vote_id = match &comment.vote {
         Some(vote) => Some(vote.vote_id),
         None => None,
     };
-    let comment_vote_value = match &comment.vote {
+    let current_vote_value = match &comment.vote {
         Some(vote) => Some(vote.value),
         None => None,
     };
 
-    let vote_action = create_server_action::<VoteOnComment>();
+    let vote_action = create_server_action::<VoteOnContent>();
 
     let upvote_button_css = get_vote_button_css(vote, true);
     let downvote_button_css = get_vote_button_css(vote, false);
@@ -502,14 +501,14 @@ pub fn CommentVotePanel<'a>(
             >
                 <button
                     class=upvote_button_css()
-                    on:click=get_on_comment_vote_closure(
+                    on:click=get_on_content_vote_closure(
                         vote,
                         score,
-                        comment_id,
                         post_id,
+                        Some(comment_id),
                         initial_score,
-                        comment_vote_id,
-                        comment_vote_value,
+                        current_vote_id,
+                        current_vote_value,
                         vote_action,
                         true)
                 >
@@ -523,14 +522,14 @@ pub fn CommentVotePanel<'a>(
             >
                 <button
                     class=downvote_button_css()
-                    on:click=get_on_comment_vote_closure(
+                    on:click=get_on_content_vote_closure(
                         vote,
                         score,
-                        comment_id,
                         post_id,
+                        Some(comment_id),
                         initial_score,
-                        comment_vote_id,
-                        comment_vote_value,
+                        current_vote_id,
+                        current_vote_value,
                         vote_action,
                         false)
                 >
@@ -538,41 +537,5 @@ pub fn CommentVotePanel<'a>(
                 </button>
             </LoginGuardButton>
         </div>
-    }
-}
-
-/// Function to react to an comment's upvote or downvote button being clicked.
-fn get_on_comment_vote_closure(
-    vote: RwSignal<i16>,
-    score: RwSignal<i32>,
-    comment_id: i64,
-    post_id: i64,
-    initial_score: i32,
-    comment_vote_id: Option<i64>,
-    comment_vote_value: Option<i16>,
-    vote_action: Action<VoteOnComment, Result<Option<CommentVote>, ServerFnError>>,
-    is_upvote: bool,
-) -> impl Fn(ev::MouseEvent) {
-
-    move |_| {
-        vote.update(|vote| update_vote_value(vote, is_upvote));
-
-        let (current_vote_id, current_vote_value) = if vote_action.version().get_untracked() == 0 && comment_vote_id.is_some() {
-            (comment_vote_id, comment_vote_value)
-        } else {
-            match vote_action.value().get_untracked() {
-                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
-                _ => (None, None),
-            }
-        };
-
-        vote_action.dispatch(VoteOnComment {
-            comment_id,
-            post_id,
-            vote: vote.get_untracked(),
-            previous_vote_id: current_vote_id,
-            previous_vote: current_vote_value,
-        });
-        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
     }
 }

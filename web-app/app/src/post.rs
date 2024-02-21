@@ -8,7 +8,7 @@ use crate::auth::LoginGuardButton;
 use crate::comment::{CommentButton, CommentSection};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon, MinusIcon, PlusIcon};
-use crate::score::{get_vote_button_css, update_vote_value, DynScoreIndicator, PostVote, VoteOnPost};
+use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -52,7 +52,7 @@ pub struct Post {
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithVote {
     pub post: Post,
-    pub vote: Option<PostVote>
+    pub vote: Option<Vote>
 }
 
 #[cfg(feature = "ssr")]
@@ -64,8 +64,9 @@ pub mod ssr {
         #[sqlx(flatten)]
         pub post: super::Post,
         pub vote_id: Option<i64>,
-        pub vote_creator_id: Option<i64>,
         pub vote_post_id: Option<i64>,
+        pub vote_comment_id: Option<Option<i64>>,
+        pub vote_creator_id: Option<i64>,
         pub value: Option<i16>,
         pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
@@ -73,10 +74,11 @@ pub mod ssr {
     impl PostJoinVote {
         pub fn into_post_with_vote(self) -> PostWithVote {
             let post_vote = if self.vote_id.is_some() {
-                Some(PostVote {
+                Some(Vote {
                     vote_id: self.vote_id.unwrap(),
-                    creator_id: self.vote_creator_id.unwrap(),
                     post_id: self.vote_post_id.unwrap(),
+                    comment_id: None,
+                    creator_id: self.vote_creator_id.unwrap(),
                     value: self.value.unwrap(),
                     timestamp: self.vote_timestamp.unwrap(),
                 })
@@ -118,10 +120,11 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
                 v.vote_id,
                 v.creator_id as vote_creator_id,
                 v.post_id as vote_post_id,
+                v.comment_id as vote_comment_id,
                 v.value,
                 v.timestamp as vote_timestamp
         FROM posts p
-        LEFT JOIN post_votes v
+        LEFT JOIN votes v
         ON v.post_id = p.post_id AND
            v.creator_id = $1
         WHERE p.post_id = $2",
@@ -410,7 +413,7 @@ pub fn PostVotePanel<'a>(
         None => None,
     };
 
-    let vote_action = create_server_action::<VoteOnPost>();
+    let vote_action = create_server_action::<VoteOnContent>();
 
     let upvote_button_css = get_vote_button_css(vote, true);
     let downvote_button_css = get_vote_button_css(vote, false);
@@ -423,10 +426,11 @@ pub fn PostVotePanel<'a>(
             >
                 <button
                     class=upvote_button_css()
-                    on:click=get_on_post_vote_closure(
+                    on:click=get_on_content_vote_closure(
                         vote,
                         score,
                         post_id,
+                        None,
                         initial_score,
                         comment_vote_id,
                         comment_vote_value,
@@ -443,10 +447,11 @@ pub fn PostVotePanel<'a>(
             >
                 <button
                     class=downvote_button_css()
-                    on:click=get_on_post_vote_closure(
+                    on:click=get_on_content_vote_closure(
                         vote,
                         score,
                         post_id,
+                        None,
                         initial_score,
                         comment_vote_id,
                         comment_vote_value,
@@ -457,41 +462,5 @@ pub fn PostVotePanel<'a>(
                 </button>
             </LoginGuardButton>
         </div>
-    }
-}
-
-/// Function to react to an post's upvote or downvote button being clicked.
-fn get_on_post_vote_closure(
-    vote: RwSignal<i16>,
-    score: RwSignal<i32>,
-    post_id: i64,
-    initial_score: i32,
-    post_vote_id: Option<i64>,
-    post_vote_value: Option<i16>,
-    vote_action: Action<VoteOnPost, Result<Option<PostVote>, ServerFnError>>,
-    is_upvote: bool,
-) -> impl Fn(ev::MouseEvent) {
-
-    move |_| {
-        vote.update(|vote| update_vote_value(vote, is_upvote));
-
-        log::info!("Post vote value {}", vote.get_untracked());
-
-        let (current_vote_id, current_vote_value) = if vote_action.version().get_untracked() == 0 && post_vote_id.is_some() {
-            (post_vote_id, post_vote_value)
-        } else {
-            match vote_action.value().get_untracked() {
-                Some(Ok(Some(vote))) => (Some(vote.vote_id), Some(vote.value)),
-                _ => (None, None),
-            }
-        };
-
-        vote_action.dispatch(VoteOnPost {
-            post_id,
-            vote: vote.get_untracked(),
-            previous_vote_id: current_vote_id,
-            previous_vote: current_vote_value,
-        });
-        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
     }
 }

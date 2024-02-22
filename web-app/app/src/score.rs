@@ -6,6 +6,15 @@ use crate::icons::{ScoreIcon};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[cfg_attr(feature = "ssr", sqlx(type_name = "user_role", rename_all = "lowercase"))]
+pub enum VoteValue {
+    Down = -1,
+    None = 0,
+    Up = 1,
+}
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Vote {
@@ -27,8 +36,25 @@ pub struct VoteInfo {
 pub mod ssr {
     use leptos::ServerFnError;
     use sqlx::PgPool;
-    use crate::score::VoteInfo;
+    use crate::score::{VoteInfo};
 
+
+    fn get_vote_deltas(
+        vote: i16,
+        previous_vote: i16,
+    ) -> (i32, i32) {
+
+        let score_delta = i32::from(vote - previous_vote);
+        let minus_delta = if vote == -1 && previous_vote != -1 {
+            1
+        } else if vote != -1 && previous_vote == -1 {
+            -1
+        } else {
+            0
+        };
+
+        (score_delta, minus_delta)
+    }
     pub async fn update_content_score(
         vote: i16,
         post_id: i64,
@@ -41,14 +67,8 @@ pub mod ssr {
             Some(vote_info) => vote_info.value,
             None => 0
         };
-        let score_delta = i32::from(vote - previous_vote);
-        let minus_delta = if vote == -1 && previous_vote != -1 {
-            1
-        } else if vote != -1 && previous_vote == -1 {
-            -1
-        } else {
-            0
-        };
+
+        let (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
 
         if comment_id.is_some() {
                 sqlx::query!(
@@ -71,6 +91,44 @@ pub mod ssr {
         }
 
         Ok(())
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        #[test]
+        fn test_get_vote_deltas() {
+
+            let mut vote = 1i16;
+            let mut previous_vote = 0i16;
+            let (mut score_delta, mut minus_delta) = get_vote_deltas(vote, previous_vote);
+            assert_eq!((score_delta, minus_delta), (1, 0));
+
+            vote = 0i16;
+            previous_vote = 1i16;
+            (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
+            assert_eq!((score_delta, minus_delta), (-1, 0));
+
+            vote = -1i16;
+            previous_vote = 0i16;
+            (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
+            assert_eq!((score_delta, minus_delta), (-1, 1));
+
+            vote = 0i16;
+            previous_vote = -1i16;
+            (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
+            assert_eq!((score_delta, minus_delta), (1, -1));
+
+            vote = 1i16;
+            previous_vote = -1i16;
+            (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
+            assert_eq!((score_delta, minus_delta), (2, -1));
+
+            vote = -1i16;
+            previous_vote = 1i16;
+            (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
+            assert_eq!((score_delta, minus_delta), (-2, 1));
+        }
     }
 }
 
@@ -235,7 +293,7 @@ pub fn update_vote_value(vote: &mut i16, is_upvote: bool) {
 
 #[cfg(test)]
 mod tests {
-    use crate::score::update_vote_value;
+    use crate::score::{update_vote_value};
 
     #[test]
     fn test_update_vote_value() {

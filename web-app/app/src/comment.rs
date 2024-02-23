@@ -6,7 +6,7 @@ use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, MinusIcon, PlusIcon};
 use crate::post::{get_post_id_memo};
-use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure};
+use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure, VoteValue};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -59,7 +59,7 @@ pub mod ssr {
                     creator_id: self.vote_creator_id.unwrap(),
                     comment_id: self.vote_comment_id.unwrap(),
                     post_id: self.vote_post_id.unwrap(),
-                    value: self.value.unwrap(),
+                    value: VoteValue::from(self.value.unwrap()),
                     timestamp: self.vote_timestamp.unwrap(),
                 })
             } else {
@@ -472,8 +472,8 @@ pub fn CommentVotePanel<'a>(
     let comment_id = comment.comment.comment_id;
 
     let (vote, initial_score ) = match &comment.vote {
-        Some(vote) => (vote.value, comment.comment.score - i32::from(vote.value)),
-        None => (0, comment.comment.score),
+        Some(vote) => (vote.value, comment.comment.score - (vote.value as i32)),
+        None => (VoteValue::None, comment.comment.score),
     };
 
     let score = create_rw_signal(comment.comment.score);

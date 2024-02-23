@@ -36,7 +36,7 @@ pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, PARAM_ROUTE_PREFIX,
 
 #[server]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
-    log::info!("Create [[forum]] '{name}', {description}, {:?}", is_nsfw);
+    log::info!("Create [[forum]] '{name}', {description}, {is_nsfw:?}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -148,11 +148,11 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
 pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     create_memo(move |current_forum_name: Option<&String>| {
         if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()) {
-            log::trace!("Current forum name {:?}, new forum name: {new_forum_name}", current_forum_name);
+            log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
             new_forum_name
         }
         else {
-            log::trace!("No valid forum name, keep current value: {:?}", current_forum_name);
+            log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
             current_forum_name.cloned().unwrap_or_default()
         }
 
@@ -185,7 +185,7 @@ pub fn CreateForum() -> impl IntoView {
                         match result {
                             Some(Ok(forum_set)) => {
                                 let forum_set = forum_set.clone();
-                                log::info!("Forum name set: {:?}", forum_set);
+                                log::info!("Forum name set: {forum_set:?}");
                                 view! {
                                     <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/3">
                                         <ActionForm action=state.create_forum_action>

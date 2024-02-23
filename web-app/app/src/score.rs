@@ -6,48 +6,59 @@ use crate::icons::{ScoreIcon};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
-#[derive(Clone, Debug, PartialEq, PartialOrd, Deserialize, Serialize)]
-#[cfg_attr(feature = "ssr", sqlx(type_name = "user_role", rename_all = "lowercase"))]
+#[repr(i16)]
 pub enum VoteValue {
-    Down = -1,
-    None = 0,
     Up = 1,
+    None = 0,
+    Down = -1,
+}
+
+impl From<i16> for VoteValue {
+    fn from(value: i16) -> VoteValue {
+        if value > 0 {
+            VoteValue::Up
+        } else if value == 0 {
+            VoteValue::None
+        } else {
+            VoteValue::Down
+        }
+    }
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Vote {
     pub vote_id: i64,
     pub creator_id: i64,
     pub comment_id: Option<i64>,
     pub post_id: i64,
-    pub value: i16,
+    pub value: VoteValue,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct VoteInfo {
     pub vote_id: i64,
-    pub value: i16,
+    pub value: VoteValue,
 }
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use leptos::ServerFnError;
     use sqlx::PgPool;
-    use crate::score::{VoteInfo};
-
+    use crate::score::{VoteInfo, VoteValue};
 
     fn get_vote_deltas(
-        vote: i16,
-        previous_vote: i16,
+        vote: VoteValue,
+        previous_vote: VoteValue,
     ) -> (i32, i32) {
 
-        let score_delta = i32::from(vote - previous_vote);
-        let minus_delta = if vote == -1 && previous_vote != -1 {
+        let score_delta = (vote as i32) - (previous_vote as i32);
+        let minus_delta = if vote == VoteValue::Down && previous_vote != VoteValue::Down {
             1
-        } else if vote != -1 && previous_vote == -1 {
+        } else if vote != VoteValue::Down && previous_vote == VoteValue::Down {
             -1
         } else {
             0
@@ -56,7 +67,7 @@ pub mod ssr {
         (score_delta, minus_delta)
     }
     pub async fn update_content_score(
-        vote: i16,
+        vote: VoteValue,
         post_id: i64,
         comment_id: Option<i64>,
         previous_vote_info: Option<VoteInfo>,
@@ -65,7 +76,7 @@ pub mod ssr {
 
         let previous_vote = match previous_vote_info {
             Some(vote_info) => vote_info.value,
-            None => 0
+            None => VoteValue::None
         };
 
         let (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
@@ -99,33 +110,33 @@ pub mod ssr {
         #[test]
         fn test_get_vote_deltas() {
 
-            let mut vote = 1i16;
-            let mut previous_vote = 0i16;
+            let mut vote = VoteValue::Up;
+            let mut previous_vote = VoteValue::None;
             let (mut score_delta, mut minus_delta) = get_vote_deltas(vote, previous_vote);
             assert_eq!((score_delta, minus_delta), (1, 0));
 
-            vote = 0i16;
-            previous_vote = 1i16;
+            vote = VoteValue::None;
+            previous_vote = VoteValue::Up;
             (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
             assert_eq!((score_delta, minus_delta), (-1, 0));
 
-            vote = -1i16;
-            previous_vote = 0i16;
+            vote = VoteValue::Down;
+            previous_vote = VoteValue::None;
             (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
             assert_eq!((score_delta, minus_delta), (-1, 1));
 
-            vote = 0i16;
-            previous_vote = -1i16;
+            vote = VoteValue::None;
+            previous_vote = VoteValue::Down;
             (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
             assert_eq!((score_delta, minus_delta), (1, -1));
 
-            vote = 1i16;
-            previous_vote = -1i16;
+            vote = VoteValue::Up;
+            previous_vote = VoteValue::Down;
             (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
             assert_eq!((score_delta, minus_delta), (2, -1));
 
-            vote = -1i16;
-            previous_vote = 1i16;
+            vote = VoteValue::Down;
+            previous_vote = VoteValue::Up;
             (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
             assert_eq!((score_delta, minus_delta), (-2, 1));
         }
@@ -134,7 +145,7 @@ pub mod ssr {
 
 #[server]
 pub async fn vote_on_content(
-    vote_value: i16,
+    vote_value: VoteValue,
     post_id: i64,
     comment_id: Option<i64>,
     previous_vote_info: Option<VoteInfo>,
@@ -151,12 +162,12 @@ pub async fn vote_on_content(
 
     let vote = if previous_vote_info.is_some() {
         let vote_id = previous_vote_info.as_ref().unwrap().vote_id;
-        if vote_value != 0 {
-            log::trace!("Update vote {vote_id} with value {vote_value}");
+        if vote_value != VoteValue::None {
+            log::trace!("Update vote {vote_id} with value {vote_value:?}");
             Some(sqlx::query_as!(
                 Vote,
                 "UPDATE votes SET value = $1 WHERE vote_id = $2 RETURNING *",
-                vote_value,
+                vote_value as i16,
                 vote_id
             )
                 .fetch_one(&db_pool)
@@ -172,14 +183,14 @@ pub async fn vote_on_content(
             None
         }
     } else {
-        log::trace!("Create vote for post {post_id}, comment {:?}, user {} with value {vote_value}", comment_id, user.user_id);
+        log::trace!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
         Some(sqlx::query_as!(
             Vote,
             "INSERT INTO votes (post_id, comment_id, creator_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
             post_id,
             comment_id,
             user.user_id,
-            vote_value,
+            vote_value as i16,
         )
             .fetch_one(&db_pool)
             .await?)
@@ -218,13 +229,13 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
 
 // Function to react to an post's upvote or downvote button being clicked.
 pub fn get_on_content_vote_closure(
-    vote: RwSignal<i16>,
+    vote: RwSignal<VoteValue>,
     score: RwSignal<i32>,
     post_id: i64,
     comment_id: Option<i64>,
     initial_score: i32,
     current_vote_id: Option<i64>,
-    current_vote_value: Option<i16>,
+    current_vote_value: Option<VoteValue>,
     vote_action: Action<VoteOnContent, Result<Option<Vote>, ServerFnError>>,
     is_upvote: bool,
 ) -> impl Fn(ev::MouseEvent) {
@@ -232,7 +243,7 @@ pub fn get_on_content_vote_closure(
     move |_| {
         vote.update(|vote| update_vote_value(vote, is_upvote));
 
-        log::info!("Content vote value {}", vote.get_untracked());
+        log::info!("Content vote value {:?}", vote.get_untracked());
 
         let previous_vote_info = if vote_action.version().get_untracked() == 0 &&
             current_vote_id.is_some() &&
@@ -257,63 +268,59 @@ pub fn get_on_content_vote_closure(
             comment_id,
             previous_vote_info,
         });
-        score.update(|score| *score = initial_score + i32::from(vote.get_untracked()));
+        score.update(|score| *score = initial_score + (vote.get_untracked() as i32));
     }
 }
 
 // Function to obtain the css classes of a vote button
 pub fn get_vote_button_css(
-    vote: RwSignal<i16>,
+    vote: RwSignal<VoteValue>,
     is_upvote: bool,
 ) -> impl Fn() -> String {
     let (button_css, activated_value) = match is_upvote {
-        true => ("btn-success", 1),
-        false => ("btn-error", -1),
+        true => ("btn-success", VoteValue::Up),
+        false => ("btn-error", VoteValue::Down),
     };
 
     move || {
         let vote_value = vote();
         if vote() == activated_value {
-            log::info!("Activated vote button, value: {vote_value}, css: {button_css}");
+            log::info!("Activated vote button, value: {vote_value:?}, css: {button_css}");
             format!("btn btn-circle btn-sm {button_css}")
         } else {
-            log::info!("Deactivated vote button, value: {vote_value}, css: {button_css}");
+            log::info!("Deactivated vote button, value: {vote_value:?}, css: {button_css}");
             format!("btn btn-circle btn-sm btn-ghost hover:{button_css}")
         }
     }
 }
 
-pub fn update_vote_value(vote: &mut i16, is_upvote: bool) {
+pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {
     *vote = match *vote {
-        1 => if is_upvote { 0 } else { -1 },
-        -1 => if is_upvote { 1 } else { 0 },
-        _ => if is_upvote { 1 } else { -1 },
+        VoteValue::Up => if is_upvote { VoteValue::None } else { VoteValue::Down },
+        VoteValue::None => if is_upvote { VoteValue::Up } else {VoteValue::Down },
+        VoteValue::Down => if is_upvote { VoteValue::Up } else { VoteValue::None },
+
     };
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::score::{update_vote_value};
+    use crate::score::{update_vote_value, VoteValue};
 
     #[test]
     fn test_update_vote_value() {
-        let mut vote = 12i16;
+        let mut vote = VoteValue::None;
         update_vote_value(&mut vote, true);
-        assert_eq!(vote, 1);
-        vote = -20i16;
-        update_vote_value(&mut vote, false);
-        assert_eq!(vote, -1);
+        assert_eq!(vote, VoteValue::Up);
         update_vote_value(&mut vote, true);
-        assert_eq!(vote, 1);
+        assert_eq!(vote, VoteValue::None);
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, VoteValue::Down);
         update_vote_value(&mut vote, true);
-        assert_eq!(vote, 0);
+        assert_eq!(vote, VoteValue::Up);
         update_vote_value(&mut vote, false);
-        assert_eq!(vote, -1);
+        assert_eq!(vote, VoteValue::Down);
         update_vote_value(&mut vote, false);
-        assert_eq!(vote, 0);
-        update_vote_value(&mut vote, true);
-        assert_eq!(vote, 1);
-        update_vote_value(&mut vote, false);
-        assert_eq!(vote, -1);
+        assert_eq!(vote, VoteValue::None);
     }
 }

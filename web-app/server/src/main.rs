@@ -63,7 +63,7 @@ async fn server_fn_handler(
     path: Path<String>,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
-    log::trace!("{:?}", path);
+    log::trace!("{path:?}");
 
     handle_server_fns_with_context(
         move || {

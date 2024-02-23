@@ -174,7 +174,7 @@ fn LoginPageGuard() -> impl IntoView {
                                 log::info!("Not logged in.");
                                 return view! { <Login/> }.into_view();
                             }
-                            log::info!("Login guard, current user: {:?}", user);
+                            log::info!("Login guard, current user: {user:?}");
                             view! { <Outlet/> }.into_view()
                         },
                         Some(Err(e)) => {

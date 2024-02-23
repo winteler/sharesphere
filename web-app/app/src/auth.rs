@@ -259,9 +259,6 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
     let nonce = oidc::Nonce::new(auth_session.session.get(NONCE_KEY).unwrap_or(String::from("")));
     let redirect_url = auth_session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
 
-    println!("auth_code = {}", auth_code);
-    println!("nonce = {:?}", nonce);
-
     let client = ssr::get_auth_client().await?;
 
     // Now you can exchange it for an access token and ID token.
@@ -343,7 +340,7 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
     log::debug!("Got session.");
     let token_response: oidc::core::CoreTokenResponse = auth_session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::new("Not authenticated."))?;
 
-    log::debug!("Got id token: {:?}", token_response);
+    log::debug!("Got id token: {token_response:?}");
 
     let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
         ssr::get_issuer_url()?,

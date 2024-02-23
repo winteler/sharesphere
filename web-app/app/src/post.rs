@@ -8,7 +8,7 @@ use crate::auth::LoginGuardButton;
 use crate::comment::{CommentButton, CommentSection};
 use crate::forum::{get_all_forum_names};
 use crate::icons::{ErrorIcon, LoadingIcon, MinusIcon, PlusIcon};
-use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure};
+use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure, VoteValue};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -79,7 +79,7 @@ pub mod ssr {
                     post_id: self.vote_post_id.unwrap(),
                     comment_id: None,
                     creator_id: self.vote_creator_id.unwrap(),
-                    value: self.value.unwrap(),
+                    value: VoteValue::from(self.value.unwrap()),
                     timestamp: self.vote_timestamp.unwrap(),
                 })
             } else {
@@ -193,16 +193,16 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     create_memo(move |current_post_id: Option<&i64>| {
         if let Some(new_post_id_string) = params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()) {
             if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
-                log::trace!("Current post id: {:?}, new post id: {new_post_id}", current_post_id);
+                log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
                 new_post_id
             }
             else {
-                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {:?}", current_post_id);
+                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
                 current_post_id.cloned().unwrap_or_default()
             }
         }
         else {
-            log::trace!("Could not find new post id, reuse current post id: {:?}", current_post_id);
+            log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
             current_post_id.cloned().unwrap_or_default()
         }
     })
@@ -235,7 +235,7 @@ pub fn CreatePost() -> impl IntoView {
                     existing_forums.with(|result| {
                         match result {
                             Some(Ok(forum_set)) => {
-                                log::info!("Forum name set: {:?}", forum_set);
+                                log::info!("Forum name set: {forum_set:?}");
 
                                 let matching_forum_list = forum_set
                                     .iter()
@@ -397,8 +397,8 @@ pub fn PostVotePanel<'a>(
 
     let post_id = post.post.post_id;
     let (vote, initial_score ) = match &post.vote {
-        Some(vote) => (vote.value, post.post.score - i32::from(vote.value)),
-        None => (0, post.post.score),
+        Some(vote) => (vote.value, post.post.score - (vote.value as i32)),
+        None => (VoteValue::None, post.post.score),
     };
 
     let score = create_rw_signal(post.post.score);

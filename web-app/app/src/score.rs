@@ -1,10 +1,13 @@
 use leptos::*;
 use serde::{Deserialize, Serialize};
 
-use crate::icons::{ScoreIcon};
+use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::auth::LoginGuardButton;
+use crate::comment::{Comment};
+use crate::post::{Post};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -25,6 +28,12 @@ impl From<i16> for VoteValue {
             VoteValue::Down
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub enum ContentWithVote {
+    Post(Post, Option<Vote>),
+    Comment(Comment, Option<Vote>),
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -225,6 +234,127 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
             </div>
         </div>
     }
+}
+
+/// Component to display and modify a content's score
+#[component]
+pub fn VotePanel(
+    content: ContentWithVote,
+) -> impl IntoView {
+
+    let content = content.clone();
+
+    let (post_id, comment_id, score, vote) = match &content {
+        ContentWithVote::Post(post, vote) => (post.post_id, None, post.score, vote),
+        ContentWithVote::Comment(comment, vote) => (comment.post_id, Some(comment.comment_id), comment.score, vote),
+    };
+
+    let (vote_id, vote_value, initial_score) = match vote {
+        Some(vote) => (Some(vote.vote_id), Some(vote.value), score - (vote.value as i32)),
+        None => (None, None, score),
+    };
+
+    let score = create_rw_signal(score);
+    let vote = create_rw_signal(vote_value.unwrap_or(VoteValue::None));
+
+    let vote_action = create_server_action::<VoteOnContent>();
+
+    let upvote_button_css = get_vote_button_css(vote, true);
+    let downvote_button_css = get_vote_button_css(vote, false);
+
+    view! {
+        <div class="flex items-center gap-1">
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
+                login_button_content=move || view! { <PlusIcon/> }
+            >
+                <button
+                    class=upvote_button_css()
+                    on:click=move |_| {
+                        on_content_vote(
+                            vote,
+                            score,
+                            post_id,
+                            comment_id,
+                            initial_score,
+                            vote_id,
+                            vote_value,
+                            vote_action,
+                            true
+                        );
+                    }
+                >
+                    <PlusIcon/>
+                </button>
+            </LoginGuardButton>
+            <DynScoreIndicator score=score/>
+            <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
+                login_button_content=move || view! { <MinusIcon/> }
+            >
+                <button
+                    class=downvote_button_css()
+                    on:click=move |_| {
+                        on_content_vote(
+                            vote,
+                            score,
+                            post_id,
+                            comment_id,
+                            initial_score,
+                            vote_id,
+                            vote_value,
+                            vote_action,
+                            false
+                        );
+                    }
+                >
+                    <MinusIcon/>
+                </button>
+            </LoginGuardButton>
+        </div>
+    }
+}
+
+// Function to react to an post's upvote or downvote button being clicked.
+pub fn on_content_vote(
+    vote: RwSignal<VoteValue>,
+    score: RwSignal<i32>,
+    post_id: i64,
+    comment_id: Option<i64>,
+    initial_score: i32,
+    current_vote_id: Option<i64>,
+    current_vote_value: Option<VoteValue>,
+    vote_action: Action<VoteOnContent, Result<Option<Vote>, ServerFnError>>,
+    is_upvote: bool,
+) {
+    vote.update(|vote| update_vote_value(vote, is_upvote));
+
+    log::info!("Content vote value {:?}", vote.get_untracked());
+
+    let previous_vote_info = if vote_action.version().get_untracked() == 0 &&
+        current_vote_id.is_some() &&
+        current_vote_value.is_some() {
+        Some(VoteInfo {
+            vote_id: current_vote_id.unwrap(),
+            value: current_vote_value.unwrap(),
+        })
+    } else {
+        match vote_action.value().get_untracked() {
+            Some(Ok(Some(vote))) => Some(VoteInfo {
+                vote_id: vote.vote_id,
+                value: vote.value,
+            }),
+            _ => None,
+        }
+    };
+
+    vote_action.dispatch(VoteOnContent {
+        vote_value: vote.get_untracked(),
+        post_id,
+        comment_id,
+        previous_vote_info,
+    });
+    score.update(|score| *score = initial_score + (vote.get_untracked() as i32));
 }
 
 // Function to react to an post's upvote or downvote button being clicked.

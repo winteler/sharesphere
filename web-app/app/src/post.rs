@@ -4,11 +4,10 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::auth::LoginGuardButton;
 use crate::comment::{CommentButton, CommentSection};
 use crate::forum::{get_all_forum_names};
-use crate::icons::{ErrorIcon, LoadingIcon, MinusIcon, PlusIcon};
-use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure, VoteValue};
+use crate::icons::{ErrorIcon, LoadingIcon};
+use crate::score::{ContentWithVote, Vote, VotePanel};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -57,6 +56,7 @@ pub struct PostWithVote {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use crate::score::{Vote, VoteValue};
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
@@ -377,90 +377,17 @@ pub fn Post() -> impl IntoView {
 /// Component to encapsulate the widgets associated with each post
 #[component]
 fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
+
+    let content = ContentWithVote::Post(&post.post, &post.vote);
+
     view! {
         <div class="flex gap-2">
-            <PostVotePanel
-                post=post
+            <VotePanel
+                content=content
             />
             <CommentButton post_id=post.post.post_id/>
             <AuthorWidget author=&post.post.creator_name/>
             <TimeSinceWidget timestamp=&post.post.create_timestamp/>
-        </div>
-    }
-}
-
-/// Component to display and modify a post's score
-#[component]
-pub fn PostVotePanel<'a>(
-    post: &'a PostWithVote,
-) -> impl IntoView {
-
-    let post_id = post.post.post_id;
-    let (vote, initial_score ) = match &post.vote {
-        Some(vote) => (vote.value, post.post.score - (vote.value as i32)),
-        None => (VoteValue::None, post.post.score),
-    };
-
-    let score = create_rw_signal(post.post.score);
-    let vote = create_rw_signal(vote);
-
-    let comment_vote_id = match &post.vote {
-        Some(vote) => Some(vote.vote_id),
-        None => None,
-    };
-    let comment_vote_value = match &post.vote {
-        Some(vote) => Some(vote.value),
-        None => None,
-    };
-
-    let vote_action = create_server_action::<VoteOnContent>();
-
-    let upvote_button_css = get_vote_button_css(vote, true);
-    let downvote_button_css = get_vote_button_css(vote, false);
-
-    view! {
-        <div class="flex items-center gap-1">
-            <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
-                login_button_content=move || view! { <PlusIcon/> }
-            >
-                <button
-                    class=upvote_button_css()
-                    on:click=get_on_content_vote_closure(
-                        vote,
-                        score,
-                        post_id,
-                        None,
-                        initial_score,
-                        comment_vote_id,
-                        comment_vote_value,
-                        vote_action,
-                        true)
-                >
-                    <PlusIcon/>
-                </button>
-            </LoginGuardButton>
-            <DynScoreIndicator score=score/>
-            <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
-                login_button_content=move || view! { <MinusIcon/> }
-            >
-                <button
-                    class=downvote_button_css()
-                    on:click=get_on_content_vote_closure(
-                        vote,
-                        score,
-                        post_id,
-                        None,
-                        initial_score,
-                        comment_vote_id,
-                        comment_vote_value,
-                        vote_action,
-                        false)
-                >
-                    <MinusIcon/>
-                </button>
-            </LoginGuardButton>
         </div>
     }
 }

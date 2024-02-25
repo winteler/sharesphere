@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
-use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, MinusIcon, PlusIcon};
+use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::{get_post_id_memo};
-use crate::score::{get_vote_button_css, DynScoreIndicator, Vote, VoteOnContent, get_on_content_vote_closure, VoteValue};
+use crate::score::{ContentWithVote, Vote, VotePanel,};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -40,6 +40,7 @@ pub struct CommentWithChildren {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use crate::score::{Vote, VoteValue};
     use super::*;
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
     pub struct CommentWithVote {
@@ -454,90 +455,14 @@ pub fn CommentBox<'a>(
 #[component]
 fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
 
+    let content = ContentWithVote::Comment(&comment.comment, &comment.vote);
+
     view! {
         <div class="flex gap-2">
-            <CommentVotePanel comment=comment/>
+            <VotePanel content=content/>
             <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.comment_id)/>
             <AuthorWidget author=&comment.comment.creator_name/>
             <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
-        </div>
-    }
-}
-
-/// Component to display and modify a comment's score
-#[component]
-pub fn CommentVotePanel<'a>(
-    comment: &'a CommentWithChildren,
-) -> impl IntoView {
-
-    let post_id = comment.comment.post_id;
-    let comment_id = comment.comment.comment_id;
-
-    let (vote, initial_score ) = match &comment.vote {
-        Some(vote) => (vote.value, comment.comment.score - (vote.value as i32)),
-        None => (VoteValue::None, comment.comment.score),
-    };
-
-    let score = create_rw_signal(comment.comment.score);
-    let vote = create_rw_signal(vote);
-
-    let current_vote_id = match &comment.vote {
-        Some(vote) => Some(vote.vote_id),
-        None => None,
-    };
-    let current_vote_value = match &comment.vote {
-        Some(vote) => Some(vote.value),
-        None => None,
-    };
-
-    let vote_action = create_server_action::<VoteOnContent>();
-
-    let upvote_button_css = get_vote_button_css(vote, true);
-    let downvote_button_css = get_vote_button_css(vote, false);
-
-    view! {
-        <div class="flex items-center gap-1">
-            <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
-                login_button_content=move || view! { <PlusIcon/> }
-            >
-                <button
-                    class=upvote_button_css()
-                    on:click=get_on_content_vote_closure(
-                        vote,
-                        score,
-                        post_id,
-                        Some(comment_id),
-                        initial_score,
-                        current_vote_id,
-                        current_vote_value,
-                        vote_action,
-                        true)
-                >
-                    <PlusIcon/>
-                </button>
-            </LoginGuardButton>
-            <DynScoreIndicator score=score/>
-            <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
-                login_button_content=move || view! { <MinusIcon/> }
-            >
-                <button
-                    class=downvote_button_css()
-                    on:click=get_on_content_vote_closure(
-                        vote,
-                        score,
-                        post_id,
-                        Some(comment_id),
-                        initial_score,
-                        current_vote_id,
-                        current_vote_value,
-                        vote_action,
-                        false)
-                >
-                    <MinusIcon/>
-                </button>
-            </LoginGuardButton>
         </div>
     }
 }

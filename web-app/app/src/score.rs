@@ -29,11 +29,10 @@ impl From<i16> for VoteValue {
         }
     }
 }
-
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub enum ContentWithVote {
-    Post(Post, Option<Vote>),
-    Comment(Comment, Option<Vote>),
+#[derive(Clone, Debug)]
+pub enum ContentWithVote<'a> {
+    Post(&'a Post, &'a Option<Vote>),
+    Comment(&'a Comment, &'a Option<Vote>),
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -238,8 +237,8 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
 
 /// Component to display and modify a content's score
 #[component]
-pub fn VotePanel(
-    content: ContentWithVote,
+pub fn VotePanel<'a>(
+    content: ContentWithVote<'a>,
 ) -> impl IntoView {
 
     let content = content.clone();
@@ -332,8 +331,8 @@ pub fn on_content_vote(
     log::info!("Content vote value {:?}", vote.get_untracked());
 
     let previous_vote_info = if vote_action.version().get_untracked() == 0 &&
-        current_vote_id.is_some() &&
-        current_vote_value.is_some() {
+                                               current_vote_id.is_some() &&
+                                               current_vote_value.is_some() {
         Some(VoteInfo {
             vote_id: current_vote_id.unwrap(),
             value: current_vote_value.unwrap(),

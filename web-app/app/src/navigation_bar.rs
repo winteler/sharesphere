@@ -7,19 +7,34 @@ use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
 use crate::icons::*;
 use crate::forum::*;
 
-pub fn get_current_url_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
-    move |_| {
-        let url = window().location().href().unwrap_or(String::from("/"));
-        log::info!("Current url: {url}");
-        url_signal.set(url.clone());
-    }
+pub fn get_current_url(url: RwSignal<String>) {
+    let url_str = window().location().href().unwrap_or(String::from("/"));
+    log::trace!("Current url: {url_str}");
+    url.update(|value| *value = url_str);
 }
 
-pub fn get_current_path_closure(url_signal: RwSignal<String>) -> impl FnMut(leptos::ev::MouseEvent) -> () {
-    move |_| {
-        let path = window().location().pathname().unwrap_or(String::from("/"));
-        log::info!("Current path: {path}");
-        url_signal.set(path.clone());
+pub fn get_current_path(path: RwSignal<String>) {
+    let path_str = window().location().pathname().unwrap_or(String::from("/"));
+    log::trace!("Current path: {path_str}");
+    path.update(|value | *value = path_str);
+}
+
+pub fn get_create_post_path(create_post_route: RwSignal<String>) {
+    let path = window().location().pathname().unwrap_or(String::default());
+    log::trace!("Current path: {path}");
+
+    let current_forum = if path.starts_with(FORUM_ROUTE_PREFIX) {
+        let mut path_part_it = path.split("/");
+        String::from(path_part_it.nth(2).unwrap_or(""))
+    }
+    else {
+        String::default()
+    };
+
+    if current_forum.is_empty() {
+        create_post_route.update(|value| *value = String::from(CREATE_POST_ROUTE));
+    } else {
+        create_post_route.update(|value| *value = format!("{CREATE_POST_ROUTE}?{CREATE_POST_FORUM_QUERY_PARAM}={current_forum}"));
     }
 }
 
@@ -74,8 +89,7 @@ pub fn UserProfile() -> impl IntoView {
 pub fn LoggedInMenu() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let user = expect_context::<User>();
-    let current_url = create_rw_signal( String::default());
-    let get_current_url = get_current_url_closure(current_url);
+    let current_url = create_rw_signal(String::default());
 
     view! {
         <div class="dropdown dropdown-end">
@@ -87,7 +101,7 @@ pub fn LoggedInMenu() -> impl IntoView {
                 <li>
                     <form action=state.logout_action.url() method="post" rel="external" class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>
-                        <button type="submit" class="w-full text-left" on:click=get_current_url>
+                        <button type="submit" class="w-full text-left" on:click=move |_| get_current_url(current_url)>
                             "Logout"
                         </button>
                     </form>
@@ -103,7 +117,7 @@ pub fn PlusMenu() -> impl IntoView {
     let current_forum = create_rw_signal(String::default());
     let get_current_forum = move |_| {
         let path = window().location().pathname().unwrap_or(String::default());
-        log::info!("Current path: {path}");
+        log::trace!("Current path: {path}");
         if path.starts_with(FORUM_ROUTE_PREFIX) {
             let mut path_part_it = path.split("/");
             current_forum.update(|forum_name| *forum_name = String::from(path_part_it.nth(2).unwrap_or("")));
@@ -119,14 +133,26 @@ pub fn PlusMenu() -> impl IntoView {
                 <PlusIcon class="h-6 w-6 text-white"/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
-                <li><a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a></li>
                 <li>
-                    <Form action=CREATE_POST_ROUTE class="flex">
-                        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                        <button type="submit" on:click=get_current_forum class="w-full text-left">
-                            "[[Post]]"
-                        </button>
-                    </Form>
+                    <LoginGuardButton
+                        login_button_content=move || view! { "[[Forum]]" }
+                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.update(|value: &mut String| *value = String::from(CREATE_FORUM_ROUTE)))
+                    >
+                        <a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a>
+                    </LoginGuardButton>
+                </li>
+                <li>
+                    <LoginGuardButton
+                        login_button_content=move || view! { "[[Post]]" }
+                        redirect_path_fn=&get_create_post_path
+                    >
+                        <Form action=CREATE_POST_ROUTE class="flex">
+                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
+                            <button type="submit" on:click=get_current_forum>
+                                "[[Post]]"
+                            </button>
+                        </Form>
+                    </LoginGuardButton>
                 </li>
             </ul>
         </div>

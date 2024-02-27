@@ -197,14 +197,13 @@ fn LoginPageGuard() -> impl IntoView {
 fn Login() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let current_path = create_rw_signal( String::default());
-    let get_current_path = get_current_path_closure(current_path);
 
     view! {
         <div class="my-0 mx-auto max-w-3xl text-center">
             <p class="bg-white px-10 py-10 text-black rounded-lg">"Login required to access this page."</p>
             <form action=state.login_action.url() method="post" rel="external">
                 <input type="text" name="redirect_url" class="hidden" value=current_path/>
-                <button type="submit" class="btn btn-primary" on:click=get_current_path>
+                <button type="submit" class="btn btn-primary" on:click=move |_| get_current_path(current_path)>
                     "Login"
                 </button>
             </form>

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::app::ssr::get_session;
 use crate::app::{GlobalState};
 use crate::icons::*;
-use crate::navigation_bar::get_current_path_closure;
+use crate::navigation_bar::get_current_path;
 
 #[cfg(feature = "ssr")]
 use axum_session_auth::Authentication;
@@ -374,9 +374,12 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 /// login screen.
 #[component]
 pub fn LoginGuardButton(
+    #[prop(default = "")]
     login_button_class: &'static str,
     #[prop(into)]
     login_button_content: ViewFn,
+    #[prop(default = &get_current_path)]
+    redirect_path_fn:  &'static dyn Fn(RwSignal<String>),
     children: ChildrenFn,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -391,7 +394,7 @@ pub fn LoginGuardButton(
                 Some(Err(e)) => {
                     log::info!("Error while getting user: {}", e);
                     let login_button_view = login_button_content.run();
-                    view! { <LoginButton class=login_button_class>{login_button_view}</LoginButton> }.into_view()
+                    view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
                 },
                 None => {
                     log::trace!("Resource not loaded yet.");
@@ -405,16 +408,17 @@ pub fn LoginGuardButton(
 #[component]
 pub fn LoginButton(
     class: &'static str,
+    #[prop(default = &get_current_path)]
+    redirect_path_fn: &'static dyn Fn(RwSignal<String>),
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let current_path = create_rw_signal( String::default());
-    let get_current_path = get_current_path_closure(current_path);
+    let redirect_path = create_rw_signal(String::default());
 
     view! {
         <form action=state.login_action.url() method="post" rel="external">
-            <input type="text" name="redirect_url" class="hidden" value=current_path/>
-            <button type="submit" class=class on:click=get_current_path>
+            <input type="text" name="redirect_url" class="hidden" value=redirect_path/>
+            <button type="submit" class=class on:click=move |_| redirect_path_fn(redirect_path)>
                 {children()}
             </button>
         </form>

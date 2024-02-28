@@ -9,13 +9,13 @@ use crate::forum::*;
 
 pub fn get_current_url(url: RwSignal<String>) {
     let url_str = window().location().href().unwrap_or(String::from("/"));
-    log::trace!("Current url: {url_str}");
+    log::debug!("Current url: {url_str}");
     url.update(|value| *value = url_str);
 }
 
 pub fn get_current_path(path: RwSignal<String>) {
     let path_str = window().location().pathname().unwrap_or(String::from("/"));
-    log::trace!("Current path: {path_str}");
+    log::debug!("Current path: {path_str}");
     path.update(|value | *value = path_str);
 }
 
@@ -31,7 +31,7 @@ pub fn get_forum_from_path(path: &String) -> Option<String> {
 
 pub fn get_create_post_path(create_post_route: RwSignal<String>) {
     let path = window().location().pathname().unwrap_or(String::default());
-    log::trace!("Current path: {path}");
+    log::debug!("Current path: {path}");
 
     let current_forum = get_forum_from_path(&path);
 
@@ -121,7 +121,7 @@ pub fn PlusMenu() -> impl IntoView {
     let current_forum = create_rw_signal(String::default());
     let get_current_forum = move |_| {
         let path = window().location().pathname().unwrap_or(String::default());
-        log::trace!("Current path: {path}");
+        log::debug!("Current path: {path}");
         if path.starts_with(FORUM_ROUTE_PREFIX) {
             let mut path_part_it = path.split("/");
             current_forum.update(|forum_name| *forum_name = String::from(path_part_it.nth(2).unwrap_or("")));

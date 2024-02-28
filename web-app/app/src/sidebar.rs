@@ -36,7 +36,7 @@ pub fn LeftSidebar() -> impl IntoView {
                             view! { <ErrorIcon/> }.into_view()
                         },
                         None => {
-                            log::trace!("Resource not loaded yet.");
+                            log::debug!("Resource not loaded yet.");
                             view! { <LoadingIcon/> }.into_view()
                         }
                     })

@@ -171,7 +171,7 @@ pub async fn vote_on_content(
     let vote = if previous_vote_info.is_some() {
         let vote_id = previous_vote_info.as_ref().unwrap().vote_id;
         if vote_value != VoteValue::None {
-            log::trace!("Update vote {vote_id} with value {vote_value:?}");
+            log::debug!("Update vote {vote_id} with value {vote_value:?}");
             Some(sqlx::query_as!(
                 Vote,
                 "UPDATE votes SET value = $1 WHERE vote_id = $2 RETURNING *",
@@ -181,7 +181,7 @@ pub async fn vote_on_content(
                 .fetch_one(&db_pool)
                 .await?)
         } else {
-            log::trace!("Delete vote {vote_id}");
+            log::debug!("Delete vote {vote_id}");
             sqlx::query!(
                 "DELETE from votes WHERE vote_id = $1",
                 vote_id,
@@ -191,7 +191,7 @@ pub async fn vote_on_content(
             None
         }
     } else {
-        log::trace!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
+        log::debug!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
         Some(sqlx::query_as!(
             Vote,
             "INSERT INTO votes (post_id, comment_id, creator_id, value) VALUES ($1, $2, $3, $4) RETURNING *",

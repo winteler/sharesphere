@@ -343,7 +343,7 @@ pub fn CommentSection() -> impl IntoView {
     let comment_vec = create_resource(
         move || (post_id(), state.create_comment_action.version().get()),
         move |(post_id, _)| {
-            log::trace!("Load comments for post: {post_id}");
+            log::debug!("Load comments for post: {post_id}");
             get_post_comment_tree(post_id)
         });
 
@@ -370,7 +370,7 @@ pub fn CommentSection() -> impl IntoView {
                                 view! { <ErrorIcon/> }.into_view()
                             },
                             None => {
-                                log::trace!("Resource not loaded yet.");
+                                log::debug!("Resource not loaded yet.");
                                 view! { <LoadingIcon/> }.into_view()
                             },
                         })

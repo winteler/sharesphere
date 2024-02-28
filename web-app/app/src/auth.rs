@@ -285,7 +285,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
 
     // The authenticated user's identity is now available. See the IdTokenClaims struct for a
     // complete listing of the available claims.
-    println!(
+    log::debug!(
         "User {} with e-mail address {} has authenticated successfully",
         claims.subject().as_str(),
         claims.email().map(|email| email.as_str()).unwrap_or("<not provided>"),
@@ -335,7 +335,7 @@ pub async fn get_user() -> Result<User, ServerFnError> {
 
 #[server]
 pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
-    log::info!("Logout, redirect_url: {redirect_url}");
+    log::debug!("Logout, redirect_url: {redirect_url}");
 
     let auth_session = get_session()?;
     log::debug!("Got session.");
@@ -398,7 +398,7 @@ pub fn LoginGuardButton(
                     view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
                 },
                 None => {
-                    log::trace!("Resource not loaded yet.");
+                    log::debug!("Resource not loaded yet.");
                     view! { <button class=login_button_class/> }.into_view()
                 }
             }

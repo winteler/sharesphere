@@ -193,16 +193,16 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     create_memo(move |current_post_id: Option<&i64>| {
         if let Some(new_post_id_string) = params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()) {
             if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
-                log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
+                log::debug!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
                 new_post_id
             }
             else {
-                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
+                log::debug!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
                 current_post_id.cloned().unwrap_or_default()
             }
         }
         else {
-            log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
+            log::debug!("Could not find new post id, reuse current post id: {current_post_id:?}");
             current_post_id.cloned().unwrap_or_default()
         }
     })
@@ -313,7 +313,7 @@ pub fn CreatePost() -> impl IntoView {
                                 view! { <ErrorIcon/> }.into_view()
                             },
                             None => {
-                                log::trace!("Resource not loaded yet.");
+                                log::debug!("Resource not loaded yet.");
                                 view! { <LoadingIcon/> }.into_view()
                             }
                         }
@@ -334,7 +334,7 @@ pub fn Post() -> impl IntoView {
     let post = create_resource(
         move || post_id(),
         move |post_id| {
-            log::trace!("Load data for post: {post_id}");
+            log::debug!("Load data for post: {post_id}");
             get_post_with_vote_by_id(post_id)
         });
 
@@ -362,7 +362,7 @@ pub fn Post() -> impl IntoView {
                                 view! { <ErrorIcon/> }.into_view()
                             },
                             None => {
-                                log::trace!("Resource not loaded yet.");
+                                log::debug!("Resource not loaded yet.");
                                 view! { <LoadingIcon/> }.into_view()
                             }
                         }

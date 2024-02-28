@@ -19,23 +19,27 @@ pub fn get_current_path(path: RwSignal<String>) {
     path.update(|value | *value = path_str);
 }
 
+pub fn get_forum_from_path(path: &String) -> Option<String> {
+    if path.starts_with(FORUM_ROUTE_PREFIX) {
+        let mut path_part_it = path.split("/");
+        Some(String::from(path_part_it.nth(2).unwrap_or("")))
+    }
+    else {
+        None
+    }
+}
+
 pub fn get_create_post_path(create_post_route: RwSignal<String>) {
     let path = window().location().pathname().unwrap_or(String::default());
     log::trace!("Current path: {path}");
 
-    let current_forum = if path.starts_with(FORUM_ROUTE_PREFIX) {
-        let mut path_part_it = path.split("/");
-        String::from(path_part_it.nth(2).unwrap_or(""))
-    }
-    else {
-        String::default()
-    };
+    let current_forum = get_forum_from_path(&path);
 
-    if current_forum.is_empty() {
-        create_post_route.update(|value| *value = String::from(CREATE_POST_ROUTE));
+    if let Some(forum_name) = current_forum {
+        create_post_route.update(|value| *value = format!("{CREATE_POST_ROUTE}?{CREATE_POST_FORUM_QUERY_PARAM}={forum_name}"));
     } else {
-        create_post_route.update(|value| *value = format!("{CREATE_POST_ROUTE}?{CREATE_POST_FORUM_QUERY_PARAM}={current_forum}"));
-    }
+        create_post_route.update(|value| *value = String::from(CREATE_POST_ROUTE));
+    };
 }
 
 /// Navigation bar component
@@ -159,4 +163,12 @@ pub fn PlusMenu() -> impl IntoView {
     }
 }
 
-
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_get_forum_from_path() {
+        assert_eq!(get_forum_from_path(&String::from("test")), None);
+        assert_eq!(get_forum_from_path(&String::from("/forums/test")), Some(String::from("test")));
+    }
+}

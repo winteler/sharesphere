@@ -19,6 +19,7 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
+pub const OIDC_ISSUER_URL_ENV : &str = "OIDC_ISSUER_ADDR";
 pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV : &str = "AUTH_CLIENT_SECRET";
 pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
@@ -162,7 +163,7 @@ pub mod ssr {
     }
 
     pub fn get_issuer_url() -> Result<oidc::IssuerUrl, ServerFnError> {
-        Ok(oidc::IssuerUrl::new("http://127.0.0.1:8080/realms/project".to_string()).expect("Invalid issuer URL"))
+        Ok(oidc::IssuerUrl::new(env::var(OIDC_ISSUER_URL_ENV)?).expect("Invalid issuer URL"))
     }
 
     pub fn get_client_id() -> Result<oidc::ClientId, ServerFnError> {

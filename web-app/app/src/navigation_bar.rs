@@ -29,6 +29,11 @@ pub fn get_forum_from_path(path: &String) -> Option<String> {
     }
 }
 
+pub fn get_forum_name(forum_name: RwSignal<String>) {
+    let path = window().location().pathname().unwrap_or(String::default());
+    forum_name.update(|name| *name = get_forum_from_path(&path).unwrap_or_default());
+}
+
 pub fn get_create_post_path(create_post_route: RwSignal<String>) {
     let path = window().location().pathname().unwrap_or(String::default());
     log::debug!("Current path: {path}");
@@ -119,18 +124,6 @@ pub fn LoggedInMenu() -> impl IntoView {
 #[component]
 pub fn PlusMenu() -> impl IntoView {
     let current_forum = create_rw_signal(String::default());
-    let get_current_forum = move |_| {
-        let path = window().location().pathname().unwrap_or(String::default());
-        log::debug!("Current path: {path}");
-        if path.starts_with(FORUM_ROUTE_PREFIX) {
-            let mut path_part_it = path.split("/");
-            current_forum.update(|forum_name| *forum_name = String::from(path_part_it.nth(2).unwrap_or("")));
-        }
-        else {
-            current_forum.update(|forum_name| *forum_name = String::default());
-        }
-    };
-
     view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
@@ -152,7 +145,7 @@ pub fn PlusMenu() -> impl IntoView {
                     >
                         <Form action=CREATE_POST_ROUTE class="flex">
                             <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                            <button type="submit" on:click=get_current_forum>
+                            <button type="submit" on:click=move |_| get_forum_name(current_forum)>
                                 "[[Post]]"
                             </button>
                         </Form>

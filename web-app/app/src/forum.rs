@@ -5,13 +5,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon};
-use crate::post::{get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
+use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon};
+use crate::post::{get_post_vec_by_forum_name, Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
 use crate::score::{ScoreIndicator};
-use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget};
+use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget, SortWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::auth::LoginGuardButton;
+use crate::navigation_bar::{get_create_post_path, get_forum_name};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -304,7 +306,31 @@ pub fn ForumBanner() -> impl IntoView {
                     }
                 }
             </Transition>
+            <ForumToolbar/>
             <Outlet/>
+        </div>
+    }
+}
+
+/// Component to display the forum toolbar
+#[component]
+pub fn ForumToolbar() -> impl IntoView {
+    let current_forum  = create_rw_signal(String::default());
+    view! {
+        <div class="flex w-full">
+            <LoginGuardButton
+                login_button_class="btn btn-ghost"
+                login_button_content=move || view! { "[[Post]]" }
+                redirect_path_fn=&get_create_post_path
+            >
+                <Form action=CREATE_POST_ROUTE class="flex">
+                    <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
+                    <button type="submit" class="btn btn-ghost" on:click=move |_| get_forum_name(current_forum)>
+                        <PlusIcon class="h-6 w-6"/>
+                    </button>
+                </Form>
+            </LoginGuardButton>
+            <SortWidget/>
         </div>
     }
 }

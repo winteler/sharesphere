@@ -54,6 +54,13 @@ pub struct PostWithVote {
     pub vote: Option<Vote>
 }
 
+pub enum PostSortType {
+    Hot,
+    Trending,
+    Score,
+    Recent,
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use crate::score::{Vote, VoteValue};

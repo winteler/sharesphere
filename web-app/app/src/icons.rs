@@ -183,3 +183,54 @@ pub fn MaximizeIcon(
         </svg>
     }
 }
+
+#[component]
+pub fn HotIcon(
+    #[prop(optional)]
+    class: &'static str,
+    #[prop(default = 6)]
+    size: i32,
+) -> impl IntoView {
+    let class = String::from(class) + format!(" h-{size} w-{size}").as_ref();
+    view! {
+        <svg class=class xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 384 511.4">
+            <defs>
+                <linearGradient id="a" gradientUnits="userSpaceOnUse" x1="163.52" y1="286.47" x2="163.52" y2="500.71">
+                    <stop offset="0" stop-color="#FB6404"/>
+                    <stop offset="1" stop-color="#F2BE10"/>
+                </linearGradient>
+            </defs>
+            <path fill="#E20919" d="M77.46 228.43C65.33 119.85 128.78 43.48 247.72 0c-72.85 94.5 62.09 196.88 69.53 295.03 17.44-29.75 27.34-69.48 29.3-122.55 89.18 139.92 15.25 368.59-181.02 335.73-18.02-3.01-35.38-8.7-51.21-17.17C42.76 452.8 0 369.53 0 290c0-50.69 21.68-95.95 49.74-131.91 3.75 35.23 11.73 61.51 27.72 70.34z"/><path fill="url(#a)" d="M139.16 372.49c-21.83-57.66-18.81-150.75 42.33-183.41.43 107.03 103.57 120.64 84.44 234.9 17.64-20.39 26.51-53.02 28.1-78.75 27.96 65.38 6.04 117.72-33.81 144.37-121.15 81-225.48-83.23-156.11-173.26 2.08 20.07 26.14 51.12 35.05 56.15z"/>
+        </svg>
+    }
+}
+
+#[component]
+pub fn FlameIcon(
+    #[prop(optional)]
+    class: &'static str,
+    #[prop(default = 6)]
+    size: i32,
+) -> impl IntoView {
+    let class = String::from(class) + format!(" h-{size} w-{size}").as_ref();
+    view! {
+        <svg class=class height="256px" width="256px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64" xml:space="preserve" fill="#000000">
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <g id="Layer_1">
+                    <g>
+                        <circle fill="#E20919" cx="32" cy="32" r="32"></circle>
+                    </g>
+                    <g opacity="0.2">
+                        <path fill="#231F20" d="M28.1,58.1c0,0-16.1-2.4-16.1-16.1s21-15,16.4-32c0,0,15.7,4.9,11.9,20.2c0,0,2.1-1.3,3.7-3.9 c0,0,8,6.2,8,15.5s-11,16.2-16.3,16.2c0,0,5.6-7.6,0.5-12.5c-7.3-7-4.2-11.4-4.2-11.4S14.2,42.8,28.1,58.1z"></path>
+                    </g>
+                    <g>
+                        <path fill="#F6BE10" d="M28.1,56.1c0,0-16.1-2.4-16.1-16.1s21-15,16.4-32c0,0,15.7,4.9,11.9,20.2c0,0,2.1-1.3,3.7-3.9 c0,0,8,6.2,8,15.5s-11,16.2-16.3,16.2c0,0,5.6-7.6,0.5-12.5c-7.3-7-4.2-11.4-4.2-11.4S14.2,40.8,28.1,56.1z"></path>
+                    </g>
+                </g>
+                <g id="Layer_2"></g>
+            </g>
+        </svg>
+    }
+}

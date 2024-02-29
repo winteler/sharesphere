@@ -30,6 +30,11 @@ pub struct Forum {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+pub enum PostSortType {
+    Score,
+    Recent,
+}
+
 pub const CREATE_FORUM_SUFFIX : &str = "/forum";
 pub const CREATE_FORUM_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
 pub const FORUM_ROUTE_PREFIX : &str = "/forums";
@@ -275,7 +280,7 @@ pub fn ForumBanner() -> impl IntoView {
         });
     // TODO: add forum banner
     view! {
-        <div class="flex flex-col w-full">
+        <div class="flex flex-col gap-2 w-full">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || {
@@ -317,15 +322,15 @@ pub fn ForumBanner() -> impl IntoView {
 pub fn ForumToolbar() -> impl IntoView {
     let current_forum  = create_rw_signal(String::default());
     view! {
-        <div class="flex w-full">
+        <div class="flex w-full content-center">
             <LoginGuardButton
-                login_button_class="btn btn-ghost"
-                login_button_content=move || view! { "[[Post]]" }
+                login_button_class="btn btn-circle btn-ghost"
+                login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
                 redirect_path_fn=&get_create_post_path
             >
                 <Form action=CREATE_POST_ROUTE class="flex">
                     <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                    <button type="submit" class="btn btn-ghost" on:click=move |_| get_forum_name(current_forum)>
+                    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| get_forum_name(current_forum)>
                         <PlusIcon class="h-6 w-6"/>
                     </button>
                 </Form>

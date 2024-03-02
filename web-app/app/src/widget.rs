@@ -1,7 +1,7 @@
 use leptos::*;
 
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
-use crate::icons::{AuthorIcon, BoldIcon, ClockIcon, FlameIcon, GraphIcon, HotIcon, HourglassIcon, MedalIcon, MedalIcon2, PodiumIcon, PodiumIcon2, SimpleFlameIcon, TimewatchIcon};
+use crate::icons::{AuthorIcon, BoldIcon, BonfireIcon, ClockIcon, FlameIcon, GraphIcon, HotIcon, HourglassIcon, MedalIcon, MedalIcon2, PodiumIcon, PodiumIcon2, SimpleFlameIcon, SimpleFlameIcon2, TimewatchIcon};
 
 #[component]
 pub fn FormTextEditor(
@@ -119,6 +119,16 @@ pub fn SortWidget() -> impl IntoView {
             <li>
                 <a class="tooltip" data-tip="Details">
                     <FlameIcon/>
+                </a>
+            </li>
+            <li>
+                <a class="tooltip" data-tip="Details">
+                    <BonfireIcon/>
+                </a>
+            </li>
+            <li>
+                <a class="tooltip" data-tip="Details">
+                    <SimpleFlameIcon2/>
                 </a>
             </li>
             <li>

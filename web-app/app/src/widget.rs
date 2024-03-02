@@ -1,7 +1,17 @@
 use leptos::*;
+use serde::{Deserialize, Serialize};
+use crate::app::GlobalState;
+use crate::comment::CommentSortType;
 
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::icons::{AuthorIcon, BoldIcon, BonfireIcon, ClockIcon, FlameIcon, GraphIcon, HotIcon, HourglassIcon, MedalIcon, MedalIcon2, PodiumIcon, PodiumIcon2, SimpleFlameIcon, SimpleFlameIcon2, TimewatchIcon};
+use crate::post::PostSortType;
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub enum SortType {
+    Post(PostSortType),
+    Comment(CommentSortType),
+}
 
 #[component]
 pub fn FormTextEditor(
@@ -103,69 +113,79 @@ pub fn TimeSinceWidget<'a>(timestamp: &'a chrono::DateTime<chrono::Utc>) -> impl
 
 /// Component to indicate how to sort contents
 #[component]
-pub fn SortWidget() -> impl IntoView {
+pub fn PostSortWidget() -> impl IntoView {
     view! {
-        <ul class="menu menu-horizontal rounded-box">
-            <li>
-                <a class="tooltip" data-tip="Home">
-                    <HotIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Home">
-                    <SimpleFlameIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Details">
-                    <FlameIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Details">
-                    <BonfireIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Details">
-                    <SimpleFlameIcon2/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Stats">
-                    <PodiumIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Stats">
-                    <PodiumIcon2/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Stats">
-                    <MedalIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Stats">
-                    <MedalIcon2/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Stats">
-                    <GraphIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Stats">
-                    <HourglassIcon/>
-                </a>
-            </li>
-            <li>
-                <a class="tooltip" data-tip="Stats">
-                    <TimewatchIcon/>
-                </a>
-            </li>
-        </ul>
+        <div class="join">
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
+                <HotIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
+                <SimpleFlameIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
+                <FlameIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
+                <BonfireIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
+                <SimpleFlameIcon2/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
+                <PodiumIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
+                <PodiumIcon2/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
+                <MedalIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
+                <MedalIcon2/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) datatip="Trending">
+                <GraphIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) datatip="Recent">
+                <HourglassIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) datatip="Recent">
+                <TimewatchIcon/>
+            </SortWidgetOption>
+        </div>
+    }
+}
+
+/// Component to show a sorting option
+#[component]
+pub fn SortWidgetOption(
+    sort_type: SortType,
+    datatip: &'static str,
+    children: ChildrenFn,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let sort_signal = match sort_type {
+        SortType::Post(_) => state.post_sort_type,
+        SortType::Comment(_) => state.comment_sort_type,
+    };
+    let is_selected = move || sort_type == sort_signal.get();
+    let class = move || match is_selected() {
+        true => "btn btn-ghost border border-1 border-primary hover:bg-white join-item",
+        false => "btn btn-ghost hover:bg-white join-item"
+    };
+
+    view! {
+        <div class="tooltip" data-tip=datatip>
+            <button
+                class=class
+                on:click=move |_| {
+                    if sort_signal.get_untracked() != sort_type {
+                        sort_signal.update(|value| *value = sort_type);
+                    }
+                }
+            >
+                { children().into_view() }
+            </button>
+        </div>
     }
 }

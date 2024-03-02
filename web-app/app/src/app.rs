@@ -3,7 +3,7 @@ use leptos_meta::*;
 use leptos_router::*;
 
 use crate::auth::*;
-use crate::comment::CreateComment;
+use crate::comment::{CommentSortType, CreateComment};
 use crate::post::*;
 use crate::sidebar::*;
 use crate::errors::AppError;
@@ -11,6 +11,7 @@ use crate::error_template::{ErrorTemplate};
 use crate::forum::*;
 use crate::icons::*;
 use crate::navigation_bar::*;
+use crate::widget::SortType;
 
 pub const PARAM_ROUTE_PREFIX : &str = "/:";
 pub const PUBLISH_ROUTE : &str = "/publish";
@@ -24,6 +25,8 @@ pub struct GlobalState {
     pub create_comment_action: Action<CreateComment, Result<(), ServerFnError>>,
     pub current_forum_name: Option<Memo<String>>,
     pub current_post_id: Option<Memo<i64>>,
+    pub post_sort_type: RwSignal<SortType>,
+    pub comment_sort_type: RwSignal<SortType>,
     pub user: Resource<(), Result<User, ServerFnError>>,
 }
 
@@ -37,6 +40,8 @@ impl GlobalState {
             create_comment_action: create_server_action::<CreateComment>(),
             current_forum_name: None,
             current_post_id: None,
+            post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
+            comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
             user: create_local_resource(
                 move || (),
                 move |_| get_user(),

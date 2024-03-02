@@ -8,7 +8,7 @@ use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon};
 use crate::post::{get_post_vec_by_forum_name, Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
 use crate::score::{ScoreIndicator};
-use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget, SortWidget};
+use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget, PostSortWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
@@ -28,11 +28,6 @@ pub struct Forum {
     pub banner_url: Option<String>,
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
-}
-
-pub enum PostSortType {
-    Score,
-    Recent,
 }
 
 pub const CREATE_FORUM_SUFFIX : &str = "/forum";
@@ -335,7 +330,7 @@ pub fn ForumToolbar() -> impl IntoView {
                     </button>
                 </Form>
             </LoginGuardButton>
-            <SortWidget/>
+            <PostSortWidget/>
         </div>
     }
 }

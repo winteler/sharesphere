@@ -54,10 +54,11 @@ pub struct PostWithVote {
     pub vote: Option<Vote>
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum PostSortType {
     Hot,
     Trending,
-    Score,
+    Best,
     Recent,
 }
 

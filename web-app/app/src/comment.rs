@@ -36,7 +36,11 @@ pub struct CommentWithChildren {
     pub child_comments: Vec<CommentWithChildren>,
 }
 
-
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub enum CommentSortType {
+    Best,
+    Recent,
+}
 
 #[cfg(feature = "ssr")]
 pub mod ssr {

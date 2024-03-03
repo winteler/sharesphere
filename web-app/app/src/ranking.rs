@@ -1,13 +1,14 @@
+use std::fmt;
+
 use leptos::*;
 use serde::{Deserialize, Serialize};
-
-use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::auth::LoginGuardButton;
-use crate::comment::{Comment};
-use crate::post::{Post};
+use crate::comment::{Comment, CommentSortType};
+use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
+use crate::post::{Post, PostSortType};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -18,17 +19,12 @@ pub enum VoteValue {
     Down = -1,
 }
 
-impl From<i16> for VoteValue {
-    fn from(value: i16) -> VoteValue {
-        if value > 0 {
-            VoteValue::Up
-        } else if value == 0 {
-            VoteValue::None
-        } else {
-            VoteValue::Down
-        }
-    }
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub enum SortType {
+    Post(PostSortType),
+    Comment(CommentSortType),
 }
+
 #[derive(Clone, Debug)]
 pub enum ContentWithVote<'a> {
     Post(&'a Post, &'a Option<Vote>),
@@ -52,11 +48,43 @@ pub struct VoteInfo {
     pub value: VoteValue,
 }
 
+impl From<i16> for VoteValue {
+    fn from(value: i16) -> VoteValue {
+        if value > 0 {
+            VoteValue::Up
+        } else if value == 0 {
+            VoteValue::None
+        } else {
+            VoteValue::Down
+        }
+    }
+}
+
+impl fmt::Display for SortType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let sort_type_name = match self {
+            SortType::Post(post_sort_type) => post_sort_type.to_string(),
+            SortType::Comment(comment_sort_type) => comment_sort_type.to_string(),
+        };
+        write!(f, "{sort_type_name}")
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use leptos::ServerFnError;
     use sqlx::PgPool;
-    use crate::score::{VoteInfo, VoteValue};
+
+    use crate::ranking::{SortType, VoteInfo, VoteValue};
+
+    impl SortType {
+        pub fn to_order_by_code(self) -> &'static str {
+            match self {
+                SortType::Post(post_sort_type) => post_sort_type.to_order_by_code(),
+                SortType::Comment(comment_sort_type) => comment_sort_type.to_order_by_code(),
+            }
+        }
+    }
 
     fn get_vote_deltas(
         vote: VoteValue,
@@ -115,6 +143,7 @@ pub mod ssr {
     #[cfg(test)]
     mod tests {
         use super::*;
+
         #[test]
         fn test_get_vote_deltas() {
 
@@ -434,7 +463,7 @@ pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {
 
 #[cfg(test)]
 mod tests {
-    use crate::score::{update_vote_value, VoteValue};
+    use crate::ranking::{update_vote_value, VoteValue};
 
     #[test]
     fn test_update_vote_value() {

@@ -1,19 +1,19 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
-use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
-
-use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon};
-use crate::post::{get_post_vec_by_forum_name, Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
-use crate::score::{ScoreIndicator};
-use crate::widget::{FormTextEditor, AuthorWidget, TimeSinceWidget, PostSortWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
+use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon};
 use crate::navigation_bar::{get_create_post_path, get_forum_name};
+use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
+use crate::ranking::ScoreIndicator;
+use crate::widget::{AuthorWidget, FormTextEditor, PostSortWidget, TimeSinceWidget};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -343,8 +343,8 @@ pub fn ForumContents() -> impl IntoView {
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
     let post_vec = create_resource(
-        move || (forum_name(), state.create_post_action.version().get()),
-        move |(forum_name, _)| get_post_vec_by_forum_name(forum_name));
+        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
+        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type));
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>

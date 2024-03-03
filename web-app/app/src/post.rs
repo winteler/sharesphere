@@ -1,19 +1,20 @@
+use std::fmt;
+
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::comment::{CommentButton, CommentSection};
-use crate::forum::{get_all_forum_names};
-use crate::icons::{ErrorIcon, LoadingIcon};
-use crate::score::{ContentWithVote, Vote, VotePanel};
-use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
-
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::comment::{CommentButton, CommentSection};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
+use crate::forum::get_all_forum_names;
+use crate::icons::{ErrorIcon, LoadingIcon};
+use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
+use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -62,9 +63,22 @@ pub enum PostSortType {
     Recent,
 }
 
+impl fmt::Display for PostSortType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let sort_type_name = match self {
+            PostSortType::Hot => "Hot",
+            PostSortType::Trending => "Trending",
+            PostSortType::Best => "Best",
+            PostSortType::Recent => "Recent",
+        };
+        write!(f, "{sort_type_name}")
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::score::{Vote, VoteValue};
+    use crate::ranking::{Vote, VoteValue};
+
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
@@ -97,6 +111,17 @@ pub mod ssr {
             PostWithVote {
                 post: self.post,
                 vote: post_vote,
+            }
+        }
+    }
+
+    impl PostSortType {
+        pub fn to_order_by_code(self) -> &'static str {
+            match self {
+                PostSortType::Hot => "recommended_score",
+                PostSortType::Trending => "trending_score",
+                PostSortType::Best => "score",
+                PostSortType::Recent => "create_timestamp DESC",
             }
         }
     }
@@ -146,14 +171,16 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
 }
 
 #[server]
-pub async fn get_post_vec_by_forum_name(forum_name: String) -> Result<Vec<Post>, ServerFnError> {
+pub async fn get_post_vec_by_forum_name(forum_name: String, sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let post_vec = sqlx::query_as!(
         Post,
         "SELECT posts.* FROM posts \
-        join forums on forums.forum_id = posts.forum_id \
-        WHERE forums.forum_name = $1",
-        forum_name
+        JOIN forums on forums.forum_id = posts.forum_id \
+        WHERE forums.forum_name = $1 \
+        ORDER BY $2",
+        forum_name,
+        sort_type.to_order_by_code()
     )
         .fetch_all(&db_pool)
         .await?;

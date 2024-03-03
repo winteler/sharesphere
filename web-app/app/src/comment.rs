@@ -1,16 +1,17 @@
+use std::fmt;
+
 use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
-use crate::post::{get_post_id_memo};
-use crate::score::{ContentWithVote, Vote, VotePanel,};
+use crate::post::get_post_id_memo;
+use crate::ranking::{ContentWithVote, Vote, VotePanel, };
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
-
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -42,10 +43,22 @@ pub enum CommentSortType {
     Recent,
 }
 
+impl fmt::Display for CommentSortType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let sort_type_name = match self {
+            CommentSortType::Best => "Best",
+            CommentSortType::Recent => "Recent",
+        };
+        write!(f, "{sort_type_name}")
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::score::{Vote, VoteValue};
+    use crate::ranking::{Vote, VoteValue};
+
     use super::*;
+
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
     pub struct CommentWithVote {
         #[sqlx(flatten)]
@@ -77,6 +90,15 @@ pub mod ssr {
                 comment: self.comment,
                 vote: comment_vote,
                 child_comments: Vec::<CommentWithChildren>::new(),
+            }
+        }
+    }
+
+    impl CommentSortType {
+        pub fn to_order_by_code(self) -> &'static str {
+            match self {
+                CommentSortType::Best => "score",
+                CommentSortType::Recent => "create_timestamp DESC",
             }
         }
     }

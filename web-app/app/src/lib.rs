@@ -11,6 +11,6 @@ pub mod footer;
 pub mod forum;
 pub mod icons;
 pub mod navigation_bar;
-pub mod score;
+pub mod ranking;
 pub mod sidebar;
 pub mod widget;

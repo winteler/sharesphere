@@ -4,14 +4,14 @@ use leptos_router::*;
 
 use crate::auth::*;
 use crate::comment::{CommentSortType, CreateComment};
-use crate::post::*;
-use crate::sidebar::*;
+use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::error_template::{ErrorTemplate};
 use crate::forum::*;
 use crate::icons::*;
 use crate::navigation_bar::*;
-use crate::widget::SortType;
+use crate::post::*;
+use crate::ranking::SortType;
+use crate::sidebar::*;
 
 pub const PARAM_ROUTE_PREFIX : &str = "/:";
 pub const PUBLISH_ROUTE : &str = "/publish";
@@ -52,13 +52,15 @@ impl GlobalState {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use anyhow::Context;
-    use sqlx::{PgPool, postgres::{PgPoolOptions}};
     use std::env;
     use std::sync::OnceLock;
+
+    use anyhow::Context;
+    use sqlx::{PgPool, postgres::PgPoolOptions};
     use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;
+
     use super::*;
 
     pub const DB_URL_ENV : &str = "DATABASE_URL";

@@ -1,17 +1,10 @@
 use leptos::*;
-use serde::{Deserialize, Serialize};
+
 use crate::app::GlobalState;
-use crate::comment::CommentSortType;
-
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
-use crate::icons::{AuthorIcon, BoldIcon, BonfireIcon, ClockIcon, FlameIcon, GraphIcon, HotIcon, HourglassIcon, MedalIcon, MedalIcon2, PodiumIcon, PodiumIcon2, SimpleFlameIcon, SimpleFlameIcon2, TimewatchIcon};
+use crate::icons::{AuthorIcon, BoldIcon, ClockIcon, FlameIcon, GraphIcon, HotIcon, HourglassIcon, MedalIcon, PodiumIcon};
 use crate::post::PostSortType;
-
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub enum SortType {
-    Post(PostSortType),
-    Comment(CommentSortType),
-}
+use crate::ranking::SortType;
 
 #[component]
 pub fn FormTextEditor(
@@ -115,42 +108,24 @@ pub fn TimeSinceWidget<'a>(timestamp: &'a chrono::DateTime<chrono::Utc>) -> impl
 #[component]
 pub fn PostSortWidget() -> impl IntoView {
     view! {
-        <div class="join">
+        <div class="join rounded-none">
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
                 <HotIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
-                <SimpleFlameIcon/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
                 <FlameIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
-                <BonfireIcon/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
-                <SimpleFlameIcon2/>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) datatip="Trending">
+                <GraphIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
                 <PodiumIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
-                <PodiumIcon2/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
                 <MedalIcon/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
-                <MedalIcon2/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) datatip="Trending">
-                <GraphIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) datatip="Recent">
                 <HourglassIcon/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) datatip="Recent">
-                <TimewatchIcon/>
             </SortWidgetOption>
         </div>
     }
@@ -169,9 +144,12 @@ pub fn SortWidgetOption(
         SortType::Comment(_) => state.comment_sort_type,
     };
     let is_selected = move || sort_type == sort_signal.get();
-    let class = move || match is_selected() {
-        true => "btn btn-ghost border border-1 border-primary hover:bg-white join-item",
-        false => "btn btn-ghost hover:bg-white join-item"
+    let class = move || {
+        let mut class = String::from("btn btn-ghost join-item hover:border hover:border-1 hover:border-white ");
+        if is_selected() {
+            class.push_str("border border-1 border-white ");
+        }
+        class
     };
 
     view! {

@@ -443,10 +443,10 @@ pub fn get_vote_button_css(
     move || {
         let vote_value = vote();
         if vote() == activated_value {
-            log::info!("Activated vote button, value: {vote_value:?}, css: {button_css}");
+            log::trace!("Activated vote button, value: {vote_value:?}, css: {button_css}");
             format!("btn btn-circle btn-sm {button_css}")
         } else {
-            log::info!("Deactivated vote button, value: {vote_value:?}, css: {button_css}");
+            log::trace!("Deactivated vote button, value: {vote_value:?}, css: {button_css}");
             format!("btn btn-circle btn-sm btn-ghost hover:{button_css}")
         }
     }

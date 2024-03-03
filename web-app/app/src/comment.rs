@@ -98,7 +98,7 @@ pub mod ssr {
         pub fn to_order_by_code(self) -> &'static str {
             match self {
                 CommentSortType::Best => "score",
-                CommentSortType::Recent => "create_timestamp DESC",
+                CommentSortType::Recent => "create_timestamp",
             }
         }
     }
@@ -378,8 +378,8 @@ pub fn CommentSection() -> impl IntoView {
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || {
-                        comment_vec.with(|result| match result {
-                            Some(Ok(comment_vec)) => {
+                        comment_vec.map(|result| match result {
+                            Ok(comment_vec) => {
                                 let mut comment_ranking = 0;
                                 comment_vec.iter().map(|comment| {
                                     comment_ranking = comment_ranking + 1;
@@ -391,13 +391,9 @@ pub fn CommentSection() -> impl IntoView {
                                     }.into_view()
                                 }).collect_view()
                             },
-                            Some(Err(e)) => {
+                            Err(e) => {
                                 log::info!("Error: {}", e);
                                 view! { <ErrorIcon/> }.into_view()
-                            },
-                            None => {
-                                log::debug!("Resource not loaded yet.");
-                                view! { <LoadingIcon/> }.into_view()
                             },
                         })
                     }

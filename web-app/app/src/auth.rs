@@ -1,22 +1,22 @@
 use std::env;
-use leptos::*;
-use leptos_router::*;
-use serde::{Deserialize, Serialize};
-
-#[cfg(feature = "ssr")]
-use crate::app::ssr::get_session;
-use crate::app::{GlobalState};
-use crate::icons::*;
-use crate::navigation_bar::get_current_path;
 
 #[cfg(feature = "ssr")]
 use axum_session_auth::Authentication;
+use leptos::*;
+use leptos_router::*;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
-use openidconnect::reqwest::*;
-#[cfg(feature = "ssr")]
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
+#[cfg(feature = "ssr")]
+use openidconnect::reqwest::*;
+use serde::{Deserialize, Serialize};
+
+use crate::app::GlobalState;
+#[cfg(feature = "ssr")]
+use crate::app::ssr::get_session;
+use crate::icons::*;
+use crate::navigation_bar::get_current_path;
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const OIDC_ISSUER_URL_ENV : &str = "OIDC_ISSUER_ADDR";
@@ -68,12 +68,14 @@ impl std::fmt::Display for OidcUserInfo {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::env;
+
     use async_trait::async_trait;
     use axum_session::SessionPgPool;
     use axum_session_auth::Authentication;
     use leptos::ServerFnError;
     use openidconnect::reqwest::async_http_client;
     use sqlx::PgPool;
+
     use super::*;
 
     pub type AuthSession = axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
@@ -387,21 +389,17 @@ pub fn LoginGuardButton(
 
     view! {
         {
-            move || match state.user.get() {
-                Some(Ok(user)) => {
-                    provide_context(user);
+            move || state.user.map(|result| match result {
+                Ok(user) => {
+                    provide_context(user.clone());
                     children().into_view()
                 },
-                Some(Err(e)) => {
+                Err(e) => {
                     log::info!("Error while getting user: {}", e);
                     let login_button_view = login_button_content.run();
                     view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
-                },
-                None => {
-                    log::debug!("Resource not loaded yet.");
-                    view! { <button class=login_button_class/> }.into_view()
                 }
-            }
+            })
         }
     }
 }

@@ -2,7 +2,7 @@ use leptos::*;
 
 use crate::app::GlobalState;
 use crate::forum::{FORUM_ROUTE_PREFIX, get_subscribed_forums};
-use crate::icons::{ ErrorIcon, LoadingIcon};
+use crate::icons::{ErrorIcon, LoadingIcon};
 
 /// Left sidebar component
 #[component]
@@ -13,8 +13,8 @@ pub fn LeftSidebar() -> impl IntoView {
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             { move || {
-                     subscribed_forum_set.with(|subscribed_forum_set| match subscribed_forum_set {
-                        Some(Ok(subscribed_forum_set)) => {
+                     subscribed_forum_set.map(|subscribed_forum_set| match subscribed_forum_set {
+                        Ok(subscribed_forum_set) => {
                             let forum_vector_view = subscribed_forum_set.iter().map(|forum_name| {
                                 let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
                                 view! {
@@ -31,13 +31,9 @@ pub fn LeftSidebar() -> impl IntoView {
                                 </ul>
                             }.into_view()
                         },
-                        Some(Err(e)) => {
+                        Err(e) => {
                             log::info!("Error: {}", e);
                             view! { <ErrorIcon/> }.into_view()
-                        },
-                        None => {
-                            log::debug!("Resource not loaded yet.");
-                            view! { <LoadingIcon/> }.into_view()
                         }
                     })
                 }

@@ -150,11 +150,11 @@ pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> 
 pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     create_memo(move |current_forum_name: Option<&String>| {
         if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()) {
-            log::debug!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
+            log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
             new_forum_name
         }
         else {
-            log::debug!("No valid forum name, keep current value: {current_forum_name:?}");
+            log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
             current_forum_name.cloned().unwrap_or_default()
         }
 
@@ -183,76 +183,70 @@ pub fn CreateForum() -> impl IntoView {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
             {
                 move || {
-                    existing_forums.with(|result| {
-                        match result {
-                            Some(Ok(forum_set)) => {
-                                let forum_set = forum_set.clone();
-                                log::info!("Forum name set: {forum_set:?}");
-                                view! {
-                                    <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/3">
-                                        <ActionForm action=state.create_forum_action>
-                                            <div class="flex flex-col gap-2 w-full">
-                                                <h2 class="py-4 text-4xl text-center">"Create [[forum]]"</h2>
-                                                <div class="flex gap-2">
-                                                    <input
-                                                        type="text"
-                                                        name="name"
-                                                        placeholder="[[Forum]] name"
-                                                        autocomplete="off"
-                                                        class="input input-bordered input-primary h-input_l flex-none w-1/2"
-                                                        on:input=move |ev| {
-                                                            let input = event_target_value(&ev);
-                                                            is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());
-                                                            is_name_alphanumeric.update(|is_alphanumeric: &mut bool| *is_alphanumeric = input.chars().all(char::is_alphanumeric));
-                                                            is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&input));
-                                                        }
-                                                    />
-                                                    <div class="alert alert-error h-input_l flex content-center" class:hidden=move || !is_name_taken.get()>
-                                                        <ErrorIcon/>
-                                                        <span>"Unavailable."</span>
-                                                    </div>
-                                                    <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty.get() || is_name_alphanumeric.get()>
-                                                        <ErrorIcon/>
-                                                        <span>"Only alphanumeric characters."</span>
-                                                    </div>
-                                                </div>
-                                                <FormTextEditor
-                                                    name="description"
-                                                    placeholder="Description"
+                    existing_forums.map(|result| match result {
+                        Ok(forum_set) => {
+                            let forum_set = forum_set.clone();
+                            log::info!("Forum name set: {forum_set:?}");
+                            view! {
+                                <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/3">
+                                    <ActionForm action=state.create_forum_action>
+                                        <div class="flex flex-col gap-2 w-full">
+                                            <h2 class="py-4 text-4xl text-center">"Create [[forum]]"</h2>
+                                            <div class="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    name="name"
+                                                    placeholder="[[Forum]] name"
+                                                    autocomplete="off"
+                                                    class="input input-bordered input-primary h-input_l flex-none w-1/2"
                                                     on:input=move |ev| {
-                                                        is_description_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                        let input = event_target_value(&ev);
+                                                        is_name_empty.update(|is_empty: &mut bool| *is_empty = input.is_empty());
+                                                        is_name_alphanumeric.update(|is_alphanumeric: &mut bool| *is_alphanumeric = input.chars().all(char::is_alphanumeric));
+                                                        is_name_taken.update(|is_taken: &mut bool| *is_taken = forum_set.contains(&input));
                                                     }
                                                 />
-                                                <div class="form-control">
-                                                    <label class="cursor-pointer label p-0">
-                                                        <span class="label-text">"NSFW content"</span>
-                                                        <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
-                                                    </label>
+                                                <div class="alert alert-error h-input_l flex content-center" class:hidden=move || !is_name_taken.get()>
+                                                    <ErrorIcon/>
+                                                    <span>"Unavailable."</span>
                                                 </div>
-                                                <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
+                                                <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty.get() || is_name_alphanumeric.get()>
+                                                    <ErrorIcon/>
+                                                    <span>"Only alphanumeric characters."</span>
+                                                </div>
                                             </div>
-                                        </ActionForm>
-                                        <Show
-                                            when=has_error
-                                            fallback=move || ()
-                                        >
-                                            <div class="alert alert-error flex justify-center">
-                                                <ErrorIcon/>
-                                                <span>"Server error. Please reload the page and retry."</span>
+                                            <FormTextEditor
+                                                name="description"
+                                                placeholder="Description"
+                                                on:input=move |ev| {
+                                                    is_description_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                }
+                                            />
+                                            <div class="form-control">
+                                                <label class="cursor-pointer label p-0">
+                                                    <span class="label-text">"NSFW content"</span>
+                                                    <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
+                                                </label>
                                             </div>
-                                        </Show>
-                                    </div>
-                                }.into_view()
-                            }
-                            Some(Err(e)) => {
-                                log::info!("Error while getting forum names: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                            None => {
-                                log::debug!("Resource not loaded yet.");
-                                view! { <LoadingIcon/> }.into_view()
-                            }
+                                            <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
+                                        </div>
+                                    </ActionForm>
+                                    <Show
+                                        when=has_error
+                                        fallback=move || ()
+                                    >
+                                        <div class="alert alert-error flex justify-center">
+                                            <ErrorIcon/>
+                                            <span>"Server error. Please reload the page and retry."</span>
+                                        </div>
+                                    </Show>
+                                </div>
+                            }.into_view()
                         }
+                        Err(e) => {
+                            log::info!("Error while getting forum names: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
                     })
                 }
             }
@@ -350,17 +344,13 @@ pub fn ForumContents() -> impl IntoView {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             {
                 move || {
-                     post_vec.with(|result| match result {
-                        Some(Ok(post_vec)) => {
+                     post_vec.map(|result| match &result {
+                        Ok(post_vec) => {
                             view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
                         },
-                        Some(Err(e)) => {
+                        Err(e) => {
                             log::info!("Error: {}", e);
                             view! { <ErrorIcon/> }.into_view()
-                        },
-                        None => {
-                            log::debug!("Resource not loaded yet.");
-                            view! { <LoadingIcon/> }.into_view()
                         },
                     })
                 }

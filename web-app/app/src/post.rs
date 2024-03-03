@@ -121,7 +121,7 @@ pub mod ssr {
                 PostSortType::Hot => "recommended_score",
                 PostSortType::Trending => "trending_score",
                 PostSortType::Best => "score",
-                PostSortType::Recent => "create_timestamp DESC",
+                PostSortType::Recent => "create_timestamp",
             }
         }
     }
@@ -173,15 +173,14 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
 #[server]
 pub async fn get_post_vec_by_forum_name(forum_name: String, sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let post_vec = sqlx::query_as!(
-        Post,
-        "SELECT posts.* FROM posts \
+
+    let post_vec = sqlx::query_as::<_, Post>(
+        format!("SELECT posts.* FROM posts \
         JOIN forums on forums.forum_id = posts.forum_id \
         WHERE forums.forum_name = $1 \
-        ORDER BY $2",
-        forum_name,
-        sort_type.to_order_by_code()
+        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
     )
+        .bind(forum_name)
         .fetch_all(&db_pool)
         .await?;
 
@@ -228,16 +227,16 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     create_memo(move |current_post_id: Option<&i64>| {
         if let Some(new_post_id_string) = params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()) {
             if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
-                log::debug!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
+                log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
                 new_post_id
             }
             else {
-                log::debug!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
+                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
                 current_post_id.cloned().unwrap_or_default()
             }
         }
         else {
-            log::debug!("Could not find new post id, reuse current post id: {current_post_id:?}");
+            log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
             current_post_id.cloned().unwrap_or_default()
         }
     })
@@ -267,91 +266,85 @@ pub fn CreatePost() -> impl IntoView {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
             {
                 move || {
-                    existing_forums.with(|result| {
-                        match result {
-                            Some(Ok(forum_set)) => {
-                                log::info!("Forum name set: {forum_set:?}");
+                    existing_forums.map(|result| match result {
+                        Ok(forum_set) => {
+                            log::info!("Forum name set: {forum_set:?}");
 
-                                let matching_forum_list = forum_set
-                                    .iter()
-                                    .filter(|forum| forum.starts_with(forum_name_input.get().as_str())).map(|forum_name| {
-                                        view! {
-                                            <li>
-                                                <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
-                                                    {forum_name}
-                                                </button>
-                                            </li>
-                                        }
-                                    }).collect_view();
+                            let matching_forum_list = forum_set
+                                .iter()
+                                .filter(|forum| forum.starts_with(forum_name_input.get().as_str())).map(|forum_name| {
+                                    view! {
+                                        <li>
+                                            <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
+                                                {forum_name}
+                                            </button>
+                                        </li>
+                                    }
+                                }).collect_view();
 
-                                view! {
-                                    <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
-                                        <ActionForm action=state.create_post_action>
-                                            <div class="flex flex-col gap-2 w-full">
-                                                <h2 class="py-4 text-4xl text-center">"Create [[content]]"</h2>
-                                                <div class="dropdown dropdown-end">
-                                                    <input
-                                                        tabindex="0"
-                                                        type="text"
-                                                        name="forum"
-                                                        placeholder="[[Forum]]"
-                                                        autocomplete="off"
-                                                        class="input input-bordered input-primary w-full h-input_m"
-                                                        on:input=move |ev| {
-                                                            forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
-                                                        }
-                                                        prop:value=forum_name_input
-                                                    />
-                                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
-                                                        {matching_forum_list}
-                                                    </ul>
-                                                </div>
+                            view! {
+                                <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
+                                    <ActionForm action=state.create_post_action>
+                                        <div class="flex flex-col gap-2 w-full">
+                                            <h2 class="py-4 text-4xl text-center">"Create [[content]]"</h2>
+                                            <div class="dropdown dropdown-end">
                                                 <input
+                                                    tabindex="0"
                                                     type="text"
-                                                    name="title"
-                                                    placeholder="Title"
-                                                    class="input input-bordered input-primary h-input_m"
+                                                    name="forum"
+                                                    placeholder="[[Forum]]"
+                                                    autocomplete="off"
+                                                    class="input input-bordered input-primary w-full h-input_m"
                                                     on:input=move |ev| {
-                                                        is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                        forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
                                                     }
+                                                    prop:value=forum_name_input
                                                 />
-                                                <FormTextEditor
-                                                    name="body"
-                                                    placeholder="Content"
-                                                    on:input=move |ev| {
-                                                        is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
-                                                    }
-                                                />
+                                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
+                                                    {matching_forum_list}
+                                                </ul>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                name="title"
+                                                placeholder="Title"
+                                                class="input input-bordered input-primary h-input_m"
+                                                on:input=move |ev| {
+                                                    is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                }
+                                            />
+                                            <FormTextEditor
+                                                name="body"
+                                                placeholder="Content"
+                                                on:input=move |ev| {
+                                                    is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                                                }
+                                            />
 
-                                                <select name="tag" class="select select-bordered w-full max-w-xs">
-                                                    <option disabled selected>"Tag"</option>
-                                                    <option>"This should be"</option>
-                                                    <option>"Customized"</option>
-                                                </select>
-                                                <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
-                                            </div>
-                                        </ActionForm>
-                                        <Show
-                                            when=has_error
-                                            fallback=move || ()
-                                        >
-                                            <div class="alert alert-error flex justify-center">
-                                                <ErrorIcon/>
-                                                <span>"Server error. Please reload the page and retry."</span>
-                                            </div>
-                                        </Show>
-                                    </div>
-                                }.into_view()
-                            }
-                            Some(Err(e)) => {
-                                log::info!("Error while getting forum names: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                            None => {
-                                log::debug!("Resource not loaded yet.");
-                                view! { <LoadingIcon/> }.into_view()
-                            }
+                                            <select name="tag" class="select select-bordered w-full max-w-xs">
+                                                <option disabled selected>"Tag"</option>
+                                                <option>"This should be"</option>
+                                                <option>"Customized"</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
+                                        </div>
+                                    </ActionForm>
+                                    <Show
+                                        when=has_error
+                                        fallback=move || ()
+                                    >
+                                        <div class="alert alert-error flex justify-center">
+                                            <ErrorIcon/>
+                                            <span>"Server error. Please reload the page and retry."</span>
+                                        </div>
+                                    </Show>
+                                </div>
+                            }.into_view()
                         }
+                        Err(e) => {
+                            log::info!("Error while getting forum names: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
                     })
                 }
             }
@@ -377,30 +370,24 @@ pub fn Post() -> impl IntoView {
         <div class="flex flex-col content-start gap-1">
             <Suspense fallback=move || view! { <LoadingIcon/> }>
                 {
-                    post.with(|result| {
-                        match result {
-                            Some(Ok(post)) => {
-                                view! {
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <div class="flex flex-col gap-4">
-                                                <h2 class="card-title text-white">{post.post.title.clone()}</h2>
-                                                <div class="text-white">{post.post.body.clone()}</div>
-                                                <PostWidgetBar post=post/>
-                                            </div>
+                    post.map(|result| match result {
+                        Ok(post) => {
+                            view! {
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="flex flex-col gap-4">
+                                            <h2 class="card-title text-white">{post.post.title.clone()}</h2>
+                                            <div class="text-white">{post.post.body.clone()}</div>
+                                            <PostWidgetBar post=post/>
                                         </div>
                                     </div>
-                                }.into_view()
-                            },
-                            Some(Err(e)) => {
-                                log::info!("Error while getting forum names: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                            None => {
-                                log::debug!("Resource not loaded yet.");
-                                view! { <LoadingIcon/> }.into_view()
-                            }
-                        }
+                                </div>
+                            }.into_view()
+                        },
+                        Err(e) => {
+                            log::info!("Error while getting forum names: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
                     })
                 }
             </Suspense>

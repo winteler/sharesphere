@@ -300,9 +300,39 @@ pub fn ForumBanner() -> impl IntoView {
                     }
                 }
             </Transition>
-            <ForumToolbar/>
             <Outlet/>
         </div>
+    }
+}
+
+/// Component to display a forum's contents
+#[component]
+pub fn ForumContents() -> impl IntoView {
+
+    let state = expect_context::<GlobalState>();
+    let params = use_params_map();
+    let forum_name = get_forum_name_memo(params);
+    let post_vec = create_resource(
+        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
+        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type));
+
+    view! {
+        <ForumToolbar/>
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || {
+                     post_vec.map(|result| match &result {
+                        Ok(post_vec) => {
+                            view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
+                        },
+                        Err(e) => {
+                            log::info!("Error: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                    })
+                }
+            }
+        </Transition>
     }
 }
 
@@ -326,36 +356,6 @@ pub fn ForumToolbar() -> impl IntoView {
             </LoginGuardButton>
             <PostSortWidget/>
         </div>
-    }
-}
-
-/// Component to display a forum's contents
-#[component]
-pub fn ForumContents() -> impl IntoView {
-
-    let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
-    let post_vec = create_resource(
-        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
-        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type));
-
-    view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || {
-                     post_vec.map(|result| match &result {
-                        Ok(post_vec) => {
-                            view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
-                        },
-                        Err(e) => {
-                            log::info!("Error: {}", e);
-                            view! { <ErrorIcon/> }.into_view()
-                        },
-                    })
-                }
-            }
-        </Transition>
     }
 }
 

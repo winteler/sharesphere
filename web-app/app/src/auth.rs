@@ -395,7 +395,7 @@ pub fn LoginGuardButton(
                     children().into_view()
                 },
                 Err(e) => {
-                    log::info!("Error while getting user: {}", e);
+                    log::trace!("Error while getting user: {}", e);
                     let login_button_view = login_button_content.run();
                     view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
                 }

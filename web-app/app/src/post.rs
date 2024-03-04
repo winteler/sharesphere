@@ -14,7 +14,7 @@ use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::forum::get_all_forum_names;
 use crate::icons::{ErrorIcon, LoadingIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentSortWidget, FormTextEditor, TimeSinceWidget};
 
 pub const CREATE_POST_SUFFIX : &str = "/content";
 pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -391,6 +391,7 @@ pub fn Post() -> impl IntoView {
                     })
                 }
             </Suspense>
+            <CommentSortWidget/>
             <CommentSection/>
         </div>
     }

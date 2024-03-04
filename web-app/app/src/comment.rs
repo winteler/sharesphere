@@ -10,7 +10,7 @@ use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::get_post_id_memo;
-use crate::ranking::{ContentWithVote, Vote, VotePanel, };
+use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -58,6 +58,11 @@ pub mod ssr {
     use crate::ranking::{Vote, VoteValue};
 
     use super::*;
+
+    pub struct CommentsWithParentId {
+        pub parent_id: i64,
+        pub child_comments: Vec<CommentWithChildren>
+    }
 
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
     pub struct CommentWithVote {
@@ -138,6 +143,7 @@ pub async fn get_post_comments(
 #[server]
 pub async fn get_post_comment_tree(
     post_id: i64,
+    sort_type: SortType,
 ) -> Result<Vec<CommentWithChildren>, ServerFnError> {
     let user_id = match get_user().await {
         Ok(user) => Some(user.user_id),
@@ -149,8 +155,10 @@ pub async fn get_post_comment_tree(
         return Err(ServerFnError::new("Invalid post id."));
     }
 
+    let sort_column = sort_type.to_order_by_code();
+
     let comment_with_vote_vec = sqlx::query_as::<_, ssr::CommentWithVote>(
-        "WITH RECURSIVE comment_tree AS (
+        format!("WITH RECURSIVE comment_tree AS (
             SELECT c.*,
                    v.vote_id,
                    v.creator_id as vote_creator_id,
@@ -159,7 +167,7 @@ pub async fn get_post_comment_tree(
                    v.value,
                    v.timestamp as vote_timestamp,
                    1 AS depth,
-                   ARRAY[(c.create_timestamp, c.comment_id)] AS path
+                   ARRAY[(c.{sort_column}, c.comment_id)] AS path
             FROM comments c
             LEFT JOIN votes v
             ON v.comment_id = c.comment_id AND
@@ -176,7 +184,7 @@ pub async fn get_post_comment_tree(
                    vr.value,
                    vr.timestamp as vote_timestamp,
                    r.depth + 1,
-                   r.path || (n.create_timestamp, n.comment_id)
+                   r.path || (n.{sort_column}, n.comment_id)
             FROM comment_tree r
             JOIN comments n ON n.parent_id = r.comment_id
             LEFT JOIN votes vr
@@ -184,7 +192,7 @@ pub async fn get_post_comment_tree(
                vr.creator_id = $1
         )
         SELECT * FROM comment_tree
-        ORDER BY path",
+        ORDER BY path DESC").as_str(),
     )
         .bind(user_id)
         .bind(post_id)
@@ -192,42 +200,34 @@ pub async fn get_post_comment_tree(
         .await?;
 
     let mut comment_tree = Vec::<CommentWithChildren>::new();
-    let mut stack = Vec::<CommentWithChildren>::new();
+    let mut stack = Vec::<ssr::CommentsWithParentId>::new();
     for comment_with_vote in comment_with_vote_vec {
-        let current = comment_with_vote.into_comment_with_children();
+        let mut current = comment_with_vote.into_comment_with_children();
 
-        while let Some(top) = stack.last() {
-            if current.comment.parent_id.is_some() && current.comment.parent_id.unwrap() == top.comment.comment_id {
-                // current comment is child of the previous one, keep building stack
-                break;
-            } else {
-                // current comment is not a child of the previous one, previous comment is complete. Add it in its parent.
-                let complete_comment = stack.pop().unwrap();
-                if let Some(new_top) = stack.last_mut() {
-                    // add the complete comment in its parent
-                    new_top.child_comments.push(complete_comment);
-                }
-                else {
-                    // root comment, add it in the comment_tree
-                    comment_tree.push(complete_comment);
-                }
+        if let Some(top) = stack.last() {
+            if top.parent_id == current.comment.comment_id {
+                // child comments at the top of the stack belong to the current comment, add them
+                let top = stack.pop().unwrap();
+                current.child_comments.extend(top.child_comments);
             }
         }
 
-        stack.push(current);
-    }
-
-    // add last comments in comment_tree
-    while !stack.is_empty() {
-        // previous comment is complete. Add it in its parent.
-        let complete_comment = stack.pop().unwrap();
-        if let Some(new_top) = stack.last_mut() {
-            // add the complete comment in its parent
-            new_top.child_comments.push(complete_comment);
-        }
-        else {
-            // root comment, add it in the comment_tree
-            comment_tree.push(complete_comment);
+        // if the current element has a parent, add it to the stack. Otherwise, add it to the comment tree as a root element.
+        if let Some(parent_id) = current.comment.parent_id {
+            if let Some(top) = stack.last_mut() {
+                if parent_id == top.parent_id {
+                    // same parent id as the top of the stack, add it
+                    top.child_comments.push(current);
+                } else {
+                    // different parent id as the top of the stack, add it as a new element on the stack
+                    stack.push(ssr::CommentsWithParentId { parent_id, child_comments: Vec::from([current]) });
+                }
+            } else {
+                // no element on the stack, add the current comment as a new element
+                stack.push(ssr::CommentsWithParentId { parent_id, child_comments: Vec::from([current]) });
+            }
+        } else {
+            comment_tree.push(current);
         }
     }
 
@@ -240,7 +240,7 @@ pub async fn create_comment(
     parent_comment_id: Option<i64>,
     comment: String,
 ) -> Result<(), ServerFnError> {
-    log::info!("Create comment for post {post_id}");
+    log::trace!("Create comment for post {post_id}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -367,10 +367,10 @@ pub fn CommentSection() -> impl IntoView {
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
     let comment_vec = create_resource(
-        move || (post_id(), state.create_comment_action.version().get()),
-        move |(post_id, _)| {
-            log::debug!("Load comments for post: {post_id}");
-            get_post_comment_tree(post_id)
+        move || (post_id(), state.create_comment_action.version().get(), state.comment_sort_type.get()),
+        move |(post_id, _, sort_type)| {
+            log::debug!("Load comments for post: {post_id} sorting by {sort_type}");
+            get_post_comment_tree(post_id, sort_type)
         });
 
     view! {

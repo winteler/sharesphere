@@ -1,6 +1,7 @@
 use leptos::*;
 
 use crate::app::GlobalState;
+use crate::comment::CommentSortType;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
 use crate::icons::{AuthorIcon, BoldIcon, ClockIcon, FlameIcon, GraphIcon, HotIcon, HourglassIcon, MedalIcon, PodiumIcon};
 use crate::post::PostSortType;
@@ -104,7 +105,7 @@ pub fn TimeSinceWidget<'a>(timestamp: &'a chrono::DateTime<chrono::Utc>) -> impl
     }
 }
 
-/// Component to indicate how to sort contents
+/// Component to indicate how to sort posts
 #[component]
 pub fn PostSortWidget() -> impl IntoView {
     view! {
@@ -125,6 +126,24 @@ pub fn PostSortWidget() -> impl IntoView {
                 <MedalIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) datatip="Recent">
+                <HourglassIcon/>
+            </SortWidgetOption>
+        </div>
+    }
+}
+
+/// Component to indicate how to sort comments
+#[component]
+pub fn CommentSortWidget() -> impl IntoView {
+    view! {
+        <div class="join rounded-none">
+            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) datatip="Best">
+                <PodiumIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) datatip="Best">
+                <MedalIcon/>
+            </SortWidgetOption>
+            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) datatip="Recent">
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>

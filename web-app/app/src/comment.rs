@@ -59,11 +59,6 @@ pub mod ssr {
 
     use super::*;
 
-    pub struct CommentsWithParentId {
-        pub parent_id: i64,
-        pub child_comments: Vec<CommentWithChildren>
-    }
-
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
     pub struct CommentWithVote {
         #[sqlx(flatten)]
@@ -200,31 +195,31 @@ pub async fn get_post_comment_tree(
         .await?;
 
     let mut comment_tree = Vec::<CommentWithChildren>::new();
-    let mut stack = Vec::<ssr::CommentsWithParentId>::new();
+    let mut stack = Vec::<(i64, Vec::<CommentWithChildren>)>::new();
     for comment_with_vote in comment_with_vote_vec {
         let mut current = comment_with_vote.into_comment_with_children();
 
-        if let Some(top) = stack.last() {
-            if top.parent_id == current.comment.comment_id {
+        if let Some((top_parent_id, child_comments)) = stack.last_mut() {
+            if *top_parent_id == current.comment.comment_id {
                 // child comments at the top of the stack belong to the current comment, add them
-                let top = stack.pop().unwrap();
-                current.child_comments.extend(top.child_comments);
+                current.child_comments.append(child_comments);
+                stack.pop();
             }
         }
 
         // if the current element has a parent, add it to the stack. Otherwise, add it to the comment tree as a root element.
         if let Some(parent_id) = current.comment.parent_id {
-            if let Some(top) = stack.last_mut() {
-                if parent_id == top.parent_id {
+            if let Some((top_parent_id, top_child_comments)) = stack.last_mut() {
+                if parent_id == *top_parent_id {
                     // same parent id as the top of the stack, add it
-                    top.child_comments.push(current);
+                    top_child_comments.push(current);
                 } else {
                     // different parent id as the top of the stack, add it as a new element on the stack
-                    stack.push(ssr::CommentsWithParentId { parent_id, child_comments: Vec::from([current]) });
+                    stack.push((parent_id, Vec::from([current])));
                 }
             } else {
                 // no element on the stack, add the current comment as a new element
-                stack.push(ssr::CommentsWithParentId { parent_id, child_comments: Vec::from([current]) });
+                stack.push((parent_id, Vec::from([current])));
             }
         } else {
             comment_tree.push(current);

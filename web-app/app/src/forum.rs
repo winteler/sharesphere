@@ -344,34 +344,40 @@ pub fn ForumToolbar() -> impl IntoView {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
-                <LoginGuardButton
-                    login_button_class="btn btn-circle btn-ghost"
-                    login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
-                >
-                    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
-                        <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
-                    </button>
-                </LoginGuardButton>
-                <LoginGuardButton
-                    login_button_class="btn btn-circle btn-ghost"
-                    login_button_content=move || view! { <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/> }
-                >
-                    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
-                        <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/>
-                    </button>
-                </LoginGuardButton>
-                <LoginGuardButton
-                    login_button_class="btn btn-circle btn-ghost"
-                    login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
-                    redirect_path_fn=&get_create_post_path
-                >
-                    <Form action=CREATE_POST_ROUTE class="flex">
-                        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| get_forum_name(current_forum)>
-                            <PlusIcon class="h-6 w-6"/>
+                <div class="tooltip" data-tip="Join">
+                    <LoginGuardButton
+                        login_button_class="btn btn-circle btn-ghost"
+                        login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                    >
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
+                            <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
                         </button>
-                    </Form>
-                </LoginGuardButton>
+                    </LoginGuardButton>
+                </div>
+                <div class="tooltip" data-tip="Join">
+                    <LoginGuardButton
+                        login_button_class="btn btn-circle btn-ghost"
+                        login_button_content=move || view! { <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                    >
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
+                            <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/>
+                        </button>
+                    </LoginGuardButton>
+                </div>
+                <div class="tooltip" data-tip="New">
+                    <LoginGuardButton
+                        login_button_class="btn btn-circle btn-ghost"
+                        login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
+                        redirect_path_fn=&get_create_post_path
+                    >
+                        <Form action=CREATE_POST_ROUTE class="flex">
+                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
+                            <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| get_forum_name(current_forum)>
+                                <PlusIcon class="h-6 w-6"/>
+                            </button>
+                        </Form>
+                    </LoginGuardButton>
+                </div>
             </div>
         </div>
     }

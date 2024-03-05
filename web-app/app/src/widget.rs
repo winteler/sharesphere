@@ -3,7 +3,7 @@ use leptos::*;
 use crate::app::GlobalState;
 use crate::comment::CommentSortType;
 use crate::constants::{SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR};
-use crate::icons::{AuthorIcon, BoldIcon, ClockIcon, FlameIcon, GraphIcon, HotIcon, HourglassIcon, MedalIcon, PodiumIcon};
+use crate::icons::{AuthorIcon, BoldIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, PodiumIcon};
 use crate::post::PostSortType;
 use crate::ranking::SortType;
 
@@ -111,9 +111,6 @@ pub fn PostSortWidget() -> impl IntoView {
     view! {
         <div class="join rounded-none">
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
-                <HotIcon/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
                 <FlameIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) datatip="Trending">
@@ -121,9 +118,6 @@ pub fn PostSortWidget() -> impl IntoView {
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
                 <PodiumIcon/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
-                <MedalIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) datatip="Recent">
                 <HourglassIcon/>
@@ -139,9 +133,6 @@ pub fn CommentSortWidget() -> impl IntoView {
         <div class="join rounded-none">
             <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) datatip="Best">
                 <PodiumIcon/>
-            </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) datatip="Best">
-                <MedalIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) datatip="Recent">
                 <HourglassIcon/>

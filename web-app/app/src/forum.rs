@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
-use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon};
+use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlanetIcon, PlusIcon, StarIcon};
 use crate::navigation_bar::{get_create_post_path, get_forum_name};
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
 use crate::ranking::ScoreIndicator;
@@ -308,7 +308,6 @@ pub fn ForumBanner() -> impl IntoView {
 /// Component to display a forum's contents
 #[component]
 pub fn ForumContents() -> impl IntoView {
-
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
@@ -340,21 +339,40 @@ pub fn ForumContents() -> impl IntoView {
 #[component]
 pub fn ForumToolbar() -> impl IntoView {
     let current_forum  = create_rw_signal(String::default());
+    let is_subscribed = create_rw_signal(false);
     view! {
-        <div class="flex w-full content-center">
-            <LoginGuardButton
-                login_button_class="btn btn-circle btn-ghost"
-                login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
-                redirect_path_fn=&get_create_post_path
-            >
-                <Form action=CREATE_POST_ROUTE class="flex">
-                    <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| get_forum_name(current_forum)>
-                        <PlusIcon class="h-6 w-6"/>
-                    </button>
-                </Form>
-            </LoginGuardButton>
+        <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
+            <div class="flex gap-1">
+                <LoginGuardButton
+                    login_button_class="btn btn-circle btn-ghost"
+                    login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                >
+                    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
+                        <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
+                    </button>
+                </LoginGuardButton>
+                <LoginGuardButton
+                    login_button_class="btn btn-circle btn-ghost"
+                    login_button_content=move || view! { <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                >
+                    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
+                        <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/>
+                    </button>
+                </LoginGuardButton>
+                <LoginGuardButton
+                    login_button_class="btn btn-circle btn-ghost"
+                    login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
+                    redirect_path_fn=&get_create_post_path
+                >
+                    <Form action=CREATE_POST_ROUTE class="flex">
+                        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| get_forum_name(current_forum)>
+                            <PlusIcon class="h-6 w-6"/>
+                        </button>
+                    </Form>
+                </LoginGuardButton>
+            </div>
         </div>
     }
 }

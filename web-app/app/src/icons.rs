@@ -251,7 +251,7 @@ pub fn GraphIcon(
     let class = String::from(class) + format!(" h-{size} w-{size}").as_ref();
     view! {
         <svg class=class width="800px" height="800px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            //<!-- This svg icon is licensed under an <a rel="license" href="https://opensource.org/license/mit">MIT License</a>. -->
+            <!-- r#"This svg icon is licensed under an <a rel="license" href="https://opensource.org/license/mit">MIT License</a>."# -->
             <path fill-rule="evenodd" clip-rule="evenodd" fill="#F29C1F" d="M80 100L56 0H44L20 100h13l17-73.914L67 100z"/>
             <path fill-rule="evenodd" clip-rule="evenodd" fill="#ECF0F1" d="M0 10h100v62H0V10z"/>
             <path clip-rule="evenodd" stroke="#E64C3C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" d="M10 61l13.024-13.024L29 53l16.988-16.012L55 46l15-15 5 5 15-15" fill="none"/>
@@ -270,7 +270,7 @@ pub fn HourglassIcon(
     let class = String::from(class) + format!(" h-{size} w-{size}").as_ref();
     view! {
         <svg class=class width="800px" height="800px" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-            //<!-- This svg icon is licensed under an <a rel="license" href="http://www.apache.org/licenses/">Apache 2.0 License</a>. -->
+            <!-- r#"This svg icon is licensed under an <a rel="license" href="http://www.apache.org/licenses/">Apache 2.0 License</a>."# -->
             <path d="M23.36 116.32v-7.42c7.4-1.9 67.86 0 81.28 0v7.42c0 4.24-18.2 7.68-40.64 7.68s-40.64-3.44-40.64-7.68z" fill="#8b5738"/>
             <ellipse cx="64" cy="108.48" rx="40.64" ry="7.68" fill="#ffb17a"/>
             <ellipse cx="64" cy="108.48" rx="40.64" ry="7.68" fill="#cc8552"/>

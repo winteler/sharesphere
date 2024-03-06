@@ -178,18 +178,18 @@ fn LoginPageGuard() -> impl IntoView {
                         Some(Ok(user)) => {
                             if user.anonymous
                             {
-                                log::info!("Not logged in.");
+                                log::trace!("Not logged in.");
                                 return view! { <Login/> }.into_view();
                             }
-                            log::info!("Login guard, current user: {user:?}");
+                            log::trace!("Login guard, current user: {user:?}");
                             view! { <Outlet/> }.into_view()
                         },
                         Some(Err(e)) => {
-                            log::info!("Login error: {}", e);
+                            log::trace!("Login error: {}", e);
                             view! { <Login/> }.into_view()
                         },
                         None => {
-                            log::debug!("Resource not loaded yet.");
+                            log::trace!("Resource not loaded yet.");
                             view! { <Outlet/> }.into_view()
                         }
                     })

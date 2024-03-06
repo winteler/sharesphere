@@ -19,6 +19,14 @@ CREATE TABLE forums (
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE forum_subscriptions (
+   subscription_id BIGSERIAL PRIMARY KEY,
+   user_id BIGINT NOT NULL,
+   forum_id BIGINT NOT NULL,
+   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 CREATE TABLE posts (
     post_id BIGSERIAL PRIMARY KEY,
     title TEXT NOT NULL,

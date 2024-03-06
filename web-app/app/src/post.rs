@@ -268,7 +268,7 @@ pub fn CreatePost() -> impl IntoView {
                 move || {
                     existing_forums.map(|result| match result {
                         Ok(forum_set) => {
-                            log::info!("Forum name set: {forum_set:?}");
+                            log::trace!("Forum name set: {forum_set:?}");
 
                             let matching_forum_list = forum_set
                                 .iter()

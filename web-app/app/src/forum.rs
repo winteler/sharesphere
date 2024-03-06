@@ -10,10 +10,16 @@ use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlanetIcon, PlusIcon, StarIcon};
-use crate::navigation_bar::{get_create_post_path, get_forum_name};
+use crate::navigation_bar::get_create_post_path;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
 use crate::ranking::ScoreIndicator;
 use crate::widget::{AuthorWidget, FormTextEditor, PostSortWidget, TimeSinceWidget};
+
+pub const CREATE_FORUM_SUFFIX : &str = "/forum";
+pub const CREATE_FORUM_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
+pub const FORUM_ROUTE_PREFIX : &str = "/forums";
+pub const FORUM_ROUTE_PARAM_NAME : &str = "forum_name";
+pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, FORUM_ROUTE_PARAM_NAME);
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -30,15 +36,18 @@ pub struct Forum {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-pub const CREATE_FORUM_SUFFIX : &str = "/forum";
-pub const CREATE_FORUM_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
-pub const FORUM_ROUTE_PREFIX : &str = "/forums";
-pub const FORUM_ROUTE_PARAM_NAME : &str = "forum_name";
-pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, FORUM_ROUTE_PARAM_NAME);
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct ForumSubscription {
+    pub subscription_id: i64,
+    pub user_id: i64,
+    pub forum_id: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
 
 #[server]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
-    log::info!("Create [[forum]] '{name}', {description}, {is_nsfw:?}");
+    log::trace!("Create [[forum]] '{name}', {description}, {is_nsfw:?}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -63,6 +72,40 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
     // Redirect to the new forum
     let new_forum_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + name.as_str());
     leptos_axum::redirect(new_forum_path);
+    Ok(())
+}
+
+#[server]
+async fn subscribe(forum_name: String) -> Result<(), ServerFnError> {
+    log::info!("Subscribe to [[forum]] '{forum_name}'");
+    let user = get_user().await?;
+    let db_pool = get_db_pool()?;
+
+    sqlx::query!(
+        "INSERT INTO forum_subscriptions (user_id, forum_id) SELECT $1, forum_id FROM forums WHERE forum_name = $2",
+        user.user_id,
+        forum_name
+    )
+        .execute(&db_pool)
+        .await?;
+
+    Ok(())
+}
+
+#[server]
+async fn unsubscribe(forum_name: String) -> Result<(), ServerFnError> {
+    log::info!("Unsubscribe from [[forum]] '{forum_name}'");
+    let user = get_user().await?;
+    let db_pool = get_db_pool()?;
+
+    sqlx::query!(
+        "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id IN (SELECT forum_id FROM forums where forum_name = $2)",
+        user.user_id,
+        forum_name,
+    )
+        .execute(&db_pool)
+        .await?;
+
     Ok(())
 }
 
@@ -186,7 +229,7 @@ pub fn CreateForum() -> impl IntoView {
                     existing_forums.map(|result| match result {
                         Ok(forum_set) => {
                             let forum_set = forum_set.clone();
-                            log::info!("Forum name set: {forum_set:?}");
+                            log::trace!("Forum name set: {forum_set:?}");
                             view! {
                                 <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/3">
                                     <ActionForm action=state.create_forum_action>
@@ -316,7 +359,7 @@ pub fn ForumContents() -> impl IntoView {
         move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type));
 
     view! {
-        <ForumToolbar/>
+        <ForumToolbar forum_name=forum_name/>
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             {
                 move || {
@@ -337,9 +380,14 @@ pub fn ForumContents() -> impl IntoView {
 
 /// Component to display the forum toolbar
 #[component]
-pub fn ForumToolbar() -> impl IntoView {
-    let current_forum  = create_rw_signal(String::default());
+pub fn ForumToolbar(
+    forum_name: Memo<String>,
+) -> impl IntoView {
+
     let is_subscribed = create_rw_signal(false);
+    let subscribe = create_server_action::<Subscribe>();
+    let unsubscribe = create_server_action::<Unsubscribe>();
+
     view! {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
@@ -349,7 +397,15 @@ pub fn ForumToolbar() -> impl IntoView {
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
                     >
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| {
+                                *value = !*value;
+                                if *value {
+                                   subscribe.dispatch(Subscribe { forum_name: forum_name.get_untracked() });
+                                } else {
+                                   unsubscribe.dispatch(Unsubscribe { forum_name: forum_name.get_untracked() });
+                                }
+                            })
+                        >
                             <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
                         </button>
                     </LoginGuardButton>
@@ -359,7 +415,15 @@ pub fn ForumToolbar() -> impl IntoView {
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/> }
                     >
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| *value = !*value)>
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| {
+                                *value = !*value;
+                                if *value {
+                                   subscribe.dispatch(Subscribe { forum_name: forum_name.get_untracked() });
+                                } else {
+                                   unsubscribe.dispatch(Unsubscribe { forum_name: forum_name.get_untracked() });
+                                }
+                            })
+                        >
                             <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/>
                         </button>
                     </LoginGuardButton>
@@ -371,8 +435,8 @@ pub fn ForumToolbar() -> impl IntoView {
                         redirect_path_fn=&get_create_post_path
                     >
                         <Form action=CREATE_POST_ROUTE class="flex">
-                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                            <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| get_forum_name(current_forum)>
+                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=forum_name/>
+                            <button type="submit" class="btn btn-circle btn-ghost">
                                 <PlusIcon class="h-6 w-6"/>
                             </button>
                         </Form>

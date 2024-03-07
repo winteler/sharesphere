@@ -45,17 +45,6 @@ pub struct ForumSubscription {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-/*#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct ForumWithSubscription {
-    #[cfg(feature = "ssr")]
-    #[sqlx(flatten)]
-    pub forum: Forum,
-    #[cfg(not(feature = "ssr"))]
-    pub forum: Forum,
-    pub subscription_id: Option<i64>,
-}*/
-
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct ForumWithSubscription {
@@ -63,23 +52,6 @@ pub struct ForumWithSubscription {
     pub forum: Forum,
     pub subscription_id: Option<i64>,
 }
-
-/*cfg_if::cfg_if! {
-    if #[cfg(feature = "ssr")] {
-        #[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::FromRow, Serialize, Deserialize)]
-        pub struct ForumWithSubscription {
-            #[sqlx(flatten)]
-            pub forum: Forum,
-            pub subscription_id: Option<i64>,
-        }
-    }  else {
-        #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-        pub struct ForumWithSubscription {
-            pub forum: Forum,
-            pub subscription_id: Option<i64>,
-        }
-    }
-}*/
 
 #[server]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
@@ -113,7 +85,6 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
 
 #[server]
 async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
-    log::info!("Subscribe to [[forum]] '{forum_id}'");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -130,7 +101,6 @@ async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
 
 #[server]
 async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
-    log::info!("Unsubscribe from [[forum]] '{forum_id}'");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 

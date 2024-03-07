@@ -45,6 +45,42 @@ pub struct ForumSubscription {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+/*#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ForumWithSubscription {
+    #[cfg(feature = "ssr")]
+    #[sqlx(flatten)]
+    pub forum: Forum,
+    #[cfg(not(feature = "ssr"))]
+    pub forum: Forum,
+    pub subscription_id: Option<i64>,
+}*/
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ForumWithSubscription {
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub forum: Forum,
+    pub subscription_id: Option<i64>,
+}
+
+/*cfg_if::cfg_if! {
+    if #[cfg(feature = "ssr")] {
+        #[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::FromRow, Serialize, Deserialize)]
+        pub struct ForumWithSubscription {
+            #[sqlx(flatten)]
+            pub forum: Forum,
+            pub subscription_id: Option<i64>,
+        }
+    }  else {
+        #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+        pub struct ForumWithSubscription {
+            pub forum: Forum,
+            pub subscription_id: Option<i64>,
+        }
+    }
+}*/
+
 #[server]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
     log::trace!("Create [[forum]] '{name}', {description}, {is_nsfw:?}");
@@ -76,15 +112,15 @@ pub async fn create_forum( name: String, description: String, is_nsfw: Option<St
 }
 
 #[server]
-async fn subscribe(forum_name: String) -> Result<(), ServerFnError> {
-    log::info!("Subscribe to [[forum]] '{forum_name}'");
+async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
+    log::info!("Subscribe to [[forum]] '{forum_id}'");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
     sqlx::query!(
-        "INSERT INTO forum_subscriptions (user_id, forum_id) SELECT $1, forum_id FROM forums WHERE forum_name = $2",
+        "INSERT INTO forum_subscriptions (user_id, forum_id) VALUES ($1, $2)",
         user.user_id,
-        forum_name
+        forum_id
     )
         .execute(&db_pool)
         .await?;
@@ -93,15 +129,15 @@ async fn subscribe(forum_name: String) -> Result<(), ServerFnError> {
 }
 
 #[server]
-async fn unsubscribe(forum_name: String) -> Result<(), ServerFnError> {
-    log::info!("Unsubscribe from [[forum]] '{forum_name}'");
+async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
+    log::info!("Unsubscribe from [[forum]] '{forum_id}'");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
     sqlx::query!(
-        "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id IN (SELECT forum_id FROM forums where forum_name = $2)",
+        "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
         user.user_id,
-        forum_name,
+        forum_id,
     )
         .execute(&db_pool)
         .await?;
@@ -110,13 +146,22 @@ async fn unsubscribe(forum_name: String) -> Result<(), ServerFnError> {
 }
 
 #[server]
-pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
+pub async fn get_forum_by_name(forum_name: String) -> Result<ForumWithSubscription, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum = sqlx::query_as!(
-        Forum,
-        "SELECT * FROM forums where forum_name = $1",
-        forum_name
+    let user_id = match get_user().await {
+        Ok(user) => Some(user.user_id),
+        Err(_) => None
+    };
+    let forum = sqlx::query_as::<_, ForumWithSubscription>(
+        "SELECT f.*, s.subscription_id \
+        FROM forums f \
+        LEFT JOIN forum_subscriptions s ON \
+            s.forum_id = f.forum_id AND \
+            s.user_id = $1 \
+        where forum_name = $2"
     )
+        .bind(user_id)
+        .bind(forum_name)
         .fetch_one(&db_pool)
         .await?;
 
@@ -318,21 +363,21 @@ pub fn ForumBanner() -> impl IntoView {
                     move || {
                          forum.map(|result| match result {
                             Ok(forum) => {
-                                let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
+                                let forum_banner_image = format!("url({})", forum.forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
                                 view! {
-                                        <div
-                                            class="hero bg-blue-500"
-                                            style:background-image=forum_banner_image
-                                        >
-                                            <div class="hero-overlay bg-opacity-0"></div>
-                                            <div class="hero-content text-neutral-content text-left">
-                                                <a href=forum_path() class="btn btn-ghost normal-case text-l">
-                                                    <LogoIcon/>
-                                                    <h2 class="text-4xl">{forum_name()}</h2>
-                                                </a>
-                                            </div>
+                                    <div
+                                        class="hero bg-blue-500"
+                                        style:background-image=forum_banner_image
+                                    >
+                                        <div class="hero-overlay bg-opacity-0"></div>
+                                        <div class="hero-content text-neutral-content text-left">
+                                            <a href=forum_path() class="btn btn-ghost normal-case text-l">
+                                                <LogoIcon/>
+                                                <h2 class="text-4xl">{forum_name()}</h2>
+                                            </a>
                                         </div>
-
+                                    </div>
+                                    <ForumToolbar forum=forum/>
                                 }.into_view()
                             },
                             Err(e) => {
@@ -348,43 +393,16 @@ pub fn ForumBanner() -> impl IntoView {
     }
 }
 
-/// Component to display a forum's contents
-#[component]
-pub fn ForumContents() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
-    let post_vec = create_resource(
-        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
-        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type));
-
-    view! {
-        <ForumToolbar forum_name=forum_name/>
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || {
-                     post_vec.map(|result| match &result {
-                        Ok(post_vec) => {
-                            view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
-                        },
-                        Err(e) => {
-                            log::info!("Error: {}", e);
-                            view! { <ErrorIcon/> }.into_view()
-                        },
-                    })
-                }
-            }
-        </Transition>
-    }
-}
-
 /// Component to display the forum toolbar
 #[component]
-pub fn ForumToolbar(
-    forum_name: Memo<String>,
+pub fn ForumToolbar<'a>(
+    forum: &'a ForumWithSubscription,
 ) -> impl IntoView {
 
-    let is_subscribed = create_rw_signal(false);
+
+    let forum_id = forum.forum.forum_id;
+    let forum_name = create_rw_signal(forum.forum.forum_name.clone());
+    let is_subscribed = create_rw_signal(forum.subscription_id.is_some());
     let subscribe = create_server_action::<Subscribe>();
     let unsubscribe = create_server_action::<Unsubscribe>();
 
@@ -397,14 +415,16 @@ pub fn ForumToolbar(
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
                     >
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| {
-                                *value = !*value;
-                                if *value {
-                                   subscribe.dispatch(Subscribe { forum_name: forum_name.get_untracked() });
-                                } else {
-                                   unsubscribe.dispatch(Unsubscribe { forum_name: forum_name.get_untracked() });
-                                }
-                            })
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
+                                is_subscribed.update(|value| {
+                                    *value = !*value;
+                                    if *value {
+                                        subscribe.dispatch(Subscribe { forum_id });
+                                    } else {
+                                        unsubscribe.dispatch(Unsubscribe { forum_id });
+                                    }
+                                })
+                            }
                         >
                             <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
                         </button>
@@ -415,14 +435,16 @@ pub fn ForumToolbar(
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/> }
                     >
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| is_subscribed.update(|value| {
-                                *value = !*value;
-                                if *value {
-                                   subscribe.dispatch(Subscribe { forum_name: forum_name.get_untracked() });
-                                } else {
-                                   unsubscribe.dispatch(Unsubscribe { forum_name: forum_name.get_untracked() });
-                                }
-                            })
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
+                                is_subscribed.update(|value| {
+                                    *value = !*value;
+                                    if *value {
+                                        subscribe.dispatch(Subscribe { forum_id });
+                                    } else {
+                                        unsubscribe.dispatch(Unsubscribe { forum_id });
+                                    }
+                                })
+                            }
                         >
                             <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/>
                         </button>
@@ -444,6 +466,35 @@ pub fn ForumToolbar(
                 </div>
             </div>
         </div>
+    }
+}
+
+/// Component to display a forum's contents
+#[component]
+pub fn ForumContents() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let params = use_params_map();
+    let forum_name = get_forum_name_memo(params);
+    let post_vec = create_resource(
+        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
+        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type));
+
+    view! {
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || {
+                     post_vec.map(|result| match &result {
+                        Ok(post_vec) => {
+                            view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
+                        },
+                        Err(e) => {
+                            log::info!("Error: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                    })
+                }
+            }
+        </Transition>
     }
 }
 

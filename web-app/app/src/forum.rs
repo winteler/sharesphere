@@ -32,6 +32,7 @@ pub struct Forum {
     pub tags: Option<String>,
     pub icon_url: Option<String>,
     pub banner_url: Option<String>,
+    pub num_members: i32,
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -96,6 +97,13 @@ async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
         .execute(&db_pool)
         .await?;
 
+    sqlx::query!(
+        "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",
+        forum_id
+    )
+        .execute(&db_pool)
+        .await?;
+
     Ok(())
 }
 
@@ -108,6 +116,13 @@ async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
         "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
         user.user_id,
         forum_id,
+    )
+        .execute(&db_pool)
+        .await?;
+
+    sqlx::query!(
+        "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",
+        forum_id
     )
         .execute(&db_pool)
         .await?;
@@ -189,7 +204,7 @@ pub async fn get_subscribed_forums() -> Result<Vec<String>, ServerFnError> {
                 .await?
         },
         Err(_) => {
-            sqlx::query_as!(Forum, "SELECT * FROM forums").fetch_all(&db_pool).await?
+            sqlx::query_as!(Forum, "SELECT * FROM forums ORDER BY num_members DESC limit 20").fetch_all(&db_pool).await?
         }
     };
 

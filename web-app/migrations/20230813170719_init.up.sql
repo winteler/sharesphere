@@ -15,6 +15,7 @@ CREATE TABLE forums (
     tags TEXT,
     icon_url TEXT,
     banner_url TEXT,
+    num_members INT NOT NULL DEFAULT 0,
     creator_id BIGINT NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

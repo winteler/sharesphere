@@ -215,24 +215,6 @@ pub async fn get_subscribed_forums() -> Result<Vec<String>, ServerFnError> {
     }
 
     Ok(forum_name_vec)
-
-    // TODO: get subscribed forum
-    /*let user = get_user().await;
-
-    match user {
-        Ok(user) => {
-        }
-        Err(_) => {
-            let forum_name_vec = sqlx::query!("SELECT name FROM forums").fetch_all(&db_pool).await?;
-
-            let mut forum_name_set: BTreeSet<String> = BTreeSet::with_capacity(forum_name_vec.len());
-            for forum_name in forum_name_vec {
-                forum_name_set.insert(forum_name.name);
-            }
-
-            Ok(forum_name_set)
-        }
-    }*/
 }
 
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page

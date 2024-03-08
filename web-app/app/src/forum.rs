@@ -172,18 +172,34 @@ pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
 }
 
 #[server]
-pub async fn get_subscribed_forums() -> Result<BTreeSet<String>, ServerFnError> {
+pub async fn get_subscribed_forums() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
+    let forum_vec: Vec<Forum> = match get_user().await {
+        Ok(user) => {
+            sqlx::query_as!(
+                Forum,
+                "SELECT f.* FROM forums f \
+                JOIN forum_subscriptions s ON \
+                    f.forum_id = s.forum_id AND \
+                    f.creator_id = $1 \
+                ORDER BY forum_name",
+                user.user_id
+            )
+                .fetch_all(&db_pool)
+                .await?
+        },
+        Err(_) => {
+            sqlx::query_as!(Forum, "SELECT * FROM forums").fetch_all(&db_pool).await?
+        }
+    };
 
-    let forum_name_vec = sqlx::query!("SELECT forum_name FROM forums").fetch_all(&db_pool).await?;
+    let mut forum_name_vec = Vec::<String>::with_capacity(forum_vec.len());
 
-    let mut forum_name_set = BTreeSet::<String>::new();
-
-    for row in forum_name_vec {
-        forum_name_set.insert(row.forum_name);
+    for forum in forum_vec {
+        forum_name_vec.push(forum.forum_name);
     }
 
-    Ok(forum_name_set)
+    Ok(forum_name_vec)
 
     // TODO: get subscribed forum
     /*let user = get_user().await;
@@ -369,12 +385,10 @@ pub fn ForumToolbar<'a>(
     forum: &'a ForumWithSubscription,
 ) -> impl IntoView {
 
-
+    let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());
     let is_subscribed = create_rw_signal(forum.subscription_id.is_some());
-    let subscribe = create_server_action::<Subscribe>();
-    let unsubscribe = create_server_action::<Unsubscribe>();
 
     view! {
         <div class="flex w-full justify-between content-center">
@@ -389,9 +403,9 @@ pub fn ForumToolbar<'a>(
                                 is_subscribed.update(|value| {
                                     *value = !*value;
                                     if *value {
-                                        subscribe.dispatch(Subscribe { forum_id });
+                                        state.subscribe_action.dispatch(Subscribe { forum_id });
                                     } else {
-                                        unsubscribe.dispatch(Unsubscribe { forum_id });
+                                        state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
                                     }
                                 })
                             }
@@ -409,9 +423,9 @@ pub fn ForumToolbar<'a>(
                                 is_subscribed.update(|value| {
                                     *value = !*value;
                                     if *value {
-                                        subscribe.dispatch(Subscribe { forum_id });
+                                        state.subscribe_action.dispatch(Subscribe { forum_id });
                                     } else {
-                                        unsubscribe.dispatch(Unsubscribe { forum_id });
+                                        state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
                                     }
                                 })
                             }

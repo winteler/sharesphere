@@ -8,14 +8,17 @@ use crate::icons::{ErrorIcon, LoadingIcon};
 #[component]
 pub fn LeftSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let subscribed_forum_set = create_resource(move || state.create_forum_action.version().get(), |_| get_subscribed_forums());
+    let subscribed_forum_set = create_resource(
+        move || (state.subscribe_action.version().get(), state.unsubscribe_action.version().get()),
+        |_| get_subscribed_forums()
+    );
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             { move || {
                      subscribed_forum_set.map(|subscribed_forum_set| match subscribed_forum_set {
-                        Ok(subscribed_forum_set) => {
-                            let forum_vector_view = subscribed_forum_set.iter().map(|forum_name| {
+                        Ok(subscribed_forum_vec) => {
+                            let forum_vector_view = subscribed_forum_vec.iter().map(|forum_name| {
                                 let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
                                 view! {
                                     <li>

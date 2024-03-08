@@ -368,7 +368,7 @@ pub fn Post() -> impl IntoView {
 
     view! {
         <div class="flex flex-col content-start gap-1">
-            <Suspense fallback=move || view! { <LoadingIcon/> }>
+            <Transition fallback=move || view! { <LoadingIcon/> }>
                 {
                     post.map(|result| match result {
                         Ok(post) => {
@@ -390,7 +390,7 @@ pub fn Post() -> impl IntoView {
                         },
                     })
                 }
-            </Suspense>
+            </Transition>
             <CommentSortWidget/>
             <CommentSection/>
         </div>

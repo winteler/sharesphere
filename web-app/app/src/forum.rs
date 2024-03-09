@@ -187,30 +187,42 @@ pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
 }
 
 #[server]
-pub async fn get_subscribed_forums() -> Result<Vec<String>, ServerFnError> {
+pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_vec: Vec<Forum> = match get_user().await {
-        Ok(user) => {
-            sqlx::query_as!(
-                Forum,
-                "SELECT f.* FROM forums f \
-                JOIN forum_subscriptions s ON \
-                    f.forum_id = s.forum_id AND \
-                    f.creator_id = $1 \
-                ORDER BY forum_name",
-                user.user_id
-            )
-                .fetch_all(&db_pool)
-                .await?
-        },
-        Err(_) => {
-            sqlx::query_as!(Forum, "SELECT * FROM forums ORDER BY num_members DESC limit 20").fetch_all(&db_pool).await?
-        }
-    };
+    let user = get_user().await?;
 
-    let mut forum_name_vec = Vec::<String>::with_capacity(forum_vec.len());
+    let forum_record_vec = sqlx::query!(
+        "SELECT f.forum_name FROM forums f \
+        JOIN forum_subscriptions s ON \
+            f.forum_id = s.forum_id AND \
+            f.creator_id = $1 \
+        ORDER BY forum_name",
+        user.user_id,
+    )
+        .fetch_all(&db_pool)
+        .await?;
 
-    for forum in forum_vec {
+    let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
+
+    for forum in forum_record_vec {
+        forum_name_vec.push(forum.forum_name);
+    }
+
+    Ok(forum_name_vec)
+}
+
+#[server]
+pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let forum_record_vec = sqlx::query!(
+        "SELECT * FROM forums ORDER BY num_members DESC limit 20"
+    )
+        .fetch_all(&db_pool)
+        .await?;
+
+    let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
+
+    for forum in forum_record_vec {
         forum_name_vec.push(forum.forum_name);
     }
 

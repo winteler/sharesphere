@@ -29,9 +29,12 @@ pub fn UserIcon() -> impl IntoView {
 }
 
 #[component]
-pub fn LogoIcon() -> impl IntoView {
+pub fn LogoIcon(
+    #[prop(default = "h-7 w-7")]
+    class: &'static str,
+) -> impl IntoView {
     view! {
-        <img src="/svg/planet.svg" class="w-7 h-7 text-white rounded-full"/>
+        <img src="/svg/planet.svg" class=class/>
     }
 }
 

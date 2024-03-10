@@ -368,28 +368,26 @@ pub fn ForumBanner() -> impl IntoView {
             log::debug!("Load data for forum: {forum_name}");
             get_forum_by_name(forum_name)
         });
-    // TODO: add forum banner
+
     view! {
-        <div class="flex flex-col gap-2 w-full">
+        <div class="flex flex-col gap-2 mt-2 w-full">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || {
                          forum.map(|result| match result {
                             Ok(forum) => {
-                                let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
+                                let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("/banner.jpg")));
                                 view! {
-                                    <div
-                                        class="hero bg-blue-500"
+                                    <a
+                                        href=forum_path()
+                                        class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                                         style:background-image=forum_banner_image
                                     >
-                                        <div class="hero-overlay bg-opacity-0"></div>
-                                        <div class="hero-content text-neutral-content text-left">
-                                            <a href=forum_path() class="btn btn-ghost normal-case text-l">
-                                                <LogoIcon/>
-                                                <h2 class="text-4xl">{forum_name()}</h2>
-                                            </a>
+                                        <div class="p-3 bg-black bg-opacity-75 rounded-lg flex justify-center gap-3">
+                                            <LogoIcon class="h-12 w-12"/>
+                                            <span class="text-4xl text-white">{forum_name()}</span>
                                         </div>
-                                    </div>
+                                    </a>
                                 }.into_view()
                             },
                             Err(e) => {

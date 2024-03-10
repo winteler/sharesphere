@@ -223,24 +223,16 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col content-start gap-1">
-            /*<div
-                class="hero bg-blue-500"
-                style:background-image="url(/banner.jpg)"
-            >
-                <div class="hero-overlay bg-opacity-0"></div>
-                <div class="hero-content">
-                    <div>
-                        <h2 class="text-4xl text-white text-center w-full">"[[Project]]"</h2>
-                    </div>
-                </div>
-            </div>
+        <div class="flex flex-col mt-2 gap-2 w-full">
             <div
-                class="container bg-fixed w-full"
+                class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                 style="background-image: url(/banner.jpg)"
             >
-                <h2 class="text-4xl text-white text-center w-full">"[[Project]]"</h2>
-            </div>*/
+                <div class="p-3 bg-black bg-opacity-75 rounded-lg flex justify-center gap-3">
+                    <LogoIcon class="h-12 w-12"/>
+                    <span class="text-4xl text-white select-none">"[[Project]]"</span>
+                </div>
+            </div>
             <PostSortWidget/>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { move || {

@@ -37,6 +37,7 @@ pub struct Post {
     pub moderated_body: Option<String>,
     pub meta_post_id: Option<i64>,
     pub forum_id: i64,
+    pub forum_name: String,
     pub creator_id: i64,
     pub creator_name: String,
     pub num_comments: i32,
@@ -78,7 +79,6 @@ impl fmt::Display for PostSortType {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use crate::ranking::{Vote, VoteValue};
-
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
@@ -141,6 +141,56 @@ pub mod ssr {
 }
 
 #[server]
+pub async fn get_sorted_post_vec(sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+
+    let post_vec = sqlx::query_as::<_, Post>(
+        format!("SELECT * FROM posts \
+        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
+    )
+        .fetch_all(&db_pool)
+        .await?;
+
+    Ok(post_vec)
+}
+
+#[server]
+pub async fn get_subscribed_post_vec(user_id: i64, sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+
+    let post_vec = sqlx::query_as::<_, Post>(
+        format!("SELECT p.* FROM posts p \
+        JOIN forums f on f.forum_id = p.forum_id \
+        WHERE f.forum_id IN ( \
+            SELECT forum_id FROM forum_subscriptions WHERE user_id = $1 \
+        ) \
+        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
+    )
+        .bind(user_id)
+        .fetch_all(&db_pool)
+        .await?;
+
+    Ok(post_vec)
+}
+
+#[server]
+pub async fn get_post_vec_by_forum_name(forum_name: String, sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+
+    let post_vec = sqlx::query_as::<_, Post>(
+        format!("SELECT p.* FROM posts p \
+        JOIN forums f on f.forum_id = p.forum_id \
+        WHERE f.forum_name = $1 \
+        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
+    )
+        .bind(forum_name)
+        .fetch_all(&db_pool)
+        .await?;
+
+    Ok(post_vec)
+}
+
+#[server]
 pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
@@ -171,23 +221,6 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
 }
 
 #[server]
-pub async fn get_post_vec_by_forum_name(forum_name: String, sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
-    let db_pool = get_db_pool()?;
-
-    let post_vec = sqlx::query_as::<_, Post>(
-        format!("SELECT posts.* FROM posts \
-        JOIN forums on forums.forum_id = posts.forum_id \
-        WHERE forums.forum_name = $1 \
-        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
-    )
-        .bind(forum_name)
-        .fetch_all(&db_pool)
-        .await?;
-
-    Ok(post_vec)
-}
-
-#[server]
 pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Option<String>, tag: Option<String>) -> Result<(), ServerFnError> {
     log::info!("Create [[content]] '{title}'");
     let user = get_user().await?;
@@ -199,11 +232,11 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
 
     let new_post = sqlx::query_as!(
         Post,
-        "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, creator_id, creator_name)
+        "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
          VALUES (
             $1, $2, $3, $4,
             (SELECT forum_id FROM forums WHERE forum_name = $5),
-            $6, $7
+            $5, $6, $7
         ) RETURNING *",
         title.clone(),
         body,

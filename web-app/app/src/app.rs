@@ -12,6 +12,7 @@ use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
 use crate::sidebar::*;
+use crate::widget::PostSortWidget;
 
 pub const PARAM_ROUTE_PREFIX : &str = "/:";
 pub const PUBLISH_ROUTE : &str = "/publish";
@@ -149,7 +150,6 @@ pub fn App() -> impl IntoView {
                                 <Route path="" view=ForumContents/>
                             </Route>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
-                            <Route path="/login" view=Login/>
                             <Route path=PUBLISH_ROUTE view=LoginPageGuard>
                                 <Route path=CREATE_FORUM_SUFFIX view=CreateForum/>
                                 <Route path=CREATE_POST_SUFFIX view=CreatePost/>
@@ -180,20 +180,15 @@ fn LoginPageGuard() -> impl IntoView {
                 move || {
                      state.user.with(|user| match user {
                         Some(Ok(user)) => {
-                            if user.anonymous
-                            {
-                                log::trace!("Not logged in.");
-                                return view! { <Login/> }.into_view();
-                            }
-                            log::trace!("Login guard, current user: {user:?}");
+                            log::info!("Login guard, current user: {user:?}");
                             view! { <Outlet/> }.into_view()
                         },
                         Some(Err(e)) => {
-                            log::trace!("Login error: {}", e);
-                            view! { <Login/> }.into_view()
+                            log::info!("Login error: {}", e);
+                            view! { <LoginWindow/> }.into_view()
                         },
                         None => {
-                            log::trace!("Resource not loaded yet.");
+                            log::info!("Resource not loaded yet.");
                             view! { <Outlet/> }.into_view()
                         }
                     })
@@ -205,7 +200,7 @@ fn LoginPageGuard() -> impl IntoView {
 
 /// Renders a page requesting a login
 #[component]
-fn Login() -> impl IntoView {
+fn LoginWindow() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let current_path = create_rw_signal( String::default());
 
@@ -225,28 +220,86 @@ fn Login() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    let (count, set_count) = create_signal( 0);
+    let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="my-0 mx-auto max-w-3xl text-center">
-            <h2 class="p-6 text-4xl">"Welcome to Leptos with Tailwind"</h2>
-            <p class="bg-white px-10 py-10 text-black rounded-lg">"Tailwind will scan your Rust files for Tailwind class names and compile them into a CSS file."</p>
-            <button
-                class="m-8 bg-amber-600 hover:bg-sky-700 px-5 py-3 text-white rounded-lg"
-                on:click=move |_| set_count.update(|count| *count += 1)
+        <div class="flex flex-col content-start gap-1">
+            /*<div
+                class="hero bg-blue-500"
+                style:background-image="url(/banner.jpg)"
             >
-                "Something's here | "
-                {
-                    move || if count() == 0 {
-                        "Click me!".to_string()
-                    } else {
-                        count().to_string()
-                    }
-                }
-                " | Some more text"
-            </button>
+                <div class="hero-overlay bg-opacity-0"></div>
+                <div class="hero-content">
+                    <div>
+                        <h2 class="text-4xl text-white text-center w-full">"[[Project]]"</h2>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="container bg-fixed w-full"
+                style="background-image: url(/banner.jpg)"
+            >
+                <h2 class="text-4xl text-white text-center w-full">"[[Project]]"</h2>
+            </div>*/
+            <PostSortWidget/>
+            <Transition fallback=move || view! {  <LoadingIcon/> }>
+                { move || {
+                     state.user.map(|user| match user {
+                        Ok(user) => {
+                            log::trace!("Login guard, current user: {user:?}");
+                            view! { <UserHomePage user=user/> }.into_view()
+                        },
+                        Err(e) => {
+                            log::trace!("Login error: {}", e);
+                            view! { <DefaultHomePage/> }.into_view()
+                        }
+                    })
+
+                }}
+            </Transition>
         </div>
     }
 }
 
+/// Renders the home page anonymous users.
+#[component]
+fn DefaultHomePage() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let post_vec = create_resource(
+        move || (state.post_sort_type.get(), state.create_post_action.version().get()),
+        move |(sort_type, _)| get_sorted_post_vec(sort_type),
+    );
 
+    view! {
+        { move || post_vec.map(|post_vec | match post_vec {
+            Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
+            Err(e) => {
+                log::error!("Failed to load posts with error: {e}");
+                view! { <ErrorIcon/> }.into_view()
+            },
+        })}
+    }
+}
+
+/// Renders the home page of a given user.
+#[component]
+fn UserHomePage<'a>(
+    user: &'a User,
+) -> impl IntoView {
+    let user_id = user.user_id;
+    let state = expect_context::<GlobalState>();
+    let post_vec = create_resource(
+        move || (state.post_sort_type.get(), state.create_post_action.version().get()),
+        move |(sort_type, _)| get_subscribed_post_vec(user_id, sort_type),
+    );
+
+    view! {
+        { move || post_vec.map(|post_vec | match post_vec {
+            Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
+            Err(e) => {
+                log::error!("Failed to load posts with error: {e}");
+                view! { <ErrorIcon/> }.into_view()
+            },
+        })}
+    }
+}

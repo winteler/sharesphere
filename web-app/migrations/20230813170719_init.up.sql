@@ -40,6 +40,7 @@ CREATE TABLE posts (
     moderated_body TEXT,
     meta_post_id BIGINT,
     forum_id BIGINT NOT NULL,
+    forum_name TEXT NOT NULL,
     creator_id BIGINT NOT NULL,
     creator_name TEXT NOT NULL,
     num_comments INT NOT NULL DEFAULT 0,

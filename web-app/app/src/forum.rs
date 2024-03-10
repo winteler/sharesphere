@@ -9,10 +9,12 @@ use serde::{Deserialize, Serialize};
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
-use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlanetIcon, PlusIcon, StarIcon};
+use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, SubscribedIcon, PlusIcon, StarIcon};
 use crate::navigation_bar::get_create_post_path;
-use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, get_post_vec_by_forum_name, Post, POST_ROUTE_PREFIX};
-use crate::ranking::ScoreIndicator;
+#[cfg(feature = "ssr")]
+use crate::post::get_post_vec_by_forum_name;
+use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
+use crate::ranking::{ScoreIndicator, SortType};
 use crate::widget::{AuthorWidget, FormTextEditor, PostSortWidget, TimeSinceWidget};
 
 pub const CREATE_FORUM_SUFFIX : &str = "/forum";
@@ -131,22 +133,13 @@ async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
 }
 
 #[server]
-pub async fn get_forum_by_name(forum_name: String) -> Result<ForumWithSubscription, ServerFnError> {
+pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let user_id = match get_user().await {
-        Ok(user) => Some(user.user_id),
-        Err(_) => None
-    };
-    let forum = sqlx::query_as::<_, ForumWithSubscription>(
-        "SELECT f.*, s.subscription_id \
-        FROM forums f \
-        LEFT JOIN forum_subscriptions s ON \
-            s.forum_id = f.forum_id AND \
-            s.user_id = $1 \
-        where forum_name = $2"
+    let forum = sqlx::query_as!(
+        Forum,
+        "SELECT * FROM forums f WHERE forum_name = $1",
+        forum_name
     )
-        .bind(user_id)
-        .bind(forum_name)
         .fetch_one(&db_pool)
         .await?;
 
@@ -215,7 +208,7 @@ pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> 
 pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let forum_record_vec = sqlx::query!(
-        "SELECT * FROM forums ORDER BY num_members DESC limit 20"
+        "SELECT * FROM forums ORDER BY num_members DESC, forum_name limit 20"
     )
         .fetch_all(&db_pool)
         .await?;
@@ -227,6 +220,31 @@ pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
     }
 
     Ok(forum_name_vec)
+}
+
+#[server]
+pub async fn get_forum_contents(forum_name: String, sort_type: SortType) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let user_id = match get_user().await {
+        Ok(user) => Some(user.user_id),
+        Err(_) => None
+    };
+    let forum = sqlx::query_as::<_, ForumWithSubscription>(
+        "SELECT f.*, s.subscription_id \
+        FROM forums f \
+        LEFT JOIN forum_subscriptions s ON \
+            s.forum_id = f.forum_id AND \
+            s.user_id = $1 \
+        where forum_name = $2"
+    )
+        .bind(user_id)
+        .bind(forum_name.clone())
+        .fetch_one(&db_pool)
+        .await?;
+
+    let post_vec = get_post_vec_by_forum_name(forum_name, sort_type).await?;
+
+    Ok((forum, post_vec))
 }
 
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page
@@ -358,7 +376,7 @@ pub fn ForumBanner() -> impl IntoView {
                     move || {
                          forum.map(|result| match result {
                             Ok(forum) => {
-                                let forum_banner_image = format!("url({})", forum.forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
+                                let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg")));
                                 view! {
                                     <div
                                         class="hero bg-blue-500"
@@ -372,7 +390,6 @@ pub fn ForumBanner() -> impl IntoView {
                                             </a>
                                         </div>
                                     </div>
-                                    <ForumToolbar forum=forum/>
                                 }.into_view()
                             },
                             Err(e) => {
@@ -385,6 +402,38 @@ pub fn ForumBanner() -> impl IntoView {
             </Transition>
             <Outlet/>
         </div>
+    }
+}
+
+/// Component to display a forum's contents
+#[component]
+pub fn ForumContents() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let params = use_params_map();
+    let forum_name = get_forum_name_memo(params);
+    let forum_content = create_resource(
+        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
+        move |(forum_name, _, sort_type)| get_forum_contents(forum_name, sort_type));
+
+    view! {
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || {
+                     forum_content.map(|result| match &result {
+                        Ok((forum, post_vec)) => {
+                            view! {
+                                <ForumToolbar forum=forum/>
+                                <ForumPostMiniatures post_vec=post_vec/>
+                            }.into_view()
+                        },
+                        Err(e) => {
+                            log::info!("Error: {}", e);
+                            view! { <ErrorIcon/> }.into_view()
+                        },
+                    })
+                }
+            }
+        </Transition>
     }
 }
 
@@ -426,7 +475,7 @@ pub fn ForumToolbar<'a>(
                 <div class="tooltip" data-tip="Join">
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }
                     >
                         <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
                                 is_subscribed.update(|value| {
@@ -439,7 +488,7 @@ pub fn ForumToolbar<'a>(
                                 })
                             }
                         >
-                            <PlanetIcon class="h-6 w-6" show_colour=is_subscribed/>
+                            <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/>
                         </button>
                     </LoginGuardButton>
                 </div>
@@ -462,43 +511,14 @@ pub fn ForumToolbar<'a>(
     }
 }
 
-/// Component to display a forum's contents
-#[component]
-pub fn ForumContents() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
-    let post_vec = create_resource(
-        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
-        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type));
-
-    view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || {
-                     post_vec.map(|result| match &result {
-                        Ok(post_vec) => {
-                            view! { <ForumPostMiniatures post_vec=post_vec forum_name=forum_name()/> }.into_view()
-                        },
-                        Err(e) => {
-                            log::info!("Error: {}", e);
-                            view! { <ErrorIcon/> }.into_view()
-                        },
-                    })
-                }
-            }
-        </Transition>
-    }
-}
-
 /// Component to display a given set of forum posts
 #[component]
-pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>, forum_name: String) -> impl IntoView {
+pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>) -> impl IntoView {
     view! {
         <ul class="menu w-full text-lg">
             {
                 post_vec.iter().map(move |post| {
-                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.post_id.to_string();
+                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + post.forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.post_id.to_string();
                     view! {
                         <li>
                             <a href=post_path>

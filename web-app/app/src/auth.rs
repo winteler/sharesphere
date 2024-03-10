@@ -36,7 +36,6 @@ pub struct User {
     pub user_id: i64,
     pub username: String,
     pub email: String,
-    pub anonymous: bool,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
@@ -46,7 +45,6 @@ impl Default for User {
             user_id: -1,
             username: String::default(),
             email: String::default(),
-            anonymous: true,
             timestamp: chrono::DateTime::default(),
         }
     }
@@ -95,7 +93,6 @@ pub mod ssr {
                 user_id: self.user_id,
                 username: self.username,
                 email: self.email,
-                anonymous: false,
                 timestamp: self.timestamp,
             }
         }
@@ -152,15 +149,15 @@ pub mod ssr {
         }
 
         fn is_authenticated(&self) -> bool {
-            !self.anonymous
+            true
         }
 
         fn is_active(&self) -> bool {
-            !self.anonymous
+            true
         }
 
         fn is_anonymous(&self) -> bool {
-            self.anonymous
+            false
         }
     }
 
@@ -323,14 +320,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
 pub async fn get_user() -> Result<User, ServerFnError> {
     let auth_session = get_session()?;
     match auth_session.current_user {
-        Some(user) => {
-            if !user.anonymous {
-                Ok(user)
-            }
-            else {
-                Err(ServerFnError::new("Anonymous user."))
-            }
-        },
+        Some(user) => Ok(user),
         None => Err(ServerFnError::new("Not authenticated.")),
     }
 }

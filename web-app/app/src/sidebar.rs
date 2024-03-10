@@ -43,7 +43,7 @@ pub fn LeftSidebar() -> impl IntoView {
         |_| get_subscribed_forum_names()
     );
     let popular_forum_vec = create_resource(
-        move || (),
+        move || state.create_forum_action.version().get(),
         |_| get_popular_forum_names()
     );
 

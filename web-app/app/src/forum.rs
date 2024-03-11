@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
+use crate::error_template::ErrorTemplate;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, SubscribedIcon, PlusIcon, StarIcon};
 use crate::navigation_bar::get_create_post_path;
 #[cfg(feature = "ssr")]
@@ -415,6 +416,7 @@ pub fn ForumContents() -> impl IntoView {
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
+            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
             {
                 move || {
                      forum_content.map(|result| match &result {
@@ -426,11 +428,12 @@ pub fn ForumContents() -> impl IntoView {
                         },
                         Err(e) => {
                             log::info!("Error: {}", e);
-                            view! { <ErrorIcon/> }.into_view()
+                            view! { <pre class="error">"Server Error: " {e.to_string()}</pre> }.into_view()
                         },
                     })
                 }
             }
+            </ErrorBoundary>
         </Transition>
     }
 }

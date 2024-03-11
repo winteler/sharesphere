@@ -237,11 +237,11 @@ fn HomePage() -> impl IntoView {
                 { move || {
                      state.user.map(|user| match user {
                         Ok(user) => {
-                            log::trace!("Login guard, current user: {user:?}");
+                            log::trace!("Authenticated, current user: {user:?}");
                             view! { <UserHomePage user=user/> }.into_view()
                         },
                         Err(e) => {
-                            log::trace!("Login error: {}", e);
+                            log::trace!("Authentication failed: {}", e);
                             view! { <DefaultHomePage/> }.into_view()
                         }
                     })
@@ -262,13 +262,17 @@ fn DefaultHomePage() -> impl IntoView {
     );
 
     view! {
-        { move || post_vec.map(|post_vec | match post_vec {
-            Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
-            Err(e) => {
-                log::error!("Failed to load posts with error: {e}");
-                view! { <ErrorIcon/> }.into_view()
-            },
-        })}
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || post_vec.map(|post_vec | match post_vec {
+                    Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
+                    Err(e) => {
+                        log::error!("Failed to load posts with error: {e}");
+                        view! { <ErrorIcon/> }.into_view()
+                    },
+                })
+            }
+        </Transition>
     }
 }
 
@@ -285,12 +289,16 @@ fn UserHomePage<'a>(
     );
 
     view! {
-        { move || post_vec.map(|post_vec | match post_vec {
-            Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
-            Err(e) => {
-                log::error!("Failed to load posts with error: {e}");
-                view! { <ErrorIcon/> }.into_view()
-            },
-        })}
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || post_vec.map(|post_vec | match post_vec {
+                    Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
+                    Err(e) => {
+                        log::error!("Failed to load posts with error: {e}");
+                        view! { <ErrorIcon/> }.into_view()
+                    },
+                })
+            }
+        </Transition>
     }
 }

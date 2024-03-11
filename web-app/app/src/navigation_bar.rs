@@ -59,7 +59,7 @@ pub fn NavigationBar(
                 <div class="flex-1">
                     <a href="/" class="btn btn-ghost normal-case text-l text-white">
                         <LogoIcon/>
-                        <label class="max-2xl:hidden">"[[ProjectName]]"</label>
+                        <label class="max-2xl:hidden">"ShareSphere"</label>
                     </a>
                 </div>
             </div>
@@ -124,6 +124,8 @@ pub fn LoggedInMenu() -> impl IntoView {
 #[component]
 pub fn PlusMenu() -> impl IntoView {
     let current_forum = create_rw_signal(String::default());
+    let create_sphere_str = "Settle a Sphere!";
+    let create_post_str = "Share a Post!";
     view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
@@ -132,21 +134,21 @@ pub fn PlusMenu() -> impl IntoView {
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">
                 <li>
                     <LoginGuardButton
-                        login_button_content=move || view! { "[[Forum]]" }
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
                         redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.update(|value: &mut String| *value = String::from(CREATE_FORUM_ROUTE)))
                     >
-                        <a href=CREATE_FORUM_ROUTE>"[[Forum]]"</a>
+                        <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
                     </LoginGuardButton>
                 </li>
                 <li>
                     <LoginGuardButton
-                        login_button_content=move || view! { "[[Post]]" }
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
                         redirect_path_fn=&get_create_post_path
                     >
                         <Form action=CREATE_POST_ROUTE class="flex">
                             <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                            <button type="submit" on:click=move |_| get_forum_name(current_forum)>
-                                "[[Post]]"
+                            <button type="submit" class="whitespace-nowrap" on:click=move |_| get_forum_name(current_forum)>
+                                {create_post_str}
                             </button>
                         </Form>
                     </LoginGuardButton>

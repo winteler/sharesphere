@@ -121,10 +121,10 @@ pub fn App() -> impl IntoView {
     view! {
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/start-axum-workspace.css"/>
+        <Stylesheet id="leptos" href="/pkg/sharesphere.css"/>
 
         // sets the document title
-        <Title text="Welcome to [[ProjectName]]"/>
+        <Title text="Welcome to ShareSphere"/>
 
         // content for this welcome page
         <Router fallback=|| {
@@ -223,14 +223,13 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col mt-2 gap-2 w-full">
+        <div class="flex flex-col mt-2 mx-2 gap-2 w-full">
             <div
                 class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                 style="background-image: url(/banner.jpg)"
             >
-                <div class="p-3 bg-black bg-opacity-75 rounded-lg flex justify-center gap-3">
-                    <LogoIcon class="h-12 w-12"/>
-                    <span class="text-4xl text-white select-none">"[[Project]]"</span>
+                <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
+                    <span class="text-4xl text-white select-none">"ShareSphere"</span>
                 </div>
             </div>
             <PostSortWidget/>

@@ -222,7 +222,7 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
 
 #[server]
 pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Option<String>, tag: Option<String>) -> Result<(), ServerFnError> {
-    log::info!("Create [[content]] '{title}'");
+    log::trace!("Create post '{title}'");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -319,13 +319,13 @@ pub fn CreatePost() -> impl IntoView {
                                 <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
                                     <ActionForm action=state.create_post_action>
                                         <div class="flex flex-col gap-2 w-full">
-                                            <h2 class="py-4 text-4xl text-center">"Create [[content]]"</h2>
+                                            <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
                                             <div class="dropdown dropdown-end">
                                                 <input
                                                     tabindex="0"
                                                     type="text"
                                                     name="forum"
-                                                    placeholder="[[Forum]]"
+                                                    placeholder="Sphere"
                                                     autocomplete="off"
                                                     class="input input-bordered input-primary w-full h-input_m"
                                                     on:input=move |ev| {

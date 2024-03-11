@@ -58,16 +58,16 @@ pub struct ForumWithSubscription {
 
 #[server]
 pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
-    log::trace!("Create [[forum]] '{name}', {description}, {is_nsfw:?}");
+    log::trace!("Create Sphere '{name}', {description}, {is_nsfw:?}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
     if name.is_empty() {
-        return Err(ServerFnError::new("Cannot create [[forum]] with empty name."));
+        return Err(ServerFnError::new("Cannot create Sphere with empty name."));
     }
 
     if !name.chars().all(char::is_alphanumeric) {
-        return Err(ServerFnError::new("[[Forum]] name can only contain alphanumeric characters."));
+        return Err(ServerFnError::new("Sphere name can only contain alphanumeric characters."));
     }
 
     sqlx::query!(
@@ -292,12 +292,12 @@ pub fn CreateForum() -> impl IntoView {
                                 <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/3">
                                     <ActionForm action=state.create_forum_action>
                                         <div class="flex flex-col gap-2 w-full">
-                                            <h2 class="py-4 text-4xl text-center">"Create [[forum]]"</h2>
+                                            <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>
                                             <div class="flex gap-2">
                                                 <input
                                                     type="text"
                                                     name="name"
-                                                    placeholder="[[Forum]] name"
+                                                    placeholder="Name"
                                                     autocomplete="off"
                                                     class="input input-bordered input-primary h-input_l flex-none w-1/2"
                                                     on:input=move |ev| {
@@ -370,7 +370,7 @@ pub fn ForumBanner() -> impl IntoView {
         });
 
     view! {
-        <div class="flex flex-col gap-2 mt-2 w-full">
+        <div class="flex flex-col gap-2 mt-2 mx-2 w-full">
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || {
@@ -383,7 +383,7 @@ pub fn ForumBanner() -> impl IntoView {
                                         class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                                         style:background-image=forum_banner_image
                                     >
-                                        <div class="p-3 bg-black bg-opacity-75 rounded-lg flex justify-center gap-3">
+                                        <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
                                             <LogoIcon class="h-12 w-12"/>
                                             <span class="text-4xl text-white">{forum_name()}</span>
                                         </div>

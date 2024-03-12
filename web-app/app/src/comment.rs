@@ -55,8 +55,8 @@ impl fmt::Display for CommentSortType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use sqlx::PgPool;
     use crate::ranking::{Vote, VoteValue};
-
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
@@ -102,6 +102,95 @@ pub mod ssr {
             }
         }
     }
+
+    pub async fn get_post_comment_tree(
+        post_id: i64,
+        sort_type: SortType,
+        user_id: Option<i64>,
+        db_pool: PgPool,
+    ) -> Result<Vec<CommentWithChildren>, ServerFnError> {
+        if post_id < 1 {
+            return Err(ServerFnError::new("Invalid post id."));
+        }
+
+        let sort_column = sort_type.to_order_by_code();
+
+        let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
+            format!("WITH RECURSIVE comment_tree AS (
+            SELECT c.*,
+                   v.vote_id,
+                   v.creator_id as vote_creator_id,
+                   v.post_id as vote_post_id,
+                   v.comment_id as vote_comment_id,
+                   v.value,
+                   v.timestamp as vote_timestamp,
+                   1 AS depth,
+                   ARRAY[(c.{sort_column}, c.comment_id)] AS path
+            FROM comments c
+            LEFT JOIN votes v
+            ON v.comment_id = c.comment_id AND
+               v.creator_id = $1
+            WHERE
+                c.post_id = $2 AND
+                c.parent_id IS NULL
+            UNION ALL
+            SELECT n.*,
+                   vr.vote_id,
+                   vr.creator_id as vote_creator_id,
+                   vr.post_id as vote_post_id,
+                   vr.comment_id as vote_comment_id,
+                   vr.value,
+                   vr.timestamp as vote_timestamp,
+                   r.depth + 1,
+                   r.path || (n.{sort_column}, n.comment_id)
+            FROM comment_tree r
+            JOIN comments n ON n.parent_id = r.comment_id
+            LEFT JOIN votes vr
+            ON vr.comment_id = n.comment_id AND
+               vr.creator_id = $1
+        )
+        SELECT * FROM comment_tree
+        ORDER BY path DESC").as_str(),
+        )
+            .bind(user_id)
+            .bind(post_id)
+            .fetch_all(&db_pool)
+            .await?;
+
+        let mut comment_tree = Vec::<CommentWithChildren>::new();
+        let mut stack = Vec::<(i64, Vec::<CommentWithChildren>)>::new();
+        for comment_with_vote in comment_with_vote_vec {
+            let mut current = comment_with_vote.into_comment_with_children();
+
+            if let Some((top_parent_id, child_comments)) = stack.last_mut() {
+                if *top_parent_id == current.comment.comment_id {
+                    // child comments at the top of the stack belong to the current comment, add them
+                    current.child_comments.append(child_comments);
+                    stack.pop();
+                }
+            }
+
+            // if the current element has a parent, add it to the stack. Otherwise, add it to the comment tree as a root element.
+            if let Some(parent_id) = current.comment.parent_id {
+                if let Some((top_parent_id, top_child_comments)) = stack.last_mut() {
+                    if parent_id == *top_parent_id {
+                        // same parent id as the top of the stack, add it
+                        top_child_comments.push(current);
+                    } else {
+                        // different parent id as the top of the stack, add it as a new element on the stack
+                        stack.push((parent_id, Vec::from([current])));
+                    }
+                } else {
+                    // no element on the stack, add the current comment as a new element
+                    stack.push((parent_id, Vec::from([current])));
+                }
+            } else {
+                comment_tree.push(current);
+            }
+        }
+
+        Ok(comment_tree)
+    }
 }
 
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -146,85 +235,7 @@ pub async fn get_post_comment_tree(
     };
     let db_pool = get_db_pool()?;
 
-    if post_id < 1 {
-        return Err(ServerFnError::new("Invalid post id."));
-    }
-
-    let sort_column = sort_type.to_order_by_code();
-
-    let comment_with_vote_vec = sqlx::query_as::<_, ssr::CommentWithVote>(
-        format!("WITH RECURSIVE comment_tree AS (
-            SELECT c.*,
-                   v.vote_id,
-                   v.creator_id as vote_creator_id,
-                   v.post_id as vote_post_id,
-                   v.comment_id as vote_comment_id,
-                   v.value,
-                   v.timestamp as vote_timestamp,
-                   1 AS depth,
-                   ARRAY[(c.{sort_column}, c.comment_id)] AS path
-            FROM comments c
-            LEFT JOIN votes v
-            ON v.comment_id = c.comment_id AND
-               v.creator_id = $1
-            WHERE
-                c.post_id = $2 AND
-                c.parent_id IS NULL
-            UNION ALL
-            SELECT n.*,
-                   vr.vote_id,
-                   vr.creator_id as vote_creator_id,
-                   vr.post_id as vote_post_id,
-                   vr.comment_id as vote_comment_id,
-                   vr.value,
-                   vr.timestamp as vote_timestamp,
-                   r.depth + 1,
-                   r.path || (n.{sort_column}, n.comment_id)
-            FROM comment_tree r
-            JOIN comments n ON n.parent_id = r.comment_id
-            LEFT JOIN votes vr
-            ON vr.comment_id = n.comment_id AND
-               vr.creator_id = $1
-        )
-        SELECT * FROM comment_tree
-        ORDER BY path DESC").as_str(),
-    )
-        .bind(user_id)
-        .bind(post_id)
-        .fetch_all(&db_pool)
-        .await?;
-
-    let mut comment_tree = Vec::<CommentWithChildren>::new();
-    let mut stack = Vec::<(i64, Vec::<CommentWithChildren>)>::new();
-    for comment_with_vote in comment_with_vote_vec {
-        let mut current = comment_with_vote.into_comment_with_children();
-
-        if let Some((top_parent_id, child_comments)) = stack.last_mut() {
-            if *top_parent_id == current.comment.comment_id {
-                // child comments at the top of the stack belong to the current comment, add them
-                current.child_comments.append(child_comments);
-                stack.pop();
-            }
-        }
-
-        // if the current element has a parent, add it to the stack. Otherwise, add it to the comment tree as a root element.
-        if let Some(parent_id) = current.comment.parent_id {
-            if let Some((top_parent_id, top_child_comments)) = stack.last_mut() {
-                if parent_id == *top_parent_id {
-                    // same parent id as the top of the stack, add it
-                    top_child_comments.push(current);
-                } else {
-                    // different parent id as the top of the stack, add it as a new element on the stack
-                    stack.push((parent_id, Vec::from([current])));
-                }
-            } else {
-                // no element on the stack, add the current comment as a new element
-                stack.push((parent_id, Vec::from([current])));
-            }
-        } else {
-            comment_tree.push(current);
-        }
-    }
+    let comment_tree = ssr::get_post_comment_tree(post_id, sort_type, user_id, db_pool).await?;
 
     Ok(comment_tree)
 }

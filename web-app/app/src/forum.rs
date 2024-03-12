@@ -58,7 +58,7 @@ pub struct ForumWithSubscription {
 }
 
 #[server]
-pub async fn create_forum( name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
+pub async fn create_forum(name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
     log::trace!("Create Sphere '{name}', {description}, {is_nsfw:?}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;

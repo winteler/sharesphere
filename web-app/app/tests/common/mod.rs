@@ -1,10 +1,9 @@
 use std::env;
 use std::sync::{Mutex};
-use anyhow::Context;
-use leptos::ServerFnError;
 use sqlx::{PgPool};
 use sqlx::postgres::{PgPoolOptions};
-use tokio::sync::OnceCell;
+use app::auth::ssr::create_user;
+use app::auth::{OidcUserInfo, User};
 
 pub const TEST_DB_URL_ENV : &str = "TEST_DATABASE_URL";
 static DB_NUM: Mutex<i32> = Mutex::new(0);
@@ -47,4 +46,15 @@ pub async fn get_db_pool() -> PgPool {
         .connect(&test_db_url)
         .await
         .expect("Failed to connect to test DB")
+}
+
+pub async fn create_test_user(db_pool: &PgPool) -> User {
+
+    let oidc_info = OidcUserInfo {
+        oidc_id: String::from("test"),
+        username: String::from("test"),
+        email: String::from("test@test.com"),
+    };
+
+    create_user(oidc_info, db_pool).await.expect("Could not create test user.")
 }

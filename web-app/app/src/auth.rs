@@ -99,35 +99,19 @@ pub mod ssr {
     }
 
     impl User {
-        pub async fn get(oidc_info: OidcUserInfo, pool: &PgPool) -> Option<Self> {
+        pub async fn get(oidc_info: OidcUserInfo, db_pool: &PgPool) -> Option<Self> {
             match sqlx::query_as!(
                 SqlUser,
                 "SELECT * FROM users WHERE oidc_id = $1",
                 oidc_info.oidc_id.clone()
             )
-                .fetch_one(pool)
+                .fetch_one(db_pool)
                 .await {
                 Ok(sql_user) => Some(sql_user.into_user()),
                 Err(select_error) => {
                     log::info!("User not found with error: {}", select_error);
                     if let sqlx::Error::RowNotFound = select_error {
-                        log::info!("Try to insert new user");
-                        match sqlx::query_as!(
-                            SqlUser,
-                            "INSERT INTO users (oidc_id, username, email) VALUES ($1, $2, $3) RETURNING *",
-                            oidc_info.oidc_id,
-                            oidc_info.username,
-                            oidc_info.email,
-                        )
-                            .fetch_one(pool)
-                            .await
-                        {
-                            Ok(sql_user) => Some(sql_user.into_user()),
-                            Err(insert_error) => {
-                                log::error!("Error while storing new user: {}", insert_error);
-                                None
-                            },
-                        }
+                        create_user(oidc_info, db_pool).await
                     }
                     else {
                         log::error!("Could not get user {}", select_error);
@@ -158,6 +142,26 @@ pub mod ssr {
 
         fn is_anonymous(&self) -> bool {
             false
+        }
+    }
+
+    pub async fn create_user(oidc_info: OidcUserInfo, db_pool: &PgPool) -> Option<User> {
+        log::info!("Try to insert new user");
+        match sqlx::query_as!(
+            SqlUser,
+            "INSERT INTO users (oidc_id, username, email) VALUES ($1, $2, $3) RETURNING *",
+            oidc_info.oidc_id,
+            oidc_info.username,
+            oidc_info.email,
+        )
+            .fetch_one(db_pool)
+            .await
+        {
+            Ok(sql_user) => Some(sql_user.into_user()),
+            Err(insert_error) => {
+                log::error!("Error while creating user: {}", insert_error);
+                None
+            },
         }
     }
 

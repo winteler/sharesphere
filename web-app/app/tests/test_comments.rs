@@ -1,5 +1,4 @@
-use sqlx::postgres::PgPoolOptions;
-use crate::common::{get_db_pool};
+use crate::common::{create_test_user, get_db_pool};
 
 mod common;
 
@@ -11,4 +10,6 @@ async fn test_comment_tree() {
         .run(&db_pool)
         .await
         .expect("could not run SQLx migrations");
+
+    let test_user = create_test_user(&db_pool).await;
 }

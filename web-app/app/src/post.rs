@@ -5,23 +5,24 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::comment::{CommentButton, CommentSection};
+use crate::forum::get_all_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::forum::get_all_forum_names;
 use crate::icons::{ErrorIcon, LoadingIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, CommentSortWidget, FormTextEditor, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 
-pub const CREATE_POST_SUFFIX : &str = "/content";
-pub const CREATE_POST_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
-pub const CREATE_POST_FORUM_QUERY_PARAM : &str = "forum";
-pub const POST_ROUTE_PREFIX : &str = "/posts";
-pub const POST_ROUTE_PARAM_NAME : &str = "post_name";
-pub const POST_ROUTE : &str = concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
+pub const CREATE_POST_SUFFIX: &str = "/content";
+pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
+pub const CREATE_POST_FORUM_QUERY_PARAM: &str = "forum";
+pub const POST_ROUTE_PREFIX: &str = "/posts";
+pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
+pub const POST_ROUTE: &str =
+    concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -53,7 +54,7 @@ pub struct Post {
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithVote {
     pub post: Post,
-    pub vote: Option<Vote>
+    pub vote: Option<Vote>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -78,7 +79,11 @@ impl fmt::Display for PostSortType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use sqlx::PgPool;
+
+    use crate::auth::User;
     use crate::ranking::{Vote, VoteValue};
+
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
@@ -126,6 +131,43 @@ pub mod ssr {
         }
     }
 
+    pub async fn create_post(
+        forum: String,
+        title: String,
+        body: String,
+        is_nsfw: Option<String>,
+        tag: Option<String>,
+        user: User,
+        db_pool: PgPool,
+    ) -> Result<Post, ServerFnError> {
+        if forum.is_empty() || title.is_empty() {
+            return Err(ServerFnError::new(
+                "Cannot create content without a valid forum and title.",
+            ));
+        }
+
+        let post = sqlx::query_as!(
+            Post,
+            "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
+             VALUES (
+                $1, $2, $3, $4,
+                (SELECT forum_id FROM forums WHERE forum_name = $5),
+                $5, $6, $7
+            ) RETURNING *",
+            title,
+            body,
+            is_nsfw.is_some(),
+            tag.unwrap_or_default(),
+            forum.clone(),
+            user.user_id,
+            user.username,
+        )
+            .fetch_one(&db_pool)
+            .await?;
+
+        Ok(post)
+    }
+
     pub async fn update_post_scores() -> Result<(), ServerFnError> {
         let db_pool = get_db_pool()?;
         sqlx::query!(
@@ -133,8 +175,8 @@ pub mod ssr {
             SET scoring_timestamp = CURRENT_TIMESTAMP \
             WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
         )
-            .execute(&db_pool)
-            .await?;
+        .execute(&db_pool)
+        .await?;
 
         Ok(())
     }
@@ -145,47 +187,65 @@ pub async fn get_sorted_post_vec(sort_type: SortType) -> Result<Vec<Post>, Serve
     let db_pool = get_db_pool()?;
 
     let post_vec = sqlx::query_as::<_, Post>(
-        format!("SELECT * FROM posts \
-        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
+        format!(
+            "SELECT * FROM posts \
+        ORDER BY {} DESC",
+            sort_type.to_order_by_code()
+        )
+        .as_str(),
     )
-        .fetch_all(&db_pool)
-        .await?;
+    .fetch_all(&db_pool)
+    .await?;
 
     Ok(post_vec)
 }
 
 #[server]
-pub async fn get_subscribed_post_vec(user_id: i64, sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
+pub async fn get_subscribed_post_vec(
+    user_id: i64,
+    sort_type: SortType,
+) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
 
     let post_vec = sqlx::query_as::<_, Post>(
-        format!("SELECT p.* FROM posts p \
+        format!(
+            "SELECT p.* FROM posts p \
         JOIN forums f on f.forum_id = p.forum_id \
         WHERE f.forum_id IN ( \
             SELECT forum_id FROM forum_subscriptions WHERE user_id = $1 \
         ) \
-        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
+        ORDER BY {} DESC",
+            sort_type.to_order_by_code()
+        )
+        .as_str(),
     )
-        .bind(user_id)
-        .fetch_all(&db_pool)
-        .await?;
+    .bind(user_id)
+    .fetch_all(&db_pool)
+    .await?;
 
     Ok(post_vec)
 }
 
 #[server]
-pub async fn get_post_vec_by_forum_name(forum_name: String, sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
+pub async fn get_post_vec_by_forum_name(
+    forum_name: String,
+    sort_type: SortType,
+) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
 
     let post_vec = sqlx::query_as::<_, Post>(
-        format!("SELECT p.* FROM posts p \
+        format!(
+            "SELECT p.* FROM posts p \
         JOIN forums f on f.forum_id = p.forum_id \
         WHERE f.forum_name = $1 \
-        ORDER BY {} DESC", sort_type.to_order_by_code()).as_str()
+        ORDER BY {} DESC",
+            sort_type.to_order_by_code()
+        )
+        .as_str(),
     )
-        .bind(forum_name)
-        .fetch_all(&db_pool)
-        .await?;
+    .bind(forum_name)
+    .fetch_all(&db_pool)
+    .await?;
 
     Ok(post_vec)
 }
@@ -195,7 +255,7 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(user) => Some(user.user_id),
-        Err(_) => None
+        Err(_) => None,
     };
 
     let post_join_vote = sqlx::query_as::<_, ssr::PostJoinVote>(
@@ -212,45 +272,35 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
            v.creator_id = $1
         WHERE p.post_id = $2",
     )
-        .bind(user_id)
-        .bind(post_id)
-        .fetch_one(&db_pool)
-        .await?;
+    .bind(user_id)
+    .bind(post_id)
+    .fetch_one(&db_pool)
+    .await?;
 
     Ok(post_join_vote.into_post_with_vote())
 }
 
 #[server]
-pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Option<String>, tag: Option<String>) -> Result<(), ServerFnError> {
+pub async fn create_post(
+    forum: String,
+    title: String,
+    body: String,
+    is_nsfw: Option<String>,
+    tag: Option<String>,
+) -> Result<(), ServerFnError> {
     log::trace!("Create post '{title}'");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    if forum.is_empty() || title.is_empty() {
-        return Err(ServerFnError::new("Cannot create content without a valid forum and title."));
-    }
+    let post = ssr::create_post(forum.clone(), title, body, is_nsfw, tag, user, db_pool).await?;
 
-    let new_post = sqlx::query_as!(
-        Post,
-        "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
-         VALUES (
-            $1, $2, $3, $4,
-            (SELECT forum_id FROM forums WHERE forum_name = $5),
-            $5, $6, $7
-        ) RETURNING *",
-        title.clone(),
-        body,
-        is_nsfw.is_some(),
-        tag.unwrap_or_default(),
-        forum.clone(),
-        user.user_id,
-        user.username,
-    )
-        .fetch_one(&db_pool)
-        .await?;
-
-    log::info!("New post id: {}", new_post.post_id);
-    let new_post_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum.as_str() + POST_ROUTE_PREFIX + "/" + new_post.post_id.to_string().as_ref());
+    log::info!("New post id: {}", post.post_id);
+    let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()
+        + "/"
+        + forum.as_str()
+        + POST_ROUTE_PREFIX
+        + "/"
+        + post.post_id.to_string().as_ref());
     leptos_axum::redirect(new_post_path);
     Ok(())
 }
@@ -258,17 +308,17 @@ pub async fn create_post(forum: String, title: String, body: String, is_nsfw: Op
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
 pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     create_memo(move |current_post_id: Option<&i64>| {
-        if let Some(new_post_id_string) = params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned()) {
+        if let Some(new_post_id_string) =
+            params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned())
+        {
             if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
                 log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
                 new_post_id
-            }
-            else {
+            } else {
                 log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
                 current_post_id.cloned().unwrap_or_default()
             }
-        }
-        else {
+        } else {
             log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
             current_post_id.cloned().unwrap_or_default()
         }
@@ -284,16 +334,24 @@ pub fn CreatePost() -> impl IntoView {
     let has_error = move || create_post_result.with(|val| matches!(val, Some(Err(_))));
 
     let query = use_query_map();
-    let forum_query = move || query.with_untracked(|query| query.get(CREATE_POST_FORUM_QUERY_PARAM).unwrap_or(&String::default()).to_string());
+    let forum_query = move || {
+        query.with_untracked(|query| {
+            query
+                .get(CREATE_POST_FORUM_QUERY_PARAM)
+                .unwrap_or(&String::default())
+                .to_string()
+        })
+    };
 
     let forum_name_input = create_rw_signal(forum_query());
     let is_title_empty = create_rw_signal(true);
     let is_body_empty = create_rw_signal(true);
-    let is_content_invalid = create_memo(move |_| { is_title_empty.get() || is_body_empty.get() });
+    let is_content_invalid = create_memo(move |_| is_title_empty.get() || is_body_empty.get());
 
     let existing_forums = create_resource(
         move || state.create_forum_action.version().get(),
-        move |_| get_all_forum_names());
+        move |_| get_all_forum_names(),
+    );
 
     view! {
         <Transition fallback=move || (view! { <LoadingIcon/> })>
@@ -397,7 +455,8 @@ pub fn Post() -> impl IntoView {
         move |post_id| {
             log::debug!("Load data for post: {post_id}");
             get_post_with_vote_by_id(post_id)
-        });
+        },
+    );
 
     view! {
         <div class="flex flex-col content-start gap-1">
@@ -433,7 +492,6 @@ pub fn Post() -> impl IntoView {
 /// Component to encapsulate the widgets associated with each post
 #[component]
 fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
-
     let content = ContentWithVote::Post(&post.post, &post.vote);
 
     view! {

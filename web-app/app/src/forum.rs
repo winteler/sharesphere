@@ -5,24 +5,28 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
 use crate::error_template::ErrorTemplate;
-use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, SubscribedIcon, PlusIcon, StarIcon};
+use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 #[cfg(feature = "ssr")]
 use crate::post::get_post_vec_by_forum_name;
-use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
+use crate::post::{Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
 use crate::ranking::{ScoreIndicator, SortType};
 use crate::widget::{AuthorWidget, FormTextEditor, PostSortWidget, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 
-pub const CREATE_FORUM_SUFFIX : &str = "/forum";
-pub const CREATE_FORUM_ROUTE : &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
-pub const FORUM_ROUTE_PREFIX : &str = "/forums";
-pub const FORUM_ROUTE_PARAM_NAME : &str = "forum_name";
-pub const FORUM_ROUTE : &str = concatcp!(FORUM_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, FORUM_ROUTE_PARAM_NAME);
+pub const CREATE_FORUM_SUFFIX: &str = "/forum";
+pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
+pub const FORUM_ROUTE_PREFIX: &str = "/forums";
+pub const FORUM_ROUTE_PARAM_NAME: &str = "forum_name";
+pub const FORUM_ROUTE: &str = concatcp!(
+    FORUM_ROUTE_PREFIX,
+    PARAM_ROUTE_PREFIX,
+    FORUM_ROUTE_PARAM_NAME
+);
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -57,32 +61,59 @@ pub struct ForumWithSubscription {
     pub subscription_id: Option<i64>,
 }
 
+#[cfg(feature = "ssr")]
+pub mod ssr {
+    use leptos::ServerFnError;
+    use sqlx::PgPool;
+
+    use crate::auth::User;
+
+    pub async fn create_forum(
+        name: String,
+        description: String,
+        is_nsfw: Option<String>,
+        user: User,
+        db_pool: PgPool,
+    ) -> Result<(), ServerFnError> {
+        if name.is_empty() {
+            return Err(ServerFnError::new("Cannot create Sphere with empty name."));
+        }
+
+        if !name.chars().all(char::is_alphanumeric) {
+            return Err(ServerFnError::new(
+                "Sphere name can only contain alphanumeric characters.",
+            ));
+        }
+
+        sqlx::query!(
+            "INSERT INTO forums (forum_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
+            name.clone(),
+            description,
+            is_nsfw.is_some(),
+            user.user_id
+        )
+            .execute(&db_pool)
+            .await?;
+
+        Ok(())
+    }
+}
+
 #[server]
-pub async fn create_forum(name: String, description: String, is_nsfw: Option<String>) -> Result<(), ServerFnError> {
-    log::trace!("Create Sphere '{name}', {description}, {is_nsfw:?}");
+pub async fn create_forum(
+    forum_name: String,
+    description: String,
+    is_nsfw: Option<String>,
+) -> Result<(), ServerFnError> {
+    log::trace!("Create Sphere '{forum_name}', {description}, {is_nsfw:?}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    if name.is_empty() {
-        return Err(ServerFnError::new("Cannot create Sphere with empty name."));
-    }
+    let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str());
 
-    if !name.chars().all(char::is_alphanumeric) {
-        return Err(ServerFnError::new("Sphere name can only contain alphanumeric characters."));
-    }
-
-    sqlx::query!(
-        "INSERT INTO forums (forum_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
-        name.clone(),
-        description,
-        is_nsfw.is_some(),
-        user.user_id
-    )
-        .execute(&db_pool)
-        .await?;
+    ssr::create_forum(forum_name, description, is_nsfw, user, db_pool).await?;
 
     // Redirect to the new forum
-    let new_forum_path : &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + name.as_str());
     leptos_axum::redirect(new_forum_path);
     Ok(())
 }
@@ -97,15 +128,15 @@ async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
         user.user_id,
         forum_id
     )
-        .execute(&db_pool)
-        .await?;
+    .execute(&db_pool)
+    .await?;
 
     sqlx::query!(
         "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",
         forum_id
     )
-        .execute(&db_pool)
-        .await?;
+    .execute(&db_pool)
+    .await?;
 
     Ok(())
 }
@@ -120,15 +151,15 @@ async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
         user.user_id,
         forum_id,
     )
-        .execute(&db_pool)
-        .await?;
+    .execute(&db_pool)
+    .await?;
 
     sqlx::query!(
         "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",
         forum_id
     )
-        .execute(&db_pool)
-        .await?;
+    .execute(&db_pool)
+    .await?;
 
     Ok(())
 }
@@ -141,8 +172,8 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
         "SELECT * FROM forums f WHERE forum_name = $1",
         forum_name
     )
-        .fetch_one(&db_pool)
-        .await?;
+    .fetch_one(&db_pool)
+    .await?;
 
     Ok(forum)
 }
@@ -150,10 +181,7 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
 #[server]
 pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_vec = sqlx::query_as!(
-        Forum,
-        "SELECT * FROM forums"
-    )
+    let forum_vec = sqlx::query_as!(Forum, "SELECT * FROM forums")
         .fetch_all(&db_pool)
         .await?;
 
@@ -169,7 +197,9 @@ pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFn
 #[server]
 pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_vec = sqlx::query!("SELECT forum_name FROM forums").fetch_all(&db_pool).await?;
+    let forum_name_vec = sqlx::query!("SELECT forum_name FROM forums")
+        .fetch_all(&db_pool)
+        .await?;
 
     let mut forum_name_set = BTreeSet::<String>::new();
 
@@ -193,8 +223,8 @@ pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> 
         ORDER BY forum_name",
         user.user_id,
     )
-        .fetch_all(&db_pool)
-        .await?;
+    .fetch_all(&db_pool)
+    .await?;
 
     let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
 
@@ -208,11 +238,10 @@ pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> 
 #[server]
 pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_record_vec = sqlx::query!(
-        "SELECT * FROM forums ORDER BY num_members DESC, forum_name limit 20"
-    )
-        .fetch_all(&db_pool)
-        .await?;
+    let forum_record_vec =
+        sqlx::query!("SELECT * FROM forums ORDER BY num_members DESC, forum_name limit 20")
+            .fetch_all(&db_pool)
+            .await?;
 
     let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
 
@@ -224,11 +253,14 @@ pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
 }
 
 #[server]
-pub async fn get_forum_contents(forum_name: String, sort_type: SortType) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
+pub async fn get_forum_contents(
+    forum_name: String,
+    sort_type: SortType,
+) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(user) => Some(user.user_id),
-        Err(_) => None
+        Err(_) => None,
     };
     let forum = sqlx::query_as::<_, ForumWithSubscription>(
         "SELECT f.*, s.subscription_id \
@@ -236,12 +268,12 @@ pub async fn get_forum_contents(forum_name: String, sort_type: SortType) -> Resu
         LEFT JOIN forum_subscriptions s ON \
             s.forum_id = f.forum_id AND \
             s.user_id = $1 \
-        where forum_name = $2"
+        where forum_name = $2",
     )
-        .bind(user_id)
-        .bind(forum_name.clone())
-        .fetch_one(&db_pool)
-        .await?;
+    .bind(user_id)
+    .bind(forum_name.clone())
+    .fetch_one(&db_pool)
+    .await?;
 
     let post_vec = get_post_vec_by_forum_name(forum_name, sort_type).await?;
 
@@ -251,15 +283,17 @@ pub async fn get_forum_contents(forum_name: String, sort_type: SortType) -> Resu
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page
 pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     create_memo(move |current_forum_name: Option<&String>| {
-        if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()) {
-            log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
+        if let Some(new_forum_name) =
+            params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
+        {
+            log::trace!(
+                "Current forum name {current_forum_name:?}, new forum name: {new_forum_name}"
+            );
             new_forum_name
-        }
-        else {
+        } else {
             log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
             current_forum_name.cloned().unwrap_or_default()
         }
-
     })
 }
 
@@ -271,14 +305,20 @@ pub fn CreateForum() -> impl IntoView {
     // check if the server has returned an error
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
-    let existing_forums = create_resource( move || (state.create_forum_action.version().get()) , move |_| get_all_forum_names());
+    let existing_forums = create_resource(
+        move || (state.create_forum_action.version().get()),
+        move |_| get_all_forum_names(),
+    );
 
     let is_name_empty = create_rw_signal(true);
     let is_name_taken = create_rw_signal(false);
     let is_name_alphanumeric = create_rw_signal(false);
     let is_description_empty = create_rw_signal(true);
     let are_inputs_invalid = create_memo(move |_| {
-        is_name_empty.get() || is_name_taken.get() || !is_name_alphanumeric.get() || is_description_empty.get()
+        is_name_empty.get()
+            || is_name_taken.get()
+            || !is_name_alphanumeric.get()
+            || is_description_empty.get()
     });
 
     view! {
@@ -297,7 +337,7 @@ pub fn CreateForum() -> impl IntoView {
                                             <div class="flex gap-2">
                                                 <input
                                                     type="text"
-                                                    name="name"
+                                                    name="forum_name"
                                                     placeholder="Name"
                                                     autocomplete="off"
                                                     class="input input-bordered input-primary h-input_l flex-none w-1/2"
@@ -361,14 +401,22 @@ pub fn CreateForum() -> impl IntoView {
 pub fn ForumBanner() -> impl IntoView {
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned()).unwrap_or_default().as_ref();
+    let forum_path = move || {
+        FORUM_ROUTE_PREFIX.to_owned()
+            + "/"
+            + params
+                .with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
+                .unwrap_or_default()
+                .as_ref()
+    };
 
     let forum = create_resource(
         move || forum_name(),
         move |forum_name| {
             log::debug!("Load data for forum: {forum_name}");
             get_forum_by_name(forum_name)
-        });
+        },
+    );
 
     view! {
         <div class="flex flex-col gap-2 mt-2 mx-2 w-full">
@@ -411,8 +459,15 @@ pub fn ForumContents() -> impl IntoView {
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
     let forum_content = create_resource(
-        move || (forum_name(), state.create_post_action.version().get(), state.post_sort_type.get()),
-        move |(forum_name, _, sort_type)| get_forum_contents(forum_name, sort_type));
+        move || {
+            (
+                forum_name(),
+                state.create_post_action.version().get(),
+                state.post_sort_type.get(),
+            )
+        },
+        move |(forum_name, _, sort_type)| get_forum_contents(forum_name, sort_type),
+    );
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
@@ -440,10 +495,7 @@ pub fn ForumContents() -> impl IntoView {
 
 /// Component to display the forum toolbar
 #[component]
-pub fn ForumToolbar<'a>(
-    forum: &'a ForumWithSubscription,
-) -> impl IntoView {
-
+pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());

@@ -56,6 +56,7 @@ impl fmt::Display for CommentSortType {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
+    use crate::auth::User;
     use crate::ranking::{Vote, VoteValue};
     use super::*;
 
@@ -101,6 +102,32 @@ pub mod ssr {
                 CommentSortType::Recent => "create_timestamp",
             }
         }
+    }
+
+    pub async fn create_comment(
+        post_id: i64,
+        parent_comment_id: Option<i64>,
+        comment: String,
+        user: &User,
+        db_pool: PgPool,
+    ) -> Result<Comment, ServerFnError> {
+        if comment.is_empty() {
+            return Err(ServerFnError::new("Cannot create empty comment."));
+        }
+
+        let comment = sqlx::query_as!(
+            Comment,
+            "INSERT INTO comments (body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+            comment,
+            parent_comment_id,
+            post_id,
+            user.user_id,
+            user.username,
+        )
+            .fetch_one(&db_pool)
+            .await?;
+
+        Ok(comment)
     }
 
     pub async fn get_post_comment_tree(
@@ -204,6 +231,27 @@ const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
 ];
 
 #[server]
+pub async fn create_comment(
+    post_id: i64,
+    parent_comment_id: Option<i64>,
+    comment: String,
+) -> Result<(), ServerFnError> {
+    log::trace!("Create comment for post {post_id}");
+    let user = get_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::create_comment(
+        post_id,
+        parent_comment_id,
+        comment,
+        &user,
+        db_pool,
+    ).await?;
+
+    Ok(())
+}
+
+#[server]
 pub async fn get_post_comments(
     post_id: i64,
 ) -> Result<Vec<Comment>, ServerFnError> {
@@ -238,34 +286,6 @@ pub async fn get_post_comment_tree(
     let comment_tree = ssr::get_post_comment_tree(post_id, sort_type, user_id, db_pool).await?;
 
     Ok(comment_tree)
-}
-
-#[server]
-pub async fn create_comment(
-    post_id: i64,
-    parent_comment_id: Option<i64>,
-    comment: String,
-) -> Result<(), ServerFnError> {
-    log::trace!("Create comment for post {post_id}");
-    let user = get_user().await?;
-    let db_pool = get_db_pool()?;
-
-    if comment.is_empty() {
-        return Err(ServerFnError::new("Cannot create empty comment."));
-    }
-
-    sqlx::query!(
-        "INSERT INTO comments (body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5)",
-        comment,
-        parent_comment_id,
-        post_id,
-        user.user_id,
-        user.username,
-    )
-        .execute(&db_pool)
-        .await?;
-
-    Ok(())
 }
 
 /// Component to open the comment form

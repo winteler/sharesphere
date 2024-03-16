@@ -118,7 +118,7 @@ pub mod ssr {
         let (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
 
         if comment_id.is_some() {
-                sqlx::query!(
+            sqlx::query!(
                 "UPDATE comments set score = score + $1, score_minus = score_minus + $2 where comment_id = $3",
                 score_delta,
                 minus_delta,

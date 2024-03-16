@@ -132,15 +132,15 @@ pub mod ssr {
     }
 
     pub async fn create_post(
-        forum: String,
-        title: String,
-        body: String,
-        is_nsfw: Option<String>,
+        forum_name: &str,
+        post_title: &str,
+        post_body: &str,
+        is_nsfw: bool,
         tag: Option<String>,
-        user: User,
+        user: &User,
         db_pool: PgPool,
     ) -> Result<Post, ServerFnError> {
-        if forum.is_empty() || title.is_empty() {
+        if forum_name.is_empty() || post_title.is_empty() {
             return Err(ServerFnError::new(
                 "Cannot create content without a valid forum and title.",
             ));
@@ -154,11 +154,11 @@ pub mod ssr {
                 (SELECT forum_id FROM forums WHERE forum_name = $5),
                 $5, $6, $7
             ) RETURNING *",
-            title,
-            body,
-            is_nsfw.is_some(),
+            post_title,
+            post_body,
+            is_nsfw,
             tag.unwrap_or_default(),
-            forum.clone(),
+            forum_name,
             user.user_id,
             user.username,
         )
@@ -292,7 +292,15 @@ pub async fn create_post(
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    let post = ssr::create_post(forum.clone(), title, body, is_nsfw, tag, user, db_pool).await?;
+    let post = ssr::create_post(
+        forum.as_str(),
+        title.as_str(),
+        body.as_str(),
+        is_nsfw.is_some(),
+        tag,
+        &user,
+        db_pool
+    ).await?;
 
     log::info!("New post id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()

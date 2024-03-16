@@ -66,13 +66,11 @@ pub mod ssr {
     use leptos::ServerFnError;
     use sqlx::PgPool;
 
-    use crate::auth::User;
-
     pub async fn create_forum(
-        name: String,
-        description: String,
-        is_nsfw: Option<String>,
-        user: User,
+        name: &str,
+        description: &str,
+        is_nsfw: bool,
+        user_id: i64,
         db_pool: PgPool,
     ) -> Result<(), ServerFnError> {
         if name.is_empty() {
@@ -87,10 +85,10 @@ pub mod ssr {
 
         sqlx::query!(
             "INSERT INTO forums (forum_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
-            name.clone(),
+            name,
             description,
-            is_nsfw.is_some(),
-            user.user_id
+            is_nsfw,
+            user_id
         )
             .execute(&db_pool)
             .await?;
@@ -111,7 +109,13 @@ pub async fn create_forum(
 
     let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str());
 
-    ssr::create_forum(forum_name, description, is_nsfw, user, db_pool).await?;
+    ssr::create_forum(
+        forum_name.as_str(),
+        description.as_str(),
+        is_nsfw.is_some(),
+        user.user_id,
+        db_pool
+    ).await?;
 
     // Redirect to the new forum
     leptos_axum::redirect(new_forum_path);

@@ -32,7 +32,7 @@ pub enum ContentWithVote<'a> {
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Vote {
     pub vote_id: i64,
     pub creator_id: i64,
@@ -72,10 +72,11 @@ impl fmt::Display for SortType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use leptos::ServerFnError;
+    use leptos::{ServerFnError};
     use sqlx::PgPool;
+    use crate::auth::User;
 
-    use crate::ranking::{SortType, VoteInfo, VoteValue};
+    use crate::ranking::{SortType, Vote, VoteInfo, VoteValue};
 
     impl SortType {
         pub fn to_order_by_code(self) -> &'static str {
@@ -140,6 +141,61 @@ pub mod ssr {
         Ok(())
     }
 
+    pub async fn vote_on_content(
+        vote_value: VoteValue,
+        post_id: i64,
+        comment_id: Option<i64>,
+        previous_vote_info: Option<VoteInfo>,
+        user: &User,
+        db_pool: PgPool,
+    ) -> Result<Option<Vote>, ServerFnError> {
+        if previous_vote_info.as_ref().is_some_and(|vote_info: &VoteInfo| vote_info.value == vote_value) {
+            return Err(ServerFnError::new("Identical to previous vote."));
+        }
+
+        // TODO: add unique index to prevent multiple votes by same user
+
+        let vote = if previous_vote_info.is_some() {
+            let vote_id = previous_vote_info.as_ref().unwrap().vote_id;
+            if vote_value != VoteValue::None {
+                log::debug!("Update vote {vote_id} with value {vote_value:?}");
+                Some(sqlx::query_as!(
+                Vote,
+                "UPDATE votes SET value = $1 WHERE vote_id = $2 RETURNING *",
+                vote_value as i16,
+                vote_id
+            )
+                    .fetch_one(&db_pool)
+                    .await?)
+            } else {
+                log::debug!("Delete vote {vote_id}");
+                sqlx::query!(
+                "DELETE from votes WHERE vote_id = $1",
+                vote_id,
+            )
+                    .execute(&db_pool)
+                    .await?;
+                None
+            }
+        } else {
+            log::debug!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
+            Some(sqlx::query_as!(
+            Vote,
+            "INSERT INTO votes (post_id, comment_id, creator_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
+            post_id,
+            comment_id,
+            user.user_id,
+            vote_value as i16,
+        )
+                .fetch_one(&db_pool)
+                .await?)
+        };
+
+        update_content_score(vote_value, post_id, comment_id, previous_vote_info, &db_pool).await?;
+
+        Ok(vote)
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -191,49 +247,14 @@ pub async fn vote_on_content(
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    if previous_vote_info.as_ref().is_some_and(|vote_info: &VoteInfo| vote_info.value == vote_value) {
-        return Err(ServerFnError::new("Identical to previous vote."));
-    }
-
-    // TODO: add unique index to prevent multiple votes by same user
-
-    let vote = if previous_vote_info.is_some() {
-        let vote_id = previous_vote_info.as_ref().unwrap().vote_id;
-        if vote_value != VoteValue::None {
-            log::debug!("Update vote {vote_id} with value {vote_value:?}");
-            Some(sqlx::query_as!(
-                Vote,
-                "UPDATE votes SET value = $1 WHERE vote_id = $2 RETURNING *",
-                vote_value as i16,
-                vote_id
-            )
-                .fetch_one(&db_pool)
-                .await?)
-        } else {
-            log::debug!("Delete vote {vote_id}");
-            sqlx::query!(
-                "DELETE from votes WHERE vote_id = $1",
-                vote_id,
-            )
-                .execute(&db_pool)
-                .await?;
-            None
-        }
-    } else {
-        log::debug!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
-        Some(sqlx::query_as!(
-            Vote,
-            "INSERT INTO votes (post_id, comment_id, creator_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
-            post_id,
-            comment_id,
-            user.user_id,
-            vote_value as i16,
-        )
-            .fetch_one(&db_pool)
-            .await?)
-    };
-
-    ssr::update_content_score(vote_value, post_id, comment_id, previous_vote_info, &db_pool).await?;
+    let vote = ssr::vote_on_content(
+        vote_value,
+        post_id,
+        comment_id,
+        previous_vote_info,
+        &user,
+        db_pool,
+    ).await?;
 
     Ok(vote)
 }

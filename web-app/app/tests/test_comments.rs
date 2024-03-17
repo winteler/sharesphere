@@ -1,11 +1,11 @@
 use leptos::ServerFnError;
 use rand::Rng;
 
-use app::comment;
+use app::{comment, ranking};
 use app::comment::{CommentSortType, CommentWithChildren};
 use app::forum;
 use app::post;
-use app::ranking::SortType;
+use app::ranking::{SortType, Vote, VoteValue};
 
 use crate::common::{create_test_user, get_db_pool};
 use crate::data_factory::set_comment_score;
@@ -13,11 +13,28 @@ use crate::data_factory::set_comment_score;
 mod common;
 mod data_factory;
 
+fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
+    match comment_num % 3 {
+        0 => Some(VoteValue::Down),
+        1 => None,
+        _ => Some(VoteValue::Up),
+    }
+}
+
 fn test_comment_with_children(
     comment_with_children: &CommentWithChildren,
     sort_type: CommentSortType,
 ) {
     let mut index = 0usize;
+    let comment_num = comment_with_children.comment.body.parse::<usize>().expect("Failed to get comment number");
+    let expected_vote_value = get_vote_from_comment_num(comment_num);
+    if let Some(expected_vote_value) = expected_vote_value {
+        let vote: &Vote = &comment_with_children.vote.expect(format!("Expected vote for comment {comment_num}").as_str());
+        assert_eq!(vote.value, expected_vote_value)
+    } else {
+        assert!(comment_with_children.vote.is_none());
+    }
+
     for child_comment in &comment_with_children.child_comments {
         // Test that parent id is correct
         assert!(child_comment.comment.parent_id.is_some());
@@ -88,7 +105,20 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
             rng.gen_range(-100..101),
             db_pool.clone(),
         )
-        .await?
+        .await?;
+
+        let vote = get_vote_from_comment_num(i);
+
+        if vote.is_some() {
+            ranking::ssr::vote_on_content(
+                vote.unwrap(),
+                post.post_id,
+                Some(comment.comment_id),
+                None,
+                &test_user,
+                db_pool.clone()
+            ).await?;
+        }
     }
 
     let comment_sort_type_array = [CommentSortType::Best, CommentSortType::Recent];

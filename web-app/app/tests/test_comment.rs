@@ -24,8 +24,14 @@ fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
 fn test_comment_with_children(
     comment_with_children: &CommentWithChildren,
     sort_type: CommentSortType,
+    expected_user_id: i64,
+    expected_post_id: i64,
 ) {
-    let mut index = 0usize;
+    // Test current comment
+    assert_eq!(comment_with_children.comment.creator_id, expected_user_id);
+    assert_eq!(comment_with_children.comment.post_id, expected_post_id);
+
+    // Test associated vote
     let comment_num = comment_with_children
         .comment
         .body
@@ -36,11 +42,16 @@ fn test_comment_with_children(
         let vote: &Vote = &comment_with_children
             .vote
             .expect(format!("Expected vote for comment {comment_num}").as_str());
-        assert_eq!(vote.value, expected_vote_value)
+        assert_eq!(vote.value, expected_vote_value);
+        assert_eq!(vote.creator_id, expected_user_id);
+        assert_eq!(vote.post_id, expected_post_id);
+        assert_eq!(vote.comment_id, Some(comment_with_children.comment.comment_id));
     } else {
         assert!(comment_with_children.vote.is_none());
     }
 
+    // Test child comments
+    let mut index = 0usize;
     for child_comment in &comment_with_children.child_comments {
         // Test that parent id is correct
         assert!(child_comment.comment.parent_id.is_some());
@@ -60,7 +71,7 @@ fn test_comment_with_children(
             });
         }
         index += 1;
-        test_comment_with_children(child_comment, sort_type);
+        test_comment_with_children(child_comment, sort_type, expected_user_id, expected_post_id);
     }
 }
 
@@ -124,8 +135,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
                 None,
                 &test_user,
                 db_pool.clone(),
-            )
-            .await?;
+            ).await?;
         }
     }
 
@@ -144,7 +154,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
             // Check that root comments don't have a parent id
             assert!(comment.comment.parent_id.is_none());
             // Call recursive function to check the rest of the tree
-            test_comment_with_children(&comment, sort_type);
+            test_comment_with_children(&comment, sort_type, test_user.user_id, post.post_id);
         }
     }
 

@@ -1,7 +1,8 @@
 use leptos::ServerFnError;
 use rand::Rng;
 
-use app::{forum, post};
+use app::{forum, post, ranking};
+use app::ranking::VoteValue;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -55,6 +56,56 @@ async fn test_post_scores() -> Result<(), ServerFnError> {
 
     assert_eq!(post.recommended_score, expected_recommended_score);
     assert_eq!(post.trending_score, expected_trending_score);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_post_votes() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum_name = "forum";
+    forum::ssr::create_forum(
+        forum_name,
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    )
+        .await?;
+
+    let post = post::ssr::create_post(
+        forum_name,
+        "post",
+        "body",
+        false,
+        None,
+        &test_user,
+        db_pool.clone(),
+    )
+        .await?;
+
+    let post_with_vote = post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone()).await?;
+    assert!(post_with_vote.vote.is_none());
+
+    let vote_value = VoteValue::Up;
+    ranking::ssr::vote_on_content(
+        vote_value,
+        post.post_id,
+        None,
+        None,
+        &test_user,
+        db_pool.clone(),
+    ).await?;
+
+    let post_with_vote = post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool).await?;
+    assert!(post_with_vote.vote.is_some());
+    let vote = post_with_vote.vote.unwrap();
+    assert_eq!(vote.value, vote_value);
+    assert_eq!(vote.creator_id, test_user.user_id);
+    assert_eq!(vote.post_id, post.post_id);
+    assert_eq!(vote.comment_id, None);
 
     Ok(())
 }

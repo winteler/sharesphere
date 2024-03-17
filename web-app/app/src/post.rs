@@ -180,6 +180,44 @@ pub mod ssr {
 
         Ok(())
     }
+
+    pub async fn get_post_with_vote_by_id(
+        post_id: i64,
+        user_id: Option<i64>,
+        db_pool: PgPool,
+    ) -> Result<PostWithVote, ServerFnError> {
+        let post_join_vote = sqlx::query_as::<_, ssr::PostJoinVote>(
+            "SELECT p.*,
+            v.vote_id,
+            v.creator_id as vote_creator_id,
+            v.post_id as vote_post_id,
+            v.comment_id as vote_comment_id,
+            v.value,
+            v.timestamp as vote_timestamp
+            FROM posts p
+            LEFT JOIN votes v
+            ON v.post_id = p.post_id AND
+               v.creator_id = $1
+            WHERE p.post_id = $2",
+        )
+        .bind(user_id)
+        .bind(post_id)
+        .fetch_one(&db_pool)
+        .await?;
+
+        Ok(post_join_vote.into_post_with_vote())
+    }
+}
+
+#[server]
+pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let user_id = match get_user().await {
+        Ok(user) => Some(user.user_id),
+        Err(_) => None,
+    };
+
+    Ok(ssr::get_post_with_vote_by_id(post_id, user_id, db_pool).await?)
 }
 
 #[server]
@@ -251,36 +289,6 @@ pub async fn get_post_vec_by_forum_name(
 }
 
 #[server]
-pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, ServerFnError> {
-    let db_pool = get_db_pool()?;
-    let user_id = match get_user().await {
-        Ok(user) => Some(user.user_id),
-        Err(_) => None,
-    };
-
-    let post_join_vote = sqlx::query_as::<_, ssr::PostJoinVote>(
-        "SELECT p.*,
-                v.vote_id,
-                v.creator_id as vote_creator_id,
-                v.post_id as vote_post_id,
-                v.comment_id as vote_comment_id,
-                v.value,
-                v.timestamp as vote_timestamp
-        FROM posts p
-        LEFT JOIN votes v
-        ON v.post_id = p.post_id AND
-           v.creator_id = $1
-        WHERE p.post_id = $2",
-    )
-    .bind(user_id)
-    .bind(post_id)
-    .fetch_one(&db_pool)
-    .await?;
-
-    Ok(post_join_vote.into_post_with_vote())
-}
-
-#[server]
 pub async fn create_post(
     forum: String,
     title: String,
@@ -299,8 +307,9 @@ pub async fn create_post(
         is_nsfw.is_some(),
         tag,
         &user,
-        db_pool
-    ).await?;
+        db_pool,
+    )
+    .await?;
 
     log::info!("New post id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()

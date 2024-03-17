@@ -7,8 +7,8 @@ use app::post;
 use app::ranking::{SortType, Vote, VoteValue};
 use app::{comment, ranking};
 
-use crate::common::{create_test_user, get_db_pool};
-use crate::data_factory::set_comment_score;
+pub use crate::common::*;
+pub use crate::data_factory::*;
 
 mod common;
 mod data_factory;

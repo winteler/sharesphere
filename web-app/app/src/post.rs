@@ -207,6 +207,28 @@ pub mod ssr {
 
         Ok(post_join_vote.into_post_with_vote())
     }
+
+    pub async fn get_post_vec_by_forum_name(
+        forum_name: &str,
+        sort_type: SortType,
+        db_pool: PgPool,
+    ) -> Result<Vec<Post>, ServerFnError> {
+        let post_vec = sqlx::query_as::<_, Post>(
+            format!(
+                "SELECT p.* FROM posts p \
+                JOIN forums f on f.forum_id = p.forum_id \
+                WHERE f.forum_name = $1 \
+                ORDER BY {} DESC",
+                sort_type.to_order_by_code()
+            )
+                .as_str(),
+        )
+            .bind(forum_name)
+            .fetch_all(&db_pool)
+            .await?;
+
+        Ok(post_vec)
+    }
 }
 
 #[server]
@@ -248,11 +270,11 @@ pub async fn get_subscribed_post_vec(
     let post_vec = sqlx::query_as::<_, Post>(
         format!(
             "SELECT p.* FROM posts p \
-        JOIN forums f on f.forum_id = p.forum_id \
-        WHERE f.forum_id IN ( \
-            SELECT forum_id FROM forum_subscriptions WHERE user_id = $1 \
-        ) \
-        ORDER BY {} DESC",
+            JOIN forums f on f.forum_id = p.forum_id \
+            WHERE f.forum_id IN ( \
+                SELECT forum_id FROM forum_subscriptions WHERE user_id = $1 \
+            ) \
+            ORDER BY {} DESC",
             sort_type.to_order_by_code()
         )
         .as_str(),
@@ -270,22 +292,7 @@ pub async fn get_post_vec_by_forum_name(
     sort_type: SortType,
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
-
-    let post_vec = sqlx::query_as::<_, Post>(
-        format!(
-            "SELECT p.* FROM posts p \
-        JOIN forums f on f.forum_id = p.forum_id \
-        WHERE f.forum_name = $1 \
-        ORDER BY {} DESC",
-            sort_type.to_order_by_code()
-        )
-        .as_str(),
-    )
-    .bind(forum_name)
-    .fetch_all(&db_pool)
-    .await?;
-
-    Ok(post_vec)
+    Ok(ssr::get_post_vec_by_forum_name(forum_name.as_str(), sort_type, db_pool).await?)
 }
 
 #[server]

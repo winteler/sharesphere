@@ -218,7 +218,6 @@ pub mod ssr {
 
 #[server]
 pub async fn login( redirect_url: String) -> Result<User, ServerFnError> {
-
     let current_user = get_user().await;
 
     if current_user.as_ref().is_ok_and(|user| user.is_authenticated()) {

@@ -87,8 +87,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
         false,
         test_user.user_id,
         db_pool.clone(),
-    )
-    .await?;
+    ).await?;
 
     let post = post::ssr::create_post(
         forum_name,
@@ -98,8 +97,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
         None,
         &test_user,
         db_pool.clone(),
-    )
-    .await?;
+    ).await?;
 
     let mut rng = rand::thread_rng();
     let mut comment_id_vec = Vec::<i64>::new();
@@ -114,16 +112,15 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
             comment,
             &test_user,
             db_pool.clone(),
-        )
-        .await?;
+        ).await?;
+
         comment_id_vec.push(comment.comment_id);
 
         set_comment_score(
             comment.comment_id,
             rng.gen_range(-100..101),
             db_pool.clone(),
-        )
-        .await?;
+        ).await?;
 
         let vote_value = get_vote_from_comment_num(i);
 
@@ -147,8 +144,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
             SortType::Comment(sort_type),
             Some(test_user.user_id),
             db_pool.clone(),
-        )
-        .await?;
+        ).await?;
 
         for comment in comment_tree {
             // Check that root comments don't have a parent id

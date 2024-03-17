@@ -13,6 +13,16 @@ use crate::post::get_post_id_memo;
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
 
+const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
+const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-orange-500",
+    "bg-red-500",
+    "bg-violet-500",
+];
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Comment {
@@ -220,37 +230,6 @@ pub mod ssr {
     }
 }
 
-const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
-const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
-    "bg-blue-500",
-    "bg-green-500",
-    "bg-yellow-500",
-    "bg-orange-500",
-    "bg-red-500",
-    "bg-violet-500",
-];
-
-#[server]
-pub async fn create_comment(
-    post_id: i64,
-    parent_comment_id: Option<i64>,
-    comment: String,
-) -> Result<(), ServerFnError> {
-    log::trace!("Create comment for post {post_id}");
-    let user = get_user().await?;
-    let db_pool = get_db_pool()?;
-
-    ssr::create_comment(
-        post_id,
-        parent_comment_id,
-        comment,
-        &user,
-        db_pool,
-    ).await?;
-
-    Ok(())
-}
-
 #[server]
 pub async fn get_post_comments(
     post_id: i64,
@@ -286,6 +265,27 @@ pub async fn get_post_comment_tree(
     let comment_tree = ssr::get_post_comment_tree(post_id, sort_type, user_id, db_pool).await?;
 
     Ok(comment_tree)
+}
+
+#[server]
+pub async fn create_comment(
+    post_id: i64,
+    parent_comment_id: Option<i64>,
+    comment: String,
+) -> Result<(), ServerFnError> {
+    log::trace!("Create comment for post {post_id}");
+    let user = get_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::create_comment(
+        post_id,
+        parent_comment_id,
+        comment,
+        &user,
+        db_pool,
+    ).await?;
+
+    Ok(())
 }
 
 /// Component to open the comment form

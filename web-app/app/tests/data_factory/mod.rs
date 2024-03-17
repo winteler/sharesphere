@@ -1,34 +1,38 @@
 use leptos::ServerFnError;
 use sqlx::PgPool;
+use app::comment::Comment;
+use app::post::Post;
 
 pub async fn set_post_score(
     post_id: i64,
     score: i32,
     db_pool: PgPool,
-) -> Result<(), ServerFnError> {
-    sqlx::query!(
-        "UPDATE posts set score = $1 where post_id = $2",
+) -> Result<Post, ServerFnError> {
+    let post = sqlx::query_as!(
+        Post,
+        "UPDATE posts SET score = $1 WHERE post_id = $2 RETURNING *",
         score,
         post_id,
     )
-    .execute(&db_pool)
-    .await?;
+        .fetch_one(&db_pool)
+        .await?;
 
-    Ok(())
+    Ok(post)
 }
 
 pub async fn set_comment_score(
     comment_id: i64,
     score: i32,
     db_pool: PgPool,
-) -> Result<(), ServerFnError> {
-    sqlx::query!(
-        "UPDATE comments set score = $1 where comment_id = $2",
+) -> Result<Comment, ServerFnError> {
+    let comment = sqlx::query_as!(
+        Comment,
+        "UPDATE comments SET score = $1 WHERE comment_id = $2 RETURNING *",
         score,
         comment_id,
     )
-    .execute(&db_pool)
-    .await?;
+        .fetch_one(&db_pool)
+        .await?;
 
-    Ok(())
+    Ok(comment)
 }

@@ -25,7 +25,7 @@ pub async fn get_db_pool() -> PgPool {
     let main_db_pool = get_main_db_pool().await;
     println!("Setup database: {db_name}");
 
-    sqlx::query(format!("DROP DATABASE IF EXISTS {db_name}").as_str())
+    sqlx::query(format!("DROP DATABASE IF EXISTS {db_name} WITH (FORCE)").as_str())
         .execute(&main_db_pool)
         .await
         .expect(format!("Could not delete database: {db_name}").as_str());

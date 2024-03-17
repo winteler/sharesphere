@@ -1,11 +1,11 @@
 use leptos::ServerFnError;
 use rand::Rng;
 
-use app::{comment, ranking};
 use app::comment::{CommentSortType, CommentWithChildren};
 use app::forum;
 use app::post;
 use app::ranking::{SortType, Vote, VoteValue};
+use app::{comment, ranking};
 
 use crate::common::{create_test_user, get_db_pool};
 use crate::data_factory::set_comment_score;
@@ -26,10 +26,16 @@ fn test_comment_with_children(
     sort_type: CommentSortType,
 ) {
     let mut index = 0usize;
-    let comment_num = comment_with_children.comment.body.parse::<usize>().expect("Failed to get comment number");
+    let comment_num = comment_with_children
+        .comment
+        .body
+        .parse::<usize>()
+        .expect("Failed to get comment number");
     let expected_vote_value = get_vote_from_comment_num(comment_num);
     if let Some(expected_vote_value) = expected_vote_value {
-        let vote: &Vote = &comment_with_children.vote.expect(format!("Expected vote for comment {comment_num}").as_str());
+        let vote: &Vote = &comment_with_children
+            .vote
+            .expect(format!("Expected vote for comment {comment_num}").as_str());
         assert_eq!(vote.value, expected_vote_value)
     } else {
         assert!(comment_with_children.vote.is_none());
@@ -85,9 +91,9 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
     .await?;
 
     let mut rng = rand::thread_rng();
-    let comment_id_vec = Vec::<i64>::new();
+    let mut comment_id_vec = Vec::<i64>::new();
 
-    for i in 0..20 {
+    for i in 1..21 {
         let comment = i.to_string();
         let parent_id = comment_id_vec.get(i % 5);
 
@@ -99,6 +105,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
             db_pool.clone(),
         )
         .await?;
+        comment_id_vec.push(comment.comment_id);
 
         set_comment_score(
             comment.comment_id,
@@ -107,17 +114,18 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
         )
         .await?;
 
-        let vote = get_vote_from_comment_num(i);
+        let vote_value = get_vote_from_comment_num(i);
 
-        if vote.is_some() {
+        if vote_value.is_some() {
             ranking::ssr::vote_on_content(
-                vote.unwrap(),
+                vote_value.unwrap(),
                 post.post_id,
                 Some(comment.comment_id),
                 None,
                 &test_user,
-                db_pool.clone()
-            ).await?;
+                db_pool.clone(),
+            )
+            .await?;
         }
     }
 
@@ -127,7 +135,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
         let comment_tree = comment::ssr::get_post_comment_tree(
             post.post_id,
             SortType::Comment(sort_type),
-            None,
+            Some(test_user.user_id),
             db_pool.clone(),
         )
         .await?;

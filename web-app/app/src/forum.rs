@@ -67,6 +67,30 @@ pub mod ssr {
     use crate::post::{Post, ssr::get_post_vec_by_forum_name};
     use crate::ranking::SortType;
 
+    pub async fn get_forum_contents(
+        forum_name: &str,
+        sort_type: SortType,
+        user_id: Option<i64>,
+        db_pool: PgPool,
+    ) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
+        let forum = sqlx::query_as::<_, ForumWithSubscription>(
+        "SELECT f.*, s.subscription_id \
+            FROM forums f \
+            LEFT JOIN forum_subscriptions s ON \
+                s.forum_id = f.forum_id AND \
+                s.user_id = $1 \
+            where forum_name = $2",
+        )
+            .bind(user_id)
+            .bind(forum_name)
+            .fetch_one(&db_pool)
+            .await?;
+
+        let post_vec = get_post_vec_by_forum_name(forum_name, sort_type, db_pool).await?;
+
+        Ok((forum, post_vec))
+    }
+
     pub async fn create_forum(
         name: &str,
         description: &str,
@@ -97,28 +121,50 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn get_forum_contents(
-        forum_name: &str,
-        sort_type: SortType,
-        user_id: Option<i64>,
+    pub async fn subscribe(
+        forum_id: i64,
+        user_id: i64,
         db_pool: PgPool,
-    ) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
-        let forum = sqlx::query_as::<_, ForumWithSubscription>(
-        "SELECT f.*, s.subscription_id \
-            FROM forums f \
-            LEFT JOIN forum_subscriptions s ON \
-                s.forum_id = f.forum_id AND \
-                s.user_id = $1 \
-            where forum_name = $2",
+    ) -> Result<(), ServerFnError> {
+        sqlx::query!(
+            "INSERT INTO forum_subscriptions (user_id, forum_id) VALUES ($1, $2)",
+            user_id,
+            forum_id
         )
-            .bind(user_id)
-            .bind(forum_name)
-            .fetch_one(&db_pool)
+            .execute(&db_pool)
             .await?;
 
-        let post_vec = get_post_vec_by_forum_name(forum_name, sort_type, db_pool).await?;
+        sqlx::query!(
+            "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",
+            forum_id
+        )
+            .execute(&db_pool)
+            .await?;
 
-        Ok((forum, post_vec))
+        Ok(())
+    }
+
+    pub async fn unsubscribe(
+        forum_id: i64,
+        user_id: i64,
+        db_pool: PgPool,
+    ) -> Result<(), ServerFnError> {
+        sqlx::query!(
+            "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
+            user_id,
+            forum_id,
+        )
+            .execute(&db_pool)
+            .await?;
+
+        sqlx::query!(
+            "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",
+            forum_id
+        )
+            .execute(&db_pool)
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -257,48 +303,21 @@ pub async fn create_forum(
 }
 
 #[server]
-async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
+pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    sqlx::query!(
-        "INSERT INTO forum_subscriptions (user_id, forum_id) VALUES ($1, $2)",
-        user.user_id,
-        forum_id
-    )
-    .execute(&db_pool)
-    .await?;
-
-    sqlx::query!(
-        "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",
-        forum_id
-    )
-    .execute(&db_pool)
-    .await?;
+    ssr::subscribe(forum_id, user.user_id, db_pool).await?;
 
     Ok(())
 }
 
 #[server]
-async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
+pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    sqlx::query!(
-        "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
-        user.user_id,
-        forum_id,
-    )
-    .execute(&db_pool)
-    .await?;
-
-    sqlx::query!(
-        "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",
-        forum_id
-    )
-    .execute(&db_pool)
-    .await?;
-
+    ssr::unsubscribe(forum_id, user.user_id, db_pool).await?;
     Ok(())
 }
 

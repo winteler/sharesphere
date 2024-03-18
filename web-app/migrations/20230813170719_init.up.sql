@@ -24,7 +24,8 @@ CREATE TABLE forum_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,
    user_id BIGINT NOT NULL,
    forum_id BIGINT NOT NULL,
-   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+   CONSTRAINT unique_subscription UNIQUE (user_id, forum_id)
 );
 
 
@@ -76,7 +77,8 @@ CREATE TABLE votes (
     vote_id BIGSERIAL PRIMARY KEY,
     post_id BIGINT NOT NULL,
     comment_id BIGINT,
-    creator_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
     value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_vote UNIQUE NULLS NOT DISTINCT (post_id, comment_id, user_id)
 );

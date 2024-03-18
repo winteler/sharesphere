@@ -77,7 +77,7 @@ pub mod ssr {
         pub vote_id: Option<i64>,
         pub vote_post_id: Option<i64>,
         pub vote_comment_id: Option<Option<i64>>,
-        pub vote_creator_id: Option<i64>,
+        pub vote_user_id: Option<i64>,
         pub value: Option<i16>,
         pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
@@ -87,7 +87,7 @@ pub mod ssr {
             let comment_vote = if self.vote_id.is_some() {
                 Some(Vote {
                     vote_id: self.vote_id.unwrap(),
-                    creator_id: self.vote_creator_id.unwrap(),
+                    user_id: self.vote_user_id.unwrap(),
                     comment_id: self.vote_comment_id.unwrap(),
                     post_id: self.vote_post_id.unwrap(),
                     value: VoteValue::from(self.value.unwrap()),
@@ -156,7 +156,7 @@ pub mod ssr {
             format!("WITH RECURSIVE comment_tree AS (
             SELECT c.*,
                    v.vote_id,
-                   v.creator_id as vote_creator_id,
+                   v.user_id as vote_user_id,
                    v.post_id as vote_post_id,
                    v.comment_id as vote_comment_id,
                    v.value,
@@ -166,14 +166,14 @@ pub mod ssr {
             FROM comments c
             LEFT JOIN votes v
             ON v.comment_id = c.comment_id AND
-               v.creator_id = $1
+               v.user_id = $1
             WHERE
                 c.post_id = $2 AND
                 c.parent_id IS NULL
             UNION ALL
             SELECT n.*,
                    vr.vote_id,
-                   vr.creator_id as vote_creator_id,
+                   vr.user_id as vote_user_id,
                    vr.post_id as vote_post_id,
                    vr.comment_id as vote_comment_id,
                    vr.value,
@@ -184,7 +184,7 @@ pub mod ssr {
             JOIN comments n ON n.parent_id = r.comment_id
             LEFT JOIN votes vr
             ON vr.comment_id = n.comment_id AND
-               vr.creator_id = $1
+               vr.user_id = $1
         )
         SELECT * FROM comment_tree
         ORDER BY path DESC").as_str(),

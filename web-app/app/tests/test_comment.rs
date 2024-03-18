@@ -43,7 +43,7 @@ fn test_comment_with_children(
             .vote
             .expect(format!("Expected vote for comment {comment_num}").as_str());
         assert_eq!(vote.value, expected_vote_value);
-        assert_eq!(vote.creator_id, expected_user_id);
+        assert_eq!(vote.user_id, expected_user_id);
         assert_eq!(vote.post_id, expected_post_id);
         assert_eq!(vote.comment_id, Some(comment_with_children.comment.comment_id));
     } else {
@@ -61,7 +61,9 @@ fn test_comment_with_children(
         );
         // Test that the child comments are correctly sorted
         if index > 0 {
-            let previous_child_comment = &comment_with_children.child_comments[index - 1];
+            let previous_child_comment = &comment_with_children.child_comments.get(index - 1);
+            assert!(previous_child_comment.is_some());
+            let previous_child_comment = previous_child_comment.unwrap();
             assert!(match sort_type {
                 CommentSortType::Best =>
                     child_comment.comment.score < previous_child_comment.comment.score,

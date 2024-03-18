@@ -91,5 +91,31 @@ async fn test_get_forum_contents() -> Result<(), ServerFnError> {
         );
     }
 
+    let (forum_with_subscription, _) = forum::ssr::get_forum_contents(
+        forum_name,
+        SortType::Post(PostSortType::Hot),
+        Some(test_user.user_id),
+        db_pool.clone(),
+    ).await?;
+    assert!(forum_with_subscription.subscription_id.is_none());
+
+    forum::ssr::subscribe(expected_post_vec.first().expect("Expected post").forum_id, test_user.user_id, db_pool.clone()).await?;
+    let (forum_with_subscription, _) = forum::ssr::get_forum_contents(
+        forum_name,
+        SortType::Post(PostSortType::Hot),
+        Some(test_user.user_id),
+        db_pool.clone(),
+    ).await?;
+    assert!(forum_with_subscription.subscription_id.is_some());
+
+    forum::ssr::unsubscribe(expected_post_vec.first().expect("Expected post").forum_id, test_user.user_id, db_pool.clone()).await?;
+    let (forum_with_subscription, _) = forum::ssr::get_forum_contents(
+        forum_name,
+        SortType::Post(PostSortType::Hot),
+        Some(test_user.user_id),
+        db_pool.clone(),
+    ).await?;
+    assert!(forum_with_subscription.subscription_id.is_none());
+
     Ok(())
 }

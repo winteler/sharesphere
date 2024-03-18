@@ -93,7 +93,7 @@ pub mod ssr {
         pub vote_id: Option<i64>,
         pub vote_post_id: Option<i64>,
         pub vote_comment_id: Option<Option<i64>>,
-        pub vote_creator_id: Option<i64>,
+        pub vote_user_id: Option<i64>,
         pub value: Option<i16>,
         pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
@@ -105,7 +105,7 @@ pub mod ssr {
                     vote_id: self.vote_id.unwrap(),
                     post_id: self.vote_post_id.unwrap(),
                     comment_id: None,
-                    creator_id: self.vote_creator_id.unwrap(),
+                    user_id: self.vote_user_id.unwrap(),
                     value: VoteValue::from(self.value.unwrap()),
                     timestamp: self.vote_timestamp.unwrap(),
                 })
@@ -186,10 +186,10 @@ pub mod ssr {
         user_id: Option<i64>,
         db_pool: PgPool,
     ) -> Result<PostWithVote, ServerFnError> {
-        let post_join_vote = sqlx::query_as::<_, ssr::PostJoinVote>(
+        let post_join_vote = sqlx::query_as::<_, PostJoinVote>(
             "SELECT p.*,
             v.vote_id,
-            v.creator_id as vote_creator_id,
+            v.user_id as vote_user_id,
             v.post_id as vote_post_id,
             v.comment_id as vote_comment_id,
             v.value,
@@ -197,7 +197,7 @@ pub mod ssr {
             FROM posts p
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
-               v.creator_id = $1
+               v.user_id = $1
             WHERE p.post_id = $2",
         )
         .bind(user_id)
@@ -249,7 +249,7 @@ pub async fn get_sorted_post_vec(sort_type: SortType) -> Result<Vec<Post>, Serve
     let post_vec = sqlx::query_as::<_, Post>(
         format!(
             "SELECT * FROM posts \
-        ORDER BY {} DESC",
+            ORDER BY {} DESC",
             sort_type.to_order_by_code()
         )
         .as_str(),

@@ -205,7 +205,6 @@ pub mod ssr {
                     .await?)
         };
 
-        println!("Update content score");
         update_content_score(vote_value, post_id, comment_id, previous_vote_info, &db_pool).await?;
 
         Ok(vote)

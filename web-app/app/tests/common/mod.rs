@@ -6,6 +6,7 @@ use sqlx::PgPool;
 
 use app::auth::ssr::create_user;
 use app::auth::{OidcUserInfo, User};
+use app::post::{Post, PostSortType};
 
 pub const TEST_DB_URL_ENV: &str = "TEST_DATABASE_URL";
 static DB_NUM: Mutex<i32> = Mutex::new(0);
@@ -64,4 +65,27 @@ pub async fn create_test_user(db_pool: &PgPool) -> User {
     create_user(oidc_info, db_pool)
         .await
         .expect("Could not create test user.")
+}
+
+pub fn test_post_vec(
+    post_vec: &Vec<Post>,
+    expected_post_vec: &Vec<Post>,
+    sort_type: PostSortType,
+    expected_user_id: i64,
+) {
+    let mut index = 0usize;
+    for post in post_vec {
+        assert_eq!(post.creator_id, expected_user_id);
+        assert!(expected_post_vec.contains(post));
+        if index > 0 {
+            let previous_post = &post_vec[index - 1];
+            assert!(match sort_type {
+                PostSortType::Hot => post.recommended_score <= previous_post.recommended_score,
+                PostSortType::Trending => post.trending_score <= previous_post.trending_score,
+                PostSortType::Best => post.score <= previous_post.score,
+                PostSortType::Recent => post.create_timestamp <= previous_post.create_timestamp,
+            });
+        }
+        index += 1;
+    }
 }

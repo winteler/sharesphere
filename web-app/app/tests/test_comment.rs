@@ -66,10 +66,10 @@ fn test_comment_with_children(
             let previous_child_comment = previous_child_comment.unwrap();
             assert!(match sort_type {
                 CommentSortType::Best =>
-                    child_comment.comment.score < previous_child_comment.comment.score,
+                    child_comment.comment.score <= previous_child_comment.comment.score,
                 CommentSortType::Recent =>
                     child_comment.comment.create_timestamp
-                        < previous_child_comment.comment.create_timestamp,
+                        <= previous_child_comment.comment.create_timestamp,
             });
         }
         index += 1;

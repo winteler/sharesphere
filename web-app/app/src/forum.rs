@@ -63,7 +63,7 @@ pub struct ForumWithSubscription {
 pub mod ssr {
     use leptos::ServerFnError;
     use sqlx::PgPool;
-    use crate::forum::ForumWithSubscription;
+    use crate::forum::{Forum, ForumWithSubscription};
     use crate::post::{Post, ssr::get_post_vec_by_forum_name};
     use crate::ranking::SortType;
 
@@ -97,7 +97,7 @@ pub mod ssr {
         is_nsfw: bool,
         user_id: i64,
         db_pool: PgPool,
-    ) -> Result<(), ServerFnError> {
+    ) -> Result<Forum, ServerFnError> {
         if name.is_empty() {
             return Err(ServerFnError::new("Cannot create Sphere with empty name."));
         }
@@ -108,17 +108,18 @@ pub mod ssr {
             ));
         }
 
-        sqlx::query!(
-            "INSERT INTO forums (forum_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4)",
+        let forum = sqlx::query_as!(
+            Forum,
+            "INSERT INTO forums (forum_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4) RETURNING *",
             name,
             description,
             is_nsfw,
             user_id
         )
-            .execute(&db_pool)
+            .fetch_one(&db_pool)
             .await?;
 
-        Ok(())
+        Ok(forum)
     }
 
     pub async fn subscribe(

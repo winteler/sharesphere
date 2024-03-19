@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet};
 
 use const_format::concatcp;
 use leptos::*;
@@ -181,22 +181,6 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
         .await?;
 
     Ok(forum)
-}
-
-#[server]
-pub async fn get_forum_by_name_map() -> Result<BTreeMap<String, Forum>, ServerFnError> {
-    let db_pool = get_db_pool()?;
-    let forum_vec = sqlx::query_as!(Forum, "SELECT * FROM forums")
-        .fetch_all(&db_pool)
-        .await?;
-
-    let mut forum_by_name_map = BTreeMap::<String, Forum>::new();
-
-    for forum in forum_vec {
-        forum_by_name_map.insert(forum.forum_name.clone(), forum);
-    }
-
-    Ok(forum_by_name_map)
 }
 
 #[server]

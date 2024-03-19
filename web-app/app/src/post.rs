@@ -311,7 +311,8 @@ pub async fn get_post_vec_by_forum_name(
     sort_type: SortType,
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    Ok(ssr::get_post_vec_by_forum_name(forum_name.as_str(), sort_type, db_pool).await?)
+    let post_vec = ssr::get_post_vec_by_forum_name(forum_name.as_str(), sort_type, db_pool).await?;
+    Ok(post_vec)
 }
 
 #[server]
@@ -337,7 +338,7 @@ pub async fn create_post(
     )
     .await?;
 
-    log::info!("New post id: {}", post.post_id);
+    log::trace!("New post id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()
         + "/"
         + forum.as_str()

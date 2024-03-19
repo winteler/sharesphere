@@ -231,27 +231,6 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_post_comments(
-    post_id: i64,
-) -> Result<Vec<Comment>, ServerFnError> {
-    let db_pool = get_db_pool()?;
-
-    if post_id < 1 {
-        return Err(ServerFnError::new("Invalid post id."));
-    }
-
-    let comment_vec = sqlx::query_as!(
-        Comment,
-        "select * from comments where post_id = $1",
-        post_id,
-    )
-        .fetch_all(&db_pool)
-        .await?;
-
-    Ok(comment_vec)
-}
-
-#[server]
 pub async fn get_post_comment_tree(
     post_id: i64,
     sort_type: SortType,

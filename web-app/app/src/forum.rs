@@ -26,6 +26,8 @@ pub const FORUM_ROUTE: &str = concatcp!(
     FORUM_ROUTE_PARAM_NAME
 );
 
+pub const FORUM_FETCH_LIMIT: i64 = 20;
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Forum {
@@ -61,6 +63,7 @@ pub struct ForumWithSubscription {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use std::collections::BTreeSet;
     use leptos::ServerFnError;
     use sqlx::PgPool;
     use crate::forum::{Forum, ForumWithSubscription};
@@ -89,6 +92,79 @@ pub mod ssr {
         let post_vec = get_post_vec_by_forum_name(forum_name, sort_type, db_pool).await?;
 
         Ok((forum, post_vec))
+    }
+
+    pub async fn get_forum_by_name(
+        forum_name: &str,
+        db_pool: PgPool,
+    ) -> Result<Forum, ServerFnError> {
+        let forum = sqlx::query_as!(
+            Forum,
+            "SELECT * FROM forums f WHERE forum_name = $1",
+            forum_name
+        )
+            .fetch_one(&db_pool)
+            .await?;
+
+        Ok(forum)
+    }
+
+    pub async fn get_all_forum_names(
+        limit: i64,
+        db_pool: PgPool,
+    ) -> Result<BTreeSet<String>, ServerFnError> {
+        let forum_name_vec = sqlx::query!("SELECT forum_name FROM forums LIMIT $1", limit)
+            .fetch_all(&db_pool)
+            .await?;
+
+        let mut forum_name_set = BTreeSet::<String>::new();
+
+        for row in forum_name_vec {
+            forum_name_set.insert(row.forum_name);
+        }
+
+        Ok(forum_name_set)
+    }
+
+    pub async fn get_popular_forum_names(
+        db_pool: PgPool,
+    ) -> Result<Vec<String>, ServerFnError> {
+        let forum_record_vec =
+            sqlx::query!("SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT 20")
+                .fetch_all(&db_pool)
+                .await?;
+
+        let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
+
+        for forum in forum_record_vec {
+            forum_name_vec.push(forum.forum_name);
+        }
+
+        Ok(forum_name_vec)
+    }
+
+    pub async fn get_subscribed_forum_names(
+        user_id: i64,
+        db_pool: PgPool,
+    ) -> Result<Vec<String>, ServerFnError> {
+        let forum_record_vec = sqlx::query!(
+            "SELECT f.forum_name FROM forums f \
+            JOIN forum_subscriptions s ON \
+                f.forum_id = s.forum_id AND \
+                f.creator_id = $1 \
+            ORDER BY forum_name",
+            user_id,
+        )
+            .fetch_all(&db_pool)
+            .await?;
+
+        let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
+
+        for forum in forum_record_vec {
+            forum_name_vec.push(forum.forum_name);
+        }
+
+        Ok(forum_name_vec)
     }
 
     pub async fn create_forum(
@@ -172,30 +248,14 @@ pub mod ssr {
 #[server]
 pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum = sqlx::query_as!(
-        Forum,
-        "SELECT * FROM forums f WHERE forum_name = $1",
-        forum_name
-    )
-        .fetch_one(&db_pool)
-        .await?;
-
+    let forum = ssr::get_forum_by_name(&forum_name, db_pool).await?;
     Ok(forum)
 }
 
 #[server]
 pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_vec = sqlx::query!("SELECT forum_name FROM forums")
-        .fetch_all(&db_pool)
-        .await?;
-
-    let mut forum_name_set = BTreeSet::<String>::new();
-
-    for row in forum_name_vec {
-        forum_name_set.insert(row.forum_name);
-    }
-
+    let forum_name_set = ssr::get_all_forum_names(FORUM_FETCH_LIMIT, db_pool).await?;
     Ok(forum_name_set)
 }
 
@@ -203,41 +263,14 @@ pub async fn get_all_forum_names() -> Result<BTreeSet<String>, ServerFnError> {
 pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user = get_user().await?;
-
-    let forum_record_vec = sqlx::query!(
-        "SELECT f.forum_name FROM forums f \
-        JOIN forum_subscriptions s ON \
-            f.forum_id = s.forum_id AND \
-            f.creator_id = $1 \
-        ORDER BY forum_name",
-        user.user_id,
-    )
-        .fetch_all(&db_pool)
-        .await?;
-
-    let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
-
-    for forum in forum_record_vec {
-        forum_name_vec.push(forum.forum_name);
-    }
-
+    let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, db_pool).await?;
     Ok(forum_name_vec)
 }
 
 #[server]
 pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_record_vec =
-        sqlx::query!("SELECT * FROM forums ORDER BY num_members DESC, forum_name limit 20")
-            .fetch_all(&db_pool)
-            .await?;
-
-    let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
-
-    for forum in forum_record_vec {
-        forum_name_vec.push(forum.forum_name);
-    }
-
+    let forum_name_vec = ssr::get_popular_forum_names(db_pool).await?;
     Ok(forum_name_vec)
 }
 

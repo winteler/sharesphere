@@ -1,6 +1,7 @@
+use std::collections::BTreeSet;
 use leptos::ServerFnError;
 
-use app::forum;
+use app::{forum};
 use app::ranking::{SortType};
 use app::post::{Post, PostSortType};
 
@@ -9,6 +10,79 @@ pub use crate::data_factory::*;
 
 mod common;
 mod data_factory;
+
+#[tokio::test]
+async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum_name = "forum";
+    let expected_forum = forum::ssr::create_forum(
+        forum_name,
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await?;
+
+    let forum = forum::ssr::get_forum_by_name(forum_name, db_pool).await?;
+
+    assert_eq!(forum, expected_forum);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_all_forum_names() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let num_forums = 20;
+    let mut expected_forum_name_set = BTreeSet::<String>::new();
+    for i in 0..num_forums {
+        expected_forum_name_set.insert(
+            forum::ssr::create_forum(
+                i.to_string().as_str(),
+                "forum",
+                false,
+                test_user.user_id,
+                db_pool.clone(),
+            ).await?.forum_name
+        );
+    }
+
+    let forum_name_set = forum::ssr::get_all_forum_names(num_forums, db_pool.clone()).await?;
+
+    assert_eq!(forum_name_set, expected_forum_name_set);
+
+    for i in num_forums..2*num_forums {
+        expected_forum_name_set.insert(
+            forum::ssr::create_forum(
+                i.to_string().as_str(),
+                "forum",
+                false,
+                test_user.user_id,
+                db_pool.clone(),
+            ).await?.forum_name
+        );
+    }
+
+    let forum_name_set = forum::ssr::get_all_forum_names(num_forums, db_pool).await?;
+
+    assert_eq!(forum_name_set.len(), 20);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
+    Ok(())
+}
 
 #[tokio::test]
 async fn test_get_forum_contents() -> Result<(), ServerFnError> {

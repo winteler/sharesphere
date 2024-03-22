@@ -1,7 +1,10 @@
+use std::cmp::min;
 use std::collections::BTreeSet;
 use leptos::ServerFnError;
+use sqlx::PgPool;
 
 use app::{forum};
+use app::forum::Forum;
 use app::ranking::{SortType};
 use app::post::{Post, PostSortType};
 
@@ -10,6 +13,26 @@ pub use crate::data_factory::*;
 
 mod common;
 mod data_factory;
+
+async fn set_forum_num_members(
+    forum_id: i64,
+    num_members: i32,
+    db_pool: PgPool,
+) -> Result<Forum, ServerFnError> {
+    let forum = sqlx::query_as!(
+        Forum,
+        "UPDATE forums \
+        SET num_members = $1 \
+        WHERE forum_id = $2 \
+        RETURNING *",
+        num_members,
+        forum_id
+    )
+        .fetch_one(&db_pool)
+        .await?;
+
+    Ok(forum)
+}
 
 #[tokio::test]
 async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
@@ -76,11 +99,80 @@ async fn test_get_all_forum_names() -> Result<(), ServerFnError> {
 
 #[tokio::test]
 async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let num_forum = 30;
+    let num_forum_fetch = 20usize;
+    for i in 0..num_forum {
+        let forum = forum::ssr::create_forum(
+            i.to_string().as_str(),
+            "forum",
+            false,
+            test_user.user_id,
+            db_pool.clone(),
+        ).await?;
+
+        set_forum_num_members(
+            forum.forum_id,
+            i,
+            db_pool.clone(),
+        ).await?;
+    }
+
+    let popular_forum_name_vec = forum::ssr::get_popular_forum_names(num_forum_fetch as i64, db_pool).await?;
+
+    assert_eq!(popular_forum_name_vec.len(), num_forum_fetch);
+    let mut expected_forum_num = num_forum - 1;
+    for forum_name in popular_forum_name_vec {
+        assert_eq!(forum_name, expected_forum_num.to_string());
+        expected_forum_num -= 1;
+    }
+
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let num_forum = 30usize;
+    let num_forum_fetch = 20usize;
+    let mut expected_subscribed_forum = Vec::<Forum>::with_capacity(20);
+    for i in 0..num_forum {
+        let forum = forum::ssr::create_forum(
+            i.to_string().as_str(),
+            "forum",
+            false,
+            test_user.user_id,
+            db_pool.clone(),
+        ).await?;
+
+        if i % 2 == 1 {
+            forum::ssr::subscribe(
+                forum.forum_id,
+                test_user.user_id,
+                db_pool.clone(),
+            ).await?;
+
+            expected_subscribed_forum.push(forum);
+        }
+    }
+
+    let popular_forum_name_vec = forum::ssr::get_subscribed_forum_names(test_user.user_id, db_pool).await?;
+
+    assert_eq!(popular_forum_name_vec.len(), min(num_forum_fetch, expected_subscribed_forum.len()));
+    let mut prev_forum_name: Option<String> = None;
+    for forum_name in popular_forum_name_vec {
+        assert_eq!(forum_name.parse::<usize>().expect("Could not parse forum name.") % 2, 1);
+        if let Some(prev_forum_name) = prev_forum_name {
+
+            assert!(prev_forum_name < forum_name);
+        }
+        prev_forum_name = Some(forum_name);
+    }
+
     Ok(())
 }
 

@@ -127,10 +127,11 @@ pub mod ssr {
     }
 
     pub async fn get_popular_forum_names(
+        limit: i64,
         db_pool: PgPool,
     ) -> Result<Vec<String>, ServerFnError> {
         let forum_record_vec =
-            sqlx::query!("SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT 20")
+            sqlx::query!("SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT $1", limit)
                 .fetch_all(&db_pool)
                 .await?;
 
@@ -270,7 +271,7 @@ pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> 
 #[server]
 pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_vec = ssr::get_popular_forum_names(db_pool).await?;
+    let forum_name_vec = ssr::get_popular_forum_names(FORUM_FETCH_LIMIT, db_pool).await?;
     Ok(forum_name_vec)
 }
 

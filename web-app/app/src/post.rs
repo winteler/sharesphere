@@ -220,8 +220,7 @@ pub mod ssr {
                 WHERE f.forum_name = $1 \
                 ORDER BY {} DESC",
                 sort_type.to_order_by_code()
-            )
-            .as_str(),
+            ).as_str(),
         )
         .bind(forum_name)
         .fetch_all(&db_pool)
@@ -416,7 +415,7 @@ pub fn CreatePost() -> impl IntoView {
                             autocomplete="off"
                             class="input input-bordered input-primary w-full h-input_m"
                             on:input=move |ev| {
-                                forum_name_input.update(|name: &mut String| *name = event_target_value(&ev));
+                                forum_name_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
                             }
                             prop:value=forum_name_input
                         />
@@ -426,17 +425,15 @@ pub fn CreatePost() -> impl IntoView {
                                 matching.map(|result| match result {
                                     Ok(forum_set) => {
                                         log::trace!("Forum name set: {forum_set:?}");
-                                        forum_set
-                                            .iter()
-                                            .filter(|forum| forum.starts_with(forum_name_input.get().as_str())).map(|forum_name| {
-                                                view! {
-                                                    <li>
-                                                        <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
-                                                            {forum_name}
-                                                        </button>
-                                                    </li>
-                                                }
-                                            }).collect_view()
+                                        forum_set.iter().map(|forum_name| {
+                                            view! {
+                                                <li>
+                                                    <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
+                                                        {forum_name}
+                                                    </button>
+                                                </li>
+                                            }
+                                        }).collect_view()
                                     }
                                     Err(e) => {
                                         log::info!("Error while getting forum names: {}", e);

@@ -247,3 +247,43 @@ async fn test_get_forum_contents() -> Result<(), ServerFnError> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_create_forum() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    assert!(forum::ssr::create_forum(
+        "test1",
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await.is_ok());
+
+    assert!(forum::ssr::create_forum(
+        "Test",
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await.is_err());
+
+    assert!(forum::ssr::create_forum(
+        "",
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await.is_err());
+
+    assert!(forum::ssr::create_forum(
+        "test-2",
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await.is_err());
+
+    Ok(())
+}

@@ -188,9 +188,9 @@ pub mod ssr {
             return Err(ServerFnError::new("Cannot create Sphere with empty name."));
         }
 
-        if !name.chars().all(char::is_alphanumeric) {
+        if !name.chars().all(|c| c.is_alphanumeric() && (c.is_lowercase() || c.is_numeric())) {
             return Err(ServerFnError::new(
-                "Sphere name can only contain alphanumeric characters.",
+                "Sphere name can only contain alphanumeric lowercase characters.",
             ));
         }
 
@@ -407,8 +407,9 @@ pub fn CreateForum() -> impl IntoView {
                             autocomplete="off"
                             class="input input-bordered input-primary h-input_l flex-none w-1/2"
                             on:input=move |ev| {
-                                forum_name.update(|value| *value = event_target_value(&ev));
+                                forum_name.update(|value| *value = event_target_value(&ev).to_lowercase());
                             }
+                            prop:value=forum_name
                         />
                         <Suspense fallback=move || view! { <LoadingIcon/> }>
                         {

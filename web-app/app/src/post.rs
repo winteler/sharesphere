@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::comment::{CommentButton, CommentSection};
-use crate::forum::get_all_forum_names;
+use crate::forum::{get_matching_forum_names};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::icons::{ErrorIcon, LoadingIcon};
@@ -393,8 +393,8 @@ pub fn CreatePost() -> impl IntoView {
     let is_content_invalid = create_memo(move |_| is_title_empty.get() || is_body_empty.get());
 
     let existing_forums = create_resource(
-        move || state.create_forum_action.version().get(),
-        move |_| get_all_forum_names(),
+        move || (forum_name_input.get(), state.create_forum_action.version().get()),
+        move |(forum_prefix, _)| get_matching_forum_names(forum_prefix),
     );
 
     view! {

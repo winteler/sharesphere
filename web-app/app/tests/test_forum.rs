@@ -56,11 +56,11 @@ async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_all_forum_names() -> Result<(), ServerFnError> {
+async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
-    let num_forums = 20;
+    let num_forums = 20usize;
     let mut expected_forum_name_set = BTreeSet::<String>::new();
     for i in 0..num_forums {
         expected_forum_name_set.insert(
@@ -74,9 +74,11 @@ async fn test_get_all_forum_names() -> Result<(), ServerFnError> {
         );
     }
 
-    let forum_name_set = forum::ssr::get_all_forum_names(num_forums, db_pool.clone()).await?;
+    let forum_name_set = forum::ssr::get_matching_forum_names(String::from("1"), num_forums as i64, db_pool.clone()).await?;
 
-    assert_eq!(forum_name_set, expected_forum_name_set);
+    for forum_name in forum_name_set {
+        assert_eq!(forum_name.chars().next().unwrap(), '1');
+    }
 
     for i in num_forums..2*num_forums {
         expected_forum_name_set.insert(
@@ -90,9 +92,9 @@ async fn test_get_all_forum_names() -> Result<(), ServerFnError> {
         );
     }
 
-    let forum_name_set = forum::ssr::get_all_forum_names(num_forums, db_pool).await?;
+    let forum_name_set = forum::ssr::get_matching_forum_names(String::default(), num_forums as i64, db_pool).await?;
 
-    assert_eq!(forum_name_set.len(), 20);
+    assert_eq!(forum_name_set.len(), num_forums);
 
     Ok(())
 }

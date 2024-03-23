@@ -14,8 +14,8 @@ use crate::ranking::SortType;
 use crate::sidebar::*;
 use crate::widget::PostSortWidget;
 
-pub const PARAM_ROUTE_PREFIX : &str = "/:";
-pub const PUBLISH_ROUTE : &str = "/publish";
+pub const PARAM_ROUTE_PREFIX: &str = "/:";
+pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {
@@ -47,10 +47,7 @@ impl GlobalState {
             current_post_id: None,
             post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
             comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
-            user: create_local_resource(
-                move || (),
-                move |_| get_user(),
-            ),
+            user: create_local_resource(move || (), move |_| get_user()),
         }
     }
 }
@@ -61,14 +58,14 @@ pub mod ssr {
     use std::sync::OnceLock;
 
     use anyhow::Context;
-    use sqlx::{PgPool, postgres::PgPoolOptions};
+    use sqlx::{postgres::PgPoolOptions, PgPool};
     use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;
 
     use super::*;
 
-    pub const DB_URL_ENV : &str = "DATABASE_URL";
+    pub const DB_URL_ENV: &str = "DATABASE_URL";
 
     pub fn get_session() -> Result<AuthSession, ServerFnError> {
         use_context::<AuthSession>().ok_or_else(|| ServerFnError::new("Auth session missing."))
@@ -93,13 +90,15 @@ pub mod ssr {
             let pool = std::thread::spawn(move || {
                 // Using Handle::block_on to run async code in the new thread.
                 handle.block_on(async {
-                    create_db_pool().await.or_else(|_| Err(ServerFnError::new("Pool missing.")))
+                    create_db_pool()
+                        .await
+                        .or_else(|_| Err(ServerFnError::new("Pool missing.")))
                 })
-            }).join().expect("Failed to create DB pool.");
+            })
+            .join()
+            .expect("Failed to create DB pool.");
 
-            Self {
-                pool,
-            }
+            Self { pool }
         }
     }
 
@@ -188,7 +187,7 @@ fn LoginPageGuard() -> impl IntoView {
                             view! { <LoginWindow/> }.into_view()
                         },
                         None => {
-                            log::info!("Resource not loaded yet.");
+                            log::trace!("Resource not loaded yet.");
                             view! { <Outlet/> }.into_view()
                         }
                     })
@@ -202,7 +201,7 @@ fn LoginPageGuard() -> impl IntoView {
 #[component]
 fn LoginWindow() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let current_path = create_rw_signal( String::default());
+    let current_path = create_rw_signal(String::default());
 
     view! {
         <div class="my-0 mx-auto max-w-3xl text-center">
@@ -257,7 +256,12 @@ fn HomePage() -> impl IntoView {
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let post_vec = create_resource(
-        move || (state.post_sort_type.get(), state.create_post_action.version().get()),
+        move || {
+            (
+                state.post_sort_type.get(),
+                state.create_post_action.version().get(),
+            )
+        },
         move |(sort_type, _)| get_sorted_post_vec(sort_type),
     );
 
@@ -278,13 +282,16 @@ fn DefaultHomePage() -> impl IntoView {
 
 /// Renders the home page of a given user.
 #[component]
-fn UserHomePage<'a>(
-    user: &'a User,
-) -> impl IntoView {
+fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
     let post_vec = create_resource(
-        move || (state.post_sort_type.get(), state.create_post_action.version().get()),
+        move || {
+            (
+                state.post_sort_type.get(),
+                state.create_post_action.version().get(),
+            )
+        },
         move |(sort_type, _)| get_subscribed_post_vec(user_id, sort_type),
     );
 

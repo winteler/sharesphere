@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet};
+use std::collections::BTreeSet;
 
 use const_format::concatcp;
 use leptos::*;
@@ -64,10 +64,12 @@ pub struct ForumWithSubscription {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::collections::BTreeSet;
+
     use leptos::ServerFnError;
     use sqlx::PgPool;
+
     use crate::forum::{Forum, ForumWithSubscription};
-    use crate::post::{Post, ssr::get_post_vec_by_forum_name};
+    use crate::post::{ssr::get_post_vec_by_forum_name, Post};
     use crate::ranking::SortType;
 
     pub async fn get_forum_contents(
@@ -77,17 +79,17 @@ pub mod ssr {
         db_pool: PgPool,
     ) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
         let forum = sqlx::query_as::<_, ForumWithSubscription>(
-        "SELECT f.*, s.subscription_id \
+            "SELECT f.*, s.subscription_id \
             FROM forums f \
             LEFT JOIN forum_subscriptions s ON \
                 s.forum_id = f.forum_id AND \
                 s.user_id = $1 \
             where forum_name = $2",
         )
-            .bind(user_id)
-            .bind(forum_name)
-            .fetch_one(&db_pool)
-            .await?;
+        .bind(user_id)
+        .bind(forum_name)
+        .fetch_one(&db_pool)
+        .await?;
 
         let post_vec = get_post_vec_by_forum_name(forum_name, sort_type, db_pool).await?;
 
@@ -103,8 +105,8 @@ pub mod ssr {
             "SELECT * FROM forums f WHERE forum_name = $1",
             forum_name
         )
-            .fetch_one(&db_pool)
-            .await?;
+        .fetch_one(&db_pool)
+        .await?;
 
         Ok(forum)
     }
@@ -119,8 +121,8 @@ pub mod ssr {
             forum_prefix + "%",
             limit,
         )
-            .fetch_all(&db_pool)
-            .await?;
+        .fetch_all(&db_pool)
+        .await?;
 
         let mut forum_name_set = BTreeSet::<String>::new();
 
@@ -135,10 +137,12 @@ pub mod ssr {
         limit: i64,
         db_pool: PgPool,
     ) -> Result<Vec<String>, ServerFnError> {
-        let forum_record_vec =
-            sqlx::query!("SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT $1", limit)
-                .fetch_all(&db_pool)
-                .await?;
+        let forum_record_vec = sqlx::query!(
+            "SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT $1",
+            limit
+        )
+        .fetch_all(&db_pool)
+        .await?;
 
         let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
 
@@ -161,8 +165,8 @@ pub mod ssr {
             ORDER BY forum_name",
             user_id,
         )
-            .fetch_all(&db_pool)
-            .await?;
+        .fetch_all(&db_pool)
+        .await?;
 
         let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
 
@@ -214,15 +218,15 @@ pub mod ssr {
             user_id,
             forum_id
         )
-            .execute(&db_pool)
-            .await?;
+        .execute(&db_pool)
+        .await?;
 
         sqlx::query!(
             "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",
             forum_id
         )
-            .execute(&db_pool)
-            .await?;
+        .execute(&db_pool)
+        .await?;
 
         Ok(())
     }
@@ -237,15 +241,15 @@ pub mod ssr {
             user_id,
             forum_id,
         )
-            .execute(&db_pool)
-            .await?;
+        .execute(&db_pool)
+        .await?;
 
         sqlx::query!(
             "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",
             forum_id
         )
-            .execute(&db_pool)
-            .await?;
+        .execute(&db_pool)
+        .await?;
 
         Ok(())
     }
@@ -259,9 +263,12 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
 }
 
 #[server]
-pub async fn get_matching_forum_names(forum_prefix: String) -> Result<BTreeSet<String>, ServerFnError> {
+pub async fn get_matching_forum_names(
+    forum_prefix: String,
+) -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_set = ssr::get_matching_forum_names(forum_prefix, FORUM_FETCH_LIMIT, db_pool).await?;
+    let forum_name_set =
+        ssr::get_matching_forum_names(forum_prefix, FORUM_FETCH_LIMIT, db_pool).await?;
     Ok(forum_name_set)
 }
 
@@ -291,12 +298,8 @@ pub async fn get_forum_contents(
         Err(_) => None,
     };
 
-    let forum_content = ssr::get_forum_contents(
-        forum_name.as_str(),
-        sort_type,
-        user_id,
-        db_pool
-    ).await?;
+    let forum_content =
+        ssr::get_forum_contents(forum_name.as_str(), sort_type, user_id, db_pool).await?;
 
     Ok(forum_content)
 }
@@ -318,8 +321,9 @@ pub async fn create_forum(
         description.as_str(),
         is_nsfw.is_some(),
         user.user_id,
-        db_pool
-    ).await?;
+        db_pool,
+    )
+    .await?;
 
     // Redirect to the new forum
     leptos_axum::redirect(new_forum_path);
@@ -373,18 +377,21 @@ pub fn CreateForum() -> impl IntoView {
     let forum_name = create_rw_signal(String::new());
     let matching_forums = create_resource(
         move || (forum_name.get(), state.create_forum_action.version().get()),
-        move |(forum_name, _)| get_forum_by_name(forum_name),
+        move |(forum_name, _)| async {
+            if !forum_name.is_empty() {
+                get_forum_by_name(forum_name).await
+            } else {
+                Err(ServerFnError::new("Forum name cannot be empty."))
+            }
+        },
     );
 
     let is_name_empty = move || forum_name().is_empty();
-    let is_name_taken = move || matching_forums.map(|result| result.is_ok());
     let is_name_alphanumeric = move || forum_name().chars().all(char::is_alphanumeric);
+    let is_name_taken = create_rw_signal(false);
     let is_description_empty = create_rw_signal(true);
     let are_inputs_invalid = create_memo(move |_| {
-        is_name_empty() ||
-        (is_name_taken().is_some_and(|is_name_taken| !is_name_taken)) ||
-        !is_name_alphanumeric() ||
-        is_description_empty()
+        is_name_empty() || is_name_taken() || !is_name_alphanumeric() || is_description_empty()
     });
 
     view! {
@@ -405,22 +412,22 @@ pub fn CreateForum() -> impl IntoView {
                         />
                         <Suspense fallback=move || view! { <LoadingIcon/> }>
                         {
-                            move || {
-                                matching_forums.map(|result| match result {
-                                    Ok(_) => {
-                                        log::trace!("Found existing forum with same name.");
-                                        view! {
-                                            <div class="alert alert-error h-input_l flex content-center">
-                                                <ErrorIcon/>
-                                                <span>"Unavailable."</span>
-                                            </div>
-                                        }.into_view()
-                                    }
-                                    Err(_) => {
-                                        View::default()
-                                    },
-                                })
-                            }
+                            move || matching_forums.map(|result| match result {
+                                Ok(_) => {
+                                    is_name_taken.update(|is_name_taken| *is_name_taken = true);
+                                    view! {
+                                        <div class="alert alert-error h-input_l flex content-center">
+                                            <ErrorIcon/>
+                                            <span>"Unavailable."</span>
+                                        </div>
+                                    }.into_view()
+                                },
+                                _ => {
+                                    is_name_taken.update(|is_name_taken| *is_name_taken = false);
+                                    View::default()
+                                },
+                            })
+
                         }
                         </Suspense>
                         <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
@@ -441,7 +448,9 @@ pub fn CreateForum() -> impl IntoView {
                             <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
                         </label>
                     </div>
-                    <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
+                    <Suspense fallback=move || view! { <LoadingIcon/> }>
+                        <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
+                    </Suspense>
                 </div>
             </ActionForm>
             <Show

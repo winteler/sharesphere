@@ -17,7 +17,7 @@ pub fn FormTextEditor(
     let is_empty = create_rw_signal(true);
 
     view! {
-        <div class="group w-full my-2 border border-primary rounded-lg bg-base-100">
+        <div class="group w-full border border-primary rounded-lg bg-base-100">
             <div class="px-2 py-2 rounded-t-lg">
                 <label for="comment" class="sr-only">"Your comment"</label>
                 <textarea
@@ -32,7 +32,7 @@ pub fn FormTextEditor(
             </div>
 
             <div
-                class="flex justify-between px-2 pb-2"
+                class="flex justify-between px-2"
             >
                 <div class="flex">
                     <button

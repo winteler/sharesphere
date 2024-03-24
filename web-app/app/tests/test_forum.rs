@@ -48,9 +48,11 @@ async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
         db_pool.clone(),
     ).await?;
 
-    let forum = forum::ssr::get_forum_by_name(forum_name, db_pool).await?;
+    let forum = forum::ssr::get_forum_by_name(forum_name, db_pool.clone()).await?;
 
     assert_eq!(forum, expected_forum);
+
+    assert!(forum::ssr::get_forum_by_name("invalid_name", db_pool).await.is_err());
 
     Ok(())
 }

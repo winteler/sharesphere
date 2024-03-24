@@ -217,7 +217,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn login( redirect_url: String) -> Result<User, ServerFnError> {
+pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
     let current_user = get_user().await;
 
     if current_user.as_ref().is_ok_and(|user| user.is_authenticated()) {
@@ -265,10 +265,9 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
     let client = ssr::get_auth_client().await?;
 
     // Now you can exchange it for an access token and ID token.
-    let token_response =
-        client
-            .exchange_code(oidc::AuthorizationCode::new(auth_code))
-            .request_async(async_http_client).await?;
+    let token_response = client
+        .exchange_code(oidc::AuthorizationCode::new(auth_code))
+        .request_async(async_http_client).await?;
 
     // Extract the ID token claims after verifying its authenticity and nonce.
     let id_token = token_response.id_token().ok_or(ServerFnError::new("Error getting id token."))?;

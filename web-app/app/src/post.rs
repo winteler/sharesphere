@@ -391,7 +391,7 @@ pub fn CreatePost() -> impl IntoView {
     let is_body_empty = create_rw_signal(true);
     let is_content_invalid = create_memo(move |_| is_title_empty.get() || is_body_empty.get());
 
-    let matching = create_resource(
+    let matching_forum = create_resource(
         move || {
             (
                 forum_name_input.get(),
@@ -422,7 +422,7 @@ pub fn CreatePost() -> impl IntoView {
                         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
                             <Transition fallback=move || view! { <LoadingIcon/> }>
                             { move || {
-                                matching.map(|result| match result {
+                                matching_forum.map(|result| match result {
                                     Ok(forum_set) => {
                                         log::trace!("Forum name set: {forum_set:?}");
                                         forum_set.iter().map(|forum_name| {

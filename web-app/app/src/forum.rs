@@ -96,13 +96,31 @@ pub mod ssr {
         Ok((forum, post_vec))
     }
 
+    pub async fn is_forum_available(
+        forum_name: &str,
+        db_pool: PgPool,
+    ) -> Result<bool, ServerFnError> {
+        let forum_exist = sqlx::query!(
+            "SELECT forum_id FROM forums WHERE forum_name = $1",
+            forum_name
+        )
+            .fetch_one(&db_pool)
+            .await;
+
+        match forum_exist {
+            Ok(_) => Ok(false),
+            Err(sqlx::error::Error::RowNotFound) => Ok(true),
+            Err(e) => Err(ServerFnError::from(e)),
+        }
+    }
+
     pub async fn get_forum_by_name(
         forum_name: &str,
         db_pool: PgPool,
     ) -> Result<Forum, ServerFnError> {
         let forum = sqlx::query_as!(
             Forum,
-            "SELECT * FROM forums f WHERE forum_name = $1",
+            "SELECT * FROM forums WHERE forum_name = $1",
             forum_name
         )
         .fetch_one(&db_pool)
@@ -256,6 +274,13 @@ pub mod ssr {
 }
 
 #[server]
+pub async fn is_forum_available(forum_name: String) -> Result<bool, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let forum_existence = ssr::is_forum_available(&forum_name, db_pool).await?;
+    Ok(forum_existence)
+}
+
+#[server]
 pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
     let db_pool = get_db_pool()?;
     let forum = ssr::get_forum_by_name(&forum_name, db_pool).await?;
@@ -375,13 +400,13 @@ pub fn CreateForum() -> impl IntoView {
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
     let forum_name = create_rw_signal(String::new());
-    let matching_forums = create_resource(
+    let is_forum_available = create_resource(
         move || (forum_name.get(), state.create_forum_action.version().get()),
         move |(forum_name, _)| async {
-            if !forum_name.is_empty() {
-                get_forum_by_name(forum_name).await
+            if forum_name.is_empty() {
+                Ok(false)
             } else {
-                Err(ServerFnError::new("Forum name cannot be empty."))
+                is_forum_available(forum_name).await
             }
         },
     );
@@ -413,8 +438,12 @@ pub fn CreateForum() -> impl IntoView {
                         />
                         <Suspense fallback=move || view! { <LoadingIcon/> }>
                         {
-                            move || matching_forums.map(|result| match result {
-                                Ok(_) => {
+                            move || is_forum_available.map(|result| match result {
+                                Ok(true) => {
+                                    is_name_taken.update(|is_name_taken| *is_name_taken = false);
+                                    View::default()
+                                },
+                                Ok(false) => {
                                     is_name_taken.update(|is_name_taken| *is_name_taken = true);
                                     view! {
                                         <div class="alert alert-error h-input_l flex content-center">
@@ -423,9 +452,15 @@ pub fn CreateForum() -> impl IntoView {
                                         </div>
                                     }.into_view()
                                 },
-                                _ => {
-                                    is_name_taken.update(|is_name_taken| *is_name_taken = false);
-                                    View::default()
+                                Err(e) => {
+                                    log::error!("Error while checking forum existence: {e}");
+                                    is_name_taken.update(|is_name_taken| *is_name_taken = true);
+                                    view! {
+                                        <div class="alert alert-error h-input_l flex content-center">
+                                            <ErrorIcon/>
+                                            <span>"Server error."</span>
+                                        </div>
+                                    }.into_view()
                                 },
                             })
 

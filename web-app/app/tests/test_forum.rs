@@ -35,6 +35,28 @@ async fn set_forum_num_members(
 }
 
 #[tokio::test]
+async fn test_is_forum_available() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum_name = "forum";
+    forum::ssr::create_forum(
+        forum_name,
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await?;
+
+    forum::ssr::is_forum_available(forum_name, db_pool.clone()).await?;
+
+    assert_eq!(forum::ssr::is_forum_available(forum_name, db_pool.clone()).await?, false);
+    assert_eq!(forum::ssr::is_forum_available("AvailableForum", db_pool).await?, true);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;

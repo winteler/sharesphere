@@ -102,7 +102,7 @@ pub fn LoggedInMenu() -> impl IntoView {
 
     view! {
         <div class="dropdown dropdown-end">
-            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
+            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
                 <UserIcon/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
@@ -128,7 +128,7 @@ pub fn PlusMenu() -> impl IntoView {
     let create_post_str = "Share a Post!";
     view! {
         <div class="dropdown dropdown-end">
-            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full avatar">
+            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
                 <PlusIcon class="h-6 w-6 text-white"/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box">

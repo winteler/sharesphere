@@ -284,7 +284,7 @@ pub fn CommentButton(
             >
                 <button
                     class="btn btn-circle btn-sm m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
-                    class=("btn-accent", move || !hide_comment_form())
+                    class=("btn-primary", move || !hide_comment_form())
                     class=("btn-ghost", move || hide_comment_form())
                     on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
                 >
@@ -438,8 +438,8 @@ pub fn CommentBox<'a>(
                         value=maximize
                         on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
                     />
-                    <MinimizeIcon class="swap-on" size=5/>
-                    <MaximizeIcon class="swap-off" size=5/>
+                    <MinimizeIcon class="h-5 w-5 swap-on"/>
+                    <MaximizeIcon class="h-5 w-5 swap-off"/>
                 </label>
                 <div
                     class=color_bar_css

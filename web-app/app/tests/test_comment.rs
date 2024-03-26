@@ -39,8 +39,9 @@ fn test_comment_with_children(
         .expect("Failed to get comment number");
     let expected_vote_value = get_vote_from_comment_num(comment_num);
     if let Some(expected_vote_value) = expected_vote_value {
-        let vote: &Vote = &comment_with_children
+        let vote: Vote = comment_with_children
             .vote
+            .clone()
             .expect(format!("Expected vote for comment {comment_num}").as_str());
         assert_eq!(vote.value, expected_vote_value);
         assert_eq!(vote.user_id, expected_user_id);

@@ -9,20 +9,57 @@ use crate::ranking::SortType;
 
 #[server]
 pub async fn get_html_from_markdown(
-    markdown_content: String,
+    markdown_input: String,
 ) -> Result<String, ServerFnError> {
-    use femark::{process_markdown_to_html};
+    use pulldown_cmark::{Parser, Options};
+    use quick_xml::events::{Event};
+    use quick_xml::reader::Reader;
+    use quick_xml::writer::Writer;
+    use std::io::{Cursor};
 
-    match process_markdown_to_html(markdown_content.as_str()) {
-        Ok(render) => {
-            log::info!("Markdown render: {}", render.content);
-            Ok(render.content)
-        }
-        Err(e) => {
-            log::error!("Failed to render markdown with error: {e}");
-            Err(ServerFnError::new("Failed to render markdown to html"))
+    let options = Options::ENABLE_STRIKETHROUGH.union(Options::ENABLE_TABLES).union(Options::ENABLE_TASKLISTS);
+    let parser = Parser::new_ext(markdown_input.as_str(), options);
+
+    let mut html_output = String::new();
+    pulldown_cmark::html::push_html(&mut html_output, parser);
+    log::info!("Markdown as html: {html_output}");
+
+    // Add styling
+    let mut reader = Reader::from_str(html_output.as_str());
+    reader.trim_text(true);
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(e)) => {
+                log::info!("Parse byte start {e:?}");
+                let mut elem = e.clone().into_owned();
+
+                // collect existing attributes
+                elem.extend_attributes(e.attributes().map(|attr| attr.unwrap()));
+
+                match elem.name().as_ref() {
+                    b"h1" => elem.push_attribute(("class", "text-4xl")),
+                    _ => (),
+                }
+
+                // writes the event to the writer
+                writer.write_event(Event::Start(elem))?;
+            },
+            Ok(Event::Eof) => break,
+            // we can either move or borrow the event to write, depending on your use-case
+            Ok(e) => writer.write_event(e)?,
+            Err(e) => {
+                log::error!("Error while parsing xml at position {}: {:?}", reader.buffer_position(), e);
+                return Err(ServerFnError::from(e))
+            },
         }
     }
+
+    let styled_html_output = String::from_utf8(writer.into_inner().into_inner())?;
+    log::info!("Stylzed html: {styled_html_output}");
+
+    Ok(styled_html_output)
 }
 
 #[component]
@@ -32,20 +69,12 @@ pub fn FormTextEditor(
     #[prop(default = false)]
     with_publish_button: bool,
 ) -> impl IntoView {
-    use markdown_to_html_parser::parse_markdown;
     let content = create_rw_signal(String::default());
 
     let render_markdown = create_resource(
         move || content.get(),
         move |markdown_content| get_html_from_markdown(markdown_content)
     );
-
-    let markdown_render = move || {
-        let content = content();
-        let markdown_content = parse_markdown(content.as_str());
-        log::info!("Markdown as html: {markdown_content}");
-        markdown_content
-    };
 
     view! {
         <div class="group w-full border border-primary rounded-lg bg-base-100">
@@ -65,17 +94,14 @@ pub fn FormTextEditor(
                     ></textarea>
 
                 </div>
-                <div inner_html=markdown_render></div>
                 <Transition>
-
                     {move || {
                         render_markdown
                             .map(|result| match result {
-                                Ok(html) => view! { <div inner_html=html></div> }.into_view(),
+                                Ok(html) => view! { <div inner_html={html}></div> }.into_view(),
                                 Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
                             })
                     }}
-
                 </Transition>
             </div>
             <div class="flex justify-between px-2">

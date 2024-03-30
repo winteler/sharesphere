@@ -14,9 +14,10 @@ use crate::ranking::SortType;
 #[cfg(feature = "ssr")]
 mod ssr {
     use std::io::Cursor;
-
-    use quick_xml::events::Event;
+    use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
     use quick_xml::{Reader, Writer};
+
+    use crate::constants::SPOILER_TAG;
 
     use super::*;
 
@@ -28,7 +29,6 @@ mod ssr {
         loop {
             match reader.read_event() {
                 Ok(Event::Start(e)) => {
-                    log::info!("Parse byte start {e:?}");
                     let mut elem = e.clone().into_owned();
 
                     match elem.name().as_ref() {
@@ -40,7 +40,6 @@ mod ssr {
                         b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
                         b"code" => elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1")),
                         b"table" => elem.push_attribute(("class", "table")),
-
                         _ => (),
                     }
 
@@ -54,9 +53,34 @@ mod ssr {
                         b"hr" => elem.push_attribute(("class", "mt-1")),
                         _ => (),
                     }
-
                     // writes the event to the writer
                     writer.write_event(Event::Start(elem))?;
+                }
+                Ok(Event::Text(e)) => {
+                    let text = e.unescape().unwrap().into_owned();
+                    log::info!("Got text in xml: {text}");
+                    let spoiler_spitted_text = text.split(SPOILER_TAG);
+                    let mut is_current_text_spoiler = None;
+                    for text in spoiler_spitted_text {
+                        log::info!("Spoiler: {is_current_text_spoiler:?}, {text}");
+                        if let Some(is_current_text_spoiler) = is_current_text_spoiler {
+                            if is_current_text_spoiler {
+                                let mut elem = BytesStart::new("code");
+                                elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1 text-black hover:text-white"));
+                                writer.write_event(Event::Start(elem))?;
+                            } else {
+                                let elem = BytesEnd::new("code");
+                                writer.write_event(Event::End(elem))?;
+                            }
+                        }
+                        writer.write_event(Event::Text(BytesText::new(text)))?;
+                        is_current_text_spoiler = Some(!is_current_text_spoiler.unwrap_or_default());
+                    }
+
+                    if is_current_text_spoiler.unwrap_or_default() {
+                        let elem = BytesEnd::new("code");
+                        writer.write_event(Event::End(elem))?;
+                    }
                 }
                 Ok(Event::Eof) => break,
                 // we can either move or borrow the event to write, depending on your use-case
@@ -73,7 +97,6 @@ mod ssr {
         }
 
         let styled_html_output = String::from_utf8(writer.into_inner().into_inner())?;
-        log::info!("Stylzed html: {styled_html_output}");
         Ok(styled_html_output)
     }
 }
@@ -82,25 +105,14 @@ mod ssr {
 pub async fn get_styled_html_from_markdown(
     markdown_input: String,
 ) -> Result<String, ServerFnError> {
-    use pulldown_cmark::{Options, Parser};
-
-    let options = Options::ENABLE_STRIKETHROUGH
-        .union(Options::ENABLE_TABLES)
-        .union(Options::ENABLE_TASKLISTS);
-    let parser = Parser::new_ext(markdown_input.as_str(), options);
-
-    let mut html_output = String::new();
-    pulldown_cmark::html::push_html(&mut html_output, parser);
-    log::info!("Pulldown as html: {html_output}");
-
-    let other_html_output =
+    let html_from_markdown =
         markdown::to_html_with_options(markdown_input.as_str(), &markdown::Options::gfm())
-            .unwrap_or_default();
-    log::info!("Markdown as html: {other_html_output}");
+            .or_else(|e| Err(ServerFnError::new(e)))?;
+    log::info!("Markdown as html: {html_from_markdown}");
 
     // Add styling, will be done by parsing the html which is a bit ugly. Would be better
     // if the styling could be added directly when generating the html from markdown
-    let styled_html_output = ssr::style_html_user_content(other_html_output.as_str())?;
+    let styled_html_output = ssr::style_html_user_content(html_from_markdown.as_str())?;
     Ok(styled_html_output)
 }
 
@@ -133,13 +145,15 @@ pub fn FormTextEditor(
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
                     ></textarea>
-
+                </div>
+                <div class="rounded-md bg-black p-1 mx-1 text-black hover:text-white">
+                    "This is a spoiler."
                 </div>
                 <Transition>
                     {move || {
                         render_markdown
                             .map(|result| match result {
-                                Ok(html) => view! { <div class="flex flex-col" inner_html={html}></div> }.into_view(),
+                                Ok(html) => view! { <div inner_html={html}></div> }.into_view(),
                                 Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
                             })
                     }}

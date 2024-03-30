@@ -27,7 +27,6 @@ async-trait = { version = "*", optional = true }
 cfg-if = "1"
 const_format = "0.2.31"
 markdown = { version = "1.0.0-alpha.16", optional = true }
-pulldown-cmark = { version = "0.10.0", default-features = false, features = ["simd", "html"], optional = true }
 quick-xml = { version = "0.31.0", optional = true }
 openidconnect = { version = "3.3.0", optional = true }
 tracing-subscriber = "0.3.18"
@@ -47,7 +46,6 @@ ssr = [
     "dep:axum_session",
     "dep:axum_session_auth",
     "dep:markdown",
-    "dep:pulldown-cmark",
     "dep:quick-xml",
     "dep:leptos_axum",
     "dep:openidconnect",

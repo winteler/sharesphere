@@ -150,6 +150,23 @@ pub fn FormTextEditor(
                         }
                     ></textarea>
                 </div>
+                <div class="spoiler-container">
+                    <input type="checkbox" id="spoiler" class="spoiler-input hidden"/>
+                    <label for="spoiler" class="spoiler-label cursor-pointer">Reveal Spoiler</label>
+                    <div class="spoiler-content">
+                        <p class="text-gray-500">"This is the spoiler text. You won't see this until you click!"</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded shadow">
+                    <p class="text-lg font-bold">Click to reveal spoiler:</p>
+                    <div class="relative">
+                        <input type="checkbox" id="spoiler" class="absolute opacity-0 w-full h-full cursor-pointer top-0 left-0 z-10"/>
+                        <label for="spoiler" class="cursor-pointer">Reveal Spoiler</label>
+                        <div class="spoiler-content bg-white border border-gray-300 p-4 rounded shadow-md mt-2 opacity-0 transition-opacity duration-300 ease-in-out">
+                            <p class="text-gray-500">"This is the spoiler text. You won't see this until you click!"</p>
+                        </div>
+                    </div>
+                </div>
                 <Transition>
                     {move || {
                         render_markdown

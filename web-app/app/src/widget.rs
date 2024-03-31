@@ -67,7 +67,7 @@ mod ssr {
                         if !text.is_empty() {
                             if is_spoiler_text {
                                 let mut elem = BytesStart::new("span");
-                                elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1 text-black hover:text-white"));
+                                elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1 text-black focus-within:text-white"));
                                 writer.write_event(Event::Start(elem))?;
 
                                 writer.write_event(Event::Text(BytesText::new(text.trim())))?;
@@ -135,8 +135,8 @@ pub fn FormTextEditor(
 
     view! {
         <div class="group w-full border border-primary rounded-lg bg-base-100">
-            <div class="flex flex-col gap-2">
-                <div class="px-2 py-2 rounded-t-lg">
+            <div class="flex max-2xl:flex-col gap-2">
+                <div class="w-full 2xl:w-1/2 px-2 py-2 rounded-t-lg">
                     <label for="comment" class="sr-only">
                         "Your comment"
                     </label>
@@ -154,7 +154,7 @@ pub fn FormTextEditor(
                     {move || {
                         render_markdown
                             .map(|result| match result {
-                                Ok(html) => view! { <div inner_html={html}></div> }.into_view(),
+                                Ok(html) => view! { <div class="break-words w-full 2xl:w-1/2 max-w-prose" inner_html={html}></div> }.into_view(),
                                 Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
                             })
                     }}

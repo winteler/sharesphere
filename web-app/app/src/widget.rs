@@ -63,22 +63,26 @@ mod ssr {
                     let mut is_current_text_spoiler = None;
                     for text in spoiler_spitted_text {
                         log::info!("Spoiler: {is_current_text_spoiler:?}, {text}");
-                        if let Some(is_current_text_spoiler) = is_current_text_spoiler {
-                            if is_current_text_spoiler {
-                                let mut elem = BytesStart::new("code");
+                        let is_spoiler_text = is_current_text_spoiler.unwrap_or_default();
+                        if !text.is_empty() {
+                            if is_spoiler_text {
+                                let mut elem = BytesStart::new("span");
                                 elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1 text-black hover:text-white"));
                                 writer.write_event(Event::Start(elem))?;
-                            } else {
-                                let elem = BytesEnd::new("code");
+
+                                writer.write_event(Event::Text(BytesText::new(text.trim())))?;
+
+                                let elem = BytesEnd::new("span");
                                 writer.write_event(Event::End(elem))?;
+                            } else {
+                                writer.write_event(Event::Text(BytesText::new(text)))?;
                             }
                         }
-                        writer.write_event(Event::Text(BytesText::new(text)))?;
-                        is_current_text_spoiler = Some(!is_current_text_spoiler.unwrap_or_default());
+                        is_current_text_spoiler = Some(!is_spoiler_text);
                     }
 
                     if is_current_text_spoiler.unwrap_or_default() {
-                        let elem = BytesEnd::new("code");
+                        let elem = BytesEnd::new("span");
                         writer.write_event(Event::End(elem))?;
                     }
                 }
@@ -131,7 +135,7 @@ pub fn FormTextEditor(
 
     view! {
         <div class="group w-full border border-primary rounded-lg bg-base-100">
-            <div class="flex gap-2">
+            <div class="flex flex-col gap-2">
                 <div class="px-2 py-2 rounded-t-lg">
                     <label for="comment" class="sr-only">
                         "Your comment"
@@ -145,9 +149,6 @@ pub fn FormTextEditor(
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
                     ></textarea>
-                </div>
-                <div class="rounded-md bg-black p-1 mx-1 text-black hover:text-white">
-                    "This is a spoiler."
                 </div>
                 <Transition>
                     {move || {

@@ -11,26 +11,5 @@
 
 .spoiler-checkbox:checked + .spoiler-text {
     background-color: black;
-    color: white;
-}
-
-/* Style for spoiler container */
-.spoiler-container-example {
-    position: relative;
-}
-/* Style for spoiler text */
-.spoiler-content-example {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: gray;
-    border: 1px solid #ccc;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-/* Show spoiler text when checkbox is checked */
-.spoiler-input-example:checked + .spoiler-label-example + .spoiler-content-example {
-    background-color: white;
-    color: white;
+    color: lightgray;
 }

@@ -3148,6 +3148,14 @@ html {
   height: 100vh;
 }
 
+.max-h-96 {
+  max-height: 24rem;
+}
+
+.min-h-24 {
+  min-height: 6rem;
+}
+
 .w-1 {
   width: 0.25rem;
 }
@@ -3200,8 +3208,8 @@ html {
   max-width: 48rem;
 }
 
-.max-w-prose {
-  max-width: 65ch;
+.max-w-full {
+  max-width: 100%;
 }
 
 .max-w-xs {
@@ -3306,6 +3314,14 @@ html {
   --tw-space-x-reverse: 0;
   margin-right: calc(1rem * var(--tw-space-x-reverse));
   margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+.overscroll-auto {
+  overscroll-behavior: auto;
 }
 
 .whitespace-nowrap {
@@ -3484,11 +3500,6 @@ html {
   padding-bottom: 2.5rem;
 }
 
-.py-2 {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-}
-
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
@@ -3591,6 +3602,20 @@ html {
           backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
 }
 
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.duration-300 {
+  transition-duration: 300ms;
+}
+
+.ease-in-out {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Styles for the spoiler blocks */
 
 .spoiler-checkbox {
@@ -3601,33 +3626,7 @@ html {
 
 .spoiler-checkbox:checked + .spoiler-text {
   background-color: black;
-  color: white;
-}
-
-/* Style for spoiler container */
-
-.spoiler-container-example {
-  position: relative;
-}
-
-/* Style for spoiler text */
-
-.spoiler-content-example {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background-color: gray;
-  border: 1px solid #ccc;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Show spoiler text when checkbox is checked */
-
-.spoiler-input-example:checked + .spoiler-label-example + .spoiler-content-example {
-  background-color: white;
-  color: white;
+  color: lightgray;
 }
 
 @media (hover: hover) {
@@ -3726,11 +3725,6 @@ html {
   color: hsl(var(--erc) / var(--tw-text-opacity));
 }
 
-.focus-within\:text-white:focus-within {
-  --tw-text-opacity: 1;
-  color: rgb(255 255 255 / var(--tw-text-opacity));
-}
-
 .hover\:border:hover {
   border-width: 1px;
 }
@@ -3743,10 +3737,6 @@ html {
 @media not all and (min-width: 1536px) {
   .max-2xl\:hidden {
     display: none;
-  }
-
-  .max-2xl\:flex-col {
-    flex-direction: column;
   }
 
   .max-2xl\:items-center {
@@ -3768,10 +3758,6 @@ html {
 @media (min-width: 1536px) {
   .\32xl\:hidden {
     display: none;
-  }
-
-  .\32xl\:w-1\/2 {
-    width: 50%;
   }
 
   .\32xl\:w-1\/3 {

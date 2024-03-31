@@ -76,14 +76,17 @@ mod ssr {
                                 checkbox_elem.push_attribute(("class", "spoiler-checkbox hidden"));
                                 writer.write_event(Event::Empty(checkbox_elem))?;
 
-                                let mut elem = BytesStart::new("span");
-                                elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1 text-black focus-within:text-white"));
-                                writer.write_event(Event::Start(elem))?;
+                                let mut span = BytesStart::new("span");
+                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-1 mx-1 text-black spoiler-text"));
+                                writer.write_event(Event::Start(span))?;
 
                                 writer.write_event(Event::Text(BytesText::new(text.trim())))?;
 
-                                let elem = BytesEnd::new("label");
-                                writer.write_event(Event::End(elem))?;
+                                let span_end = BytesEnd::new("span");
+                                writer.write_event(Event::End(span_end))?;
+
+                                let label_end = BytesEnd::new("label");
+                                writer.write_event(Event::End(label_end))?;
                             } else {
                                 writer.write_event(Event::Text(BytesText::new(text)))?;
                             }
@@ -91,10 +94,13 @@ mod ssr {
                         is_current_text_spoiler = Some(!is_spoiler_text);
                     }
 
-                    if is_current_text_spoiler.unwrap_or_default() {
-                        let elem = BytesEnd::new("label");
-                        writer.write_event(Event::End(elem))?;
-                    }
+                    //if is_current_text_spoiler.unwrap_or_default() {
+                    //    let span_end = BytesEnd::new("span");
+                    //    writer.write_event(Event::End(span_end))?;
+                    //
+                    //    let elem = BytesEnd::new("label");
+                    //    writer.write_event(Event::End(elem))?;
+                    //}
                 }
                 Ok(Event::Eof) => break,
                 // we can either move or borrow the event to write, depending on your use-case
@@ -137,6 +143,7 @@ pub fn FormTextEditor(
     #[prop(default = false)] with_publish_button: bool,
 ) -> impl IntoView {
     let content = create_rw_signal(String::default());
+    let num_lines = move || content.get().lines().count();
 
     let render_markdown = create_resource(
         move || content.get(),
@@ -144,9 +151,9 @@ pub fn FormTextEditor(
     );
 
     view! {
-        <div class="group w-full border border-primary rounded-lg bg-base-100">
-            <div class="flex max-2xl:flex-col gap-2">
-                <div class="w-full 2xl:w-1/2 px-2 py-2 rounded-t-lg">
+        <div class="flex flex-col gap-2">
+            <div class="group w-full max-w-full p-2 border border-primary rounded-lg bg-base-100">
+                <div class="w-full rounded-t-lg">
                     <label for="comment" class="sr-only">
                         "Your comment"
                     </label>
@@ -154,38 +161,40 @@ pub fn FormTextEditor(
                         id="comment"
                         name=name
                         placeholder=placeholder
-                        class="w-full px-0 bg-base-100 outline-none border-none"
+                        rows=num_lines
+                        class="w-full min-h-24 max-h-96 px-0 bg-base-100 outline-none border-none"
                         on:input=move |ev| {
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
                     ></textarea>
                 </div>
-                <label>
-                    <input type="checkbox" class="spoiler-checkbox hidden"/>
-                    <span class="rounded-md bg-black p-1 mx-1 text-black spoiler-text">
-                        "Spoiler"
-                    </span>
-                </label>
-                <Transition>
-                    {move || {
-                        render_markdown
-                            .map(|result| match result {
-                                Ok(html) => view! { <div class="break-words w-full 2xl:w-1/2 max-w-prose" inner_html={html}></div> }.into_view(),
-                                Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
-                            })
-                    }}
-                </Transition>
-            </div>
-            <div class="flex justify-between px-2">
-                <div class="flex">
-                    <button type="button" class="btn btn-ghost">
-                        <BoldIcon/>
+                    <div class="flex justify-between px-2">
+                    <div class="flex">
+                        <button type="button" class="btn btn-ghost">
+                            <BoldIcon/>
+                        </button>
+                    </div>
+                    <button class="btn btn-active btn-secondary" class:hidden=move || !with_publish_button disabled=move || content().is_empty()>
+                        "Publish"
                     </button>
                 </div>
-                <button class="btn btn-active btn-secondary" class:hidden=move || !with_publish_button disabled=move || content().is_empty()>
-                    "Publish"
-                </button>
             </div>
+            <Transition>
+                {move || {
+                    render_markdown
+                        .map(|result| match result {
+                            Ok(html) => {
+                                view! {
+                                    <div
+                                        class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-lg bg-base-100 break-words"
+                                        inner_html={html}
+                                    />
+                                }.into_view()
+                            },
+                            Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
+                        })
+                }}
+            </Transition>
         </div>
     }
 }

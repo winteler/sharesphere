@@ -404,9 +404,9 @@ pub fn CreateForum() -> impl IntoView {
         move || (forum_name.get(), state.create_forum_action.version().get()),
         move |(forum_name, _)| async {
             if forum_name.is_empty() {
-                Ok(false)
+                None
             } else {
-                is_forum_available(forum_name).await
+                Some(is_forum_available(forum_name).await)
             }
         },
     );
@@ -420,7 +420,7 @@ pub fn CreateForum() -> impl IntoView {
     });
 
     view! {
-        <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/2">
+        <div class="flex flex-col gap-2 mx-auto w-4/5 2xl:w-1/3">
             <ActionForm action=state.create_forum_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>
@@ -439,11 +439,11 @@ pub fn CreateForum() -> impl IntoView {
                         <Suspense fallback=move || view! { <LoadingIcon/> }>
                         {
                             move || is_forum_available.map(|result| match result {
-                                Ok(true) => {
+                                None | Some(Ok(true)) => {
                                     is_name_taken.update(|is_name_taken| *is_name_taken = false);
                                     View::default()
                                 },
-                                Ok(false) => {
+                                Some(Ok(false)) => {
                                     is_name_taken.update(|is_name_taken| *is_name_taken = true);
                                     view! {
                                         <div class="alert alert-error h-input_l flex content-center">
@@ -452,7 +452,7 @@ pub fn CreateForum() -> impl IntoView {
                                         </div>
                                     }.into_view()
                                 },
-                                Err(e) => {
+                                Some(Err(e)) => {
                                     log::error!("Error while checking forum existence: {e}");
                                     is_name_taken.update(|is_name_taken| *is_name_taken = true);
                                     view! {

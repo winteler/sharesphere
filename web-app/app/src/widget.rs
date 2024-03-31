@@ -14,6 +14,7 @@ use crate::ranking::SortType;
 #[cfg(feature = "ssr")]
 mod ssr {
     use std::io::Cursor;
+
     use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
     use quick_xml::{Reader, Writer};
 
@@ -66,13 +67,22 @@ mod ssr {
                         let is_spoiler_text = is_current_text_spoiler.unwrap_or_default();
                         if !text.is_empty() {
                             if is_spoiler_text {
+                                // Add label to encapsulate spoilers and a checkbox to toggle them
+                                let label = BytesStart::new("label");
+                                writer.write_event(Event::Start(label))?;
+                                // Add invisible checkbox to toggle spoilers
+                                let mut checkbox_elem = BytesStart::new("input");
+                                checkbox_elem.push_attribute(("type", "checkbox"));
+                                checkbox_elem.push_attribute(("class", "spoiler-checkbox hidden"));
+                                writer.write_event(Event::Empty(checkbox_elem))?;
+
                                 let mut elem = BytesStart::new("span");
                                 elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1 text-black focus-within:text-white"));
                                 writer.write_event(Event::Start(elem))?;
 
                                 writer.write_event(Event::Text(BytesText::new(text.trim())))?;
 
-                                let elem = BytesEnd::new("span");
+                                let elem = BytesEnd::new("label");
                                 writer.write_event(Event::End(elem))?;
                             } else {
                                 writer.write_event(Event::Text(BytesText::new(text)))?;
@@ -82,7 +92,7 @@ mod ssr {
                     }
 
                     if is_current_text_spoiler.unwrap_or_default() {
-                        let elem = BytesEnd::new("span");
+                        let elem = BytesEnd::new("label");
                         writer.write_event(Event::End(elem))?;
                     }
                 }
@@ -150,23 +160,12 @@ pub fn FormTextEditor(
                         }
                     ></textarea>
                 </div>
-                <div class="spoiler-container">
-                    <input type="checkbox" id="spoiler" class="spoiler-input hidden"/>
-                    <label for="spoiler" class="spoiler-label cursor-pointer">Reveal Spoiler</label>
-                    <div class="spoiler-content">
-                        <p class="text-gray-500">"This is the spoiler text. You won't see this until you click!"</p>
-                    </div>
-                </div>
-                <div class="bg-white p-4 rounded shadow">
-                    <p class="text-lg font-bold">Click to reveal spoiler:</p>
-                    <div class="relative">
-                        <input type="checkbox" id="spoiler" class="absolute opacity-0 w-full h-full cursor-pointer top-0 left-0 z-10"/>
-                        <label for="spoiler" class="cursor-pointer">Reveal Spoiler</label>
-                        <div class="spoiler-content bg-white border border-gray-300 p-4 rounded shadow-md mt-2 opacity-0 transition-opacity duration-300 ease-in-out">
-                            <p class="text-gray-500">"This is the spoiler text. You won't see this until you click!"</p>
-                        </div>
-                    </div>
-                </div>
+                <label>
+                    <input type="checkbox" class="spoiler-checkbox hidden"/>
+                    <span class="rounded-md bg-black p-1 mx-1 text-black spoiler-text">
+                        "Spoiler"
+                    </span>
+                </label>
                 <Transition>
                     {move || {
                         render_markdown

@@ -5,9 +5,7 @@ use crate::comment::CommentSortType;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{
-    AuthorIcon, BoldIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, PodiumIcon,
-};
+use crate::icons::{AuthorIcon, BoldIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, MarkdownIcon, PodiumIcon};
 use crate::post::PostSortType;
 use crate::ranking::SortType;
 
@@ -199,8 +197,11 @@ pub fn FormMarkdownEditor(
                         }
                     ></textarea>
                 </div>
-                    <div class="flex justify-between px-2">
-                    <div class="flex">
+                <div class="flex justify-between px-2">
+                    <div class="flex gap-1">
+                        <button type="button" class="btn btn-ghost">
+                            <MarkdownIcon/>
+                        </button>
                         <button type="button" class="btn btn-ghost">
                             <BoldIcon/>
                         </button>

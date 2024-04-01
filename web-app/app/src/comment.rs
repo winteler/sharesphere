@@ -11,7 +11,9 @@ use crate::auth::LoginGuardButton;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::get_post_id_memo;
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{AuthorWidget, FormTextEditor, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::widget::{get_styled_html_from_markdown};
+use crate::widget::{AuthorWidget, FormMarkdownEditor, TimeSinceWidget};
 
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
 const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
@@ -250,16 +252,18 @@ pub async fn get_post_comment_tree(
 pub async fn create_comment(
     post_id: i64,
     parent_comment_id: Option<i64>,
-    comment: String,
+    markdown_comment: String,
 ) -> Result<(), ServerFnError> {
     log::trace!("Create comment for post {post_id}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
+    let html_comment = get_styled_html_from_markdown(markdown_comment).await?;
+
     ssr::create_comment(
         post_id,
         parent_comment_id,
-        comment,
+        html_comment,
         &user,
         db_pool,
     ).await?;
@@ -345,8 +349,8 @@ pub fn CommentForm(
                         class="hidden"
                         value=parent_comment_id
                     />
-                    <FormTextEditor
-                        name="comment"
+                    <FormMarkdownEditor
+                        name="markdown_comment"
                         placeholder="Your comment..."
                         with_publish_button=true
                     />
@@ -450,9 +454,8 @@ pub fn CommentBox<'a>(
                 <div
                     class="text-white pl-2 pt-1"
                     class:hidden=move || !maximize()
-                >
-                    {comment.comment.body.clone()}
-                </div>
+                    inner_html={comment.comment.body.clone()}
+                />
                 <CommentWidgetBar comment=&comment/>
                 <div
                     class="flex flex-col"

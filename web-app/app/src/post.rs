@@ -12,7 +12,9 @@ use crate::forum::get_matching_forum_names;
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::icons::{ErrorIcon, LoadingIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{AuthorWidget, CommentSortWidget, FormTextEditor, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::widget::{get_styled_html_from_markdown};
+use crate::widget::{AuthorWidget, CommentSortWidget, FormMarkdownEditor, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 
@@ -318,7 +320,7 @@ pub async fn get_post_vec_by_forum_name(
 pub async fn create_post(
     forum: String,
     title: String,
-    body: String,
+    markdown_body: String,
     is_nsfw: Option<String>,
     tag: Option<String>,
 ) -> Result<(), ServerFnError> {
@@ -326,10 +328,12 @@ pub async fn create_post(
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
+    let html_body = get_styled_html_from_markdown(markdown_body).await?;
+
     let post = ssr::create_post(
         forum.as_str(),
         title.as_str(),
-        body.as_str(),
+        html_body.as_str(),
         is_nsfw.is_some(),
         tag,
         &user,
@@ -453,8 +457,8 @@ pub fn CreatePost() -> impl IntoView {
                             is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                         }
                     />
-                    <FormTextEditor
-                        name="body"
+                    <FormMarkdownEditor
+                        name="markdown_body"
                         placeholder="Content"
                         on:input=move |ev| {
                             is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
@@ -508,7 +512,7 @@ pub fn Post() -> impl IntoView {
                                     <div class="card-body">
                                         <div class="flex flex-col gap-4">
                                             <h2 class="card-title text-white">{post.post.title.clone()}</h2>
-                                            <div class="text-white">{post.post.body.clone()}</div>
+                                            <div class="text-white" inner_html={post.post.body.clone()}/>
                                             <PostWidgetBar post=post/>
                                         </div>
                                     </div>

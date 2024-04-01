@@ -24,7 +24,6 @@ mod ssr {
 
     pub fn style_html_user_content(user_content: &str) -> Result<String, ServerFnError> {
         let mut reader = Reader::from_str(user_content);
-        reader.trim_text(true);
         let mut writer = Writer::new(Cursor::new(Vec::new()));
 
         loop {
@@ -41,6 +40,7 @@ mod ssr {
                         b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
                         b"code" => elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1")),
                         b"table" => elem.push_attribute(("class", "table")),
+                        b"blockquote" => elem.push_attribute(("class", "w-fit p-2 my-2 border-s-4 rounded border-slate-500 bg-base-300")),
                         _ => (),
                     }
 
@@ -59,11 +59,11 @@ mod ssr {
                 }
                 Ok(Event::Text(e)) => {
                     let text = e.unescape().unwrap().into_owned();
-                    log::info!("Got text in xml: {text}");
-                    let spoiler_spitted_text = text.split(SPOILER_TAG);
+                    log::info!("Got text in xml, length: {}, text: {text}", text.len());
+                    let spoiler_split_text = text.split(SPOILER_TAG);
                     let mut is_current_text_spoiler = None;
-                    for text in spoiler_spitted_text {
-                        log::info!("Spoiler: {is_current_text_spoiler:?}, {text}");
+                    for text in spoiler_split_text {
+                        log::info!("Spoiler: {is_current_text_spoiler:?}, length: {}, text: {text}", text.len());
                         let is_spoiler_text = is_current_text_spoiler.unwrap_or_default();
                         if !text.is_empty() {
                             if is_spoiler_text {
@@ -93,14 +93,6 @@ mod ssr {
                         }
                         is_current_text_spoiler = Some(!is_spoiler_text);
                     }
-
-                    //if is_current_text_spoiler.unwrap_or_default() {
-                    //    let span_end = BytesEnd::new("span");
-                    //    writer.write_event(Event::End(span_end))?;
-                    //
-                    //    let elem = BytesEnd::new("label");
-                    //    writer.write_event(Event::End(elem))?;
-                    //}
                 }
                 Ok(Event::Eof) => break,
                 // we can either move or borrow the event to write, depending on your use-case
@@ -117,6 +109,7 @@ mod ssr {
         }
 
         let styled_html_output = String::from_utf8(writer.into_inner().into_inner())?;
+        log::info!("Styled html: {styled_html_output}");
         Ok(styled_html_output)
     }
 }
@@ -145,6 +138,46 @@ pub fn FormTextEditor(
     let content = create_rw_signal(String::default());
     let num_lines = move || content.get().lines().count();
 
+    view! {
+        <div class="group w-full max-w-full p-2 border border-primary rounded-lg bg-base-100">
+            <div class="w-full rounded-t-lg">
+                <label for="comment" class="sr-only">
+                    "Your comment"
+                </label>
+                <textarea
+                    id="comment"
+                    name=name
+                    placeholder=placeholder
+                    rows=num_lines
+                    class="w-full min-h-24 max-h-96 bg-base-100 outline-none border-none"
+                    on:input=move |ev| {
+                        content.update(|content: &mut String| *content = event_target_value(&ev));
+                    }
+                ></textarea>
+            </div>
+            <div class="flex justify-between px-2">
+                <div class="flex">
+                    <button type="button" class="btn btn-ghost">
+                        <BoldIcon/>
+                    </button>
+                </div>
+                <button class="btn btn-active btn-secondary" class:hidden=move || !with_publish_button disabled=move || content().is_empty()>
+                    "Publish"
+                </button>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn FormMarkdownEditor(
+    name: &'static str,
+    placeholder: &'static str,
+    #[prop(default = false)] with_publish_button: bool,
+) -> impl IntoView {
+    let content = create_rw_signal(String::default());
+    let num_lines = move || content.get().lines().count();
+
     let render_markdown = create_resource(
         move || content.get(),
         move |markdown_content| get_styled_html_from_markdown(markdown_content),
@@ -162,7 +195,7 @@ pub fn FormTextEditor(
                         name=name
                         placeholder=placeholder
                         rows=num_lines
-                        class="w-full min-h-24 max-h-96 px-0 bg-base-100 outline-none border-none"
+                        class="w-full min-h-24 max-h-96 bg-base-100 outline-none border-none"
                         on:input=move |ev| {
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }

@@ -151,16 +151,9 @@ pub fn FormTextEditor(
                     }
                 ></textarea>
             </div>
-            <div class="flex justify-between px-2">
-                <div class="flex">
-                    <button type="button" class="btn btn-ghost">
-                        <BoldIcon/>
-                    </button>
-                </div>
-                <button class="btn btn-active btn-secondary" class:hidden=move || !with_publish_button disabled=move || content().is_empty()>
-                    "Publish"
-                </button>
-            </div>
+            <button class="btn btn-active btn-secondary" class:hidden=move || !with_publish_button disabled=move || content().is_empty()>
+                "Publish"
+            </button>
         </div>
     }
 }
@@ -173,6 +166,12 @@ pub fn FormMarkdownEditor(
 ) -> impl IntoView {
     let content = create_rw_signal(String::default());
     let num_lines = move || content.get().lines().count();
+
+    let is_markdown_mode = create_rw_signal(false);
+    let markdown_button_class = move || match is_markdown_mode.get() {
+        true => "btn btn-success",
+        false => "btn btn-ghost",
+    };
 
     let render_markdown = create_resource(
         move || content.get(),
@@ -199,34 +198,44 @@ pub fn FormMarkdownEditor(
                 </div>
                 <div class="flex justify-between px-2">
                     <div class="flex gap-1">
-                        <button type="button" class="btn btn-ghost">
+                        <button
+                            type="button"
+                            class=markdown_button_class
+                            on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
+                        >
                             <MarkdownIcon/>
                         </button>
                         <button type="button" class="btn btn-ghost">
                             <BoldIcon/>
                         </button>
                     </div>
-                    <button class="btn btn-active btn-secondary" class:hidden=move || !with_publish_button disabled=move || content().is_empty()>
+                    <button
+                        class="btn btn-active btn-secondary"
+                        class:hidden=move || !with_publish_button
+                        disabled=move || content().is_empty()
+                    >
                         "Publish"
                     </button>
                 </div>
             </div>
-            <Transition>
-                {move || {
-                    render_markdown
-                        .map(|result| match result {
-                            Ok(html) => {
-                                view! {
-                                    <div
-                                        class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-lg bg-base-100 break-words"
-                                        inner_html={html}
-                                    />
-                                }.into_view()
-                            },
-                            Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
-                        })
-                }}
-            </Transition>
+            <Show when=is_markdown_mode>
+                <Transition>
+                    {move || {
+                        render_markdown
+                            .map(|result| match result {
+                                Ok(html) => {
+                                    view! {
+                                        <div
+                                            class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-lg bg-base-100 break-words"
+                                            inner_html={html}
+                                        />
+                                    }.into_view()
+                                },
+                                Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
+                            })
+                    }}
+                </Transition>
+            </Show>
         </div>
     }
 }

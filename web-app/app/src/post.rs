@@ -432,7 +432,7 @@ pub fn CreatePost() -> impl IntoView {
                                         forum_set.iter().map(|forum_name| {
                                             view! {
                                                 <li>
-                                                    <button value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
+                                                    <button type="button" value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
                                                         {forum_name}
                                                     </button>
                                                 </li>
@@ -464,7 +464,6 @@ pub fn CreatePost() -> impl IntoView {
                             is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
                         }
                     />
-
                     <select name="tag" class="select select-bordered w-full max-w-xs">
                         <option disabled selected>"Tag"</option>
                         <option>"This should be"</option>

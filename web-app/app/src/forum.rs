@@ -540,7 +540,7 @@ pub fn ForumBanner() -> impl IntoView {
                                     >
                                         <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
                                             <LogoIcon class="h-12 w-12"/>
-                                            <span class="text-4xl text-white">{forum_name()}</span>
+                                            <span class="text-4xl">{forum_name()}</span>
                                         </div>
                                     </a>
                                 }.into_view()

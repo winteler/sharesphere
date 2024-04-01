@@ -452,7 +452,7 @@ pub fn CommentBox<'a>(
             </div>
             <div class="flex flex-col">
                 <div
-                    class="text-white pl-2 pt-1"
+                    class="pl-2 pt-1"
                     class:hidden=move || !maximize()
                     inner_html={comment.comment.body.clone()}
                 />

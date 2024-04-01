@@ -132,7 +132,9 @@ pub fn MinimizeIcon(
     class: &'static str,
 ) -> impl IntoView {
     view! {
-        <img src="/svg/minimize.svg" class=class/>
+        <div class=class>
+            <img src="/svg/minimize.svg"/>
+        </div>
     }
 }
 
@@ -142,7 +144,9 @@ pub fn MaximizeIcon(
     class: &'static str,
 ) -> impl IntoView {
     view! {
-        <img src="/svg/maximize.svg" class=class/>
+        <div class=class>
+            <img src="/svg/maximize.svg"/>
+        </div>
     }
 }
 

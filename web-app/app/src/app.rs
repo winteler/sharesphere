@@ -134,7 +134,7 @@ pub fn App() -> impl IntoView {
             }
             .into_view()
         }>
-            <main class="h-screen drawer 2xl:drawer-close">
+            <main class="h-screen drawer 2xl:drawer-close text-white">
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                 <div class="drawer-content h-full flex flex-col max-2xl:items-center">
                     <NavigationBar/>
@@ -228,7 +228,7 @@ fn HomePage() -> impl IntoView {
                 style="background-image: url(/banner.jpg)"
             >
                 <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
-                    <span class="text-4xl text-white select-none">"ShareSphere"</span>
+                    <span class="text-4xl select-none">"ShareSphere"</span>
                 </div>
             </div>
             <PostSortWidget/>

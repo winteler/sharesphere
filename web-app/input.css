@@ -11,5 +11,5 @@
 
 .spoiler-checkbox:checked + .spoiler-text {
     background-color: black;
-    color: lightgray;
+    color: white;
 }

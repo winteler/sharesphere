@@ -38,9 +38,9 @@ mod ssr {
                         b"a" => elem.push_attribute(("class", "link text-primary")),
                         b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
                         b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
-                        b"code" => elem.push_attribute(("class", "rounded-md bg-black p-1 mx-1")),
+                        b"code" => elem.push_attribute(("class", "rounded-md bg-black p-1 m-1")),
                         b"table" => elem.push_attribute(("class", "table")),
-                        b"blockquote" => elem.push_attribute(("class", "w-fit p-2 my-2 border-s-4 rounded border-slate-500 bg-base-300")),
+                        b"blockquote" => elem.push_attribute(("class", "w-fit p-2 m-1 border-s-4 rounded border-slate-400 bg-slate-600")),
                         _ => (),
                     }
 
@@ -59,11 +59,9 @@ mod ssr {
                 }
                 Ok(Event::Text(e)) => {
                     let text = e.unescape().unwrap().into_owned();
-                    log::info!("Got text in xml, length: {}, text: {text}", text.len());
                     let spoiler_split_text = text.split(SPOILER_TAG);
                     let mut is_current_text_spoiler = None;
                     for text in spoiler_split_text {
-                        log::info!("Spoiler: {is_current_text_spoiler:?}, length: {}, text: {text}", text.len());
                         let is_spoiler_text = is_current_text_spoiler.unwrap_or_default();
                         if !text.is_empty() {
                             if is_spoiler_text {
@@ -77,7 +75,7 @@ mod ssr {
                                 writer.write_event(Event::Empty(checkbox_elem))?;
 
                                 let mut span = BytesStart::new("span");
-                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-1 mx-1 text-black spoiler-text"));
+                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-1 m-1 text-black spoiler-text"));
                                 writer.write_event(Event::Start(span))?;
 
                                 writer.write_event(Event::Text(BytesText::new(text.trim())))?;
@@ -109,7 +107,7 @@ mod ssr {
         }
 
         let styled_html_output = String::from_utf8(writer.into_inner().into_inner())?;
-        log::info!("Styled html: {styled_html_output}");
+        log::debug!("Styled html: {styled_html_output}");
         Ok(styled_html_output)
     }
 }
@@ -121,7 +119,7 @@ pub async fn get_styled_html_from_markdown(
     let html_from_markdown =
         markdown::to_html_with_options(markdown_input.as_str(), &markdown::Options::gfm())
             .or_else(|e| Err(ServerFnError::new(e)))?;
-    log::info!("Markdown as html: {html_from_markdown}");
+    log::debug!("Markdown as html: {html_from_markdown}");
 
     // Add styling, will be done by parsing the html which is a bit ugly. Would be better
     // if the styling could be added directly when generating the html from markdown

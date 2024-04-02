@@ -30,15 +30,15 @@ mod ssr {
                     let mut elem = e.clone().into_owned();
 
                     match elem.name().as_ref() {
-                        b"h1" => elem.push_attribute(("class", "text-4xl")),
-                        b"h2" => elem.push_attribute(("class", "text-2xl")),
-                        b"h3" => elem.push_attribute(("class", "text-xl")),
+                        b"h1" => elem.push_attribute(("class", "text-4xl my-2")),
+                        b"h2" => elem.push_attribute(("class", "text-2xl my-2")),
+                        b"h3" => elem.push_attribute(("class", "text-xl my-2")),
                         b"a" => elem.push_attribute(("class", "link text-primary")),
                         b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
                         b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
                         b"code" => elem.push_attribute(("class", "rounded-md bg-black p-1 m-1")),
                         b"table" => elem.push_attribute(("class", "table")),
-                        b"blockquote" => elem.push_attribute(("class", "w-fit p-2 m-1 border-s-4 rounded border-slate-400 bg-slate-600")),
+                        b"blockquote" => elem.push_attribute(("class", "w-fit p-2 my-2 mx-1 border-s-4 rounded border-slate-400 bg-slate-600")),
                         _ => (),
                     }
 
@@ -73,7 +73,7 @@ mod ssr {
                                 writer.write_event(Event::Empty(checkbox_elem))?;
 
                                 let mut span = BytesStart::new("span");
-                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-1 m-1 text-black spoiler-text"));
+                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-1 my-2 mx-1 text-black spoiler-text"));
                                 writer.write_event(Event::Start(span))?;
 
                                 writer.write_event(Event::Text(BytesText::new(text.trim())))?;
@@ -125,6 +125,7 @@ pub async fn get_styled_html_from_markdown(
     Ok(styled_html_output)
 }
 
+/// Component for a textarea that can render simple text
 #[component]
 pub fn FormTextEditor(
     name: &'static str,
@@ -158,9 +159,14 @@ pub fn FormTextEditor(
     }
 }
 
+/// Component for a textarea that can render markdown
 #[component]
 pub fn FormMarkdownEditor(
+    /// name of the textarea in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
+    /// name of the hidden checkbox indicating whether markdown mode is enabled, must correspond to the parameter of the associated server function
+    is_markdown_name: &'static str,
+    /// Placeholder for the textarea
     placeholder: &'static str,
     #[prop(default = false)] with_publish_button: bool,
 ) -> impl IntoView {
@@ -198,13 +204,18 @@ pub fn FormMarkdownEditor(
                 </div>
                 <div class="flex justify-between px-2">
                     <div class="flex gap-1">
-                        <button
-                            type="button"
-                            class=markdown_button_class
-                            on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
-                        >
-                            <MarkdownIcon/>
-                        </button>
+                        <label>
+                            <input
+                                type="checkbox"
+                                class="hidden"
+                                name=is_markdown_name
+                                value=is_markdown_mode
+                                on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
+                            />
+                            <span class=markdown_button_class>
+                                <MarkdownIcon/>
+                            </span>
+                        </label>
                         <button type="button" class="btn btn-ghost">
                             <BoldIcon/>
                         </button>

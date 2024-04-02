@@ -33,6 +33,7 @@ CREATE TABLE posts (
     post_id BIGSERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     body TEXT NOT NULL,
+    markdown_body TEXT,
     is_meta_post BOOLEAN NOT NULL DEFAULT FALSE,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     spoiler_level INT NOT NULL DEFAULT 0,
@@ -61,6 +62,7 @@ CREATE TABLE posts (
 CREATE TABLE comments (
     comment_id BIGSERIAL PRIMARY KEY,
     body TEXT NOT NULL,
+    markdown_body TEXT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
     parent_id BIGINT,

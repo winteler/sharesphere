@@ -32,6 +32,7 @@ pub struct Post {
     pub post_id: i64,
     pub title: String,
     pub body: String,
+    pub markdown_body: Option<String>,
     pub is_meta_post: bool,
     pub is_nsfw: bool,
     pub spoiler_level: i32,
@@ -137,6 +138,7 @@ pub mod ssr {
         forum_name: &str,
         post_title: &str,
         post_body: &str,
+        post_markdown_body: Option<&str>,
         is_nsfw: bool,
         tag: Option<String>,
         user: &User,
@@ -150,14 +152,15 @@ pub mod ssr {
 
         let post = sqlx::query_as!(
             Post,
-            "INSERT INTO posts (title, body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
+            "INSERT INTO posts (title, body, markdown_body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
              VALUES (
-                $1, $2, $3, $4,
-                (SELECT forum_id FROM forums WHERE forum_name = $5),
-                $5, $6, $7
+                $1, $2, $3, $4, $5,
+                (SELECT forum_id FROM forums WHERE forum_name = $6),
+                $6, $7, $8
             ) RETURNING *",
             post_title,
             post_body,
+            post_markdown_body,
             is_nsfw,
             tag.unwrap_or_default(),
             forum_name,
@@ -320,7 +323,8 @@ pub async fn get_post_vec_by_forum_name(
 pub async fn create_post(
     forum: String,
     title: String,
-    markdown_body: String,
+    body: String,
+    is_markdown: Option<String>,
     is_nsfw: Option<String>,
     tag: Option<String>,
 ) -> Result<(), ServerFnError> {
@@ -328,12 +332,16 @@ pub async fn create_post(
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    let html_body = get_styled_html_from_markdown(markdown_body).await?;
+    let (body, markdown_body) = match is_markdown {
+        Some(_) => (get_styled_html_from_markdown(body.clone()).await?, Some(body.as_str())),
+        None => (body, None),
+    };
 
     let post = ssr::create_post(
         forum.as_str(),
         title.as_str(),
-        html_body.as_str(),
+        body.as_str(),
+        markdown_body,
         is_nsfw.is_some(),
         tag,
         &user,
@@ -458,7 +466,8 @@ pub fn CreatePost() -> impl IntoView {
                         }
                     />
                     <FormMarkdownEditor
-                        name="markdown_body"
+                        name="body"
+                        is_markdown_name="is_markdown"
                         placeholder="Content"
                         on:input=move |ev| {
                             is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
@@ -491,7 +500,6 @@ pub fn Post() -> impl IntoView {
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
 
-    // TODO: create PostDetail struct with additional info, like vote of user. Load this here instead of normal post
     let post = create_resource(
         move || post_id(),
         move |post_id| {
@@ -506,12 +514,19 @@ pub fn Post() -> impl IntoView {
                 {
                     post.map(|result| match result {
                         Ok(post) => {
+                            let post_body_class = match post.post.markdown_body {
+                                Some(_) => "",
+                                None => "whitespace-pre",
+                            };
                             view! {
                                 <div class="card">
                                     <div class="card-body">
                                         <div class="flex flex-col gap-4">
                                             <h2 class="card-title">{post.post.title.clone()}</h2>
-                                            <div inner_html={post.post.body.clone()}/>
+                                            <div
+                                                class={post_body_class}
+                                                inner_html={post.post.body.clone()}
+                                            />
                                             <PostWidgetBar post=post/>
                                         </div>
                                     </div>

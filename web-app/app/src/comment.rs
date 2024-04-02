@@ -30,6 +30,7 @@ const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
 pub struct Comment {
     pub comment_id: i64,
     pub body: String,
+    pub markdown_body: Option<String>,
     pub is_edited: bool,
     pub moderated_body: Option<String>,
     pub parent_id: Option<i64>,
@@ -119,7 +120,8 @@ pub mod ssr {
     pub async fn create_comment(
         post_id: i64,
         parent_comment_id: Option<i64>,
-        comment: String,
+        comment: &str,
+        markdown_comment: Option<&str>,
         user: &User,
         db_pool: PgPool,
     ) -> Result<Comment, ServerFnError> {
@@ -129,8 +131,9 @@ pub mod ssr {
 
         let comment = sqlx::query_as!(
             Comment,
-            "INSERT INTO comments (body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+            "INSERT INTO comments (body, markdown_body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
             comment,
+            markdown_comment,
             parent_comment_id,
             post_id,
             user.user_id,
@@ -252,18 +255,23 @@ pub async fn get_post_comment_tree(
 pub async fn create_comment(
     post_id: i64,
     parent_comment_id: Option<i64>,
-    markdown_comment: String,
+    comment: String,
+    is_markdown: Option<String>,
 ) -> Result<(), ServerFnError> {
     log::trace!("Create comment for post {post_id}");
     let user = get_user().await?;
     let db_pool = get_db_pool()?;
 
-    let html_comment = get_styled_html_from_markdown(markdown_comment).await?;
+    let (comment, markdown_comment) = match is_markdown {
+        Some(_) => (get_styled_html_from_markdown(comment.clone()).await?, Some(comment.as_str())),
+        None => (comment, None),
+    };
 
     ssr::create_comment(
         post_id,
         parent_comment_id,
-        html_comment,
+        comment.as_str(),
+        markdown_comment,
         &user,
         db_pool,
     ).await?;
@@ -350,7 +358,8 @@ pub fn CommentForm(
                         value=parent_comment_id
                     />
                     <FormMarkdownEditor
-                        name="markdown_comment"
+                        name="comment"
+                        is_markdown_name="is_markdown"
                         placeholder="Your comment..."
                         with_publish_button=true
                     />
@@ -433,6 +442,13 @@ pub fn CommentBox<'a>(
     };
     let color_bar_css = format!("{} rounded-full h-full w-1 ", DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]);
 
+    let is_markdown = comment.comment.markdown_body.is_some();
+    let comment_class = move || match (maximize(), is_markdown) {
+        (true, true) => "pl-2 pt-1",
+        (true, false) => "pl-2 pt-1 whitespace-pre",
+        (false, _) => "hidden",
+    };
+
     view! {
         <div class="flex pl-2 py-1">
             <div class=sidebar_css>
@@ -452,8 +468,7 @@ pub fn CommentBox<'a>(
             </div>
             <div class="flex flex-col">
                 <div
-                    class="pl-2 pt-1"
-                    class:hidden=move || !maximize()
+                    class=comment_class
                     inner_html={comment.comment.body.clone()}
                 />
                 <CommentWidgetBar comment=&comment/>

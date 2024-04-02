@@ -27,6 +27,7 @@ pub async fn create_forum_with_posts(
             forum_name,
             i.to_string().as_str(),
             "body",
+            None,
             false,
             None,
             user,

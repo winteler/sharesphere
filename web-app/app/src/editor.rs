@@ -180,9 +180,9 @@ pub fn FormMarkdownEditor(
     view! {
         <div class="flex flex-col gap-2">
             <div class="group w-full max-w-full p-2 border border-primary rounded-lg bg-base-100">
-                <div class="w-full rounded-t-lg">
+                <div class="w-full mb-1 rounded-t-lg">
                     <label for="comment" class="sr-only">
-                        "Your comment"
+                        {placeholder}
                     </label>
                     <textarea
                         id="comment"

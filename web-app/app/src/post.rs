@@ -6,7 +6,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::comment::{CommentButton, CommentSection};
+use crate::comment::{CommentButton, CommentForm, CommentSection};
 #[cfg(feature = "ssr")]
 use crate::editor::{get_styled_html_from_markdown};
 use crate::editor::FormMarkdownEditor;
@@ -550,16 +550,27 @@ pub fn Post() -> impl IntoView {
 /// Component to encapsulate the widgets associated with each post
 #[component]
 fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
+    let show_comment_form = create_rw_signal(false);
     let content = ContentWithVote::Post(&post.post, &post.vote);
+    let post_id = post.post.post_id;
 
     view! {
-        <div class="flex gap-2">
-            <VotePanel
-                content=content
-            />
-            <CommentButton post_id=post.post.post_id/>
-            <AuthorWidget author=&post.post.creator_name/>
-            <TimeSinceWidget timestamp=&post.post.create_timestamp/>
+        <div class="flex flex-col gap-2">
+            <div class="flex gap-2">
+                <VotePanel
+                    content=content
+                />
+                <CommentButton show_comment_form=show_comment_form/>
+                <AuthorWidget author=&post.post.creator_name/>
+                <TimeSinceWidget timestamp=&post.post.create_timestamp/>
+            </div>
+            <Show when=show_comment_form>
+                <CommentForm
+                    post_id=post_id
+                    parent_comment_id=None
+                    on:submit=move |_| show_comment_form.update(|show: &mut bool| *show = false)
+                />
+            </Show>
         </div>
     }
 }

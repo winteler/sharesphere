@@ -283,12 +283,8 @@ pub async fn create_comment(
 /// Component to open the comment form
 #[component]
 pub fn CommentButton(
-    post_id: i64,
-    #[prop(default = None)]
-    parent_comment_id: Option<i64>,
+    show_comment_form: RwSignal<bool>
 ) -> impl IntoView {
-    let hide_comment_form = create_rw_signal(true);
-
     view! {
         <div>
             <LoginGuardButton
@@ -297,22 +293,12 @@ pub fn CommentButton(
             >
                 <button
                     class="btn btn-circle btn-sm m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
-                    class=("btn-primary", move || !hide_comment_form())
-                    class=("btn-ghost", move || hide_comment_form())
-                    on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
+                    class=("btn-primary", move || show_comment_form())
+                    class=("btn-ghost", move || !show_comment_form())
+                    on:click=move |_| show_comment_form.update(|show: &mut bool| *show = !*show)
                 >
                     <CommentIcon/>
                 </button>
-                <div
-                    class="absolute float-left z-10 w-1/2 2xl:w-1/3 origin-top-right" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1"
-                    class:hidden=hide_comment_form
-                >
-                    <CommentForm
-                        post_id=post_id
-                        parent_comment_id=parent_comment_id
-                        on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)
-                    />
-                </div>
             </LoginGuardButton>
         </div>
     }
@@ -340,7 +326,7 @@ pub fn CommentForm(
     });
 
     view! {
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 max-w-2xl">
             <ActionForm
                 action=state.create_comment_action
                 node_ref=form_ref
@@ -500,15 +486,26 @@ pub fn CommentBox<'a>(
 /// Component to encapsulate the widgets associated with each comment
 #[component]
 fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
-
+    let show_comment_form = create_rw_signal(false);
+    let post_id = comment.comment.post_id;
+    let comment_id = comment.comment.comment_id;
     let content = ContentWithVote::Comment(&comment.comment, &comment.vote);
 
     view! {
-        <div class="flex gap-2">
-            <VotePanel content=content/>
-            <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.comment_id)/>
-            <AuthorWidget author=&comment.comment.creator_name/>
-            <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
+        <div class="flex flex-col gap-2">
+            <div class="flex gap-2">
+                <VotePanel content=content/>
+                <CommentButton show_comment_form=show_comment_form/>
+                <AuthorWidget author=&comment.comment.creator_name/>
+                <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
+            </div>
+            <Show when=show_comment_form>
+                <CommentForm
+                    post_id=post_id
+                    parent_comment_id=Some(comment_id)
+                    on:submit=move |_| show_comment_form.update(|show: &mut bool| *show = false)
+                />
+            </Show>
         </div>
     }
 }

@@ -8,12 +8,13 @@ use serde::{Deserialize, Serialize};
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
+#[cfg(feature = "ssr")]
+use crate::editor::{get_styled_html_from_markdown};
+use crate::editor::FormMarkdownEditor;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::get_post_id_memo;
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-#[cfg(feature = "ssr")]
-use crate::widget::{get_styled_html_from_markdown};
-use crate::widget::{AuthorWidget, FormMarkdownEditor, TimeSinceWidget};
+use crate::widget::{AuthorWidget, TimeSinceWidget};
 
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
 const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [

@@ -7,12 +7,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
+use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
 use crate::ranking::{ScoreIndicator, SortType};
-use crate::widget::{AuthorWidget, FormTextEditor, PostSortWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 

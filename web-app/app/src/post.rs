@@ -7,14 +7,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::comment::{CommentButton, CommentSection};
+#[cfg(feature = "ssr")]
+use crate::editor::{get_styled_html_from_markdown};
+use crate::editor::FormMarkdownEditor;
 use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::icons::{ErrorIcon, LoadingIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-#[cfg(feature = "ssr")]
-use crate::widget::{get_styled_html_from_markdown};
-use crate::widget::{AuthorWidget, CommentSortWidget, FormMarkdownEditor, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 

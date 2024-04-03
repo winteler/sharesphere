@@ -96,6 +96,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
         forum_name,
         "post",
         "body",
+        None,
         false,
         None,
         &test_user,
@@ -106,13 +107,12 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
     let mut comment_id_vec = Vec::<i64>::new();
 
     for i in 1..21 {
-        let comment = i.to_string().as_str();
         let parent_id = comment_id_vec.get(i % 5);
 
         let comment = comment::ssr::create_comment(
             post.post_id,
             parent_id.cloned(),
-            comment,
+            i.to_string().as_str(),
             None,
             &test_user,
             db_pool.clone(),

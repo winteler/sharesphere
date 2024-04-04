@@ -280,105 +280,6 @@ pub async fn create_comment(
     Ok(())
 }
 
-/// Component to open the comment form
-#[component]
-pub fn CommentButton(
-    post_id: i64,
-    #[prop(default = None)]
-    parent_comment_id: Option<i64>,
-) -> impl IntoView {
-    let hide_comment_form = create_rw_signal(true);
-
-    view! {
-        <div>
-            <LoginGuardButton
-                login_button_class="btn btn-circle btn-ghost btn-sm"
-                login_button_content=move || view! { <CommentIcon/> }
-            >
-                <button
-                    class="btn btn-circle btn-sm m-1" id="menu-button" aria-expanded="true" aria-haspopup="true"
-                    class=("btn-primary", move || !hide_comment_form())
-                    class=("btn-ghost", move || hide_comment_form())
-                    on:click=move |_| hide_comment_form.update(|hide: &mut bool| *hide = !*hide)
-                >
-                    <CommentIcon/>
-                </button>
-                <div
-                    class="absolute float-left z-10 w-1/2 2xl:w-1/3 origin-top-right" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1"
-                    class:hidden=hide_comment_form
-                >
-                    <CommentForm
-                        post_id=post_id
-                        parent_comment_id=parent_comment_id
-                        on:submit=move |_| hide_comment_form.update(|hide: &mut bool| *hide = true)
-                    />
-                </div>
-            </LoginGuardButton>
-        </div>
-    }
-}
-
-/// Component to publish a comment
-#[component]
-pub fn CommentForm(
-    post_id: i64,
-    #[prop(default = None)]
-    parent_comment_id: Option<i64>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let create_comment_result = state.create_comment_action.value();
-    let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
-
-    let form_ref = create_node_ref::<html::Form>();
-
-    let response_ok = move || state.create_comment_action.value().with(|val| matches!(val, Some(Ok(_))));
-
-    create_effect(move |_| {
-        if response_ok() {
-            form_ref.get().expect("form node should be loaded").reset()
-        }
-    });
-
-    view! {
-        <div class="flex flex-col gap-2">
-            <ActionForm
-                action=state.create_comment_action
-                node_ref=form_ref
-            >
-                <div class="flex flex-col gap-2 w-full">
-                    <input
-                        type="text"
-                        name="post_id"
-                        class="hidden"
-                        value=post_id
-                    />
-                    <input
-                        type="text"
-                        name="parent_comment_id"
-                        class="hidden"
-                        value=parent_comment_id
-                    />
-                    <FormMarkdownEditor
-                        name="comment"
-                        is_markdown_name="is_markdown"
-                        placeholder="Your comment..."
-                        with_publish_button=true
-                    />
-                </div>
-            </ActionForm>
-            <Show
-                when=has_error
-                fallback=move || ()
-            >
-                <div class="alert alert-error flex justify-center">
-                    <ErrorIcon/>
-                    <span>"Server error. Please reload the page and retry."</span>
-                </div>
-            </Show>
-        </div>
-    }
-}
-
 /// Comment section component
 #[component]
 pub fn CommentSection() -> impl IntoView {
@@ -496,7 +397,6 @@ pub fn CommentBox<'a>(
     }
 }
 
-
 /// Component to encapsulate the widgets associated with each comment
 #[component]
 fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
@@ -509,6 +409,155 @@ fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
             <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.comment_id)/>
             <AuthorWidget author=&comment.comment.creator_name/>
             <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
+        </div>
+    }
+}
+
+/// Component to open the comment form
+#[component]
+pub fn CommentButton(
+    post_id: i64,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+) -> impl IntoView {
+    let show_comment_dialog = create_rw_signal(false);
+    let comment_button_class = move || {
+        match show_comment_dialog.get() {
+            true => "btn btn-circle btn-sm m-1 btn-primary",
+            false => "btn btn-circle btn-sm m-1 btn-ghost",
+        }
+    };
+
+    view! {
+        <div>
+            <LoginGuardButton
+                login_button_class="btn btn-circle btn-ghost btn-sm"
+                login_button_content=move || view! { <CommentIcon/> }
+            >
+                <button
+                    class=comment_button_class
+                    aria-expanded=move || show_comment_dialog.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_comment_dialog.update(|show: &mut bool| *show = !*show)
+                >
+                    <CommentIcon/>
+                </button>
+            </LoginGuardButton>
+        </div>
+        <CommentDialog
+            post_id=post_id
+            parent_comment_id=parent_comment_id
+            show_dialog=show_comment_dialog
+        />
+    }
+}
+
+/// Dialog to publish a comment
+#[component]
+pub fn CommentDialog(
+    post_id: i64,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+    show_dialog: RwSignal<bool>,
+) -> impl IntoView {
+    view! {
+        <Show when=show_dialog>
+            <div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-base-300 bg-opacity-75 transition-opacity"></div>
+                <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                    <div class="flex min-h-full items-end justify-center items-center">
+                        <div class="relative transform overflow-hidden rounded-lg shadow-xl transition-all w-full max-w-xl">
+                            <CommentForm
+                                post_id=post_id
+                                parent_comment_id=parent_comment_id
+                                show_form=show_dialog
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Show>
+    }
+}
+
+/// Form to publish a comment
+#[component]
+pub fn CommentForm(
+    post_id: i64,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+    show_form: RwSignal<bool>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+
+    let comment = create_rw_signal(String::new());
+    let is_comment_empty = move || comment.with(|comment: &String| comment.is_empty());
+
+    let create_comment_result = state.create_comment_action.value();
+    let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
+
+    let form_ref = create_node_ref::<html::Form>();
+    let response_ok = move || state.create_comment_action.value().with(|val| matches!(val, Some(Ok(_))));
+
+    create_effect(move |_| {
+        if response_ok() {
+            form_ref.get().expect("form node should be loaded").reset()
+        }
+    });
+
+    view! {
+        <div class="bg-base-200 p-2 flex flex-col gap-2">
+            <ActionForm
+                action=state.create_comment_action
+                node_ref=form_ref
+                on:submit=move |_| show_form.update(|show: &mut bool| *show = false)
+            >
+                <div class="flex flex-col gap-2 w-full">
+                    <input
+                        type="text"
+                        name="post_id"
+                        class="hidden"
+                        value=post_id
+                    />
+                    <input
+                        type="text"
+                        name="parent_comment_id"
+                        class="hidden"
+                        value=parent_comment_id
+                    />
+                    <FormMarkdownEditor
+                        name="comment"
+                        is_markdown_name="is_markdown"
+                        placeholder="Your comment..."
+                        content=comment
+                    />
+                    <div class="flex justify-between gap-2">
+                        <button
+                            type="button"
+                            class="btn btn-error"
+                            on:click=move |_| show_form.set(false)
+                        >
+                            "Cancel"
+                        </button>
+                        <button
+                            type="submit"
+                            class="btn btn-active btn-secondary"
+                            disabled=is_comment_empty
+                        >
+                            "Publish"
+                        </button>
+                    </div>
+                </div>
+            </ActionForm>
+            <Show
+                when=has_error
+                fallback=move || ()
+            >
+                <div class="alert alert-error flex justify-center">
+                    <ErrorIcon/>
+                    <span>"Server error. Please reload the page and retry."</span>
+                </div>
+            </Show>
         </div>
     }
 }

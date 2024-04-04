@@ -121,11 +121,13 @@ pub async fn get_styled_html_from_markdown(
 /// Component for a textarea that can render simple text
 #[component]
 pub fn FormTextEditor(
+    /// name of the textarea in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
+    /// name of the hidden checkbox indicating whether markdown mode is enabled, must correspond to the parameter of the associated server function
     placeholder: &'static str,
-    #[prop(default = false)] with_publish_button: bool,
+    /// Signal to synchronize content between this component and its parent
+    content: RwSignal<String>
 ) -> impl IntoView {
-    let content = create_rw_signal(String::default());
     let num_lines = move || content.get().lines().count();
 
     view! {
@@ -145,9 +147,6 @@ pub fn FormTextEditor(
                     }
                 ></textarea>
             </div>
-            <button class="btn btn-active btn-secondary" class:hidden=move || !with_publish_button disabled=move || content().is_empty()>
-                "Publish"
-            </button>
         </div>
     }
 }
@@ -161,9 +160,9 @@ pub fn FormMarkdownEditor(
     is_markdown_name: &'static str,
     /// Placeholder for the textarea
     placeholder: &'static str,
-    #[prop(default = false)] with_publish_button: bool,
+    /// Signal to synchronize content between this component and its parent
+    content: RwSignal<String>
 ) -> impl IntoView {
-    let content = create_rw_signal(String::default());
     let num_lines = move || content.get().lines().count();
 
     let is_markdown_mode = create_rw_signal(false);
@@ -190,35 +189,27 @@ pub fn FormMarkdownEditor(
                         placeholder=placeholder
                         rows=num_lines
                         class="w-full min-h-24 max-h-96 bg-base-100 outline-none border-none"
+                        autofocus
                         on:input=move |ev| {
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
                     ></textarea>
                 </div>
-                <div class="flex justify-between px-2">
-                    <div class="flex gap-1">
-                        <label>
-                            <input
-                                type="checkbox"
-                                class="hidden"
-                                name=is_markdown_name
-                                value=is_markdown_mode
-                                on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
-                            />
-                            <span class=markdown_button_class>
-                                <MarkdownIcon/>
-                            </span>
-                        </label>
-                        <button type="button" class="btn btn-ghost">
-                            <BoldIcon/>
-                        </button>
-                    </div>
-                    <button
-                        class="btn btn-active btn-secondary"
-                        class:hidden=move || !with_publish_button
-                        disabled=move || content().is_empty()
-                    >
-                        "Publish"
+                <div class="flex px-2 gap-1">
+                    <label>
+                        <input
+                            type="checkbox"
+                            class="hidden"
+                            name=is_markdown_name
+                            value=is_markdown_mode
+                            on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
+                        />
+                        <span class=markdown_button_class>
+                            <MarkdownIcon/>
+                        </span>
+                    </label>
+                    <button type="button" class="btn btn-ghost">
+                        <BoldIcon/>
                     </button>
                 </div>
             </div>

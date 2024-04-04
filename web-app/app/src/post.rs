@@ -400,9 +400,9 @@ pub fn CreatePost() -> impl IntoView {
     };
 
     let forum_name_input = create_rw_signal(forum_query());
+    let post_body = create_rw_signal(String::new());
     let is_title_empty = create_rw_signal(true);
-    let is_body_empty = create_rw_signal(true);
-    let is_content_invalid = create_memo(move |_| is_title_empty.get() || is_body_empty.get());
+    let is_content_invalid = create_memo(move |_| is_title_empty.get() || post_body.get().is_empty());
 
     let matching_forum = create_resource(
         move || {
@@ -427,6 +427,7 @@ pub fn CreatePost() -> impl IntoView {
                             placeholder="Sphere"
                             autocomplete="off"
                             class="input input-bordered input-primary w-full h-input_m"
+                            autofocus
                             on:input=move |ev| {
                                 forum_name_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
                             }
@@ -470,9 +471,7 @@ pub fn CreatePost() -> impl IntoView {
                         name="body"
                         is_markdown_name="is_markdown"
                         placeholder="Content"
-                        on:input=move |ev| {
-                            is_body_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
-                        }
+                        content=post_body
                     />
                     <select name="tag" class="select select-bordered w-full max-w-xs">
                         <option disabled selected>"Tag"</option>

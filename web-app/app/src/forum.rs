@@ -412,12 +412,12 @@ pub fn CreateForum() -> impl IntoView {
         },
     );
 
-    let is_name_empty = move || forum_name().is_empty();
-    let is_name_alphanumeric = move || forum_name().chars().all(char::is_alphanumeric);
     let is_name_taken = create_rw_signal(false);
-    let is_description_empty = create_rw_signal(true);
+    let description = create_rw_signal(String::new());
+    let is_name_empty = move || forum_name.get().is_empty();
+    let is_name_alphanumeric = move || forum_name.get().chars().all(char::is_alphanumeric);
     let are_inputs_invalid = create_memo(move |_| {
-        is_name_empty() || is_name_taken() || !is_name_alphanumeric() || is_description_empty()
+        is_name_empty() || is_name_taken() || !is_name_alphanumeric() || description.get().is_empty()
     });
 
     view! {
@@ -432,6 +432,7 @@ pub fn CreateForum() -> impl IntoView {
                             placeholder="Name"
                             autocomplete="off"
                             class="input input-bordered input-primary h-input_l flex-none w-1/2"
+                            autofocus
                             on:input=move |ev| {
                                 forum_name.update(|value| *value = event_target_value(&ev).to_lowercase());
                             }
@@ -475,9 +476,7 @@ pub fn CreateForum() -> impl IntoView {
                     <FormTextEditor
                         name="description"
                         placeholder="Description"
-                        on:input=move |ev| {
-                            is_description_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
-                        }
+                        content=description
                     />
                     <div class="form-control">
                         <label class="cursor-pointer label p-0">

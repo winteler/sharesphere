@@ -414,10 +414,10 @@ pub fn CreateForum() -> impl IntoView {
 
     let is_name_taken = create_rw_signal(false);
     let description = create_rw_signal(String::new());
-    let is_name_empty = move || forum_name.get().is_empty();
-    let is_name_alphanumeric = move || forum_name.get().chars().all(char::is_alphanumeric);
+    let is_name_empty = move || forum_name.with(|forum_name| forum_name.is_empty());
+    let is_name_alphanumeric = move || forum_name.with(|forum_name| forum_name.chars().all(char::is_alphanumeric));
     let are_inputs_invalid = create_memo(move |_| {
-        is_name_empty() || is_name_taken() || !is_name_alphanumeric() || description.get().is_empty()
+        is_name_empty() || is_name_taken() || !is_name_alphanumeric() || description.with(|description| description.is_empty())
     });
 
     view! {
@@ -442,11 +442,11 @@ pub fn CreateForum() -> impl IntoView {
                         {
                             move || is_forum_available.map(|result| match result {
                                 None | Some(Ok(true)) => {
-                                    is_name_taken.update(|is_name_taken| *is_name_taken = false);
+                                    is_name_taken.set(false);
                                     View::default()
                                 },
                                 Some(Ok(false)) => {
-                                    is_name_taken.update(|is_name_taken| *is_name_taken = true);
+                                    is_name_taken.set(true);
                                     view! {
                                         <div class="alert alert-error h-input_l flex content-center">
                                             <ErrorIcon/>
@@ -456,7 +456,7 @@ pub fn CreateForum() -> impl IntoView {
                                 },
                                 Some(Err(e)) => {
                                     log::error!("Error while checking forum existence: {e}");
-                                    is_name_taken.update(|is_name_taken| *is_name_taken = true);
+                                    is_name_taken.set(true);
                                     view! {
                                         <div class="alert alert-error h-input_l flex content-center">
                                             <ErrorIcon/>

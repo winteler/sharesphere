@@ -510,7 +510,7 @@ pub fn CommentForm(
             <ActionForm
                 action=state.create_comment_action
                 node_ref=form_ref
-                on:submit=move |_| show_form.update(|show: &mut bool| *show = false)
+                on:submit=move |_| show_form.set(false)
             >
                 <div class="flex flex-col gap-2 w-full">
                     <input

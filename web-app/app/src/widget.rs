@@ -107,7 +107,7 @@ pub fn SortWidgetOption(
         SortType::Post(_) => state.post_sort_type,
         SortType::Comment(_) => state.comment_sort_type,
     };
-    let is_selected = move || sort_type == sort_signal.get();
+    let is_selected = move || sort_signal.with(|sort| *sort == sort_type);
     let class = move || {
         let mut class =
             String::from("btn btn-ghost join-item hover:border hover:border-1 hover:border-white ");
@@ -123,7 +123,7 @@ pub fn SortWidgetOption(
                 class=class
                 on:click=move |_| {
                     if sort_signal.get_untracked() != sort_type {
-                        sort_signal.update(|value| *value = sort_type);
+                        sort_signal.set(sort_type);
                     }
                 }
             >

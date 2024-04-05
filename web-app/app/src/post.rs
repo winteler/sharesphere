@@ -402,7 +402,7 @@ pub fn CreatePost() -> impl IntoView {
     let forum_name_input = create_rw_signal(forum_query());
     let post_body = create_rw_signal(String::new());
     let is_title_empty = create_rw_signal(true);
-    let is_content_invalid = create_memo(move |_| is_title_empty.get() || post_body.get().is_empty());
+    let is_content_invalid = create_memo(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
 
     let matching_forum = create_resource(
         move || {
@@ -464,7 +464,7 @@ pub fn CreatePost() -> impl IntoView {
                         placeholder="Title"
                         class="input input-bordered input-primary h-input_m"
                         on:input=move |ev| {
-                            is_title_empty.update(|is_empty: &mut bool| *is_empty = event_target_value(&ev).is_empty());
+                            is_title_empty.set(event_target_value(&ev).is_empty());
                         }
                     />
                     <FormMarkdownEditor

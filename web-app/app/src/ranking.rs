@@ -417,7 +417,7 @@ pub fn on_content_vote(
         comment_id,
         previous_vote_info,
     });
-    score.update(|score| *score = initial_score + (vote.get_untracked() as i32));
+    score.set(initial_score + (vote.get_untracked() as i32));
 }
 
 // Function to react to an post's upvote or downvote button being clicked.
@@ -461,7 +461,7 @@ pub fn get_on_content_vote_closure(
             comment_id,
             previous_vote_info,
         });
-        score.update(|score| *score = initial_score + (vote.get_untracked() as i32));
+        score.set(initial_score + (vote.get_untracked() as i32));
     }
 }
 

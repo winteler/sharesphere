@@ -128,7 +128,7 @@ pub fn FormTextEditor(
     /// Signal to synchronize content between this component and its parent
     content: RwSignal<String>
 ) -> impl IntoView {
-    let num_lines = move || content.get().lines().count();
+    let num_lines = move || content.with(|content| content.lines().count());
 
     view! {
         <div class="group w-full max-w-full p-2 border border-primary rounded-lg bg-base-100">
@@ -163,7 +163,7 @@ pub fn FormMarkdownEditor(
     /// Signal to synchronize content between this component and its parent
     content: RwSignal<String>
 ) -> impl IntoView {
-    let num_lines = move || content.get().lines().count();
+    let num_lines = move || content.with(|content| content.lines().count());
 
     let is_markdown_mode = create_rw_signal(false);
     let markdown_button_class = move || match is_markdown_mode.get() {

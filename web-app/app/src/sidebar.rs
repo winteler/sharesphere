@@ -1,25 +1,31 @@
 use leptos::*;
 
 use crate::app::GlobalState;
-use crate::forum::{FORUM_ROUTE_PREFIX, get_popular_forum_names, get_subscribed_forum_names};
+use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, FORUM_ROUTE_PREFIX};
 use crate::icons::{ErrorIcon, LoadingIcon};
 
 /// Component to display a list of forum links
 #[component]
-pub fn ForumLinkList<'a>(
-    title: &'static str,
-    forum_name_vec: &'a Vec<String>,
-) -> impl IntoView {
-    let forum_vector_view = forum_name_vec.iter().map(|forum_name| {
-        let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
-        view! {
-            <li>
-                <a href=forum_path>
-                    {forum_name}
-                </a>
-            </li>
-        }
-    }).collect_view();
+pub fn ForumLinkList<'a>(title: &'static str, forum_name_vec: &'a Vec<String>) -> impl IntoView {
+    let forum_vector_view = forum_name_vec
+        .iter()
+        .map(|forum_name| {
+            let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
+            let wrong_forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + "notAForum";
+            view! {
+                <li>
+                    <a href=forum_path>
+                        {forum_name}
+                    </a>
+                </li>
+                <li>
+                    <a href=wrong_forum_path>
+                        "NotAForum"
+                    </a>
+                </li>
+            }
+        })
+        .collect_view();
     view! {
         <ul class="menu h-full">
             <li>
@@ -39,12 +45,17 @@ pub fn ForumLinkList<'a>(
 pub fn LeftSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let subscribed_forum_vec = create_resource(
-        move || (state.subscribe_action.version().get(), state.unsubscribe_action.version().get()),
-        |_| get_subscribed_forum_names()
+        move || {
+            (
+                state.subscribe_action.version().get(),
+                state.unsubscribe_action.version().get(),
+            )
+        },
+        |_| get_subscribed_forum_names(),
     );
     let popular_forum_vec = create_resource(
         move || state.create_forum_action.version().get(),
-        |_| get_popular_forum_names()
+        |_| get_popular_forum_names(),
     );
 
     view! {

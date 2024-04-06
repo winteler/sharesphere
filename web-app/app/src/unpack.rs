@@ -1,6 +1,7 @@
 use leptos::*;
-use crate::icons::LoadingIcon;
+
 use crate::error_template::ErrorTemplate;
+use crate::icons::LoadingIcon;
 
 #[component]
 pub fn Unpack<T, V: IntoView + 'static, F: FnOnce(T) -> V + 'static>(
@@ -53,7 +54,7 @@ pub fn UnpackResource<
     T: Clone + 'static,
     A: Clone + 'static,
     V: IntoView + 'static,
-    F: Fn(T) -> V + 'static,
+    F: Fn(&T) -> V + 'static,
 >(
     resource: Resource<A, Result<T, ServerFnError>>,
     children: F,
@@ -63,11 +64,15 @@ pub fn UnpackResource<
     view! {
         <Suspense fallback=move || view! { <LoadingIcon/> }>
             <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
-                {move || match resource.get() {
-                    Some(Ok(value)) => Some(Ok(children.with_value(|children| children(value)))),
-                    Some(Err(e)) => Some(Err(ServerFnErrorErr::from(e))),
-                    None => None,
-                }}
+                {
+                    move || resource.map(|result| match result {
+                        Ok(value) => Ok(children.with_value(|children| children(value))),
+                        Err(e) => {
+                            log::info!("Got error in unpack: {e}");
+                            Err(ServerFnErrorErr::from(e.clone()))
+                        },
+                    })
+                }
             </ErrorBoundary>
         </Suspense>
     }

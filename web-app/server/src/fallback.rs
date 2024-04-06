@@ -1,11 +1,10 @@
-use app::{error_template::ErrorTemplate, errors::AppError};
 use axum::{
     body::Body,
     extract::State,
     http::{Request, Response, StatusCode, Uri},
     response::{IntoResponse, Response as AxumResponse},
 };
-use leptos::{view, Errors, LeptosOptions};
+use leptos::LeptosOptions;
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
@@ -20,20 +19,12 @@ pub async fn file_and_error_handler(
     if res.status() == StatusCode::OK {
         res.into_response()
     } else {
-        let mut errors = Errors::default();
-        errors.insert_with_default_key(AppError::NotFound);
-        let handler = leptos_axum::render_app_to_stream(
-            options.to_owned(),
-            move || view! {<ErrorTemplate outside_errors=errors.clone()/>},
-        );
+        let handler = leptos_axum::render_app_to_stream(options.to_owned(), app::app::App);
         handler(req).await.into_response()
     }
 }
 
-async fn get_static_file(
-    uri: Uri,
-    root: &str,
-) -> Result<Response<Body>, (StatusCode, String)> {
+async fn get_static_file(uri: Uri, root: &str) -> Result<Response<Body>, (StatusCode, String)> {
     let req = Request::builder()
         .uri(uri.clone())
         .body(Body::empty())

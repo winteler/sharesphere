@@ -12,7 +12,7 @@ use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, Subscri
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
 use crate::ranking::{ScoreIndicator, SortType};
-use crate::unpack::{UnpackResource};
+use crate::unpack::UnpackResource;
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
@@ -62,6 +62,12 @@ pub struct ForumWithSubscription {
     pub subscription_id: Option<i64>,
 }
 
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ForumContent {
+    pub forum: ForumWithSubscription,
+    pub post_vec: Vec<Post>,
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::collections::BTreeSet;
@@ -69,8 +75,8 @@ pub mod ssr {
     use leptos::ServerFnError;
     use sqlx::PgPool;
 
-    use crate::forum::{Forum, ForumWithSubscription};
-    use crate::post::{ssr::get_post_vec_by_forum_name, Post};
+    use crate::forum::{Forum, ForumContent, ForumWithSubscription};
+    use crate::post::ssr::get_post_vec_by_forum_name;
     use crate::ranking::SortType;
 
     pub async fn get_forum_contents(
@@ -78,7 +84,7 @@ pub mod ssr {
         sort_type: SortType,
         user_id: Option<i64>,
         db_pool: PgPool,
-    ) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
+    ) -> Result<ForumContent, ServerFnError> {
         let forum = sqlx::query_as::<_, ForumWithSubscription>(
             "SELECT f.*, s.subscription_id \
             FROM forums f \
@@ -94,7 +100,7 @@ pub mod ssr {
 
         let post_vec = get_post_vec_by_forum_name(forum_name, sort_type, db_pool).await?;
 
-        Ok((forum, post_vec))
+        Ok(ForumContent { forum, post_vec })
     }
 
     pub async fn is_forum_available(
@@ -105,8 +111,8 @@ pub mod ssr {
             "SELECT forum_id FROM forums WHERE forum_name = $1",
             forum_name
         )
-            .fetch_one(&db_pool)
-            .await;
+        .fetch_one(&db_pool)
+        .await;
 
         match forum_exist {
             Ok(_) => Ok(false),
@@ -207,7 +213,10 @@ pub mod ssr {
             return Err(ServerFnError::new("Cannot create Sphere with empty name."));
         }
 
-        if !name.chars().all(|c| c.is_alphanumeric() && (c.is_lowercase() || c.is_numeric())) {
+        if !name
+            .chars()
+            .all(|c| c.is_alphanumeric() && (c.is_lowercase() || c.is_numeric()))
+        {
             return Err(ServerFnError::new(
                 "Sphere name can only contain alphanumeric lowercase characters.",
             ));
@@ -317,7 +326,7 @@ pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
 pub async fn get_forum_contents(
     forum_name: String,
     sort_type: SortType,
-) -> Result<(ForumWithSubscription, Vec<Post>), ServerFnError> {
+) -> Result<ForumContent, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(user) => Some(user.user_id),
@@ -415,9 +424,13 @@ pub fn CreateForum() -> impl IntoView {
     let is_name_taken = create_rw_signal(false);
     let description = create_rw_signal(String::new());
     let is_name_empty = move || forum_name.with(|forum_name| forum_name.is_empty());
-    let is_name_alphanumeric = move || forum_name.with(|forum_name| forum_name.chars().all(char::is_alphanumeric));
+    let is_name_alphanumeric =
+        move || forum_name.with(|forum_name| forum_name.chars().all(char::is_alphanumeric));
     let are_inputs_invalid = create_memo(move |_| {
-        is_name_empty() || is_name_taken() || !is_name_alphanumeric() || description.with(|description| description.is_empty())
+        is_name_empty()
+            || is_name_taken()
+            || !is_name_alphanumeric()
+            || description.with(|description| description.is_empty())
     });
 
     view! {
@@ -546,7 +559,7 @@ pub fn ForumBanner() -> impl IntoView {
                                 }.into_view()
                             },
                             Err(e) => {
-                                log::info!("Error: {}", e);
+                                log::info!("Error: {e}");
                                 view! { <ErrorIcon/> }.into_view()
                             },
                         })
@@ -579,8 +592,8 @@ pub fn ForumContents() -> impl IntoView {
         <UnpackResource
             resource=forum_content let:value
         >
-            <ForumToolbar forum=&value.0/>
-            <ForumPostMiniatures post_vec=&value.1/>
+            <ForumToolbar forum=&value.forum/>
+            <ForumPostMiniatures post_vec=&value.post_vec/>
         </UnpackResource>
     }
 }

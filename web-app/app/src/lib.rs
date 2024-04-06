@@ -14,4 +14,5 @@ pub mod navigation_bar;
 pub mod post;
 pub mod ranking;
 pub mod sidebar;
+pub mod unpack;
 pub mod widget;

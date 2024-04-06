@@ -8,11 +8,11 @@ use serde::{Deserialize, Serialize};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
-use crate::error_template::ErrorTemplate;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
 use crate::ranking::{ScoreIndicator, SortType};
+use crate::unpack::{UnpackResource};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
@@ -576,26 +576,12 @@ pub fn ForumContents() -> impl IntoView {
     );
 
     view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
-            {
-                move || {
-                     forum_content.map(|result| match &result {
-                        Ok((forum, post_vec)) => {
-                            view! {
-                                <ForumToolbar forum=forum/>
-                                <ForumPostMiniatures post_vec=post_vec/>
-                            }.into_view()
-                        },
-                        Err(e) => {
-                            log::info!("Error: {}", e);
-                            view! { <pre class="error">"Server Error: " {e.to_string()}</pre> }.into_view()
-                        },
-                    })
-                }
-            }
-            </ErrorBoundary>
-        </Transition>
+        <UnpackResource
+            resource=forum_content let:value
+        >
+            <ForumToolbar forum=&value.0/>
+            <ForumPostMiniatures post_vec=&value.1/>
+        </UnpackResource>
     }
 }
 

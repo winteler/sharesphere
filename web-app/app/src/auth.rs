@@ -379,6 +379,8 @@ pub fn LoginGuardButton(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
+    // TODO try store_value, cf. https://book.leptos.dev/interlude_projecting_children.html
+
     view! {
         {
             move || state.user.map(|result| match result {

@@ -1,40 +1,28 @@
 use leptos::*;
 
 #[component]
-pub fn AuthorIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn AuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/author.svg" class=class/>
     }
 }
 
 #[component]
-pub fn BoldIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn BoldIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/bold_font.svg" class=class/>
     }
 }
 
 #[component]
-pub fn ClockIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn ClockIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/clock.svg" class=class/>
     }
 }
 
 #[component]
-pub fn CommentIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn CommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/comment.svg" class=class/>
     }
@@ -50,59 +38,46 @@ pub fn ErrorIcon() -> impl IntoView {
 }
 
 #[component]
-pub fn FlameIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn FlameIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/flame.svg" class=class/>
     }
 }
 
 #[component]
-pub fn GraphIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn GraphIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/graph.svg" class=class/>
     }
 }
 
 #[component]
-pub fn HourglassIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn HourglassIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/hourglass.svg" class=class/>
     }
 }
 
-
 /// Renders a loading icon
 #[component]
-pub fn LoadingIcon() -> impl IntoView {
+pub fn LoadingIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+    let class = String::from(class) + " loading loading-spinner loading-md";
     view! {
-        <span class="loading loading-spinner loading-md"></span>
+        <div class="w-full h-full flex align-center justify-center">
+            <span class=class></span>
+        </div>
     }
 }
 
 #[component]
-pub fn LogoIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn LogoIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/planet.svg" class=class/>
     }
 }
 
 #[component]
-pub fn MarkdownIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn MarkdownIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/markdown.svg"/>
@@ -111,10 +86,7 @@ pub fn MarkdownIcon(
 }
 
 #[component]
-pub fn MinimizeIcon(
-    #[prop(default = "h-6 w-6")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn MinimizeIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/minimize.svg"/>
@@ -123,20 +95,14 @@ pub fn MinimizeIcon(
 }
 
 #[component]
-pub fn MinusIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn MinusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/minus.svg" class=class/>
     }
 }
 
 #[component]
-pub fn MaximizeIcon(
-    #[prop(default = "h-6 w-6")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn MaximizeIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/maximize.svg"/>
@@ -145,50 +111,35 @@ pub fn MaximizeIcon(
 }
 
 #[component]
-pub fn PlusIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView  {
+pub fn PlusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/plus.svg" class=class/>
     }
 }
 
 #[component]
-pub fn PodiumIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn PodiumIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/podium.svg" class=class/>
     }
 }
 
 #[component]
-pub fn ScoreIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn ScoreIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/score.svg" class=class/>
     }
 }
 
 #[component]
-pub fn SearchIcon(
-    #[prop(default = "h-5 w-5")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn SearchIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/search.svg" class=class/>
     }
 }
 
 #[component]
-pub fn SideBarIcon(
-    #[prop(default = "h-6 w-6")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn SideBarIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/sidebar.svg" class=class/>
     }
@@ -196,8 +147,7 @@ pub fn SideBarIcon(
 
 #[component]
 pub fn StarIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
+    #[prop(default = "h-7 w-7")] class: &'static str,
     show_colour: RwSignal<bool>,
 ) -> impl IntoView {
     let svg_path = move || match show_colour() {
@@ -211,8 +161,7 @@ pub fn StarIcon(
 
 #[component]
 pub fn SubscribedIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
+    #[prop(default = "h-7 w-7")] class: &'static str,
     show_colour: RwSignal<bool>,
 ) -> impl IntoView {
     let svg_path = move || match show_colour() {
@@ -225,10 +174,7 @@ pub fn SubscribedIcon(
 }
 
 #[component]
-pub fn UserIcon(
-    #[prop(default = "h-7 w-7")]
-    class: &'static str,
-) -> impl IntoView {
+pub fn UserIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/user.svg" class=class/>
     }

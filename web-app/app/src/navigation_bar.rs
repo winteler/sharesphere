@@ -85,13 +85,13 @@ pub fn NavigationBar(
 #[component]
 pub fn UserProfile() -> impl IntoView {
     view! {
-        <LoginGuardButton
+        <NewLoginGuardButton
                 login_button_class="btn btn-ghost btn-circle rounded-full"
                 login_button_content=move || view! { <UserIcon/> }
-                let: value
+                let:value
         >
             <LoggedInMenu user=value/>
-        </LoginGuardButton>
+        </NewLoginGuardButton>
     }
 }
 

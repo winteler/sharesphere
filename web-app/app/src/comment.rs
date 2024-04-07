@@ -435,7 +435,6 @@ pub fn CommentButton(
             <LoginGuardButton
                 login_button_class="btn btn-circle btn-ghost btn-sm"
                 login_button_content=move || view! { <CommentIcon/> }
-                let:value
             >
                 <button
                     class=comment_button_class

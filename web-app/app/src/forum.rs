@@ -614,7 +614,6 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
-                        let:value
                     >
                         <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
                                 is_subscribed.update(|value| {

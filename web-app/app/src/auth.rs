@@ -1,4 +1,5 @@
 use std::env;
+use std::rc::Rc;
 
 #[cfg(feature = "ssr")]
 use axum_session_auth::Authentication;
@@ -363,30 +364,34 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 /// children will be rendered. Otherwise, it will be replace by a form/button with the same appearance redirecting to a
 /// login screen.
 #[component]
-pub fn LoginGuardButton(
+pub fn LoginGuardButton<
+    V: IntoView + 'static,
+    F: Fn(&T) -> V + 'static,
+>(
     #[prop(default = "")]
     login_button_class: &'static str,
     #[prop(into)]
     login_button_content: ViewFn,
     #[prop(default = &get_current_path)]
     redirect_path_fn:  &'static dyn Fn(RwSignal<String>),
-    children: ChildrenFn,
+    children: Rc<dyn Fn(&User) -> Fragment>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     // TODO try store_value, cf. https://book.leptos.dev/interlude_projecting_children.html
+    // TODO check to return anonymous user instead of error, to differentiate cases where the user is not logged in from other issues
+    let children = store_value(children);
 
     view! {
         {
             move || state.user.map(|result| match result {
                 Ok(user) => {
-                    provide_context(user.clone());
-                    children().into_view()
+                    Ok(children.with_value(|children| children(user)))
                 },
                 Err(e) => {
                     log::trace!("Error while getting user: {}", e);
                     let login_button_view = login_button_content.run();
-                    view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
+                    Ok(view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> })
                 }
             })
         }

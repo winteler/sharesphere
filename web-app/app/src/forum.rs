@@ -5,17 +5,17 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
-use crate::post::{Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX};
+use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
 use crate::ranking::{ScoreIndicator, SortType};
 use crate::unpack::UnpackResource;
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -614,6 +614,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                        let:value
                     >
                         <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
                                 is_subscribed.update(|value| {

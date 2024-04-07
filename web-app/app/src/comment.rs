@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
-#[cfg(feature = "ssr")]
-use crate::editor::{get_styled_html_from_markdown};
 use crate::editor::FormMarkdownEditor;
+#[cfg(feature = "ssr")]
+use crate::editor::get_styled_html_from_markdown;
 use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::get_post_id_memo;
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
@@ -70,8 +70,10 @@ impl fmt::Display for CommentSortType {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
+
     use crate::auth::User;
-    use crate::ranking::{VoteValue};
+    use crate::ranking::VoteValue;
+
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
@@ -433,6 +435,7 @@ pub fn CommentButton(
             <LoginGuardButton
                 login_button_class="btn btn-circle btn-ghost btn-sm"
                 login_button_content=move || view! { <CommentIcon/> }
+                let:value
             >
                 <button
                     class=comment_button_class

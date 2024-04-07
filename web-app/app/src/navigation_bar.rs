@@ -1,11 +1,11 @@
 use leptos::*;
-use leptos_router::{Form};
+use leptos_router::Form;
 
-use crate::app::{GlobalState};
+use crate::app::GlobalState;
 use crate::auth::*;
-use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
-use crate::icons::*;
 use crate::forum::*;
+use crate::icons::*;
+use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
 
 pub fn get_current_url(url: RwSignal<String>) {
     let url_str = window().location().href().unwrap_or(String::from("/"));
@@ -88,16 +88,18 @@ pub fn UserProfile() -> impl IntoView {
         <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle rounded-full"
                 login_button_content=move || view! { <UserIcon/> }
+                let: value
         >
-            <LoggedInMenu/>
+            <LoggedInMenu user=value/>
         </LoginGuardButton>
     }
 }
 
 #[component]
-pub fn LoggedInMenu() -> impl IntoView {
+pub fn LoggedInMenu<'a>(
+    user: &'a User,
+) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let user = expect_context::<User>();
     let current_url = create_rw_signal(String::default());
 
     view! {
@@ -161,6 +163,7 @@ pub fn PlusMenu() -> impl IntoView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_get_forum_from_path() {
         assert_eq!(get_forum_from_path(&String::from("test")), None);

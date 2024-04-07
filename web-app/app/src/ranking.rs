@@ -330,6 +330,7 @@ pub fn VotePanel<'a>(
             <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
                 login_button_content=move || view! { <PlusIcon/> }
+                let:_user
             >
                 <button
                     class=upvote_button_css()
@@ -354,6 +355,7 @@ pub fn VotePanel<'a>(
             <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
                 login_button_content=move || view! { <MinusIcon/> }
+                let:_user
             >
                 <button
                     class=downvote_button_css()

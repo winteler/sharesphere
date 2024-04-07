@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::auth::LoginGuardButton;
+use crate::auth::{LoginGuardButton};
 use crate::editor::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
@@ -590,10 +590,10 @@ pub fn ForumContents() -> impl IntoView {
 
     view! {
         <UnpackResource
-            resource=forum_content let:value
+            resource=forum_content let:forum_content
         >
-            <ForumToolbar forum=&value.forum/>
-            <ForumPostMiniatures post_vec=&value.post_vec/>
+            <ForumToolbar forum=&forum_content.forum/>
+            <ForumPostMiniatures post_vec=&forum_content.post_vec/>
         </UnpackResource>
     }
 }
@@ -614,6 +614,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                        let:_user
                     >
                         <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
                                 is_subscribed.update(|value| {
@@ -634,6 +635,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                        let:_user
                     >
                         <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
                                 is_subscribed.update(|value| {
@@ -655,6 +657,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
                         login_button_class="btn btn-circle btn-ghost"
                         login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
                         redirect_path_fn=&get_create_post_path
+                        let:_user
                     >
                         <Form action=CREATE_POST_ROUTE class="flex">
                             <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=forum_name/>

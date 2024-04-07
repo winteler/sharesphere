@@ -363,7 +363,10 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 /// children will be rendered. Otherwise, it will be replace by a form/button with the same appearance redirecting to a
 /// login screen.
 #[component]
-pub fn NewLoginGuardButton<F, IV>(
+pub fn LoginGuardButton<
+    F: Fn(&User) -> IV + 'static,
+    IV: IntoView,
+>(
     #[prop(default = "")]
     login_button_class: &'static str,
     #[prop(into)]
@@ -371,56 +374,14 @@ pub fn NewLoginGuardButton<F, IV>(
     #[prop(default = &get_current_path)]
     redirect_path_fn:  &'static dyn Fn(RwSignal<String>),
     children: F,
-) -> impl IntoView
-    where
-        F: Fn(&User) -> IV + 'static,
-        IV: IntoView,{
+) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-
-    // TODO try store_value, cf. https://book.leptos.dev/interlude_projecting_children.html
-    // TODO check to return anonymous user instead of error, to differentiate cases where the user is not logged in from other issues
     let children = store_value(children);
 
     view! {
         {
             move || state.user.map(|result| match result {
-                Ok(user) => {
-                    children.with_value(|children| children(user)).into_view()
-                },
-                Err(e) => {
-                    log::trace!("Error while getting user: {}", e);
-                    let login_button_view = login_button_content.run();
-                    view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
-                }
-            })
-        }
-    }
-}
-
-/// Component to guard a component requiring a login. If the user is logged in, a simple button with the given class and
-/// children will be rendered. Otherwise, it will be replace by a form/button with the same appearance redirecting to a
-/// login screen.
-#[component]
-pub fn LoginGuardButton(
-    #[prop(default = "")]
-    login_button_class: &'static str,
-    #[prop(into)]
-    login_button_content: ViewFn,
-    #[prop(default = &get_current_path)]
-    redirect_path_fn:  &'static dyn Fn(RwSignal<String>),
-    children: ChildrenFn,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-
-    // TODO try store_value, cf. https://book.leptos.dev/interlude_projecting_children.html
-
-    view! {
-        {
-            move || state.user.map(|result| match result {
-                Ok(user) => {
-                    provide_context(user.clone());
-                    children().into_view()
-                },
+                Ok(user) => children.with_value(|children| children(user)).into_view(),
                 Err(e) => {
                     log::trace!("Error while getting user: {}", e);
                     let login_button_view = login_button_content.run();

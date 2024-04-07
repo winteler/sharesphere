@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
-use crate::auth::LoginGuardButton;
+use crate::auth::{LoginGuardButton};
 use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
@@ -435,6 +435,7 @@ pub fn CommentButton(
             <LoginGuardButton
                 login_button_class="btn btn-circle btn-ghost btn-sm"
                 login_button_content=move || view! { <CommentIcon/> }
+                let:_user
             >
                 <button
                     class=comment_button_class

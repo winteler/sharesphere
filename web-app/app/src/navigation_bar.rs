@@ -85,13 +85,13 @@ pub fn NavigationBar(
 #[component]
 pub fn UserProfile() -> impl IntoView {
     view! {
-        <NewLoginGuardButton
+        <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle rounded-full"
                 login_button_content=move || view! { <UserIcon/> }
-                let:value
+                let:user
         >
-            <LoggedInMenu user=value/>
-        </NewLoginGuardButton>
+            <LoggedInMenu user=user/>
+        </LoginGuardButton>
     }
 }
 
@@ -138,6 +138,7 @@ pub fn PlusMenu() -> impl IntoView {
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
                         redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.update(|value: &mut String| *value = String::from(CREATE_FORUM_ROUTE)))
+                        let:_user
                     >
                         <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
                     </LoginGuardButton>
@@ -146,6 +147,7 @@ pub fn PlusMenu() -> impl IntoView {
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
                         redirect_path_fn=&get_create_post_path
+                        let:_user
                     >
                         <Form action=CREATE_POST_ROUTE class="flex">
                             <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>

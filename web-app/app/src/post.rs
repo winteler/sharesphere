@@ -86,7 +86,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::auth::User;
-    use crate::ranking::{Vote, VoteValue};
+    use crate::ranking::{VoteValue};
 
     use super::*;
 

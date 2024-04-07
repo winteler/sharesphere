@@ -1,6 +1,7 @@
 use leptos::*;
 
 use crate::error_template::ErrorTemplate;
+use crate::errors::AppError;
 use crate::icons::LoadingIcon;
 
 #[component]
@@ -69,7 +70,7 @@ pub fn UnpackResource<
                         Ok(value) => Ok(children.with_value(|children| children(value))),
                         Err(e) => {
                             log::info!("Got error in unpack: {e}");
-                            Err(ServerFnErrorErr::from(e.clone()))
+                            Err(AppError::InternalServerError)
                         },
                     })
                 }

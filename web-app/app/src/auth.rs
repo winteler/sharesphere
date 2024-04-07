@@ -65,13 +65,8 @@ impl std::fmt::Display for OidcUserInfo {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::env;
-
     use async_trait::async_trait;
     use axum_session::SessionPgPool;
-    use axum_session_auth::Authentication;
-    use leptos::ServerFnError;
-    use openidconnect::reqwest::async_http_client;
     use sqlx::PgPool;
 
     use super::*;

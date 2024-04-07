@@ -71,7 +71,7 @@ impl fmt::Display for CommentSortType {
 pub mod ssr {
     use sqlx::PgPool;
     use crate::auth::User;
-    use crate::ranking::{Vote, VoteValue};
+    use crate::ranking::{VoteValue};
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]

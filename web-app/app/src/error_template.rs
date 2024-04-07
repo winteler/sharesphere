@@ -1,4 +1,4 @@
-use leptos::{Errors, *};
+use leptos::*;
 
 use crate::errors::AppError;
 

@@ -45,13 +45,30 @@ pub fn UnpackAction<
                 Some(Err(e)) => Some(Err(ServerFnErrorErr::from(e))),
                 None => None,
             }}
-
         </Suspense>
     }
 }
 
+fn unpack_resource<
+    T: Clone + 'static,
+    A: Clone + 'static,
+    V: IntoView + 'static,
+    F: Fn(&T) -> V + 'static,
+>(
+    resource: Resource<A, Result<T, ServerFnError>>,
+    children: StoredValue<F>,
+) -> impl IntoView {
+    resource.map(|result| match result {
+        Ok(value) => Ok(children.with_value(|children| children(value))),
+        Err(e) => {
+            log::info!("Got error in unpack: {e}");
+            Err(AppError::InternalServerError)
+        },
+    })
+}
+
 #[component]
-pub fn UnpackResource<
+pub fn SuspenseUnpack<
     T: Clone + 'static,
     A: Clone + 'static,
     V: IntoView + 'static,
@@ -66,15 +83,32 @@ pub fn UnpackResource<
         <Suspense fallback=move || view! { <LoadingIcon/> }>
             <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
                 {
-                    move || resource.map(|result| match result {
-                        Ok(value) => Ok(children.with_value(|children| children(value))),
-                        Err(e) => {
-                            log::info!("Got error in unpack: {e}");
-                            Err(AppError::InternalServerError)
-                        },
-                    })
+                    move || unpack_resource(resource, children)
                 }
             </ErrorBoundary>
         </Suspense>
+    }
+}
+
+#[component]
+pub fn TransitionUnpack<
+    T: Clone + 'static,
+    A: Clone + 'static,
+    V: IntoView + 'static,
+    F: Fn(&T) -> V + 'static,
+>(
+    resource: Resource<A, Result<T, ServerFnError>>,
+    children: F,
+) -> impl IntoView {
+    let children = store_value(children);
+
+    view! {
+        <Transition fallback=move || view! { <LoadingIcon/> }>
+            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
+                {
+                    move || unpack_resource(resource, children)
+                }
+            </ErrorBoundary>
+        </Transition>
     }
 }

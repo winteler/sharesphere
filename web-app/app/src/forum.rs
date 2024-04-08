@@ -14,7 +14,7 @@ use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, Subscri
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
 use crate::ranking::{ScoreIndicator, SortType};
-use crate::unpack::UnpackResource;
+use crate::unpack::SuspenseUnpack;
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
@@ -589,12 +589,12 @@ pub fn ForumContents() -> impl IntoView {
     );
 
     view! {
-        <UnpackResource
+        <SuspenseUnpack
             resource=forum_content let:forum_content
         >
             <ForumToolbar forum=&forum_content.forum/>
             <ForumPostMiniatures post_vec=&forum_content.post_vec/>
-        </UnpackResource>
+        </SuspenseUnpack>
     }
 }
 

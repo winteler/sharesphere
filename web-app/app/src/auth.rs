@@ -15,8 +15,8 @@ use serde::{Deserialize, Serialize};
 use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_session;
-use crate::icons::*;
 use crate::navigation_bar::get_current_path;
+use crate::unpack::SuspenseUnpack;
 
 pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
 pub const OIDC_ISSUER_URL_ENV : &str = "OIDC_ISSUER_ADDR";
@@ -423,22 +423,17 @@ pub fn AuthCallback(
     let auth = create_blocking_resource( || (), move |_| authenticate_user( code()));
 
     view! {
-        <Suspense fallback=move || (view! { <LoadingIcon/>})>
+        <SuspenseUnpack
+            resource=auth
+            let:auth_result
+        >
             {
-                move || {
-                    auth.with(|result| {
-                        if let Some(Ok((user, redirect_url))) = result {
-                            log::info!("Store authenticated as {}", user.username);
-                            log::info!("Redirect to {}", redirect_url);
-                            view! { <Redirect path=redirect_url.clone()/>}.into_view()
-                        }
-                        else {
-                            view! { <div>"Authentication failed."</div>}.into_view()
-                        }
-                    })
-                }
+                let (user, redirect_url) = auth_result;
+                log::info!("Store authenticated as {}", user.username);
+                log::info!("Redirect to {}", redirect_url);
+                view! { <Redirect path=redirect_url.clone()/>}.into_view()
             }
-        </Suspense>
+        </SuspenseUnpack>
     }
 }
 

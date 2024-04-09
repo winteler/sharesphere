@@ -13,11 +13,12 @@ use crate::editor::FormMarkdownEditor;
 use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::icons::{ErrorIcon, LoadingIcon};
+use crate::icons::{ErrorIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::unpack::TransitionUnpack;
 
 pub const CREATE_POST_SUFFIX: &str = "/content";
 pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -404,7 +405,7 @@ pub fn CreatePost() -> impl IntoView {
     let is_title_empty = create_rw_signal(true);
     let is_content_invalid = create_memo(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
 
-    let matching_forum = create_resource(
+    let matching_forums_resource = create_resource(
         move || {
             (
                 forum_name_input.get(),
@@ -434,28 +435,19 @@ pub fn CreatePost() -> impl IntoView {
                             prop:value=forum_name_input
                         />
                         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
-                            <Transition fallback=move || view! { <LoadingIcon/> }>
-                            { move || {
-                                matching_forum.map(|result| match result {
-                                    Ok(forum_set) => {
-                                        log::trace!("Forum name set: {forum_set:?}");
-                                        forum_set.iter().map(|forum_name| {
-                                            view! {
-                                                <li>
-                                                    <button type="button" value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
-                                                        {forum_name}
-                                                    </button>
-                                                </li>
-                                            }
-                                        }).collect_view()
+                            <TransitionUnpack resource=matching_forums_resource let:forum_set>
+                            {
+                                forum_set.iter().map(|forum_name| {
+                                    view! {
+                                        <li>
+                                            <button type="button" value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
+                                                {forum_name}
+                                            </button>
+                                        </li>
                                     }
-                                    Err(e) => {
-                                        log::info!("Error while getting forum names: {}", e);
-                                        View::default()
-                                    },
-                                })
-                            }}
-                            </Transition>
+                                }).collect_view()
+                            }
+                            </TransitionUnpack>
                         </ul>
                     </div>
                     <input
@@ -500,7 +492,7 @@ pub fn Post() -> impl IntoView {
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
 
-    let post = create_resource(
+    let post_resource = create_resource(
         move || post_id(),
         move |post_id| {
             log::debug!("Load data for post: {post_id}");
@@ -510,36 +502,28 @@ pub fn Post() -> impl IntoView {
 
     view! {
         <div class="flex flex-col content-start gap-1">
-            <Transition fallback=move || view! { <LoadingIcon/> }>
-                {
-                    post.map(|result| match result {
-                        Ok(post) => {
-                            let post_body_class = match post.post.markdown_body {
-                                Some(_) => "",
-                                None => "whitespace-pre",
-                            };
-                            view! {
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="flex flex-col gap-4">
-                                            <h2 class="card-title">{post.post.title.clone()}</h2>
-                                            <div
-                                                class={post_body_class}
-                                                inner_html={post.post.body.clone()}
-                                            />
-                                            <PostWidgetBar post=post/>
-                                        </div>
-                                    </div>
-                                </div>
-                            }.into_view()
-                        },
-                        Err(e) => {
-                            log::info!("Error while getting forum names: {}", e);
-                            view! { <ErrorIcon/> }.into_view()
-                        },
-                    })
+            <TransitionUnpack resource=post_resource let:post>
+            {
+                let post_body_class = match post.post.markdown_body {
+                    Some(_) => "",
+                    None => "whitespace-pre",
+                };
+                view! {
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="flex flex-col gap-4">
+                                <h2 class="card-title">{post.post.title.clone()}</h2>
+                                <div
+                                    class={post_body_class}
+                                    inner_html={post.post.body.clone()}
+                                />
+                                <PostWidgetBar post=post/>
+                            </div>
+                        </div>
+                    </div>
                 }
-            </Transition>
+            }
+            </TransitionUnpack>
             <CommentSortWidget/>
             <CommentSection/>
         </div>

@@ -12,6 +12,7 @@ use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
 use crate::sidebar::*;
+use crate::unpack::TransitionUnpack;
 use crate::widget::PostSortWidget;
 
 pub const PARAM_ROUTE_PREFIX: &str = "/:";
@@ -255,7 +256,7 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post_vec = create_resource(
+    let post_vec_resource = create_resource(
         move || {
             (
                 state.post_sort_type.get(),
@@ -266,17 +267,9 @@ fn DefaultHomePage() -> impl IntoView {
     );
 
     view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || post_vec.map(|post_vec | match post_vec {
-                    Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
-                    Err(e) => {
-                        log::error!("Failed to load posts with error: {e}");
-                        view! { <ErrorIcon/> }.into_view()
-                    },
-                })
-            }
-        </Transition>
+        <TransitionUnpack resource=post_vec_resource let:post_vec>
+            <ForumPostMiniatures post_vec=post_vec/>
+        </TransitionUnpack>
     }
 }
 
@@ -285,7 +278,7 @@ fn DefaultHomePage() -> impl IntoView {
 fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
-    let post_vec = create_resource(
+    let post_vec_resource = create_resource(
         move || {
             (
                 state.post_sort_type.get(),
@@ -296,16 +289,8 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     );
 
     view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || post_vec.map(|post_vec | match post_vec {
-                    Ok(post_vec) => view! { <ForumPostMiniatures post_vec=post_vec/> }.into_view(),
-                    Err(e) => {
-                        log::error!("Failed to load posts with error: {e}");
-                        view! { <ErrorIcon/> }.into_view()
-                    },
-                })
-            }
-        </Transition>
+        <TransitionUnpack resource=post_vec_resource let:post_vec>
+            <ForumPostMiniatures post_vec=post_vec/>
+        </TransitionUnpack>
     }
 }

@@ -11,9 +11,10 @@ use crate::auth::{LoginGuardButton};
 use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
-use crate::icons::{CommentIcon, ErrorIcon, LoadingIcon, MaximizeIcon, MinimizeIcon};
+use crate::icons::{CommentIcon, ErrorIcon, MaximizeIcon, MinimizeIcon};
 use crate::post::get_post_id_memo;
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
+use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -288,7 +289,7 @@ pub fn CommentSection() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
-    let comment_vec = create_resource(
+    let comment_vec_resource = create_resource(
         move || (post_id(), state.create_comment_action.version().get(), state.comment_sort_type.get()),
         move |(post_id, _, sort_type)| {
             log::debug!("Load comments for post: {post_id} sorting by {sort_type}");
@@ -297,30 +298,20 @@ pub fn CommentSection() -> impl IntoView {
 
     view! {
         <div class="flex flex-col h-full">
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || {
-                        comment_vec.map(|result| match result {
-                            Ok(comment_vec) => {
-                                let mut comment_ranking = 0;
-                                comment_vec.iter().map(|comment| {
-                                    comment_ranking = comment_ranking + 1;
-                                    view! {
-                                        <CommentBox
-                                            comment=&comment
-                                            ranking=comment_ranking - 1
-                                        />
-                                    }.into_view()
-                                }).collect_view()
-                            },
-                            Err(e) => {
-                                log::info!("Error: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                        })
-                    }
-                }
-            </Transition>
+            <TransitionUnpack resource=comment_vec_resource let:comment_vec>
+            {
+                let mut comment_ranking = 0;
+                comment_vec.iter().map(|comment| {
+                    comment_ranking = comment_ranking + 1;
+                    view! {
+                        <CommentBox
+                            comment=&comment
+                            ranking=comment_ranking - 1
+                        />
+                    }.into_view()
+                }).collect_view()
+            }
+            </TransitionUnpack>
         </div>
     }
 }

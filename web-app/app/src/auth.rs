@@ -420,11 +420,11 @@ pub fn AuthCallback(
     let _state = expect_context::<GlobalState>();
     let query = use_query_map();
     let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
-    let auth = create_blocking_resource( || (), move |_| authenticate_user( code()));
+    let auth_resource = create_blocking_resource( || (), move |_| authenticate_user( code()));
 
     view! {
         <SuspenseUnpack
-            resource=auth
+            resource=auth_resource
             let:auth_result
         >
             {

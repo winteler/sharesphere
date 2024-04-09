@@ -14,7 +14,7 @@ use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, Subscri
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
 use crate::ranking::{ScoreIndicator, SortType};
-use crate::unpack::SuspenseUnpack;
+use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
@@ -64,7 +64,7 @@ pub struct ForumWithSubscription {
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct ForumContent {
-    pub forum: ForumWithSubscription,
+    pub forum_with_sub: ForumWithSubscription,
     pub post_vec: Vec<Post>,
 }
 
@@ -100,7 +100,7 @@ pub mod ssr {
 
         let post_vec = get_post_vec_by_forum_name(forum_name, sort_type, db_pool).await?;
 
-        Ok(ForumContent { forum, post_vec })
+        Ok(ForumContent { forum_with_sub: forum, post_vec })
     }
 
     pub async fn is_forum_available(
@@ -310,9 +310,12 @@ pub async fn get_matching_forum_names(
 #[server]
 pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let user = get_user().await?;
-    let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, db_pool).await?;
-    Ok(forum_name_vec)
+    if let Ok(user) = get_user().await {
+        let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, db_pool).await?;
+        Ok(forum_name_vec)
+    } else {
+        Ok(Vec::<String>::new())
+    }
 }
 
 #[server]
@@ -529,7 +532,7 @@ pub fn ForumBanner() -> impl IntoView {
                 .as_ref()
     };
 
-    let forum = create_resource(
+    let forum_resource = create_resource(
         move || forum_name(),
         move |forum_name| {
             log::debug!("Load data for forum: {forum_name}");
@@ -539,33 +542,23 @@ pub fn ForumBanner() -> impl IntoView {
 
     view! {
         <div class="flex flex-col gap-2 mt-2 mx-2 w-full">
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || {
-                         forum.map(|result| match result {
-                            Ok(forum) => {
-                                let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("/banner.jpg")));
-                                view! {
-                                    <a
-                                        href=forum_path()
-                                        class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
-                                        style:background-image=forum_banner_image
-                                    >
-                                        <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
-                                            <LogoIcon class="h-12 w-12"/>
-                                            <span class="text-4xl">{forum_name()}</span>
-                                        </div>
-                                    </a>
-                                }.into_view()
-                            },
-                            Err(e) => {
-                                log::info!("Error: {e}");
-                                view! { <ErrorIcon/> }.into_view()
-                            },
-                        })
-                    }
+            <TransitionUnpack resource=forum_resource let:forum>
+            {
+                let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("/banner.jpg")));
+                view! {
+                    <a
+                        href=forum_path()
+                        class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
+                        style:background-image=forum_banner_image
+                    >
+                        <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
+                            <LogoIcon class="h-12 w-12"/>
+                            <span class="text-4xl">{forum_name()}</span>
+                        </div>
+                    </a>
                 }
-            </Transition>
+            }
+            </TransitionUnpack>
             <Outlet/>
         </div>
     }
@@ -577,7 +570,7 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let forum_content = create_resource(
+    let forum_content_resource = create_resource(
         move || {
             (
                 forum_name(),
@@ -590,9 +583,9 @@ pub fn ForumContents() -> impl IntoView {
 
     view! {
         <SuspenseUnpack
-            resource=forum_content let:forum_content
+            resource=forum_content_resource let:forum_content
         >
-            <ForumToolbar forum=&forum_content.forum/>
+            <ForumToolbar forum=&forum_content.forum_with_sub/>
             <ForumPostMiniatures post_vec=&forum_content.post_vec/>
         </SuspenseUnpack>
     }

@@ -1,6 +1,7 @@
 use leptos::*;
 
 use crate::icons::{BoldIcon, MarkdownIcon};
+use crate::unpack::TransitionUnpack;
 
 #[cfg(feature = "ssr")]
 mod ssr {
@@ -171,7 +172,7 @@ pub fn FormMarkdownEditor(
         false => "btn btn-ghost",
     };
 
-    let render_markdown = create_resource(
+    let render_markdown_resource = create_resource(
         move || content.get(),
         move |markdown_content| get_styled_html_from_markdown(markdown_content),
     );
@@ -214,22 +215,11 @@ pub fn FormMarkdownEditor(
                 </div>
             </div>
             <Show when=is_markdown_mode>
-                <Transition>
-                    {move || {
-                        render_markdown
-                            .map(|result| match result {
-                                Ok(html) => {
-                                    view! {
-                                        <div
-                                            class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-lg bg-base-100 break-words"
-                                            inner_html={html}
-                                        />
-                                    }.into_view()
-                                },
-                                Err(_) => view! { <div>"Failed to parse markdown"</div> }.into_view(),
-                            })
-                    }}
-                </Transition>
+                <TransitionUnpack resource=render_markdown_resource let:markdown_as_html>
+                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-lg bg-base-100 break-words"
+                        inner_html={markdown_as_html}
+                    />
+                </TransitionUnpack>
             </Show>
         </div>
     }

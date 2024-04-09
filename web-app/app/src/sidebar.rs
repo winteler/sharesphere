@@ -2,41 +2,39 @@ use leptos::*;
 
 use crate::app::GlobalState;
 use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, FORUM_ROUTE_PREFIX};
-use crate::icons::{ErrorIcon, LoadingIcon};
+use crate::unpack::TransitionUnpack;
 
 /// Component to display a list of forum links
 #[component]
 pub fn ForumLinkList<'a>(title: &'static str, forum_name_vec: &'a Vec<String>) -> impl IntoView {
-    let forum_vector_view = forum_name_vec
-        .iter()
-        .map(|forum_name| {
-            let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
-            let wrong_forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + "notAForum";
-            view! {
+    if forum_name_vec.is_empty() {
+        View::default()
+    } else {
+        let forum_vector_view = forum_name_vec
+            .iter()
+            .map(|forum_name| {
+                let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
+                view! {
+                    <li>
+                        <a href=forum_path>
+                            {forum_name}
+                        </a>
+                    </li>
+                }
+            }).collect_view();
+
+        view! {
+            <ul class="menu h-full">
                 <li>
-                    <a href=forum_path>
-                        {forum_name}
-                    </a>
+                    <details open>
+                        <summary class="text-xl font-medium">{title}</summary>
+                        <ul class="menu-dropdown">
+                            {forum_vector_view}
+                        </ul>
+                    </details>
                 </li>
-                <li>
-                    <a href=wrong_forum_path>
-                        "NotAForum"
-                    </a>
-                </li>
-            }
-        })
-        .collect_view();
-    view! {
-        <ul class="menu h-full">
-            <li>
-                <details open>
-                    <summary class="text-xl font-medium">{title}</summary>
-                    <ul class="menu-dropdown">
-                        {forum_vector_view}
-                    </ul>
-                </details>
-            </li>
-        </ul>
+            </ul>
+        }.into_view()
     }
 }
 
@@ -44,7 +42,7 @@ pub fn ForumLinkList<'a>(title: &'static str, forum_name_vec: &'a Vec<String>) -
 #[component]
 pub fn LeftSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let subscribed_forum_vec = create_resource(
+    let subscribed_forum_vec_resource = create_resource(
         move || {
             (
                 state.subscribe_action.version().get(),
@@ -53,7 +51,7 @@ pub fn LeftSidebar() -> impl IntoView {
         },
         |_| get_subscribed_forum_names(),
     );
-    let popular_forum_vec = create_resource(
+    let popular_forum_vec_resource = create_resource(
         move || state.create_forum_action.version().get(),
         |_| get_popular_forum_names(),
     );
@@ -61,44 +59,20 @@ pub fn LeftSidebar() -> impl IntoView {
     view! {
         <div class="flex flex-col justify-start w-60 h-full max-2xl:bg-base-200">
             <div>
-                <Transition fallback=move || view! {  <LoadingIcon/> }>
-                    { move || {
-                        subscribed_forum_vec.map(|subscribed_forum_vec| match subscribed_forum_vec {
-                            Ok(subscribed_forum_vec) => {
-                                view! {
-                                    <ForumLinkList
-                                        title="Subscribed"
-                                        forum_name_vec=subscribed_forum_vec
-                                    />
-                                }.into_view()
-                            },
-                            Err(e) => {
-                                log::trace!("Error: {}", e);
-                                View::default()
-                            }
-                        })
-                    }}
-                </Transition>
+                <TransitionUnpack resource=subscribed_forum_vec_resource let:forum_vec>
+                    <ForumLinkList
+                        title="Subscribed"
+                        forum_name_vec=forum_vec
+                    />
+                </TransitionUnpack>
             </div>
             <div>
-                <Transition fallback=move || view! {  <LoadingIcon/> }>
-                    { move || {
-                         popular_forum_vec.map(|popular_forum_vec| match popular_forum_vec {
-                            Ok(popular_forum_vec) => {
-                                view! {
-                                    <ForumLinkList
-                                        title="Popular"
-                                        forum_name_vec=popular_forum_vec
-                                    />
-                                }.into_view()
-                            },
-                            Err(e) => {
-                                log::error!("Error loading popular forums: {}", e);
-                                view! { <ErrorIcon/> }.into_view()
-                            }
-                        })
-                    }}
-                </Transition>
+                <TransitionUnpack resource=popular_forum_vec_resource let:forum_vec>
+                    <ForumLinkList
+                        title="Popular"
+                        forum_name_vec=forum_vec
+                    />
+                </TransitionUnpack>
             </div>
         </div>
     }

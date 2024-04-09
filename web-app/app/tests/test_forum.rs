@@ -224,50 +224,52 @@ async fn test_get_forum_contents() -> Result<(), ServerFnError> {
     let post_sort_type_array = [PostSortType::Hot, PostSortType::Trending, PostSortType::Best, PostSortType::Recent];
 
     for sort_type in post_sort_type_array {
-        let (forum_with_subscription, posts) = forum::ssr::get_forum_contents(
+        let forum_content = forum::ssr::get_forum_contents(
             forum_name,
             SortType::Post(sort_type),
             None,
             db_pool.clone(),
         ).await?;
 
+        let forum_with_subscription = forum_content.forum_with_sub;
+
         assert_eq!(forum_with_subscription.forum.forum_name.as_str(), forum_name);
         assert_eq!(forum_with_subscription.forum.creator_id, test_user.user_id);
         assert_eq!(forum_with_subscription.subscription_id, None);
 
         test_post_vec(
-            &posts,
+            &forum_content.post_vec,
             &expected_post_vec,
             sort_type,
             test_user.user_id,
         );
     }
 
-    let (forum_with_subscription, _) = forum::ssr::get_forum_contents(
+    let forum_content = forum::ssr::get_forum_contents(
         forum_name,
         SortType::Post(PostSortType::Hot),
         Some(test_user.user_id),
         db_pool.clone(),
     ).await?;
-    assert!(forum_with_subscription.subscription_id.is_none());
+    assert!(forum_content.forum_with_sub.subscription_id.is_none());
 
     forum::ssr::subscribe(expected_post_vec.first().expect("Expected post").forum_id, test_user.user_id, db_pool.clone()).await?;
-    let (forum_with_subscription, _) = forum::ssr::get_forum_contents(
+    let forum_content = forum::ssr::get_forum_contents(
         forum_name,
         SortType::Post(PostSortType::Hot),
         Some(test_user.user_id),
         db_pool.clone(),
     ).await?;
-    assert!(forum_with_subscription.subscription_id.is_some());
+    assert!(forum_content.forum_with_sub.subscription_id.is_some());
 
     forum::ssr::unsubscribe(expected_post_vec.first().expect("Expected post").forum_id, test_user.user_id, db_pool.clone()).await?;
-    let (forum_with_subscription, _) = forum::ssr::get_forum_contents(
+    let forum_content = forum::ssr::get_forum_contents(
         forum_name,
         SortType::Post(PostSortType::Hot),
         Some(test_user.user_id),
         db_pool.clone(),
     ).await?;
-    assert!(forum_with_subscription.subscription_id.is_none());
+    assert!(forum_content.forum_with_sub.subscription_id.is_none());
 
     Ok(())
 }

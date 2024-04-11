@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_session;
+#[cfg(feature = "ssr")]
+use crate::auth::ssr::check_user;
 use crate::navigation_bar::get_current_path;
 use crate::unpack::SuspenseUnpack;
 
@@ -68,6 +70,7 @@ pub mod ssr {
     use async_trait::async_trait;
     use axum_session::SessionPgPool;
     use sqlx::PgPool;
+    use crate::errors::AppError;
 
     use super::*;
 
@@ -209,11 +212,16 @@ pub mod ssr {
 
         Ok(client)
     }
+
+    pub fn check_user() -> Result<User, ServerFnError> {
+        let auth_session = get_session()?;
+        auth_session.current_user.ok_or(ServerFnError::new(AppError::InternalServerError))
+    }
 }
 
 #[server]
 pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
-    let current_user = get_user().await;
+    let current_user = check_user();
 
     if current_user.as_ref().is_ok_and(|user| user.is_authenticated()) {
         log::info!("Already logged in, current user is: {:?}", current_user.clone().unwrap());
@@ -314,12 +322,9 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
 }
 
 #[server]
-pub async fn get_user() -> Result<User, ServerFnError> {
+pub async fn get_user() -> Result<Option<User>, ServerFnError> {
     let auth_session = get_session()?;
-    match auth_session.current_user {
-        Some(user) => Ok(user),
-        None => Err(ServerFnError::new("Not authenticated.")),
-    }
+    Ok(auth_session.current_user)
 }
 
 #[server]
@@ -360,7 +365,7 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 }
 
 /// Component to guard a component requiring a login. If the user is logged in, a simple button with the given class and
-/// children will be rendered. Otherwise, it will be replace by a form/button with the same appearance redirecting to a
+/// children will be rendered. Otherwise, it will be replaced by a form/button with the same appearance redirecting to a
 /// login screen.
 #[component]
 pub fn LoginGuardButton<
@@ -381,9 +386,8 @@ pub fn LoginGuardButton<
     view! {
         {
             move || state.user.map(|result| match result {
-                Ok(user) => children.with_value(|children| children(user)).into_view(),
-                Err(e) => {
-                    log::trace!("Error while getting user: {}", e);
+                Ok(Some(user)) => children.with_value(|children| children(user)).into_view(),
+                _ => {
                     let login_button_view = login_button_content.run();
                     view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
                 }

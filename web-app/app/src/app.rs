@@ -31,7 +31,7 @@ pub struct GlobalState {
     pub current_post_id: Option<Memo<i64>>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
-    pub user: Resource<(), Result<User, ServerFnError>>,
+    pub user: Resource<(), Result<Option<User>, ServerFnError>>,
 }
 
 impl GlobalState {
@@ -179,12 +179,11 @@ fn LoginPageGuard() -> impl IntoView {
             {
                 move || {
                      state.user.with(|user| match user {
-                        Some(Ok(user)) => {
+                        Some(Ok(Some(user))) => {
                             log::info!("Login guard, current user: {user:?}");
                             view! { <Outlet/> }.into_view()
                         },
-                        Some(Err(e)) => {
-                            log::info!("Login error: {}", e);
+                        Some(_) => {
                             view! { <LoginWindow/> }.into_view()
                         },
                         None => {
@@ -236,12 +235,11 @@ fn HomePage() -> impl IntoView {
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { move || {
                      state.user.map(|user| match user {
-                        Ok(user) => {
+                        Ok(Some(user)) => {
                             log::trace!("Authenticated, current user: {user:?}");
                             view! { <UserHomePage user=user/> }.into_view()
                         },
-                        Err(e) => {
-                            log::trace!("Authentication failed: {}", e);
+                        _ => {
                             view! { <DefaultHomePage/> }.into_view()
                         }
                     })

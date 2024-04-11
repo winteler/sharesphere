@@ -6,19 +6,22 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool};
+#[cfg(feature = "ssr")]
+use crate::auth::{get_user, ssr::check_user};
 use crate::comment::{CommentButton, CommentSection};
+use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::{get_styled_html_from_markdown};
-use crate::editor::FormMarkdownEditor;
 use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::icons::{ErrorIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::unpack::TransitionUnpack;
+use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
+
 
 pub const CREATE_POST_SUFFIX: &str = "/content";
 pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -283,8 +286,8 @@ pub mod ssr {
 pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
-        Ok(user) => Some(user.user_id),
-        Err(_) => None,
+        Ok(Some(user)) => Some(user.user_id),
+        _ => None,
     };
 
     Ok(ssr::get_post_with_vote_by_id(post_id, user_id, db_pool).await?)
@@ -331,7 +334,7 @@ pub async fn create_post(
     tag: Option<String>,
 ) -> Result<(), ServerFnError> {
     log::trace!("Create post '{title}'");
-    let user = get_user().await?;
+    let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     let (body, markdown_body) = match is_markdown {

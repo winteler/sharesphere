@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::{LoginGuardButton};
+#[cfg(feature = "ssr")]
+use crate::auth::ssr::check_user;
 use crate::editor::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
@@ -310,11 +312,12 @@ pub async fn get_matching_forum_names(
 #[server]
 pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    if let Ok(user) = get_user().await {
-        let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, db_pool).await?;
-        Ok(forum_name_vec)
-    } else {
-        Ok(Vec::<String>::new())
+    match get_user().await {
+        Ok(Some(user)) => {
+            let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, db_pool).await?;
+            Ok(forum_name_vec)
+        },
+        _ => Ok(Vec::<String>::new())
     }
 }
 
@@ -332,8 +335,8 @@ pub async fn get_forum_contents(
 ) -> Result<ForumContent, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
-        Ok(user) => Some(user.user_id),
-        Err(_) => None,
+        Ok(Some(user)) => Some(user.user_id),
+        _ => None,
     };
 
     let forum_content =
@@ -349,7 +352,7 @@ pub async fn create_forum(
     is_nsfw: Option<String>,
 ) -> Result<(), ServerFnError> {
     log::trace!("Create Sphere '{forum_name}', {description}, {is_nsfw:?}");
-    let user = get_user().await?;
+    let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str());
@@ -370,7 +373,7 @@ pub async fn create_forum(
 
 #[server]
 pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
-    let user = get_user().await?;
+    let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     ssr::subscribe(forum_id, user.user_id, db_pool).await?;
@@ -380,7 +383,7 @@ pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
 
 #[server]
 pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
-    let user = get_user().await?;
+    let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     ssr::unsubscribe(forum_id, user.user_id, db_pool).await?;

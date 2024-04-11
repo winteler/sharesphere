@@ -4,8 +4,10 @@ use leptos::*;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::{app::ssr::get_db_pool};
 use crate::auth::LoginGuardButton;
+#[cfg(feature = "ssr")]
+use crate::auth::ssr::check_user;
 use crate::comment::{Comment, CommentSortType};
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 use crate::post::{Post, PostSortType};
@@ -258,7 +260,7 @@ pub async fn vote_on_content(
     previous_vote_info: Option<VoteInfo>,
 ) -> Result<Option<Vote>, ServerFnError> {
 
-    let user = get_user().await?;
+    let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     let vote = ssr::vote_on_content(

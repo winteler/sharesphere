@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
 use crate::auth::{LoginGuardButton};
+#[cfg(feature = "ssr")]
+use crate::auth::ssr::check_user;
 use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
@@ -245,8 +247,8 @@ pub async fn get_post_comment_tree(
     sort_type: SortType,
 ) -> Result<Vec<CommentWithChildren>, ServerFnError> {
     let user_id = match get_user().await {
-        Ok(user) => Some(user.user_id),
-        Err(_) => None
+        Ok(Some(user)) => Some(user.user_id),
+        _ => None
     };
     let db_pool = get_db_pool()?;
 
@@ -263,7 +265,7 @@ pub async fn create_comment(
     is_markdown: Option<String>,
 ) -> Result<(), ServerFnError> {
     log::trace!("Create comment for post {post_id}");
-    let user = get_user().await?;
+    let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     let (comment, markdown_comment) = match is_markdown {

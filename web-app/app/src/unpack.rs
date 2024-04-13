@@ -62,7 +62,7 @@ fn unpack_resource<
         Ok(value) => Ok(children.with_value(|children| children(value))),
         Err(e) => {
             log::info!("Got error in unpack: {e}");
-            Err(AppError::InternalServerError)
+            Err(e.clone())
         },
     })
 }

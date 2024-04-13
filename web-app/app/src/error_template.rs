@@ -1,3 +1,4 @@
+use http::StatusCode;
 use leptos::*;
 
 use crate::errors::AppError;
@@ -21,11 +22,11 @@ pub fn ErrorTemplate(
 
     log::info!("Error template: got errors: {errors:?}");
     // Downcast lets us take a type that implements `std::error::Error`
-    let errors: Vec<AppError> = errors
+    let errors: Vec<ServerFnError<AppError>> = errors
         .into_iter()
         .filter_map(|(_k, v)| {
             log::info!("Iterating over error: {v}");
-            let downcast_v = v.downcast_ref::<AppError>();
+            let downcast_v = v.downcast_ref::<ServerFnError<AppError>>();
             log::info!("Downcast error: {downcast_v:?}");
             downcast_v.cloned()
         })
@@ -39,7 +40,14 @@ pub fn ErrorTemplate(
         use leptos_axum::ResponseOptions;
         let response = use_context::<ResponseOptions>();
         if let Some(response) = response {
-            response.set_status(errors[0].status_code());
+            if let Some(error) = errors.first() {
+                let status_code = if let ServerFnError::WrappedServerError(error) = error {
+                    error.status_code()
+                } else {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                };
+                response.set_status(status_code);
+            }
         }
     }
 
@@ -52,8 +60,13 @@ pub fn ErrorTemplate(
             key=|(index, _error)| *index
             // renders each item to a view
             children=move |error| {
-                let error_string = error.1.to_string();
-                let error_code = error.1.status_code();
+                let error = error.1;
+                let error_string = error.to_string();
+                let error_code =  if let ServerFnError::WrappedServerError(error) = error {
+                    error.status_code()
+                } else {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                };
                 view! {
                     <h2>{error_code.to_string()}</h2>
                     <p>"Error: " {error_string}</p>

@@ -1,21 +1,15 @@
 use http::status::StatusCode;
-use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
+use strum_macros::{Display, EnumString};
 use thiserror::Error;
-pub const INTERNAL_SERVER_ERROR_STR : &str = "Internal Server Error";
 
-#[derive(Clone, Debug, EnumString, Error, Serialize, Deserialize)]
+#[derive(Clone, Debug, Display, EnumString, Error)]
 pub enum AppError {
-    #[error("Internal Server Error")]
     #[strum(serialize = "Internal Server Error")]
     InternalServerError,
-    #[error("Network Error")]
     #[strum(serialize = "Network Error")]
     NetworkError,
-    #[error("Not Connected")]
     #[strum(serialize = "Not Connected")]
     NotConnected,
-    #[error("Not Found")]
     #[strum(serialize = "Not Found")]
     NotFound,
 }
@@ -31,10 +25,10 @@ impl AppError {
     }
 }
 
-/*struct ServerFnApError(ServerFnError<AppError>);
+//struct ServerFnApError(ServerFnError<AppError>);
 
-impl<E: std::error::Error> From<E> for ServerFnApError {
+/*impl<E: std::error::Error> From<E> for ServerFnError<AppError> {
     fn from(value: E) -> Self {
-        ServerFnApError {0: ServerFnError::ServerError(value.to_string()) }
+        ServerFnError::<AppError>::ServerError(value.to_string())
     }
 }*/

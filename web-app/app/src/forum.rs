@@ -12,7 +12,6 @@ use crate::auth::{LoginGuardButton};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::editor::FormTextEditor;
-use crate::errors::{AppError};
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
@@ -344,19 +343,6 @@ pub async fn get_forum_contents(
         ssr::get_forum_contents(forum_name.as_str(), sort_type, user_id, db_pool).await?;
 
     Ok(forum_content)
-}
-
-#[server]
-pub async fn test_server_fn_app_error() -> Result<(), ServerFnError<AppError>> {
-    let error = ServerFnError::<AppError>::from(AppError::NotConnected);
-    log::info!("return error: {error:?}");
-    Err(error)
-}
-
-#[server]
-pub async fn test_server_fn_app_error_conv() -> Result<(), ServerFnError<AppError>> {
-    //let _sqlx_error = Err(sqlx::Error::RowNotFound)?;
-    Ok(())
 }
 
 #[server]

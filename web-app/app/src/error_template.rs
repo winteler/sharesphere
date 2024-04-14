@@ -1,3 +1,4 @@
+#[cfg(feature = "ssr")]
 use http::StatusCode;
 use leptos::*;
 
@@ -22,11 +23,11 @@ pub fn ErrorTemplate(
 
     log::info!("Error template: got errors: {errors:?}");
     // Downcast lets us take a type that implements `std::error::Error`
-    let errors: Vec<ServerFnError<AppError>> = errors
+    let errors: Vec<AppError> = errors
         .into_iter()
         .filter_map(|(_k, v)| {
             log::info!("Iterating over error: {v}");
-            let downcast_v = v.downcast_ref::<ServerFnError<AppError>>();
+            let downcast_v = v.downcast_ref::<AppError>();
             log::info!("Downcast error: {downcast_v:?}");
             downcast_v.cloned()
         })
@@ -40,14 +41,11 @@ pub fn ErrorTemplate(
         use leptos_axum::ResponseOptions;
         let response = use_context::<ResponseOptions>();
         if let Some(response) = response {
-            if let Some(error) = errors.first() {
-                let status_code = if let ServerFnError::WrappedServerError(error) = error {
-                    error.status_code()
-                } else {
-                    StatusCode::INTERNAL_SERVER_ERROR
-                };
-                response.set_status(status_code);
-            }
+            let status_code = match errors.first() {
+                Some(error) => error.status_code(),
+                None => StatusCode::INTERNAL_SERVER_ERROR,
+            };
+            response.set_status(status_code);
         }
     }
 
@@ -62,11 +60,7 @@ pub fn ErrorTemplate(
             children=move |error| {
                 let error = error.1;
                 let error_string = error.to_string();
-                let error_code =  if let ServerFnError::WrappedServerError(error) = error {
-                    error.status_code()
-                } else {
-                    StatusCode::INTERNAL_SERVER_ERROR
-                };
+                let error_code =  error.status_code();
                 view! {
                     <h2>{error_code.to_string()}</h2>
                     <p>"Error: " {error_string}</p>

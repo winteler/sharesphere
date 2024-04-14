@@ -129,7 +129,7 @@ pub fn App() -> impl IntoView {
         // content for this welcome page
         <Router fallback=|| {
             let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(ServerFnError::<AppError>::from(AppError::NotFound));
+            outside_errors.insert_with_default_key(AppError::NotFound);
             view! {
                 <ErrorTemplate outside_errors/>
             }

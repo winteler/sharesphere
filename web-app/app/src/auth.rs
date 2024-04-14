@@ -215,7 +215,7 @@ pub mod ssr {
 
     pub fn check_user() -> Result<User, ServerFnError> {
         let auth_session = get_session()?;
-        auth_session.current_user.ok_or(ServerFnError::new(AppError::NotConnected))
+        auth_session.current_user.ok_or(ServerFnError::new(AppError::NotAuthenticated))
     }
 }
 

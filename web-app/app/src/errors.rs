@@ -1,32 +1,62 @@
+use std::fmt;
+use std::fmt::Display;
+use std::str::FromStr;
 use http::status::StatusCode;
-use strum_macros::{Display, EnumString};
+use leptos::ServerFnError;
+use serde::{Serialize, Deserialize};
 use thiserror::Error;
 
-#[derive(Clone, Debug, Display, EnumString, Error)]
+#[derive(Clone, Debug, Error, Serialize, Deserialize)]
 pub enum AppError {
-    #[strum(serialize = "Internal Server Error")]
-    InternalServerError,
-    #[strum(serialize = "Not Authenticated")]
+    CommunicationError(ServerFnError),
+    InternalServerError(String),
     NotAuthenticated,
-    #[strum(serialize = "Not Found")]
     NotFound,
 }
 
 impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
-            AppError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::CommunicationError(error) => match error {
+                ServerFnError::Args(_) | ServerFnError::MissingArg(_) => StatusCode::BAD_REQUEST,
+                ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            AppError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::NotAuthenticated => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
+
         }
+    }
+
+    /// Constructs a new [`AppError::InternalServerError`] from some other type.
+    pub fn new(msg: impl ToString) -> Self {
+        Self::InternalServerError(msg.to_string())
     }
 }
 
-/*impl<E: std::error::Error> From<E> for AppError {
-    fn from(value: E) -> Self {
-        ServerFnError::<AppError>::ServerError(value.to_string())
+impl Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_json::to_string(self).unwrap_or_default())
     }
-}*/
+}
+
+impl FromStr for AppError {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
+}
+
+impl From<&ServerFnError> for AppError {
+    fn from(error: &ServerFnError) -> Self {
+        match error {
+            ServerFnError::ServerError(message) => AppError::from_str(message.as_str()).unwrap_or(AppError::InternalServerError(message.clone())),
+            _ => AppError::CommunicationError(error.clone()),
+        }
+    }
+}
 
 #[cfg(feature = "ssr")]
 mod ssr {
@@ -39,14 +69,8 @@ mod ssr {
         fn from(error: sqlx::Error) -> Self {
             match error {
                 sqlx::Error::RowNotFound => NotFound,
-                _ => InternalServerError,
+                _ => InternalServerError(error.to_string()),
             }
         }
     }
-
-    /*impl<T> From<openidconnect::StandardErrorResponse<T>> for AppError {
-        fn from(_error: openidconnect::StandardErrorResponse<T>) -> Self {
-            InternalServerError
-        }
-    }*/
 }

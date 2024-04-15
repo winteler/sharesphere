@@ -21,18 +21,13 @@ pub fn ErrorTemplate(
     // Get Errors from Signal
     let errors = errors.get_untracked();
 
-    log::info!("Error template: got errors: {errors:?}");
+    log::debug!("Error template: got errors: {errors:?}");
     // Downcast lets us take a type that implements `std::error::Error`
     let errors: Vec<AppError> = errors
         .into_iter()
-        .filter_map(|(_k, v)| {
-            log::info!("Iterating over error: {v}");
-            let downcast_v = v.downcast_ref::<AppError>();
-            log::info!("Downcast error: {downcast_v:?}");
-            downcast_v.cloned()
-        })
+        .filter_map(|(_k, v)| v.downcast_ref::<AppError>().cloned())
         .collect();
-    log::info!("Error template: got errors after downcast: {errors:#?}");
+    log::debug!("Error template: got errors after downcast: {errors:#?}");
 
     // Only the response code for the first error is actually sent from the server
     // this may be customized by the specific application
@@ -60,10 +55,10 @@ pub fn ErrorTemplate(
             children=move |error| {
                 let error = error.1;
                 let error_string = error.to_string();
-                let error_code =  error.status_code();
+                let status_code =  error.status_code();
+                log::error!("Caught error in ErrorTemplate, status_code: {status_code}, error message: {error_string}");
                 view! {
-                    <h2>{error_code.to_string()}</h2>
-                    <p>"Error: " {error_string}</p>
+                    <h2>{status_code.to_string()}</h2>
                 }
             }
         />

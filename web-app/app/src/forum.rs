@@ -73,20 +73,34 @@ pub struct ForumContent {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::collections::BTreeSet;
-
-    use leptos::ServerFnError;
     use sqlx::PgPool;
 
+    use crate::errors::AppError;
     use crate::forum::{Forum, ForumContent, ForumWithSubscription};
     use crate::post::ssr::get_post_vec_by_forum_name;
     use crate::ranking::SortType;
+
+    pub async fn get_forum_by_name(
+        forum_name: &str,
+        db_pool: PgPool,
+    ) -> Result<Forum, AppError> {
+        let forum = sqlx::query_as!(
+            Forum,
+            "SELECT * FROM forums WHERE forum_name = $1",
+            forum_name
+        )
+            .fetch_one(&db_pool)
+            .await?;
+
+        Ok(forum)
+    }
 
     pub async fn get_forum_contents(
         forum_name: &str,
         sort_type: SortType,
         user_id: Option<i64>,
         db_pool: PgPool,
-    ) -> Result<ForumContent, ServerFnError> {
+    ) -> Result<ForumContent, AppError> {
         let forum = sqlx::query_as::<_, ForumWithSubscription>(
             "SELECT f.*, s.subscription_id \
             FROM forums f \
@@ -108,7 +122,7 @@ pub mod ssr {
     pub async fn is_forum_available(
         forum_name: &str,
         db_pool: PgPool,
-    ) -> Result<bool, ServerFnError> {
+    ) -> Result<bool, AppError> {
         let forum_exist = sqlx::query!(
             "SELECT forum_id FROM forums WHERE forum_name = $1",
             forum_name
@@ -119,30 +133,15 @@ pub mod ssr {
         match forum_exist {
             Ok(_) => Ok(false),
             Err(sqlx::error::Error::RowNotFound) => Ok(true),
-            Err(e) => Err(ServerFnError::from(e)),
+            Err(e) => Err(e.into()),
         }
-    }
-
-    pub async fn get_forum_by_name(
-        forum_name: &str,
-        db_pool: PgPool,
-    ) -> Result<Forum, ServerFnError> {
-        let forum = sqlx::query_as!(
-            Forum,
-            "SELECT * FROM forums WHERE forum_name = $1",
-            forum_name
-        )
-        .fetch_one(&db_pool)
-        .await?;
-
-        Ok(forum)
     }
 
     pub async fn get_matching_forum_names(
         forum_prefix: String,
         limit: i64,
         db_pool: PgPool,
-    ) -> Result<BTreeSet<String>, ServerFnError> {
+    ) -> Result<BTreeSet<String>, AppError> {
         let forum_name_vec = sqlx::query!(
             "SELECT forum_name FROM forums WHERE forum_name like $1 LIMIT $2",
             forum_prefix + "%",
@@ -163,7 +162,7 @@ pub mod ssr {
     pub async fn get_popular_forum_names(
         limit: i64,
         db_pool: PgPool,
-    ) -> Result<Vec<String>, ServerFnError> {
+    ) -> Result<Vec<String>, AppError> {
         let forum_record_vec = sqlx::query!(
             "SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT $1",
             limit
@@ -183,7 +182,7 @@ pub mod ssr {
     pub async fn get_subscribed_forum_names(
         user_id: i64,
         db_pool: PgPool,
-    ) -> Result<Vec<String>, ServerFnError> {
+    ) -> Result<Vec<String>, AppError> {
         let forum_record_vec = sqlx::query!(
             "SELECT f.forum_name FROM forums f \
             JOIN forum_subscriptions s ON \
@@ -210,16 +209,16 @@ pub mod ssr {
         is_nsfw: bool,
         user_id: i64,
         db_pool: PgPool,
-    ) -> Result<Forum, ServerFnError> {
+    ) -> Result<Forum, AppError> {
         if name.is_empty() {
-            return Err(ServerFnError::new("Cannot create Sphere with empty name."));
+            return Err(AppError::new("Cannot create Sphere with empty name."));
         }
 
         if !name
             .chars()
             .all(|c| c.is_alphanumeric() && (c.is_lowercase() || c.is_numeric()))
         {
-            return Err(ServerFnError::new(
+            return Err(AppError::new(
                 "Sphere name can only contain alphanumeric lowercase characters.",
             ));
         }
@@ -242,7 +241,7 @@ pub mod ssr {
         forum_id: i64,
         user_id: i64,
         db_pool: PgPool,
-    ) -> Result<(), ServerFnError> {
+    ) -> Result<(), AppError> {
         sqlx::query!(
             "INSERT INTO forum_subscriptions (user_id, forum_id) VALUES ($1, $2)",
             user_id,
@@ -265,7 +264,7 @@ pub mod ssr {
         forum_id: i64,
         user_id: i64,
         db_pool: PgPool,
-    ) -> Result<(), ServerFnError> {
+    ) -> Result<(), AppError> {
         sqlx::query!(
             "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
             user_id,

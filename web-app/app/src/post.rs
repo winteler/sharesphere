@@ -90,6 +90,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::auth::User;
+    use crate::errors::AppError;
     use crate::ranking::{VoteValue};
 
     use super::*;
@@ -222,7 +223,7 @@ pub mod ssr {
         forum_name: &str,
         sort_type: SortType,
         db_pool: PgPool,
-    ) -> Result<Vec<Post>, ServerFnError> {
+    ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT p.* FROM posts p \

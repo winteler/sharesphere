@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use leptos::*;
 
 use crate::error_template::ErrorTemplate;
@@ -62,13 +61,7 @@ fn unpack_resource<
     resource.map(|result| match result {
         Ok(value) => Ok(children.with_value(|children| children(value))),
         Err(e) => {
-            log::info!("Got error in unpack: {e}");
-            let e = match e {
-                ServerFnError::ServerError(message) => AppError::from_str(message.as_str()).unwrap_or(AppError::InternalServerError),
-                _ => AppError::InternalServerError,
-            };
-            log::info!("AppError from ServerFnError: {e}");
-            Err(e)
+            Err(AppError::from(e))
         },
     })
 }

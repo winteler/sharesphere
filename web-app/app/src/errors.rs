@@ -6,6 +6,12 @@ use leptos::ServerFnError;
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
 
+const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you.";
+const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong.";
+const NOT_AUTHENTICATED_MESSAGE: &str = "You're in a restricted area, please do not resist.";
+
+
+
 #[derive(Clone, Debug, Error, Serialize, Deserialize)]
 pub enum AppError {
     AuthenticationError(String),
@@ -29,7 +35,21 @@ impl AppError {
             AppError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::NotAuthenticated => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
+        }
+    }
 
+    pub fn user_message(&self) -> &str {
+        match self {
+            AppError::AuthenticationError(_) => AUTH_FAILED_MESSAGE,
+            AppError::CommunicationError(error) => match error {
+                ServerFnError::Args(_) | ServerFnError::MissingArg(_) => "Sorry, we couldn't understand you.",
+                ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => "Sorry, we've got noise on the line.",
+                _ => INTERNAL_ERROR_MESSAGE,
+            },
+            AppError::DatabaseError(_) => INTERNAL_ERROR_MESSAGE,
+            AppError::InternalServerError(_) => INTERNAL_ERROR_MESSAGE,
+            AppError::NotAuthenticated => NOT_AUTHENTICATED_MESSAGE,
+            AppError::NotFound => "There's nothing here.",
         }
     }
 
@@ -67,44 +87,43 @@ mod ssr {
     use sqlx;
 
     use crate::errors::AppError;
-    use crate::errors::AppError::{AuthenticationError, InternalServerError, NotFound};
 
     impl From<sqlx::Error> for AppError {
         fn from(error: sqlx::Error) -> Self {
             match error {
-                sqlx::Error::RowNotFound => NotFound,
-                _ => InternalServerError(error.to_string()),
+                sqlx::Error::RowNotFound => AppError::NotFound,
+                _ => AppError::InternalServerError(error.to_string()),
             }
         }
     }
 
     impl From<std::env::VarError> for AppError {
         fn from(error: std::env::VarError) -> Self {
-            InternalServerError(error.to_string())
+            AppError::InternalServerError(error.to_string())
         }
     }
 
     impl From<std::string::FromUtf8Error> for AppError {
         fn from(error: std::string::FromUtf8Error) -> Self {
-            InternalServerError(error.to_string())
+            AppError::InternalServerError(error.to_string())
         }
     }
 
     impl From<openidconnect::url::ParseError> for AppError {
         fn from(error: openidconnect::url::ParseError) -> Self {
-            AuthenticationError(error.to_string())
+            AppError::AuthenticationError(error.to_string())
         }
     }
 
     impl<T: std::error::Error> From<openidconnect::DiscoveryError<T>> for AppError {
         fn from(_error: openidconnect::DiscoveryError<T>) -> Self {
-            AuthenticationError(String::from("Discovery failed"))
+            AppError::AuthenticationError(String::from("Discovery failed"))
         }
     }
 
     impl From<quick_xml::Error> for AppError {
         fn from(error: quick_xml::Error) -> Self {
-            InternalServerError(error.to_string())
+            AppError::InternalServerError(error.to_string())
         }
     }
 }

@@ -11,10 +11,9 @@ mod ssr {
     use quick_xml::{Reader, Writer};
 
     use crate::constants::SPOILER_TAG;
+    use crate::errors::AppError;
 
-    use super::*;
-
-    pub fn style_html_user_content(user_content: &str) -> Result<String, ServerFnError> {
+    pub fn style_html_user_content(user_content: &str) -> Result<String, AppError> {
         let mut reader = Reader::from_str(user_content);
         let mut writer = Writer::new(Cursor::new(Vec::new()));
 
@@ -93,7 +92,7 @@ mod ssr {
                         reader.buffer_position(),
                         e
                     );
-                    return Err(ServerFnError::from(e));
+                    return Err(AppError::from(e));
                 }
             }
         }

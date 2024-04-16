@@ -68,8 +68,8 @@ pub mod ssr {
 
     pub const DB_URL_ENV: &str = "DATABASE_URL";
 
-    pub fn get_session() -> Result<AuthSession, ServerFnError> {
-        use_context::<AuthSession>().ok_or_else(|| ServerFnError::new("Auth session missing."))
+    pub fn get_session() -> Result<AuthSession, AppError> {
+        use_context::<AuthSession>().ok_or_else(|| AppError::new("Auth session missing."))
     }
 
     pub async fn create_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
@@ -81,7 +81,7 @@ pub mod ssr {
     }
 
     struct DbPoolGetter {
-        pool: Result<PgPool, ServerFnError>,
+        pool: Result<PgPool, AppError>,
     }
 
     impl DbPoolGetter {
@@ -93,11 +93,11 @@ pub mod ssr {
                 handle.block_on(async {
                     create_db_pool()
                         .await
-                        .or_else(|_| Err(ServerFnError::new("Pool missing.")))
+                        .or_else(|_| Err(AppError::new("Pool missing.")))
                 })
             })
             .join()
-            .expect("Failed to create DB pool.");
+            .unwrap_or(Err(AppError::new("Failed to create DB pool.")));
 
             Self { pool }
         }
@@ -105,7 +105,7 @@ pub mod ssr {
 
     static POOL: OnceLock<DbPoolGetter> = OnceLock::new();
 
-    pub fn get_db_pool() -> Result<PgPool, ServerFnError> {
+    pub fn get_db_pool() -> Result<PgPool, AppError> {
         POOL.get_or_init(|| DbPoolGetter::new()).pool.clone()
     }
 }

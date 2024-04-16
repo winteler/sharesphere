@@ -149,9 +149,9 @@ pub mod ssr {
         tag: Option<String>,
         user: &User,
         db_pool: PgPool,
-    ) -> Result<Post, ServerFnError> {
+    ) -> Result<Post, AppError> {
         if forum_name.is_empty() || post_title.is_empty() {
-            return Err(ServerFnError::new(
+            return Err(AppError::new(
                 "Cannot create content without a valid forum and title.",
             ));
         }
@@ -179,7 +179,7 @@ pub mod ssr {
         Ok(post)
     }
 
-    pub async fn update_post_scores() -> Result<(), ServerFnError> {
+    pub async fn update_post_scores() -> Result<(), AppError> {
         let db_pool = get_db_pool()?;
         sqlx::query!(
             "UPDATE posts \
@@ -196,7 +196,7 @@ pub mod ssr {
         post_id: i64,
         user_id: Option<i64>,
         db_pool: PgPool,
-    ) -> Result<PostWithVote, ServerFnError> {
+    ) -> Result<PostWithVote, AppError> {
         let post_join_vote = sqlx::query_as::<_, PostJoinVote>(
             "SELECT p.*,
             v.vote_id,
@@ -243,7 +243,7 @@ pub mod ssr {
     pub async fn get_sorted_post_vec(
         sort_type: SortType,
         db_pool: PgPool,
-    ) -> Result<Vec<Post>, ServerFnError> {
+    ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT * FROM posts \
@@ -262,7 +262,7 @@ pub mod ssr {
         user_id: i64,
         sort_type: SortType,
         db_pool: PgPool,
-    ) -> Result<Vec<Post>, ServerFnError> {
+    ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT p.* FROM posts p \

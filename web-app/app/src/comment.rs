@@ -75,6 +75,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::auth::User;
+    use crate::errors::AppError;
     use crate::ranking::VoteValue;
 
     use super::*;
@@ -130,9 +131,9 @@ pub mod ssr {
         markdown_comment: Option<&str>,
         user: &User,
         db_pool: PgPool,
-    ) -> Result<Comment, ServerFnError> {
+    ) -> Result<Comment, AppError> {
         if comment.is_empty() {
-            return Err(ServerFnError::new("Cannot create empty comment."));
+            return Err(AppError::new("Cannot create empty comment."));
         }
 
         let comment = sqlx::query_as!(
@@ -156,9 +157,9 @@ pub mod ssr {
         sort_type: SortType,
         user_id: Option<i64>,
         db_pool: PgPool,
-    ) -> Result<Vec<CommentWithChildren>, ServerFnError> {
+    ) -> Result<Vec<CommentWithChildren>, AppError> {
         if post_id < 1 {
-            return Err(ServerFnError::new("Invalid post id."));
+            return Err(AppError::new("Invalid post id."));
         }
 
         let sort_column = sort_type.to_order_by_code();

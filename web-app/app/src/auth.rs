@@ -163,11 +163,11 @@ pub mod ssr {
         }
     }
 
-    pub fn get_issuer_url() -> Result<oidc::IssuerUrl, ServerFnError> {
-        Ok(oidc::IssuerUrl::new(env::var(OIDC_ISSUER_URL_ENV)?).expect("Invalid issuer URL"))
+    pub fn get_issuer_url() -> Result<oidc::IssuerUrl, AppError> {
+        Ok(oidc::IssuerUrl::new(env::var(OIDC_ISSUER_URL_ENV)?)?)
     }
 
-    pub fn get_client_id() -> Result<oidc::ClientId, ServerFnError> {
+    pub fn get_client_id() -> Result<oidc::ClientId, AppError> {
         Ok(oidc::ClientId::new(env::var(AUTH_CLIENT_ID_ENV)?))
     }
 
@@ -178,19 +178,19 @@ pub mod ssr {
         }
     }
 
-    pub fn get_base_url() -> Result<String, ServerFnError> {
+    pub fn get_base_url() -> Result<String, AppError> {
         Ok(env::var(BASE_URL_ENV)?)
     }
 
-    pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, ServerFnError> {
+    pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
         Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE)?)
     }
 
-    pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, ServerFnError> {
+    pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
         Ok(oidc::PostLogoutRedirectUrl::new(String::from("http://") + get_base_url()?.as_str())?)
     }
 
-    pub async fn get_auth_client() -> Result<oidc::core::CoreClient, ServerFnError> {
+    pub async fn get_auth_client() -> Result<oidc::core::CoreClient, AppError> {
         let redirect_url = get_auth_redirect()?;
         let issuer_url = get_issuer_url()?;
 
@@ -213,9 +213,9 @@ pub mod ssr {
         Ok(client)
     }
 
-    pub fn check_user() -> Result<User, ServerFnError> {
+    pub fn check_user() -> Result<User, AppError> {
         let auth_session = get_session()?;
-        auth_session.current_user.ok_or(ServerFnError::new(AppError::NotAuthenticated))
+        auth_session.current_user.ok_or(AppError::NotAuthenticated)
     }
 }
 
@@ -225,7 +225,7 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
 
     if current_user.as_ref().is_ok_and(|user| user.is_authenticated()) {
         log::info!("Already logged in, current user is: {:?}", current_user.clone().unwrap());
-        return current_user;
+        return Ok(current_user.unwrap());
     }
 
     log::info!("User not connected, redirect_url: {}", redirect_url);

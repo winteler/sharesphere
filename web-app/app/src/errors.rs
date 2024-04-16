@@ -8,7 +8,9 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Error, Serialize, Deserialize)]
 pub enum AppError {
+    AuthenticationError(String),
     CommunicationError(ServerFnError),
+    DatabaseError(String),
     InternalServerError(String),
     NotAuthenticated,
     NotFound,
@@ -17,11 +19,13 @@ pub enum AppError {
 impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
+            AppError::AuthenticationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) => StatusCode::BAD_REQUEST,
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
+            AppError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::NotAuthenticated => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
@@ -63,7 +67,7 @@ mod ssr {
     use sqlx;
 
     use crate::errors::AppError;
-    use crate::errors::AppError::{InternalServerError, NotFound};
+    use crate::errors::AppError::{AuthenticationError, InternalServerError, NotFound};
 
     impl From<sqlx::Error> for AppError {
         fn from(error: sqlx::Error) -> Self {
@@ -71,6 +75,36 @@ mod ssr {
                 sqlx::Error::RowNotFound => NotFound,
                 _ => InternalServerError(error.to_string()),
             }
+        }
+    }
+
+    impl From<std::env::VarError> for AppError {
+        fn from(error: std::env::VarError) -> Self {
+            InternalServerError(error.to_string())
+        }
+    }
+
+    impl From<std::string::FromUtf8Error> for AppError {
+        fn from(error: std::string::FromUtf8Error) -> Self {
+            InternalServerError(error.to_string())
+        }
+    }
+
+    impl From<openidconnect::url::ParseError> for AppError {
+        fn from(error: openidconnect::url::ParseError) -> Self {
+            AuthenticationError(error.to_string())
+        }
+    }
+
+    impl<T: std::error::Error> From<openidconnect::DiscoveryError<T>> for AppError {
+        fn from(_error: openidconnect::DiscoveryError<T>) -> Self {
+            AuthenticationError(String::from("Discovery failed"))
+        }
+    }
+
+    impl From<quick_xml::Error> for AppError {
+        fn from(error: quick_xml::Error) -> Self {
+            InternalServerError(error.to_string())
         }
     }
 }

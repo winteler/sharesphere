@@ -74,9 +74,9 @@ impl fmt::Display for SortType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use leptos::{ServerFnError};
     use sqlx::PgPool;
     use crate::auth::User;
+    use crate::errors::AppError;
 
     use crate::ranking::{SortType, Vote, VoteInfo, VoteValue};
 
@@ -111,7 +111,7 @@ pub mod ssr {
         comment_id: Option<i64>,
         previous_vote_info: Option<VoteInfo>,
         db_pool: &PgPool,
-    ) -> Result<(), ServerFnError> {
+    ) -> Result<(), AppError> {
 
         let previous_vote = match previous_vote_info {
             Some(vote_info) => vote_info.value,
@@ -150,9 +150,9 @@ pub mod ssr {
         previous_vote_info: Option<VoteInfo>,
         user: &User,
         db_pool: PgPool,
-    ) -> Result<Option<Vote>, ServerFnError> {
+    ) -> Result<Option<Vote>, AppError> {
         if previous_vote_info.as_ref().is_some_and(|vote_info: &VoteInfo| vote_info.value == vote_value) {
-            return Err(ServerFnError::new("Identical to previous vote."));
+            return Err(AppError::new("Identical to previous vote."));
         }
 
         // TODO: add unique index to prevent multiple votes by same user

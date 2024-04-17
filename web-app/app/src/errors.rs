@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
 use http::status::StatusCode;
-use leptos::ServerFnError;
+use leptos::{component, IntoView, ServerFnError};
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
 
@@ -125,5 +125,23 @@ mod ssr {
         fn from(error: quick_xml::Error) -> Self {
             AppError::InternalServerError(error.to_string())
         }
+    }
+}
+
+#[component]
+pub fn ErrorIcon<'a>(
+    error: &'a AppError,
+) -> impl IntoView {
+    match error {
+        AppError::AuthenticationError(_) => AUTH_FAILED_MESSAGE,
+        AppError::CommunicationError(error) => match error {
+            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => "Sorry, we couldn't understand you.",
+            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => "Sorry, we've got noise on the line.",
+            _ => INTERNAL_ERROR_MESSAGE,
+        },
+        AppError::DatabaseError(_) => INTERNAL_ERROR_MESSAGE,
+        AppError::InternalServerError(_) => INTERNAL_ERROR_MESSAGE,
+        AppError::NotAuthenticated => NOT_AUTHENTICATED_MESSAGE,
+        AppError::NotFound => "There's nothing here.",
     }
 }

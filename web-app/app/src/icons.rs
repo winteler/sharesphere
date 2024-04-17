@@ -179,3 +179,46 @@ pub fn UserIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoVi
         <img src="/svg/user.svg" class=class/>
     }
 }
+
+#[component]
+pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/man_on_the_moon.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn InternalErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/landing_space_capsule.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/alien.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn InvalidRequestIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/chewbacca.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn NetworkErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/satellite.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn NotAuthenticatedIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/stormtrooper.svg" class=class/>
+    }
+}
+

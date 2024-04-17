@@ -2,13 +2,14 @@ use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
 use http::status::StatusCode;
-use leptos::{component, IntoView, ServerFnError};
+use leptos::{component, IntoView, ServerFnError, view};
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
+use crate::icons::{AuthErrorIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthenticatedIcon, NotFoundIcon};
 
-const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you.";
-const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong.";
-const NOT_AUTHENTICATED_MESSAGE: &str = "You're in a restricted area, please do not resist.";
+const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you";
+const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong";
+const NOT_AUTHENTICATED_MESSAGE: &str = "You're in a restricted area, please do not resist";
 
 
 
@@ -38,18 +39,18 @@ impl AppError {
         }
     }
 
-    pub fn user_message(&self) -> &str {
+    pub fn user_message(&self) -> &'static str {
         match self {
             AppError::AuthenticationError(_) => AUTH_FAILED_MESSAGE,
             AppError::CommunicationError(error) => match error {
-                ServerFnError::Args(_) | ServerFnError::MissingArg(_) => "Sorry, we couldn't understand you.",
+                ServerFnError::Args(_) | ServerFnError::MissingArg(_) => "Sorry, we didn't understand your request",
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => "Sorry, we've got noise on the line.",
                 _ => INTERNAL_ERROR_MESSAGE,
             },
             AppError::DatabaseError(_) => INTERNAL_ERROR_MESSAGE,
             AppError::InternalServerError(_) => INTERNAL_ERROR_MESSAGE,
             AppError::NotAuthenticated => NOT_AUTHENTICATED_MESSAGE,
-            AppError::NotFound => "There's nothing here.",
+            AppError::NotFound => "There's nothing here",
         }
     }
 
@@ -129,19 +130,19 @@ mod ssr {
 }
 
 #[component]
-pub fn ErrorIcon<'a>(
-    error: &'a AppError,
+pub fn AppErrorIcon<'a>(
+    app_error: &'a AppError,
 ) -> impl IntoView {
-    match error {
-        AppError::AuthenticationError(_) => AUTH_FAILED_MESSAGE,
+    match app_error {
+        AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> },
         AppError::CommunicationError(error) => match error {
-            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => "Sorry, we couldn't understand you.",
-            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => "Sorry, we've got noise on the line.",
-            _ => INTERNAL_ERROR_MESSAGE,
+            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> },
+            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> },
+            _ => view! { <InternalErrorIcon/> },
         },
-        AppError::DatabaseError(_) => INTERNAL_ERROR_MESSAGE,
-        AppError::InternalServerError(_) => INTERNAL_ERROR_MESSAGE,
-        AppError::NotAuthenticated => NOT_AUTHENTICATED_MESSAGE,
-        AppError::NotFound => "There's nothing here.",
+        AppError::DatabaseError(_) => view! { <InternalErrorIcon/> },
+        AppError::InternalServerError(_) => view! { <InternalErrorIcon/> },
+        AppError::NotAuthenticated => view! { <NotAuthenticatedIcon/> },
+        AppError::NotFound => view! { <NotFoundIcon/> },
     }
 }

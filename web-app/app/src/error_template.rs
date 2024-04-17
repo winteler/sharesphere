@@ -2,7 +2,7 @@
 use http::StatusCode;
 use leptos::*;
 
-use crate::errors::AppError;
+use crate::errors::{AppError, AppErrorIcon};
 
 // A basic function to display errors served by the error boundaries. Feel free to do more complicated things
 // here than just displaying them
@@ -52,15 +52,18 @@ pub fn ErrorTemplate(
                 // a unique key for each item as a reference
                 key=|(index, _error)| *index
                 // renders each item to a view
-                children=move |error| {
-                    let error = error.1;
+                children=move |(_, error)| {
                     let error_string = error.to_string();
                     let status_code =  error.status_code().as_u16();
+                    let user_message = error.user_message();
+
                     log::error!("Caught error in ErrorTemplate, status_code: {status_code}, error message: {error_string}");
                     view! {
-                        <div class="flex">
+                        <div class="flex items-center gap-2">
+                            <AppErrorIcon app_error=&error/>
                             <div class="flex flex-col">
                                 <h2 class="text-2xl">{status_code}</h2>
+                                <h3 class="text-xl">{user_message}</h3>
                             </div>
                         </div>
                     }

@@ -15,7 +15,8 @@ use crate::editor::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
-use crate::ranking::{ScoreIndicator, SortType};
+use crate::post::get_post_vec_by_forum_name;
+use crate::ranking::{ScoreIndicator};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -64,21 +65,13 @@ pub struct ForumWithSubscription {
     pub subscription_id: Option<i64>,
 }
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct ForumContent {
-    pub forum_with_sub: ForumWithSubscription,
-    pub post_vec: Vec<Post>,
-}
-
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::collections::BTreeSet;
     use sqlx::PgPool;
 
     use crate::errors::AppError;
-    use crate::forum::{Forum, ForumContent, ForumWithSubscription};
-    use crate::post::ssr::get_post_vec_by_forum_name;
-    use crate::ranking::SortType;
+    use crate::forum::{Forum, ForumWithSubscription};
 
     pub async fn get_forum_by_name(
         forum_name: &str,
@@ -95,12 +88,11 @@ pub mod ssr {
         Ok(forum)
     }
 
-    pub async fn get_forum_contents(
+    pub async fn get_forum_with_subscription(
         forum_name: &str,
-        sort_type: SortType,
         user_id: Option<i64>,
         db_pool: PgPool,
-    ) -> Result<ForumContent, AppError> {
+    ) -> Result<ForumWithSubscription, AppError> {
         let forum = sqlx::query_as::<_, ForumWithSubscription>(
             "SELECT f.*, s.subscription_id \
             FROM forums f \
@@ -114,9 +106,7 @@ pub mod ssr {
         .fetch_one(&db_pool)
         .await?;
 
-        let post_vec = get_post_vec_by_forum_name(forum_name, sort_type, db_pool).await?;
-
-        Ok(ForumContent { forum_with_sub: forum, post_vec })
+        Ok(forum)
     }
 
     pub async fn is_forum_available(
@@ -328,10 +318,9 @@ pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
 }
 
 #[server]
-pub async fn get_forum_contents(
+pub async fn get_forum_with_subscription(
     forum_name: String,
-    sort_type: SortType,
-) -> Result<ForumContent, ServerFnError> {
+) -> Result<ForumWithSubscription, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
@@ -339,7 +328,7 @@ pub async fn get_forum_contents(
     };
 
     let forum_content =
-        ssr::get_forum_contents(forum_name.as_str(), sort_type, user_id, db_pool).await?;
+        ssr::get_forum_with_subscription(forum_name.as_str(), user_id, db_pool).await?;
 
     Ok(forum_content)
 }
@@ -550,7 +539,7 @@ pub fn ForumBanner() -> impl IntoView {
                 view! {
                     <a
                         href=forum_path()
-                        class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
+                        class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                         style:background-image=forum_banner_image
                     >
                         <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
@@ -572,7 +561,16 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let forum_content_resource = create_resource(
+    let posts = create_rw_signal(Vec::<Post>::new());
+    let forum_with_sub_resource = create_resource(
+        move || {
+            (
+                forum_name(),
+            )
+        },
+        move |(forum_name,)| get_forum_with_subscription(forum_name),
+    );
+    let post_vec_resource = create_resource(
         move || {
             (
                 forum_name(),
@@ -580,15 +578,19 @@ pub fn ForumContents() -> impl IntoView {
                 state.post_sort_type.get(),
             )
         },
-        move |(forum_name, _, sort_type)| get_forum_contents(forum_name, sort_type),
+        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type),
     );
 
     view! {
         <SuspenseUnpack
-            resource=forum_content_resource let:forum_content
+            resource=forum_with_sub_resource let:forum_with_sub
         >
-            <ForumToolbar forum=&forum_content.forum_with_sub/>
-            <ForumPostMiniatures post_vec=&forum_content.post_vec/>
+            <ForumToolbar forum=&forum_with_sub/>
+        </SuspenseUnpack>
+        <SuspenseUnpack
+            resource=post_vec_resource let:post_vec
+        >
+            <ForumPostMiniatures post_vec=&post_vec/>
         </SuspenseUnpack>
     }
 }
@@ -670,11 +672,21 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 /// Component to display a given set of forum posts
 #[component]
 pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>) -> impl IntoView {
+    let list_ref = create_node_ref::<html::Ul>();
     view! {
         <ul class="overflow-y-auto w-full pr-2"
-            on:scrollend=move |_ : ev::Event| {
-                log::info!("Triggered scrollend");
+            on:scroll=move |_| {
+                let node_ref = list_ref.get().expect("ul node should be loaded");
+                let scroll_top = node_ref.scroll_top();
+                let offset_height = node_ref.offset_height();
+                let scroll_height = node_ref.scroll_height();
+                let reached_scroll_end = scroll_top + offset_height >= scroll_height;
+                log::debug!("Triggered scroll, scroll_top = {scroll_top}, offset_height = {offset_height}, scroll_height = {scroll_height}, reached_scroll_end = {reached_scroll_end}");
+                if reached_scroll_end {
+                    log::info!("Reached scroll end, load more data!");
+                }
             }
+            node_ref=list_ref
         >
             {
                 post_vec.iter().map(move |post| {
@@ -683,7 +695,7 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>) -> impl IntoView {
                         <li>
                             <a href=post_path>
                                 <div class="flex flex-col gap-1 p-2 rounded-md hover:bg-base-content/20">
-                                    <h2 class="card-title">{post.title.clone()}</h2>
+                                    <h2 class="card-title ml-1">{post.title.clone()}</h2>
                                     <div class="flex gap-2">
                                         <ScoreIndicator score=post.score/>
                                         <AuthorWidget author=&post.creator_name/>

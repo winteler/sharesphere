@@ -135,12 +135,12 @@ pub fn App() -> impl IntoView {
             }
             .into_view()
         }>
-            <main class="h-screen drawer 2xl:drawer-close text-white">
+            <main class="h-screen text-white">
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                 <div class="drawer-content h-full flex flex-col max-2xl:items-center">
                     <NavigationBar/>
-                    <div class="flex h-full w-full">
-                        <div class="h-full max-2xl:hidden">
+                    <div class="flex w-full overflow-hidden">
+                        <div class="max-2xl:hidden">
                             <LeftSidebar/>
                         </div>
                         <Routes>
@@ -155,7 +155,7 @@ pub fn App() -> impl IntoView {
                                 <Route path=CREATE_POST_SUFFIX view=CreatePost/>
                             </Route>
                         </Routes>
-                        <div class="h-full max-2xl:hidden">
+                        <div class="max-2xl:hidden">
                             <RightSidebar/>
                         </div>
                     </div>
@@ -222,7 +222,7 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col pt-2 px-2 gap-2 w-full">
+        <div class="flex flex-col flex-1 w-full overflow-y-auto  pt-2 px-2 gap-2">
             <div
                 class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                 style="background-image: url(/banner.jpg)"

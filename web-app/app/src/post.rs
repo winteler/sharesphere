@@ -505,7 +505,7 @@ pub fn Post() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col content-start gap-1">
+        <div class="flex flex-col content-start gap-1 overflow-y-auto">
             <TransitionUnpack resource=post_resource let:post>
             {
                 let post_body_class = match post.post.markdown_body {

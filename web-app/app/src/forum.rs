@@ -671,14 +671,18 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 #[component]
 pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>) -> impl IntoView {
     view! {
-        <ul class="menu w-full text-lg">
+        <ul class="overflow-y-auto w-full pr-2"
+            on:scrollend=move |_ : ev::Event| {
+                log::info!("Triggered scrollend");
+            }
+        >
             {
                 post_vec.iter().map(move |post| {
                     let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + post.forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.post_id.to_string();
                     view! {
                         <li>
                             <a href=post_path>
-                                <div class="flex flex-col gap-1">
+                                <div class="flex flex-col gap-1 p-2 rounded-md hover:bg-base-content/20">
                                     <h2 class="card-title">{post.title.clone()}</h2>
                                     <div class="flex gap-2">
                                         <ScoreIndicator score=post.score/>

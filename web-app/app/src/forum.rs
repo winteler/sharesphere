@@ -543,7 +543,7 @@ pub fn ForumBanner() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col gap-2 mt-2 mx-2 w-full">
+        <div class="flex flex-col gap-2 pt-2 px-2 w-full">
             <TransitionUnpack resource=forum_resource let:forum>
             {
                 let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("/banner.jpg")));

@@ -222,7 +222,7 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col mt-2 mx-2 gap-2 w-full">
+        <div class="flex flex-col pt-2 px-2 gap-2 w-full">
             <div
                 class="bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                 style="background-image: url(/banner.jpg)"

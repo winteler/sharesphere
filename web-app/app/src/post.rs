@@ -30,6 +30,7 @@ pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const POST_ROUTE: &str =
     concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
+pub const POST_BATCH_SIZE: i64 = 10;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -222,6 +223,8 @@ pub mod ssr {
     pub async fn get_post_vec_by_forum_name(
         forum_name: &str,
         sort_type: SortType,
+        limit: i64,
+        offset: i64,
         db_pool: PgPool,
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
@@ -229,11 +232,15 @@ pub mod ssr {
                 "SELECT p.* FROM posts p \
                 JOIN forums f on f.forum_id = p.forum_id \
                 WHERE f.forum_name = $1 \
-                ORDER BY {} DESC",
+                ORDER BY {} DESC \
+                LIMIT $2 \
+                OFFSET $3",
                 sort_type.to_order_by_code()
             ).as_str(),
         )
         .bind(forum_name)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&db_pool)
         .await?;
 
@@ -319,9 +326,15 @@ pub async fn get_subscribed_post_vec(
 pub async fn get_post_vec_by_forum_name(
     forum_name: String,
     sort_type: SortType,
+    additional_load_count: i64,
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let post_vec = ssr::get_post_vec_by_forum_name(forum_name.as_str(), sort_type, db_pool).await?;
+    let post_vec = ssr::get_post_vec_by_forum_name(
+        forum_name.as_str(),
+        sort_type,
+        POST_BATCH_SIZE,
+        additional_load_count*POST_BATCH_SIZE,
+        db_pool).await?;
     Ok(post_vec)
 }
 

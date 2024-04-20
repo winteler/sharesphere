@@ -254,6 +254,8 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let acc_post_vec = create_rw_signal(Vec::<Post>::new());
+    let post_load_count = create_rw_signal(0);
     let post_vec_resource = create_resource(
         move || {
             (
@@ -266,7 +268,16 @@ fn DefaultHomePage() -> impl IntoView {
 
     view! {
         <TransitionUnpack resource=post_vec_resource let:post_vec>
-            <ForumPostMiniatures post_vec=post_vec/>
+        {
+            acc_post_vec.update(|acc_post_vec| acc_post_vec.append(&mut post_vec.clone()));
+            acc_post_vec.with(|post_vec| view! {
+                <ForumPostMiniatures
+                    post_vec=post_vec
+                    is_loading=post_vec_resource.loading()
+                    post_load_count=post_load_count
+                />
+            })
+        }
         </TransitionUnpack>
     }
 }
@@ -276,6 +287,8 @@ fn DefaultHomePage() -> impl IntoView {
 fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
+    let acc_post_vec = create_rw_signal(Vec::<Post>::new());
+    let post_load_count = create_rw_signal(0);
     let post_vec_resource = create_resource(
         move || {
             (
@@ -288,7 +301,16 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
 
     view! {
         <TransitionUnpack resource=post_vec_resource let:post_vec>
-            <ForumPostMiniatures post_vec=post_vec/>
+        {
+            acc_post_vec.update(|acc_post_vec| acc_post_vec.append(&mut post_vec.clone()));
+            acc_post_vec.with(|post_vec| view! {
+                <ForumPostMiniatures
+                    post_vec=post_vec
+                    is_loading=post_vec_resource.loading()
+                    post_load_count=post_load_count
+                />
+            })
+        }
         </TransitionUnpack>
     }
 }

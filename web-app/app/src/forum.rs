@@ -561,7 +561,8 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let posts = create_rw_signal(Vec::<Post>::new());
+    let acc_post_vec = create_rw_signal(Vec::<Post>::new());
+    let post_load_count = create_rw_signal(0);
     let forum_with_sub_resource = create_resource(
         move || {
             (
@@ -576,9 +577,12 @@ pub fn ForumContents() -> impl IntoView {
                 forum_name(),
                 state.create_post_action.version().get(),
                 state.post_sort_type.get(),
+                post_load_count.get(),
             )
         },
-        move |(forum_name, _, sort_type)| get_post_vec_by_forum_name(forum_name, sort_type),
+        move |(forum_name, _, sort_type, load_count)| {
+            get_post_vec_by_forum_name(forum_name, sort_type, load_count)
+        },
     );
 
     view! {
@@ -587,11 +591,20 @@ pub fn ForumContents() -> impl IntoView {
         >
             <ForumToolbar forum=&forum_with_sub/>
         </SuspenseUnpack>
-        <SuspenseUnpack
+        <TransitionUnpack
             resource=post_vec_resource let:post_vec
         >
-            <ForumPostMiniatures post_vec=&post_vec/>
-        </SuspenseUnpack>
+        {
+            acc_post_vec.update(|acc_post_vec| acc_post_vec.append(&mut post_vec.clone()));
+            acc_post_vec.with(|post_vec| view! {
+                <ForumPostMiniatures
+                    post_vec=post_vec
+                    is_loading=post_vec_resource.loading()
+                    post_load_count=post_load_count
+                />
+            })
+        }
+        </TransitionUnpack>
     }
 }
 
@@ -671,7 +684,11 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 
 /// Component to display a given set of forum posts
 #[component]
-pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>) -> impl IntoView {
+pub fn ForumPostMiniatures<'a>(
+    post_vec: &'a Vec<Post>,
+    is_loading: Signal<bool>,
+    post_load_count: RwSignal<i64>
+) -> impl IntoView {
     let list_ref = create_node_ref::<html::Ul>();
     view! {
         <ul class="overflow-y-auto w-full pr-2"
@@ -684,6 +701,9 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>) -> impl IntoView {
                 log::debug!("Triggered scroll, scroll_top = {scroll_top}, offset_height = {offset_height}, scroll_height = {scroll_height}, reached_scroll_end = {reached_scroll_end}");
                 if reached_scroll_end {
                     log::info!("Reached scroll end, load more data!");
+                    if !is_loading.get_untracked() {
+                        post_load_count.update(|value| *value += 1);
+                    }
                 }
             }
             node_ref=list_ref
@@ -707,6 +727,9 @@ pub fn ForumPostMiniatures<'a>(post_vec: &'a Vec<Post>) -> impl IntoView {
                     }
                 }).collect_view()
             }
+            <Show when=is_loading>
+                <LoadingIcon/>
+            </Show>
         </ul>
     }
 }

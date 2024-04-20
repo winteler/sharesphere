@@ -14,9 +14,9 @@ use crate::auth::ssr::check_user;
 use crate::editor::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
-use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX};
+use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX, PostSortType};
 use crate::post::get_post_vec_by_forum_name;
-use crate::ranking::{ScoreIndicator};
+use crate::ranking::{ScoreIndicator, SortType};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -561,7 +561,7 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let acc_post_vec = create_rw_signal(Vec::<Post>::new());
+    let acc_post_vec = create_rw_signal((forum_name.get_untracked(), PostSortType::Hot, Vec::<Post>::new()));
     let post_load_count = create_rw_signal(0);
     let forum_with_sub_resource = create_resource(
         move || {
@@ -728,7 +728,7 @@ pub fn ForumPostMiniatures<'a>(
                 }).collect_view()
             }
             <Show when=is_loading>
-                <LoadingIcon/>
+                <li><LoadingIcon/></li>
             </Show>
         </ul>
     }

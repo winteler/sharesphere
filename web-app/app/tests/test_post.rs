@@ -1,9 +1,9 @@
 use leptos::ServerFnError;
 use rand::Rng;
 
-use app::{forum, post, ranking};
-use app::post::{Post, PostSortType, ssr};
+use app::post::{ssr, Post, PostSortType};
 use app::ranking::{SortType, VoteInfo, VoteValue};
+use app::{forum, post, ranking};
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -26,8 +26,9 @@ async fn test_get_subscribed_post_vec() -> Result<(), ServerFnError> {
         10,
         Some((0..10).map(|i| i).collect()),
         &test_user,
-        db_pool.clone()
-    ).await?;
+        db_pool.clone(),
+    )
+    .await?;
     expected_post_vec.append(&mut expected_forum1_post_vec);
 
     create_forum_with_posts(
@@ -35,28 +36,44 @@ async fn test_get_subscribed_post_vec() -> Result<(), ServerFnError> {
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         &test_user,
-        db_pool.clone()
-    ).await?;
+        db_pool.clone(),
+    )
+    .await?;
 
-    let post_vec = ssr::get_subscribed_post_vec(test_user.user_id, SortType::Post(PostSortType::Hot), db_pool.clone()).await?;
+    let post_vec = ssr::get_subscribed_post_vec(
+        test_user.user_id,
+        SortType::Post(PostSortType::Hot),
+        db_pool.clone(),
+    )
+    .await?;
     assert!(post_vec.is_empty());
 
     forum::ssr::subscribe(forum1.forum_id, test_user.user_id, db_pool.clone()).await?;
 
-    let post_sort_type_array = [PostSortType::Hot, PostSortType::Trending, PostSortType::Best, PostSortType::Recent];
+    let post_sort_type_array = [
+        PostSortType::Hot,
+        PostSortType::Trending,
+        PostSortType::Best,
+        PostSortType::Recent,
+    ];
 
     for sort_type in post_sort_type_array {
-        let post_vec = ssr::get_subscribed_post_vec(test_user.user_id, SortType::Post(sort_type), db_pool.clone()).await?;
-        test_post_vec(
-            &post_vec,
-            &expected_post_vec,
-            sort_type,
+        let post_vec = ssr::get_subscribed_post_vec(
             test_user.user_id,
-        );
+            SortType::Post(sort_type),
+            db_pool.clone(),
+        )
+        .await?;
+        test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
     }
 
     forum::ssr::unsubscribe(forum1.forum_id, test_user.user_id, db_pool.clone()).await?;
-    let post_vec = ssr::get_subscribed_post_vec(test_user.user_id, SortType::Post(PostSortType::Hot), db_pool.clone()).await?;
+    let post_vec = ssr::get_subscribed_post_vec(
+        test_user.user_id,
+        SortType::Post(PostSortType::Hot),
+        db_pool.clone(),
+    )
+    .await?;
     assert!(post_vec.is_empty());
 
     Ok(())
@@ -77,8 +94,9 @@ async fn test_get_sorted_post_vec() -> Result<(), ServerFnError> {
         10,
         Some((0..10).map(|i| i).collect()),
         &test_user,
-        db_pool.clone()
-    ).await?;
+        db_pool.clone(),
+    )
+    .await?;
     expected_post_vec.append(&mut expected_forum1_post_vec);
 
     let (_, mut expected_forum2_post_vec) = create_forum_with_posts(
@@ -86,21 +104,78 @@ async fn test_get_sorted_post_vec() -> Result<(), ServerFnError> {
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         &test_user,
-        db_pool.clone()
-    ).await?;
+        db_pool.clone(),
+    )
+    .await?;
     expected_post_vec.append(&mut expected_forum2_post_vec);
 
-    let post_sort_type_array = [PostSortType::Hot, PostSortType::Trending, PostSortType::Best, PostSortType::Recent];
+    let post_sort_type_array = [
+        PostSortType::Hot,
+        PostSortType::Trending,
+        PostSortType::Best,
+        PostSortType::Recent,
+    ];
 
     for sort_type in post_sort_type_array {
         let post_vec = ssr::get_sorted_post_vec(SortType::Post(sort_type), db_pool.clone()).await?;
-        test_post_vec(
-            &post_vec,
-            &expected_post_vec,
-            sort_type,
-            test_user.user_id,
-        );
+        test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
     }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_post_vec_by_forum_name() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum_name = "forum";
+    let num_posts = 20usize;
+    let mut expected_post_vec = Vec::<Post>::with_capacity(num_posts);
+
+    let (_, mut expected_forum_post_vec) = create_forum_with_posts(
+        forum_name,
+        num_posts,
+        Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        &test_user,
+        db_pool.clone(),
+    )
+    .await?;
+
+    expected_post_vec.append(&mut expected_forum_post_vec);
+
+    let post_sort_type_array = [
+        PostSortType::Hot,
+        PostSortType::Trending,
+        PostSortType::Best,
+        PostSortType::Recent,
+    ];
+
+    for sort_type in post_sort_type_array {
+        let post_vec = ssr::get_post_vec_by_forum_name(
+            forum_name,
+            SortType::Post(sort_type),
+            num_posts as i64,
+            0,
+            db_pool.clone(),
+        )
+        .await?;
+
+        test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
+    }
+
+    let partial_load_num_post = num_posts / 2;
+
+    let post_vec = ssr::get_post_vec_by_forum_name(
+        forum_name,
+        SortType::Post(PostSortType::Hot),
+        partial_load_num_post as i64,
+        0,
+        db_pool.clone(),
+    )
+    .await?;
+
+    assert_eq!(post_vec.len(), partial_load_num_post);
 
     Ok(())
 }
@@ -117,7 +192,8 @@ async fn test_post_scores() -> Result<(), ServerFnError> {
         false,
         test_user.user_id,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
     let post = post::ssr::create_post(
         forum_name,
@@ -128,13 +204,16 @@ async fn test_post_scores() -> Result<(), ServerFnError> {
         None,
         &test_user,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
     let mut rng = rand::thread_rng();
 
     set_post_score(post.post_id, rng.gen_range(-100..101), db_pool.clone()).await?;
 
-    let post_with_vote = post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone()).await?;
+    let post_with_vote =
+        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+            .await?;
 
     let post = post_with_vote.post;
     let post_num_days_old = (post
@@ -166,7 +245,8 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         false,
         test_user.user_id,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
     let post = post::ssr::create_post(
         forum_name,
@@ -177,9 +257,12 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         None,
         &test_user,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
-    let post_with_vote = post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone()).await?;
+    let post_with_vote =
+        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+            .await?;
     assert!(post_with_vote.vote.is_none());
 
     let vote_value = VoteValue::Up;
@@ -190,9 +273,12 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         None,
         &test_user,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
-    let post_with_vote = post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone()).await?;
+    let post_with_vote =
+        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+            .await?;
     assert!(post_with_vote.vote.is_some());
     let vote = post_with_vote.vote.unwrap();
     assert_eq!(vote.value, vote_value);
@@ -211,7 +297,9 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         }),
         &test_user,
         db_pool.clone(),
-    ).await.is_err());
+    )
+    .await
+    .is_err());
 
     // assert error when existing vote is not referenced
     assert!(ranking::ssr::vote_on_content(
@@ -221,7 +309,9 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         None,
         &test_user,
         db_pool.clone(),
-    ).await.is_err());
+    )
+    .await
+    .is_err());
 
     ranking::ssr::vote_on_content(
         VoteValue::Down,
@@ -233,9 +323,12 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         }),
         &test_user,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
-    let post_with_vote = post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone()).await?;
+    let post_with_vote =
+        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+            .await?;
     let vote = post_with_vote.vote.expect("Vote not found");
     assert_eq!(vote.value, VoteValue::Down);
     assert_eq!(vote.user_id, test_user.user_id);
@@ -252,9 +345,12 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         }),
         &test_user,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
-    let post_with_vote = post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone()).await?;
+    let post_with_vote =
+        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+            .await?;
     assert!(post_with_vote.vote.is_none());
 
     Ok(())

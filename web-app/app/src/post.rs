@@ -5,23 +5,22 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool};
+use crate::app::ssr::get_db_pool;
+use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
 use crate::comment::{CommentButton, CommentSection};
-use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
-use crate::editor::{get_styled_html_from_markdown};
+use crate::editor::get_styled_html_from_markdown;
+use crate::editor::FormMarkdownEditor;
 use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::icons::{ErrorIcon};
+use crate::icons::ErrorIcon;
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
-
 
 pub const CREATE_POST_SUFFIX: &str = "/content";
 pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -30,7 +29,7 @@ pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const POST_ROUTE: &str =
     concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
-pub const POST_BATCH_SIZE: i64 = 10;
+pub const POST_BATCH_SIZE: i64 = 50;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -92,7 +91,7 @@ pub mod ssr {
 
     use crate::auth::User;
     use crate::errors::AppError;
-    use crate::ranking::{VoteValue};
+    use crate::ranking::VoteValue;
 
     use super::*;
 
@@ -236,7 +235,8 @@ pub mod ssr {
                 LIMIT $2 \
                 OFFSET $3",
                 sort_type.to_order_by_code()
-            ).as_str(),
+            )
+            .as_str(),
         )
         .bind(forum_name)
         .bind(limit)
@@ -333,8 +333,10 @@ pub async fn get_post_vec_by_forum_name(
         forum_name.as_str(),
         sort_type,
         POST_BATCH_SIZE,
-        additional_load_count*POST_BATCH_SIZE,
-        db_pool).await?;
+        additional_load_count * POST_BATCH_SIZE,
+        db_pool,
+    )
+    .await?;
     Ok(post_vec)
 }
 
@@ -352,7 +354,10 @@ pub async fn create_post(
     let db_pool = get_db_pool()?;
 
     let (body, markdown_body) = match is_markdown {
-        Some(_) => (get_styled_html_from_markdown(body.clone()).await?, Some(body.as_str())),
+        Some(_) => (
+            get_styled_html_from_markdown(body.clone()).await?,
+            Some(body.as_str()),
+        ),
         None => (body, None),
     };
 
@@ -420,7 +425,8 @@ pub fn CreatePost() -> impl IntoView {
     let forum_name_input = create_rw_signal(forum_query());
     let post_body = create_rw_signal(String::new());
     let is_title_empty = create_rw_signal(true);
-    let is_content_invalid = create_memo(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
+    let is_content_invalid =
+        create_memo(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
 
     let matching_forums_resource = create_resource(
         move || {

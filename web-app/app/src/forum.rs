@@ -5,20 +5,22 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::auth::{LoginGuardButton};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
+use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
-use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX, PostSortType};
 use crate::post::get_post_vec_by_forum_name;
+use crate::post::{
+    Post, PostSortType, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
+};
 use crate::ranking::{ScoreIndicator, SortType};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -68,22 +70,20 @@ pub struct ForumWithSubscription {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::collections::BTreeSet;
+
     use sqlx::PgPool;
 
     use crate::errors::AppError;
     use crate::forum::{Forum, ForumWithSubscription};
 
-    pub async fn get_forum_by_name(
-        forum_name: &str,
-        db_pool: PgPool,
-    ) -> Result<Forum, AppError> {
+    pub async fn get_forum_by_name(forum_name: &str, db_pool: PgPool) -> Result<Forum, AppError> {
         let forum = sqlx::query_as!(
             Forum,
             "SELECT * FROM forums WHERE forum_name = $1",
             forum_name
         )
-            .fetch_one(&db_pool)
-            .await?;
+        .fetch_one(&db_pool)
+        .await?;
 
         Ok(forum)
     }
@@ -109,10 +109,7 @@ pub mod ssr {
         Ok(forum)
     }
 
-    pub async fn is_forum_available(
-        forum_name: &str,
-        db_pool: PgPool,
-    ) -> Result<bool, AppError> {
+    pub async fn is_forum_available(forum_name: &str, db_pool: PgPool) -> Result<bool, AppError> {
         let forum_exist = sqlx::query!(
             "SELECT forum_id FROM forums WHERE forum_name = $1",
             forum_name
@@ -227,11 +224,7 @@ pub mod ssr {
         Ok(forum)
     }
 
-    pub async fn subscribe(
-        forum_id: i64,
-        user_id: i64,
-        db_pool: PgPool,
-    ) -> Result<(), AppError> {
+    pub async fn subscribe(forum_id: i64, user_id: i64, db_pool: PgPool) -> Result<(), AppError> {
         sqlx::query!(
             "INSERT INTO forum_subscriptions (user_id, forum_id) VALUES ($1, $2)",
             user_id,
@@ -250,11 +243,7 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn unsubscribe(
-        forum_id: i64,
-        user_id: i64,
-        db_pool: PgPool,
-    ) -> Result<(), AppError> {
+    pub async fn unsubscribe(forum_id: i64, user_id: i64, db_pool: PgPool) -> Result<(), AppError> {
         sqlx::query!(
             "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
             user_id,
@@ -305,8 +294,8 @@ pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> 
         Ok(Some(user)) => {
             let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, db_pool).await?;
             Ok(forum_name_vec)
-        },
-        _ => Ok(Vec::<String>::new())
+        }
+        _ => Ok(Vec::<String>::new()),
     }
 }
 
@@ -561,14 +550,14 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let acc_post_vec = create_rw_signal((forum_name.get_untracked(), PostSortType::Hot, Vec::<Post>::new()));
+    let post_vec_with_context = create_rw_signal((
+        forum_name.get_untracked(),
+        SortType::Post(PostSortType::Hot),
+        Vec::<Post>::new(),
+    ));
     let post_load_count = create_rw_signal(0);
     let forum_with_sub_resource = create_resource(
-        move || {
-            (
-                forum_name(),
-            )
-        },
+        move || (forum_name(),),
         move |(forum_name,)| get_forum_with_subscription(forum_name),
     );
     let post_vec_resource = create_resource(
@@ -592,11 +581,20 @@ pub fn ForumContents() -> impl IntoView {
             <ForumToolbar forum=&forum_with_sub/>
         </SuspenseUnpack>
         <TransitionUnpack
-            resource=post_vec_resource let:post_vec
+            resource=post_vec_resource let:loaded_post_vec
         >
         {
-            acc_post_vec.update(|acc_post_vec| acc_post_vec.append(&mut post_vec.clone()));
-            acc_post_vec.with(|post_vec| view! {
+            post_vec_with_context.update(|(current_forum_name, current_sort_type, post_vec)| {
+                let new_forum_name = forum_name.get_untracked();
+                let new_sort_type = state.post_sort_type.get_untracked();
+                if *current_forum_name != new_forum_name || *current_sort_type != new_sort_type {
+                    post_vec.clear();
+                }
+                post_vec.append(&mut loaded_post_vec.clone());
+                *current_forum_name = new_forum_name;
+                *current_sort_type = new_sort_type;
+            });
+            post_vec_with_context.with(|(_, _, post_vec)| view! {
                 <ForumPostMiniatures
                     post_vec=post_vec
                     is_loading=post_vec_resource.loading()
@@ -687,7 +685,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 pub fn ForumPostMiniatures<'a>(
     post_vec: &'a Vec<Post>,
     is_loading: Signal<bool>,
-    post_load_count: RwSignal<i64>
+    post_load_count: RwSignal<i64>,
 ) -> impl IntoView {
     let list_ref = create_node_ref::<html::Ul>();
     view! {

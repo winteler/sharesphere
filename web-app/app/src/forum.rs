@@ -555,7 +555,9 @@ pub fn ForumContents() -> impl IntoView {
         SortType::Post(PostSortType::Hot),
         Vec::<Post>::new(),
     ));
-    let post_load_count = create_rw_signal(0);
+    let post_list_position = create_rw_signal(0);
+    let additional_load_count = create_rw_signal(0);
+    let list_ref = create_node_ref::<html::Ul>();
     let forum_with_sub_resource = create_resource(
         move || (forum_name(),),
         move |(forum_name,)| get_forum_with_subscription(forum_name),
@@ -566,7 +568,7 @@ pub fn ForumContents() -> impl IntoView {
                 forum_name(),
                 state.create_post_action.version().get(),
                 state.post_sort_type.get(),
-                post_load_count.get(),
+                additional_load_count.get(),
             )
         },
         move |(new_forum_name, _, new_sort_type, _)| {
@@ -598,16 +600,22 @@ pub fn ForumContents() -> impl IntoView {
                 let new_sort_type = state.post_sort_type.get_untracked();
                 if *current_forum_name != new_forum_name || *current_sort_type != new_sort_type {
                     post_vec.clear();
+                    post_list_position.set(0);
                 }
                 post_vec.append(&mut loaded_post_vec.clone());
                 *current_forum_name = new_forum_name;
                 *current_sort_type = new_sort_type;
+                if let Some(list_ref) = list_ref.get() {
+                    list_ref.set_scroll_top(post_list_position.get_untracked());
+                }
             });
             post_vec_with_context.with(|(_, _, post_vec)| view! {
                 <ForumPostMiniatures
                     post_vec=post_vec
                     is_loading=post_vec_resource.loading()
-                    post_load_count=post_load_count
+                    additional_load_count=additional_load_count
+                    position=post_list_position
+                    list_ref=list_ref
                 />
             })
         }
@@ -694,27 +702,26 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 pub fn ForumPostMiniatures<'a>(
     post_vec: &'a Vec<Post>,
     is_loading: Signal<bool>,
-    post_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i64>,
+    position: RwSignal<i32>,
+    list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
-    let list_ref = create_node_ref::<html::Ul>();
+    log::info!("Init scroll top = {}", position.get_untracked());
     view! {
         <ul class="overflow-y-auto w-full pr-2"
             on:scroll=move |_| {
                 let node_ref = list_ref.get().expect("ul node should be loaded");
                 let scroll_top = node_ref.scroll_top();
-                let offset_height = node_ref.offset_height();
-                let scroll_height = node_ref.scroll_height();
-                let reached_scroll_end = scroll_top + offset_height >= scroll_height;
-                log::debug!("Triggered scroll, scroll_top = {scroll_top}, offset_height = {offset_height}, scroll_height = {scroll_height}, reached_scroll_end = {reached_scroll_end}");
+                let reached_scroll_end = scroll_top + node_ref.offset_height() >= node_ref.scroll_height();
                 if reached_scroll_end {
-                    log::info!("Reached scroll end");
                     if !is_loading.get_untracked() {
-                        log::info!("Not loading currently, update value");
-                        post_load_count.update(|value| *value += 1);
-                        log::info!("New post load: {}", post_load_count.get());
+                        position.set(scroll_top);
+                        log::info!("Set scroll top = {}", position.get_untracked());
+                        additional_load_count.update(|value| *value += 1);
                     }
                 }
             }
+            prop:scrollTop=move || position.get()
             node_ref=list_ref
         >
             {

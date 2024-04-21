@@ -255,7 +255,9 @@ fn HomePage() -> impl IntoView {
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let acc_post_vec = create_rw_signal(Vec::<Post>::new());
-    let post_load_count = create_rw_signal(0);
+    let post_list_position = create_rw_signal(0);
+    let additional_load_count = create_rw_signal(0);
+    let list_ref = create_node_ref::<html::Ul>();
     let post_vec_resource = create_resource(
         move || {
             (
@@ -274,7 +276,9 @@ fn DefaultHomePage() -> impl IntoView {
                 <ForumPostMiniatures
                     post_vec=post_vec
                     is_loading=post_vec_resource.loading()
-                    post_load_count=post_load_count
+                    additional_load_count=additional_load_count
+                    position=post_list_position
+                    list_ref=list_ref
                 />
             })
         }
@@ -288,7 +292,9 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
     let acc_post_vec = create_rw_signal(Vec::<Post>::new());
-    let post_load_count = create_rw_signal(0);
+    let post_list_position = create_rw_signal(0);
+    let additional_load_count = create_rw_signal(0);
+    let list_ref = create_node_ref::<html::Ul>();
     let post_vec_resource = create_resource(
         move || {
             (
@@ -307,7 +313,9 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
                 <ForumPostMiniatures
                     post_vec=post_vec
                     is_loading=post_vec_resource.loading()
-                    post_load_count=post_load_count
+                    additional_load_count=additional_load_count
+                    position=post_list_position
+                    list_ref=list_ref
                 />
             })
         }

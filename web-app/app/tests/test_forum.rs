@@ -317,7 +317,7 @@ async fn populate_dev_db() -> Result<(), ServerFnError> {
     let db_pool = create_db_pool().await.expect("Failed to get DB pool");
     let test_user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
+    let forum_name = "test";
     let num_posts = 100usize;
 
     let (_forum, _forum_post_vec) = create_forum_with_posts(

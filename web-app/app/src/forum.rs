@@ -569,14 +569,13 @@ pub fn ForumContents() -> impl IntoView {
                 post_load_count.get(),
             )
         },
-        move |(new_forum_name, _, new_sort_type, load_count)| {
+        move |(new_forum_name, _, new_sort_type, _)| {
             let actual_load_count =
-                post_vec_with_context.with_untracked(|(forum_name, sort_type, _)| {
+                post_vec_with_context.with_untracked(|(forum_name, sort_type, post_vec)| {
                     if *forum_name != new_forum_name || *sort_type != new_sort_type {
-                        post_load_count.set_untracked(0);
                         0
                     } else {
-                        load_count
+                        post_vec.len()
                     }
                 });
             log::info!("Load data with load_count = {actual_load_count}");
@@ -712,6 +711,7 @@ pub fn ForumPostMiniatures<'a>(
                     if !is_loading.get_untracked() {
                         log::info!("Not loading currently, update value");
                         post_load_count.update(|value| *value += 1);
+                        log::info!("New post load: {}", post_load_count.get());
                     }
                 }
             }

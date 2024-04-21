@@ -326,14 +326,14 @@ pub async fn get_subscribed_post_vec(
 pub async fn get_post_vec_by_forum_name(
     forum_name: String,
     sort_type: SortType,
-    additional_load_count: i64,
+    num_already_loaded: usize,
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_forum_name(
         forum_name.as_str(),
         sort_type,
         POST_BATCH_SIZE,
-        additional_load_count * POST_BATCH_SIZE,
+        num_already_loaded as i64,
         db_pool,
     )
     .await?;

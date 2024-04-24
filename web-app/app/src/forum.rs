@@ -562,7 +562,7 @@ pub fn ForumContents() -> impl IntoView {
         move || (forum_name(),),
         move |(forum_name,)| get_forum_with_subscription(forum_name),
     );
-    let post_vec_resource = create_resource(
+    let post_vec_resource = create_local_resource(
         move || {
             (
                 forum_name(),

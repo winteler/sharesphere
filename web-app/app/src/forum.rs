@@ -14,9 +14,9 @@ use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, Subscri
 use crate::navigation_bar::get_create_post_path;
 use crate::post::get_post_vec_by_forum_name;
 use crate::post::{
-    Post, PostSortType, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
+    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
 };
-use crate::ranking::{ScoreIndicator, SortType};
+use crate::ranking::{ScoreIndicator};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
@@ -550,12 +550,7 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let post_vec_with_context = create_rw_signal((
-        forum_name.get_untracked(),
-        SortType::Post(PostSortType::Hot),
-        Vec::<Post>::new(),
-    ));
-    let post_list_position = create_rw_signal(0);
+    let post_vec = create_rw_signal(Vec::<Post>::new());
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
     let _load_error = create_rw_signal(false);
@@ -565,35 +560,42 @@ pub fn ForumContents() -> impl IntoView {
         move |(forum_name,)| get_forum_with_subscription(forum_name),
     );
 
+    // Effect for initial load, forum and sort changes
     create_effect(move |_| {
+        let forum_name = forum_name.get();
+        let sort_type = state.post_sort_type.get();
         is_loading.set(true);
-        let new_forum_name = forum_name.get();
-        let new_sort_type = state.post_sort_type.get();
-        let load_count = additional_load_count.get();
-        log::info!("Got load request, load_count = {load_count}");
-        let (is_context_change, post_count) = post_vec_with_context.with_untracked(|(forum_name, sort_type, post_vec)| {
-            let is_context_change = *forum_name != new_forum_name && *sort_type != new_sort_type;
-            let post_count = match is_context_change {
-                true => 0,
-                false => post_vec.len()
-            };
-            (is_context_change, post_count)
-        });
+        post_vec.update(|post_vec| post_vec.clear());
         spawn_local(async move {
-            log::info!("Async load request, load_count = {load_count}");
-            let new_post_vec = get_post_vec_by_forum_name(new_forum_name.clone(), new_sort_type, post_count).await;
-            if let Ok(mut new_post_vec) = new_post_vec {
-                post_vec_with_context.update(|(forum_name, sort_type, post_vec)| {
-                    *forum_name = new_forum_name;
-                    *sort_type = new_sort_type;
-                    if is_context_change {
-                        post_vec.clear();
+            let new_post_vec = get_post_vec_by_forum_name(forum_name, sort_type, 0).await;
+            if let Ok(new_post_vec) = new_post_vec {
+                post_vec.update(|post_vec| {
+                    if let Some(list_ref) = list_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
                     }
-                    post_vec.append(&mut new_post_vec);
+                    *post_vec = new_post_vec;
                 });
             }
+            is_loading.set(false);
         });
-        is_loading.set(false);
+    });
+
+    // Effect for additional load upon reaching end of scroll
+    create_effect(move |_| {
+        if additional_load_count.get() > 0 {
+            log::info!("Load additional posts.");
+            is_loading.set(true);
+            spawn_local(async move {
+                let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
+                let new_post_vec = get_post_vec_by_forum_name(forum_name.get_untracked(), state.post_sort_type.get_untracked(), post_count).await;
+                if let Ok(mut new_post_vec) = new_post_vec {
+                    post_vec.update(|post_vec| {
+                        post_vec.append(&mut new_post_vec);
+                    });
+                }
+                is_loading.set(false);
+            });
+        }
     });
 
     view! {
@@ -603,10 +605,9 @@ pub fn ForumContents() -> impl IntoView {
             <ForumToolbar forum=&forum_with_sub/>
         </SuspenseUnpack>
         <NewForumPostMiniatures
-            post_vec=post_vec_with_context
+            post_vec=post_vec
             is_loading=is_loading
             additional_load_count=additional_load_count
-            position=post_list_position
             list_ref=list_ref
         />
     }
@@ -689,13 +690,11 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 /// Component to display a given set of forum posts
 #[component]
 pub fn NewForumPostMiniatures(
-    post_vec: RwSignal<(String, SortType, Vec<Post>)>,
+    post_vec: RwSignal<Vec<Post>>,
     is_loading: RwSignal<bool>,
     additional_load_count: RwSignal<i64>,
-    position: RwSignal<i32>,
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
-    log::info!("Init scroll top = {}", position.get_untracked());
     view! {
         <ul class="overflow-y-auto w-full pr-2"
             on:scroll=move |_| {
@@ -704,18 +703,15 @@ pub fn NewForumPostMiniatures(
                 let reached_scroll_end = scroll_top + node_ref.offset_height() >= node_ref.scroll_height();
                 if reached_scroll_end {
                     if !is_loading.get_untracked() {
-                        position.set(scroll_top);
                         additional_load_count.update(|value| *value += 1);
-                        log::info!("Set load count = {}, top = {}", additional_load_count.get_untracked(), position.get_untracked());
                     }
                 }
             }
             node_ref=list_ref
-            prop:scrollTop=move || position.get()
         >
             <For
                 // a function that returns the items we're iterating over; a signal is fine
-                each= move || post_vec.with(|(_, _, post_vec)| post_vec.clone().into_iter().enumerate())
+                each= move || post_vec.get().into_iter().enumerate()
                 // a unique key for each item as a reference
                 key=|(_index, post)| post.post_id
                 // renders each item to a view
@@ -754,7 +750,6 @@ pub fn ForumPostMiniatures(
     position: RwSignal<i32>,
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
-    log::info!("Init scroll top = {}", position.get_untracked());
     view! {
         <ul class="overflow-y-auto w-full pr-2"
             on:scroll=move |_| {

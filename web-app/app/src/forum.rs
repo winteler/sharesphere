@@ -604,7 +604,7 @@ pub fn ForumContents() -> impl IntoView {
         >
             <ForumToolbar forum=&forum_with_sub/>
         </SuspenseUnpack>
-        <NewForumPostMiniatures
+        <ForumPostMiniatures
             post_vec=post_vec
             is_loading=is_loading
             additional_load_count=additional_load_count
@@ -687,9 +687,9 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
     }
 }
 
-/// Component to display a given set of forum posts
+/// Component to display a vector of forum posts and indicate when more need to be loaded
 #[component]
-pub fn NewForumPostMiniatures(
+pub fn ForumPostMiniatures(
     post_vec: RwSignal<Vec<Post>>,
     is_loading: RwSignal<bool>,
     additional_load_count: RwSignal<i64>,
@@ -712,64 +712,6 @@ pub fn NewForumPostMiniatures(
             <For
                 // a function that returns the items we're iterating over; a signal is fine
                 each= move || post_vec.get().into_iter().enumerate()
-                // a unique key for each item as a reference
-                key=|(_index, post)| post.post_id
-                // renders each item to a view
-                children=move |(_key, post)| {
-                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + post.forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.post_id.to_string();
-                    view! {
-                        <li>
-                            <a href=post_path>
-                                <div class="flex flex-col gap-1 p-2 rounded-md hover:bg-base-content/20">
-                                    <h2 class="card-title ml-1">{post.title.clone()}</h2>
-                                    <div class="flex gap-2">
-                                        <ScoreIndicator score=post.score/>
-                                        <AuthorWidget author=&post.creator_name/>
-                                        <TimeSinceWidget timestamp=&post.create_timestamp/>
-                                    </div>
-                                </div>
-                            </a>
-                        </li>
-                    }
-                }
-            />
-            <Show when=is_loading>
-                <li><LoadingIcon/></li>
-            </Show>
-        </ul>
-    }
-}
-
-
-/// Component to display a given set of forum posts
-#[component]
-pub fn ForumPostMiniatures(
-    post_vec: Vec<Post>,
-    is_loading: RwSignal<bool>,
-    additional_load_count: RwSignal<i64>,
-    position: RwSignal<i32>,
-    list_ref: NodeRef<html::Ul>,
-) -> impl IntoView {
-    view! {
-        <ul class="overflow-y-auto w-full pr-2"
-            on:scroll=move |_| {
-                let node_ref = list_ref.get().expect("ul node should be loaded");
-                let scroll_top = node_ref.scroll_top();
-                let reached_scroll_end = scroll_top + node_ref.offset_height() >= node_ref.scroll_height();
-                if reached_scroll_end {
-                    if !is_loading.get_untracked() {
-                        position.set(scroll_top);
-                        additional_load_count.update(|value| *value += 1);
-                        log::info!("Set load count = {}, top = {}", additional_load_count.get_untracked(), position.get_untracked());
-                    }
-                }
-            }
-            node_ref=list_ref
-            prop:scrollTop=move || position.get()
-        >
-            <For
-                // a function that returns the items we're iterating over; a signal is fine
-                each= move || {post_vec.clone().into_iter().enumerate()}
                 // a unique key for each item as a reference
                 key=|(_index, post)| post.post_id
                 // renders each item to a view

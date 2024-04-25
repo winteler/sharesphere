@@ -249,18 +249,24 @@ pub mod ssr {
 
     pub async fn get_sorted_post_vec(
         sort_type: SortType,
+        limit: i64,
+        offset: i64,
         db_pool: PgPool,
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT * FROM posts \
-                ORDER BY {} DESC",
+                ORDER BY {} DESC \
+                LIMIT $1 \
+                OFFSET $2",
                 sort_type.to_order_by_code()
             )
             .as_str(),
         )
-        .fetch_all(&db_pool)
-        .await?;
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&db_pool)
+            .await?;
 
         Ok(post_vec)
     }
@@ -268,6 +274,8 @@ pub mod ssr {
     pub async fn get_subscribed_post_vec(
         user_id: i64,
         sort_type: SortType,
+        limit: i64,
+        offset: i64,
         db_pool: PgPool,
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
@@ -277,14 +285,18 @@ pub mod ssr {
                 WHERE f.forum_id IN ( \
                     SELECT forum_id FROM forum_subscriptions WHERE user_id = $1 \
                 ) \
-                ORDER BY {} DESC",
-                sort_type.to_order_by_code()
+                ORDER BY {} DESC \
+                LIMIT $2 \
+                OFFSET $3",
+                sort_type.to_order_by_code(),
             )
             .as_str(),
         )
-        .bind(user_id)
-        .fetch_all(&db_pool)
-        .await?;
+            .bind(user_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&db_pool)
+            .await?;
 
         Ok(post_vec)
     }
@@ -302,10 +314,13 @@ pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, Serv
 }
 
 #[server]
-pub async fn get_sorted_post_vec(sort_type: SortType) -> Result<Vec<Post>, ServerFnError> {
+pub async fn get_sorted_post_vec(
+    sort_type: SortType,
+    num_already_loaded: usize,
+) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
 
-    let post_vec = ssr::get_sorted_post_vec(sort_type, db_pool).await?;
+    let post_vec = ssr::get_sorted_post_vec(sort_type, POST_BATCH_SIZE, num_already_loaded as i64, db_pool).await?;
 
     Ok(post_vec)
 }
@@ -314,10 +329,11 @@ pub async fn get_sorted_post_vec(sort_type: SortType) -> Result<Vec<Post>, Serve
 pub async fn get_subscribed_post_vec(
     user_id: i64,
     sort_type: SortType,
+    num_already_loaded: usize,
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
 
-    let post_vec = ssr::get_subscribed_post_vec(user_id, sort_type, db_pool).await?;
+    let post_vec = ssr::get_subscribed_post_vec(user_id, sort_type, POST_BATCH_SIZE, num_already_loaded as i64, db_pool).await?;
 
     Ok(post_vec)
 }

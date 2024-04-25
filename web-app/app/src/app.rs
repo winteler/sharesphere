@@ -12,7 +12,6 @@ use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
 use crate::sidebar::*;
-use crate::unpack::TransitionUnpack;
 use crate::widget::PostSortWidget;
 
 pub const PARAM_ROUTE_PREFIX: &str = "/:";
@@ -254,36 +253,55 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let acc_post_vec = create_rw_signal(Vec::<Post>::new());
-    let post_list_position = create_rw_signal(0);
+    let post_vec = create_rw_signal(Vec::<Post>::new());
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
     let list_ref = create_node_ref::<html::Ul>();
-    let post_vec_resource = create_resource(
-        move || {
-            (
-                state.post_sort_type.get(),
-                state.create_post_action.version().get(),
-            )
-        },
-        move |(sort_type, _)| get_sorted_post_vec(sort_type),
-    );
+
+    // Effect for initial load and sort changes
+    create_effect(move |_| {
+        let sort_type = state.post_sort_type.get();
+        is_loading.set(true);
+        post_vec.update(|post_vec| post_vec.clear());
+        spawn_local(async move {
+            let new_post_vec = get_sorted_post_vec(sort_type, 0).await;
+            if let Ok(new_post_vec) = new_post_vec {
+                post_vec.update(|post_vec| {
+                    if let Some(list_ref) = list_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
+                    }
+                    *post_vec = new_post_vec;
+                });
+            }
+            is_loading.set(false);
+        });
+    });
+
+    // Effect for additional load upon reaching end of scroll
+    create_effect(move |_| {
+        if additional_load_count.get() > 0 {
+            log::info!("Load additional posts.");
+            is_loading.set(true);
+            spawn_local(async move {
+                let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
+                let new_post_vec = get_sorted_post_vec(state.post_sort_type.get_untracked(), post_count).await;
+                if let Ok(mut new_post_vec) = new_post_vec {
+                    post_vec.update(|post_vec| {
+                        post_vec.append(&mut new_post_vec);
+                    });
+                }
+                is_loading.set(false);
+            });
+        }
+    });
 
     view! {
-        <TransitionUnpack resource=post_vec_resource let:post_vec>
-        {
-            acc_post_vec.update(|acc_post_vec| acc_post_vec.append(&mut post_vec.clone()));
-            acc_post_vec.with(|post_vec| view! {
-                <ForumPostMiniatures
-                    post_vec=post_vec.clone()
-                    is_loading=is_loading
-                    additional_load_count=additional_load_count
-                    position=post_list_position
-                    list_ref=list_ref
-                />
-            })
-        }
-        </TransitionUnpack>
+        <ForumPostMiniatures
+            post_vec=post_vec
+            is_loading=is_loading
+            additional_load_count=additional_load_count
+            list_ref=list_ref
+        />
     }
 }
 
@@ -292,35 +310,54 @@ fn DefaultHomePage() -> impl IntoView {
 fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
-    let acc_post_vec = create_rw_signal(Vec::<Post>::new());
-    let post_list_position = create_rw_signal(0);
+    let post_vec = create_rw_signal(Vec::<Post>::new());
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
     let list_ref = create_node_ref::<html::Ul>();
-    let post_vec_resource = create_resource(
-        move || {
-            (
-                state.post_sort_type.get(),
-                state.create_post_action.version().get(),
-            )
-        },
-        move |(sort_type, _)| get_subscribed_post_vec(user_id, sort_type),
-    );
+
+    // Effect for initial load and sort changes
+    create_effect(move |_| {
+        let sort_type = state.post_sort_type.get();
+        is_loading.set(true);
+        post_vec.update(|post_vec| post_vec.clear());
+        spawn_local(async move {
+            let new_post_vec = get_subscribed_post_vec(user_id, sort_type, 0).await;
+            if let Ok(new_post_vec) = new_post_vec {
+                post_vec.update(|post_vec| {
+                    if let Some(list_ref) = list_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
+                    }
+                    *post_vec = new_post_vec;
+                });
+            }
+            is_loading.set(false);
+        });
+    });
+
+    // Effect for additional load upon reaching end of scroll
+    create_effect(move |_| {
+        if additional_load_count.get() > 0 {
+            log::info!("Load additional posts.");
+            is_loading.set(true);
+            spawn_local(async move {
+                let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
+                let new_post_vec = get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), post_count).await;
+                if let Ok(mut new_post_vec) = new_post_vec {
+                    post_vec.update(|post_vec| {
+                        post_vec.append(&mut new_post_vec);
+                    });
+                }
+                is_loading.set(false);
+            });
+        }
+    });
 
     view! {
-        <TransitionUnpack resource=post_vec_resource let:post_vec>
-        {
-            acc_post_vec.update(|acc_post_vec| acc_post_vec.append(&mut post_vec.clone()));
-            acc_post_vec.with(|post_vec| view! {
-                <ForumPostMiniatures
-                    post_vec=post_vec.clone()
-                    is_loading=is_loading
-                    additional_load_count=additional_load_count
-                    position=post_list_position
-                    list_ref=list_ref
-                />
-            })
-        }
-        </TransitionUnpack>
+        <ForumPostMiniatures
+            post_vec=post_vec
+            is_loading=is_loading
+            additional_load_count=additional_load_count
+            list_ref=list_ref
+        />
     }
 }

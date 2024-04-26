@@ -21,6 +21,8 @@ use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::error_template::ErrorTemplate;
+use crate::errors::AppError;
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -553,7 +555,7 @@ pub fn ForumContents() -> impl IntoView {
     let post_vec = create_rw_signal(Vec::<Post>::new());
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
-    let _load_error = create_rw_signal(false);
+    let load_error = create_rw_signal(None);
     let list_ref = create_node_ref::<html::Ul>();
     let forum_with_sub_resource = create_resource(
         move || (forum_name(),),
@@ -565,16 +567,20 @@ pub fn ForumContents() -> impl IntoView {
         let forum_name = forum_name.get();
         let sort_type = state.post_sort_type.get();
         is_loading.set(true);
+        load_error.set(None);
         post_vec.update(|post_vec| post_vec.clear());
         spawn_local(async move {
             let new_post_vec = get_post_vec_by_forum_name(forum_name, sort_type, 0).await;
-            if let Ok(new_post_vec) = new_post_vec {
-                post_vec.update(|post_vec| {
-                    if let Some(list_ref) = list_ref.get_untracked() {
-                        list_ref.set_scroll_top(0);
-                    }
-                    *post_vec = new_post_vec;
-                });
+            match new_post_vec {
+                Ok(new_post_vec) => {
+                    post_vec.update(|post_vec| {
+                        if let Some(list_ref) = list_ref.get_untracked() {
+                            list_ref.set_scroll_top(0);
+                        }
+                        *post_vec = new_post_vec;
+                    });
+                },
+                Err(e) => load_error.set(Some(AppError::from(&e))),
             }
             is_loading.set(false);
         });
@@ -585,13 +591,12 @@ pub fn ForumContents() -> impl IntoView {
         if additional_load_count.get() > 0 {
             log::info!("Load additional posts.");
             is_loading.set(true);
+            load_error.set(None);
             spawn_local(async move {
                 let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
-                let new_post_vec = get_post_vec_by_forum_name(forum_name.get_untracked(), state.post_sort_type.get_untracked(), post_count).await;
-                if let Ok(mut new_post_vec) = new_post_vec {
-                    post_vec.update(|post_vec| {
-                        post_vec.append(&mut new_post_vec);
-                    });
+                match get_post_vec_by_forum_name(forum_name.get_untracked(), state.post_sort_type.get_untracked(), post_count).await {
+                    Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
+                    Err(e) => load_error.set(Some(AppError::from(&e)))
                 }
                 is_loading.set(false);
             });
@@ -607,6 +612,7 @@ pub fn ForumContents() -> impl IntoView {
         <ForumPostMiniatures
             post_vec=post_vec
             is_loading=is_loading
+            load_error=load_error
             additional_load_count=additional_load_count
             list_ref=list_ref
         />
@@ -692,6 +698,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 pub fn ForumPostMiniatures(
     post_vec: RwSignal<Vec<Post>>,
     is_loading: RwSignal<bool>,
+    load_error: RwSignal<Option<AppError>>,
     additional_load_count: RwSignal<i64>,
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
@@ -735,6 +742,15 @@ pub fn ForumPostMiniatures(
             />
             <Show when=is_loading>
                 <li><LoadingIcon/></li>
+            </Show>
+            <Show when=move || load_error.with(|error| error.is_some())>
+            {
+                let mut outside_errors = Errors::default();
+                outside_errors.insert_with_default_key(load_error.get().unwrap());
+                view! {
+                    <li><ErrorTemplate outside_errors/></li>
+                }
+            }
             </Show>
         </ul>
     }

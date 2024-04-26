@@ -132,7 +132,6 @@ pub fn App() -> impl IntoView {
             view! {
                 <ErrorTemplate outside_errors/>
             }
-            .into_view()
         }>
             <main class="h-screen text-white">
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
@@ -256,22 +255,26 @@ fn DefaultHomePage() -> impl IntoView {
     let post_vec = create_rw_signal(Vec::<Post>::new());
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
+    let load_error = create_rw_signal(None);
     let list_ref = create_node_ref::<html::Ul>();
 
     // Effect for initial load and sort changes
     create_effect(move |_| {
         let sort_type = state.post_sort_type.get();
         is_loading.set(true);
+        load_error.set(None);
         post_vec.update(|post_vec| post_vec.clear());
         spawn_local(async move {
-            let new_post_vec = get_sorted_post_vec(sort_type, 0).await;
-            if let Ok(new_post_vec) = new_post_vec {
-                post_vec.update(|post_vec| {
-                    if let Some(list_ref) = list_ref.get_untracked() {
-                        list_ref.set_scroll_top(0);
-                    }
-                    *post_vec = new_post_vec;
-                });
+            match get_sorted_post_vec(sort_type, 0).await {
+                Ok(new_post_vec) => {
+                    post_vec.update(|post_vec| {
+                        if let Some(list_ref) = list_ref.get_untracked() {
+                            list_ref.set_scroll_top(0);
+                        }
+                        *post_vec = new_post_vec;
+                    });
+                },
+                Err(e) => load_error.set(Some(AppError::from(&e))),
             }
             is_loading.set(false);
         });
@@ -284,11 +287,9 @@ fn DefaultHomePage() -> impl IntoView {
             is_loading.set(true);
             spawn_local(async move {
                 let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
-                let new_post_vec = get_sorted_post_vec(state.post_sort_type.get_untracked(), post_count).await;
-                if let Ok(mut new_post_vec) = new_post_vec {
-                    post_vec.update(|post_vec| {
-                        post_vec.append(&mut new_post_vec);
-                    });
+                match get_sorted_post_vec(state.post_sort_type.get_untracked(), post_count).await {
+                    Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
+                    Err(e) => load_error.set(Some(AppError::from(&e))),
                 }
                 is_loading.set(false);
             });
@@ -299,6 +300,7 @@ fn DefaultHomePage() -> impl IntoView {
         <ForumPostMiniatures
             post_vec=post_vec
             is_loading=is_loading
+            load_error=load_error
             additional_load_count=additional_load_count
             list_ref=list_ref
         />
@@ -313,22 +315,26 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     let post_vec = create_rw_signal(Vec::<Post>::new());
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
+    let load_error = create_rw_signal(None);
     let list_ref = create_node_ref::<html::Ul>();
 
     // Effect for initial load and sort changes
     create_effect(move |_| {
         let sort_type = state.post_sort_type.get();
         is_loading.set(true);
+        load_error.set(None);
         post_vec.update(|post_vec| post_vec.clear());
         spawn_local(async move {
-            let new_post_vec = get_subscribed_post_vec(user_id, sort_type, 0).await;
-            if let Ok(new_post_vec) = new_post_vec {
-                post_vec.update(|post_vec| {
-                    if let Some(list_ref) = list_ref.get_untracked() {
-                        list_ref.set_scroll_top(0);
-                    }
-                    *post_vec = new_post_vec;
-                });
+            match get_subscribed_post_vec(user_id, sort_type, 0).await {
+                Ok(new_post_vec) => {
+                    post_vec.update(|post_vec| {
+                        if let Some(list_ref) = list_ref.get_untracked() {
+                            list_ref.set_scroll_top(0);
+                        }
+                        *post_vec = new_post_vec;
+                    });
+                },
+                Err(e) => load_error.set(Some(AppError::from(&e))),
             }
             is_loading.set(false);
         });
@@ -339,13 +345,12 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
         if additional_load_count.get() > 0 {
             log::info!("Load additional posts.");
             is_loading.set(true);
+            load_error.set(None);
             spawn_local(async move {
                 let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
-                let new_post_vec = get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), post_count).await;
-                if let Ok(mut new_post_vec) = new_post_vec {
-                    post_vec.update(|post_vec| {
-                        post_vec.append(&mut new_post_vec);
-                    });
+                match get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), post_count).await {
+                    Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
+                    Err(e) => load_error.set(Some(AppError::from(&e))),
                 }
                 is_loading.set(false);
             });
@@ -356,6 +361,7 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
         <ForumPostMiniatures
             post_vec=post_vec
             is_loading=is_loading
+            load_error=load_error
             additional_load_count=additional_load_count
             list_ref=list_ref
         />

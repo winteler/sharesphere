@@ -728,7 +728,7 @@ pub fn ForumPostMiniatures(
                         <li>
                             <a href=post_path>
                                 <div class="flex flex-col gap-1 p-2 rounded-md hover:bg-base-content/20">
-                                    <h2 class="card-title ml-1">{post.title.clone()}</h2>
+                                    <h2 class="card-title pl-1">{post.title.clone()}</h2>
                                     <div class="flex gap-2">
                                         <ScoreIndicator score=post.score/>
                                         <AuthorWidget author=&post.creator_name/>
@@ -740,18 +740,21 @@ pub fn ForumPostMiniatures(
                     }
                 }
             />
-            <Show when=is_loading>
-                <li><LoadingIcon/></li>
-            </Show>
             <Show when=move || load_error.with(|error| error.is_some())>
             {
                 let mut outside_errors = Errors::default();
                 outside_errors.insert_with_default_key(load_error.get().unwrap());
                 view! {
-                    <li><ErrorTemplate outside_errors/></li>
+                    <li><div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div></li>
                 }
             }
             </Show>
+            <Show when=is_loading>
+                <li><LoadingIcon class="h-7 w-7 p-2"/></li>
+            </Show>
+            <li>
+                <div class="h-16"/>
+            </li>
         </ul>
     }
 }

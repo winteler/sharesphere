@@ -856,13 +856,6 @@ html {
   border-radius: var(--rounded-btn, 0.5rem);
 }
 
-.drawer {
-  position: relative;
-  display: grid;
-  grid-auto-columns: max-content auto;
-  width: 100%;
-}
-
 .drawer-content {
   grid-column-start: 2;
   grid-row-start: 1;
@@ -3084,16 +3077,12 @@ html {
   margin-bottom: 1rem;
 }
 
-.mt-3 {
-  margin-top: 0.75rem;
-}
-
-.ml-2 {
-  margin-left: 0.5rem;
-}
-
 .ml-1 {
   margin-left: 0.25rem;
+}
+
+.mt-3 {
+  margin-top: 0.75rem;
 }
 
 .flex {
@@ -3154,6 +3143,18 @@ html {
 
 .h-screen {
   height: 100vh;
+}
+
+.h-96 {
+  height: 24rem;
+}
+
+.h-48 {
+  height: 12rem;
+}
+
+.h-16 {
+  height: 4rem;
 }
 
 .max-h-96 {
@@ -3573,6 +3574,11 @@ html {
   padding-bottom: 1rem;
 }
 
+.py-6 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
 .pl-2 {
   padding-left: 0.5rem;
 }
@@ -3591,6 +3597,10 @@ html {
 
 .pt-2 {
   padding-top: 0.5rem;
+}
+
+.pl-1 {
+  padding-left: 0.25rem;
 }
 
 .text-left {

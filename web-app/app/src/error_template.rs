@@ -45,7 +45,7 @@ pub fn ErrorTemplate(
     }
 
     view! {
-        <div class="w-full h-full flex flex-col items-center justify-center">
+        <div class="w-fit h-full flex flex-col items-center justify-center">
             <For
                 // a function that returns the items we're iterating over; a signal is fine
                 each= move || {errors.clone().into_iter().enumerate()}

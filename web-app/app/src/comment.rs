@@ -264,7 +264,6 @@ pub async fn get_post_comment_tree(
         _ => None
     };
     let db_pool = get_db_pool()?;
-
     let comment_tree = ssr::get_post_comment_tree(post_id, sort_type, user_id, COMMENT_BATCH_SIZE, num_already_loaded as i64, db_pool).await?;
 
     Ok(comment_tree)
@@ -304,7 +303,7 @@ pub fn CommentSection(
     comment_vec: RwSignal<Vec<CommentWithChildren>>
 ) -> impl IntoView {
     view! {
-        <div class="flex flex-col h-full">
+        <div class="flex flex-col h-fit">
             <For
                 // a function that returns the items we're iterating over; a signal is fine
                 each= move || comment_vec.get().into_iter().enumerate()

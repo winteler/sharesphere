@@ -292,9 +292,9 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
 #[component]
 pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn pr-1 gap-1 items-center">
+        <div class="flex rounded-btn gap-1 items-center">
             <ScoreIcon/>
-            <div class="w-3 text-sm text-right">
+            <div class="w-fit text-sm text-right">
                 {move || score.get()}
             </div>
         </div>

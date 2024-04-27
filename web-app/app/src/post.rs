@@ -485,6 +485,14 @@ pub fn Post() -> impl IntoView {
     view! {
         <div
             class="flex flex-col content-start gap-1 overflow-y-auto"
+            on:scroll=move |_| match container_ref.get() {
+                Some(node_ref) => {
+                    if !is_loading.get_untracked() && node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() {
+                        additional_load_count.update(|value| *value += 1);
+                    }
+                },
+                None => log::error!("Post container 'div' node failed to load."),
+            }
             node_ref=container_ref
         >
             <TransitionUnpack resource=post_resource let:post>
@@ -523,7 +531,7 @@ pub fn Post() -> impl IntoView {
             <Show when=is_loading>
                 <LoadingIcon class="h-7 w-7 p-2"/>
             </Show>
-            <div class="h-16"/>
+            <div><div class="h-16"/></div>
         </div>
     }
 }

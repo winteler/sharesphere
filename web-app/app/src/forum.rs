@@ -708,15 +708,13 @@ pub fn ForumPostMiniatures(
 ) -> impl IntoView {
     view! {
         <ul class="overflow-y-auto w-full pr-2"
-            on:scroll=move |_| {
-                let node_ref = list_ref.get().expect("ul node should be loaded");
-                let scroll_top = node_ref.scroll_top();
-                let reached_scroll_end = scroll_top + node_ref.offset_height() >= node_ref.scroll_height();
-                if reached_scroll_end {
-                    if !is_loading.get_untracked() {
+            on:scroll=move |_| match list_ref.get() {
+                Some(node_ref) => {
+                    if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
                         additional_load_count.update(|value| *value += 1);
                     }
-                }
+                },
+                None => log::error!("Forum container 'ul' node failed to load."),
             }
             node_ref=list_ref
         >

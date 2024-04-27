@@ -337,7 +337,7 @@ async fn populate_dev_db() -> Result<(), ServerFnError> {
     let num_comments = 200;
     let mut rng = rand::thread_rng();
 
-    let _post = create_post_with_comments(
+    let post = create_post_with_comments(
         forum_name,
         "Post with comments",
         num_comments,
@@ -350,6 +350,8 @@ async fn populate_dev_db() -> Result<(), ServerFnError> {
         &test_user,
         db_pool.clone()
     ).await?;
+
+    set_post_score(post.post_id, 200, db_pool.clone()).await?;
 
     Ok(())
 }

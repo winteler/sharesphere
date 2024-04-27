@@ -43,6 +43,8 @@ async fn test_get_subscribed_post_vec() -> Result<(), ServerFnError> {
     let post_vec = ssr::get_subscribed_post_vec(
         test_user.user_id,
         SortType::Post(PostSortType::Hot),
+        num_post as i64,
+        0,
         db_pool.clone(),
     )
     .await?;
@@ -61,6 +63,8 @@ async fn test_get_subscribed_post_vec() -> Result<(), ServerFnError> {
         let post_vec = ssr::get_subscribed_post_vec(
             test_user.user_id,
             SortType::Post(sort_type),
+            num_post as i64,
+            0,
             db_pool.clone(),
         )
         .await?;
@@ -71,6 +75,8 @@ async fn test_get_subscribed_post_vec() -> Result<(), ServerFnError> {
     let post_vec = ssr::get_subscribed_post_vec(
         test_user.user_id,
         SortType::Post(PostSortType::Hot),
+        num_post as i64,
+        0,
         db_pool.clone(),
     )
     .await?;
@@ -117,7 +123,7 @@ async fn test_get_sorted_post_vec() -> Result<(), ServerFnError> {
     ];
 
     for sort_type in post_sort_type_array {
-        let post_vec = ssr::get_sorted_post_vec(SortType::Post(sort_type), db_pool.clone()).await?;
+        let post_vec = ssr::get_sorted_post_vec(SortType::Post(sort_type), num_post as i64, 0, db_pool.clone()).await?;
         test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
     }
 

@@ -1,10 +1,11 @@
 use leptos::ServerFnError;
 use sqlx::PgPool;
 use app::comment::Comment;
-use app::{forum, post};
+use app::{comment, forum, post, ranking};
 use app::auth::User;
 use app::forum::Forum;
 use app::post::Post;
+use app::ranking::VoteValue;
 
 pub async fn create_forum_with_posts(
     forum_name: &str,
@@ -44,6 +45,63 @@ pub async fn create_forum_with_posts(
     }
 
     Ok((forum, expected_post_vec))
+}
+
+pub async fn create_post_with_comments(
+    forum_name: &str,
+    post_title: &str,
+    num_comments: usize,
+    parent_index_vec: Vec<Option<i64>>,
+    score_vec: Vec<i32>,
+    vote_vec: Vec<Option<VoteValue>>,
+    user: &User,
+    db_pool: PgPool,
+) -> Result<Post, ServerFnError> {
+    let post = post::ssr::create_post(
+        forum_name,
+        post_title,
+        "body",
+        None,
+        false,
+        None,
+        user,
+        db_pool.clone(),
+    ).await?;
+
+    let mut comment_id_vec = Vec::<i64>::new();
+
+    for i in 0..num_comments {
+        let parent_id = parent_index_vec.get(i).cloned().unwrap_or(None);
+
+        let comment = comment::ssr::create_comment(
+            post.post_id,
+            parent_id,
+            i.to_string().as_str(),
+            None,
+            user,
+            db_pool.clone(),
+        ).await?;
+
+        comment_id_vec.push(comment.comment_id);
+
+
+        if let Some(score) = score_vec.get(i) {
+            set_comment_score(comment.comment_id, *score, db_pool.clone()).await?;
+        }
+
+        if let Some(Some(vote)) = vote_vec.get(i) {
+            ranking::ssr::vote_on_content(
+                *vote,
+                post.post_id,
+                Some(comment.comment_id),
+                None,
+                user,
+                db_pool.clone(),
+            ).await?;
+        }
+    }
+
+    Ok(post)
 }
 
 pub async fn set_post_score(

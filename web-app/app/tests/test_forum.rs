@@ -2,6 +2,7 @@ use std::cmp::min;
 use std::collections::BTreeSet;
 
 use leptos::ServerFnError;
+use rand::Rng;
 use sqlx::PgPool;
 
 use app::app::ssr::create_db_pool;
@@ -318,16 +319,37 @@ async fn populate_dev_db() -> Result<(), ServerFnError> {
     let test_user = create_test_user(&db_pool).await;
 
     let forum_name = "test";
-    let num_posts = 100usize;
+    let num_posts = 500usize;
 
+    let mut rng = rand::thread_rng();
+
+    // generate forum with many posts
     let (_forum, _forum_post_vec) = create_forum_with_posts(
         forum_name,
         num_posts,
-        Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        Some((0..num_posts).map(|_| rng.gen_range(-100..101)).collect()),
         &test_user,
         db_pool.clone(),
     )
     .await?;
+
+    // generate post with many comment
+    let num_comments = 200;
+    let mut rng = rand::thread_rng();
+
+    let _post = create_post_with_comments(
+        forum_name,
+        "Post with comments",
+        num_comments,
+        (0..num_comments).map(|i| match i % 2 {
+            1 => Some(rng.gen_range(0..(i as i64))),
+            _ => None,
+        }).collect(),
+        (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),
+        (0..num_comments).map(|_| None).collect(),
+        &test_user,
+        db_pool.clone()
+    ).await?;
 
     Ok(())
 }

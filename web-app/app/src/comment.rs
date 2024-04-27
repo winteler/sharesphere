@@ -17,7 +17,7 @@ use crate::icons::{CommentIcon, ErrorIcon, MaximizeIcon, MinimizeIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 
-pub const COMMENT_BATCH_SIZE: i64 = 5;
+pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
 const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
     "bg-blue-500",
@@ -168,40 +168,44 @@ pub mod ssr {
         let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
             format!(
                 "WITH RECURSIVE comment_tree AS (
-                SELECT c.*,
-                       v.vote_id,
-                       v.user_id as vote_user_id,
-                       v.post_id as vote_post_id,
-                       v.comment_id as vote_comment_id,
-                       v.value,
-                       v.timestamp as vote_timestamp,
-                       1 AS depth,
-                       ARRAY[(c.{sort_column}, c.comment_id)] AS path
-                FROM comments c
-                LEFT JOIN votes v
-                ON v.comment_id = c.comment_id AND
-                   v.user_id = $1
-                WHERE
-                    c.post_id = $2 AND
-                    c.parent_id IS NULL
-                ORDER BY c.{sort_column} DESC
-                LIMIT $3
-                OFFSET $4
+                (
+                    SELECT c.*,
+                           v.vote_id,
+                           v.user_id as vote_user_id,
+                           v.post_id as vote_post_id,
+                           v.comment_id as vote_comment_id,
+                           v.value,
+                           v.timestamp as vote_timestamp,
+                           1 AS depth,
+                           ARRAY[(c.{sort_column}, c.comment_id)] AS path
+                    FROM comments c
+                    LEFT JOIN votes v
+                    ON v.comment_id = c.comment_id AND
+                       v.user_id = $1
+                    WHERE
+                        c.post_id = $2 AND
+                        c.parent_id IS NULL
+                    ORDER BY c.{sort_column} DESC
+                    LIMIT $3
+                    OFFSET $4
+                )
                 UNION ALL
-                SELECT n.*,
-                       vr.vote_id,
-                       vr.user_id as vote_user_id,
-                       vr.post_id as vote_post_id,
-                       vr.comment_id as vote_comment_id,
-                       vr.value,
-                       vr.timestamp as vote_timestamp,
-                       r.depth + 1,
-                       r.path || (n.{sort_column}, n.comment_id)
-                FROM comment_tree r
-                JOIN comments n ON n.parent_id = r.comment_id
-                LEFT JOIN votes vr
-                ON vr.comment_id = n.comment_id AND
-                   vr.user_id = $1
+                (
+                    SELECT n.*,
+                           vr.vote_id,
+                           vr.user_id as vote_user_id,
+                           vr.post_id as vote_post_id,
+                           vr.comment_id as vote_comment_id,
+                           vr.value,
+                           vr.timestamp as vote_timestamp,
+                           r.depth + 1,
+                           r.path || (n.{sort_column}, n.comment_id)
+                    FROM comment_tree r
+                    JOIN comments n ON n.parent_id = r.comment_id
+                    LEFT JOIN votes vr
+                    ON vr.comment_id = n.comment_id AND
+                       vr.user_id = $1
+                )
             )
             SELECT * FROM comment_tree
             ORDER BY path DESC").as_str(),

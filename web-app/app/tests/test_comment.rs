@@ -3,9 +3,8 @@ use rand::Rng;
 
 use app::comment::{COMMENT_BATCH_SIZE, CommentSortType, CommentWithChildren};
 use app::forum;
-use app::post;
 use app::ranking::{SortType, Vote, VoteValue};
-use app::{comment, ranking};
+use app::{comment};
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -92,53 +91,22 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
         db_pool.clone(),
     ).await?;
 
-    let post = post::ssr::create_post(
-        forum_name,
-        "post",
-        "body",
-        None,
-        false,
-        None,
-        &test_user,
-        db_pool.clone(),
-    ).await?;
-
+    let num_comments = 200;
     let mut rng = rand::thread_rng();
-    let mut comment_id_vec = Vec::<i64>::new();
 
-    for i in 1..21 {
-        let parent_id = comment_id_vec.get(i % 5);
-
-        let comment = comment::ssr::create_comment(
-            post.post_id,
-            parent_id.cloned(),
-            i.to_string().as_str(),
-            None,
-            &test_user,
-            db_pool.clone(),
-        ).await?;
-
-        comment_id_vec.push(comment.comment_id);
-
-        set_comment_score(
-            comment.comment_id,
-            rng.gen_range(-100..101),
-            db_pool.clone(),
-        ).await?;
-
-        let vote_value = get_vote_from_comment_num(i);
-
-        if vote_value.is_some() {
-            ranking::ssr::vote_on_content(
-                vote_value.unwrap(),
-                post.post_id,
-                Some(comment.comment_id),
-                None,
-                &test_user,
-                db_pool.clone(),
-            ).await?;
-        }
-    }
+    let post = create_post_with_comments(
+        forum_name,
+        "Post with comments",
+        num_comments,
+        (0..num_comments).map(|i| match i % 2 {
+            1 => Some(rng.gen_range(0..(i as i64))),
+            _ => None,
+        }).collect(),
+        (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),
+        (0..num_comments).map(|i| get_vote_from_comment_num(i)).collect(),
+        &test_user,
+        db_pool.clone()
+    ).await?;
 
     let comment_sort_type_array = [CommentSortType::Best, CommentSortType::Recent];
 

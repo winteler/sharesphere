@@ -14,11 +14,10 @@ use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::icons::{CommentIcon, ErrorIcon, MaximizeIcon, MinimizeIcon};
-use crate::post::get_post_id_memo;
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 
+pub const COMMENT_BATCH_SIZE: i64 = 5;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
 const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
     "bg-blue-500",
@@ -156,6 +155,8 @@ pub mod ssr {
         post_id: i64,
         sort_type: SortType,
         user_id: Option<i64>,
+        limit: i64,
+        offset: i64,
         db_pool: PgPool,
     ) -> Result<Vec<CommentWithChildren>, AppError> {
         if post_id < 1 {
@@ -165,44 +166,50 @@ pub mod ssr {
         let sort_column = sort_type.to_order_by_code();
 
         let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
-            format!("WITH RECURSIVE comment_tree AS (
-            SELECT c.*,
-                   v.vote_id,
-                   v.user_id as vote_user_id,
-                   v.post_id as vote_post_id,
-                   v.comment_id as vote_comment_id,
-                   v.value,
-                   v.timestamp as vote_timestamp,
-                   1 AS depth,
-                   ARRAY[(c.{sort_column}, c.comment_id)] AS path
-            FROM comments c
-            LEFT JOIN votes v
-            ON v.comment_id = c.comment_id AND
-               v.user_id = $1
-            WHERE
-                c.post_id = $2 AND
-                c.parent_id IS NULL
-            UNION ALL
-            SELECT n.*,
-                   vr.vote_id,
-                   vr.user_id as vote_user_id,
-                   vr.post_id as vote_post_id,
-                   vr.comment_id as vote_comment_id,
-                   vr.value,
-                   vr.timestamp as vote_timestamp,
-                   r.depth + 1,
-                   r.path || (n.{sort_column}, n.comment_id)
-            FROM comment_tree r
-            JOIN comments n ON n.parent_id = r.comment_id
-            LEFT JOIN votes vr
-            ON vr.comment_id = n.comment_id AND
-               vr.user_id = $1
-        )
-        SELECT * FROM comment_tree
-        ORDER BY path DESC").as_str(),
+            format!(
+                "WITH RECURSIVE comment_tree AS (
+                SELECT c.*,
+                       v.vote_id,
+                       v.user_id as vote_user_id,
+                       v.post_id as vote_post_id,
+                       v.comment_id as vote_comment_id,
+                       v.value,
+                       v.timestamp as vote_timestamp,
+                       1 AS depth,
+                       ARRAY[(c.{sort_column}, c.comment_id)] AS path
+                FROM comments c
+                LEFT JOIN votes v
+                ON v.comment_id = c.comment_id AND
+                   v.user_id = $1
+                WHERE
+                    c.post_id = $2 AND
+                    c.parent_id IS NULL
+                ORDER BY c.{sort_column} DESC
+                LIMIT $3
+                OFFSET $4
+                UNION ALL
+                SELECT n.*,
+                       vr.vote_id,
+                       vr.user_id as vote_user_id,
+                       vr.post_id as vote_post_id,
+                       vr.comment_id as vote_comment_id,
+                       vr.value,
+                       vr.timestamp as vote_timestamp,
+                       r.depth + 1,
+                       r.path || (n.{sort_column}, n.comment_id)
+                FROM comment_tree r
+                JOIN comments n ON n.parent_id = r.comment_id
+                LEFT JOIN votes vr
+                ON vr.comment_id = n.comment_id AND
+                   vr.user_id = $1
+            )
+            SELECT * FROM comment_tree
+            ORDER BY path DESC").as_str(),
         )
             .bind(user_id)
             .bind(post_id)
+            .bind(limit)
+            .bind(offset)
             .fetch_all(&db_pool)
             .await?;
 
@@ -246,6 +253,7 @@ pub mod ssr {
 pub async fn get_post_comment_tree(
     post_id: i64,
     sort_type: SortType,
+    num_already_loaded: usize,
 ) -> Result<Vec<CommentWithChildren>, ServerFnError> {
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
@@ -253,7 +261,7 @@ pub async fn get_post_comment_tree(
     };
     let db_pool = get_db_pool()?;
 
-    let comment_tree = ssr::get_post_comment_tree(post_id, sort_type, user_id, db_pool).await?;
+    let comment_tree = ssr::get_post_comment_tree(post_id, sort_type, user_id, COMMENT_BATCH_SIZE, num_already_loaded as i64, db_pool).await?;
 
     Ok(comment_tree)
 }
@@ -288,33 +296,26 @@ pub async fn create_comment(
 
 /// Comment section component
 #[component]
-pub fn CommentSection() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let post_id = get_post_id_memo(params);
-    let comment_vec_resource = create_resource(
-        move || (post_id(), state.create_comment_action.version().get(), state.comment_sort_type.get()),
-        move |(post_id, _, sort_type)| {
-            log::debug!("Load comments for post: {post_id} sorting by {sort_type}");
-            get_post_comment_tree(post_id, sort_type)
-        });
-
+pub fn CommentSection(
+    comment_vec: RwSignal<Vec<CommentWithChildren>>
+) -> impl IntoView {
     view! {
         <div class="flex flex-col h-full">
-            <TransitionUnpack resource=comment_vec_resource let:comment_vec>
-            {
-                let mut comment_ranking = 0;
-                comment_vec.iter().map(|comment| {
-                    comment_ranking = comment_ranking + 1;
+            <For
+                // a function that returns the items we're iterating over; a signal is fine
+                each= move || comment_vec.get().into_iter().enumerate()
+                // a unique key for each item as a reference
+                key=|(_index, comment)| comment.comment.comment_id
+                // renders each item to a view
+                children=move |(index, comment)| {
                     view! {
                         <CommentBox
                             comment=&comment
-                            ranking=comment_ranking - 1
+                            ranking=index
                         />
-                    }.into_view()
-                }).collect_view()
-            }
-            </TransitionUnpack>
+                    }
+                }
+            />
         </div>
     }
 }

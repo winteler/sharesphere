@@ -10,14 +10,16 @@ use crate::app::ssr::get_db_pool;
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
-use crate::comment::{CommentButton, CommentSection};
+use crate::comment::{COMMENT_BATCH_SIZE, CommentButton, CommentSection, CommentWithChildren, get_post_comment_tree};
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
+use crate::error_template::ErrorTemplate;
+use crate::errors::AppError;
 use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::icons::ErrorIcon;
+use crate::icons::{ErrorIcon, LoadingIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
@@ -420,6 +422,129 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     })
 }
 
+/// Component to display a content
+#[component]
+pub fn Post() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let params = use_params_map();
+    let post_id = get_post_id_memo(params);
+    let post_resource = create_resource(
+        move || post_id(),
+        move |post_id| {
+            log::debug!("Load data for post: {post_id}");
+            get_post_with_vote_by_id(post_id)
+        },
+    );
+
+    let comment_vec = create_rw_signal(Vec::<CommentWithChildren>::with_capacity(COMMENT_BATCH_SIZE as usize));
+    let additional_load_count = create_rw_signal(0);
+    let is_loading = create_rw_signal(false);
+    let load_error = create_rw_signal(None);
+    let container_ref = create_node_ref::<html::Div>();
+
+    // Effect for initial load, forum and sort changes
+    create_effect(move |_| {
+        let post_id = post_id.get();
+        let sort_type = state.comment_sort_type.get();
+        is_loading.set(true);
+        load_error.set(None);
+        comment_vec.update(|post_vec| post_vec.clear());
+        spawn_local(async move {
+            match get_post_comment_tree(post_id, sort_type, 0).await {
+                Ok(new_comment_vec) => {
+                    comment_vec.update(|comment_vec| {
+                        if let Some(list_ref) = container_ref.get_untracked() {
+                            list_ref.set_scroll_top(0);
+                        }
+                        *comment_vec = new_comment_vec;
+                    });
+                },
+                Err(e) => load_error.set(Some(AppError::from(&e))),
+            }
+            is_loading.set(false);
+        });
+    });
+
+    // Effect for additional load upon reaching end of scroll
+    create_effect(move |_| {
+        if additional_load_count.get() > 0 {
+            log::info!("Load additional comments.");
+            is_loading.set(true);
+            load_error.set(None);
+            let root_comment_count = comment_vec.with_untracked(|post_vec| post_vec.len());
+            spawn_local(async move {
+                match get_post_comment_tree(post_id.get_untracked(), state.comment_sort_type.get_untracked(), root_comment_count).await {
+                    Ok(mut new_comment_vec) => comment_vec.update(|comment_vec| comment_vec.append(&mut new_comment_vec)),
+                    Err(e) => load_error.set(Some(AppError::from(&e)))
+                }
+                is_loading.set(false);
+            });
+        }
+    });
+
+    view! {
+        <div
+            class="flex flex-col content-start gap-1 overflow-y-auto"
+            node_ref=container_ref
+        >
+            <TransitionUnpack resource=post_resource let:post>
+            {
+                let post_body_class = match post.post.markdown_body {
+                    Some(_) => "",
+                    None => "whitespace-pre",
+                };
+                view! {
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="flex flex-col gap-4">
+                                <h2 class="card-title">{post.post.title.clone()}</h2>
+                                <div
+                                    class={post_body_class}
+                                    inner_html={post.post.body.clone()}
+                                />
+                                <PostWidgetBar post=post/>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            </TransitionUnpack>
+            <CommentSortWidget/>
+            <CommentSection comment_vec=comment_vec/>
+            <Show when=move || load_error.with(|error| error.is_some())>
+            {
+                let mut outside_errors = Errors::default();
+                outside_errors.insert_with_default_key(load_error.get().unwrap());
+                view! {
+                    <div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div>
+                }
+            }
+            </Show>
+            <Show when=is_loading>
+                <LoadingIcon class="h-7 w-7 p-2"/>
+            </Show>
+            <div class="h-16"/>
+        </div>
+    }
+}
+
+/// Component to encapsulate the widgets associated with each post
+#[component]
+fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
+    let content = ContentWithVote::Post(&post.post, &post.vote);
+
+    view! {
+        <div class="flex gap-2">
+            <VotePanel
+                content=content
+            />
+            <CommentButton post_id=post.post.post_id/>
+            <AuthorWidget author=&post.post.creator_name/>
+            <TimeSinceWidget timestamp=&post.post.create_timestamp/>
+        </div>
+    }
+}
+
 /// Component to create a new content
 #[component]
 pub fn CreatePost() -> impl IntoView {
@@ -521,67 +646,6 @@ pub fn CreatePost() -> impl IntoView {
                     <span>"Server error. Please reload the page and retry."</span>
                 </div>
             </Show>
-        </div>
-    }
-}
-
-/// Component to display a content
-#[component]
-pub fn Post() -> impl IntoView {
-    let params = use_params_map();
-    let post_id = get_post_id_memo(params);
-
-    let post_resource = create_resource(
-        move || post_id(),
-        move |post_id| {
-            log::debug!("Load data for post: {post_id}");
-            get_post_with_vote_by_id(post_id)
-        },
-    );
-
-    view! {
-        <div class="flex flex-col content-start gap-1 overflow-y-auto">
-            <TransitionUnpack resource=post_resource let:post>
-            {
-                let post_body_class = match post.post.markdown_body {
-                    Some(_) => "",
-                    None => "whitespace-pre",
-                };
-                view! {
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="flex flex-col gap-4">
-                                <h2 class="card-title">{post.post.title.clone()}</h2>
-                                <div
-                                    class={post_body_class}
-                                    inner_html={post.post.body.clone()}
-                                />
-                                <PostWidgetBar post=post/>
-                            </div>
-                        </div>
-                    </div>
-                }
-            }
-            </TransitionUnpack>
-            <CommentSortWidget/>
-            <CommentSection/>
-        </div>
-    }
-}
-
-/// Component to encapsulate the widgets associated with each post
-#[component]
-fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
-    let content = ContentWithVote::Post(&post.post, &post.vote);
-
-    view! {
-        <div class="flex gap-2">
-            <VotePanel
-                content=content
-            />
-            <CommentButton post_id=post.post.post_id/>
-            <AuthorWidget author=&post.post.creator_name/>
-            <TimeSinceWidget timestamp=&post.post.create_timestamp/>
         </div>
     }
 }

@@ -12,7 +12,7 @@ use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
 use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
-use crate::post::get_post_vec_by_forum_name;
+use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
     Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
 };
@@ -552,7 +552,7 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
-    let post_vec = create_rw_signal(Vec::<Post>::new());
+    let post_vec = create_rw_signal(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
     let load_error = create_rw_signal(None);
@@ -570,8 +570,7 @@ pub fn ForumContents() -> impl IntoView {
         load_error.set(None);
         post_vec.update(|post_vec| post_vec.clear());
         spawn_local(async move {
-            let new_post_vec = get_post_vec_by_forum_name(forum_name, sort_type, 0).await;
-            match new_post_vec {
+            match get_post_vec_by_forum_name(forum_name, sort_type, 0).await {
                 Ok(new_post_vec) => {
                     post_vec.update(|post_vec| {
                         if let Some(list_ref) = list_ref.get_untracked() {
@@ -592,8 +591,8 @@ pub fn ForumContents() -> impl IntoView {
             log::info!("Load additional posts.");
             is_loading.set(true);
             load_error.set(None);
+            let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
             spawn_local(async move {
-                let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
                 match get_post_vec_by_forum_name(forum_name.get_untracked(), state.post_sort_type.get_untracked(), post_count).await {
                     Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
                     Err(e) => load_error.set(Some(AppError::from(&e)))
@@ -696,10 +695,15 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
 /// Component to display a vector of forum posts and indicate when more need to be loaded
 #[component]
 pub fn ForumPostMiniatures(
+    /// signal containing the posts to display
     post_vec: RwSignal<Vec<Post>>,
+    /// signal indicating new posts are being loaded
     is_loading: RwSignal<bool>,
+    /// signal containing an eventual loading error in order to display it
     load_error: RwSignal<Option<AppError>>,
+    /// signal to request loading additional posts
     additional_load_count: RwSignal<i64>,
+    /// reference to the container of the posts in order to reset scroll position when context changes
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
     view! {

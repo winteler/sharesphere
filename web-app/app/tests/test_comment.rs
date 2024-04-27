@@ -1,7 +1,7 @@
 use leptos::ServerFnError;
 use rand::Rng;
 
-use app::comment::{CommentSortType, CommentWithChildren};
+use app::comment::{COMMENT_BATCH_SIZE, CommentSortType, CommentWithChildren};
 use app::forum;
 use app::post;
 use app::ranking::{SortType, Vote, VoteValue};
@@ -147,6 +147,8 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
             post.post_id,
             SortType::Comment(sort_type),
             Some(test_user.user_id),
+            COMMENT_BATCH_SIZE,
+            0,
             db_pool.clone(),
         ).await?;
 

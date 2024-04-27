@@ -285,8 +285,8 @@ fn DefaultHomePage() -> impl IntoView {
         if additional_load_count.get() > 0 {
             log::info!("Load additional posts.");
             is_loading.set(true);
+            let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
             spawn_local(async move {
-                let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
                 match get_sorted_post_vec(state.post_sort_type.get_untracked(), post_count).await {
                     Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
                     Err(e) => load_error.set(Some(AppError::from(&e))),
@@ -346,8 +346,8 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
             log::info!("Load additional posts.");
             is_loading.set(true);
             load_error.set(None);
+            let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
             spawn_local(async move {
-                let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
                 match get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), post_count).await {
                     Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
                     Err(e) => load_error.set(Some(AppError::from(&e))),

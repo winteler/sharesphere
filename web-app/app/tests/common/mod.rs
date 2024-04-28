@@ -67,6 +67,18 @@ pub async fn create_test_user(db_pool: &PgPool) -> User {
         .expect("Could not create test user.")
 }
 
+pub async fn create_additional_user(db_pool: &PgPool) -> User {
+    let oidc_info = OidcUserInfo {
+        oidc_id: String::from("user"),
+        username: String::from("user"),
+        email: String::from("user@user.com"),
+    };
+
+    create_user(oidc_info, db_pool)
+        .await
+        .expect("Could not create additional user.")
+}
+
 pub fn test_post_vec(
     post_vec: &Vec<Post>,
     expected_post_vec: &Vec<Post>,

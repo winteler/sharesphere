@@ -3,6 +3,7 @@ use std::fmt;
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::*;
+use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
@@ -528,7 +529,7 @@ pub fn Post() -> impl IntoView {
             }
             </Show>
             <Show when=is_loading>
-                <LoadingIcon class="h-7 w-7 my-5"/>
+                <LoadingIcon/>
             </Show>
         </div>
     }
@@ -570,6 +571,7 @@ pub fn CreatePost() -> impl IntoView {
     };
 
     let forum_name_input = create_rw_signal(forum_query());
+    let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
     let post_body = create_rw_signal(String::new());
     let is_title_empty = create_rw_signal(true);
     let is_content_invalid =
@@ -578,7 +580,7 @@ pub fn CreatePost() -> impl IntoView {
     let matching_forums_resource = create_resource(
         move || {
             (
-                forum_name_input.get(),
+                forum_name_debounced.get(),
                 state.create_forum_action.version().get(),
             )
         },

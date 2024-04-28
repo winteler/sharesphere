@@ -1,4 +1,3 @@
-use std::cmp::min;
 use std::collections::BTreeSet;
 
 use leptos::ServerFnError;
@@ -177,49 +176,49 @@ async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
 #[tokio::test]
 async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    // use two users to make sure behaviour is correct both for forum creator and other users
+    let create_user = create_test_user(&db_pool).await;
+    let member_user = create_additional_user(&db_pool).await;
 
     let num_forum = 30usize;
-    let num_forum_fetch = 20usize;
-    let mut expected_subscribed_forum = Vec::<Forum>::with_capacity(20);
+    let mut expected_create_sub_forum_vec = Vec::<String>::new();
+    let mut expected_member_sub_forum_vec = Vec::<String>::new();
     for i in 0..num_forum {
         let forum = forum::ssr::create_forum(
             i.to_string().as_str(),
             "forum",
             false,
-            test_user.user_id,
+            create_user.user_id,
             db_pool.clone(),
         )
         .await?;
 
         if i % 2 == 1 {
-            forum::ssr::subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await?;
-
-            expected_subscribed_forum.push(forum);
+            forum::ssr::subscribe(forum.forum_id, create_user.user_id, db_pool.clone()).await?;
+            expected_create_sub_forum_vec.push(forum.forum_name);
+        } else {
+            forum::ssr::subscribe(forum.forum_id, member_user.user_id, db_pool.clone()).await?;
+            expected_member_sub_forum_vec.push(forum.forum_name);
         }
     }
 
-    let popular_forum_name_vec =
-        forum::ssr::get_subscribed_forum_names(test_user.user_id, db_pool).await?;
+    let create_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(create_user.user_id, db_pool.clone()).await?;
+    let member_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(member_user.user_id, db_pool).await?;
 
     assert_eq!(
-        popular_forum_name_vec.len(),
-        min(num_forum_fetch, expected_subscribed_forum.len())
+        create_sub_forum_name_vec.len(),
+        expected_create_sub_forum_vec.len()
     );
-    let mut prev_forum_name: Option<String> = None;
-    for forum_name in popular_forum_name_vec {
-        assert_eq!(
-            forum_name
-                .parse::<usize>()
-                .expect("Could not parse forum name.")
-                % 2,
-            1
-        );
-        if let Some(prev_forum_name) = prev_forum_name {
-            assert!(prev_forum_name < forum_name);
-        }
-        prev_forum_name = Some(forum_name);
-    }
+    assert_eq!(
+        member_sub_forum_name_vec.len(),
+        expected_member_sub_forum_vec.len()
+    );
+
+    expected_create_sub_forum_vec.sort();
+    expected_member_sub_forum_vec.sort();
+
+    assert_eq!(create_sub_forum_name_vec, expected_create_sub_forum_vec);
+    assert_eq!(member_sub_forum_name_vec, expected_member_sub_forum_vec);
 
     Ok(())
 }

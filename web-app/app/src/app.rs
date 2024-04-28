@@ -137,7 +137,7 @@ pub fn App() -> impl IntoView {
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                 <div class="drawer-content h-full flex flex-col max-2xl:items-center">
                     <NavigationBar/>
-                    <div class="flex w-full overflow-hidden">
+                    <div class="grow flex w-full overflow-hidden">
                         <div class="max-2xl:hidden">
                             <LeftSidebar/>
                         </div>

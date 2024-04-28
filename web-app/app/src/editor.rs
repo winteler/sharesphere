@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_use::signal_debounced;
 
 use crate::icons::{BoldIcon, MarkdownIcon};
 use crate::unpack::TransitionUnpack;
@@ -171,8 +172,10 @@ pub fn FormMarkdownEditor(
         false => "btn btn-ghost",
     };
 
+    let content_debounced: Signal<String> = signal_debounced(content, 1000.0);
+
     let render_markdown_resource = create_resource(
-        move || content.get(),
+        move || content_debounced.get(),
         move |markdown_content| get_styled_html_from_markdown(markdown_content),
     );
 

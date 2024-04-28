@@ -60,11 +60,11 @@ pub fn HourglassIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl I
 
 /// Renders a loading icon
 #[component]
-pub fn LoadingIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
-    let class = String::from(class) + " loading loading-spinner loading-md";
+pub fn LoadingIcon(#[prop(default = "loading-md my-5")] class: &'static str) -> impl IntoView {
+    let class = String::from("loading loading-spinner ") + class;
     view! {
-        <div class="w-full h-full flex items-center justify-center">
-            <span class=class></span>
+        <div class="w-full flex content-center justify-center">
+            <div class=class></div>
         </div>
     }
 }

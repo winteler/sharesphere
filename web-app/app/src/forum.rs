@@ -588,7 +588,6 @@ pub fn ForumContents() -> impl IntoView {
     // Effect for additional load upon reaching end of scroll
     create_effect(move |_| {
         if additional_load_count.get() > 0 {
-            log::info!("Load additional posts.");
             is_loading.set(true);
             load_error.set(None);
             let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
@@ -752,11 +751,8 @@ pub fn ForumPostMiniatures(
             }
             </Show>
             <Show when=is_loading>
-                <li><LoadingIcon class="h-7 w-7 p-2"/></li>
+                <li><LoadingIcon class="h-7 w-7 my-5"/></li>
             </Show>
-            <li>
-                <div class="h-16"/>
-            </li>
         </ul>
     }
 }

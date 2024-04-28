@@ -468,7 +468,6 @@ pub fn Post() -> impl IntoView {
     // Effect for additional load upon reaching end of scroll
     create_effect(move |_| {
         if additional_load_count.get() > 0 {
-            log::info!("Load additional comments.");
             is_loading.set(true);
             load_error.set(None);
             let root_comment_count = comment_vec.with_untracked(|post_vec| post_vec.len());
@@ -529,9 +528,8 @@ pub fn Post() -> impl IntoView {
             }
             </Show>
             <Show when=is_loading>
-                <LoadingIcon class="h-7 w-7 p-2"/>
+                <LoadingIcon class="h-7 w-7 my-5"/>
             </Show>
-            <div><div class="h-16"/></div>
         </div>
     }
 }

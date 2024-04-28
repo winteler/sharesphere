@@ -283,7 +283,6 @@ fn DefaultHomePage() -> impl IntoView {
     // Effect for additional load upon reaching end of scroll
     create_effect(move |_| {
         if additional_load_count.get() > 0 {
-            log::info!("Load additional posts.");
             is_loading.set(true);
             let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
             spawn_local(async move {
@@ -343,7 +342,6 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     // Effect for additional load upon reaching end of scroll
     create_effect(move |_| {
         if additional_load_count.get() > 0 {
-            log::info!("Load additional posts.");
             is_loading.set(true);
             load_error.set(None);
             let post_count = post_vec.with_untracked(|post_vec| post_vec.len());

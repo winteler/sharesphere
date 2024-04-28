@@ -202,14 +202,21 @@ fn LoginWindow() -> impl IntoView {
     let current_path = create_rw_signal(String::default());
 
     view! {
-        <div class="my-0 mx-auto max-w-3xl text-center">
-            <p class="bg-white px-10 py-10 text-black rounded-lg">"Login required to access this page."</p>
-            <form action=state.login_action.url() method="post" rel="external">
-                <input type="text" name="redirect_url" class="hidden" value=current_path/>
-                <button type="submit" class="btn btn-primary" on:click=move |_| get_current_path(current_path)>
-                    "Login"
-                </button>
-            </form>
+        <div class="hero min-h-screen">
+            <div class="hero-content flex text-center">
+                <AuthErrorIcon class="h-44 w-44"/>
+                <div class="max-w-md">
+                    <h1 class="text-5xl font-bold">"Not authenticated"</h1>
+                    <p class="pt-4">"Sorry, we had some trouble identifying you."</p>
+                    <p class="pb-4">"Please login to access this page."</p>
+                    <form action=state.login_action.url() method="post" rel="external">
+                        <input type="text" name="redirect_url" class="hidden" value=current_path/>
+                        <button type="submit" class="btn btn-primary rounded-sm" on:click=move |_| get_current_path(current_path)>
+                            "Login"
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     }
 }

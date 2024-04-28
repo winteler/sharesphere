@@ -172,12 +172,23 @@ pub fn FormMarkdownEditor(
         false => "btn btn-ghost",
     };
 
-    let content_debounced: Signal<String> = signal_debounced(content, 1000.0);
+    // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
+    // we wait for the debounced
+    let content_debounced: Signal<String> = signal_debounced(content, 500.0);
+    let is_md_mode_debounced: Signal<bool> = signal_debounced(is_markdown_mode, 500.0);
 
     let render_markdown_resource = create_resource(
-        move || content_debounced.get(),
-        move |markdown_content| get_styled_html_from_markdown(markdown_content),
+        move || (is_md_mode_debounced.get(), content_debounced.get()),
+        move |(is_markdown_mode, markdown_content)| async move {
+            if is_markdown_mode {
+                get_styled_html_from_markdown(markdown_content).await
+            } else {
+                Ok(String::from(""))
+            }
+        },
     );
+
+    let textarea_ref = create_node_ref::<html::Textarea>();
 
     view! {
         <div class="flex flex-col gap-2">
@@ -194,8 +205,10 @@ pub fn FormMarkdownEditor(
                         class="w-full min-h-24 max-h-96 bg-base-100 outline-none border-none"
                         autofocus
                         on:input=move |ev| {
+                            log::info!("Update content: {}", event_target_value(&ev));
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
+                        node_ref=textarea_ref
                     ></textarea>
                 </div>
                 <div class="flex px-2 gap-1">
@@ -211,7 +224,29 @@ pub fn FormMarkdownEditor(
                             <MarkdownIcon/>
                         </span>
                     </label>
-                    <button type="button" class="btn btn-ghost">
+                    <button
+                        type="button"
+                        class="btn btn-ghost"
+                        on:click=move |_| {
+                            if let Some(textarea_ref) = textarea_ref.get_untracked() {
+                                let selection_start = textarea_ref.selection_start();
+                                let selection_end = textarea_ref.selection_end();
+                                match (selection_start, selection_end) {
+                                    (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
+                                        content.update(|content| {
+                                            content.insert_str(selection_end as usize, "**");
+                                            content.insert_str(selection_start as usize, "**");
+                                        });
+                                        content.with_untracked(|content| textarea_ref.set_value(content));
+                                        if !is_markdown_mode.get_untracked() {
+                                            is_markdown_mode.set(true);
+                                        }
+                                    },
+                                    _ => log::debug!("Failed to get textarea selections."),
+                                };
+                            }
+                        }
+                    >
                         <BoldIcon/>
                     </button>
                 </div>

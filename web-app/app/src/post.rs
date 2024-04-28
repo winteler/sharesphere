@@ -600,7 +600,6 @@ pub fn CreatePost() -> impl IntoView {
                             placeholder="Sphere"
                             autocomplete="off"
                             class="input input-bordered input-primary w-full h-input_m"
-                            autofocus
                             on:input=move |ev| {
                                 forum_name_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
                             }
@@ -627,6 +626,7 @@ pub fn CreatePost() -> impl IntoView {
                         name="title"
                         placeholder="Title"
                         class="input input-bordered input-primary h-input_m"
+                        autofocus
                         on:input=move |ev| {
                             is_title_empty.set(event_target_value(&ev).is_empty());
                         }

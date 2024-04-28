@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Don't make button's text uppercase */
+.btn{
+    text-transform: none;
+}
+
 /* Styles for the spoiler blocks */
 .spoiler-checkbox {
 }

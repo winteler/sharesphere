@@ -4,6 +4,20 @@ use leptos_use::signal_debounced;
 use crate::icons::{BoldIcon, MarkdownIcon};
 use crate::unpack::TransitionUnpack;
 
+#[derive(Clone, Copy, Debug)]
+pub enum FormatType {
+    Bold,
+    Italic,
+    Strikethrough,
+    Header1,
+    Header2,
+    List,
+    NumberedList,
+    CodeBlock,
+    Spoiler,
+    Quote,
+}
+
 #[cfg(feature = "ssr")]
 mod ssr {
     use std::io::Cursor;
@@ -224,31 +238,7 @@ pub fn FormMarkdownEditor(
                             <MarkdownIcon/>
                         </span>
                     </label>
-                    <button
-                        type="button"
-                        class="btn btn-ghost"
-                        on:click=move |_| {
-                            if let Some(textarea_ref) = textarea_ref.get_untracked() {
-                                let selection_start = textarea_ref.selection_start();
-                                let selection_end = textarea_ref.selection_end();
-                                match (selection_start, selection_end) {
-                                    (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
-                                        content.update(|content| {
-                                            content.insert_str(selection_end as usize, "**");
-                                            content.insert_str(selection_start as usize, "**");
-                                        });
-                                        content.with_untracked(|content| textarea_ref.set_value(content));
-                                        if !is_markdown_mode.get_untracked() {
-                                            is_markdown_mode.set(true);
-                                        }
-                                    },
-                                    _ => log::debug!("Failed to get textarea selections."),
-                                };
-                            }
-                        }
-                    >
-                        <BoldIcon/>
-                    </button>
+                    <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -260,6 +250,66 @@ pub fn FormMarkdownEditor(
             </Show>
         </div>
     }
+}
+
+/// Component to format the selected text in the given textarea
+#[component]
+pub fn FormatButton(
+    /// name of the textarea in the form that contains this component, must correspond to the parameter of the associated server function
+    content: RwSignal<String>,
+    /// reference to the textarea
+    textarea_ref: NodeRef<html::Textarea>,
+    /// signal indicating whether markdown rendering is activated
+    is_markdown_mode: RwSignal<bool>,
+    /// format operation of the button
+    format_type: FormatType,
+) -> impl IntoView {
+    view! {
+        <button
+            type="button"
+            class="btn btn-ghost"
+            on:click=move |_| {
+                if let Some(textarea_ref) = textarea_ref.get_untracked() {
+                    let selection_start = textarea_ref.selection_start();
+                    let selection_end = textarea_ref.selection_end();
+                    match (selection_start, selection_end) {
+                        (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
+                            content.update(|content| {
+                                format_textarea_content(
+                                    content,
+                                    selection_start,
+                                    selection_end,
+                                    format_type,
+                                );
+                            });
+                            content.with_untracked(|content| textarea_ref.set_value(content));
+                            if !is_markdown_mode.get_untracked() {
+                                is_markdown_mode.set(true);
+                            }
+                        },
+                        _ => log::debug!("Failed to get textarea selections."),
+                    };
+                }
+            }
+        >
+            <BoldIcon/>
+        </button>
+    }
+}
+
+fn format_textarea_content(
+    content: &mut String,
+    selection_start: u32,
+    selection_end: u32,
+    format_type: FormatType
+) {
+    match format_type {
+        FormatType::Bold => {
+            content.insert_str(selection_end as usize, "**");
+            content.insert_str(selection_start as usize, "**");
+        },
+        _ => log::debug!("Formatting operation not implemented yet."),
+    };
 }
 
 #[cfg(test)]

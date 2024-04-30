@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_use::signal_debounced;
 
-use crate::icons::{BoldIcon, MarkdownIcon};
+use crate::icons::{BoldIcon, ItalicIcon, MarkdownIcon};
 use crate::unpack::TransitionUnpack;
 
 #[derive(Clone, Copy, Debug)]
@@ -16,6 +16,7 @@ pub enum FormatType {
     CodeBlock,
     Spoiler,
     Quote,
+    Image,
 }
 
 #[cfg(feature = "ssr")]
@@ -182,8 +183,8 @@ pub fn FormMarkdownEditor(
 
     let is_markdown_mode = create_rw_signal(false);
     let markdown_button_class = move || match is_markdown_mode.get() {
-        true => "btn btn-success",
-        false => "btn btn-ghost",
+        true => "btn btn-sm btn-success",
+        false => "btn btn-sm btn-ghost",
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -239,6 +240,7 @@ pub fn FormMarkdownEditor(
                         </span>
                     </label>
                     <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::Italic content textarea_ref is_markdown_mode/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -267,7 +269,7 @@ pub fn FormatButton(
     view! {
         <button
             type="button"
-            class="btn btn-ghost"
+            class="btn btn-sm btn-ghost"
             on:click=move |_| {
                 if let Some(textarea_ref) = textarea_ref.get_untracked() {
                     let selection_start = textarea_ref.selection_start();
@@ -292,7 +294,13 @@ pub fn FormatButton(
                 }
             }
         >
-            <BoldIcon/>
+        {
+            match format_type {
+                FormatType::Bold => view!{ <BoldIcon/> },
+                FormatType::Italic => view!{ <ItalicIcon/> },
+                _ => view! { <div>"missing icon"</div> }.into_view(),
+            }
+        }
         </button>
     }
 }
@@ -307,6 +315,10 @@ fn format_textarea_content(
         FormatType::Bold => {
             content.insert_str(selection_end as usize, "**");
             content.insert_str(selection_start as usize, "**");
+        },
+        FormatType::Italic => {
+            content.insert_str(selection_end as usize, "*");
+            content.insert_str(selection_start as usize, "*");
         },
         _ => log::debug!("Formatting operation not implemented yet."),
     };

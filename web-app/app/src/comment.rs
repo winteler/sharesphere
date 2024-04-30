@@ -507,7 +507,7 @@ pub fn CommentForm(
     });
 
     view! {
-        <div class="bg-base-200 p-2 flex flex-col gap-2">
+        <div class="bg-base-200 p-4 flex flex-col gap-2">
             <ActionForm
                 action=state.create_comment_action
                 node_ref=form_ref

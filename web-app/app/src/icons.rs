@@ -10,7 +10,7 @@ pub fn AuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Into
 #[component]
 pub fn BoldIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/bold_font.svg" class=class/>
+        <img src="/svg/editor/bold.svg" class=class/>
     }
 }
 
@@ -58,6 +58,13 @@ pub fn HourglassIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl I
     }
 }
 
+#[component]
+pub fn ItalicIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/italic.svg" class=class/>
+    }
+}
+
 /// Renders a loading icon
 #[component]
 pub fn LoadingIcon(#[prop(default = "loading-md my-5")] class: &'static str) -> impl IntoView {
@@ -77,10 +84,10 @@ pub fn LogoIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoVi
 }
 
 #[component]
-pub fn MarkdownIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn MarkdownIcon(#[prop(default = "h-8 w-8")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
-            <img src="/svg/markdown.svg"/>
+            <img src="/svg/editor/markdown.svg"/>
         </div>
     }
 }

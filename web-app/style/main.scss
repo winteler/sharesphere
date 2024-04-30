@@ -2637,6 +2637,14 @@ html {
   }
 }
 
+.btn-xs {
+  height: 1.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  min-height: 1.5rem;
+  font-size: 0.75rem;
+}
+
 .btn-sm {
   height: 2rem;
   padding-left: 0.75rem;
@@ -3187,6 +3195,10 @@ html {
   height: 100vh;
 }
 
+.h-8 {
+  height: 2rem;
+}
+
 .max-h-96 {
   max-height: 24rem;
 }
@@ -3266,6 +3278,10 @@ html {
 
 .w-screen {
   width: 100vw;
+}
+
+.w-8 {
+  width: 2rem;
 }
 
 .max-w-full {
@@ -3568,6 +3584,10 @@ html {
   padding: 0.25rem;
 }
 
+.p-10 {
+  padding: 2.5rem;
+}
+
 .p-2 {
   padding: 0.5rem;
 }
@@ -3578,6 +3598,10 @@ html {
 
 .p-4 {
   padding: 1rem;
+}
+
+.p-12 {
+  padding: 3rem;
 }
 
 .px-1 {
@@ -3684,10 +3708,6 @@ html {
 
 .lowercase {
   text-transform: lowercase;
-}
-
-.normal-case {
-  text-transform: none;
 }
 
 .italic {

@@ -3170,6 +3170,10 @@ html {
   height: 1.75rem;
 }
 
+.h-9 {
+  height: 2.25rem;
+}
+
 .h-fit {
   height: -moz-fit-content;
   height: fit-content;
@@ -3213,10 +3217,6 @@ html {
 
 .w-1\/2 {
   width: 50%;
-}
-
-.w-10 {
-  width: 2.5rem;
 }
 
 .w-12 {
@@ -3267,6 +3267,14 @@ html {
   width: 1.75rem;
 }
 
+.w-8 {
+  width: 2rem;
+}
+
+.w-9 {
+  width: 2.25rem;
+}
+
 .w-fit {
   width: -moz-fit-content;
   width: fit-content;
@@ -3278,10 +3286,6 @@ html {
 
 .w-screen {
   width: 100vw;
-}
-
-.w-8 {
-  width: 2rem;
 }
 
 .max-w-full {
@@ -3306,10 +3310,6 @@ html {
 
 .flex-none {
   flex: none;
-}
-
-.shrink-0 {
-  flex-shrink: 0;
 }
 
 .grow {
@@ -3575,10 +3575,6 @@ html {
 
 .bg-no-repeat {
   background-repeat: no-repeat;
-}
-
-.stroke-current {
-  stroke: currentColor;
 }
 
 .p-0 {

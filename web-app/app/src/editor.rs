@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_use::signal_debounced;
 
-use crate::icons::{BoldIcon, Header1Icon, Header2Icon, ItalicIcon, MarkdownIcon, StrikethroughIcon};
+use crate::icons::{BoldIcon, CodeBlockIcon, Header1Icon, Header2Icon, ItalicIcon, ListBulletIcon, ListNumberIcon, MarkdownIcon, StrikethroughIcon};
 use crate::unpack::TransitionUnpack;
 
 #[derive(Clone, Copy, Debug)]
@@ -183,8 +183,8 @@ pub fn FormMarkdownEditor(
 
     let is_markdown_mode = create_rw_signal(false);
     let markdown_button_class = move || match is_markdown_mode.get() {
-        true => "p-2 rounded-md bg-success",
-        false => "p-2 rounded-md hover:bg-base-content/20",
+        true => "h-full content-center p-2 rounded-md bg-success",
+        false => "h-full content-center p-2 rounded-md hover:bg-base-content/20",
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -226,7 +226,7 @@ pub fn FormMarkdownEditor(
                         node_ref=textarea_ref
                     ></textarea>
                 </div>
-                <div class="flex px-2 gap-1">
+                <div class="flex gap-1 px-2">
                     <label>
                         <input
                             type="checkbox"
@@ -244,6 +244,9 @@ pub fn FormMarkdownEditor(
                     <FormatButton format_type=FormatType::Strikethrough content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::Header1 content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::Header2 content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::List content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::NumberedList content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::CodeBlock content textarea_ref is_markdown_mode/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -304,6 +307,9 @@ pub fn FormatButton(
                 FormatType::Strikethrough => view!{ <StrikethroughIcon/> },
                 FormatType::Header1 => view!{ <Header1Icon/> },
                 FormatType::Header2 => view!{ <Header2Icon/> },
+                FormatType::List => view!{ <ListBulletIcon/> },
+                FormatType::NumberedList => view!{ <ListNumberIcon/> },
+                FormatType::CodeBlock => view!{ <CodeBlockIcon/> },
                 _ => view! { <div>"missing icon"</div> }.into_view(),
             }
         }
@@ -335,6 +341,16 @@ fn format_textarea_content(
         },
         FormatType::Header2 => {
             content.insert_str(get_line_start_for_position(content, selection_start as usize), "## ");
+        },
+        FormatType::List => {
+            content.insert_str(get_line_start_for_position(content, selection_start as usize), "* ");
+        },
+        FormatType::NumberedList => {
+            content.insert_str(get_line_start_for_position(content, selection_start as usize), "1. ");
+        },
+        FormatType::CodeBlock => {
+            content.insert_str(selection_end as usize, "`");
+            content.insert_str(selection_start as usize, "`");
         },
         _ => log::debug!("Formatting operation not implemented yet."),
     };

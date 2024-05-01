@@ -1,0 +1,9 @@
+<svg fill="white" width="800px" height="800px" viewBox="0 0 36 36" version="1.1" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <!-- Vectors and icons by <a href="https://dazzleui.gumroad.com/l/dazzleiconsfree?ref=svgrepo.com" target="_blank">Dazzle Ui</a> in CC Attribution License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
+    <circle cx="5.21" cy="9.17" r="2"/>
+    <circle cx="5.21" cy="17.17" r="2"/>
+    <circle cx="5.21" cy="25.17" r="2"/>
+    <path d="M32.42,9a1,1,0,0,0-1-1H10v2H31.42A1,1,0,0,0,32.42,9Z"/>
+    <path d="M31.42,16H10v2H31.42a1,1,0,0,0,0-2Z"/>
+    <path d="M31.42,24H10v2H31.42a1,1,0,0,0,0-2Z"/>
+</svg>

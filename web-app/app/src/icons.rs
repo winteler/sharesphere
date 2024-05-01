@@ -29,6 +29,13 @@ pub fn ClockIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoV
 }
 
 #[component]
+pub fn CodeBlockIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/codeblock.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn CommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/comment.svg" class=class/>
@@ -88,6 +95,20 @@ pub fn InvalidRequestIcon(#[prop(default = "h-28 w-28")] class: &'static str) ->
 pub fn ItalicIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/italic.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn ListBulletIcon(#[prop(default = "h-9 w-9")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/bullet_list.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn ListNumberIcon(#[prop(default = "h-9 w-9")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/number_list.svg" class=class/>
     }
 }
 

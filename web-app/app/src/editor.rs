@@ -183,8 +183,8 @@ pub fn FormMarkdownEditor(
 
     let is_markdown_mode = create_rw_signal(false);
     let markdown_button_class = move || match is_markdown_mode.get() {
-        true => "btn btn-sm btn-success",
-        false => "btn btn-sm btn-ghost",
+        true => "p-2 rounded-md bg-success",
+        false => "p-2 rounded-md hover:bg-base-content/20",
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -235,9 +235,9 @@ pub fn FormMarkdownEditor(
                             value=is_markdown_mode
                             on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
                         />
-                        <span class=markdown_button_class>
+                        <div class=markdown_button_class>
                             <MarkdownIcon/>
-                        </span>
+                        </div>
                     </label>
                     <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::Italic content textarea_ref is_markdown_mode/>
@@ -269,7 +269,7 @@ pub fn FormatButton(
     view! {
         <button
             type="button"
-            class="btn btn-sm btn-ghost"
+            class="p-2 rounded-md hover:bg-base-content/20"
             on:click=move |_| {
                 if let Some(textarea_ref) = textarea_ref.get_untracked() {
                     let selection_start = textarea_ref.selection_start();

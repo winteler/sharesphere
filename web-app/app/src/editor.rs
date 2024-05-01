@@ -1,7 +1,8 @@
 use leptos::*;
 use leptos_use::signal_debounced;
 
-use crate::icons::{BoldIcon, CodeBlockIcon, Header1Icon, Header2Icon, ItalicIcon, ListBulletIcon, ListNumberIcon, MarkdownIcon, StrikethroughIcon};
+use crate::constants::SPOILER_TAG;
+use crate::icons::{BoldIcon, CodeBlockIcon, Header1Icon, Header2Icon, ItalicIcon, ListBulletIcon, ListNumberIcon, MarkdownIcon, QuoteIcon, SpoilerIcon, StrikethroughIcon};
 use crate::unpack::TransitionUnpack;
 
 #[derive(Clone, Copy, Debug)]
@@ -15,7 +16,8 @@ pub enum FormatType {
     NumberedList,
     CodeBlock,
     Spoiler,
-    Quote,
+    BlockQuote,
+    Link,
     Image,
 }
 
@@ -247,6 +249,8 @@ pub fn FormMarkdownEditor(
                     <FormatButton format_type=FormatType::List content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::NumberedList content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::CodeBlock content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::Spoiler content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::BlockQuote content textarea_ref is_markdown_mode/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -310,6 +314,8 @@ pub fn FormatButton(
                 FormatType::List => view!{ <ListBulletIcon/> },
                 FormatType::NumberedList => view!{ <ListNumberIcon/> },
                 FormatType::CodeBlock => view!{ <CodeBlockIcon/> },
+                FormatType::Spoiler => view!{ <SpoilerIcon/> },
+                FormatType::BlockQuote => view!{ <QuoteIcon/> },
                 _ => view! { <div>"missing icon"</div> }.into_view(),
             }
         }
@@ -349,8 +355,15 @@ fn format_textarea_content(
             content.insert_str(get_line_start_for_position(content, selection_start as usize), "1. ");
         },
         FormatType::CodeBlock => {
-            content.insert_str(selection_end as usize, "`");
-            content.insert_str(selection_start as usize, "`");
+            content.insert_str(selection_end as usize, "```");
+            content.insert_str(selection_start as usize, "```");
+        },
+        FormatType::Spoiler => {
+            content.insert_str(selection_end as usize, SPOILER_TAG);
+            content.insert_str(selection_start as usize, SPOILER_TAG);
+        },
+        FormatType::BlockQuote => {
+            content.insert_str(get_line_start_for_position(content, selection_start as usize), "> ");
         },
         _ => log::debug!("Formatting operation not implemented yet."),
     };

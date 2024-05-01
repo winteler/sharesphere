@@ -200,6 +200,13 @@ pub fn PodiumIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl Into
 }
 
 #[component]
+pub fn QuoteIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/quote.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn ScoreIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/score.svg" class=class/>
@@ -217,6 +224,13 @@ pub fn SearchIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Into
 pub fn SideBarIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/sidebar.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn SpoilerIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/spoiler.svg" class=class/>
     }
 }
 

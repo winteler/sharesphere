@@ -1,6 +1,13 @@
 use leptos::*;
 
 #[component]
+pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/alien.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn AuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/author.svg" class=class/>
@@ -29,15 +36,6 @@ pub fn CommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Int
 }
 
 #[component]
-pub fn ErrorIcon() -> impl IntoView {
-    view! {
-        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-    }
-}
-
-#[component]
 pub fn FlameIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/flame.svg" class=class/>
@@ -52,9 +50,37 @@ pub fn GraphIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoV
 }
 
 #[component]
+pub fn Header1Icon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/header_1.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn Header2Icon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/header_2.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn HourglassIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/hourglass.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn InternalErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/landing_space_capsule.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn InvalidRequestIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/chewbacca.svg" class=class/>
     }
 }
 
@@ -114,6 +140,27 @@ pub fn MaximizeIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl In
         <div class=class>
             <img src="/svg/maximize.svg"/>
         </div>
+    }
+}
+
+#[component]
+pub fn NetworkErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/satellite.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn NotAuthenticatedIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/stormtrooper.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/man_on_the_moon.svg" class=class/>
     }
 }
 
@@ -193,46 +240,3 @@ pub fn UserIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoVi
         <img src="/svg/user.svg" class=class/>
     }
 }
-
-#[component]
-pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/errors/man_on_the_moon.svg" class=class/>
-    }
-}
-
-#[component]
-pub fn InternalErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/errors/landing_space_capsule.svg" class=class/>
-    }
-}
-
-#[component]
-pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/errors/alien.svg" class=class/>
-    }
-}
-
-#[component]
-pub fn InvalidRequestIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/errors/chewbacca.svg" class=class/>
-    }
-}
-
-#[component]
-pub fn NetworkErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/errors/satellite.svg" class=class/>
-    }
-}
-
-#[component]
-pub fn NotAuthenticatedIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/errors/stormtrooper.svg" class=class/>
-    }
-}
-

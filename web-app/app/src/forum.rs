@@ -11,7 +11,7 @@ use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
-use crate::icons::{ErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
+use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
@@ -706,7 +706,7 @@ pub fn CreateForum() -> impl IntoView {
                                     is_name_taken.set(true);
                                     view! {
                                         <div class="alert alert-error h-input_l flex content-center">
-                                            <ErrorIcon/>
+                                            <InternalErrorIcon/>
                                             <span>"Unavailable."</span>
                                         </div>
                                     }.into_view()
@@ -716,7 +716,7 @@ pub fn CreateForum() -> impl IntoView {
                                     is_name_taken.set(true);
                                     view! {
                                         <div class="alert alert-error h-input_l flex content-center">
-                                            <ErrorIcon/>
+                                            <InternalErrorIcon/>
                                             <span>"Server error."</span>
                                         </div>
                                     }.into_view()
@@ -726,7 +726,7 @@ pub fn CreateForum() -> impl IntoView {
                         }
                         </Suspense>
                         <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
-                            <ErrorIcon/>
+                            <InternalErrorIcon/>
                             <span>"Only alphanumeric characters."</span>
                         </div>
                     </div>
@@ -751,7 +751,7 @@ pub fn CreateForum() -> impl IntoView {
                 fallback=move || ()
             >
                 <div class="alert alert-error flex justify-center">
-                    <ErrorIcon/>
+                    <InternalErrorIcon/>
                     <span>"Server error. Please reload the page and retry."</span>
                 </div>
             </Show>

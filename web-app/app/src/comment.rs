@@ -13,7 +13,7 @@ use crate::auth::ssr::check_user;
 use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
-use crate::icons::{CommentIcon, ErrorIcon, MaximizeIcon, MinimizeIcon};
+use crate::icons::{CommentIcon, InternalErrorIcon, MaximizeIcon, MinimizeIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 
@@ -555,7 +555,7 @@ pub fn CommentForm(
                 fallback=move || ()
             >
                 <div class="alert alert-error flex justify-center">
-                    <ErrorIcon/>
+                    <InternalErrorIcon/>
                     <span>"Server error. Please reload the page and retry."</span>
                 </div>
             </Show>

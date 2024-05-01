@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_use::signal_debounced;
 
-use crate::icons::{BoldIcon, ItalicIcon, MarkdownIcon, StrikethroughIcon};
+use crate::icons::{BoldIcon, Header1Icon, Header2Icon, ItalicIcon, MarkdownIcon, StrikethroughIcon};
 use crate::unpack::TransitionUnpack;
 
 #[derive(Clone, Copy, Debug)]
@@ -242,6 +242,8 @@ pub fn FormMarkdownEditor(
                     <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::Italic content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::Strikethrough content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::Header1 content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::Header2 content textarea_ref is_markdown_mode/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -300,6 +302,8 @@ pub fn FormatButton(
                 FormatType::Bold => view!{ <BoldIcon/> },
                 FormatType::Italic => view!{ <ItalicIcon/> },
                 FormatType::Strikethrough => view!{ <StrikethroughIcon/> },
+                FormatType::Header1 => view!{ <Header1Icon/> },
+                FormatType::Header2 => view!{ <Header2Icon/> },
                 _ => view! { <div>"missing icon"</div> }.into_view(),
             }
         }
@@ -326,8 +330,25 @@ fn format_textarea_content(
             content.insert_str(selection_end as usize, "~~");
             content.insert_str(selection_start as usize, "~~");
         },
+        FormatType::Header1 => {
+            content.insert_str(get_line_start_for_position(content, selection_start as usize), "# ");
+        },
+        FormatType::Header2 => {
+            content.insert_str(get_line_start_for_position(content, selection_start as usize), "## ");
+        },
         _ => log::debug!("Formatting operation not implemented yet."),
     };
+}
+
+/// Given the input String, returns the starting byte index of the line containing the [position] byte index.
+fn get_line_start_for_position(
+    string: &String,
+    position: usize,
+) -> usize {
+    match string[..position].rfind('\n') {
+        Some(line_start) => line_start + 1,
+        None => 0,
+    }
 }
 
 #[cfg(test)]

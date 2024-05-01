@@ -20,7 +20,7 @@ use crate::errors::AppError;
 use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::icons::{ErrorIcon, LoadingIcon};
+use crate::icons::{InternalErrorIcon, LoadingIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
@@ -650,7 +650,7 @@ pub fn CreatePost() -> impl IntoView {
                 fallback=move || ()
             >
                 <div class="alert alert-error flex justify-center">
-                    <ErrorIcon/>
+                    <InternalErrorIcon/>
                     <span>"Server error. Please reload the page and retry."</span>
                 </div>
             </Show>

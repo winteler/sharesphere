@@ -84,7 +84,7 @@ pub fn LogoIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoVi
 }
 
 #[component]
-pub fn MarkdownIcon(#[prop(default = "h-5 w-10")] class: &'static str) -> impl IntoView {
+pub fn MarkdownIcon(#[prop(default = "h-4 w-8")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/editor/markdown.svg"/>
@@ -163,6 +163,13 @@ pub fn StarIcon(
     };
     view! {
         <img src=svg_path class=class/>
+    }
+}
+
+#[component]
+pub fn StrikethroughIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/strikethrough.svg" class=class/>
     }
 }
 

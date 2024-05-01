@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_use::signal_debounced;
 
-use crate::icons::{BoldIcon, ItalicIcon, MarkdownIcon};
+use crate::icons::{BoldIcon, ItalicIcon, MarkdownIcon, StrikethroughIcon};
 use crate::unpack::TransitionUnpack;
 
 #[derive(Clone, Copy, Debug)]
@@ -241,6 +241,7 @@ pub fn FormMarkdownEditor(
                     </label>
                     <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::Italic content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::Strikethrough content textarea_ref is_markdown_mode/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -298,6 +299,7 @@ pub fn FormatButton(
             match format_type {
                 FormatType::Bold => view!{ <BoldIcon/> },
                 FormatType::Italic => view!{ <ItalicIcon/> },
+                FormatType::Strikethrough => view!{ <StrikethroughIcon/> },
                 _ => view! { <div>"missing icon"</div> }.into_view(),
             }
         }
@@ -319,6 +321,10 @@ fn format_textarea_content(
         FormatType::Italic => {
             content.insert_str(selection_end as usize, "*");
             content.insert_str(selection_start as usize, "*");
+        },
+        FormatType::Strikethrough => {
+            content.insert_str(selection_end as usize, "~~");
+            content.insert_str(selection_start as usize, "~~");
         },
         _ => log::debug!("Formatting operation not implemented yet."),
     };

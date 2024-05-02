@@ -288,6 +288,8 @@ pub fn FormatButton(
                     let selection_end = textarea_ref.selection_end();
                     match (selection_start, selection_end) {
                         (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
+                            let selection_start = selection_start as usize;
+                            let selection_end = selection_end as usize;
                             content.update(|content| {
                                 format_textarea_content(
                                     content,
@@ -328,51 +330,63 @@ pub fn FormatButton(
 
 fn format_textarea_content(
     content: &mut String,
-    selection_start: u32,
-    selection_end: u32,
+    mut selection_start: usize,
+    mut selection_end: usize,
     format_type: FormatType
 ) {
+    let selected_content = &content[selection_start..selection_end];
+    let leading_whitespace = selected_content.chars()
+        .take_while(|ch| ch.is_whitespace())
+        .count();
+    let ending_whitespace = selected_content.chars()
+        .rev()
+        .take_while(|ch| ch.is_whitespace())
+        .count();
+
+    selection_start += leading_whitespace;
+    selection_end -= ending_whitespace;
+
     match format_type {
         FormatType::Bold => {
-            content.insert_str(selection_end as usize, "**");
-            content.insert_str(selection_start as usize, "**");
+            content.insert_str(selection_end, "**");
+            content.insert_str(selection_start, "**");
         },
         FormatType::Italic => {
-            content.insert_str(selection_end as usize, "*");
-            content.insert_str(selection_start as usize, "*");
+            content.insert_str(selection_end, "*");
+            content.insert_str(selection_start, "*");
         },
         FormatType::Strikethrough => {
-            content.insert_str(selection_end as usize, "~~");
-            content.insert_str(selection_start as usize, "~~");
+            content.insert_str(selection_end, "~~");
+            content.insert_str(selection_start, "~~");
         },
         FormatType::Header1 => {
-            content.insert_str(get_line_start_for_position(content, selection_start as usize), "# ");
+            content.insert_str(get_line_start_for_position(content, selection_start), "# ");
         },
         FormatType::Header2 => {
-            content.insert_str(get_line_start_for_position(content, selection_start as usize), "## ");
+            content.insert_str(get_line_start_for_position(content, selection_start), "## ");
         },
         FormatType::List => {
-            content.insert_str(get_line_start_for_position(content, selection_start as usize), "* ");
+            content.insert_str(get_line_start_for_position(content, selection_start), "* ");
         },
         FormatType::NumberedList => {
-            content.insert_str(get_line_start_for_position(content, selection_start as usize), "1. ");
+            content.insert_str(get_line_start_for_position(content, selection_start), "1. ");
         },
         FormatType::CodeBlock => {
-            content.insert_str(selection_end as usize, "```");
-            content.insert_str(selection_start as usize, "```");
+            content.insert_str(selection_end, "```");
+            content.insert_str(selection_start, "```");
         },
         FormatType::Spoiler => {
-            content.insert_str(selection_end as usize, SPOILER_TAG);
-            content.insert_str(selection_start as usize, SPOILER_TAG);
+            content.insert_str(selection_end, SPOILER_TAG);
+            content.insert_str(selection_start, SPOILER_TAG);
         },
         FormatType::BlockQuote => {
-            content.insert_str(get_line_start_for_position(content, selection_start as usize), "> ");
+            content.insert_str(get_line_start_for_position(content, selection_start), "> ");
         },
         FormatType::Link => {
-            content.insert_str(get_line_start_for_position(content, selection_start as usize), "[link text](https://www.your_link.com)");
+            content.insert_str(get_line_start_for_position(content, selection_start), "[link text](https://www.your_link.com)");
         },
         FormatType::Image => {
-            content.insert_str(get_line_start_for_position(content, selection_start as usize), "![](https://image_url.png)");
+            content.insert_str(get_line_start_for_position(content, selection_start), "![](https://image_url.png)");
         },
     };
 }

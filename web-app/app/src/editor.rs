@@ -228,7 +228,7 @@ pub fn FormMarkdownEditor(
                         node_ref=textarea_ref
                     ></textarea>
                 </div>
-                <div class="flex gap-1 px-2">
+                <div class="flex">
                     <label>
                         <input
                             type="checkbox"

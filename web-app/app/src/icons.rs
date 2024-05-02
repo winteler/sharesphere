@@ -78,6 +78,13 @@ pub fn HourglassIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl I
 }
 
 #[component]
+pub fn ImageIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/image.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn InternalErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/errors/landing_space_capsule.svg" class=class/>
@@ -99,14 +106,21 @@ pub fn ItalicIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl Into
 }
 
 #[component]
-pub fn ListBulletIcon(#[prop(default = "h-9 w-9")] class: &'static str) -> impl IntoView {
+pub fn LinkIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/link.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn ListBulletIcon(#[prop(default = "h-8 w-8")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/bullet_list.svg" class=class/>
     }
 }
 
 #[component]
-pub fn ListNumberIcon(#[prop(default = "h-9 w-9")] class: &'static str) -> impl IntoView {
+pub fn ListNumberIcon(#[prop(default = "h-8 w-8")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/number_list.svg" class=class/>
     }

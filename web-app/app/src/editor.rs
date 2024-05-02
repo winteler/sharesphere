@@ -2,7 +2,7 @@ use leptos::*;
 use leptos_use::signal_debounced;
 
 use crate::constants::SPOILER_TAG;
-use crate::icons::{BoldIcon, CodeBlockIcon, Header1Icon, Header2Icon, ItalicIcon, ListBulletIcon, ListNumberIcon, MarkdownIcon, QuoteIcon, SpoilerIcon, StrikethroughIcon};
+use crate::icons::{BoldIcon, CodeBlockIcon, Header1Icon, Header2Icon, ImageIcon, ItalicIcon, LinkIcon, ListBulletIcon, ListNumberIcon, MarkdownIcon, QuoteIcon, SpoilerIcon, StrikethroughIcon};
 use crate::unpack::TransitionUnpack;
 
 #[derive(Clone, Copy, Debug)]
@@ -251,6 +251,8 @@ pub fn FormMarkdownEditor(
                     <FormatButton format_type=FormatType::CodeBlock content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::Spoiler content textarea_ref is_markdown_mode/>
                     <FormatButton format_type=FormatType::BlockQuote content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::Link content textarea_ref is_markdown_mode/>
+                    <FormatButton format_type=FormatType::Image content textarea_ref is_markdown_mode/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -316,7 +318,8 @@ pub fn FormatButton(
                 FormatType::CodeBlock => view!{ <CodeBlockIcon/> },
                 FormatType::Spoiler => view!{ <SpoilerIcon/> },
                 FormatType::BlockQuote => view!{ <QuoteIcon/> },
-                _ => view! { <div>"missing icon"</div> }.into_view(),
+                FormatType::Link => view!{ <LinkIcon/> },
+                FormatType::Image => view!{ <ImageIcon/> },
             }
         }
         </button>
@@ -365,7 +368,12 @@ fn format_textarea_content(
         FormatType::BlockQuote => {
             content.insert_str(get_line_start_for_position(content, selection_start as usize), "> ");
         },
-        _ => log::debug!("Formatting operation not implemented yet."),
+        FormatType::Link => {
+            content.insert_str(get_line_start_for_position(content, selection_start as usize), "[link text](https://www.your_link.com)");
+        },
+        FormatType::Image => {
+            content.insert_str(get_line_start_for_position(content, selection_start as usize), "![](https://image_url.png)");
+        },
     };
 }
 

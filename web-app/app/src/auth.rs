@@ -7,30 +7,29 @@ use leptos_router::*;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
-use openidconnect::{OAuth2TokenResponse, TokenResponse};
-#[cfg(feature = "ssr")]
 use openidconnect::reqwest::*;
+#[cfg(feature = "ssr")]
+use openidconnect::{OAuth2TokenResponse, TokenResponse};
 use serde::{Deserialize, Serialize};
 
-use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_session;
+use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::navigation_bar::get_current_path;
 use crate::unpack::SuspenseUnpack;
 
-pub const BASE_URL_ENV : &str = "LEPTOS_SITE_ADDR";
-pub const OIDC_ISSUER_URL_ENV : &str = "OIDC_ISSUER_ADDR";
-pub const AUTH_CLIENT_ID_ENV : &str = "AUTH_CLIENT_ID";
-pub const AUTH_CLIENT_SECRET_ENV : &str = "AUTH_CLIENT_SECRET";
-pub const AUTH_CALLBACK_ROUTE : &str = "/authback";
-pub const PKCE_KEY : &str = "pkce";
-pub const NONCE_KEY : &str = "nonce";
-pub const OIDC_TOKENS_KEY : &str = "oidc_token";
-pub const OIDC_USERNAME_KEY : &str = "oidc_username";
-pub const REDIRECT_URL_KEY : &str = "redirect";
-
+pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
+pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_ADDR";
+pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
+pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
+pub const AUTH_CALLBACK_ROUTE: &str = "/authback";
+pub const PKCE_KEY: &str = "pkce";
+pub const NONCE_KEY: &str = "nonce";
+pub const OIDC_TOKENS_KEY: &str = "oidc_token";
+pub const OIDC_USERNAME_KEY: &str = "oidc_username";
+pub const REDIRECT_URL_KEY: &str = "redirect";
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,7 +60,11 @@ pub struct OidcUserInfo {
 
 impl std::fmt::Display for OidcUserInfo {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(fmt, "OidcUserInfo {{{}, {}, {}}}", self.oidc_id, self.username, self.email)
+        write!(
+            fmt,
+            "OidcUserInfo {{{}, {}, {}}}",
+            self.oidc_id, self.username, self.email
+        )
     }
 }
 
@@ -70,11 +73,13 @@ pub mod ssr {
     use async_trait::async_trait;
     use axum_session::SessionPgPool;
     use sqlx::PgPool;
+
     use crate::errors::AppError;
 
     use super::*;
 
-    pub type AuthSession = axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
+    pub type AuthSession =
+        axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
 
     #[derive(sqlx::FromRow, Clone)]
     pub struct SqlUser {
@@ -103,15 +108,15 @@ pub mod ssr {
                 "SELECT * FROM users WHERE oidc_id = $1",
                 oidc_info.oidc_id.clone()
             )
-                .fetch_one(db_pool)
-                .await {
+            .fetch_one(db_pool)
+            .await
+            {
                 Ok(sql_user) => Some(sql_user.into_user()),
                 Err(select_error) => {
                     log::info!("User not found with error: {}", select_error);
                     if let sqlx::Error::RowNotFound = select_error {
                         create_user(oidc_info, db_pool).await
-                    }
-                    else {
+                    } else {
                         log::error!("Could not get user {}", select_error);
                         None
                     }
@@ -122,7 +127,10 @@ pub mod ssr {
 
     #[async_trait]
     impl Authentication<User, OidcUserInfo, PgPool> for User {
-        async fn load_user(oidc_id: OidcUserInfo, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
+        async fn load_user(
+            oidc_id: OidcUserInfo,
+            pool: Option<&PgPool>,
+        ) -> Result<User, anyhow::Error> {
             let pool = pool.ok_or(anyhow::anyhow!("Cannot get DB pool"))?;
 
             User::get(oidc_id, pool)
@@ -152,14 +160,14 @@ pub mod ssr {
             oidc_info.username,
             oidc_info.email,
         )
-            .fetch_one(db_pool)
-            .await
+        .fetch_one(db_pool)
+        .await
         {
             Ok(sql_user) => Some(sql_user.into_user()),
             Err(insert_error) => {
                 log::error!("Error while creating user: {}", insert_error);
                 None
-            },
+            }
         }
     }
 
@@ -174,7 +182,7 @@ pub mod ssr {
     pub fn get_client_secret() -> Option<oidc::ClientSecret> {
         match env::var(AUTH_CLIENT_SECRET_ENV) {
             Ok(secret) => Some(oidc::ClientSecret::new(secret)),
-            Err(_) => None
+            Err(_) => None,
         }
     }
 
@@ -183,32 +191,34 @@ pub mod ssr {
     }
 
     pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
-        Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE)?)
+        Ok(oidc::RedirectUrl::new(
+            String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE,
+        )?)
     }
 
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
-        Ok(oidc::PostLogoutRedirectUrl::new(String::from("http://") + get_base_url()?.as_str())?)
+        Ok(oidc::PostLogoutRedirectUrl::new(
+            String::from("http://") + get_base_url()?.as_str(),
+        )?)
     }
 
     pub async fn get_auth_client() -> Result<oidc::core::CoreClient, AppError> {
         let redirect_url = get_auth_redirect()?;
         let issuer_url = get_issuer_url()?;
 
-        let provider_metadata = oidc::core::CoreProviderMetadata::discover_async(
-            issuer_url.clone(),
-            async_http_client
-        ).await?;
+        let provider_metadata =
+            oidc::core::CoreProviderMetadata::discover_async(issuer_url.clone(), async_http_client)
+                .await?;
 
         // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL
         // and token URL.
-        let client =
-            oidc::core::CoreClient::from_provider_metadata(
-                provider_metadata.clone(),
-                get_client_id()?,
-                get_client_secret(),
-            )
-                // Set the URL the user will be redirected to after the authorization process.
-                .set_redirect_uri(redirect_url);
+        let client = oidc::core::CoreClient::from_provider_metadata(
+            provider_metadata.clone(),
+            get_client_id()?,
+            get_client_secret(),
+        )
+        // Set the URL the user will be redirected to after the authorization process.
+        .set_redirect_uri(redirect_url);
 
         Ok(client)
     }
@@ -223,8 +233,14 @@ pub mod ssr {
 pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
     let current_user = check_user();
 
-    if current_user.as_ref().is_ok_and(|user| user.is_authenticated()) {
-        log::info!("Already logged in, current user is: {:?}", current_user.clone().unwrap());
+    if current_user
+        .as_ref()
+        .is_ok_and(|user| user.is_authenticated())
+    {
+        log::info!(
+            "Already logged in, current user is: {:?}",
+            current_user.clone().unwrap()
+        );
         return Ok(current_user.unwrap());
     }
 
@@ -249,38 +265,49 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
     auth_session.session.set(REDIRECT_URL_KEY, redirect_url);
 
     // Redirect to the auth page
-    leptos_axum::redirect( auth_url.as_ref());
+    leptos_axum::redirect(auth_url.as_ref());
 
     Ok(User::default())
 }
 
 #[server]
-pub async fn authenticate_user( auth_code: String) -> Result<(User, String), ServerFnError> {
+pub async fn authenticate_user(auth_code: String) -> Result<(User, String), ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
     let auth_session = get_session()?;
 
-    let nonce = oidc::Nonce::new(auth_session.session.get(NONCE_KEY).unwrap_or(String::from("")));
-    let redirect_url = auth_session.session.get(REDIRECT_URL_KEY).unwrap_or(String::from("/"));
+    let nonce = oidc::Nonce::new(
+        auth_session
+            .session
+            .get(NONCE_KEY)
+            .unwrap_or(String::from("")),
+    );
+    let redirect_url = auth_session
+        .session
+        .get(REDIRECT_URL_KEY)
+        .unwrap_or(String::from("/"));
 
     let client = ssr::get_auth_client().await?;
 
     // Now you can exchange it for an access token and ID token.
     let token_response = client
         .exchange_code(oidc::AuthorizationCode::new(auth_code))
-        .request_async(async_http_client).await?;
+        .request_async(async_http_client)
+        .await?;
 
     // Extract the ID token claims after verifying its authenticity and nonce.
-    let id_token = token_response.id_token().ok_or(ServerFnError::new("Error getting id token."))?;
+    let id_token = token_response
+        .id_token()
+        .ok_or(ServerFnError::new("Error getting id token."))?;
     let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
 
     // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.
     if let Some(expected_access_token_hash) = claims.access_token_hash() {
         let actual_access_token_hash = oidc::AccessTokenHash::from_token(
             token_response.access_token(),
-            &id_token.signing_alg()?
+            &id_token.signing_alg()?,
         )?;
         if actual_access_token_hash != *expected_access_token_hash {
             return Err(ServerFnError::new("Invalid access token"));
@@ -292,7 +319,10 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
     log::debug!(
         "User {} with e-mail address {} has authenticated successfully",
         claims.subject().as_str(),
-        claims.email().map(|email| email.as_str()).unwrap_or("<not provided>"),
+        claims
+            .email()
+            .map(|email| email.as_str())
+            .unwrap_or("<not provided>"),
     );
 
     // If available, we can use the UserInfo endpoint to request additional information.
@@ -303,10 +333,15 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
     let _userinfo: oidc::core::CoreUserInfoClaims = client
         .user_info(token_response.access_token().to_owned(), None)
         .map_err(|err| ServerFnError::new("No user info endpoint: ".to_owned() + &err.to_string()))?
-        .request_async(async_http_client).await
-        .map_err(|err| ServerFnError::new("Failed requesting user info: ".to_owned() + &err.to_string()))?;
+        .request_async(async_http_client)
+        .await
+        .map_err(|err| {
+            ServerFnError::new("Failed requesting user info: ".to_owned() + &err.to_string())
+        })?;
 
-    auth_session.session.set(OIDC_TOKENS_KEY, token_response.clone());
+    auth_session
+        .session
+        .set(OIDC_TOKENS_KEY, token_response.clone());
 
     let oidc_user_info = OidcUserInfo {
         oidc_id: claims.subject().to_string(),
@@ -316,7 +351,7 @@ pub async fn authenticate_user( auth_code: String) -> Result<(User, String), Ser
 
     auth_session.login_user(oidc_user_info);
 
-    leptos_axum::redirect( redirect_url.as_ref());
+    leptos_axum::redirect(redirect_url.as_ref());
 
     Ok((auth_session.current_user.unwrap_or_default(), redirect_url))
 }
@@ -328,19 +363,22 @@ pub async fn get_user() -> Result<Option<User>, ServerFnError> {
 }
 
 #[server]
-pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
+pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
     log::debug!("Logout, redirect_url: {redirect_url}");
 
     let auth_session = get_session()?;
     log::debug!("Got session.");
-    let token_response: oidc::core::CoreTokenResponse = auth_session.session.get(OIDC_TOKENS_KEY).ok_or(ServerFnError::new("Not authenticated."))?;
+    let token_response: oidc::core::CoreTokenResponse =
+        auth_session
+            .session
+            .get(OIDC_TOKENS_KEY)
+            .ok_or(ServerFnError::new("Not authenticated."))?;
 
     log::debug!("Got id token: {token_response:?}");
 
-    let logout_provider_metadata = oidc::ProviderMetadataWithLogout::discover_async(
-        ssr::get_issuer_url()?,
-        async_http_client
-    ).await?;
+    let logout_provider_metadata =
+        oidc::ProviderMetadataWithLogout::discover_async(ssr::get_issuer_url()?, async_http_client)
+            .await?;
 
     let logout_endpoint: &Option<oidc::EndSessionUrl> = &logout_provider_metadata
         .additional_metadata()
@@ -348,7 +386,7 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 
     let logout_endpoint_url = match logout_endpoint {
         Some(url) => url.clone(),
-        None => return Err(ServerFnError::new("Cannot get logout endpoint."))
+        None => return Err(ServerFnError::new("Cannot get logout endpoint.")),
     };
 
     let logout_request = oidc::LogoutRequest::from(logout_endpoint_url)
@@ -368,16 +406,10 @@ pub async fn end_session( redirect_url: String) -> Result<(), ServerFnError> {
 /// children will be rendered. Otherwise, it will be replaced by a form/button with the same appearance redirecting to a
 /// login screen.
 #[component]
-pub fn LoginGuardButton<
-    F: Fn(&User) -> IV + 'static,
-    IV: IntoView,
->(
-    #[prop(default = "")]
-    login_button_class: &'static str,
-    #[prop(into)]
-    login_button_content: ViewFn,
-    #[prop(default = &get_current_path)]
-    redirect_path_fn:  &'static dyn Fn(RwSignal<String>),
+pub fn LoginGuardButton<F: Fn(&User) -> IV + 'static, IV: IntoView>(
+    #[prop(default = "")] login_button_class: &'static str,
+    #[prop(into)] login_button_content: ViewFn,
+    #[prop(default = &get_current_path)] redirect_path_fn: &'static dyn Fn(RwSignal<String>),
     children: F,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -399,15 +431,14 @@ pub fn LoginGuardButton<
 #[component]
 pub fn LoginButton(
     class: &'static str,
-    #[prop(default = &get_current_path)]
-    redirect_path_fn: &'static dyn Fn(RwSignal<String>),
+    #[prop(default = &get_current_path)] redirect_path_fn: &'static dyn Fn(RwSignal<String>),
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let redirect_path = create_rw_signal(String::default());
 
     view! {
-        <form action=state.login_action.url() method="post" rel="external">
+        <form action=state.login_action.url() method="post" rel="external" class="content-center">
             <input type="text" name="redirect_url" class="hidden" value=redirect_path/>
             <button type="submit" class=class on:click=move |_| redirect_path_fn(redirect_path)>
                 {children()}
@@ -418,13 +449,12 @@ pub fn LoginButton(
 
 /// Auth callback component
 #[component]
-pub fn AuthCallback(
-    ) -> impl IntoView {
+pub fn AuthCallback() -> impl IntoView {
     use crate::app::*;
     let _state = expect_context::<GlobalState>();
     let query = use_query_map();
     let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
-    let auth_resource = create_blocking_resource( || (), move |_| authenticate_user( code()));
+    let auth_resource = create_blocking_resource(|| (), move |_| authenticate_user(code()));
 
     view! {
         <SuspenseUnpack
@@ -440,4 +470,3 @@ pub fn AuthCallback(
         </SuspenseUnpack>
     }
 }
-

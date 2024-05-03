@@ -4,18 +4,18 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
-use crate::auth::{LoginGuardButton};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::editor::FormMarkdownEditor;
+use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
+use crate::editor::FormMarkdownEditor;
 use crate::icons::{CommentIcon, InternalErrorIcon, MaximizeIcon, MinimizeIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -79,7 +79,9 @@ pub mod ssr {
 
     use super::*;
 
-    #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
+    #[derive(
+        Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize,
+    )]
     pub struct CommentWithVote {
         #[sqlx(flatten)]
         pub comment: Comment,
@@ -208,17 +210,19 @@ pub mod ssr {
                 )
             )
             SELECT * FROM comment_tree
-            ORDER BY path DESC").as_str(),
+            ORDER BY path DESC"
+            )
+            .as_str(),
         )
-            .bind(user_id)
-            .bind(post_id)
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(&db_pool)
-            .await?;
+        .bind(user_id)
+        .bind(post_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&db_pool)
+        .await?;
 
         let mut comment_tree = Vec::<CommentWithChildren>::new();
-        let mut stack = Vec::<(i64, Vec::<CommentWithChildren>)>::new();
+        let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
         for comment_with_vote in comment_with_vote_vec {
             let mut current = comment_with_vote.into_comment_with_children();
 
@@ -261,10 +265,18 @@ pub async fn get_post_comment_tree(
 ) -> Result<Vec<CommentWithChildren>, ServerFnError> {
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
-        _ => None
+        _ => None,
     };
     let db_pool = get_db_pool()?;
-    let comment_tree = ssr::get_post_comment_tree(post_id, sort_type, user_id, COMMENT_BATCH_SIZE, num_already_loaded as i64, db_pool).await?;
+    let comment_tree = ssr::get_post_comment_tree(
+        post_id,
+        sort_type,
+        user_id,
+        COMMENT_BATCH_SIZE,
+        num_already_loaded as i64,
+        db_pool,
+    )
+    .await?;
 
     Ok(comment_tree)
 }
@@ -281,7 +293,10 @@ pub async fn create_comment(
     let db_pool = get_db_pool()?;
 
     let (comment, markdown_comment) = match is_markdown {
-        Some(_) => (get_styled_html_from_markdown(comment.clone()).await?, Some(comment.as_str())),
+        Some(_) => (
+            get_styled_html_from_markdown(comment.clone()).await?,
+            Some(comment.as_str()),
+        ),
         None => (comment, None),
     };
 
@@ -292,16 +307,15 @@ pub async fn create_comment(
         markdown_comment,
         &user,
         db_pool,
-    ).await?;
+    )
+    .await?;
 
     Ok(())
 }
 
 /// Comment section component
 #[component]
-pub fn CommentSection(
-    comment_vec: RwSignal<Vec<CommentWithChildren>>
-) -> impl IntoView {
+pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
     view! {
         <div class="flex flex-col h-fit">
             <For
@@ -323,17 +337,13 @@ pub fn CommentSection(
     }
 }
 
-
 /// Comment box component
 #[component]
 pub fn CommentBox<'a>(
     comment: &'a CommentWithChildren,
-    #[prop(default = 0)]
-    depth: usize,
-    #[prop(default = 0)]
-    ranking: usize,
+    #[prop(default = 0)] depth: usize,
+    #[prop(default = 0)] ranking: usize,
 ) -> impl IntoView {
-
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
@@ -342,7 +352,10 @@ pub fn CommentBox<'a>(
             "flex flex-col justify-center items-center"
         }
     };
-    let color_bar_css = format!("{} rounded-full h-full w-1 ", DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]);
+    let color_bar_css = format!(
+        "{} rounded-full h-full w-1 ",
+        DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
+    );
 
     let is_markdown = comment.comment.markdown_body.is_some();
     let comment_class = move || match (maximize(), is_markdown) {
@@ -400,7 +413,6 @@ pub fn CommentBox<'a>(
 /// Component to encapsulate the widgets associated with each comment
 #[component]
 fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
-
     let content = ContentWithVote::Comment(&comment.comment, &comment.vote);
 
     view! {
@@ -417,34 +429,29 @@ fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
 #[component]
 pub fn CommentButton(
     post_id: i64,
-    #[prop(default = None)]
-    parent_comment_id: Option<i64>,
+    #[prop(default = None)] parent_comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_comment_dialog = create_rw_signal(false);
-    let comment_button_class = move || {
-        match show_comment_dialog.get() {
-            true => "btn btn-circle btn-sm m-1 btn-primary",
-            false => "btn btn-circle btn-sm m-1 btn-ghost",
-        }
+    let comment_button_class = move || match show_comment_dialog.get() {
+        true => "btn btn-circle btn-sm p-1 btn-primary",
+        false => "btn btn-circle btn-sm p-1 btn-ghost",
     };
 
     view! {
-        <div>
-            <LoginGuardButton
-                login_button_class="btn btn-circle btn-ghost btn-sm"
-                login_button_content=move || view! { <CommentIcon/> }
-                let:_user
+        <LoginGuardButton
+            login_button_class="btn btn-circle btn-ghost btn-sm"
+            login_button_content=move || view! { <CommentIcon/> }
+            let:_user
+        >
+            <button
+                class=comment_button_class
+                aria-expanded=move || show_comment_dialog.get().to_string()
+                aria-haspopup="dialog"
+                on:click=move |_| show_comment_dialog.update(|show: &mut bool| *show = !*show)
             >
-                <button
-                    class=comment_button_class
-                    aria-expanded=move || show_comment_dialog.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_comment_dialog.update(|show: &mut bool| *show = !*show)
-                >
-                    <CommentIcon/>
-                </button>
-            </LoginGuardButton>
-        </div>
+                <CommentIcon/>
+            </button>
+        </LoginGuardButton>
         <CommentDialog
             post_id=post_id
             parent_comment_id=parent_comment_id
@@ -457,8 +464,7 @@ pub fn CommentButton(
 #[component]
 pub fn CommentDialog(
     post_id: i64,
-    #[prop(default = None)]
-    parent_comment_id: Option<i64>,
+    #[prop(default = None)] parent_comment_id: Option<i64>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -485,8 +491,7 @@ pub fn CommentDialog(
 #[component]
 pub fn CommentForm(
     post_id: i64,
-    #[prop(default = None)]
-    parent_comment_id: Option<i64>,
+    #[prop(default = None)] parent_comment_id: Option<i64>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -498,7 +503,12 @@ pub fn CommentForm(
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
 
     let form_ref = create_node_ref::<html::Form>();
-    let response_ok = move || state.create_comment_action.value().with(|val| matches!(val, Some(Ok(_))));
+    let response_ok = move || {
+        state
+            .create_comment_action
+            .value()
+            .with(|val| matches!(val, Some(Ok(_))))
+    };
 
     create_effect(move |_| {
         if response_ok() {

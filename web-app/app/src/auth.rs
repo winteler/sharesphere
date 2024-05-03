@@ -113,7 +113,7 @@ pub mod ssr {
             {
                 Ok(sql_user) => Some(sql_user.into_user()),
                 Err(select_error) => {
-                    log::info!("User not found with error: {}", select_error);
+                    log::debug!("User not found with error: {}", select_error);
                     if let sqlx::Error::RowNotFound = select_error {
                         create_user(oidc_info, db_pool).await
                     } else {
@@ -152,7 +152,7 @@ pub mod ssr {
     }
 
     pub async fn create_user(oidc_info: OidcUserInfo, db_pool: &PgPool) -> Option<User> {
-        log::info!("Try to insert new user");
+        log::debug!("Try to insert new user");
         match sqlx::query_as!(
             SqlUser,
             "INSERT INTO users (oidc_id, username, email) VALUES ($1, $2, $3) RETURNING *",
@@ -244,7 +244,7 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
         return Ok(current_user.unwrap());
     }
 
-    log::info!("User not connected, redirect_url: {}", redirect_url);
+    log::debug!("User not connected, redirect_url: {}", redirect_url);
 
     let client = ssr::get_auth_client().await?;
 
@@ -463,8 +463,7 @@ pub fn AuthCallback() -> impl IntoView {
         >
             {
                 let (user, redirect_url) = auth_result;
-                log::info!("Store authenticated as {}", user.username);
-                log::info!("Redirect to {}", redirect_url);
+                log::debug!("Store authenticated as {} and redirect to {redirect_url}", user.username);
                 view! { <Redirect path=redirect_url.clone()/>}.into_view()
             }
         </SuspenseUnpack>

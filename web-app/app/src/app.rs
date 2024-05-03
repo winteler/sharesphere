@@ -178,7 +178,7 @@ fn LoginPageGuard() -> impl IntoView {
                 move || {
                      state.user.with(|user| match user {
                         Some(Ok(Some(user))) => {
-                            log::info!("Login guard, current user: {user:?}");
+                            log::debug!("Login guard, current user: {user:?}");
                             view! { <Outlet/> }.into_view()
                         },
                         Some(_) => {

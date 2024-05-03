@@ -78,6 +78,13 @@ pub fn Header2Icon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl Int
 }
 
 #[component]
+pub fn HelpIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/help.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn HourglassIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/hourglass.svg" class=class/>

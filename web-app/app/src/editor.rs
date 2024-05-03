@@ -2,7 +2,7 @@ use leptos::*;
 use leptos_use::signal_debounced;
 
 use crate::constants::SPOILER_TAG;
-use crate::icons::{BoldIcon, CodeBlockIcon, Header1Icon, Header2Icon, ImageIcon, ItalicIcon, LinkIcon, ListBulletIcon, ListNumberIcon, MarkdownIcon, QuoteIcon, SpoilerIcon, StrikethroughIcon};
+use crate::icons::*;
 use crate::unpack::TransitionUnpack;
 
 #[derive(Clone, Copy, Debug)]
@@ -228,31 +228,39 @@ pub fn FormMarkdownEditor(
                         node_ref=textarea_ref
                     ></textarea>
                 </div>
-                <div class="flex">
-                    <label>
-                        <input
-                            type="checkbox"
-                            class="hidden"
-                            name=is_markdown_name
-                            value=is_markdown_mode
-                            on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
-                        />
-                        <div class=markdown_button_class>
-                            <MarkdownIcon/>
-                        </div>
-                    </label>
-                    <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::Italic content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::Strikethrough content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::Header1 content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::Header2 content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::List content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::NumberedList content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::CodeBlock content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::Spoiler content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::BlockQuote content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::Link content textarea_ref is_markdown_mode/>
-                    <FormatButton format_type=FormatType::Image content textarea_ref is_markdown_mode/>
+                <div class="flex justify-between">
+                    <div class="flex">
+                        <label>
+                            <input
+                                type="checkbox"
+                                class="hidden"
+                                name=is_markdown_name
+                                value=is_markdown_mode
+                                on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
+                            />
+                            <div class=markdown_button_class>
+                                <MarkdownIcon/>
+                            </div>
+                        </label>
+                        <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Italic content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Strikethrough content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Header1 content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Header2 content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::List content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::NumberedList content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::CodeBlock content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Spoiler content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::BlockQuote content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Link content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Image content textarea_ref is_markdown_mode/>
+                    </div>
+                    <button
+                        type="button"
+                        class="p-2 rounded-full hover:bg-base-content/20"
+                    >
+                        <HelpIcon/>
+                    </button>
                 </div>
             </div>
             <Show when=is_markdown_mode>

@@ -34,7 +34,7 @@ pub const SESSION_DB_KEY_ENV : &str = "SESSION_DB_KEY";
 pub fn get_session_key() -> Key {
     match env::var(SESSION_KEY_ENV) {
         Ok(key) => {
-            log::info!("Got session key from env variable.");
+            log::debug!("Got session key from env variable.");
             Key::from(&key.into_bytes())
         },
         Err(_) => {
@@ -47,7 +47,7 @@ pub fn get_session_key() -> Key {
 pub fn get_session_db_key() -> Key {
     match env::var(SESSION_DB_KEY_ENV) {
         Ok(key) => {
-            log::info!("Got session db key from env variable.");
+            log::debug!("Got session db key from env variable.");
             Key::from(&key.into_bytes())
         },
         Err(_) => {

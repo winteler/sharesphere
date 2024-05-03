@@ -43,6 +43,13 @@ pub fn CommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Int
 }
 
 #[component]
+pub fn EditIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/edit.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn FlameIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/flame.svg" class=class/>

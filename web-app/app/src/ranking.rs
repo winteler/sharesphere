@@ -4,10 +4,10 @@ use leptos::*;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool};
-use crate::auth::LoginGuardButton;
+use crate::app::ssr::get_db_pool;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
+use crate::auth::LoginGuardButton;
 use crate::comment::{Comment, CommentSortType};
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 use crate::post::{Post, PostSortType};
@@ -75,9 +75,9 @@ impl fmt::Display for SortType {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
+
     use crate::auth::User;
     use crate::errors::AppError;
-
     use crate::ranking::{SortType, Vote, VoteInfo, VoteValue};
 
     impl SortType {
@@ -89,11 +89,7 @@ pub mod ssr {
         }
     }
 
-    fn get_vote_deltas(
-        vote: VoteValue,
-        previous_vote: VoteValue,
-    ) -> (i32, i32) {
-
+    fn get_vote_deltas(vote: VoteValue, previous_vote: VoteValue) -> (i32, i32) {
         let score_delta = (vote as i32) - (previous_vote as i32);
         let minus_delta = if vote == VoteValue::Down && previous_vote != VoteValue::Down {
             1
@@ -112,10 +108,9 @@ pub mod ssr {
         previous_vote_info: Option<VoteInfo>,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-
         let previous_vote = match previous_vote_info {
             Some(vote_info) => vote_info.value,
-            None => VoteValue::None
+            None => VoteValue::None,
         };
 
         let (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
@@ -151,7 +146,10 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Option<Vote>, AppError> {
-        if previous_vote_info.as_ref().is_some_and(|vote_info: &VoteInfo| vote_info.value == vote_value) {
+        if previous_vote_info
+            .as_ref()
+            .is_some_and(|vote_info: &VoteInfo| vote_info.value == vote_value)
+        {
             return Err(AppError::new("Identical to previous vote."));
         }
 
@@ -162,21 +160,23 @@ pub mod ssr {
             if vote_value != VoteValue::None {
                 log::debug!("Update vote {vote_id} with value {vote_value:?}");
                 println!("Update vote {vote_id} where post_id = {post_id}, comment_id = {comment_id:?}, user_id = {}, with value {}", user.user_id, vote_value as i16);
-                Some(sqlx::query_as!(
-                    Vote,
-                    "UPDATE votes SET value = $1 \
+                Some(
+                    sqlx::query_as!(
+                        Vote,
+                        "UPDATE votes SET value = $1 \
                     WHERE vote_id = $2 AND \
                           post_id = $3 AND \
                           user_id = $4 \
                     RETURNING *",
-                    vote_value as i16,
-                    vote_id,
-                    post_id,
-                    //comment_id, TODO where condition on nullable field is causing issue
-                    user.user_id,
-                )
+                        vote_value as i16,
+                        vote_id,
+                        post_id,
+                        //comment_id, TODO where condition on nullable field is causing issue
+                        user.user_id,
+                    )
                     .fetch_one(&db_pool)
-                    .await?)
+                    .await?,
+                )
             } else {
                 log::debug!("Delete vote {vote_id}");
                 sqlx::query!(
@@ -188,8 +188,8 @@ pub mod ssr {
                     post_id,
                     user.user_id,
                 )
-                    .execute(&db_pool)
-                    .await?;
+                .execute(&db_pool)
+                .await?;
                 None
             }
         } else {
@@ -207,7 +207,14 @@ pub mod ssr {
                     .await?)
         };
 
-        update_content_score(vote_value, post_id, comment_id, previous_vote_info, &db_pool).await?;
+        update_content_score(
+            vote_value,
+            post_id,
+            comment_id,
+            previous_vote_info,
+            &db_pool,
+        )
+        .await?;
 
         Ok(vote)
     }
@@ -218,7 +225,6 @@ pub mod ssr {
 
         #[test]
         fn test_get_vote_deltas() {
-
             let mut vote = VoteValue::Up;
             let mut previous_vote = VoteValue::None;
             let (mut score_delta, mut minus_delta) = get_vote_deltas(vote, previous_vote);
@@ -259,7 +265,6 @@ pub async fn vote_on_content(
     comment_id: Option<i64>,
     previous_vote_info: Option<VoteInfo>,
 ) -> Result<Option<Vote>, ServerFnError> {
-
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
@@ -270,7 +275,8 @@ pub async fn vote_on_content(
         previous_vote_info,
         &user,
         db_pool,
-    ).await?;
+    )
+    .await?;
 
     Ok(vote)
 }
@@ -279,9 +285,9 @@ pub async fn vote_on_content(
 #[component]
 pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center">
+        <div class="w-fit flex rounded-btn px-1 gap-1 items-center">
             <ScoreIcon/>
-            <div class="w-3 text-sm text-right">
+            <div class="min-w-6 text-sm">
                 {score}
             </div>
         </div>
@@ -303,19 +309,25 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
 
 /// Component to display and modify a content's score
 #[component]
-pub fn VotePanel<'a>(
-    content: ContentWithVote<'a>,
-) -> impl IntoView {
-
+pub fn VotePanel<'a>(content: ContentWithVote<'a>) -> impl IntoView {
     let content = content.clone();
 
     let (post_id, comment_id, score, vote) = match &content {
         ContentWithVote::Post(post, vote) => (post.post_id, None, post.score, vote),
-        ContentWithVote::Comment(comment, vote) => (comment.post_id, Some(comment.comment_id), comment.score, vote),
+        ContentWithVote::Comment(comment, vote) => (
+            comment.post_id,
+            Some(comment.comment_id),
+            comment.score,
+            vote,
+        ),
     };
 
     let (vote_id, vote_value, initial_score) = match vote {
-        Some(vote) => (Some(vote.vote_id), Some(vote.value), score - (vote.value as i32)),
+        Some(vote) => (
+            Some(vote.vote_id),
+            Some(vote.value),
+            score - (vote.value as i32),
+        ),
         None => (None, None, score),
     };
 
@@ -398,9 +410,10 @@ pub fn on_content_vote(
 
     log::info!("Content vote value {:?}", vote.get_untracked());
 
-    let previous_vote_info = if vote_action.version().get_untracked() == 0 &&
-                                               current_vote_id.is_some() &&
-                                               current_vote_value.is_some() {
+    let previous_vote_info = if vote_action.version().get_untracked() == 0
+        && current_vote_id.is_some()
+        && current_vote_value.is_some()
+    {
         Some(VoteInfo {
             vote_id: current_vote_id.unwrap(),
             value: current_vote_value.unwrap(),
@@ -436,15 +449,15 @@ pub fn get_on_content_vote_closure(
     vote_action: Action<VoteOnContent, Result<Option<Vote>, ServerFnError>>,
     is_upvote: bool,
 ) -> impl Fn(ev::MouseEvent) {
-
     move |_| {
         vote.update(|vote| update_vote_value(vote, is_upvote));
 
         log::info!("Content vote value {:?}", vote.get_untracked());
 
-        let previous_vote_info = if vote_action.version().get_untracked() == 0 &&
-            current_vote_id.is_some() &&
-            current_vote_value.is_some() {
+        let previous_vote_info = if vote_action.version().get_untracked() == 0
+            && current_vote_id.is_some()
+            && current_vote_value.is_some()
+        {
             Some(VoteInfo {
                 vote_id: current_vote_id.unwrap(),
                 value: current_vote_value.unwrap(),
@@ -470,10 +483,7 @@ pub fn get_on_content_vote_closure(
 }
 
 // Function to obtain the css classes of a vote button
-pub fn get_vote_button_css(
-    vote: RwSignal<VoteValue>,
-    is_upvote: bool,
-) -> impl Fn() -> String {
+pub fn get_vote_button_css(vote: RwSignal<VoteValue>, is_upvote: bool) -> impl Fn() -> String {
     let (button_css, activated_value) = match is_upvote {
         true => ("btn-success", VoteValue::Up),
         false => ("btn-error", VoteValue::Down),
@@ -493,10 +503,27 @@ pub fn get_vote_button_css(
 
 pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {
     *vote = match *vote {
-        VoteValue::Up => if is_upvote { VoteValue::None } else { VoteValue::Down },
-        VoteValue::None => if is_upvote { VoteValue::Up } else {VoteValue::Down },
-        VoteValue::Down => if is_upvote { VoteValue::Up } else { VoteValue::None },
-
+        VoteValue::Up => {
+            if is_upvote {
+                VoteValue::None
+            } else {
+                VoteValue::Down
+            }
+        }
+        VoteValue::None => {
+            if is_upvote {
+                VoteValue::Up
+            } else {
+                VoteValue::Down
+            }
+        }
+        VoteValue::Down => {
+            if is_upvote {
+                VoteValue::Up
+            } else {
+                VoteValue::None
+            }
+        }
     };
 }
 

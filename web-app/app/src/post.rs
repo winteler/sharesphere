@@ -11,7 +11,9 @@ use crate::app::ssr::get_db_pool;
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
-use crate::comment::{COMMENT_BATCH_SIZE, CommentButton, CommentSection, CommentWithChildren, get_post_comment_tree};
+use crate::comment::{
+    get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE,
+};
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
@@ -20,7 +22,7 @@ use crate::errors::AppError;
 use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::icons::{InternalErrorIcon, LoadingIcon};
+use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
@@ -182,6 +184,49 @@ pub mod ssr {
         Ok(post)
     }
 
+    pub async fn update_post(
+        post_id: i64,
+        post_title: &str,
+        post_body: &str,
+        post_markdown_body: Option<&str>,
+        is_nsfw: bool,
+        tag: Option<String>,
+        user: &User,
+        db_pool: PgPool,
+    ) -> Result<Post, AppError> {
+        if post_title.is_empty() {
+            return Err(AppError::new(
+                "Cannot create content without a valid forum and title.",
+            ));
+        }
+
+        let post = sqlx::query_as!(
+            Post,
+            "UPDATE posts SET
+                title = $1,
+                body = $2,
+                markdown_body = $3,
+                is_nsfw = $4,
+                tags = $5,
+                edit_timestamp = CURRENT_TIMESTAMP
+            WHERE
+                post_id = $6 AND
+                creator_id = $7
+            RETURNING *",
+            post_title,
+            post_body,
+            post_markdown_body,
+            is_nsfw,
+            tag.unwrap_or_default(),
+            post_id,
+            user.user_id,
+        )
+        .fetch_one(&db_pool)
+        .await?;
+
+        Ok(post)
+    }
+
     pub async fn update_post_scores() -> Result<(), AppError> {
         let db_pool = get_db_pool()?;
         sqlx::query!(
@@ -266,10 +311,10 @@ pub mod ssr {
             )
             .as_str(),
         )
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(&db_pool)
-            .await?;
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&db_pool)
+        .await?;
 
         Ok(post_vec)
     }
@@ -295,11 +340,11 @@ pub mod ssr {
             )
             .as_str(),
         )
-            .bind(user_id)
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(&db_pool)
-            .await?;
+        .bind(user_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&db_pool)
+        .await?;
 
         Ok(post_vec)
     }
@@ -323,7 +368,13 @@ pub async fn get_sorted_post_vec(
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
 
-    let post_vec = ssr::get_sorted_post_vec(sort_type, POST_BATCH_SIZE, num_already_loaded as i64, db_pool).await?;
+    let post_vec = ssr::get_sorted_post_vec(
+        sort_type,
+        POST_BATCH_SIZE,
+        num_already_loaded as i64,
+        db_pool,
+    )
+    .await?;
 
     Ok(post_vec)
 }
@@ -336,7 +387,14 @@ pub async fn get_subscribed_post_vec(
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
 
-    let post_vec = ssr::get_subscribed_post_vec(user_id, sort_type, POST_BATCH_SIZE, num_already_loaded as i64, db_pool).await?;
+    let post_vec = ssr::get_subscribed_post_vec(
+        user_id,
+        sort_type,
+        POST_BATCH_SIZE,
+        num_already_loaded as i64,
+        db_pool,
+    )
+    .await?;
 
     Ok(post_vec)
 }
@@ -368,7 +426,6 @@ pub async fn create_post(
     is_nsfw: Option<String>,
     tag: Option<String>,
 ) -> Result<(), ServerFnError> {
-    log::trace!("Create post '{title}'");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
@@ -392,7 +449,7 @@ pub async fn create_post(
     )
     .await?;
 
-    log::trace!("New post id: {}", post.post_id);
+    log::trace!("Created post with id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()
         + "/"
         + forum.as_str()
@@ -400,6 +457,43 @@ pub async fn create_post(
         + "/"
         + post.post_id.to_string().as_ref());
     leptos_axum::redirect(new_post_path);
+    Ok(())
+}
+
+#[server]
+pub async fn edit_post(
+    post_id: i64,
+    title: String,
+    body: String,
+    is_markdown: Option<String>,
+    is_nsfw: Option<String>,
+    tag: Option<String>,
+) -> Result<(), ServerFnError> {
+    log::trace!("Edit post '{title}'");
+    let user = check_user()?;
+    let db_pool = get_db_pool()?;
+
+    let (body, markdown_body) = match is_markdown {
+        Some(_) => (
+            get_styled_html_from_markdown(body.clone()).await?,
+            Some(body.as_str()),
+        ),
+        None => (body, None),
+    };
+
+    let post = ssr::update_post(
+        post_id,
+        title.as_str(),
+        body.as_str(),
+        markdown_body,
+        is_nsfw.is_some(),
+        tag,
+        &user,
+        db_pool,
+    )
+    .await?;
+
+    log::trace!("Updated post with id: {}", post.post_id);
     Ok(())
 }
 
@@ -437,7 +531,9 @@ pub fn Post() -> impl IntoView {
         },
     );
 
-    let comment_vec = create_rw_signal(Vec::<CommentWithChildren>::with_capacity(COMMENT_BATCH_SIZE as usize));
+    let comment_vec = create_rw_signal(Vec::<CommentWithChildren>::with_capacity(
+        COMMENT_BATCH_SIZE as usize,
+    ));
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);
     let load_error = create_rw_signal(None);
@@ -459,7 +555,7 @@ pub fn Post() -> impl IntoView {
                         }
                         *comment_vec = new_comment_vec;
                     });
-                },
+                }
                 Err(e) => load_error.set(Some(AppError::from(&e))),
             }
             is_loading.set(false);
@@ -473,9 +569,17 @@ pub fn Post() -> impl IntoView {
             load_error.set(None);
             let root_comment_count = comment_vec.with_untracked(|post_vec| post_vec.len());
             spawn_local(async move {
-                match get_post_comment_tree(post_id.get_untracked(), state.comment_sort_type.get_untracked(), root_comment_count).await {
-                    Ok(mut new_comment_vec) => comment_vec.update(|comment_vec| comment_vec.append(&mut new_comment_vec)),
-                    Err(e) => load_error.set(Some(AppError::from(&e)))
+                match get_post_comment_tree(
+                    post_id.get_untracked(),
+                    state.comment_sort_type.get_untracked(),
+                    root_comment_count,
+                )
+                .await
+                {
+                    Ok(mut new_comment_vec) => {
+                        comment_vec.update(|comment_vec| comment_vec.append(&mut new_comment_vec))
+                    }
+                    Err(e) => load_error.set(Some(AppError::from(&e))),
                 }
                 is_loading.set(false);
             });
@@ -541,18 +645,39 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
     let content = ContentWithVote::Post(&post.post, &post.vote);
 
     view! {
-        <div class="flex gap-2">
+        <div class="flex gap-1 content-center">
             <VotePanel
                 content=content
             />
             <CommentButton post_id=post.post.post_id/>
+            <EditPostButton/>
             <AuthorWidget author=&post.post.creator_name/>
             <TimeSinceWidget timestamp=&post.post.create_timestamp/>
         </div>
     }
 }
 
-/// Component to create a new content
+/// Component to edit a post
+#[component]
+pub fn EditPostButton() -> impl IntoView {
+    let show_edit_dialog = create_rw_signal(false);
+    let edit_button_class = move || match show_edit_dialog.get() {
+        true => "btn btn-circle btn-sm m-1 btn-primary",
+        false => "btn btn-circle btn-sm m-1 btn-ghost",
+    };
+    view! {
+        <button
+            class=edit_button_class
+            aria-expanded=move || show_edit_dialog.get().to_string()
+            aria-haspopup="dialog"
+            on:click=move |_| show_edit_dialog.update(|show: &mut bool| *show = !*show)
+        >
+            <EditIcon/>
+        </button>
+    }
+}
+
+/// Component to create a new post
 #[component]
 pub fn CreatePost() -> impl IntoView {
     let state = expect_context::<GlobalState>();

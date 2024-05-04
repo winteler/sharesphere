@@ -347,9 +347,9 @@ pub fn CommentBox<'a>(
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
-            "flex flex-col justify-start items-center"
+            "p-1.5 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
         } else {
-            "flex flex-col justify-center items-center"
+            "p-1.5 rounded hover:bg-base-content/20 flex flex-col justify-center items-center"
         }
     };
     let color_bar_css = format!(
@@ -358,28 +358,25 @@ pub fn CommentBox<'a>(
     );
 
     let is_markdown = comment.comment.markdown_body.is_some();
-    let comment_class = move || match (maximize(), is_markdown) {
+    let comment_class = move || match (maximize.get(), is_markdown) {
         (true, true) => "pl-2 pt-1",
         (true, false) => "pl-2 pt-1 whitespace-pre",
         (false, _) => "hidden",
     };
 
     view! {
-        <div class="flex pl-2 py-1">
-            <div class=sidebar_css>
-                <label class="btn btn-ghost btn-sm swap swap-rotate w-5">
-                    <input
-                        type="checkbox"
-                        value=maximize
-                        on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
-                    />
-                    <MinimizeIcon class="h-5 w-5 swap-on"/>
+        <div class="flex py-1">
+            <div
+                class=sidebar_css
+                on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
+            >
+                <Show
+                    when=maximize
+                    fallback=move || view! { <MinimizeIcon class="h-5 w-5"/> }
+                >
                     <MaximizeIcon class="h-5 w-5 swap-off"/>
-                </label>
-                <div
-                    class=color_bar_css
-                    class:hidden=move || !maximize()
-                />
+                    <div class=color_bar_css.clone()/>
+                </Show>
             </div>
             <div class="flex flex-col">
                 <div

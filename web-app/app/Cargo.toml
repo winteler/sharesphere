@@ -44,6 +44,7 @@ ssr = [
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
+    "leptos-use/ssr",
     "dep:anyhow",
     "dep:async-trait",
     "dep:axum_session",

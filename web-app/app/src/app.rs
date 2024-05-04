@@ -211,7 +211,7 @@ fn LoginWindow() -> impl IntoView {
                     <p class="pb-4">"Please login to access this page."</p>
                     <form action=state.login_action.url() method="post" rel="external">
                         <input type="text" name="redirect_url" class="hidden" value=current_path/>
-                        <button type="submit" class="btn btn-primary btn-wide rounded-sm" on:click=move |_| get_current_path(current_path)>
+                        <button type="submit" class="btn btn-primary btn-wide rounded" on:click=move |_| get_current_path(current_path)>
                             "Login"
                         </button>
                     </form>

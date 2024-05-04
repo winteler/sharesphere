@@ -1,5 +1,5 @@
 use leptos::*;
-use leptos_use::signal_debounced;
+use leptos_use::{on_click_outside, signal_debounced};
 
 use crate::constants::SPOILER_TAG;
 use crate::icons::*;
@@ -255,12 +255,7 @@ pub fn FormMarkdownEditor(
                         <FormatButton format_type=FormatType::Link content textarea_ref is_markdown_mode/>
                         <FormatButton format_type=FormatType::Image content textarea_ref is_markdown_mode/>
                     </div>
-                    <button
-                        type="button"
-                        class="p-2 rounded-full hover:bg-base-content/20"
-                    >
-                        <HelpIcon/>
-                    </button>
+                    <HelpButton/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -333,6 +328,39 @@ pub fn FormatButton(
             }
         }
         </button>
+    }
+}
+
+/// Component to render editor's help button
+#[component]
+pub fn HelpButton() -> impl IntoView {
+    let show_help = create_rw_signal(false);
+    let modal_ref = create_node_ref::<html::Div>();
+    let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
+
+    view! {
+        <div class="relative inline-block">
+            <Show when=show_help>
+                <div class="relative">
+                    <div
+                        class="absolute bottom-0 right-0 origin-top-right mt-2 -mr-1 p-2 w-64 bg-base-200/90 rounded shadow-lg"
+                        node_ref=modal_ref
+                    >
+                        <div class="relative flex flex-col gap-2 leading-snug text-justify">
+                            <p>"To add formatting to your content, the 'Markdown mode' must be activated with the left-most button."</p>
+                            <p>"When the 'Markdown mode' is activated, a preview of your content will be displayed."</p>
+                        </div>
+                    </div>
+                </div>
+            </Show>
+            <button
+                type="button"
+                class="p-2 rounded-full hover:bg-base-content/20"
+                on:click=move |_| show_help.set(true)
+            >
+                <HelpIcon/>
+            </button>
+        </div>
     }
 }
 

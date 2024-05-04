@@ -539,8 +539,9 @@ pub fn Post() -> impl IntoView {
     let load_error = create_rw_signal(None);
     let container_ref = create_node_ref::<html::Div>();
 
-    // Effect for initial load, forum and sort changes
+    // Effect for initial load, forum and sort changes,
     create_effect(move |_| {
+        state.create_comment_action.version().get();
         let post_id = post_id.get();
         let sort_type = state.comment_sort_type.get();
         is_loading.set(true);
@@ -752,6 +753,7 @@ pub fn CreatePost() -> impl IntoView {
                         placeholder="Title"
                         class="input input-bordered input-primary h-input_m"
                         autofocus
+                        autocomplete="off"
                         on:input=move |ev| {
                             is_title_empty.set(event_target_value(&ev).is_empty());
                         }

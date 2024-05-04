@@ -343,7 +343,7 @@ pub fn HelpButton() -> impl IntoView {
             <Show when=show_help>
                 <div class="relative">
                     <div
-                        class="absolute bottom-0 right-0 origin-top-right mt-2 -mr-1 p-2 w-64 bg-base-200/90 rounded shadow-lg"
+                        class="absolute bottom-0 right-0 origin-top-right mb-1 -mr-1 p-2 w-64 bg-base-200/90 rounded shadow-lg"
                         node_ref=modal_ref
                     >
                         <div class="relative flex flex-col gap-2 leading-snug text-justify">

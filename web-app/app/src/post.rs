@@ -662,8 +662,8 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
 pub fn EditPostButton() -> impl IntoView {
     let show_edit_dialog = create_rw_signal(false);
     let edit_button_class = move || match show_edit_dialog.get() {
-        true => "btn btn-circle btn-sm m-1 btn-primary",
-        false => "btn btn-circle btn-sm m-1 btn-ghost",
+        true => "btn btn-circle btn-sm p-1 btn-primary",
+        false => "btn btn-circle btn-sm p-1 btn-ghost",
     };
     view! {
         <button
@@ -730,7 +730,7 @@ pub fn CreatePost() -> impl IntoView {
                             }
                             prop:value=forum_name_input
                         />
-                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full">
+                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
                             <TransitionUnpack resource=matching_forums_resource let:forum_set>
                             {
                                 forum_set.iter().map(|forum_name| {

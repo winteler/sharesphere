@@ -347,9 +347,9 @@ pub fn CommentBox<'a>(
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
-            "p-1.5 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
+            "p-1 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
         } else {
-            "p-1.5 rounded hover:bg-base-content/20 flex flex-col justify-center items-center"
+            "p-1 rounded hover:bg-base-content/20 flex flex-col justify-center items-center"
         }
     };
     let color_bar_css = format!(
@@ -374,7 +374,7 @@ pub fn CommentBox<'a>(
                     when=maximize
                     fallback=move || view! { <MinimizeIcon class="h-5 w-5"/> }
                 >
-                    <MaximizeIcon class="h-5 w-5 swap-off"/>
+                    <MaximizeIcon class="h-5 w-5"/>
                     <div class=color_bar_css.clone()/>
                 </Show>
             </div>
@@ -430,8 +430,8 @@ pub fn CommentButton(
 ) -> impl IntoView {
     let show_comment_dialog = create_rw_signal(false);
     let comment_button_class = move || match show_comment_dialog.get() {
-        true => "btn btn-circle btn-sm p-1 btn-primary",
-        false => "btn btn-circle btn-sm p-1 btn-ghost",
+        true => "btn btn-circle btn-sm btn-primary",
+        false => "btn btn-circle btn-sm btn-ghost",
     };
 
     view! {

@@ -2573,6 +2573,14 @@ html {
   }
 }
 
+.btn-xs {
+  height: 1.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  min-height: 1.5rem;
+  font-size: 0.75rem;
+}
+
 .btn-sm {
   height: 2rem;
   padding-left: 0.75rem;
@@ -3517,6 +3525,16 @@ html {
   background-color: rgb(234 179 8 / var(--tw-bg-opacity));
 }
 
+.bg-error {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--er) / var(--tw-bg-opacity));
+}
+
+.bg-primary {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--p) / var(--tw-bg-opacity));
+}
+
 .bg-opacity-75 {
   --tw-bg-opacity: 0.75;
 }
@@ -3541,6 +3559,10 @@ html {
   padding: 0.25rem;
 }
 
+.p-1\.5 {
+  padding: 0.375rem;
+}
+
 .p-2 {
   padding: 0.5rem;
 }
@@ -3553,8 +3575,8 @@ html {
   padding: 1rem;
 }
 
-.p-1\.5 {
-  padding: 0.375rem;
+.p-0\.5 {
+  padding: 0.125rem;
 }
 
 .px-1 {
@@ -3865,6 +3887,16 @@ html {
 
 .hover\:bg-base-content\/20:hover {
   background-color: hsl(var(--bc) / 0.2);
+}
+
+.hover\:bg-error:hover {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--er) / var(--tw-bg-opacity));
+}
+
+.hover\:bg-success:hover {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--su) / var(--tw-bg-opacity));
 }
 
 @media not all and (min-width: 1536px) {

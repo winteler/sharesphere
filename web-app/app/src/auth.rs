@@ -438,7 +438,7 @@ pub fn LoginButton(
     let redirect_path = create_rw_signal(String::default());
 
     view! {
-        <form action=state.login_action.url() method="post" rel="external" class="content-center">
+        <form action=state.login_action.url() method="post" rel="external" class="flex items-center">
             <input type="text" name="redirect_url" class="hidden" value=redirect_path/>
             <button type="submit" class=class on:click=move |_| redirect_path_fn(redirect_path)>
                 {children()}

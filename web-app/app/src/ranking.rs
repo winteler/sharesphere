@@ -342,7 +342,7 @@ pub fn VotePanel<'a>(content: ContentWithVote<'a>) -> impl IntoView {
     view! {
         <div class="flex items-center gap-1">
             <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-success"
+                login_button_class="p-1 rounded-full hover:bg-success"
                 login_button_content=move || view! { <PlusIcon/> }
                 let:_user
             >
@@ -367,7 +367,7 @@ pub fn VotePanel<'a>(content: ContentWithVote<'a>) -> impl IntoView {
             </LoginGuardButton>
             <DynScoreIndicator score=score/>
             <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle btn-sm hover:btn-error"
+                login_button_class="p-1 rounded-full hover:bg-error"
                 login_button_content=move || view! { <MinusIcon/> }
                 let:_user
             >
@@ -490,13 +490,10 @@ pub fn get_vote_button_css(vote: RwSignal<VoteValue>, is_upvote: bool) -> impl F
     };
 
     move || {
-        let vote_value = vote();
-        if vote() == activated_value {
-            log::trace!("Activated vote button, value: {vote_value:?}, css: {button_css}");
-            format!("btn btn-circle btn-sm {button_css}")
+        if vote.get() == activated_value {
+            format!("p-1 rounded-full {button_css}")
         } else {
-            log::trace!("Deactivated vote button, value: {vote_value:?}, css: {button_css}");
-            format!("btn btn-circle btn-sm btn-ghost hover:{button_css}")
+            format!("p-1 rounded-full hover:{button_css}")
         }
     }
 }

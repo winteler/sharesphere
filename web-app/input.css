@@ -7,6 +7,28 @@
     text-transform: none;
 }
 
+/* For Firefox */
+/* Scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #ffffff #0a212e;
+}
+
+/* Scrollbar for webkit-based browsers (Safari) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #0a212e;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #ffffff;
+}
+
 /* Styles for the spoiler blocks */
 .spoiler-checkbox {
 }

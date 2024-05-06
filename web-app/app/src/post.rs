@@ -714,7 +714,7 @@ pub fn CreatePost() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col gap-2 mx-auto w-1/2 2xl:w-1/3">
+        <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=state.create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>

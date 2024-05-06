@@ -47,9 +47,9 @@ mod ssr {
                         b"a" => elem.push_attribute(("class", "link text-primary")),
                         b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
                         b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
-                        b"code" => elem.push_attribute(("class", "rounded-md bg-black p-1 m-1")),
+                        b"code" => elem.push_attribute(("class", "rounded-md bg-black p-0.5 px-1 mx-0.5")),
                         b"table" => elem.push_attribute(("class", "table")),
-                        b"blockquote" => elem.push_attribute(("class", "w-fit p-2 my-2 mx-1 border-s-4 rounded border-slate-400 bg-slate-600")),
+                        b"blockquote" => elem.push_attribute(("class", "w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600")),
                         _ => (),
                     }
 
@@ -84,7 +84,7 @@ mod ssr {
                                 writer.write_event(Event::Empty(checkbox_elem))?;
 
                                 let mut span = BytesStart::new("span");
-                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-1 my-2 mx-1 text-black spoiler-text"));
+                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-0.5 px-1 mx-0.5 text-black spoiler-text"));
                                 writer.write_event(Event::Start(span))?;
 
                                 writer.write_event(Event::Text(BytesText::new(text.trim())))?;
@@ -339,15 +339,16 @@ pub fn HelpButton() -> impl IntoView {
     let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
 
     view! {
-        <div class="relative inline-block">
+        <div class="relative inline-block z-20">
             <Show when=show_help>
-                <div class="relative">
+                <div class="relative z-30">
                     <div
-                        class="absolute bottom-0 right-0 origin-top-right mb-1 -mr-1 p-2 w-64 bg-base-200/90 rounded shadow-lg"
+                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-64 bg-base-200/90 rounded"
                         node_ref=modal_ref
                     >
                         <div class="relative flex flex-col gap-2 leading-snug text-justify">
-                            <p>"To add formatting to your content, the 'Markdown mode' must be activated with the left-most button."</p>
+                            <p>"To add formatting to your content, the 'Markdown mode' must be activated with the following button:"</p>
+                            <div class="w-fit p-2 rounded-md bg-base-content/20"><MarkdownIcon/></div>
                             <p>"When the 'Markdown mode' is activated, a preview of your content will be displayed."</p>
                         </div>
                     </div>

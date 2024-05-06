@@ -688,7 +688,7 @@ pub fn CreateForum() -> impl IntoView {
                             name="forum_name"
                             placeholder="Name"
                             autocomplete="off"
-                            class="input input-bordered input-primary h-input_l flex-none w-1/2"
+                            class="input input-bordered input-primary h-input_l flex-none w-3/5"
                             autofocus
                             on:input=move |ev| {
                                 forum_name.update(|value| *value = event_target_value(&ev).to_lowercase());
@@ -705,9 +705,8 @@ pub fn CreateForum() -> impl IntoView {
                                 Some(Ok(false)) => {
                                     is_name_taken.set(true);
                                     view! {
-                                        <div class="alert alert-error h-input_l flex content-center">
-                                            <InternalErrorIcon/>
-                                            <span>"Unavailable."</span>
+                                        <div class="alert alert-error h-input_l flex items-center justify-center">
+                                            <span class="font-semibold">"Unavailable"</span>
                                         </div>
                                     }.into_view()
                                 },
@@ -715,9 +714,9 @@ pub fn CreateForum() -> impl IntoView {
                                     log::error!("Error while checking forum existence: {e}");
                                     is_name_taken.set(true);
                                     view! {
-                                        <div class="alert alert-error h-input_l flex content-center">
-                                            <InternalErrorIcon/>
-                                            <span>"Server error."</span>
+                                        <div class="alert alert-error h-input_l flex items-center justify-center">
+                                            <InternalErrorIcon class="h-16 w-16"/>
+                                            <span class="font-semibold">"Server error"</span>
                                         </div>
                                     }.into_view()
                                 },

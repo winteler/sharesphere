@@ -473,9 +473,9 @@ pub fn CommentDialog(
                 aria-modal="true"
             >
                 <div class="fixed inset-0 bg-base-300 bg-opacity-75 transition-opacity"></div>
-                <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="fixed inset-0 z-10 w-screen overflow-auto">
                     <div class="flex min-h-full items-end justify-center items-center">
-                        <div class="relative transform overflow-hidden rounded-lg shadow-xl transition-all w-full max-w-xl">
+                        <div class="relative transform overflow-visible rounded transition-all w-full max-w-xl">
                             <CommentForm
                                 post_id=post_id
                                 parent_comment_id=parent_comment_id

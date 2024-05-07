@@ -11,6 +11,10 @@ module.exports = {
         textarea_s: "4rem",
         textarea_m: "10rem",
       },
+      width: {
+        '128': '32rem',
+        '160': '40rem',
+      }
     },
   },
   daisyui: {

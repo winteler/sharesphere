@@ -325,9 +325,11 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
                 key=|(_index, comment)| comment.comment.comment_id
                 // renders each item to a view
                 children=move |(index, comment)| {
+                    let index_vec = vec![index, 1];
                     view! {
                         <CommentBox
-                            comment=&comment
+                            comment=comment
+                            index_vec
                             ranking=index
                         />
                     }
@@ -339,11 +341,12 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
 
 /// Comment box component
 #[component]
-pub fn CommentBox<'a>(
-    comment: &'a CommentWithChildren,
-    #[prop(default = 0)] depth: usize,
-    #[prop(default = 0)] ranking: usize,
+pub fn CommentBox(
+    comment: CommentWithChildren,
+    index_vec: Vec<usize>,
+    ranking: usize,
 ) -> impl IntoView {
+    let index_vec = index_vec;
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
@@ -354,7 +357,7 @@ pub fn CommentBox<'a>(
     };
     let color_bar_css = format!(
         "{} rounded-full h-full w-1 ",
-        DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
+        DEPTH_TO_COLOR_MAPPING[(index_vec.len() + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
     );
 
     let is_markdown = comment.comment.markdown_body.is_some();
@@ -383,24 +386,29 @@ pub fn CommentBox<'a>(
                     class=comment_class
                     inner_html={comment.comment.body.clone()}
                 />
-                <CommentWidgetBar comment=&comment/>
+                <CommentWidgetBar comment=&comment index_vec=index_vec.clone()/>
                 <div
                     class="flex flex-col"
                     class:hidden=move || !maximize()
                 >
-                {
-                    let mut child_ranking = 0;
-                    comment.child_comments.iter().map(move |child_comment| {
-                        child_ranking = child_ranking + 1;
-                        view! {
-                            <CommentBox
-                                comment=child_comment
-                                depth=depth + 1
-                                ranking=ranking + child_ranking - 1
-                            />
+                    <For
+                        // a function that returns the items we're iterating over; a signal is fine
+                        each= move || comment.child_comments.clone().into_iter().enumerate()
+                        // a unique key for each item as a reference
+                        key=|(_index, comment)| comment.comment.comment_id
+                        // renders each item to a view
+                        children=move |(index, comment)| {
+                            let mut child_index_vec = index_vec.clone();
+                            child_index_vec.push(index);
+                            view! {
+                                <CommentBox
+                                    comment=comment
+                                    index_vec=child_index_vec
+                                    ranking=index
+                                />
+                            }
                         }
-                    }).collect_view()
-                }
+                    />
                 </div>
             </div>
         </div>
@@ -409,13 +417,20 @@ pub fn CommentBox<'a>(
 
 /// Component to encapsulate the widgets associated with each comment
 #[component]
-fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
+fn CommentWidgetBar<'a>(
+    comment: &'a CommentWithChildren,
+    index_vec: Vec<usize>,
+) -> impl IntoView {
     let content = ContentWithVote::Comment(&comment.comment, &comment.vote);
 
     view! {
         <div class="flex gap-2">
             <VotePanel content=content/>
-            <CommentButton post_id=comment.comment.post_id parent_comment_id=Some(comment.comment.comment_id)/>
+            <CommentButton
+                post_id=comment.comment.post_id
+                parent_comment_id=Some(comment.comment.comment_id)
+                parent_index_vec=index_vec
+            />
             <AuthorWidget author=&comment.comment.creator_name/>
             <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
         </div>
@@ -427,6 +442,7 @@ fn CommentWidgetBar<'a>(comment: &'a CommentWithChildren) -> impl IntoView {
 pub fn CommentButton(
     post_id: i64,
     #[prop(default = None)] parent_comment_id: Option<i64>,
+    #[prop(default = Vec::<usize>::default())] parent_index_vec: Vec<usize>,
 ) -> impl IntoView {
     let show_comment_dialog = create_rw_signal(false);
     let comment_button_class = move || match show_comment_dialog.get() {
@@ -452,6 +468,7 @@ pub fn CommentButton(
         <CommentDialog
             post_id=post_id
             parent_comment_id=parent_comment_id
+            parent_index_vec
             show_dialog=show_comment_dialog
         />
     }
@@ -461,7 +478,8 @@ pub fn CommentButton(
 #[component]
 pub fn CommentDialog(
     post_id: i64,
-    #[prop(default = None)] parent_comment_id: Option<i64>,
+    parent_comment_id: Option<i64>,
+    parent_index_vec: Vec<usize>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -477,8 +495,9 @@ pub fn CommentDialog(
                     <div class="flex min-h-full items-end justify-center items-center">
                         <div class="relative transform overflow-visible rounded transition-all w-full max-w-xl">
                             <CommentForm
-                                post_id=post_id
-                                parent_comment_id=parent_comment_id
+                                post_id
+                                parent_comment_id
+                                parent_index_vec=parent_index_vec.clone()
                                 show_form=show_dialog
                             />
                         </div>
@@ -493,7 +512,8 @@ pub fn CommentDialog(
 #[component]
 pub fn CommentForm(
     post_id: i64,
-    #[prop(default = None)] parent_comment_id: Option<i64>,
+    parent_comment_id: Option<i64>,
+    parent_index_vec: Vec<usize>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();

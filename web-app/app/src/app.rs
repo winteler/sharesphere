@@ -21,8 +21,6 @@ pub const PUBLISH_ROUTE: &str = "/publish";
 pub struct GlobalState {
     pub login_action: Action<Login, Result<User, ServerFnError>>,
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
-    pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
-    pub create_post_action: Action<CreatePost, Result<(), ServerFnError>>,
     pub subscribe_action: Action<Subscribe, Result<(), ServerFnError>>,
     pub unsubscribe_action: Action<Unsubscribe, Result<(), ServerFnError>>,
     pub current_forum_name: Option<Memo<String>>,
@@ -37,8 +35,6 @@ impl GlobalState {
         Self {
             login_action: create_server_action::<Login>(),
             logout_action: create_server_action::<EndSession>(),
-            create_forum_action: create_server_action::<CreateForum>(),
-            create_post_action: create_server_action::<CreatePost>(),
             subscribe_action: create_server_action::<Subscribe>(),
             unsubscribe_action: create_server_action::<Unsubscribe>(),
             current_forum_name: None,

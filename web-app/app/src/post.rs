@@ -680,8 +680,8 @@ pub fn EditPostButton() -> impl IntoView {
 /// Component to create a new post
 #[component]
 pub fn CreatePost() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let create_post_result = state.create_post_action.value();
+    let create_post_action = create_server_action::<CreatePost>();
+    let create_post_result = create_post_action.value();
     // check if the server has returned an error
     let has_error = move || create_post_result.with(|val| matches!(val, Some(Err(_))));
 
@@ -703,18 +703,13 @@ pub fn CreatePost() -> impl IntoView {
         create_memo(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
 
     let matching_forums_resource = create_resource(
-        move || {
-            (
-                forum_name_debounced.get(),
-                state.create_forum_action.version().get(),
-            )
-        },
-        move |(forum_prefix, _)| get_matching_forum_names(forum_prefix),
+        move || forum_name_debounced.get(),
+        move |forum_prefix| get_matching_forum_names(forum_prefix),
     );
 
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
-            <ActionForm action=state.create_post_action>
+            <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
                     <div class="dropdown dropdown-end">

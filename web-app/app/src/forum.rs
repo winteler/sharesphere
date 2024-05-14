@@ -647,16 +647,16 @@ pub fn ForumPostMiniatures(
 /// Component to create new forums
 #[component]
 pub fn CreateForum() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let create_forum_result = state.create_forum_action.value();
+    let create_forum_action = create_server_action::<CreateForum>();
+    let create_forum_result = create_forum_action.value();
     // check if the server has returned an error
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
     let forum_name = create_rw_signal(String::new());
     let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
     let is_forum_available = create_resource(
-        move || (forum_name_debounced.get(), state.create_forum_action.version().get()),
-        move |(forum_name, _)| async {
+        move || forum_name_debounced.get(),
+        move |forum_name| async {
             if forum_name.is_empty() {
                 None
             } else {
@@ -679,7 +679,7 @@ pub fn CreateForum() -> impl IntoView {
 
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
-            <ActionForm action=state.create_forum_action>
+            <ActionForm action=create_forum_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>
                     <div class="h-full flex gap-2">

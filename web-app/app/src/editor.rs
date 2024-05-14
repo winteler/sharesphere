@@ -222,7 +222,6 @@ pub fn FormMarkdownEditor(
                         class="w-full min-h-24 max-h-96 bg-base-100 outline-none border-none"
                         autofocus
                         on:input=move |ev| {
-                            log::info!("Update content: {}", event_target_value(&ev));
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
                         node_ref=textarea_ref

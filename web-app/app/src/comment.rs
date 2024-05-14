@@ -400,7 +400,7 @@ pub fn CommentBox(
                                 <CommentBox
                                     comment=comment
                                     depth=depth+1
-                                    ranking=index
+                                    ranking=ranking+index
                                 />
                             }
                         }
@@ -521,8 +521,6 @@ pub fn CommentForm(
     let create_comment_result = create_comment_action.value();
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
 
-    let form_ref = create_node_ref::<html::Form>();
-
     create_effect(move |_| {
         if let Some(Ok(comment)) = create_comment_action.value().get() {
             let comment = CommentWithChildren {
@@ -532,18 +530,12 @@ pub fn CommentForm(
             };
             comment_vec.update(|comment_vec| comment_vec.insert(0, comment));
             show_form.set(false);
-            form_ref.get().expect("form node should be loaded").reset();
         }
     });
 
-
-
     view! {
         <div class="bg-base-200 p-4 flex flex-col gap-2">
-            <ActionForm
-                action=create_comment_action
-                node_ref=form_ref
-            >
+            <ActionForm action=create_comment_action>
                 <div class="flex flex-col gap-2 w-full">
                     <input
                         type="text"

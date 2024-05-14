@@ -3,7 +3,7 @@ use leptos_meta::*;
 use leptos_router::*;
 
 use crate::auth::*;
-use crate::comment::{CommentSortType, CreateComment};
+use crate::comment::{CommentSortType};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::forum::*;
@@ -23,7 +23,6 @@ pub struct GlobalState {
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
     pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
     pub create_post_action: Action<CreatePost, Result<(), ServerFnError>>,
-    pub create_comment_action: Action<CreateComment, Result<(), ServerFnError>>,
     pub subscribe_action: Action<Subscribe, Result<(), ServerFnError>>,
     pub unsubscribe_action: Action<Unsubscribe, Result<(), ServerFnError>>,
     pub current_forum_name: Option<Memo<String>>,
@@ -40,7 +39,6 @@ impl GlobalState {
             logout_action: create_server_action::<EndSession>(),
             create_forum_action: create_server_action::<CreateForum>(),
             create_post_action: create_server_action::<CreatePost>(),
-            create_comment_action: create_server_action::<CreateComment>(),
             subscribe_action: create_server_action::<Subscribe>(),
             unsubscribe_action: create_server_action::<Unsubscribe>(),
             current_forum_name: None,

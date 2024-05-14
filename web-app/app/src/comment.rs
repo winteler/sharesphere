@@ -4,7 +4,6 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
@@ -287,7 +286,7 @@ pub async fn create_comment(
     parent_comment_id: Option<i64>,
     comment: String,
     is_markdown: Option<String>,
-) -> Result<(), ServerFnError> {
+) -> Result<Comment, ServerFnError> {
     log::trace!("Create comment for post {post_id}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -300,7 +299,7 @@ pub async fn create_comment(
         None => (comment, None),
     };
 
-    ssr::create_comment(
+    let comment = ssr::create_comment(
         post_id,
         parent_comment_id,
         comment.as_str(),
@@ -310,7 +309,7 @@ pub async fn create_comment(
     )
     .await?;
 
-    Ok(())
+    Ok(comment)
 }
 
 /// Comment section component
@@ -325,11 +324,10 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
                 key=|(_index, comment)| comment.comment.comment_id
                 // renders each item to a view
                 children=move |(index, comment)| {
-                    let index_vec = vec![index, 1];
                     view! {
                         <CommentBox
                             comment=comment
-                            index_vec
+                            depth=0
                             ranking=index
                         />
                     }
@@ -343,10 +341,10 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
 #[component]
 pub fn CommentBox(
     comment: CommentWithChildren,
-    index_vec: Vec<usize>,
+    depth: usize,
     ranking: usize,
 ) -> impl IntoView {
-    let index_vec = index_vec;
+    let child_comments = create_rw_signal(comment.child_comments);
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
@@ -357,7 +355,7 @@ pub fn CommentBox(
     };
     let color_bar_css = format!(
         "{} rounded-full h-full w-1 ",
-        DEPTH_TO_COLOR_MAPPING[(index_vec.len() + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
+        DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
     );
 
     let is_markdown = comment.comment.markdown_body.is_some();
@@ -386,24 +384,22 @@ pub fn CommentBox(
                     class=comment_class
                     inner_html={comment.comment.body.clone()}
                 />
-                <CommentWidgetBar comment=&comment index_vec=index_vec.clone()/>
+                <CommentWidgetBar comment=comment.comment vote=comment.vote child_comments/>
                 <div
                     class="flex flex-col"
                     class:hidden=move || !maximize()
                 >
                     <For
                         // a function that returns the items we're iterating over; a signal is fine
-                        each= move || comment.child_comments.clone().into_iter().enumerate()
+                        each= move || child_comments.get().into_iter().enumerate()
                         // a unique key for each item as a reference
                         key=|(_index, comment)| comment.comment.comment_id
                         // renders each item to a view
                         children=move |(index, comment)| {
-                            let mut child_index_vec = index_vec.clone();
-                            child_index_vec.push(index);
                             view! {
                                 <CommentBox
                                     comment=comment
-                                    index_vec=child_index_vec
+                                    depth=depth+1
                                     ranking=index
                                 />
                             }
@@ -417,22 +413,23 @@ pub fn CommentBox(
 
 /// Component to encapsulate the widgets associated with each comment
 #[component]
-fn CommentWidgetBar<'a>(
-    comment: &'a CommentWithChildren,
-    index_vec: Vec<usize>,
+fn CommentWidgetBar(
+    comment: Comment,
+    vote: Option<Vote>,
+    child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
-    let content = ContentWithVote::Comment(&comment.comment, &comment.vote);
+    let content = ContentWithVote::Comment(&comment, &vote);
 
     view! {
         <div class="flex gap-2">
             <VotePanel content=content/>
             <CommentButton
-                post_id=comment.comment.post_id
-                parent_comment_id=Some(comment.comment.comment_id)
-                parent_index_vec=index_vec
+                post_id=comment.post_id
+                comment_vec=child_comments
+                parent_comment_id=Some(comment.comment_id)
             />
-            <AuthorWidget author=&comment.comment.creator_name/>
-            <TimeSinceWidget timestamp=&comment.comment.create_timestamp/>
+            <AuthorWidget author=&comment.creator_name/>
+            <TimeSinceWidget timestamp=&comment.create_timestamp/>
         </div>
     }
 }
@@ -441,8 +438,8 @@ fn CommentWidgetBar<'a>(
 #[component]
 pub fn CommentButton(
     post_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
     #[prop(default = None)] parent_comment_id: Option<i64>,
-    #[prop(default = Vec::<usize>::default())] parent_index_vec: Vec<usize>,
 ) -> impl IntoView {
     let show_comment_dialog = create_rw_signal(false);
     let comment_button_class = move || match show_comment_dialog.get() {
@@ -468,7 +465,7 @@ pub fn CommentButton(
         <CommentDialog
             post_id=post_id
             parent_comment_id=parent_comment_id
-            parent_index_vec
+            comment_vec
             show_dialog=show_comment_dialog
         />
     }
@@ -479,7 +476,7 @@ pub fn CommentButton(
 pub fn CommentDialog(
     post_id: i64,
     parent_comment_id: Option<i64>,
-    parent_index_vec: Vec<usize>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -497,7 +494,7 @@ pub fn CommentDialog(
                             <CommentForm
                                 post_id
                                 parent_comment_id
-                                parent_index_vec=parent_index_vec.clone()
+                                comment_vec
                                 show_form=show_dialog
                             />
                         </div>
@@ -513,37 +510,39 @@ pub fn CommentDialog(
 pub fn CommentForm(
     post_id: i64,
     parent_comment_id: Option<i64>,
-    parent_index_vec: Vec<usize>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-
     let comment = create_rw_signal(String::new());
     let is_comment_empty = move || comment.with(|comment: &String| comment.is_empty());
 
-    let create_comment_result = state.create_comment_action.value();
+    let create_comment_action = create_server_action::<CreateComment>();
+
+    let create_comment_result = create_comment_action.value();
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
 
     let form_ref = create_node_ref::<html::Form>();
-    let response_ok = move || {
-        state
-            .create_comment_action
-            .value()
-            .with(|val| matches!(val, Some(Ok(_))))
-    };
 
     create_effect(move |_| {
-        if response_ok() {
-            form_ref.get().expect("form node should be loaded").reset()
+        if let Some(Ok(comment)) = create_comment_action.value().get() {
+            let comment = CommentWithChildren {
+                comment,
+                vote: None,
+                child_comments: Vec::default()
+            };
+            comment_vec.update(|comment_vec| comment_vec.insert(0, comment));
+            show_form.set(false);
+            form_ref.get().expect("form node should be loaded").reset();
         }
     });
+
+
 
     view! {
         <div class="bg-base-200 p-4 flex flex-col gap-2">
             <ActionForm
-                action=state.create_comment_action
+                action=create_comment_action
                 node_ref=form_ref
-                on:submit=move |_| show_form.set(false)
             >
                 <div class="flex flex-col gap-2 w-full">
                     <input

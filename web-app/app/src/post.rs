@@ -541,7 +541,6 @@ pub fn Post() -> impl IntoView {
 
     // Effect for initial load, forum and sort changes,
     create_effect(move |_| {
-        state.create_comment_action.version().get();
         let post_id = post_id.get();
         let sort_type = state.comment_sort_type.get();
         is_loading.set(true);
@@ -615,7 +614,7 @@ pub fn Post() -> impl IntoView {
                                     class={post_body_class}
                                     inner_html={post.post.body.clone()}
                                 />
-                                <PostWidgetBar post=post/>
+                                <PostWidgetBar post=post comment_vec/>
                             </div>
                         </div>
                     </div>
@@ -642,7 +641,7 @@ pub fn Post() -> impl IntoView {
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
-fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
+fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
     let content = ContentWithVote::Post(&post.post, &post.vote);
 
     view! {
@@ -650,7 +649,7 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote) -> impl IntoView {
             <VotePanel
                 content=content
             />
-            <CommentButton post_id=post.post.post_id/>
+            <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton/>
             <AuthorWidget author=&post.post.creator_name/>
             <TimeSinceWidget timestamp=&post.post.create_timestamp/>

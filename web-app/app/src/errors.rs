@@ -130,8 +130,8 @@ mod ssr {
 }
 
 #[component]
-pub fn AppErrorIcon<'a>(
-    app_error: &'a AppError,
+pub fn AppErrorIcon(
+    app_error: AppError,
 ) -> impl IntoView {
     match app_error {
         AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> },

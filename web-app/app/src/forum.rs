@@ -619,8 +619,8 @@ pub fn ForumPostMiniatures(
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
                                     <div class="flex gap-2">
                                         <ScoreIndicator score=post.score/>
-                                        <AuthorWidget author=&post.creator_name/>
-                                        <TimeSinceWidget timestamp=&post.create_timestamp/>
+                                        <AuthorWidget author=post.creator_name.clone()/>
+                                        <TimeSinceWidget timestamp=post.create_timestamp/>
                                     </div>
                                 </div>
                             </a>

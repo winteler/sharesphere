@@ -651,8 +651,8 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWi
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton/>
-            <AuthorWidget author=&post.post.creator_name/>
-            <TimeSinceWidget timestamp=&post.post.create_timestamp/>
+            <AuthorWidget author=post.post.creator_name.clone()/>
+            <TimeSinceWidget timestamp=post.post.create_timestamp/>
         </div>
     }
 }

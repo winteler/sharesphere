@@ -6,30 +6,33 @@ use crate::unpack::TransitionUnpack;
 
 /// Component to display a list of forum links
 #[component]
-pub fn ForumLinkList<'a>(title: &'static str, forum_name_vec: &'a Vec<String>) -> impl IntoView {
+pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl IntoView {
     if forum_name_vec.is_empty() {
         View::default()
     } else {
-        let forum_vector_view = forum_name_vec
-            .iter()
-            .map(|forum_name| {
-                let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name;
-                view! {
-                    <li>
-                        <a href=forum_path>
-                            {forum_name}
-                        </a>
-                    </li>
-                }
-            }).collect_view();
-
         view! {
             <ul class="menu h-full">
                 <li>
                     <details open>
                         <summary class="text-xl font-medium">{title}</summary>
                         <ul class="menu-dropdown">
-                            {forum_vector_view}
+                            <For
+                                // a function that returns the items we're iterating over; a signal is fine
+                                each=move || forum_name_vec.clone().into_iter().enumerate()
+                                // a unique key for each item as a reference
+                                key=|(_, forum_name)| forum_name.clone()
+                                // renders each item to a view
+                                children=move |(_, forum_name)| {
+                                    let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name;
+                                    view! {
+                                        <li>
+                                            <a href=forum_path>
+                                                {forum_name}
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            />
                         </ul>
                     </details>
                 </li>
@@ -62,7 +65,7 @@ pub fn LeftSidebar() -> impl IntoView {
                 <TransitionUnpack resource=subscribed_forum_vec_resource let:forum_vec>
                     <ForumLinkList
                         title="Subscribed"
-                        forum_name_vec=forum_vec
+                        forum_name_vec=forum_vec.clone()
                     />
                 </TransitionUnpack>
             </div>
@@ -70,7 +73,7 @@ pub fn LeftSidebar() -> impl IntoView {
                 <TransitionUnpack resource=popular_forum_vec_resource let:forum_vec>
                     <ForumLinkList
                         title="Popular"
-                        forum_name_vec=forum_vec
+                        forum_name_vec=forum_vec.clone()
                     />
                 </TransitionUnpack>
             </div>

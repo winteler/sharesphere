@@ -11,22 +11,21 @@ use crate::ranking::SortType;
 
 /// Component to display the author of a post or comment
 #[component]
-pub fn AuthorWidget<'a>(author: &'a String) -> impl IntoView {
+pub fn AuthorWidget(author: String) -> impl IntoView {
     view! {
         <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
             <AuthorIcon/>
-            {author.clone()}
+            {author}
         </div>
     }
 }
 
 /// Component to display the creation time of a post
 #[component]
-pub fn TimeSinceWidget<'a>(timestamp: &'a chrono::DateTime<chrono::Utc>) -> impl IntoView {
+pub fn TimeSinceWidget(timestamp: chrono::DateTime<chrono::Utc>) -> impl IntoView {
     view! {
         <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
             <ClockIcon/>
-
             {
                 let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
                 let seconds = elapsed_time.num_seconds();
@@ -54,7 +53,6 @@ pub fn TimeSinceWidget<'a>(timestamp: &'a chrono::DateTime<chrono::Utc>) -> impl
                     }
                 }
             }
-
         </div>
     }
 }

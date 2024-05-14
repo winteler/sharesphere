@@ -60,7 +60,7 @@ pub fn ErrorTemplate(
                     log::error!("Caught error in ErrorTemplate, status_code: {status_code}, error message: {error_string}");
                     view! {
                         <div class="flex items-center gap-2">
-                            <AppErrorIcon app_error=&error/>
+                            <AppErrorIcon app_error=error/>
                             <div class="flex flex-col">
                                 <h2 class="text-2xl">{status_code}</h2>
                                 <h3 class="text-xl">{user_message}</h3>

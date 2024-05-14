@@ -428,8 +428,8 @@ fn CommentWidgetBar(
                 comment_vec=child_comments
                 parent_comment_id=Some(comment.comment_id)
             />
-            <AuthorWidget author=&comment.creator_name/>
-            <TimeSinceWidget timestamp=&comment.create_timestamp/>
+            <AuthorWidget author=comment.creator_name.clone()/>
+            <TimeSinceWidget timestamp=comment.create_timestamp/>
         </div>
     }
 }

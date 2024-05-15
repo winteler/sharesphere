@@ -23,6 +23,8 @@ use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
+#[cfg(feature = "ssr")]
+use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
@@ -445,9 +447,11 @@ pub async fn create_post(
         is_nsfw.is_some(),
         tag,
         &user,
-        db_pool,
+        db_pool.clone(),
     )
     .await?;
+
+    let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, db_pool).await?;
 
     log::trace!("Created post with id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()

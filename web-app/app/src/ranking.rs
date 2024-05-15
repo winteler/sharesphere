@@ -101,7 +101,7 @@ pub mod ssr {
 
         (score_delta, minus_delta)
     }
-    pub async fn update_content_score(
+    async fn update_content_score(
         vote: VoteValue,
         post_id: i64,
         comment_id: Option<i64>,

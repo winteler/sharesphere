@@ -11,6 +11,8 @@ use crate::auth::LoginGuardButton;
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
 use crate::icons::{CommentIcon, InternalErrorIcon, MaximizeIcon, MinimizeIcon};
+#[cfg(feature = "ssr")]
+use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
@@ -286,7 +288,7 @@ pub async fn create_comment(
     parent_comment_id: Option<i64>,
     comment: String,
     is_markdown: Option<String>,
-) -> Result<Comment, ServerFnError> {
+) -> Result<CommentWithChildren, ServerFnError> {
     log::trace!("Create comment for post {post_id}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -299,17 +301,23 @@ pub async fn create_comment(
         None => (comment, None),
     };
 
-    let comment = ssr::create_comment(
+    let mut comment = ssr::create_comment(
         post_id,
         parent_comment_id,
         comment.as_str(),
         markdown_comment,
         &user,
-        db_pool,
-    )
-    .await?;
+        db_pool.clone(),
+    ).await?;
 
-    Ok(comment)
+    let vote = vote_on_content(VoteValue::Up, comment.post_id, Some(comment.comment_id), None, &user, db_pool).await?;
+    comment.score = 1;
+
+    Ok(CommentWithChildren {
+        comment,
+        vote,
+        child_comments: Vec::<CommentWithChildren>::default()
+    })
 }
 
 /// Comment section component
@@ -523,11 +531,6 @@ pub fn CommentForm(
 
     create_effect(move |_| {
         if let Some(Ok(comment)) = create_comment_action.value().get() {
-            let comment = CommentWithChildren {
-                comment,
-                vote: None,
-                child_comments: Vec::default()
-            };
             comment_vec.update(|comment_vec| comment_vec.insert(0, comment));
             show_form.set(false);
         }

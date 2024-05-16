@@ -654,7 +654,7 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWi
                 content=content
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
-            <EditPostButton/>
+            <EditPostButton author_id=post.post.creator_id/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
         </div>
@@ -663,21 +663,31 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWi
 
 /// Component to edit a post
 #[component]
-pub fn EditPostButton() -> impl IntoView {
+pub fn EditPostButton(
+    author_id: i64
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let show_edit_dialog = create_rw_signal(false);
     let edit_button_class = move || match show_edit_dialog.get() {
         true => "btn btn-circle btn-sm p-1 btn-primary",
         false => "btn btn-circle btn-sm p-1 btn-ghost",
     };
     view! {
-        <button
-            class=edit_button_class
-            aria-expanded=move || show_edit_dialog.get().to_string()
-            aria-haspopup="dialog"
-            on:click=move |_| show_edit_dialog.update(|show: &mut bool| *show = !*show)
-        >
-            <EditIcon/>
-        </button>
+        {
+            move || state.user.map(|result| match result {
+                Ok(Some(user)) if user.user_id == author_id => view! {
+                    <button
+                        class=edit_button_class
+                        aria-expanded=move || show_edit_dialog.get().to_string()
+                        aria-haspopup="dialog"
+                        on:click=move |_| show_edit_dialog.update(|show: &mut bool| *show = !*show)
+                    >
+                        <EditIcon/>
+                    </button>
+                }.into_view(),
+                _ => View::default()
+            })
+        }
     }
 }
 

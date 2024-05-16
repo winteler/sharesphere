@@ -417,11 +417,14 @@ pub fn LoginGuardButton<F: Fn(&User) -> IV + 'static, IV: IntoView>(
 
     view! {
         {
-            move || state.user.map(|result| match result {
-                Ok(Some(user)) => children.with_value(|children| children(user)).into_view(),
-                _ => {
+            move || state.user.with(|result| match result {
+                Some(Ok(Some(user))) => children.with_value(|children| children(user)).into_view(),
+                Some(_) => {
                     let login_button_view = login_button_content.run();
                     view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
+                }
+                _ => {
+                    view! { <div class=login_button_class>{login_button_content.run()}</div> }.into_view()
                 }
             })
         }

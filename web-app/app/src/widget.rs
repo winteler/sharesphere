@@ -5,7 +5,7 @@ use crate::comment::CommentSortType;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, PodiumIcon};
+use crate::icons::{AuthorIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, PodiumIcon};
 use crate::post::PostSortType;
 use crate::ranking::SortType;
 
@@ -128,5 +128,52 @@ pub fn SortWidgetOption(
                 {children().into_view()}
             </button>
         </div>
+    }
+}
+
+/// Component to render cancel and publish buttons for a modal Form
+#[component]
+pub fn ModalFormButtons<F: Fn() -> bool + 'static>(
+    /// functions returning whether the publish buttons should be disabled
+    disable_publish: F,
+    /// signal to hide the form upon submitting
+    show_form: RwSignal<bool>,
+) -> impl IntoView {
+    view! {
+        <div class="flex justify-between gap-2">
+            <button
+                type="button"
+                class="btn btn-error"
+                on:click=move |_| show_form.set(false)
+            >
+                "Cancel"
+            </button>
+            <button
+                type="submit"
+                class="btn btn-active btn-secondary"
+                disabled=disable_publish
+            >
+                "Publish"
+            </button>
+        </div>
+    }
+}
+
+/// Component to render a server action's error
+#[component]
+pub fn ActionError<F: Fn() -> bool + 'static>(
+    /// functions returning whether the publish buttons should be disabled
+    has_error: F
+) -> impl IntoView {
+    view! {
+        <Show
+            when=has_error
+            fallback=move || ()
+        >
+            <div class="alert alert-error flex justify-center">
+                <InternalErrorIcon/>
+                <span>"Server error. Please reload the page and retry."</span>
+            </div>
+        </Show>
     }
 }

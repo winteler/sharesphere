@@ -10,11 +10,11 @@ use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
-use crate::icons::{CommentIcon, InternalErrorIcon, MaximizeIcon, MinimizeIcon};
+use crate::icons::{CommentIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{AuthorWidget, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, ModalFormButtons, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 
@@ -558,33 +558,13 @@ pub fn CommentForm(
                         placeholder="Your comment..."
                         content=comment
                     />
-                    <div class="flex justify-between gap-2">
-                        <button
-                            type="button"
-                            class="btn btn-error"
-                            on:click=move |_| show_form.set(false)
-                        >
-                            "Cancel"
-                        </button>
-                        <button
-                            type="submit"
-                            class="btn btn-active btn-secondary"
-                            disabled=is_comment_empty
-                        >
-                            "Publish"
-                        </button>
-                    </div>
+                    <ModalFormButtons
+                        disable_publish=is_comment_empty
+                        show_form
+                    />
                 </div>
             </ActionForm>
-            <Show
-                when=has_error
-                fallback=move || ()
-            >
-                <div class="alert alert-error flex justify-center">
-                    <InternalErrorIcon/>
-                    <span>"Server error. Please reload the page and retry."</span>
-                </div>
-            </Show>
+            <ActionError has_error/>
         </div>
     }
 }

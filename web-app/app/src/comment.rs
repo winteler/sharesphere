@@ -14,7 +14,7 @@ use crate::icons::{CommentIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{ActionError, AuthorWidget, ModalFormButtons, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 
@@ -308,15 +308,24 @@ pub async fn create_comment(
         markdown_comment,
         &user,
         db_pool.clone(),
-    ).await?;
+    )
+    .await?;
 
-    let vote = vote_on_content(VoteValue::Up, comment.post_id, Some(comment.comment_id), None, &user, db_pool).await?;
+    let vote = vote_on_content(
+        VoteValue::Up,
+        comment.post_id,
+        Some(comment.comment_id),
+        None,
+        &user,
+        db_pool,
+    )
+    .await?;
     comment.score = 1;
 
     Ok(CommentWithChildren {
         comment,
         vote,
-        child_comments: Vec::<CommentWithChildren>::default()
+        child_comments: Vec::<CommentWithChildren>::default(),
     })
 }
 
@@ -347,11 +356,7 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
 
 /// Comment box component
 #[component]
-pub fn CommentBox(
-    comment: CommentWithChildren,
-    depth: usize,
-    ranking: usize,
-) -> impl IntoView {
+pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) -> impl IntoView {
     let child_comments = create_rw_signal(comment.child_comments);
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
@@ -488,28 +493,17 @@ pub fn CommentDialog(
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
-        <Show when=show_dialog>
-            <div
-                class="relative z-10"
-                aria-labelledby="modal-title"
-                role="dialog"
-                aria-modal="true"
-            >
-                <div class="fixed inset-0 bg-base-300 bg-opacity-75 transition-opacity"></div>
-                <div class="fixed inset-0 z-10 w-screen overflow-auto">
-                    <div class="flex min-h-full items-end justify-center items-center">
-                        <div class="relative transform overflow-visible rounded transition-all w-full max-w-xl">
-                            <CommentForm
-                                post_id
-                                parent_comment_id
-                                comment_vec
-                                show_form=show_dialog
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Show>
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <CommentForm
+                post_id
+                parent_comment_id
+                comment_vec
+                show_form=show_dialog
+            />
+        </ModalDialog>
     }
 }
 

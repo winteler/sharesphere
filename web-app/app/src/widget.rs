@@ -5,9 +5,41 @@ use crate::comment::CommentSortType;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, PodiumIcon};
+use crate::icons::{
+    AuthorIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, PodiumIcon,
+};
 use crate::post::PostSortType;
 use crate::ranking::SortType;
+
+/// Component that displays its children in a modal dialog
+#[component]
+pub fn ModalDialog(
+    class: &'static str,
+    show_dialog: RwSignal<bool>,
+    children: ChildrenFn,
+) -> impl IntoView {
+    let dialog_class =
+        move || format!("relative transform overflow-visible rounded transition-all {class}");
+    view! {
+        <Show when=show_dialog>
+            <div
+                class="relative z-10"
+                aria-labelledby="modal-title"
+                role="dialog"
+                aria-modal="true"
+            >
+                <div class="fixed inset-0 bg-base-300 bg-opacity-75 transition-opacity"></div>
+                <div class="fixed inset-0 z-10 w-screen overflow-auto">
+                    <div class="flex min-h-full items-end justify-center items-center">
+                        <div class=dialog_class>
+                            {children()}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Show>
+    }
+}
 
 /// Component to display the author of a post or comment
 #[component]
@@ -163,7 +195,7 @@ pub fn ModalFormButtons<F: Fn() -> bool + 'static>(
 #[component]
 pub fn ActionError<F: Fn() -> bool + 'static>(
     /// functions returning whether the publish buttons should be disabled
-    has_error: F
+    has_error: F,
 ) -> impl IntoView {
     view! {
         <Show

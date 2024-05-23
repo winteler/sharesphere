@@ -47,9 +47,14 @@ mod ssr {
                         b"a" => elem.push_attribute(("class", "link text-primary")),
                         b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
                         b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
-                        b"code" => elem.push_attribute(("class", "rounded-md bg-black p-0.5 px-1 mx-0.5")),
+                        b"code" => {
+                            elem.push_attribute(("class", "rounded-md bg-black p-0.5 px-1 mx-0.5"))
+                        }
                         b"table" => elem.push_attribute(("class", "table")),
-                        b"blockquote" => elem.push_attribute(("class", "w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600")),
+                        b"blockquote" => elem.push_attribute((
+                            "class",
+                            "w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600",
+                        )),
                         _ => (),
                     }
 
@@ -84,7 +89,7 @@ mod ssr {
                                 writer.write_event(Event::Empty(checkbox_elem))?;
 
                                 let mut span = BytesStart::new("span");
-                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-black p-0.5 px-1 mx-0.5 text-black spoiler-text"));
+                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text"));
                                 writer.write_event(Event::Start(span))?;
 
                                 writer.write_event(Event::Text(BytesText::new(text.trim())))?;
@@ -144,7 +149,7 @@ pub fn FormTextEditor(
     /// name of the hidden checkbox indicating whether markdown mode is enabled, must correspond to the parameter of the associated server function
     placeholder: &'static str,
     /// Signal to synchronize content between this component and its parent
-    content: RwSignal<String>
+    content: RwSignal<String>,
 ) -> impl IntoView {
     let num_lines = move || content.with(|content| content.lines().count());
 
@@ -179,7 +184,7 @@ pub fn FormMarkdownEditor(
     /// Placeholder for the textarea
     placeholder: &'static str,
     /// Signal to synchronize content between this component and its parent
-    content: RwSignal<String>
+    content: RwSignal<String>,
 ) -> impl IntoView {
     let num_lines = move || content.with(|content| content.lines().count());
 
@@ -378,13 +383,15 @@ fn format_textarea_content(
     content: &mut String,
     mut selection_start: usize,
     mut selection_end: usize,
-    format_type: FormatType
+    format_type: FormatType,
 ) {
     let selected_content = &content[selection_start..selection_end];
-    let leading_whitespace = selected_content.chars()
+    let leading_whitespace = selected_content
+        .chars()
         .take_while(|ch| ch.is_whitespace())
         .count();
-    let ending_whitespace = selected_content.chars()
+    let ending_whitespace = selected_content
+        .chars()
         .rev()
         .take_while(|ch| ch.is_whitespace())
         .count();
@@ -396,52 +403,55 @@ fn format_textarea_content(
         FormatType::Bold => {
             content.insert_str(selection_end, "**");
             content.insert_str(selection_start, "**");
-        },
+        }
         FormatType::Italic => {
             content.insert_str(selection_end, "*");
             content.insert_str(selection_start, "*");
-        },
+        }
         FormatType::Strikethrough => {
             content.insert_str(selection_end, "~~");
             content.insert_str(selection_start, "~~");
-        },
+        }
         FormatType::Header1 => {
             content.insert_str(get_line_start_for_position(content, selection_start), "# ");
-        },
+        }
         FormatType::Header2 => {
             content.insert_str(get_line_start_for_position(content, selection_start), "## ");
-        },
+        }
         FormatType::List => {
             content.insert_str(get_line_start_for_position(content, selection_start), "* ");
-        },
+        }
         FormatType::NumberedList => {
             content.insert_str(get_line_start_for_position(content, selection_start), "1. ");
-        },
+        }
         FormatType::CodeBlock => {
             content.insert_str(selection_end, "```");
             content.insert_str(selection_start, "```");
-        },
+        }
         FormatType::Spoiler => {
             content.insert_str(selection_end, SPOILER_TAG);
             content.insert_str(selection_start, SPOILER_TAG);
-        },
+        }
         FormatType::BlockQuote => {
             content.insert_str(get_line_start_for_position(content, selection_start), "> ");
-        },
+        }
         FormatType::Link => {
-            content.insert_str(get_line_start_for_position(content, selection_start), "[link text](https://www.your_link.com)");
-        },
+            content.insert_str(
+                get_line_start_for_position(content, selection_start),
+                "[link text](https://www.your_link.com)",
+            );
+        }
         FormatType::Image => {
-            content.insert_str(get_line_start_for_position(content, selection_start), "![](https://image_url.png)");
-        },
+            content.insert_str(
+                get_line_start_for_position(content, selection_start),
+                "![](https://image_url.png)",
+            );
+        }
     };
 }
 
 /// Given the input String, returns the starting byte index of the line containing the [position] byte index.
-fn get_line_start_for_position(
-    string: &String,
-    position: usize,
-) -> usize {
+fn get_line_start_for_position(string: &String, position: usize) -> usize {
     match string[..position].rfind('\n') {
         Some(line_start) => line_start + 1,
         None => 0,
@@ -451,21 +461,52 @@ fn get_line_start_for_position(
 #[cfg(test)]
 mod tests {
     use leptos::ServerFnError;
+
     use crate::editor::{get_styled_html_from_markdown, ssr::style_html_user_content};
 
     #[test]
     fn test_style_html_user_content() -> Result<(), ServerFnError> {
-        assert_eq!(style_html_user_content("<h1></h1>")?, r#"<h1 class="text-4xl my-2"></h1>"#);
-        assert_eq!(style_html_user_content("<h2></h2>")?, r#"<h2 class="text-2xl my-2"></h2>"#);
-        assert_eq!(style_html_user_content("<h3></h3>")?, r#"<h3 class="text-xl my-2"></h3>"#);
-        assert_eq!(style_html_user_content("<a></a>")?, r#"<a class="link text-primary"></a>"#);
-        assert_eq!(style_html_user_content("<ul></ul>")?, r#"<ul class="list-inside list-disc"></ul>"#);
-        assert_eq!(style_html_user_content("<ol></ol>")?, r#"<ol class="list-inside list-decimal"></ol>"#);
-        assert_eq!(style_html_user_content("<code></code>")?, r#"<code class="rounded-md bg-black p-1 m-1"></code>"#);
-        assert_eq!(style_html_user_content("<table></table>")?, r#"<table class="table"></table>"#);
-        assert_eq!(style_html_user_content("<blockquote></blockquote>")?, r#"<blockquote class="w-fit p-2 my-2 mx-1 border-s-4 rounded border-slate-400 bg-slate-600"></blockquote>"#);
+        assert_eq!(
+            style_html_user_content("<h1></h1>")?,
+            r#"<h1 class="text-4xl my-2"></h1>"#
+        );
+        assert_eq!(
+            style_html_user_content("<h2></h2>")?,
+            r#"<h2 class="text-2xl my-2"></h2>"#
+        );
+        assert_eq!(
+            style_html_user_content("<h3></h3>")?,
+            r#"<h3 class="text-xl my-2"></h3>"#
+        );
+        assert_eq!(
+            style_html_user_content("<a></a>")?,
+            r#"<a class="link text-primary"></a>"#
+        );
+        assert_eq!(
+            style_html_user_content("<ul></ul>")?,
+            r#"<ul class="list-inside list-disc"></ul>"#
+        );
+        assert_eq!(
+            style_html_user_content("<ol></ol>")?,
+            r#"<ol class="list-inside list-decimal"></ol>"#
+        );
+        assert_eq!(
+            style_html_user_content("<code></code>")?,
+            r#"<code class="rounded-md bg-black p-1 m-1"></code>"#
+        );
+        assert_eq!(
+            style_html_user_content("<table></table>")?,
+            r#"<table class="table"></table>"#
+        );
+        assert_eq!(
+            style_html_user_content("<blockquote></blockquote>")?,
+            r#"<blockquote class="w-fit p-2 my-2 mx-1 border-s-4 rounded border-slate-400 bg-slate-600"></blockquote>"#
+        );
         assert_eq!(style_html_user_content("<hr/>")?, r#"<hr class="my-2"/>"#);
-        assert_eq!(style_html_user_content("<p>Test, || This is a spoiler || this is not a spoiler</p>")?, r#"<p>Test, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-black p-1 my-2 mx-1 text-black spoiler-text">This is a spoiler</span></label> this is not a spoiler</p>"#);
+        assert_eq!(
+            style_html_user_content("<p>Test, || This is a spoiler || this is not a spoiler</p>")?,
+            r#"<p>Test, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-black p-1 my-2 mx-1 text-black spoiler-text">This is a spoiler</span></label> this is not a spoiler</p>"#
+        );
         Ok(())
     }
 
@@ -499,7 +540,7 @@ Finally, we can add links [link text](https://www.example.com), images ![alt tex
 | ------------- |:-------------:| -----:|
 | col 3 is      | right-aligned | $1600 |
 | col 2 is      | centered      |   $12 |
-| zebra stripes | are neat      |    $1 |"#
+| zebra stripes | are neat      |    $1 |"#,
         );
 
         let expected_html = String::from(
@@ -550,10 +591,13 @@ Also, a bit more work is need to add an empty line.</p>
 <td align="right">$1</td>
 </tr>
 </tbody>
-</table>"#
+</table>"#,
         );
 
-        assert_eq!(get_styled_html_from_markdown(markdown).await?, expected_html);
+        assert_eq!(
+            get_styled_html_from_markdown(markdown).await?,
+            expected_html
+        );
         Ok(())
     }
 }

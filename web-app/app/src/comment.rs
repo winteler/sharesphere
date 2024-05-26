@@ -4,13 +4,14 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
-use crate::icons::{CommentIcon, MaximizeIcon, MinimizeIcon};
+use crate::icons::{CommentIcon, EditIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
@@ -76,6 +77,7 @@ pub mod ssr {
 
     use crate::auth::User;
     use crate::errors::AppError;
+    use crate::post::Post;
     use crate::ranking::VoteValue;
 
     use super::*;
@@ -150,6 +152,34 @@ pub mod ssr {
         )
             .fetch_one(&db_pool)
             .await?;
+
+        Ok(comment)
+    }
+
+    pub async fn update_comment(
+        comment_id: i64,
+        comment_body: &str,
+        comment_markdown_body: Option<&str>,
+        user: &User,
+        db_pool: PgPool,
+    ) -> Result<Post, AppError> {
+        let comment = sqlx::query_as!(
+            Comment,
+            "UPDATE comments SET
+                body = $1,
+                markdown_body = $2,
+                edit_timestamp = CURRENT_TIMESTAMP
+            WHERE
+                comment_id = $3 AND
+                creator_id = $4
+            RETURNING *",
+            comment_body,
+            comment_markdown_body,
+            comment_id,
+            user.user_id,
+        )
+        .fetch_one(&db_pool)
+        .await?;
 
         Ok(comment)
     }
@@ -329,6 +359,36 @@ pub async fn create_comment(
     })
 }
 
+#[server]
+pub async fn edit_comment(
+    comment_id: i64,
+    comment: String,
+    is_markdown: Option<String>,
+) -> Result<CommentWithChildren, ServerFnError> {
+    log::trace!("Edit comment {comment_id}");
+    let user = check_user()?;
+    let db_pool = get_db_pool()?;
+
+    let (comment, markdown_comment) = match is_markdown {
+        Some(_) => (
+            get_styled_html_from_markdown(comment.clone()).await?,
+            Some(comment.as_str()),
+        ),
+        None => (comment, None),
+    };
+
+    let comment = ssr::edit_comment(
+        comment_id,
+        comment.as_str(),
+        markdown_comment,
+        &user,
+        db_pool.clone(),
+    )
+    .await?;
+
+    Ok(comment)
+}
+
 /// Comment section component
 #[component]
 pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
@@ -357,6 +417,7 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
 /// Comment box component
 #[component]
 pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) -> impl IntoView {
+    let comment_body = create_rw_signal(comment.comment.body.clone());
     let child_comments = create_rw_signal(comment.child_comments);
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
@@ -395,9 +456,14 @@ pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) ->
             <div class="flex flex-col">
                 <div
                     class=comment_class
-                    inner_html={comment.comment.body.clone()}
+                    inner_html=comment_body
                 />
-                <CommentWidgetBar comment=comment.comment vote=comment.vote child_comments/>
+                <CommentWidgetBar
+                    comment=comment.comment
+                    vote=comment.vote
+                    comment_body
+                    child_comments
+                />
                 <div
                     class="flex flex-col"
                     class:hidden=move || !maximize()
@@ -429,6 +495,7 @@ pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) ->
 fn CommentWidgetBar(
     comment: Comment,
     vote: Option<Vote>,
+    comment_body: RwSignal<String>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     let content = ContentWithVote::Comment(&comment, &vote);
@@ -440,6 +507,11 @@ fn CommentWidgetBar(
                 post_id=comment.post_id
                 comment_vec=child_comments
                 parent_comment_id=Some(comment.comment_id)
+            />
+            <EditCommentButton
+                comment_id=comment.comment_id
+                author_id=comment.creator_id
+                comment_body
             />
             <AuthorWidget author=comment.creator_name.clone()/>
             <TimeSinceWidget timestamp=comment.create_timestamp/>
@@ -454,8 +526,8 @@ pub fn CommentButton(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
     #[prop(default = None)] parent_comment_id: Option<i64>,
 ) -> impl IntoView {
-    let show_comment_dialog = create_rw_signal(false);
-    let comment_button_class = move || match show_comment_dialog.get() {
+    let show_dialog = create_rw_signal(false);
+    let comment_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
     };
@@ -468,18 +540,18 @@ pub fn CommentButton(
         >
             <button
                 class=comment_button_class
-                aria-expanded=move || show_comment_dialog.get().to_string()
+                aria-expanded=move || show_dialog.get().to_string()
                 aria-haspopup="dialog"
-                on:click=move |_| show_comment_dialog.update(|show: &mut bool| *show = !*show)
+                on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
             >
                 <CommentIcon/>
             </button>
         </LoginGuardButton>
         <CommentDialog
-            post_id=post_id
-            parent_comment_id=parent_comment_id
+            post_id
+            parent_comment_id
             comment_vec
-            show_dialog=show_comment_dialog
+            show_dialog
         />
     }
 }
@@ -545,6 +617,112 @@ pub fn CommentForm(
                         name="parent_comment_id"
                         class="hidden"
                         value=parent_comment_id
+                    />
+                    <FormMarkdownEditor
+                        name="comment"
+                        is_markdown_name="is_markdown"
+                        placeholder="Your comment..."
+                        content=comment
+                    />
+                    <ModalFormButtons
+                        disable_publish=is_comment_empty
+                        show_form
+                    />
+                </div>
+            </ActionForm>
+            <ActionError has_error/>
+        </div>
+    }
+}
+
+/// Component to open the edit comment form
+#[component]
+pub fn EditCommentButton(
+    comment_id: i64,
+    author_id: i64,
+    comment_body: RwSignal<String>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let show_dialog = create_rw_signal(false);
+    let comment_button_class = move || match show_dialog.get() {
+        true => "btn btn-circle btn-sm btn-primary",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
+
+    view! {
+        {
+            move || state.user.map(|result| match result {
+                Ok(Some(user)) if user.user_id == author_id => view! {
+                    <button
+                        class=comment_button_class
+                        aria-expanded=move || show_dialog.get().to_string()
+                        aria-haspopup="dialog"
+                        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                    >
+                        <EditIcon/>
+                    </button>
+                }.into_view(),
+                _ => View::default()
+            })
+        }
+        <EditCommentDialog
+            comment_id
+            comment_body
+        />
+    }
+}
+
+/// Dialog to edit a comment
+#[component]
+pub fn EditCommentDialog(
+    comment_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    show_dialog: RwSignal<bool>,
+) -> impl IntoView {
+    view! {
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <CommentForm
+                comment_id
+                comment_vec
+                show_form=show_dialog
+            />
+        </ModalDialog>
+    }
+}
+
+/// Form to edit a comment
+#[component]
+pub fn EditCommentForm(
+    comment_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    show_form: RwSignal<bool>,
+) -> impl IntoView {
+    let comment = create_rw_signal(String::new());
+    let is_comment_empty = move || comment.with(|comment: &String| comment.is_empty());
+
+    let create_comment_action = create_server_action::<CreateComment>();
+
+    let create_comment_result = create_comment_action.value();
+    let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
+
+    create_effect(move |_| {
+        if let Some(Ok(comment)) = create_comment_action.value().get() {
+            comment_vec.update(|comment_vec| comment_vec.insert(0, comment));
+            show_form.set(false);
+        }
+    });
+
+    view! {
+        <div class="bg-base-200 p-4 flex flex-col gap-2">
+            <ActionForm action=create_comment_action>
+                <div class="flex flex-col gap-2 w-full">
+                    <input
+                        type="text"
+                        name="comment_id"
+                        class="hidden"
                     />
                     <FormMarkdownEditor
                         name="comment"

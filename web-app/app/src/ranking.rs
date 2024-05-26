@@ -408,7 +408,7 @@ pub fn on_content_vote(
 ) {
     vote.update(|vote| update_vote_value(vote, is_upvote));
 
-    log::info!("Content vote value {:?}", vote.get_untracked());
+    log::trace!("Content vote value {:?}", vote.get_untracked());
 
     let previous_vote_info = if vote_action.version().get_untracked() == 0
         && current_vote_id.is_some()
@@ -452,7 +452,7 @@ pub fn get_on_content_vote_closure(
     move |_| {
         vote.update(|vote| update_vote_value(vote, is_upvote));
 
-        log::info!("Content vote value {:?}", vote.get_untracked());
+        log::trace!("Content vote value {:?}", vote.get_untracked());
 
         let previous_vote_info = if vote_action.version().get_untracked() == 0
             && current_vote_id.is_some()

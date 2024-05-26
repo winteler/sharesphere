@@ -168,7 +168,9 @@ pub fn FormTextEditor(
                     on:input=move |ev| {
                         content.update(|content: &mut String| *content = event_target_value(&ev));
                     }
-                ></textarea>
+                >
+                    {content}
+                </textarea>
             </div>
         </div>
     }
@@ -185,10 +187,13 @@ pub fn FormMarkdownEditor(
     placeholder: &'static str,
     /// Signal to synchronize content between this component and its parent
     content: RwSignal<String>,
+    /// Initial state for markdown rendering
+    #[prop(default = false)]
+    is_markdown: bool,
 ) -> impl IntoView {
     let num_lines = move || content.with(|content| content.lines().count());
 
-    let is_markdown_mode = create_rw_signal(false);
+    let is_markdown_mode = create_rw_signal(is_markdown);
     let markdown_button_class = move || match is_markdown_mode.get() {
         true => "h-full content-center p-2 rounded-md bg-success",
         false => "h-full content-center p-2 rounded-md hover:bg-base-content/20",
@@ -230,7 +235,9 @@ pub fn FormMarkdownEditor(
                             content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
                         node_ref=textarea_ref
-                    ></textarea>
+                    >
+                        {content}
+                    </textarea>
                 </div>
                 <div class="flex justify-between">
                     <div class="flex">
@@ -239,7 +246,7 @@ pub fn FormMarkdownEditor(
                                 type="checkbox"
                                 class="hidden"
                                 name=is_markdown_name
-                                value=is_markdown_mode
+                                checked=is_markdown_mode
                                 on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
                             />
                             <div class=markdown_button_class>

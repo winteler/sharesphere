@@ -77,7 +77,6 @@ pub mod ssr {
 
     use crate::auth::User;
     use crate::errors::AppError;
-    use crate::post::Post;
     use crate::ranking::VoteValue;
 
     use super::*;
@@ -162,7 +161,7 @@ pub mod ssr {
         comment_markdown_body: Option<&str>,
         user: &User,
         db_pool: PgPool,
-    ) -> Result<Post, AppError> {
+    ) -> Result<Comment, AppError> {
         let comment = sqlx::query_as!(
             Comment,
             "UPDATE comments SET
@@ -364,7 +363,7 @@ pub async fn edit_comment(
     comment_id: i64,
     comment: String,
     is_markdown: Option<String>,
-) -> Result<CommentWithChildren, ServerFnError> {
+) -> Result<Comment, ServerFnError> {
     log::trace!("Edit comment {comment_id}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -377,7 +376,7 @@ pub async fn edit_comment(
         None => (comment, None),
     };
 
-    let comment = ssr::edit_comment(
+    let comment = ssr::update_comment(
         comment_id,
         comment.as_str(),
         markdown_comment,
@@ -418,6 +417,7 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
 #[component]
 pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) -> impl IntoView {
     let comment_body = create_rw_signal(comment.comment.body.clone());
+    let markdown_body = create_rw_signal(comment.comment.markdown_body.clone());
     let child_comments = create_rw_signal(comment.child_comments);
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
@@ -462,6 +462,7 @@ pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) ->
                     comment=comment.comment
                     vote=comment.vote
                     comment_body
+                    markdown_body
                     child_comments
                 />
                 <div
@@ -496,6 +497,7 @@ fn CommentWidgetBar(
     comment: Comment,
     vote: Option<Vote>,
     comment_body: RwSignal<String>,
+    markdown_body: RwSignal<Option<String>>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     let content = ContentWithVote::Comment(&comment, &vote);
@@ -512,6 +514,7 @@ fn CommentWidgetBar(
                 comment_id=comment.comment_id
                 author_id=comment.creator_id
                 comment_body
+                markdown_body
             />
             <AuthorWidget author=comment.creator_name.clone()/>
             <TimeSinceWidget timestamp=comment.create_timestamp/>
@@ -641,6 +644,7 @@ pub fn EditCommentButton(
     comment_id: i64,
     author_id: i64,
     comment_body: RwSignal<String>,
+    markdown_body: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let show_dialog = create_rw_signal(false);
@@ -668,6 +672,8 @@ pub fn EditCommentButton(
         <EditCommentDialog
             comment_id
             comment_body
+            markdown_body
+            show_dialog
         />
     }
 }
@@ -676,7 +682,8 @@ pub fn EditCommentButton(
 #[component]
 pub fn EditCommentDialog(
     comment_id: i64,
-    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    comment_body: RwSignal<String>,
+    markdown_body: RwSignal<Option<String>>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -684,9 +691,10 @@ pub fn EditCommentDialog(
             class="w-full max-w-xl"
             show_dialog
         >
-            <CommentForm
+            <EditCommentForm
                 comment_id
-                comment_vec
+                comment_body
+                markdown_body=markdown_body.clone()
                 show_form=show_dialog
             />
         </ModalDialog>
@@ -697,38 +705,46 @@ pub fn EditCommentDialog(
 #[component]
 pub fn EditCommentForm(
     comment_id: i64,
-    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    comment_body: RwSignal<String>,
+    markdown_body: RwSignal<Option<String>>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let comment = create_rw_signal(String::new());
+    let (current_body, is_markdown) = match markdown_body.get_untracked() {
+        Some(body) => (body, true),
+        None => (comment_body.get_untracked(), false),
+    };
+    let comment = create_rw_signal(current_body);
     let is_comment_empty = move || comment.with(|comment: &String| comment.is_empty());
 
-    let create_comment_action = create_server_action::<CreateComment>();
+    let edit_comment_action = create_server_action::<EditComment>();
 
-    let create_comment_result = create_comment_action.value();
-    let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
+    let edit_comment_result = edit_comment_action.value();
+    let has_error = move || edit_comment_result.with(|val| matches!(val, Some(Err(_))));
 
     create_effect(move |_| {
-        if let Some(Ok(comment)) = create_comment_action.value().get() {
-            comment_vec.update(|comment_vec| comment_vec.insert(0, comment));
+        if let Some(Ok(comment)) = edit_comment_result.get() {
+            comment_body.update(|comment_body| *comment_body = comment.body);
+            markdown_body.update(|markdown_body| *markdown_body = comment.markdown_body);
             show_form.set(false);
         }
     });
 
     view! {
         <div class="bg-base-200 p-4 flex flex-col gap-2">
-            <ActionForm action=create_comment_action>
+            <ActionForm action=edit_comment_action>
                 <div class="flex flex-col gap-2 w-full">
                     <input
                         type="text"
                         name="comment_id"
                         class="hidden"
+                        value=comment_id
                     />
                     <FormMarkdownEditor
                         name="comment"
                         is_markdown_name="is_markdown"
                         placeholder="Your comment..."
                         content=comment
+                        is_markdown
                     />
                     <ModalFormButtons
                         disable_publish=is_comment_empty

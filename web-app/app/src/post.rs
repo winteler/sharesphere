@@ -11,9 +11,7 @@ use crate::app::ssr::get_db_pool;
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
-use crate::comment::{
-    get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE,
-};
+use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
@@ -27,7 +25,7 @@ use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
-use crate::widget::{AuthorWidget, CommentSortWidget, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, TimeSinceWidget};
 
 pub const CREATE_POST_SUFFIX: &str = "/content";
 pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -472,8 +470,8 @@ pub async fn edit_post(
     is_markdown: Option<String>,
     is_nsfw: Option<String>,
     tag: Option<String>,
-) -> Result<(), ServerFnError> {
-    log::trace!("Edit post '{title}'");
+) -> Result<Post, ServerFnError> {
+    log::info!("Edit post {post_id}, title = {title}, body = {body}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
@@ -498,7 +496,7 @@ pub async fn edit_post(
     .await?;
 
     log::trace!("Updated post with id: {}", post.post_id);
-    Ok(())
+    Ok(post)
 }
 
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
@@ -528,8 +526,8 @@ pub fn Post() -> impl IntoView {
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
     let post_resource = create_resource(
-        move || post_id(),
-        move |post_id| {
+        move || (post_id.get(), state.edit_post_action.version().get()),
+        move |(post_id, _)| {
             log::debug!("Load data for post: {post_id}");
             get_post_with_vote_by_id(post_id)
         },
@@ -654,7 +652,7 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWi
                 content=content
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
-            <EditPostButton author_id=post.post.creator_id/>
+            <EditPostButton author_id=post.post.creator_id post=&post.post/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
         </div>
@@ -663,12 +661,13 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWi
 
 /// Component to edit a post
 #[component]
-pub fn EditPostButton(
+pub fn EditPostButton<'a>(
+    post: &'a Post,
     author_id: i64
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let show_edit_dialog = create_rw_signal(false);
-    let edit_button_class = move || match show_edit_dialog.get() {
+    let show_dialog = create_rw_signal(false);
+    let edit_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm p-1 btn-primary",
         false => "btn btn-circle btn-sm p-1 btn-ghost",
     };
@@ -678,9 +677,9 @@ pub fn EditPostButton(
                 Ok(Some(user)) if user.user_id == author_id => view! {
                     <button
                         class=edit_button_class
-                        aria-expanded=move || show_edit_dialog.get().to_string()
+                        aria-expanded=move || show_dialog.get().to_string()
                         aria-haspopup="dialog"
-                        on:click=move |_| show_edit_dialog.update(|show: &mut bool| *show = !*show)
+                        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
                     >
                         <EditIcon/>
                     </button>
@@ -688,6 +687,13 @@ pub fn EditPostButton(
                 _ => View::default()
             })
         }
+        <EditPostDialog
+            post_id=post.post_id
+            post_title=post.title.clone()
+            post_body=post.body.clone()
+            markdown_body=post.markdown_body.clone()
+            show_dialog
+        />
     }
 }
 
@@ -789,6 +795,92 @@ pub fn CreatePost() -> impl IntoView {
                     <span>"Server error. Please reload the page and retry."</span>
                 </div>
             </Show>
+        </div>
+    }
+}
+
+/// Dialog to edit a post
+#[component]
+pub fn EditPostDialog(
+    post_id: i64,
+    post_title: String,
+    post_body: String,
+    markdown_body: Option<String>,
+    show_dialog: RwSignal<bool>,
+) -> impl IntoView {
+    view! {
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <EditPostForm
+                post_id
+                post_title=post_title.clone()
+                post_body=post_body.clone()
+                markdown_body=markdown_body.clone()
+                show_form=show_dialog
+            />
+        </ModalDialog>
+    }
+}
+
+/// Form to edit a post
+#[component]
+pub fn EditPostForm(
+    post_id: i64,
+    post_title: String,
+    post_body: String,
+    markdown_body: Option<String>,
+    show_form: RwSignal<bool>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let (current_body, is_markdown) = match markdown_body {
+        Some(body) => (body, true),
+        None => (post_body, false),
+    };
+    let is_title_empty = create_rw_signal(false);
+    let post = create_rw_signal(current_body);
+    let is_post_empty = move || post.with(|post: &String| post.is_empty());
+
+    let edit_post_result = state.edit_post_action.value();
+    let has_error = move || edit_post_result.with(|val| matches!(val, Some(Err(_))));
+
+    view! {
+        <div class="bg-base-200 p-4 flex flex-col gap-2">
+            <ActionForm action=state.edit_post_action>
+                <div class="flex flex-col gap-2 w-full">
+                    <input
+                        type="text"
+                        name="post_id"
+                        class="hidden"
+                        value=post_id
+                    />
+                    <input
+                        type="text"
+                        name="title"
+                        placeholder="Title"
+                        value=post_title
+                        class="input input-bordered input-primary h-input_m"
+                        autofocus
+                        autocomplete="off"
+                        on:input=move |ev| {
+                            is_title_empty.set(event_target_value(&ev).is_empty());
+                        }
+                    />
+                    <FormMarkdownEditor
+                        name="body"
+                        is_markdown_name="is_markdown"
+                        placeholder="Content"
+                        content=post
+                        is_markdown
+                    />
+                    <ModalFormButtons
+                        disable_publish=is_post_empty
+                        show_form
+                    />
+                </div>
+            </ActionForm>
+            <ActionError has_error/>
         </div>
     }
 }

@@ -25,7 +25,7 @@ use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
-use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, TimeSinceEditWidget, TimeSinceWidget};
 
 pub const CREATE_POST_SUFFIX: &str = "/content";
 pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -471,7 +471,7 @@ pub async fn edit_post(
     is_nsfw: Option<String>,
     tag: Option<String>,
 ) -> Result<Post, ServerFnError> {
-    log::info!("Edit post {post_id}, title = {title}, body = {body}");
+    log::trace!("Edit post {post_id}, title = {title}, body = {body}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
@@ -655,6 +655,7 @@ fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWi
             <EditPostButton author_id=post.post.creator_id post=&post.post/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
+            <TimeSinceEditWidget timestamp=post.post.edit_timestamp/>
         </div>
     }
 }

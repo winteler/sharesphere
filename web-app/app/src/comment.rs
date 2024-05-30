@@ -15,7 +15,7 @@ use crate::icons::{CommentIcon, EditIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceEditWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 
@@ -518,6 +518,7 @@ fn CommentWidgetBar(
             />
             <AuthorWidget author=comment.creator_name.clone()/>
             <TimeSinceWidget timestamp=comment.create_timestamp/>
+            <TimeSinceEditWidget timestamp=comment.edit_timestamp/>
         </div>
     }
 }

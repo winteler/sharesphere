@@ -5,9 +5,7 @@ use crate::comment::CommentSortType;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{
-    AuthorIcon, ClockIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, PodiumIcon,
-};
+use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, PodiumIcon};
 use crate::post::PostSortType;
 use crate::ranking::SortType;
 
@@ -59,33 +57,24 @@ pub fn TimeSinceWidget(timestamp: chrono::DateTime<chrono::Utc>) -> impl IntoVie
         <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
             <ClockIcon/>
             {
-                let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
-                let seconds = elapsed_time.num_seconds();
-                match seconds {
-                    seconds if seconds < SECONDS_IN_MINUTE => format!("{} {}", seconds, if seconds == 1 { "second" } else { "seconds" }),
-                    seconds if seconds < SECONDS_IN_HOUR => {
-                        let minutes = seconds / SECONDS_IN_MINUTE;
-                        format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
-                    }
-                    seconds if seconds < SECONDS_IN_DAY => {
-                        let hours = seconds / SECONDS_IN_HOUR;
-                        format!("{} {}", hours, if hours == 1 { "hour" } else { "hours" })
-                    }
-                    seconds if seconds < SECONDS_IN_MONTH => {
-                        let days = seconds / SECONDS_IN_DAY;
-                        format!("{} {}", days, if days == 1 { "day" } else { "days" })
-                    }
-                    seconds if seconds < SECONDS_IN_YEAR => {
-                        let months = seconds / SECONDS_IN_MONTH;
-                        format!("{} {}", months, if months == 1 { "month" } else { "months" })
-                    }
-                    _ => {
-                        let years = seconds / SECONDS_IN_YEAR;
-                        format!("{} {}", years, if years == 1 { "year" } else { "years" })
-                    }
-                }
+                get_elapsed_time_string(timestamp)
             }
         </div>
+    }
+}
+
+/// Component to display the edit time of a post
+#[component]
+pub fn TimeSinceEditWidget(timestamp: Option<chrono::DateTime<chrono::Utc>>) -> impl IntoView {
+    view! {
+        <Show when=move || timestamp.is_some()>
+            <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
+                <EditTimeIcon/>
+                {
+                    get_elapsed_time_string(timestamp.unwrap())
+                }
+            </div>
+        </Show>
     }
 }
 
@@ -207,5 +196,35 @@ pub fn ActionError<F: Fn() -> bool + 'static>(
                 <span>"Server error. Please reload the page and retry."</span>
             </div>
         </Show>
+    }
+}
+
+fn get_elapsed_time_string(
+    timestamp: chrono::DateTime<chrono::Utc>,
+) -> String {
+    let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
+    let seconds = elapsed_time.num_seconds();
+    match seconds {
+        seconds if seconds < SECONDS_IN_MINUTE => format!("{} {}", seconds, if seconds == 1 { "second" } else { "seconds" }),
+        seconds if seconds < SECONDS_IN_HOUR => {
+            let minutes = seconds / SECONDS_IN_MINUTE;
+            format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
+        }
+        seconds if seconds < SECONDS_IN_DAY => {
+            let hours = seconds / SECONDS_IN_HOUR;
+            format!("{} {}", hours, if hours == 1 { "hour" } else { "hours" })
+        }
+        seconds if seconds < SECONDS_IN_MONTH => {
+            let days = seconds / SECONDS_IN_DAY;
+            format!("{} {}", days, if days == 1 { "day" } else { "days" })
+        }
+        seconds if seconds < SECONDS_IN_YEAR => {
+            let months = seconds / SECONDS_IN_MONTH;
+            format!("{} {}", months, if months == 1 { "month" } else { "months" })
+        }
+        _ => {
+            let years = seconds / SECONDS_IN_YEAR;
+            format!("{} {}", years, if years == 1 { "year" } else { "years" })
+        }
     }
 }

@@ -9,7 +9,7 @@
      stroke-linejoin="round"
 >
     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
-    <path d="M12 12l3 2" />
-    <path d="M12 7v5" />
+    <path d="M12 12m-11 0a11 11 0 1 0 22 0a11 11 0 1 0 -22 0" />
+    <line x1="12" y1="12" x2="12" y2="5" stroke="white" />
+    <line x1="12" y1="12" x2="17" y2="12" stroke="white" />
 </svg>

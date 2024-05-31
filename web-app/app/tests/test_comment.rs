@@ -1,10 +1,11 @@
 use leptos::ServerFnError;
 use rand::Rng;
 
+use app::{forum, post};
 use app::comment::{COMMENT_BATCH_SIZE, CommentSortType, CommentWithChildren};
-use app::forum;
+use app::comment;
+use app::editor::get_styled_html_from_markdown;
 use app::ranking::{SortType, Vote, VoteValue};
-use app::{comment};
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -127,6 +128,61 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
             test_comment_with_children(&comment, sort_type, test_user.user_id, post.post_id);
         }
     }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_update_comment() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum_name = "forum";
+    forum::ssr::create_forum(
+        forum_name,
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await?;
+
+    let post = post::ssr::create_post(
+        forum_name,
+        "post",
+        "body",
+        None,
+        false,
+        None,
+        &test_user,
+        db_pool.clone(),
+    ).await?;
+
+    let comment = comment::ssr::create_comment(
+        post.post_id,
+        None,
+        "comment",
+        None,
+        &test_user,
+        db_pool.clone(),
+    ).await?;
+
+    let updated_markdown_body = "# Here is a comment with markdown";
+    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await?;
+    let updated_comment = comment::ssr::update_comment(
+        comment.comment_id,
+        &updated_html_body,
+        Some(updated_markdown_body),
+        &test_user,
+        db_pool
+    ).await?;
+
+    assert_eq!(updated_comment.body, updated_html_body);
+    assert_eq!(updated_comment.markdown_body, Some(String::from(updated_markdown_body)));
+    assert!(
+        updated_comment.edit_timestamp.is_some() &&
+            updated_comment.edit_timestamp.unwrap() > updated_comment.create_timestamp &&
+            updated_comment.create_timestamp == comment.create_timestamp
+    );
 
     Ok(())
 }

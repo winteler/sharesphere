@@ -25,8 +25,8 @@ pub enum FormatType {
 mod ssr {
     use std::io::Cursor;
 
-    use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
     use quick_xml::{Reader, Writer};
+    use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 
     use crate::constants::SPOILER_TAG;
     use crate::errors::AppError;
@@ -499,7 +499,7 @@ mod tests {
         );
         assert_eq!(
             style_html_user_content("<code></code>")?,
-            r#"<code class="rounded-md bg-black p-1 m-1"></code>"#
+            r#"<code class="rounded-md bg-black p-0.5 px-1 mx-0.5"></code>"#
         );
         assert_eq!(
             style_html_user_content("<table></table>")?,
@@ -507,12 +507,12 @@ mod tests {
         );
         assert_eq!(
             style_html_user_content("<blockquote></blockquote>")?,
-            r#"<blockquote class="w-fit p-2 my-2 mx-1 border-s-4 rounded border-slate-400 bg-slate-600"></blockquote>"#
+            r#"<blockquote class="w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600"></blockquote>"#
         );
         assert_eq!(style_html_user_content("<hr/>")?, r#"<hr class="my-2"/>"#);
         assert_eq!(
             style_html_user_content("<p>Test, || This is a spoiler || this is not a spoiler</p>")?,
-            r#"<p>Test, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-black p-1 my-2 mx-1 text-black spoiler-text">This is a spoiler</span></label> this is not a spoiler</p>"#
+            r#"<p>Test, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">This is a spoiler</span></label> this is not a spoiler</p>"#
         );
         Ok(())
     }
@@ -556,9 +556,9 @@ Finally, we can add links [link text](https://www.example.com), images ![alt tex
 <h3 class="text-xl my-2">header 3</h3>
 <h4>header 4</h4>
 <hr  class="my-2"/>
-<p>We can do lots of stuff, like <code class="rounded-md bg-black p-1 m-1">code blocks</code>, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-black p-1 my-2 mx-1 text-black spoiler-text">Spoilers</span></label>, <strong>bold</strong>, <em>italic</em>, combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p>
+<p>We can do lots of stuff, like <code class="rounded-md bg-black p-0.5 px-1 mx-0.5">code blocks</code>, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">Spoilers</span></label>, <strong>bold</strong>, <em>italic</em>, combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p>
 <p>Strikethrough uses two tildes. <del>Scratch this.</del></p>
-<blockquote class="w-fit p-2 my-2 mx-1 border-s-4 rounded border-slate-400 bg-slate-600">
+<blockquote class="w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600">
 <p>We can also do blockquotes</p>
 </blockquote>
 <ol class="list-inside list-decimal">
@@ -598,8 +598,7 @@ Also, a bit more work is need to add an empty line.</p>
 <td align="right">$1</td>
 </tr>
 </tbody>
-</table>"#,
-        );
+</table>"#);
 
         assert_eq!(
             get_styled_html_from_markdown(markdown).await?,

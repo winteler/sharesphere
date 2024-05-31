@@ -78,6 +78,21 @@ pub fn TimeSinceEditWidget(timestamp: Option<chrono::DateTime<chrono::Utc>>) -> 
     }
 }
 
+/// Component to display the edit time of a post
+#[component]
+pub fn ReactiveTimeSinceEditWidget(timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>) -> impl IntoView {
+    view! {
+        <Show when=move || timestamp.get().is_some()>
+            <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
+                <EditTimeIcon/>
+                {
+                    get_elapsed_time_string(timestamp.get().unwrap())
+                }
+            </div>
+        </Show>
+    }
+}
+
 /// Component to indicate how to sort posts
 #[component]
 pub fn PostSortWidget() -> impl IntoView {

@@ -15,7 +15,7 @@ use crate::icons::{CommentIcon, EditIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ReactiveTimeSinceEditWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
 
@@ -418,6 +418,7 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
 pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) -> impl IntoView {
     let comment_body = create_rw_signal(comment.comment.body.clone());
     let markdown_body = create_rw_signal(comment.comment.markdown_body.clone());
+    let edit_timestamp = create_rw_signal(comment.comment.edit_timestamp);
     let child_comments = create_rw_signal(comment.child_comments);
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
@@ -463,6 +464,7 @@ pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) ->
                     vote=comment.vote
                     comment_body
                     markdown_body
+                    edit_timestamp
                     child_comments
                 />
                 <div
@@ -498,6 +500,7 @@ fn CommentWidgetBar(
     vote: Option<Vote>,
     comment_body: RwSignal<String>,
     markdown_body: RwSignal<Option<String>>,
+    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     let content = ContentWithVote::Comment(&comment, &vote);
@@ -515,10 +518,11 @@ fn CommentWidgetBar(
                 author_id=comment.creator_id
                 comment_body
                 markdown_body
+                edit_timestamp
             />
             <AuthorWidget author=comment.creator_name.clone()/>
             <TimeSinceWidget timestamp=comment.create_timestamp/>
-            <TimeSinceEditWidget timestamp=comment.edit_timestamp/>
+            <ReactiveTimeSinceEditWidget timestamp=edit_timestamp/>
         </div>
     }
 }
@@ -646,6 +650,7 @@ pub fn EditCommentButton(
     author_id: i64,
     comment_body: RwSignal<String>,
     markdown_body: RwSignal<Option<String>>,
+    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let show_dialog = create_rw_signal(false);
@@ -674,6 +679,7 @@ pub fn EditCommentButton(
             comment_id
             comment_body
             markdown_body
+            edit_timestamp
             show_dialog
         />
     }
@@ -685,6 +691,7 @@ pub fn EditCommentDialog(
     comment_id: i64,
     comment_body: RwSignal<String>,
     markdown_body: RwSignal<Option<String>>,
+    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -695,7 +702,8 @@ pub fn EditCommentDialog(
             <EditCommentForm
                 comment_id
                 comment_body
-                markdown_body=markdown_body.clone()
+                markdown_body
+                edit_timestamp
                 show_form=show_dialog
             />
         </ModalDialog>
@@ -708,6 +716,7 @@ pub fn EditCommentForm(
     comment_id: i64,
     comment_body: RwSignal<String>,
     markdown_body: RwSignal<Option<String>>,
+    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let (current_body, is_markdown) = match markdown_body.get_untracked() {
@@ -726,6 +735,7 @@ pub fn EditCommentForm(
         if let Some(Ok(comment)) = edit_comment_result.get() {
             comment_body.update(|comment_body| *comment_body = comment.body);
             markdown_body.update(|markdown_body| *markdown_body = comment.markdown_body);
+            edit_timestamp.update(|edit_timestamp| *edit_timestamp = comment.edit_timestamp);
             show_form.set(false);
         }
     });

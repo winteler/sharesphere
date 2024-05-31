@@ -593,7 +593,7 @@ pub fn ForumPostMiniatures(
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
     view! {
-        <ul class="overflow-y-auto w-full pr-2"
+        <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20 "
             on:scroll=move |_| match list_ref.get() {
                 Some(node_ref) => {
                     if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
@@ -615,7 +615,7 @@ pub fn ForumPostMiniatures(
                     view! {
                         <li>
                             <a href=post_path>
-                                <div class="flex flex-col gap-1 p-2 rounded-md hover:bg-base-content/20">
+                                <div class="flex flex-col gap-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
                                     <div class="flex gap-2">
                                         <ScoreIndicator score=post.score/>

@@ -155,7 +155,17 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await
             {
-                Ok(sql_user) => Some(sql_user.into_user(Vec::new())),
+                Ok(sql_user) => {
+                    let forum_user_role_vec = sqlx::query_as!(
+                        UserForumRole,
+                        "SELECT * FROM user_forum_roles WHERE user_id = $1",
+                        sql_user.user_id
+                    )
+                        .fetch_all(db_pool)
+                        .await
+                        .unwrap_or_default();
+                    Some(sql_user.into_user(forum_user_role_vec))
+                },
                 Err(select_error) => {
                     log::debug!("User not found with error: {}", select_error);
                     if let sqlx::Error::RowNotFound = select_error {

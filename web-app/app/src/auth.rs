@@ -19,6 +19,7 @@ use crate::app::ssr::get_session;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::navigation_bar::get_current_path;
+use crate::role::{AdminRole, UserForumRole};
 use crate::unpack::SuspenseUnpack;
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
@@ -32,53 +33,28 @@ pub const OIDC_TOKENS_KEY: &str = "oidc_token";
 pub const OIDC_USERNAME_KEY: &str = "oidc_username";
 pub const REDIRECT_URL_KEY: &str = "redirect";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
-#[repr(i16)]
-pub enum UserRole {
-    User = 0,
-    Moderator = 1,
-    Admin = 2,
-}
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct UserForumRole {
-    pub role_id: i64,
-    pub user_id: i64,
-    pub forum_id: i64,
-    pub forum_name: String,
-    pub user_role: UserRole,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct User {
     pub user_id: i64,
+    pub oidc_id: String,
     pub username: String,
     pub email: String,
-    pub default_user_role: UserRole,
+    pub admin_role: AdminRole,
     pub user_role_by_forum_map: HashMap<String, UserForumRole>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub is_deleted: bool,
-}
-
-impl From<i16> for UserRole {
-    fn from(value: i16) -> UserRole {
-        match value {
-            1 => UserRole::Moderator,
-            2 => UserRole::Admin,
-            _ => UserRole::User,
-        }
-    }
 }
 
 impl Default for User {
     fn default() -> Self {
         Self {
             user_id: -1,
+            oidc_id: String::default(),
             username: String::default(),
             email: String::default(),
-            default_user_role: UserRole::User,
+            admin_role: AdminRole::None,
             user_role_by_forum_map: HashMap::new(),
             timestamp: chrono::DateTime::default(),
             is_deleted: false,
@@ -122,7 +98,7 @@ pub mod ssr {
         pub oidc_id: String,
         pub username: String,
         pub email: String,
-        pub default_user_role: UserRole,
+        pub admin_role: AdminRole,
         pub timestamp: chrono::DateTime<chrono::Utc>,
         pub is_deleted: bool,
     }
@@ -135,9 +111,10 @@ pub mod ssr {
             }
             User {
                 user_id: self.user_id,
+                oidc_id: self.oidc_id,
                 username: self.username,
                 email: self.email,
-                default_user_role: self.default_user_role,
+                admin_role: self.admin_role,
                 user_role_by_forum_map,
                 timestamp: self.timestamp,
                 is_deleted: self.is_deleted,
@@ -280,6 +257,19 @@ pub mod ssr {
     pub fn check_user() -> Result<User, AppError> {
         let auth_session = get_session()?;
         auth_session.current_user.ok_or(AppError::NotAuthenticated)
+    }
+
+    pub fn reload_user() -> Result<Option<User>, AppError> {
+        let auth_session = get_session()?;
+        if let Some(current_user) = &auth_session.current_user {
+            auth_session.logout_user();
+            auth_session.login_user(OidcUserInfo {
+                oidc_id: current_user.oidc_id.clone(),
+                username: current_user.username.clone(),
+                email: current_user.email.clone(),
+            });
+        }
+        Ok(auth_session.current_user)
     }
 }
 

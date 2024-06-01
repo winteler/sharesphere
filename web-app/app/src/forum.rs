@@ -6,24 +6,24 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
+use crate::error_template::ErrorTemplate;
+use crate::errors::AppError;
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
-    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
+    CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
-use crate::ranking::{ScoreIndicator};
+use crate::ranking::ScoreIndicator;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
-use crate::error_template::ErrorTemplate;
-use crate::errors::AppError;
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -78,6 +78,7 @@ pub mod ssr {
 
     use crate::errors::AppError;
     use crate::forum::{Forum, ForumWithSubscription};
+    use crate::role::ssr::set_forum_leader;
 
     pub async fn get_forum_by_name(forum_name: &str, db_pool: PgPool) -> Result<Forum, AppError> {
         let forum = sqlx::query_as!(
@@ -224,6 +225,8 @@ pub mod ssr {
             .fetch_one(&db_pool)
             .await?;
 
+        set_forum_leader(forum.clone(), user_id, db_pool).await?;
+
         Ok(forum)
     }
 
@@ -343,8 +346,9 @@ pub async fn create_forum(
         is_nsfw.is_some(),
         user.user_id,
         db_pool,
-    )
-    .await?;
+    ).await?;
+
+    reload_user()?;
 
     // Redirect to the new forum
     leptos_axum::redirect(new_forum_path);

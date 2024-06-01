@@ -3,7 +3,7 @@ CREATE TABLE users (
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    default_user_role SMALLINT NOT NULL DEFAULT 0 CHECK (default_user_role IN (0, 1, 2)),
+    admin_role SMALLINT NOT NULL DEFAULT 0 CHECK (admin_role IN (0, 1, 2)),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -92,7 +92,11 @@ CREATE TABLE user_forum_roles (
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
     forum_name TEXT NOT NULL REFERENCES forums (forum_name),
-    user_role SMALLINT NOT NULL CHECK (user_role IN (1, 2)),
+    user_role SMALLINT NOT NULL CHECK (user_role IN (0, 1, 2)),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_role UNIQUE NULLS NOT DISTINCT (user_id, forum_id)
-)
+);
+
+-- index to guarantee maximum 1 leader per forum
+CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, user_role)
+    WHERE (user_forum_roles.user_role = 2);

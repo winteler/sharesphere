@@ -6,20 +6,20 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::app::ssr::get_db_pool;
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
+use crate::app::ssr::get_db_pool;
+#[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
-use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
+use crate::comment::{COMMENT_BATCH_SIZE, CommentButton, CommentSection, CommentWithChildren, get_post_comment_tree};
+use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
-use crate::editor::FormMarkdownEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum::get_matching_forum_names;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
+use crate::forum::get_matching_forum_names;
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
@@ -256,6 +256,7 @@ pub mod ssr {
             FROM posts p
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
+               v.comment_id = NULL AND
                v.user_id = $1
             WHERE p.post_id = $2",
         )

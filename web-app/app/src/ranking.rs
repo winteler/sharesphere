@@ -483,8 +483,8 @@ pub fn get_on_content_vote_closure(
 // Function to obtain the css classes of a vote button
 pub fn get_vote_button_css(vote: RwSignal<VoteValue>, is_upvote: bool) -> impl Fn() -> String {
     let (button_css, activated_value) = match is_upvote {
-        true => ("btn-success", VoteValue::Up),
-        false => ("btn-error", VoteValue::Down),
+        true => ("bg-success", VoteValue::Up),
+        false => ("bg-error", VoteValue::Down),
     };
 
     move || {

@@ -3,7 +3,9 @@ CREATE TABLE users (
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    default_user_role SMALLINT NOT NULL DEFAULT 0 CHECK (default_user_role IN (0, 1, 2)),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE forums (
@@ -16,14 +18,14 @@ CREATE TABLE forums (
     icon_url TEXT,
     banner_url TEXT,
     num_members INT NOT NULL DEFAULT 0,
-    creator_id BIGINT NOT NULL,
+    creator_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE forum_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,
-   user_id BIGINT NOT NULL,
-   forum_id BIGINT NOT NULL,
+   user_id BIGINT NOT NULL REFERENCES users (user_id),
+   forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
    CONSTRAINT unique_subscription UNIQUE (user_id, forum_id)
 );
@@ -41,9 +43,9 @@ CREATE TABLE posts (
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
     meta_post_id BIGINT,
-    forum_id BIGINT NOT NULL,
-    forum_name TEXT NOT NULL,
-    creator_id BIGINT NOT NULL,
+    forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
+    forum_name TEXT NOT NULL REFERENCES forums (forum_name),
+    creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
     num_comments INT NOT NULL DEFAULT 0,
     score INT NOT NULL DEFAULT 0,
@@ -65,9 +67,9 @@ CREATE TABLE comments (
     markdown_body TEXT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
-    parent_id BIGINT,
-    post_id BIGINT NOT NULL,
-    creator_id BIGINT NOT NULL,
+    parent_id BIGINT REFERENCES comments (comment_id),
+    post_id BIGINT NOT NULL REFERENCES posts (post_id),
+    creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
@@ -77,10 +79,20 @@ CREATE TABLE comments (
 
 CREATE TABLE votes (
     vote_id BIGSERIAL PRIMARY KEY,
-    post_id BIGINT NOT NULL,
-    comment_id BIGINT,
-    user_id BIGINT NOT NULL,
+    post_id BIGINT NOT NULL REFERENCES posts (post_id),
+    comment_id BIGINT REFERENCES comments (comment_id),
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
     value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_vote UNIQUE NULLS NOT DISTINCT (post_id, comment_id, user_id)
 );
+
+CREATE TABLE user_forum_roles (
+    role_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
+    forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
+    forum_name TEXT NOT NULL REFERENCES forums (forum_name),
+    user_role SMALLINT NOT NULL CHECK (user_role IN (1, 2)),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_role UNIQUE NULLS NOT DISTINCT (user_id, forum_id)
+)

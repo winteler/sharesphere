@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 
 #[cfg(feature = "ssr")]
@@ -7,14 +8,14 @@ use leptos_router::*;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
-use openidconnect::reqwest::*;
-#[cfg(feature = "ssr")]
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
+#[cfg(feature = "ssr")]
+use openidconnect::reqwest::*;
 use serde::{Deserialize, Serialize};
 
+use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_session;
-use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::navigation_bar::get_current_path;
@@ -31,13 +32,44 @@ pub const OIDC_TOKENS_KEY: &str = "oidc_token";
 pub const OIDC_USERNAME_KEY: &str = "oidc_username";
 pub const REDIRECT_URL_KEY: &str = "redirect";
 
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+#[repr(i16)]
+pub enum UserRole {
+    User = 0,
+    Moderator = 1,
+    Admin = 2,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UserForumRole {
+    pub role_id: i64,
+    pub user_id: i64,
+    pub forum_id: i64,
+    pub forum_name: String,
+    pub user_role: UserRole,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct User {
     pub user_id: i64,
     pub username: String,
     pub email: String,
+    pub default_user_role: UserRole,
+    pub user_role_by_forum_map: HashMap<String, UserForumRole>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub is_deleted: bool,
+}
+
+impl From<i16> for UserRole {
+    fn from(value: i16) -> UserRole {
+        match value {
+            1 => UserRole::Moderator,
+            2 => UserRole::Admin,
+            _ => UserRole::User,
+        }
+    }
 }
 
 impl Default for User {
@@ -46,7 +78,10 @@ impl Default for User {
             user_id: -1,
             username: String::default(),
             email: String::default(),
+            default_user_role: UserRole::User,
+            user_role_by_forum_map: HashMap::new(),
             timestamp: chrono::DateTime::default(),
+            is_deleted: false,
         }
     }
 }
@@ -87,16 +122,25 @@ pub mod ssr {
         pub oidc_id: String,
         pub username: String,
         pub email: String,
+        pub default_user_role: UserRole,
         pub timestamp: chrono::DateTime<chrono::Utc>,
+        pub is_deleted: bool,
     }
 
     impl SqlUser {
-        pub fn into_user(self) -> User {
+        pub fn into_user(self, user_role_vec: Vec<UserForumRole>) -> User {
+            let mut user_role_by_forum_map = HashMap::new();
+            for user_forum_role in user_role_vec {
+                user_role_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role);
+            }
             User {
                 user_id: self.user_id,
                 username: self.username,
                 email: self.email,
+                default_user_role: self.default_user_role,
+                user_role_by_forum_map,
                 timestamp: self.timestamp,
+                is_deleted: self.is_deleted,
             }
         }
     }
@@ -111,7 +155,7 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await
             {
-                Ok(sql_user) => Some(sql_user.into_user()),
+                Ok(sql_user) => Some(sql_user.into_user(Vec::new())),
                 Err(select_error) => {
                     log::debug!("User not found with error: {}", select_error);
                     if let sqlx::Error::RowNotFound = select_error {
@@ -163,7 +207,7 @@ pub mod ssr {
         .fetch_one(db_pool)
         .await
         {
-            Ok(sql_user) => Some(sql_user.into_user()),
+            Ok(sql_user) => Some(sql_user.into_user(Vec::new())),
             Err(insert_error) => {
                 log::error!("Error while creating user: {}", insert_error);
                 None

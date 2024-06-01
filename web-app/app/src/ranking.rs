@@ -5,14 +5,14 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
+use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::auth::LoginGuardButton;
 use crate::comment::{Comment, CommentSortType};
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 use crate::post::{Post, PostSortType};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 #[repr(i16)]
 pub enum VoteValue {
@@ -153,8 +153,6 @@ pub mod ssr {
             return Err(AppError::new("Identical to previous vote."));
         }
 
-        // TODO: add unique index to prevent multiple votes by same user
-
         let vote = if previous_vote_info.is_some() {
             let vote_id = previous_vote_info.as_ref().unwrap().vote_id;
             if vote_value != VoteValue::None {
@@ -164,10 +162,10 @@ pub mod ssr {
                     sqlx::query_as!(
                         Vote,
                         "UPDATE votes SET value = $1 \
-                    WHERE vote_id = $2 AND \
-                          post_id = $3 AND \
-                          user_id = $4 \
-                    RETURNING *",
+                        WHERE vote_id = $2 AND \
+                              post_id = $3 AND \
+                              user_id = $4 \
+                        RETURNING *",
                         vote_value as i16,
                         vote_id,
                         post_id,

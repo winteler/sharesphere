@@ -25,26 +25,29 @@ pub struct GlobalState {
     pub subscribe_action: Action<Subscribe, Result<(), ServerFnError>>,
     pub unsubscribe_action: Action<Unsubscribe, Result<(), ServerFnError>>,
     pub edit_post_action: Action<EditPost, Result<Post, ServerFnError>>,
+    pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
     pub current_forum_name: Option<Memo<String>>,
     pub current_post_id: Option<Memo<i64>>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
-    pub user: Resource<(), Result<Option<User>, ServerFnError>>,
+    pub user: Resource<usize, Result<Option<User>, ServerFnError>>,
 }
 
 impl GlobalState {
     pub fn new() -> Self {
+        let create_forum_action = create_server_action::<CreateForum>();
         Self {
             login_action: create_server_action::<Login>(),
             logout_action: create_server_action::<EndSession>(),
             subscribe_action: create_server_action::<Subscribe>(),
             unsubscribe_action: create_server_action::<Unsubscribe>(),
             edit_post_action: create_server_action::<EditPost>(),
+            create_forum_action,
             current_forum_name: None,
             current_post_id: None,
             post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
             comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
-            user: create_local_resource(move || (), move |_| get_user()),
+            user: create_local_resource(move || create_forum_action.version().get(), move |_| get_user()),
         }
     }
 }

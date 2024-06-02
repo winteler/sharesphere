@@ -4,20 +4,21 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
-use crate::auth::ssr::check_user;
+use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
-use crate::editor::get_styled_html_from_markdown;
+use crate::auth::ssr::check_user;
 use crate::editor::FormMarkdownEditor;
+#[cfg(feature = "ssr")]
+use crate::editor::get_styled_html_from_markdown;
+use crate::forum_management::ModerateCommentButton;
 use crate::icons::{CommentIcon, EditIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
 use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ReactiveTimeSinceEditWidget, TimeSinceWidget};
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -305,8 +306,7 @@ pub async fn get_post_comment_tree(
         COMMENT_BATCH_SIZE,
         num_already_loaded as i64,
         db_pool,
-    )
-    .await?;
+    ).await?;
 
     Ok(comment_tree)
 }
@@ -390,7 +390,10 @@ pub async fn edit_comment(
 
 /// Comment section component
 #[component]
-pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
+pub fn CommentSection(
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    can_moderate: RwSignal<bool>,
+) -> impl IntoView {
     view! {
         <div class="flex flex-col h-fit">
             <For
@@ -405,6 +408,7 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
                             comment=comment
                             depth=0
                             ranking=index
+                            can_moderate
                         />
                     }
                 }
@@ -415,7 +419,12 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
 
 /// Comment box component
 #[component]
-pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) -> impl IntoView {
+pub fn CommentBox(
+    comment: CommentWithChildren,
+    depth: usize,
+    ranking: usize,
+    can_moderate: RwSignal<bool>,
+) -> impl IntoView {
     let comment_body = create_rw_signal(comment.comment.body.clone());
     let markdown_body = create_rw_signal(comment.comment.markdown_body.clone());
     let edit_timestamp = create_rw_signal(comment.comment.edit_timestamp);
@@ -466,6 +475,7 @@ pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) ->
                     markdown_body
                     edit_timestamp
                     child_comments
+                    can_moderate
                 />
                 <div
                     class="flex flex-col"
@@ -483,6 +493,7 @@ pub fn CommentBox(comment: CommentWithChildren, depth: usize, ranking: usize) ->
                                     comment=comment
                                     depth=depth+1
                                     ranking=ranking+index
+                                    can_moderate
                                 />
                             }
                         }
@@ -502,6 +513,7 @@ fn CommentWidgetBar(
     markdown_body: RwSignal<Option<String>>,
     edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
+    can_moderate: RwSignal<bool>,
 ) -> impl IntoView {
     let content = ContentWithVote::Comment(&comment, &vote);
 
@@ -523,6 +535,7 @@ fn CommentWidgetBar(
             <AuthorWidget author=comment.creator_name.clone()/>
             <TimeSinceWidget timestamp=comment.create_timestamp/>
             <ReactiveTimeSinceEditWidget timestamp=edit_timestamp/>
+            <ModerateCommentButton can_moderate/>
         </div>
     }
 }

@@ -257,7 +257,7 @@ async fn test_post_scores() -> Result<(), ServerFnError> {
     set_post_score(post.post_id, rng.gen_range(-100..101), db_pool.clone()).await?;
 
     let post_with_vote =
-        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+        post::ssr::get_post_with_info_by_id(post.post_id, &Some(test_user), db_pool.clone())
             .await?;
 
     let post = post_with_vote.post;
@@ -304,7 +304,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
     ).await?;
 
     let post_with_vote =
-        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+        post::ssr::get_post_with_info_by_id(post.post_id, &Some(test_user.clone()), db_pool.clone())
             .await?;
     assert!(post_with_vote.vote.is_none());
 
@@ -319,7 +319,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
     ).await?;
 
     let post_with_vote =
-        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+        post::ssr::get_post_with_info_by_id(post.post_id, &Some(test_user.clone()), db_pool.clone())
             .await?;
     assert!(post_with_vote.vote.is_some());
     let vote = post_with_vote.vote.unwrap();
@@ -368,7 +368,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
     ).await?;
 
     let post_with_vote =
-        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+        post::ssr::get_post_with_info_by_id(post.post_id, &Some(test_user.clone()), db_pool.clone())
             .await?;
     let vote = post_with_vote.vote.expect("Vote not found");
     assert_eq!(vote.value, VoteValue::Down);
@@ -389,7 +389,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
     ).await?;
 
     let post_with_vote =
-        post::ssr::get_post_with_vote_by_id(post.post_id, Some(test_user.user_id), db_pool.clone())
+        post::ssr::get_post_with_info_by_id(post.post_id, &Some(test_user.clone()), db_pool.clone())
             .await?;
     assert!(post_with_vote.vote.is_none());
 

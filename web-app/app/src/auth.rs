@@ -19,7 +19,7 @@ use crate::app::ssr::get_session;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::navigation_bar::get_current_path;
-use crate::role::{AdminRole, UserForumRole};
+use crate::role::{AdminRole, UserForumRole, UserRole};
 use crate::unpack::SuspenseUnpack;
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
@@ -76,6 +76,25 @@ impl std::fmt::Display for OidcUserInfo {
             "OidcUserInfo {{{}, {}, {}}}",
             self.oidc_id, self.username, self.email
         )
+    }
+}
+
+impl User {
+
+    pub fn is_global_moderator(&self) -> bool {
+        self.admin_role > AdminRole::Moderator
+    }
+
+    pub fn is_admin(&self) -> bool {
+        self.admin_role == AdminRole::Admin
+    }
+    pub fn is_forum_moderator(&self, forum_name: &String) -> bool {
+        self.admin_role > AdminRole::Moderator ||
+            self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.user_role > UserRole::Moderator)
+    }
+
+    pub fn is_forum_leader(&self, forum_name: String) -> bool {
+        self.user_role_by_forum_map.get(&forum_name).is_some_and(|user_forum_role| user_forum_role.user_role == UserRole::Leader)
     }
 }
 

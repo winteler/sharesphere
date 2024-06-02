@@ -65,9 +65,11 @@ pub struct Post {
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct PostWithVote {
+pub struct PostWithUserInfo {
     pub post: Post,
     pub vote: Option<Vote>,
+    pub is_author: bool,
+    pub can_moderate: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -113,7 +115,7 @@ pub mod ssr {
     }
 
     impl PostJoinVote {
-        pub fn into_post_with_vote(self) -> PostWithVote {
+        pub fn into_post_with_info(self, user: &Option<User>) -> PostWithUserInfo {
             let post_vote = if self.vote_id.is_some() {
                 Some(Vote {
                     vote_id: self.vote_id.unwrap(),
@@ -127,9 +129,20 @@ pub mod ssr {
                 None
             };
 
-            PostWithVote {
+            let is_author = match &user {
+                Some(user) => user.user_id == self.post.creator_id,
+                None => false,
+            };
+            let can_moderate = match &user {
+                Some(user) => user.is_forum_moderator(&self.post.forum_name),
+                None => false,
+            };
+
+            PostWithUserInfo {
                 post: self.post,
                 vote: post_vote,
+                is_author,
+                can_moderate,
             }
         }
     }
@@ -240,11 +253,17 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn get_post_with_vote_by_id(
+    pub async fn get_post_with_info_by_id(
         post_id: i64,
-        user_id: Option<i64>,
+        user: &Option<User>,
         db_pool: PgPool,
-    ) -> Result<PostWithVote, AppError> {
+    ) -> Result<PostWithUserInfo, AppError> {
+
+        let user_id = match &user {
+            Some(user) => Some(user.user_id),
+            None => None,
+        };
+
         let post_join_vote = sqlx::query_as::<_, PostJoinVote>(
             "SELECT p.*,
             v.vote_id,
@@ -265,7 +284,7 @@ pub mod ssr {
         .fetch_one(&db_pool)
         .await?;
 
-        Ok(post_join_vote.into_post_with_vote())
+        Ok(post_join_vote.into_post_with_info(user))
     }
 
     pub async fn get_post_vec_by_forum_name(
@@ -352,14 +371,9 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_post_with_vote_by_id(post_id: i64) -> Result<PostWithVote, ServerFnError> {
+pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let user_id = match get_user().await {
-        Ok(Some(user)) => Some(user.user_id),
-        _ => None,
-    };
-
-    Ok(ssr::get_post_with_vote_by_id(post_id, user_id, db_pool).await?)
+    Ok(ssr::get_post_with_info_by_id(post_id, &get_user().await?, db_pool).await?)
 }
 
 #[server]
@@ -530,10 +544,11 @@ pub fn Post() -> impl IntoView {
         move || (post_id.get(), state.edit_post_action.version().get()),
         move |(post_id, _)| {
             log::debug!("Load data for post: {post_id}");
-            get_post_with_vote_by_id(post_id)
+            get_post_with_info_by_id(post_id)
         },
     );
 
+    let can_moderate =  create_rw_signal(false);
     let comment_vec = create_rw_signal(Vec::<CommentWithChildren>::with_capacity(
         COMMENT_BATCH_SIZE as usize,
     ));
@@ -602,22 +617,23 @@ pub fn Post() -> impl IntoView {
             }
             node_ref=container_ref
         >
-            <TransitionUnpack resource=post_resource let:post>
+            <TransitionUnpack resource=post_resource let:post_with_info>
             {
-                let post_body_class = match post.post.markdown_body {
+                let post_body_class = match post_with_info.post.markdown_body {
                     Some(_) => "",
                     None => "whitespace-pre",
                 };
+                can_moderate.set(post_with_info.can_moderate);
                 view! {
                     <div class="card">
                         <div class="card-body">
                             <div class="flex flex-col gap-4">
-                                <h2 class="card-title">{post.post.title.clone()}</h2>
+                                <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
                                 <div
                                     class={post_body_class}
-                                    inner_html={post.post.body.clone()}
+                                    inner_html={post_with_info.post.body.clone()}
                                 />
-                                <PostWidgetBar post=post comment_vec/>
+                                <PostWidgetBar post=post_with_info comment_vec/>
                             </div>
                         </div>
                     </div>
@@ -625,7 +641,7 @@ pub fn Post() -> impl IntoView {
             }
             </TransitionUnpack>
             <CommentSortWidget/>
-            <CommentSection comment_vec=comment_vec/>
+            <CommentSection comment_vec can_moderate/>
             <Show when=move || load_error.with(|error| error.is_some())>
             {
                 let mut outside_errors = Errors::default();
@@ -644,7 +660,7 @@ pub fn Post() -> impl IntoView {
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
-fn PostWidgetBar<'a>(post: &'a PostWithVote, comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
+fn PostWidgetBar<'a>(post: &'a PostWithUserInfo, comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
     let content = ContentWithVote::Post(&post.post, &post.vote);
 
     view! {

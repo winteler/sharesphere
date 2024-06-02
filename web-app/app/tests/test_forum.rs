@@ -226,7 +226,7 @@ async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_forum_with_subscription() -> Result<(), ServerFnError> {
+async fn test_get_forum_with_user_info() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -241,7 +241,7 @@ async fn test_get_forum_with_subscription() -> Result<(), ServerFnError> {
     .await?;
 
     let forum_with_subscription =
-        forum::ssr::get_forum_with_subscription(forum_name, None, db_pool.clone()).await?;
+        forum::ssr::get_forum_with_user_info(forum_name, None, db_pool.clone()).await?;
 
     assert_eq!(forum_with_subscription.forum.forum_id, forum.forum_id);
     assert_eq!(
@@ -251,7 +251,7 @@ async fn test_get_forum_with_subscription() -> Result<(), ServerFnError> {
     assert_eq!(forum_with_subscription.forum.creator_id, test_user.user_id);
     assert_eq!(forum_with_subscription.subscription_id, None);
 
-    let forum_with_subscription = forum::ssr::get_forum_with_subscription(
+    let forum_with_subscription = forum::ssr::get_forum_with_user_info(
         forum_name,
         Some(test_user.user_id),
         db_pool.clone(),
@@ -260,7 +260,7 @@ async fn test_get_forum_with_subscription() -> Result<(), ServerFnError> {
     assert!(forum_with_subscription.subscription_id.is_none());
 
     forum::ssr::subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await?;
-    let forum_with_subscription = forum::ssr::get_forum_with_subscription(
+    let forum_with_subscription = forum::ssr::get_forum_with_user_info(
         forum_name,
         Some(test_user.user_id),
         db_pool.clone(),
@@ -269,7 +269,7 @@ async fn test_get_forum_with_subscription() -> Result<(), ServerFnError> {
     assert!(forum_with_subscription.subscription_id.is_some());
 
     forum::ssr::unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await?;
-    let forum_with_subscription = forum::ssr::get_forum_with_subscription(
+    let forum_with_subscription = forum::ssr::get_forum_with_user_info(
         forum_name,
         Some(test_user.user_id),
         db_pool.clone(),

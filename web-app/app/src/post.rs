@@ -256,7 +256,7 @@ pub mod ssr {
             FROM posts p
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
-               v.comment_id = NULL AND
+               v.comment_id IS NULL AND
                v.user_id = $1
             WHERE p.post_id = $2",
         )

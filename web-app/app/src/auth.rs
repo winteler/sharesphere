@@ -133,15 +133,8 @@ pub mod ssr {
             .await
             {
                 Ok(sql_user) => {
-                    let forum_user_role_vec = sqlx::query_as!(
-                        UserForumRole,
-                        "SELECT * FROM user_forum_roles WHERE user_id = $1",
-                        sql_user.user_id
-                    )
-                        .fetch_all(db_pool)
-                        .await
-                        .unwrap_or_default();
-                    Some(sql_user.into_user(forum_user_role_vec))
+                    let user_forum_role_vec = load_user_forum_role_vec(sql_user.user_id, db_pool).await.unwrap_or_default();
+                    Some(sql_user.into_user(user_forum_role_vec))
                 },
                 Err(select_error) => {
                     log::debug!("User not found with error: {}", select_error);
@@ -200,6 +193,17 @@ pub mod ssr {
                 None
             }
         }
+    }
+
+    pub async fn load_user_forum_role_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserForumRole>, AppError> {
+        let user_forum_role_vec = sqlx::query_as!(
+            UserForumRole,
+            "SELECT * FROM user_forum_roles WHERE user_id = $1",
+            user_id
+        )
+            .fetch_all(db_pool)
+            .await?;
+        Ok(user_forum_role_vec)
     }
 
     pub fn get_issuer_url() -> Result<oidc::IssuerUrl, AppError> {

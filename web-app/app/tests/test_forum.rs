@@ -5,8 +5,10 @@ use rand::Rng;
 use sqlx::PgPool;
 
 use app::app::ssr::create_db_pool;
+use app::auth::ssr::load_user_forum_role_vec;
 use app::forum;
 use app::forum::Forum;
+use app::role::UserRole;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -283,11 +285,26 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
+    let forum_name = "test1";
+    let forum_result = forum::ssr::create_forum(
+        forum_name,
+        "forum",
+        false,
+        test_user.user_id,
+        db_pool.clone(),
+    ).await;
     assert!(
-        forum::ssr::create_forum("test1", "forum", false, test_user.user_id, db_pool.clone(),)
-            .await
-            .is_ok()
+        forum_result.is_ok()
     );
+    let forum = forum_result?;
+    let user_forum_role_vec = load_user_forum_role_vec(test_user.user_id, &db_pool).await?;
+
+    assert_eq!(user_forum_role_vec.len(), 1);
+    let user_forum_role = user_forum_role_vec.first().expect("Exactly on user role after forum creation.");
+    assert_eq!(user_forum_role.forum_id, forum.forum_id);
+    assert_eq!(user_forum_role.user_id, test_user.user_id);
+    assert_eq!(user_forum_role.forum_name, forum.forum_name);
+    assert_eq!(user_forum_role.user_role, UserRole::Leader);
 
     assert!(
         forum::ssr::create_forum("Test", "forum", false, test_user.user_id, db_pool.clone(),)

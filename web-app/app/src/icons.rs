@@ -284,6 +284,13 @@ pub fn StarIcon(
 }
 
 #[component]
+pub fn SettingsIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/settings_gear.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn StrikethroughIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/strikethrough.svg" class=class/>

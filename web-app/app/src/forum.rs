@@ -15,13 +15,15 @@ use crate::auth::ssr::check_user;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, StarIcon, SubscribedIcon};
+use crate::forum_management::MANAGE_FORUM_SUFFIX;
+use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
     CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
+use crate::role::UserRole;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -64,10 +66,11 @@ pub struct ForumSubscription {
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct ForumWithSubscription {
+pub struct ForumWithUserInfo {
     #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub forum: Forum,
     pub subscription_id: Option<i64>,
+    pub user_role: Option<UserRole>,
 }
 
 #[cfg(feature = "ssr")]
@@ -77,7 +80,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::errors::AppError;
-    use crate::forum::{Forum, ForumWithSubscription};
+    use crate::forum::{Forum, ForumWithUserInfo};
     use crate::role::ssr::set_forum_leader;
 
     pub async fn get_forum_by_name(forum_name: &str, db_pool: PgPool) -> Result<Forum, AppError> {
@@ -96,14 +99,17 @@ pub mod ssr {
         forum_name: &str,
         user_id: Option<i64>,
         db_pool: PgPool,
-    ) -> Result<ForumWithSubscription, AppError> {
-        let forum = sqlx::query_as::<_, ForumWithSubscription>(
-            "SELECT f.*, s.subscription_id \
+    ) -> Result<ForumWithUserInfo, AppError> {
+        let forum = sqlx::query_as::<_, ForumWithUserInfo>(
+            "SELECT f.*, s.subscription_id, r.user_role \
             FROM forums f \
             LEFT JOIN forum_subscriptions s ON \
                 s.forum_id = f.forum_id AND \
                 s.user_id = $1 \
-            where forum_name = $2",
+            LEFT JOIN user_forum_roles r ON \
+                r.forum_id = f.forum_id AND \
+                r.user_id = $1 \
+            where f.forum_name = $2",
         )
         .bind(user_id)
         .bind(forum_name)
@@ -315,7 +321,7 @@ pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
 #[server]
 pub async fn get_forum_with_subscription(
     forum_name: String,
-) -> Result<ForumWithSubscription, ServerFnError> {
+) -> Result<ForumWithUserInfo, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
@@ -510,9 +516,10 @@ pub fn ForumContents() -> impl IntoView {
 
 /// Component to display the forum toolbar
 #[component]
-pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
+pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
+    let can_manage_forum = forum.user_role.is_some_and(|user_role| user_role > UserRole::User);
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());
     let is_subscribed = create_rw_signal(forum.subscription_id.is_some());
 
@@ -520,6 +527,11 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithSubscription) -> impl IntoView {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
+                <Show when=move || can_manage_forum>
+                    <A href=MANAGE_FORUM_SUFFIX class="btn btn-circle btn-ghost">
+                        <SettingsIcon/>
+                    </A>
+                </Show>
                 <div class="tooltip" data-tip="Join">
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"

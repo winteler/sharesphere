@@ -3,10 +3,11 @@ use leptos_meta::*;
 use leptos_router::*;
 
 use crate::auth::*;
-use crate::comment::{CommentSortType};
+use crate::comment::CommentSortType;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::forum::*;
+use crate::forum_management::{ForumCockpit, MANAGE_FORUM_ROUTE};
 use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
@@ -54,7 +55,7 @@ pub mod ssr {
     use std::sync::OnceLock;
 
     use anyhow::Context;
-    use sqlx::{postgres::PgPoolOptions, PgPool};
+    use sqlx::{PgPool, postgres::PgPoolOptions};
     use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;
@@ -141,6 +142,7 @@ pub fn App() -> impl IntoView {
                             <Route path="/" view=HomePage/>
                             <Route path=FORUM_ROUTE view=ForumBanner>
                                 <Route path=POST_ROUTE view=Post/>
+                                <Route path=MANAGE_FORUM_ROUTE view=ForumCockpit/>
                                 <Route path="" view=ForumContents/>
                             </Route>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>

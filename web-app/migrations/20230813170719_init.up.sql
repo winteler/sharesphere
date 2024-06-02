@@ -92,7 +92,7 @@ CREATE TABLE user_forum_roles (
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
     forum_name TEXT NOT NULL REFERENCES forums (forum_name),
-    user_role SMALLINT NOT NULL CHECK (user_role IN (0, 1, 2)),
+    user_role SMALLINT NOT NULL CHECK (user_role IN (1, 2)),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_role UNIQUE NULLS NOT DISTINCT (user_id, forum_id)
 );

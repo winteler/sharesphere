@@ -19,6 +19,11 @@ pub const PARAM_ROUTE_PREFIX: &str = "/:";
 pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone)]
+pub struct UserState {
+    pub user: RwSignal<Option<User>>
+}
+
+#[derive(Copy, Clone)]
 pub struct GlobalState {
     pub login_action: Action<Login, Result<User, ServerFnError>>,
     pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
@@ -31,6 +36,14 @@ pub struct GlobalState {
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
     pub user: Resource<usize, Result<Option<User>, ServerFnError>>,
+}
+
+impl UserState {
+    pub fn new() -> Self {
+        Self {
+            user: create_rw_signal(None),
+        }
+    }
 }
 
 impl GlobalState {
@@ -47,7 +60,16 @@ impl GlobalState {
             current_post_id: None,
             post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
             comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
-            user: create_local_resource(move || create_forum_action.version().get(), move |_| get_user()),
+            user: create_local_resource(
+                move || create_forum_action.version().get(),
+                move |_| async {
+                    let user = get_user().await;
+                    if let Ok(user) = &user {
+                        expect_context::<UserState>().user.set(user.clone());
+                    }
+                    user
+                }
+            ),
         }
     }
 }
@@ -115,6 +137,7 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     // Provide global context for app
+    provide_context(UserState::new());
     provide_context(GlobalState::new());
 
     view! {

@@ -338,7 +338,7 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
 }
 
 #[server]
-pub async fn authenticate_user(auth_code: String) -> Result<(User, String), ServerFnError> {
+pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -420,7 +420,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(User, String), Serv
 
     leptos_axum::redirect(redirect_url.as_ref());
 
-    Ok((auth_session.current_user.unwrap_or_default(), redirect_url))
+    Ok(())
 }
 
 #[server]
@@ -520,8 +520,6 @@ pub fn LoginButton(
 /// Auth callback component
 #[component]
 pub fn AuthCallback() -> impl IntoView {
-    use crate::app::*;
-    let _state = expect_context::<GlobalState>();
     let query = use_query_map();
     let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
     let auth_resource = create_blocking_resource(|| (), move |_| authenticate_user(code()));
@@ -529,12 +527,11 @@ pub fn AuthCallback() -> impl IntoView {
     view! {
         <SuspenseUnpack
             resource=auth_resource
-            let:auth_result
+            let:_auth_result
         >
             {
-                let (user, redirect_url) = auth_result;
-                log::debug!("Store authenticated as {} and redirect to {redirect_url}", user.username);
-                view! { <Redirect path=redirect_url.clone()/>}.into_view()
+                log::debug!("Authenticated successfully");
+                View::default()
             }
         </SuspenseUnpack>
     }

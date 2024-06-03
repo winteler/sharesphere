@@ -529,7 +529,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
             <div class="flex gap-1">
                 <Show when=move || can_manage_forum>
                     <A href=MANAGE_FORUM_SUFFIX class="btn btn-circle btn-ghost">
-                        <SettingsIcon/>
+                        <SettingsIcon class="h-5 w-5"/>
                     </A>
                 </Show>
                 <div class="tooltip" data-tip="Join">

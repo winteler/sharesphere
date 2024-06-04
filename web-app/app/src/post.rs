@@ -6,7 +6,7 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE, UserState};
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
 #[cfg(feature = "ssr")]
@@ -17,9 +17,9 @@ use crate::editor::FormMarkdownEditor;
 use crate::editor::get_styled_html_from_markdown;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
+use crate::forum::{get_forum_name_memo, get_matching_forum_names};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::forum::get_matching_forum_names;
 use crate::forum_management::ModeratePostButton;
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
@@ -541,6 +541,7 @@ pub fn Post() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
+    let forum_name = get_forum_name_memo(params);
     let post_resource = create_resource(
         move || (post_id.get(), state.edit_post_action.version().get()),
         move |(post_id, _)| {
@@ -549,7 +550,16 @@ pub fn Post() -> impl IntoView {
         },
     );
 
-    let can_moderate =  create_rw_signal(false);
+    let user_state = UserState {
+        can_moderate: create_memo(
+            move |_| state.user.with(|user| match user {
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.is_forum_moderator(forum_name)),
+                _ => false,
+            })
+        )
+    };
+    provide_context(user_state);
+
     let comment_vec = create_rw_signal(Vec::<CommentWithChildren>::with_capacity(
         COMMENT_BATCH_SIZE as usize,
     ));
@@ -624,7 +634,6 @@ pub fn Post() -> impl IntoView {
                     Some(_) => "",
                     None => "whitespace-pre",
                 };
-                can_moderate.set(post_with_info.can_moderate);
                 view! {
                     <div class="card">
                         <div class="card-body">
@@ -634,7 +643,7 @@ pub fn Post() -> impl IntoView {
                                     class={post_body_class}
                                     inner_html={post_with_info.post.body.clone()}
                                 />
-                                <PostWidgetBar post=post_with_info comment_vec can_moderate/>
+                                <PostWidgetBar post=post_with_info comment_vec/>
                             </div>
                         </div>
                     </div>
@@ -642,7 +651,7 @@ pub fn Post() -> impl IntoView {
             }
             </TransitionUnpack>
             <CommentSortWidget/>
-            <CommentSection comment_vec can_moderate/>
+            <CommentSection comment_vec/>
             <Show when=move || load_error.with(|error| error.is_some())>
             {
                 let mut outside_errors = Errors::default();
@@ -664,7 +673,6 @@ pub fn Post() -> impl IntoView {
 fn PostWidgetBar<'a>(
     post: &'a PostWithUserInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
-    can_moderate: RwSignal<bool>,
 ) -> impl IntoView {
     let content = ContentWithVote::Post(&post.post, &post.vote);
 
@@ -676,7 +684,7 @@ fn PostWidgetBar<'a>(
             <AuthorWidget author=post.post.creator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget timestamp=post.post.edit_timestamp/>
-            <ModeratePostButton can_moderate/>
+            <ModeratePostButton/>
         </div>
     }
 }

@@ -1,6 +1,7 @@
 use const_format::concatcp;
-use leptos::{component, IntoView, RwSignal, Show, SignalGet, view};
+use leptos::{component, IntoView, Show, SignalGet, use_context, view};
 
+use crate::app::UserState;
 use crate::icons::HammerIcon;
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
@@ -18,11 +19,13 @@ pub fn ForumCockpit() -> impl IntoView {
 
 /// Component to moderate a post
 #[component]
-pub fn ModeratePostButton(
-    can_moderate: RwSignal<bool>,
-) -> impl IntoView {
+pub fn ModeratePostButton() -> impl IntoView {
+    let user_state = use_context::<UserState>();
     view! {
-        <Show when=move || can_moderate.get()>
+        <Show when=move || match user_state {
+            Some(user_state) => user_state.can_moderate.get(),
+            None => false,
+        }>
             <button class="btn btn-circle btn-sm btn-ghost"><HammerIcon/></button>
         </Show>
     }
@@ -30,11 +33,13 @@ pub fn ModeratePostButton(
 
 /// Component to moderate a comment
 #[component]
-pub fn ModerateCommentButton(
-    can_moderate: RwSignal<bool>,
-) -> impl IntoView {
+pub fn ModerateCommentButton() -> impl IntoView {
+    let user_state = use_context::<UserState>();
     view! {
-        <Show when=move || can_moderate.get()>
+        <Show when=move || match user_state {
+            Some(user_state) => user_state.can_moderate.get(),
+            None => false,
+        }>
             <button class="btn btn-circle btn-sm btn-ghost"><HammerIcon/></button>
         </Show>
     }

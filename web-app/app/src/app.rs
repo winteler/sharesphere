@@ -20,7 +20,7 @@ pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone)]
 pub struct UserState {
-    pub user: RwSignal<Option<User>>
+    pub can_moderate: Memo<bool>,
 }
 
 #[derive(Copy, Clone)]
@@ -35,23 +35,17 @@ pub struct GlobalState {
     pub current_post_id: Option<Memo<i64>>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
-    pub user: Resource<usize, Result<Option<User>, ServerFnError>>,
-}
-
-impl UserState {
-    pub fn new() -> Self {
-        Self {
-            user: create_rw_signal(None),
-        }
-    }
+    pub user: Resource<(usize, usize, usize), Result<Option<User>, ServerFnError>>,
 }
 
 impl GlobalState {
     pub fn new() -> Self {
+        let login_action = create_server_action::<Login>();
+        let logout_action = create_server_action::<EndSession>();
         let create_forum_action = create_server_action::<CreateForum>();
         Self {
-            login_action: create_server_action::<Login>(),
-            logout_action: create_server_action::<EndSession>(),
+            login_action,
+            logout_action,
             subscribe_action: create_server_action::<Subscribe>(),
             unsubscribe_action: create_server_action::<Unsubscribe>(),
             edit_post_action: create_server_action::<EditPost>(),
@@ -61,14 +55,8 @@ impl GlobalState {
             post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
             comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
             user: create_local_resource(
-                move || create_forum_action.version().get(),
-                move |_| async {
-                    let user = get_user().await;
-                    if let Ok(user) = &user {
-                        expect_context::<UserState>().user.set(user.clone());
-                    }
-                    user
-                }
+                move || (login_action.version().get(), logout_action.version().get(), create_forum_action.version().get()),
+                move |_| get_user(),
             ),
         }
     }
@@ -137,7 +125,6 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     // Provide global context for app
-    provide_context(UserState::new());
     provide_context(GlobalState::new());
 
     view! {

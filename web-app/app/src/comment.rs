@@ -392,7 +392,6 @@ pub async fn edit_comment(
 #[component]
 pub fn CommentSection(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
-    can_moderate: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
         <div class="flex flex-col h-fit">
@@ -408,7 +407,6 @@ pub fn CommentSection(
                             comment=comment
                             depth=0
                             ranking=index
-                            can_moderate
                         />
                     }
                 }
@@ -423,7 +421,6 @@ pub fn CommentBox(
     comment: CommentWithChildren,
     depth: usize,
     ranking: usize,
-    can_moderate: RwSignal<bool>,
 ) -> impl IntoView {
     let comment_body = create_rw_signal(comment.comment.body.clone());
     let markdown_body = create_rw_signal(comment.comment.markdown_body.clone());
@@ -475,7 +472,6 @@ pub fn CommentBox(
                     markdown_body
                     edit_timestamp
                     child_comments
-                    can_moderate
                 />
                 <div
                     class="flex flex-col"
@@ -493,7 +489,6 @@ pub fn CommentBox(
                                     comment=comment
                                     depth=depth+1
                                     ranking=ranking+index
-                                    can_moderate
                                 />
                             }
                         }
@@ -513,7 +508,6 @@ fn CommentWidgetBar(
     markdown_body: RwSignal<Option<String>>,
     edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
-    can_moderate: RwSignal<bool>,
 ) -> impl IntoView {
     let content = ContentWithVote::Comment(&comment, &vote);
 
@@ -535,7 +529,7 @@ fn CommentWidgetBar(
             <AuthorWidget author=comment.creator_name.clone()/>
             <TimeSinceWidget timestamp=comment.create_timestamp/>
             <ReactiveTimeSinceEditWidget timestamp=edit_timestamp/>
-            <ModerateCommentButton can_moderate/>
+            <ModerateCommentButton/>
         </div>
     }
 }

@@ -1,7 +1,7 @@
 use const_format::concatcp;
 use leptos::{component, IntoView, RwSignal, Show, SignalGet, view};
 
-use crate::icons::SettingsIcon;
+use crate::icons::HammerIcon;
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -16,14 +16,26 @@ pub fn ForumCockpit() -> impl IntoView {
     }
 }
 
-/// Component to manage a forum
+/// Component to moderate a post
+#[component]
+pub fn ModeratePostButton(
+    can_moderate: RwSignal<bool>,
+) -> impl IntoView {
+    view! {
+        <Show when=move || can_moderate.get()>
+            <button class="btn btn-circle btn-sm btn-ghost"><HammerIcon/></button>
+        </Show>
+    }
+}
+
+/// Component to moderate a comment
 #[component]
 pub fn ModerateCommentButton(
     can_moderate: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
         <Show when=move || can_moderate.get()>
-            <button class="btn btn-circle btn-sm btn-ghost"><SettingsIcon/></button>
+            <button class="btn btn-circle btn-sm btn-ghost"><HammerIcon/></button>
         </Show>
     }
 }

@@ -20,6 +20,7 @@ use crate::errors::AppError;
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::forum::get_matching_forum_names;
+use crate::forum_management::ModeratePostButton;
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
@@ -633,7 +634,7 @@ pub fn Post() -> impl IntoView {
                                     class={post_body_class}
                                     inner_html={post_with_info.post.body.clone()}
                                 />
-                                <PostWidgetBar post=post_with_info comment_vec/>
+                                <PostWidgetBar post=post_with_info comment_vec can_moderate/>
                             </div>
                         </div>
                     </div>
@@ -660,19 +661,22 @@ pub fn Post() -> impl IntoView {
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
-fn PostWidgetBar<'a>(post: &'a PostWithUserInfo, comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
+fn PostWidgetBar<'a>(
+    post: &'a PostWithUserInfo,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    can_moderate: RwSignal<bool>,
+) -> impl IntoView {
     let content = ContentWithVote::Post(&post.post, &post.vote);
 
     view! {
         <div class="flex gap-1 content-center">
-            <VotePanel
-                content=content
-            />
+            <VotePanel content=content/>
             <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton author_id=post.post.creator_id post=&post.post/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget timestamp=post.post.edit_timestamp/>
+            <ModeratePostButton can_moderate/>
         </div>
     }
 }

@@ -71,6 +71,13 @@ pub fn GraphIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoV
 }
 
 #[component]
+pub fn HammerIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/hammer.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn Header1Icon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/header_1.svg" class=class/>

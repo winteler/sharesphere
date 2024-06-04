@@ -481,17 +481,18 @@ pub fn LoginGuardButton<F: Fn(&User) -> IV + 'static, IV: IntoView>(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let children = store_value(children);
+    let login_button_content = store_value(login_button_content);
 
     view! {
         {
             move || state.user.with(|result| match result {
                 Some(Ok(Some(user))) => children.with_value(|children| children(user)).into_view(),
                 Some(_) => {
-                    let login_button_view = login_button_content.run();
+                    let login_button_view = login_button_content.get_value().run();
                     view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
                 }
                 _ => {
-                    view! { <div class=login_button_class>{login_button_content.run()}</div> }.into_view()
+                    view! { <div class=login_button_class>{login_button_content.get_value().run()}</div> }.into_view()
                 }
             })
         }

@@ -441,8 +441,8 @@ pub fn CommentBox(
 
     let is_markdown = comment.comment.markdown_body.is_some();
     let comment_class = move || match (maximize.get(), is_markdown) {
-        (true, true) => "pl-2 pt-1",
-        (true, false) => "pl-2 pt-1 whitespace-pre",
+        (true, true) => "pl-2 py-1",
+        (true, false) => "pl-2 py-1 whitespace-pre",
         (false, _) => "hidden",
     };
 
@@ -512,7 +512,7 @@ fn CommentWidgetBar(
     let content = ContentWithVote::Comment(&comment, &vote);
 
     view! {
-        <div class="flex gap-2">
+        <div class="flex gap-1">
             <VotePanel content=content/>
             <CommentButton
                 post_id=comment.post_id

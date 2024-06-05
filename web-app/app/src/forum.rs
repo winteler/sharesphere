@@ -633,7 +633,7 @@ pub fn ForumPostMiniatures(
                             <a href=post_path>
                                 <div class="flex flex-col gap-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
-                                    <div class="flex gap-2">
+                                    <div class="flex gap-1">
                                         <ScoreIndicator score=post.score/>
                                         <AuthorWidget author=post.creator_name.clone()/>
                                         <TimeSinceWidget timestamp=post.create_timestamp/>

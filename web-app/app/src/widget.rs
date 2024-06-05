@@ -43,7 +43,7 @@ pub fn ModalDialog(
 #[component]
 pub fn AuthorWidget(author: String) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
+        <div class="flex rounded-btn pr-1.5 gap-1.5 items-center text-sm">
             <AuthorIcon/>
             {author}
         </div>
@@ -54,7 +54,7 @@ pub fn AuthorWidget(author: String) -> impl IntoView {
 #[component]
 pub fn TimeSinceWidget(timestamp: chrono::DateTime<chrono::Utc>) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
+        <div class="flex rounded-btn gap-1.5 items-center text-sm">
             <ClockIcon/>
             {
                 get_elapsed_time_string(timestamp)
@@ -68,7 +68,7 @@ pub fn TimeSinceWidget(timestamp: chrono::DateTime<chrono::Utc>) -> impl IntoVie
 pub fn TimeSinceEditWidget(timestamp: Option<chrono::DateTime<chrono::Utc>>) -> impl IntoView {
     view! {
         <Show when=move || timestamp.is_some()>
-            <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
+            <div class="flex rounded-btn gap-1.5 items-center text-sm">
                 <EditTimeIcon/>
                 {
                     get_elapsed_time_string(timestamp.unwrap())
@@ -83,7 +83,7 @@ pub fn TimeSinceEditWidget(timestamp: Option<chrono::DateTime<chrono::Utc>>) -> 
 pub fn ReactiveTimeSinceEditWidget(timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>) -> impl IntoView {
     view! {
         <Show when=move || timestamp.get().is_some()>
-            <div class="flex rounded-btn px-1 gap-1 items-center text-sm">
+            <div class="flex rounded-btn gap-1.5 items-center text-sm">
                 <EditTimeIcon/>
                 {
                     get_elapsed_time_string(timestamp.get().unwrap())

@@ -14,7 +14,7 @@ use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::forum_management::ModerateCommentButton;
-use crate::icons::{CommentIcon, EditIcon, MaximizeIcon, MinimizeIcon};
+use crate::icons::{CommentIcon, EditIcon, HammerIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -437,16 +437,6 @@ pub fn CommentBox(
         DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
     );
 
-    let comment_body = move || comment.with(|comment| match &comment.markdown_body {
-        Some(markdown_body) => markdown_body.clone(),
-        None => comment.body.clone()
-    });
-    let comment_class = move || match (maximize.get(), comment.with(|comment| comment.markdown_body.is_some())) {
-        (true, true) => "pl-2 py-1",
-        (true, false) => "pl-2 py-1 whitespace-pre",
-        (false, _) => "hidden",
-    };
-
     view! {
         <div class="flex py-1">
             <div
@@ -462,10 +452,9 @@ pub fn CommentBox(
                 </Show>
             </div>
             <div class="flex flex-col">
-                <div
-                    class=comment_class
-                    inner_html=comment_body
-                />
+                <Show when=maximize>
+                    <CommentBody comment/>
+                </Show>
                 <CommentWidgetBar
                     comment=comment
                     vote=comment_with_children.vote
@@ -493,6 +482,54 @@ pub fn CommentBox(
                     />
                 </div>
             </div>
+        </div>
+    }
+}
+
+/// Displays the body of a comment
+#[component]
+pub fn CommentBody(
+    comment: RwSignal<Comment>,
+) -> impl IntoView {
+    let comment_body = move || comment.with(|comment| match &comment.markdown_body {
+        Some(markdown_body) => markdown_body.clone(),
+        None => comment.body.clone()
+    });
+    let comment_class = move || comment.with(|comment| match comment.markdown_body.is_some() {
+        true => "pl-2 py-1",
+        false  => "pl-2 py-1 whitespace-pre",
+    });
+
+    view! {
+        <Show
+            when=move || comment.with(|comment| comment.moderated_body.is_none())
+            fallback=move || view! { <ModeratedCommentBody comment/> }
+        >
+            <div
+                class=comment_class
+                inner_html=comment_body
+            />
+        </Show>
+    }
+}
+
+/// Displays the body of a moderated comment
+#[component]
+pub fn ModeratedCommentBody(
+    comment: RwSignal<Comment>,
+) -> impl IntoView {
+    let moderated_body = move || comment.with(|comment| match &comment.moderated_body {
+        Some(moderated_body) => moderated_body.clone(),
+        None => {
+            log::error!("Missing moderated body, leave empty.");
+            String::default()
+        }
+    });
+
+    view! {
+        <div class="flex gap-1 p-1 rounded border-1">
+            <HammerIcon/>
+            {moderated_body()}
         </div>
     }
 }
@@ -532,10 +569,13 @@ fn CommentWidgetBar(
                 author_id
                 comment
             />
+            <ModerateCommentButton
+                comment_id
+                comment
+            />
             <AuthorWidget author/>
             <TimeSinceWidget timestamp=create_timestamp/>
             <TimeSinceCommentEditWidget comment/>
-            <ModerateCommentButton/>
         </div>
     }
 }

@@ -54,7 +54,7 @@ pub fn AuthorWidget(author: String) -> impl IntoView {
 #[component]
 pub fn TimeSinceWidget(timestamp: chrono::DateTime<chrono::Utc>) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn gap-1.5 items-center text-sm">
+        <div class="flex gap-1.5 items-center text-sm pr-1.5">
             <ClockIcon/>
             {
                 get_elapsed_time_string(timestamp)
@@ -68,7 +68,7 @@ pub fn TimeSinceWidget(timestamp: chrono::DateTime<chrono::Utc>) -> impl IntoVie
 pub fn TimeSinceEditWidget(timestamp: Option<chrono::DateTime<chrono::Utc>>) -> impl IntoView {
     view! {
         <Show when=move || timestamp.is_some()>
-            <div class="flex rounded-btn gap-1.5 items-center text-sm">
+            <div class="flex gap-1.5 items-center text-sm pr-1.5">
                 <EditTimeIcon/>
                 {
                     get_elapsed_time_string(timestamp.unwrap())
@@ -84,7 +84,7 @@ pub fn TimeSinceCommentEditWidget(comment: RwSignal<Comment>) -> impl IntoView {
     let edit_timestamp = move || comment.with(|comment| comment.edit_timestamp);
     view! {
         <Show when=move || edit_timestamp().is_some()>
-            <div class="flex rounded-btn gap-1.5 items-center text-sm">
+            <div class="flex gap-1.5 items-center text-sm pr-1.5">
                 <EditTimeIcon/>
                 {
                     get_elapsed_time_string(edit_timestamp().unwrap())

@@ -108,10 +108,18 @@ pub fn ModeratePostButton() -> impl IntoView {
 
 /// Component to access a comment's moderation dialog
 #[component]
-pub fn ModerateCommentButton() -> impl IntoView {
+pub fn ModerateCommentButton(
+    comment_id: i64,
+    comment: RwSignal<Comment>,
+) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     view! {
         <ModerateButton show_dialog/>
+        <ModerateCommentDialog
+            comment_id
+            comment
+            show_dialog
+        />
     }
 }
 
@@ -128,6 +136,7 @@ pub fn ModeratePostDialog(
 #[component]
 pub fn ModerateCommentDialog(
     comment_id: i64,
+    comment: RwSignal<Comment>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     let moderate_text = create_rw_signal(String::new());
@@ -141,8 +150,8 @@ pub fn ModerateCommentDialog(
     // TODO: add ban option
 
     create_effect(move |_| {
-        if let Some(Ok(_comment)) = edit_comment_result.get() {
-            // TODO: update comment signal, make one signal with whole comment
+        if let Some(Ok(moderated_comment)) = edit_comment_result.get() {
+            comment.set(moderated_comment);
             show_dialog.set(false);
         }
     });
@@ -161,7 +170,7 @@ pub fn ModerateCommentDialog(
                             value=comment_id
                         />
                         <FormTextEditor
-                            name="moderate_body"
+                            name="moderated_body"
                             placeholder="Message"
                             content=moderate_text
                         />

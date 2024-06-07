@@ -684,10 +684,10 @@ fn PostWidgetBar<'a>(
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton author_id=post.post.creator_id post=&post.post/>
+            <ModeratePostButton/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget timestamp=post.post.edit_timestamp/>
-            <ModeratePostButton/>
         </div>
     }
 }

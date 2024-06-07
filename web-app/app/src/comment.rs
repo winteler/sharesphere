@@ -17,8 +17,8 @@ use crate::forum_management::ModerateCommentButton;
 use crate::icons::{CommentIcon, EditIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
-use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
-use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ReactiveTimeSinceEditWidget, TimeSinceWidget};
+use crate::ranking::{SortType, Vote, VotePanel};
+use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceCommentEditWidget, TimeSinceWidget};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -401,10 +401,10 @@ pub fn CommentSection(
                 // a unique key for each item as a reference
                 key=|(_index, comment)| comment.comment.comment_id
                 // renders each item to a view
-                children=move |(index, comment)| {
+                children=move |(index, comment_with_children)| {
                     view! {
                         <CommentBox
-                            comment=comment
+                            comment_with_children
                             depth=0
                             ranking=index
                         />
@@ -418,14 +418,12 @@ pub fn CommentSection(
 /// Comment box component
 #[component]
 pub fn CommentBox(
-    comment: CommentWithChildren,
+    comment_with_children: CommentWithChildren,
     depth: usize,
     ranking: usize,
 ) -> impl IntoView {
-    let comment_body = create_rw_signal(comment.comment.body.clone());
-    let markdown_body = create_rw_signal(comment.comment.markdown_body.clone());
-    let edit_timestamp = create_rw_signal(comment.comment.edit_timestamp);
-    let child_comments = create_rw_signal(comment.child_comments);
+    let comment = create_rw_signal(comment_with_children.comment);
+    let child_comments = create_rw_signal(comment_with_children.child_comments);
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
@@ -439,8 +437,11 @@ pub fn CommentBox(
         DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
     );
 
-    let is_markdown = comment.comment.markdown_body.is_some();
-    let comment_class = move || match (maximize.get(), is_markdown) {
+    let comment_body = move || comment.with(|comment| match &comment.markdown_body {
+        Some(markdown_body) => markdown_body.clone(),
+        None => comment.body.clone()
+    });
+    let comment_class = move || match (maximize.get(), comment.with(|comment| comment.markdown_body.is_some())) {
         (true, true) => "pl-2 py-1",
         (true, false) => "pl-2 py-1 whitespace-pre",
         (false, _) => "hidden",
@@ -466,11 +467,8 @@ pub fn CommentBox(
                     inner_html=comment_body
                 />
                 <CommentWidgetBar
-                    comment=comment.comment
-                    vote=comment.vote
-                    comment_body
-                    markdown_body
-                    edit_timestamp
+                    comment=comment
+                    vote=comment_with_children.vote
                     child_comments
                 />
                 <div
@@ -483,10 +481,10 @@ pub fn CommentBox(
                         // a unique key for each item as a reference
                         key=|(_index, comment)| comment.comment.comment_id
                         // renders each item to a view
-                        children=move |(index, comment)| {
+                        children=move |(index, comment_with_children)| {
                             view! {
                                 <CommentBox
-                                    comment=comment
+                                    comment_with_children
                                     depth=depth+1
                                     ranking=ranking+index
                                 />
@@ -502,33 +500,41 @@ pub fn CommentBox(
 /// Component to encapsulate the widgets associated with each comment
 #[component]
 fn CommentWidgetBar(
-    comment: Comment,
+    comment: RwSignal<Comment>,
     vote: Option<Vote>,
-    comment_body: RwSignal<String>,
-    markdown_body: RwSignal<Option<String>>,
-    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
-    let content = ContentWithVote::Comment(&comment, &vote);
-
+    let (comment_id, post_id, score, author_id, author, create_timestamp) = comment.with_untracked(
+        |comment| (
+            comment.comment_id,
+            comment.post_id,
+            comment.score,
+            comment.creator_id,
+            comment.creator_name.clone(),
+            comment.create_timestamp,
+        )
+    );
     view! {
         <div class="flex gap-1">
-            <VotePanel content=content/>
+            <VotePanel
+                post_id
+                comment_id=Some(comment_id)
+                score
+                vote=&vote
+            />
             <CommentButton
-                post_id=comment.post_id
+                post_id
                 comment_vec=child_comments
-                parent_comment_id=Some(comment.comment_id)
+                parent_comment_id=Some(comment_id)
             />
             <EditCommentButton
-                comment_id=comment.comment_id
-                author_id=comment.creator_id
-                comment_body
-                markdown_body
-                edit_timestamp
+                comment_id
+                author_id
+                comment
             />
-            <AuthorWidget author=comment.creator_name.clone()/>
-            <TimeSinceWidget timestamp=comment.create_timestamp/>
-            <ReactiveTimeSinceEditWidget timestamp=edit_timestamp/>
+            <AuthorWidget author/>
+            <TimeSinceWidget timestamp=create_timestamp/>
+            <TimeSinceCommentEditWidget comment/>
             <ModerateCommentButton/>
         </div>
     }
@@ -655,9 +661,7 @@ pub fn CommentForm(
 pub fn EditCommentButton(
     comment_id: i64,
     author_id: i64,
-    comment_body: RwSignal<String>,
-    markdown_body: RwSignal<Option<String>>,
-    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
+    comment: RwSignal<Comment>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let show_dialog = create_rw_signal(false);
@@ -684,9 +688,7 @@ pub fn EditCommentButton(
         }
         <EditCommentDialog
             comment_id
-            comment_body
-            markdown_body
-            edit_timestamp
+            comment
             show_dialog
         />
     }
@@ -696,9 +698,7 @@ pub fn EditCommentButton(
 #[component]
 pub fn EditCommentDialog(
     comment_id: i64,
-    comment_body: RwSignal<String>,
-    markdown_body: RwSignal<Option<String>>,
-    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
+    comment: RwSignal<Comment>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -708,9 +708,7 @@ pub fn EditCommentDialog(
         >
             <EditCommentForm
                 comment_id
-                comment_body
-                markdown_body
-                edit_timestamp
+                comment
                 show_form=show_dialog
             />
         </ModalDialog>
@@ -721,17 +719,15 @@ pub fn EditCommentDialog(
 #[component]
 pub fn EditCommentForm(
     comment_id: i64,
-    comment_body: RwSignal<String>,
-    markdown_body: RwSignal<Option<String>>,
-    edit_timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>,
+    comment: RwSignal<Comment>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let (current_body, is_markdown) = match markdown_body.get_untracked() {
-        Some(body) => (body, true),
-        None => (comment_body.get_untracked(), false),
-    };
-    let comment = create_rw_signal(current_body);
-    let is_comment_empty = move || comment.with(|comment: &String| comment.is_empty());
+    let (current_body, is_markdown) = comment.with_untracked(|comment| match &comment.markdown_body {
+        Some(body) => (body.clone(), true),
+        None => (comment.body.clone(), false),
+    });
+    let comment_body = create_rw_signal(current_body);
+    let is_comment_empty = move || comment_body.with(|comment_body: &String| comment_body.is_empty());
 
     let edit_comment_action = create_server_action::<EditComment>();
 
@@ -739,10 +735,8 @@ pub fn EditCommentForm(
     let has_error = move || edit_comment_result.with(|val| matches!(val, Some(Err(_))));
 
     create_effect(move |_| {
-        if let Some(Ok(comment)) = edit_comment_result.get() {
-            comment_body.update(|comment_body| *comment_body = comment.body);
-            markdown_body.update(|markdown_body| *markdown_body = comment.markdown_body);
-            edit_timestamp.update(|edit_timestamp| *edit_timestamp = comment.edit_timestamp);
+        if let Some(Ok(edited_comment)) = edit_comment_result.get() {
+            comment.set(edited_comment);
             show_form.set(false);
         }
     });
@@ -761,7 +755,7 @@ pub fn EditCommentForm(
                         name="comment"
                         is_markdown_name="is_markdown"
                         placeholder="Your comment..."
-                        content=comment
+                        content=comment_body
                         is_markdown
                     />
                     <ModalFormButtons

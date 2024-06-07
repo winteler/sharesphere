@@ -8,9 +8,9 @@ use crate::app::ssr::get_db_pool;
 use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::comment::{Comment, CommentSortType};
+use crate::comment::CommentSortType;
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
-use crate::post::{Post, PostSortType};
+use crate::post::PostSortType;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -25,12 +25,6 @@ pub enum VoteValue {
 pub enum SortType {
     Post(PostSortType),
     Comment(CommentSortType),
-}
-
-#[derive(Clone, Debug)]
-pub enum ContentWithVote<'a> {
-    Post(&'a Post, &'a Option<Vote>),
-    Comment(&'a Comment, &'a Option<Vote>),
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -307,18 +301,12 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
 
 /// Component to display and modify a content's score
 #[component]
-pub fn VotePanel<'a>(content: ContentWithVote<'a>) -> impl IntoView {
-    let content = content.clone();
-
-    let (post_id, comment_id, score, vote) = match &content {
-        ContentWithVote::Post(post, vote) => (post.post_id, None, post.score, vote),
-        ContentWithVote::Comment(comment, vote) => (
-            comment.post_id,
-            Some(comment.comment_id),
-            comment.score,
-            vote,
-        ),
-    };
+pub fn VotePanel<'a>(
+    post_id: i64,
+    comment_id: Option<i64>,
+    score: i32,
+    vote: &'a Option<Vote>,
+) -> impl IntoView {
 
     let (vote_id, vote_value, initial_score) = match vote {
         Some(vote) => (

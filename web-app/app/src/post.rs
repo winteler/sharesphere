@@ -24,7 +24,7 @@ use crate::forum_management::ModeratePostButton;
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
-use crate::ranking::{ContentWithVote, SortType, Vote, VotePanel};
+use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, TimeSinceEditWidget, TimeSinceWidget};
 
@@ -674,11 +674,14 @@ fn PostWidgetBar<'a>(
     post: &'a PostWithUserInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
-    let content = ContentWithVote::Post(&post.post, &post.vote);
-
     view! {
         <div class="flex gap-1 content-center">
-            <VotePanel content=content/>
+            <VotePanel
+                post_id=post.post.post_id
+                comment_id=None
+                score=post.post.score
+                vote=&post.vote
+            />
             <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton author_id=post.post.creator_id post=&post.post/>
             <AuthorWidget author=post.post.creator_name.clone()/>

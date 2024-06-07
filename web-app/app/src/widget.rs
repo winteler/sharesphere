@@ -1,7 +1,7 @@
 use leptos::*;
 
 use crate::app::GlobalState;
-use crate::comment::CommentSortType;
+use crate::comment::{Comment, CommentSortType};
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
@@ -78,15 +78,16 @@ pub fn TimeSinceEditWidget(timestamp: Option<chrono::DateTime<chrono::Utc>>) -> 
     }
 }
 
-/// Component to display the edit time of a post
+/// Component to display the edit time of a comment
 #[component]
-pub fn ReactiveTimeSinceEditWidget(timestamp: RwSignal<Option<chrono::DateTime<chrono::Utc>>>) -> impl IntoView {
+pub fn TimeSinceCommentEditWidget(comment: RwSignal<Comment>) -> impl IntoView {
+    let edit_timestamp = move || comment.with(|comment| comment.edit_timestamp);
     view! {
-        <Show when=move || timestamp.get().is_some()>
+        <Show when=move || edit_timestamp().is_some()>
             <div class="flex rounded-btn gap-1.5 items-center text-sm">
                 <EditTimeIcon/>
                 {
-                    get_elapsed_time_string(timestamp.get().unwrap())
+                    get_elapsed_time_string(edit_timestamp().unwrap())
                 }
             </div>
         </Show>

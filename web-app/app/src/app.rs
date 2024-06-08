@@ -18,7 +18,7 @@ use crate::widget::PostSortWidget;
 pub const PARAM_ROUTE_PREFIX: &str = "/:";
 pub const PUBLISH_ROUTE: &str = "/publish";
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct UserState {
     pub can_moderate: Memo<bool>,
 }
@@ -55,7 +55,13 @@ impl GlobalState {
             post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
             comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
             user: create_local_resource(
-                move || (login_action.version().get(), logout_action.version().get(), create_forum_action.version().get()),
+                move || {
+                    (
+                        login_action.version().get(),
+                        logout_action.version().get(),
+                        create_forum_action.version().get(),
+                    )
+                },
                 move |_| get_user(),
             ),
         }
@@ -68,7 +74,7 @@ pub mod ssr {
     use std::sync::OnceLock;
 
     use anyhow::Context;
-    use sqlx::{PgPool, postgres::PgPoolOptions};
+    use sqlx::{postgres::PgPoolOptions, PgPool};
     use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;
@@ -291,7 +297,7 @@ fn DefaultHomePage() -> impl IntoView {
                         }
                         *post_vec = new_post_vec;
                     });
-                },
+                }
                 Err(e) => load_error.set(Some(AppError::from(&e))),
             }
             is_loading.set(false);
@@ -305,7 +311,9 @@ fn DefaultHomePage() -> impl IntoView {
             let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
             spawn_local(async move {
                 match get_sorted_post_vec(state.post_sort_type.get_untracked(), post_count).await {
-                    Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
+                    Ok(mut new_post_vec) => {
+                        post_vec.update(|post_vec| post_vec.append(&mut new_post_vec))
+                    }
                     Err(e) => load_error.set(Some(AppError::from(&e))),
                 }
                 is_loading.set(false);
@@ -350,7 +358,7 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
                         }
                         *post_vec = new_post_vec;
                     });
-                },
+                }
                 Err(e) => load_error.set(Some(AppError::from(&e))),
             }
             is_loading.set(false);
@@ -364,8 +372,16 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
             load_error.set(None);
             let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
             spawn_local(async move {
-                match get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), post_count).await {
-                    Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
+                match get_subscribed_post_vec(
+                    user_id,
+                    state.post_sort_type.get_untracked(),
+                    post_count,
+                )
+                .await
+                {
+                    Ok(mut new_post_vec) => {
+                        post_vec.update(|post_vec| post_vec.append(&mut new_post_vec))
+                    }
                     Err(e) => load_error.set(Some(AppError::from(&e))),
                 }
                 is_loading.set(false);

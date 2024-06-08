@@ -1,14 +1,17 @@
 use const_format::concatcp;
-use leptos::{component, create_effect, create_rw_signal, create_server_action, IntoView, RwSignal, server, ServerFnError, Show, SignalGet, SignalSet, SignalWith, use_context, view};
+use leptos::{
+    component, create_effect, create_rw_signal, create_server_action, server, use_context, view,
+    IntoView, RwSignal, ServerFnError, Show, SignalGet, SignalSet, SignalWith,
+};
 use leptos_router::ActionForm;
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
 use crate::app::UserState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::icons::HammerIcon;
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -40,8 +43,8 @@ pub mod ssr {
             comment_id,
             user.user_id,
         )
-            .fetch_one(&db_pool)
-            .await?;
+        .fetch_one(&db_pool)
+        .await?;
 
         Ok(comment)
     }
@@ -56,12 +59,8 @@ pub async fn moderate_comment(
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
-    let comment = ssr::moderate_comment(
-        comment_id,
-        moderated_body.as_str(),
-        &user,
-        db_pool.clone(),
-    ).await?;
+    let comment =
+        ssr::moderate_comment(comment_id, moderated_body.as_str(), &user, db_pool.clone()).await?;
 
     Ok(comment)
 }
@@ -78,10 +77,9 @@ pub fn ForumCockpit() -> impl IntoView {
 
 /// Component to moderate a post
 #[component]
-pub fn ModerateButton(
-    show_dialog: RwSignal<bool>,
-) -> impl IntoView {
+pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
     let user_state = use_context::<UserState>();
+    log::trace!("User state: {user_state:?}");
     view! {
         <Show when=move || match user_state {
             Some(user_state) => user_state.can_moderate.get(),
@@ -108,10 +106,7 @@ pub fn ModeratePostButton() -> impl IntoView {
 
 /// Component to access a comment's moderation dialog
 #[component]
-pub fn ModerateCommentButton(
-    comment_id: i64,
-    comment: RwSignal<Comment>,
-) -> impl IntoView {
+pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     view! {
         <ModerateButton show_dialog/>
@@ -125,11 +120,8 @@ pub fn ModerateCommentButton(
 
 /// Dialog to moderate a post
 #[component]
-pub fn ModeratePostDialog(
-    _show_dialog: RwSignal<bool>,
-) -> impl IntoView {
-    view! {
-    }
+pub fn ModeratePostDialog(_show_dialog: RwSignal<bool>) -> impl IntoView {
+    view! {}
 }
 
 /// Dialog to moderate a comment
@@ -185,4 +177,3 @@ pub fn ModerateCommentDialog(
         </ModalDialog>
     }
 }
-

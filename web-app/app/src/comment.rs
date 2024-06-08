@@ -4,21 +4,24 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
-use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::editor::FormMarkdownEditor;
+use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
+use crate::editor::FormMarkdownEditor;
 use crate::forum_management::ModerateCommentButton;
 use crate::icons::{CommentIcon, EditIcon, HammerIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceCommentEditWidget, TimeSinceWidget};
+use crate::widget::{
+    ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceCommentEditWidget,
+    TimeSinceWidget,
+};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -306,7 +309,8 @@ pub async fn get_post_comment_tree(
         COMMENT_BATCH_SIZE,
         num_already_loaded as i64,
         db_pool,
-    ).await?;
+    )
+    .await?;
 
     Ok(comment_tree)
 }
@@ -390,9 +394,7 @@ pub async fn edit_comment(
 
 /// Comment section component
 #[component]
-pub fn CommentSection(
-    comment_vec: RwSignal<Vec<CommentWithChildren>>,
-) -> impl IntoView {
+pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
     view! {
         <div class="flex flex-col h-fit">
             <For
@@ -451,7 +453,7 @@ pub fn CommentBox(
                     <div class=color_bar_css.clone()/>
                 </Show>
             </div>
-            <div class="flex flex-col">
+            <div class="flex flex-col gap-1">
                 <Show when=maximize>
                     <CommentBody comment/>
                 </Show>
@@ -488,17 +490,19 @@ pub fn CommentBox(
 
 /// Displays the body of a comment
 #[component]
-pub fn CommentBody(
-    comment: RwSignal<Comment>,
-) -> impl IntoView {
-    let comment_body = move || comment.with(|comment| match &comment.markdown_body {
-        Some(markdown_body) => markdown_body.clone(),
-        None => comment.body.clone()
-    });
-    let comment_class = move || comment.with(|comment| match comment.markdown_body.is_some() {
-        true => "pl-2 py-1",
-        false  => "pl-2 py-1 whitespace-pre",
-    });
+pub fn CommentBody(comment: RwSignal<Comment>) -> impl IntoView {
+    let comment_body = move || {
+        comment.with(|comment| match &comment.markdown_body {
+            Some(markdown_body) => markdown_body.clone(),
+            None => comment.body.clone(),
+        })
+    };
+    let comment_class = move || {
+        comment.with(|comment| match comment.markdown_body.is_some() {
+            true => "pl-2",
+            false => "pl-2 whitespace-pre",
+        })
+    };
 
     view! {
         <Show
@@ -515,21 +519,23 @@ pub fn CommentBody(
 
 /// Displays the body of a moderated comment
 #[component]
-pub fn ModeratedCommentBody(
-    comment: RwSignal<Comment>,
-) -> impl IntoView {
-    let moderated_body = move || comment.with(|comment| match &comment.moderated_body {
-        Some(moderated_body) => moderated_body.clone(),
-        None => {
-            log::error!("Missing moderated body, leave empty.");
-            String::default()
-        }
-    });
-
+pub fn ModeratedCommentBody(comment: RwSignal<Comment>) -> impl IntoView {
     view! {
-        <div class="flex gap-1 p-1 rounded border-1">
-            <HammerIcon/>
-            {moderated_body()}
+        <div class="flex items-stretch w-fit">
+            <div class="flex justify-center items-center p-2 rounded-l bg-base-200">
+                <HammerIcon/>
+            </div>
+            <div class="p-2 rounded-r bg-base-content/20 whitespace-pre align-middle">
+                {
+                    move || comment.with(|comment| match &comment.moderated_body {
+                        Some(moderated_body) => moderated_body.clone(),
+                        None => {
+                            log::error!("Missing moderated body, leave empty.");
+                            String::default()
+                        }
+                    })
+                }
+            </div>
         </div>
     }
 }
@@ -541,16 +547,17 @@ fn CommentWidgetBar(
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
-    let (comment_id, post_id, score, author_id, author, create_timestamp) = comment.with_untracked(
-        |comment| (
-            comment.comment_id,
-            comment.post_id,
-            comment.score,
-            comment.creator_id,
-            comment.creator_name.clone(),
-            comment.create_timestamp,
-        )
-    );
+    let (comment_id, post_id, score, author_id, author, create_timestamp) =
+        comment.with_untracked(|comment| {
+            (
+                comment.comment_id,
+                comment.post_id,
+                comment.score,
+                comment.creator_id,
+                comment.creator_name.clone(),
+                comment.create_timestamp,
+            )
+        });
     view! {
         <div class="flex gap-1">
             <VotePanel
@@ -762,12 +769,14 @@ pub fn EditCommentForm(
     comment: RwSignal<Comment>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let (current_body, is_markdown) = comment.with_untracked(|comment| match &comment.markdown_body {
-        Some(body) => (body.clone(), true),
-        None => (comment.body.clone(), false),
-    });
+    let (current_body, is_markdown) =
+        comment.with_untracked(|comment| match &comment.markdown_body {
+            Some(body) => (body.clone(), true),
+            None => (comment.body.clone(), false),
+        });
     let comment_body = create_rw_signal(current_body);
-    let is_comment_empty = move || comment_body.with(|comment_body: &String| comment_body.is_empty());
+    let is_comment_empty =
+        move || comment_body.with(|comment_body: &String| comment_body.is_empty());
 
     let edit_comment_action = create_server_action::<EditComment>();
 

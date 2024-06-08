@@ -4,13 +4,15 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
-use crate::auth::ssr::check_user;
+use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
-use crate::editor::get_styled_html_from_markdown;
+use crate::auth::ssr::check_user;
 use crate::editor::FormMarkdownEditor;
+#[cfg(feature = "ssr")]
+use crate::editor::get_styled_html_from_markdown;
 use crate::forum_management::ModerateCommentButton;
 use crate::icons::{CommentIcon, EditIcon, HammerIcon, MaximizeIcon, MinimizeIcon};
 #[cfg(feature = "ssr")]
@@ -20,8 +22,6 @@ use crate::widget::{
     ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceCommentEditWidget,
     TimeSinceWidget,
 };
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -429,9 +429,9 @@ pub fn CommentBox(
     let maximize = create_rw_signal(true);
     let sidebar_css = move || {
         if maximize() {
-            "p-1 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
+            "p-0.5 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
         } else {
-            "p-1 rounded hover:bg-base-content/20 flex flex-col justify-center items-center"
+            "p-0.5 rounded hover:bg-base-content/20 flex flex-col justify-center items-center"
         }
     };
     let color_bar_css = format!(
@@ -440,7 +440,7 @@ pub fn CommentBox(
     );
 
     view! {
-        <div class="flex py-1">
+        <div class="flex gap-1 py-1">
             <div
                 class=sidebar_css
                 on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
@@ -522,10 +522,10 @@ pub fn CommentBody(comment: RwSignal<Comment>) -> impl IntoView {
 pub fn ModeratedCommentBody(comment: RwSignal<Comment>) -> impl IntoView {
     view! {
         <div class="flex items-stretch w-fit">
-            <div class="flex justify-center items-center p-2 rounded-l bg-base-200">
+            <div class="flex justify-center items-center p-2 rounded-l bg-base-content/20">
                 <HammerIcon/>
             </div>
-            <div class="p-2 rounded-r bg-base-content/20 whitespace-pre align-middle">
+            <div class="p-2 rounded-r bg-base-200 whitespace-pre align-middle">
                 {
                     move || comment.with(|comment| match &comment.moderated_body {
                         Some(moderated_body) => moderated_body.clone(),

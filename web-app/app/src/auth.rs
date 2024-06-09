@@ -222,6 +222,7 @@ pub mod ssr {
         )
             .fetch_all(db_pool)
             .await?;
+        log::trace!("User roles: {:?}", user_forum_role_vec);
         Ok(user_forum_role_vec)
     }
 
@@ -284,13 +285,16 @@ pub mod ssr {
 
     pub fn reload_user() -> Result<Option<User>, AppError> {
         let auth_session = get_session()?;
-        if let Some(current_user) = &auth_session.current_user {
+        if let Some(current_user) = auth_session.current_user.clone() {
             auth_session.logout_user();
-            auth_session.login_user(OidcUserInfo {
+            let oidc_user_info = OidcUserInfo {
                 oidc_id: current_user.oidc_id.clone(),
                 username: current_user.username.clone(),
                 email: current_user.email.clone(),
-            });
+            };
+            auth_session.cache_clear_user(oidc_user_info.clone());
+            auth_session.login_user(oidc_user_info);
+            log::trace!("Reloaded user: {:?}", auth_session.current_user);
         }
         Ok(auth_session.current_user)
     }

@@ -47,6 +47,8 @@ CREATE TABLE posts (
     forum_name TEXT NOT NULL REFERENCES forums (forum_name),
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
+    moderator_id BIGINT REFERENCES users (user_id),
+    moderator_name TEXT,
     num_comments INT NOT NULL DEFAULT 0,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,

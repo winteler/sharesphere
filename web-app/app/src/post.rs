@@ -6,7 +6,7 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE, UserState};
+use crate::app::{GlobalState, ModerateState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
 #[cfg(feature = "ssr")]
@@ -20,7 +20,7 @@ use crate::errors::AppError;
 use crate::forum::{get_forum_name_memo, get_matching_forum_names};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::forum_management::ModeratePostButton;
+use crate::forum_management::{ModeratePost, ModeratePostButton};
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
@@ -55,6 +55,8 @@ pub struct Post {
     pub forum_name: String,
     pub creator_id: i64,
     pub creator_name: String,
+    pub moderator_id: Option<i64>,
+    pub moderator_name: Option<String>,
     pub num_comments: i32,
     pub score: i32,
     pub score_minus: i32,
@@ -550,13 +552,14 @@ pub fn Post() -> impl IntoView {
         },
     );
 
-    let user_state = UserState {
+    let user_state = ModerateState {
         can_moderate: Signal::derive(
             move || state.user.with(|user| match user {
                 Some(Ok(Some(user))) => forum_name.with( | forum_name| user.is_forum_moderator(forum_name)),
                 _ => false,
             })
-        )
+        ),
+        moderate_post_action: create_server_action::<ModeratePost>(),
     };
     provide_context(user_state);
 

@@ -7,10 +7,11 @@ use leptos_router::ActionForm;
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
-use crate::app::UserState;
+use crate::app::ModerateState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::icons::HammerIcon;
+use crate::post::Post;
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
@@ -23,6 +24,61 @@ pub mod ssr {
     use crate::auth::User;
     use crate::comment::Comment;
     use crate::errors::AppError;
+    use crate::post::Post;
+
+    pub async fn moderate_post(
+        post_id: i64,
+        moderated_body: &str,
+        user: &User,
+        db_pool: PgPool,
+    ) -> Result<Post, AppError> {
+
+        let post = if user.is_global_moderator() {
+            sqlx::query_as!(
+                Post,
+                "UPDATE posts SET
+                    moderated_body = $1,
+                    edit_timestamp = CURRENT_TIMESTAMP,
+                    moderator_id = $2,
+                    moderator_name = $3
+                WHERE
+                    post_id = $4
+                RETURNING *",
+                moderated_body,
+                user.user_id,
+                user.username,
+                post_id,
+            )
+                .fetch_one(&db_pool)
+                .await?
+        } else {
+            sqlx::query_as!(
+                Post,
+                "UPDATE posts p SET
+                    moderated_body = $1,
+                    edit_timestamp = CURRENT_TIMESTAMP,
+                    moderator_id = $2,
+                    moderator_name = $3
+                WHERE
+                    p.post_id = $4 AND
+                    EXISTS (
+                        SELECT * FROM user_forum_roles r
+                        WHERE
+                            r.forum_id = p.forum_id AND
+                            r.user_id = $2
+                    )
+                RETURNING *",
+                moderated_body,
+                user.user_id,
+                user.username,
+                post_id,
+            )
+                .fetch_one(&db_pool)
+                .await?
+        };
+
+        Ok(post)
+    }
 
     pub async fn moderate_comment(
         comment_id: i64,
@@ -30,8 +86,6 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Comment, AppError> {
-
-        // check user rights
         let comment = if user.is_global_moderator() {
             sqlx::query_as!(
                 Comment,
@@ -82,6 +136,25 @@ pub mod ssr {
 }
 
 #[server]
+pub async fn moderate_post(
+    post_id: i64,
+    moderated_body: String,
+) -> Result<Post, ServerFnError> {
+    log::trace!("Moderate post {post_id}");
+    let user = check_user()?;
+    let db_pool = get_db_pool()?;
+
+    let post = ssr::moderate_post(
+        post_id,
+        moderated_body.as_str(),
+        &user,
+        db_pool.clone()
+    ).await?;
+
+    Ok(post)
+}
+
+#[server]
 pub async fn moderate_comment(
     comment_id: i64,
     moderated_body: String,
@@ -113,8 +186,7 @@ pub fn ForumCockpit() -> impl IntoView {
 /// Component to moderate a post
 #[component]
 pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
-    let user_state = use_context::<UserState>();
-    log::trace!("User state: {user_state:?}");
+    let user_state = use_context::<ModerateState>();
     view! {
         <Show when=move || match user_state {
             Some(user_state) => user_state.can_moderate.get(),
@@ -155,7 +227,9 @@ pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> imp
 
 /// Dialog to moderate a post
 #[component]
-pub fn ModeratePostDialog(_show_dialog: RwSignal<bool>) -> impl IntoView {
+pub fn ModeratePostDialog(
+    _show_dialog: RwSignal<bool>
+) -> impl IntoView {
     view! {}
 }
 

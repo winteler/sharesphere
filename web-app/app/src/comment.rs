@@ -18,10 +18,7 @@ use crate::icons::{CommentIcon, EditIcon, HammerIcon, MaximizeIcon, MinimizeIcon
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::widget::{
-    ActionError, AuthorWidget, ModalDialog, ModalFormButtons, TimeSinceCommentEditWidget,
-    TimeSinceWidget,
-};
+use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceCommentEditWidget, TimeSinceWidget};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -46,6 +43,8 @@ pub struct Comment {
     pub post_id: i64,
     pub creator_id: i64,
     pub creator_name: String,
+    pub moderator_id: Option<i64>,
+    pub moderator_name: Option<String>,
     pub score: i32,
     pub score_minus: i32,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
@@ -547,7 +546,7 @@ fn CommentWidgetBar(
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
-    let (comment_id, post_id, score, author_id, author, create_timestamp) =
+    let (comment_id, post_id, score, author_id, author, moderator, create_timestamp) =
         comment.with_untracked(|comment| {
             (
                 comment.comment_id,
@@ -555,6 +554,7 @@ fn CommentWidgetBar(
                 comment.score,
                 comment.creator_id,
                 comment.creator_name.clone(),
+                comment.moderator_name.clone(),
                 comment.create_timestamp,
             )
         });
@@ -581,6 +581,7 @@ fn CommentWidgetBar(
                 comment
             />
             <AuthorWidget author/>
+            <ModeratorWidget moderator/>
             <TimeSinceWidget timestamp=create_timestamp/>
             <TimeSinceCommentEditWidget comment/>
         </div>

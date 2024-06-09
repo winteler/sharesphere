@@ -5,7 +5,7 @@ use crate::comment::{Comment, CommentSortType};
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, PodiumIcon};
+use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, ModeratorIcon, PodiumIcon};
 use crate::post::PostSortType;
 use crate::ranking::SortType;
 
@@ -47,6 +47,20 @@ pub fn AuthorWidget(author: String) -> impl IntoView {
             <AuthorIcon/>
             {author}
         </div>
+    }
+}
+
+/// Component to display the moderator of a post or comment
+#[component]
+pub fn ModeratorWidget(moderator: Option<String>) -> impl IntoView {
+    match moderator {
+        Some(moderator) => view! {
+            <div class="flex rounded-btn pr-1.5 gap-1.5 items-center text-sm">
+                <ModeratorIcon/>
+                {moderator}
+            </div>
+        }.into_view(),
+        None => View::default(),
     }
 }
 

@@ -71,6 +71,8 @@ CREATE TABLE comments (
     post_id BIGINT NOT NULL REFERENCES posts (post_id),
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
+    moderator_id BIGINT REFERENCES users (user_id),
+    moderator_name TEXT,
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),

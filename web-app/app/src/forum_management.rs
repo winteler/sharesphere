@@ -1,17 +1,17 @@
 use const_format::concatcp;
 use leptos::{
-    component, create_effect, create_rw_signal, create_server_action, server, use_context, view,
-    IntoView, RwSignal, ServerFnError, Show, SignalGet, SignalSet, SignalWith,
+    component, create_effect, create_rw_signal, create_server_action, IntoView, RwSignal, server,
+    ServerFnError, Show, SignalGet, SignalSet, SignalWith, use_context, view,
 };
 use leptos_router::ActionForm;
 
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
 use crate::app::UserState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::icons::HammerIcon;
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -30,21 +30,52 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Comment, AppError> {
-        let comment = sqlx::query_as!(
-            Comment,
-            "UPDATE comments SET
-                moderated_body = $1,
-                edit_timestamp = CURRENT_TIMESTAMP
-            WHERE
-                comment_id = $2 AND
-                creator_id = $3
-            RETURNING *",
-            moderated_body,
-            comment_id,
-            user.user_id,
-        )
-        .fetch_one(&db_pool)
-        .await?;
+
+        // check user rights
+        let comment = if user.is_global_moderator() {
+            sqlx::query_as!(
+                Comment,
+                "UPDATE comments SET
+                    moderated_body = $1,
+                    edit_timestamp = CURRENT_TIMESTAMP,
+                    moderator_id = $2,
+                    moderator_name = $3
+                WHERE
+                    comment_id = $4
+                RETURNING *",
+                moderated_body,
+                user.user_id,
+                user.username,
+                comment_id,
+            )
+                .fetch_one(&db_pool)
+                .await?
+        } else {
+            sqlx::query_as!(
+                Comment,
+                "UPDATE comments c SET
+                    moderated_body = $1,
+                    edit_timestamp = CURRENT_TIMESTAMP,
+                    moderator_id = $2,
+                    moderator_name = $3
+                WHERE
+                    c.comment_id = $4 AND
+                    EXISTS (
+                        SELECT * FROM user_forum_roles r
+                        JOIN posts p ON p.forum_id = r.forum_id
+                        WHERE
+                            p.post_id = c.post_id AND
+                            r.user_id = $2
+                    )
+                RETURNING *",
+                moderated_body,
+                user.user_id,
+                user.username,
+                comment_id,
+            )
+                .fetch_one(&db_pool)
+                .await?
+        };
 
         Ok(comment)
     }
@@ -59,8 +90,12 @@ pub async fn moderate_comment(
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
-    let comment =
-        ssr::moderate_comment(comment_id, moderated_body.as_str(), &user, db_pool.clone()).await?;
+    let comment = ssr::moderate_comment(
+        comment_id,
+        moderated_body.as_str(),
+        &user,
+        db_pool.clone()
+    ).await?;
 
     Ok(comment)
 }

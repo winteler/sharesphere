@@ -109,7 +109,7 @@ pub mod ssr {
             LEFT JOIN user_forum_roles r ON \
                 r.forum_id = f.forum_id AND \
                 r.user_id = $1 \
-            where f.forum_name = $2",
+            WHERE f.forum_name = $2",
         )
         .bind(user_id)
         .bind(forum_name)

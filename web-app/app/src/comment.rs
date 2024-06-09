@@ -18,7 +18,7 @@ use crate::icons::{CommentIcon, EditIcon, HammerIcon, MaximizeIcon, MinimizeIcon
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceCommentEditWidget, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -524,7 +524,7 @@ pub fn ModeratedCommentBody(comment: RwSignal<Comment>) -> impl IntoView {
             <div class="flex justify-center items-center p-2 rounded-l bg-base-content/20">
                 <HammerIcon/>
             </div>
-            <div class="p-2 rounded-r bg-base-200 whitespace-pre align-middle">
+            <div class="p-2 rounded-r bg-base-300 whitespace-pre align-middle">
                 {
                     move || comment.with(|comment| match &comment.moderated_body {
                         Some(moderated_body) => moderated_body.clone(),
@@ -546,7 +546,7 @@ fn CommentWidgetBar(
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
-    let (comment_id, post_id, score, author_id, author, moderator, create_timestamp) =
+    let (comment_id, post_id, score, author_id, author) =
         comment.with_untracked(|comment| {
             (
                 comment.comment_id,
@@ -554,10 +554,11 @@ fn CommentWidgetBar(
                 comment.score,
                 comment.creator_id,
                 comment.creator_name.clone(),
-                comment.moderator_name.clone(),
-                comment.create_timestamp,
             )
         });
+    let timestamp = Signal::derive(move || comment.with(|comment| comment.create_timestamp));
+    let edit_timestamp = Signal::derive(move || comment.with(|comment| comment.edit_timestamp));
+    let moderator = Signal::derive(move || comment.with(|comment| comment.moderator_name.clone()));
     view! {
         <div class="flex gap-1">
             <VotePanel
@@ -582,8 +583,8 @@ fn CommentWidgetBar(
             />
             <AuthorWidget author/>
             <ModeratorWidget moderator/>
-            <TimeSinceWidget timestamp=create_timestamp/>
-            <TimeSinceCommentEditWidget comment/>
+            <TimeSinceWidget timestamp/>
+            <TimeSinceEditWidget edit_timestamp/>
         </div>
     }
 }

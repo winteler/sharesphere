@@ -551,8 +551,8 @@ pub fn Post() -> impl IntoView {
     );
 
     let user_state = UserState {
-        can_moderate: create_memo(
-            move |_| state.user.with(|user| match user {
+        can_moderate: Signal::derive(
+            move || state.user.with(|user| match user {
                 Some(Ok(Some(user))) => forum_name.with( | forum_name| user.is_forum_moderator(forum_name)),
                 _ => false,
             })
@@ -687,7 +687,7 @@ fn PostWidgetBar<'a>(
             <ModeratePostButton/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
-            <TimeSinceEditWidget timestamp=post.post.edit_timestamp/>
+            <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
         </div>
     }
 }

@@ -1,7 +1,7 @@
 use leptos::*;
 
 use crate::app::GlobalState;
-use crate::comment::{Comment, CommentSortType};
+use crate::comment::CommentSortType;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
@@ -52,56 +52,49 @@ pub fn AuthorWidget(author: String) -> impl IntoView {
 
 /// Component to display the moderator of a post or comment
 #[component]
-pub fn ModeratorWidget(moderator: Option<String>) -> impl IntoView {
-    match moderator {
-        Some(moderator) => view! {
+pub fn ModeratorWidget(
+    moderator: Signal<Option<String>>
+) -> impl IntoView {
+    view! {
+        <Show when=move || moderator.with(|moderator| moderator.is_some())>
             <div class="flex rounded-btn pr-1.5 gap-1.5 items-center text-sm">
                 <ModeratorIcon/>
-                {moderator}
-            </div>
-        }.into_view(),
-        None => View::default(),
-    }
-}
-
-/// Component to display the creation time of a post
-#[component]
-pub fn TimeSinceWidget(timestamp: chrono::DateTime<chrono::Utc>) -> impl IntoView {
-    view! {
-        <div class="flex gap-1.5 items-center text-sm pr-1.5">
-            <ClockIcon/>
-            {
-                get_elapsed_time_string(timestamp)
-            }
-        </div>
-    }
-}
-
-/// Component to display the edit time of a post
-#[component]
-pub fn TimeSinceEditWidget(timestamp: Option<chrono::DateTime<chrono::Utc>>) -> impl IntoView {
-    view! {
-        <Show when=move || timestamp.is_some()>
-            <div class="flex gap-1.5 items-center text-sm pr-1.5">
-                <EditTimeIcon/>
                 {
-                    get_elapsed_time_string(timestamp.unwrap())
+                    move || moderator.get().unwrap_or_default()
                 }
             </div>
         </Show>
     }
 }
 
-/// Component to display the edit time of a comment
+/// Component to display the creation time of a post
 #[component]
-pub fn TimeSinceCommentEditWidget(comment: RwSignal<Comment>) -> impl IntoView {
-    let edit_timestamp = move || comment.with(|comment| comment.edit_timestamp);
+pub fn TimeSinceWidget(
+    #[prop(into)]
+    timestamp: MaybeSignal<chrono::DateTime<chrono::Utc>>
+) -> impl IntoView {
     view! {
-        <Show when=move || edit_timestamp().is_some()>
+        <div class="flex gap-1.5 items-center text-sm pr-1.5">
+            <ClockIcon/>
+            {
+                move || get_elapsed_time_string(timestamp.get())
+            }
+        </div>
+    }
+}
+
+/// Component to display the edit time of a post or comment
+#[component]
+pub fn TimeSinceEditWidget(
+    #[prop(into)]
+    edit_timestamp: MaybeSignal<Option<chrono::DateTime<chrono::Utc>>>
+) -> impl IntoView {
+    view! {
+        <Show when=move || edit_timestamp.with(|edit_timestamp| edit_timestamp.is_some())>
             <div class="flex gap-1.5 items-center text-sm pr-1.5">
                 <EditTimeIcon/>
                 {
-                    get_elapsed_time_string(edit_timestamp().unwrap())
+                    move || get_elapsed_time_string(edit_timestamp.get().unwrap())
                 }
             </div>
         </Show>

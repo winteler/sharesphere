@@ -20,7 +20,7 @@ pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone, Debug)]
 pub struct UserState {
-    pub can_moderate: Memo<bool>,
+    pub can_moderate: Signal<bool>,
 }
 
 #[derive(Copy, Clone)]
@@ -74,7 +74,7 @@ pub mod ssr {
     use std::sync::OnceLock;
 
     use anyhow::Context;
-    use sqlx::{postgres::PgPoolOptions, PgPool};
+    use sqlx::{PgPool, postgres::PgPoolOptions};
     use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;

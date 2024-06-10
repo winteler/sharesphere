@@ -53,14 +53,16 @@ pub fn AuthorWidget(author: String) -> impl IntoView {
 /// Component to display the moderator of a post or comment
 #[component]
 pub fn ModeratorWidget(
-    moderator: Signal<Option<String>>
+    #[prop(into)]
+    moderator: MaybeSignal<Option<String>>
 ) -> impl IntoView {
+    let moderator = store_value(moderator);
     view! {
-        <Show when=move || moderator.with(|moderator| moderator.is_some())>
+        <Show when=move || moderator.get_value().with(|moderator| moderator.is_some())>
             <div class="flex rounded-btn pr-1.5 gap-1.5 items-center text-sm">
                 <ModeratorIcon/>
                 {
-                    move || moderator.get().unwrap_or_default()
+                    move || moderator.get_value().get().unwrap_or_default()
                 }
             </div>
         </Show>

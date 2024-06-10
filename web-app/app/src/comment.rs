@@ -526,13 +526,10 @@ pub fn ModeratedCommentBody(comment: RwSignal<Comment>) -> impl IntoView {
             </div>
             <div class="p-2 rounded-r bg-base-300 whitespace-pre align-middle">
                 {
-                    move || comment.with(|comment| match &comment.moderated_body {
-                        Some(moderated_body) => moderated_body.clone(),
-                        None => {
-                            log::error!("Missing moderated body, leave empty.");
-                            String::default()
-                        }
-                    })
+                    move || comment.with(|comment| comment.moderated_body.clone().unwrap_or_else(|| {
+                        log::error!("Missing moderated body, leave empty.");
+                        String::default()
+                    }))
                 }
             </div>
         </div>

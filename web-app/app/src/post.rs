@@ -21,12 +21,12 @@ use crate::forum::{get_forum_name_memo, get_matching_forum_names};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::forum_management::{ModeratePost, ModeratePostButton};
-use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
+use crate::icons::{EditIcon, HammerIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
-use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 pub const CREATE_POST_SUFFIX: &str = "/content";
 pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
@@ -544,13 +544,6 @@ pub fn Post() -> impl IntoView {
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
     let forum_name = get_forum_name_memo(params);
-    let post_resource = create_resource(
-        move || (post_id.get(), state.edit_post_action.version().get()),
-        move |(post_id, _)| {
-            log::debug!("Load data for post: {post_id}");
-            get_post_with_info_by_id(post_id)
-        },
-    );
 
     let user_state = ModerateState {
         can_moderate: Signal::derive(
@@ -562,6 +555,14 @@ pub fn Post() -> impl IntoView {
         moderate_post_action: create_server_action::<ModeratePost>(),
     };
     provide_context(user_state);
+
+    let post_resource = create_resource(
+        move || (post_id.get(), state.edit_post_action.version().get(), user_state.moderate_post_action.version().get()),
+        move |(post_id, _, _)| {
+            log::debug!("Load data for post: {post_id}");
+            get_post_with_info_by_id(post_id)
+        },
+    );
 
     let comment_vec = create_rw_signal(Vec::<CommentWithChildren>::with_capacity(
         COMMENT_BATCH_SIZE as usize,
@@ -633,19 +634,12 @@ pub fn Post() -> impl IntoView {
         >
             <TransitionUnpack resource=post_resource let:post_with_info>
             {
-                let post_body_class = match post_with_info.post.markdown_body {
-                    Some(_) => "",
-                    None => "whitespace-pre",
-                };
                 view! {
                     <div class="card">
                         <div class="card-body">
                             <div class="flex flex-col gap-4">
                                 <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
-                                <div
-                                    class={post_body_class}
-                                    inner_html={post_with_info.post.body.clone()}
-                                />
+                                <PostBody post=&post_with_info.post/>
                                 <PostWidgetBar post=post_with_info comment_vec/>
                             </div>
                         </div>
@@ -671,6 +665,50 @@ pub fn Post() -> impl IntoView {
     }
 }
 
+/// Displays the body of a post
+#[component]
+pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
+
+    let post_body_class = match post.markdown_body {
+        Some(_) => "",
+        None => "whitespace-pre",
+    };
+
+    let post_body = match &post.markdown_body {
+        Some(markdown_body) => markdown_body,
+        None => &post.body,
+    };
+
+    view! {
+        {
+            match &post.moderated_body {
+                Some(moderated_body) => view! { <ModeratedPostBody moderated_body=moderated_body.clone()/> },
+                None => view! {
+                    <div
+                        class=post_body_class
+                        inner_html=post_body
+                    />
+                }.into_view(),
+            }
+        }
+    }
+}
+
+/// Displays the body of a moderated post
+#[component]
+pub fn ModeratedPostBody(moderated_body: String) -> impl IntoView {
+    view! {
+        <div class="flex items-stretch w-fit">
+            <div class="flex justify-center items-center p-2 rounded-l bg-base-content/20">
+                <HammerIcon/>
+            </div>
+            <div class="p-2 rounded-r bg-base-300 whitespace-pre align-middle">
+                {moderated_body}
+            </div>
+        </div>
+    }
+}
+
 /// Component to encapsulate the widgets associated with each post
 #[component]
 fn PostWidgetBar<'a>(
@@ -687,8 +725,9 @@ fn PostWidgetBar<'a>(
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton author_id=post.post.creator_id post=&post.post/>
-            <ModeratePostButton/>
+            <ModeratePostButton post_id=post.post.post_id/>
             <AuthorWidget author=post.post.creator_name.clone()/>
+            <ModeratorWidget moderator=post.post.moderator_name.clone()/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
         </div>

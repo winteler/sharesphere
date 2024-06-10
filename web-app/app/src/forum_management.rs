@@ -1,8 +1,5 @@
 use const_format::concatcp;
-use leptos::{
-    component, create_effect, create_rw_signal, create_server_action, IntoView, RwSignal, server,
-    ServerFnError, Show, SignalGet, SignalSet, SignalWith, use_context, view,
-};
+use leptos::{component, create_effect, create_rw_signal, create_server_action, expect_context, IntoView, RwSignal, server, ServerFnError, Show, SignalGet, SignalSet, SignalWith, use_context, view};
 use leptos_router::ActionForm;
 
 #[cfg(feature = "ssr")]
@@ -186,9 +183,9 @@ pub fn ForumCockpit() -> impl IntoView {
 /// Component to moderate a post
 #[component]
 pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
-    let user_state = use_context::<ModerateState>();
+    let moderate_state = use_context::<ModerateState>();
     view! {
-        <Show when=move || match user_state {
+        <Show when=move || match moderate_state {
             Some(user_state) => user_state.can_moderate.get(),
             None => false,
         }>
@@ -204,10 +201,14 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
 
 /// Component to access a post's moderation dialog
 #[component]
-pub fn ModeratePostButton() -> impl IntoView {
+pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     view! {
         <ModerateButton show_dialog/>
+        <ModeratePostDialog
+            post_id
+            show_dialog
+        />
     }
 }
 
@@ -228,9 +229,48 @@ pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> imp
 /// Dialog to moderate a post
 #[component]
 pub fn ModeratePostDialog(
-    _show_dialog: RwSignal<bool>
+    post_id: i64,
+    show_dialog: RwSignal<bool>
 ) -> impl IntoView {
-    view! {}
+    let moderate_state = expect_context::<ModerateState>();
+
+    let moderate_text = create_rw_signal(String::new());
+    let is_text_empty = move || moderate_text.with(|moderate_text: &String| moderate_text.is_empty());
+
+    let moderate_result = moderate_state.moderate_post_action.value();
+    let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
+
+    // TODO: add ban option
+
+    view! {
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <div class="bg-base-200 p-4 flex flex-col gap-2">
+                <ActionForm action=moderate_state.moderate_post_action>
+                    <div class="flex flex-col gap-2 w-full">
+                        <input
+                            type="text"
+                            name="post_id"
+                            class="hidden"
+                            value=post_id
+                        />
+                        <FormTextEditor
+                            name="moderated_body"
+                            placeholder="Message"
+                            content=moderate_text
+                        />
+                        <ModalFormButtons
+                            disable_publish=is_text_empty
+                            show_form=show_dialog
+                        />
+                    </div>
+                </ActionForm>
+                <ActionError has_error/>
+            </div>
+        </ModalDialog>
+    }
 }
 
 /// Dialog to moderate a comment
@@ -245,13 +285,13 @@ pub fn ModerateCommentDialog(
 
     let moderate_comment_action = create_server_action::<ModerateComment>();
 
-    let edit_comment_result = moderate_comment_action.value();
-    let has_error = move || edit_comment_result.with(|val| matches!(val, Some(Err(_))));
+    let moderate_result = moderate_comment_action.value();
+    let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
 
     // TODO: add ban option
 
     create_effect(move |_| {
-        if let Some(Ok(moderated_comment)) = edit_comment_result.get() {
+        if let Some(Ok(moderated_comment)) = moderate_result.get() {
             comment.set(moderated_comment);
             show_dialog.set(false);
         }

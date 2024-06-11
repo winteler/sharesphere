@@ -250,7 +250,7 @@ fn HomePage() -> impl IntoView {
                 class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                 style="background-image: url(/banner.jpg)"
             >
-                <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
+                <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
                     <span class="text-4xl select-none">"ShareSphere"</span>
                 </div>
             </div>

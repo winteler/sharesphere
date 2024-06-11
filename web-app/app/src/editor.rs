@@ -154,10 +154,10 @@ pub fn FormTextEditor(
     let num_lines = move || content.with(|content| content.lines().count());
 
     view! {
-        <div class="group w-full max-w-full p-2 border border-primary rounded-lg bg-base-100">
+        <div class="group w-full max-w-full p-2 border border-primary rounded-sm bg-base-100">
             <div class="w-full rounded-t-lg">
-                <label for="comment" class="sr-only">
-                    "Your comment"
+                <label for="text" class="sr-only">
+                    "Your text"
                 </label>
                 <textarea
                     id="comment"
@@ -219,7 +219,7 @@ pub fn FormMarkdownEditor(
 
     view! {
         <div class="flex flex-col gap-2">
-            <div class="group w-full max-w-full p-2 border border-primary rounded-lg bg-base-100">
+            <div class="group w-full max-w-full p-2 border border-primary rounded-sm bg-base-100">
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for="comment" class="sr-only">
                         {placeholder}
@@ -271,7 +271,7 @@ pub fn FormMarkdownEditor(
             </div>
             <Show when=is_markdown_mode>
                 <TransitionUnpack resource=render_markdown_resource let:markdown_as_html>
-                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-lg bg-base-100 break-words"
+                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-sm bg-base-100 break-words"
                         inner_html={markdown_as_html}
                     />
                 </TransitionUnpack>

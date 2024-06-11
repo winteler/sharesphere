@@ -600,26 +600,28 @@ pub fn CommentButton(
     };
 
     view! {
-        <LoginGuardButton
-            login_button_class="btn btn-circle btn-ghost btn-sm"
-            login_button_content=move || view! { <CommentIcon/> }
-            let:_user
-        >
-            <button
-                class=comment_button_class
-                aria-expanded=move || show_dialog.get().to_string()
-                aria-haspopup="dialog"
-                on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+        <div>
+            <LoginGuardButton
+                login_button_class="btn btn-circle btn-ghost btn-sm"
+                login_button_content=move || view! { <CommentIcon/> }
+                let:_user
             >
-                <CommentIcon/>
-            </button>
-        </LoginGuardButton>
-        <CommentDialog
-            post_id
-            parent_comment_id
-            comment_vec
-            show_dialog
-        />
+                <button
+                    class=comment_button_class
+                    aria-expanded=move || show_dialog.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                >
+                    <CommentIcon/>
+                </button>
+            </LoginGuardButton>
+            <CommentDialog
+                post_id
+                parent_comment_id
+                comment_vec
+                show_dialog
+            />
+        </div>
     }
 }
 
@@ -670,9 +672,10 @@ pub fn CommentForm(
     });
 
     view! {
-        <div class="bg-base-200 p-4 flex flex-col gap-2">
+        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Share a comment"</div>
             <ActionForm action=create_comment_action>
-                <div class="flex flex-col gap-2 w-full">
+                <div class="flex flex-col gap-3 w-full">
                     <input
                         type="text"
                         name="post_id"
@@ -717,26 +720,28 @@ pub fn EditCommentButton(
     };
 
     view! {
-        {
-            move || state.user.map(|result| match result {
-                Ok(Some(user)) if user.user_id == author_id => view! {
-                    <button
-                        class=comment_button_class
-                        aria-expanded=move || show_dialog.get().to_string()
-                        aria-haspopup="dialog"
-                        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                    >
-                        <EditIcon/>
-                    </button>
-                }.into_view(),
-                _ => View::default()
-            })
-        }
-        <EditCommentDialog
-            comment_id
-            comment
-            show_dialog
-        />
+        <div>
+            {
+                move || state.user.map(|result| match result {
+                    Ok(Some(user)) if user.user_id == author_id => view! {
+                        <button
+                            class=comment_button_class
+                            aria-expanded=move || show_dialog.get().to_string()
+                            aria-haspopup="dialog"
+                            on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                        >
+                            <EditIcon/>
+                        </button>
+                    }.into_view(),
+                    _ => View::default()
+                })
+            }
+            <EditCommentDialog
+                comment_id
+                comment
+                show_dialog
+            />
+        </div>
     }
 }
 
@@ -790,9 +795,10 @@ pub fn EditCommentForm(
     });
 
     view! {
-        <div class="bg-base-200 p-4 flex flex-col gap-2">
+        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Edit your comment"</div>
             <ActionForm action=edit_comment_action>
-                <div class="flex flex-col gap-2 w-full">
+                <div class="flex flex-col gap-3 w-full">
                     <input
                         type="text"
                         name="comment_id"

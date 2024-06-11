@@ -26,7 +26,7 @@ pub fn ModalDialog(
                 role="dialog"
                 aria-modal="true"
             >
-                <div class="fixed inset-0 bg-base-300 bg-opacity-75 transition-opacity"></div>
+                <div class="fixed inset-0 bg-base-200 bg-opacity-75 transition-opacity"></div>
                 <div class="fixed inset-0 z-10 w-screen overflow-auto">
                     <div class="flex min-h-full items-end justify-center items-center">
                         <div class=dialog_class>

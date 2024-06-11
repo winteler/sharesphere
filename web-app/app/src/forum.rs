@@ -430,7 +430,7 @@ pub fn ForumBanner() -> impl IntoView {
                         class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-24 flex items-center justify-center"
                         style:background-image=forum_banner_image
                     >
-                        <div class="p-3 backdrop-blur bg-black/50 rounded-lg flex justify-center gap-3">
+                        <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
                             <LogoIcon class="h-12 w-12"/>
                             <span class="text-4xl">{forum_name()}</span>
                         </div>

@@ -743,32 +743,34 @@ pub fn EditPostButton<'a>(
     let state = expect_context::<GlobalState>();
     let show_dialog = create_rw_signal(false);
     let edit_button_class = move || match show_dialog.get() {
-        true => "btn btn-circle btn-sm p-1 btn-primary",
-        false => "btn btn-circle btn-sm p-1 btn-ghost",
+        true => "btn btn-circle btn-sm btn-primary",
+        false => "btn btn-circle btn-sm btn-ghost",
     };
     view! {
-        {
-            move || state.user.map(|result| match result {
-                Ok(Some(user)) if user.user_id == author_id => view! {
-                    <button
-                        class=edit_button_class
-                        aria-expanded=move || show_dialog.get().to_string()
-                        aria-haspopup="dialog"
-                        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                    >
-                        <EditIcon/>
-                    </button>
-                }.into_view(),
-                _ => View::default()
-            })
-        }
-        <EditPostDialog
-            post_id=post.post_id
-            post_title=post.title.clone()
-            post_body=post.body.clone()
-            markdown_body=post.markdown_body.clone()
-            show_dialog
-        />
+        <div>
+            {
+                move || state.user.map(|result| match result {
+                    Ok(Some(user)) if user.user_id == author_id => view! {
+                        <button
+                            class=edit_button_class
+                            aria-expanded=move || show_dialog.get().to_string()
+                            aria-haspopup="dialog"
+                            on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                        >
+                            <EditIcon/>
+                        </button>
+                    }.into_view(),
+                    _ => View::default()
+                })
+            }
+            <EditPostDialog
+                post_id=post.post_id
+                post_title=post.title.clone()
+                post_body=post.body.clone()
+                markdown_body=post.markdown_body.clone()
+                show_dialog
+            />
+        </div>
     }
 }
 
@@ -921,9 +923,10 @@ pub fn EditPostForm(
     let has_error = move || edit_post_result.with(|val| matches!(val, Some(Err(_))));
 
     view! {
-        <div class="bg-base-200 p-4 flex flex-col gap-2">
+        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Edit your post"</div>
             <ActionForm action=state.edit_post_action>
-                <div class="flex flex-col gap-2 w-full">
+                <div class="flex flex-col gap-3 w-full">
                     <input
                         type="text"
                         name="post_id"

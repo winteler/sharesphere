@@ -3,8 +3,25 @@
 @tailwind utilities;
 
 /* Don't make button's text uppercase */
-.btn{
+.btn {
     text-transform: none;
+    @apply rounded-sm;
+}
+
+.btn-circle {
+    @apply rounded-full;
+}
+
+.input {
+    @apply rounded-sm;
+}
+
+.select {
+    @apply rounded-sm;
+}
+
+.checkbox {
+    @apply rounded-sm;
 }
 
 /* For Firefox */

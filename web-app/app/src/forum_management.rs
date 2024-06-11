@@ -184,13 +184,19 @@ pub fn ForumCockpit() -> impl IntoView {
 #[component]
 pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
     let moderate_state = use_context::<ModerateState>();
+    let edit_button_class = move || match show_dialog.get() {
+        true => "btn btn-circle btn-sm btn-primary",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
     view! {
         <Show when=move || match moderate_state {
             Some(user_state) => user_state.can_moderate.get(),
             None => false,
         }>
             <button
-                class="btn btn-circle btn-sm btn-ghost"
+                class=edit_button_class
+                aria-expanded=move || show_dialog.get().to_string()
+                aria-haspopup="dialog"
                 on:click=move |_| show_dialog.set(true)
             >
                 <HammerIcon/>
@@ -204,11 +210,13 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
 pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     view! {
-        <ModerateButton show_dialog/>
-        <ModeratePostDialog
-            post_id
-            show_dialog
-        />
+        <div>
+            <ModerateButton show_dialog/>
+            <ModeratePostDialog
+                post_id
+                show_dialog
+            />
+        </div>
     }
 }
 
@@ -217,12 +225,14 @@ pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
 pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     view! {
-        <ModerateButton show_dialog/>
-        <ModerateCommentDialog
-            comment_id
-            comment
-            show_dialog
-        />
+        <div>
+            <ModerateButton show_dialog/>
+            <ModerateCommentDialog
+                comment_id
+                comment
+                show_dialog
+            />
+        </div>
     }
 }
 
@@ -247,9 +257,10 @@ pub fn ModeratePostDialog(
             class="w-full max-w-xl"
             show_dialog
         >
-            <div class="bg-base-200 p-4 flex flex-col gap-2">
+            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+                <div class="text-center font-bold text-2xl">"Moderate a post"</div>
                 <ActionForm action=moderate_state.moderate_post_action>
-                    <div class="flex flex-col gap-2 w-full">
+                    <div class="flex flex-col gap-3 w-full">
                         <input
                             type="text"
                             name="post_id"
@@ -301,9 +312,10 @@ pub fn ModerateCommentDialog(
             class="w-full max-w-xl"
             show_dialog
         >
-            <div class="bg-base-200 p-4 flex flex-col gap-2">
+            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+                <div class="text-center font-bold text-2xl">"Moderate a comment"</div>
                 <ActionForm action=moderate_comment_action>
-                    <div class="flex flex-col gap-2 w-full">
+                    <div class="flex flex-col gap-3 w-full">
                         <input
                             type="text"
                             name="comment_id"

@@ -43,6 +43,8 @@ pub struct User {
     pub email: String,
     pub admin_role: AdminRole,
     pub user_role_by_forum_map: HashMap<String, UserForumRole>,
+    pub is_banned: bool,
+    pub is_banned_by_forum_map: HashMap<String, bool>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub is_deleted: bool,
 }
@@ -56,6 +58,8 @@ impl Default for User {
             email: String::default(),
             admin_role: AdminRole::None,
             user_role_by_forum_map: HashMap::new(),
+            is_banned: false,
+            is_banned_by_forum_map: HashMap::new(),
             timestamp: chrono::DateTime::default(),
             is_deleted: false,
         }
@@ -80,7 +84,6 @@ impl std::fmt::Display for OidcUserInfo {
 }
 
 impl User {
-
     pub fn is_global_moderator(&self) -> bool {
         self.admin_role > AdminRole::Moderator
     }
@@ -105,6 +108,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::errors::AppError;
+    use crate::forum_management::UserBan;
 
     use super::*;
 
@@ -123,10 +127,22 @@ pub mod ssr {
     }
 
     impl SqlUser {
-        pub fn into_user(self, user_role_vec: Vec<UserForumRole>) -> User {
+        pub fn into_user(self, user_role_vec: Vec<UserForumRole>, user_ban_vec: Vec<UserBan>) -> User {
             let mut user_role_by_forum_map = HashMap::new();
             for user_forum_role in user_role_vec {
                 user_role_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role);
+            }
+            let mut is_banned = false;
+            let mut is_banned_by_forum_map = HashMap::new();
+            let current_timestamp = chrono::offset::Utc::now();
+            for user_ban in user_ban_vec {
+                let has_expiration = user_ban.until_timestamp.is_some();
+                if !has_expiration || user_ban.until_timestamp.unwrap() > current_timestamp {
+                    match user_ban.forum_name {
+                        Some(forum_name) => { is_banned_by_forum_map.insert(forum_name, true); },
+                        None => { is_banned = true; },
+                    };
+                }
             }
             User {
                 user_id: self.user_id,
@@ -135,6 +151,8 @@ pub mod ssr {
                 email: self.email,
                 admin_role: self.admin_role,
                 user_role_by_forum_map,
+                is_banned,
+                is_banned_by_forum_map,
                 timestamp: self.timestamp,
                 is_deleted: self.is_deleted,
             }
@@ -153,7 +171,8 @@ pub mod ssr {
             {
                 Ok(sql_user) => {
                     let user_forum_role_vec = load_user_forum_role_vec(sql_user.user_id, db_pool).await.unwrap_or_default();
-                    Some(sql_user.into_user(user_forum_role_vec))
+                    let user_ban_vec = load_user_ban_vec(sql_user.user_id, db_pool).await.unwrap_or_default();
+                    Some(sql_user.into_user(user_forum_role_vec, user_ban_vec))
                 },
                 Err(select_error) => {
                     log::debug!("User not found with error: {}", select_error);
@@ -206,7 +225,7 @@ pub mod ssr {
         .fetch_one(db_pool)
         .await
         {
-            Ok(sql_user) => Some(sql_user.into_user(Vec::new())),
+            Ok(sql_user) => Some(sql_user.into_user(Vec::new(), Vec::new())),
             Err(insert_error) => {
                 log::error!("Error while creating user: {}", insert_error);
                 None
@@ -224,6 +243,18 @@ pub mod ssr {
             .await?;
         log::trace!("User roles: {:?}", user_forum_role_vec);
         Ok(user_forum_role_vec)
+    }
+
+    pub async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
+        let user_ban_vec = sqlx::query_as!(
+            UserBan,
+            "SELECT * FROM user_bans WHERE user_id = $1 AND until_timestamp > CURRENT_TIMESTAMP",
+            user_id
+        )
+            .fetch_all(db_pool)
+            .await?;
+        log::trace!("User bans: {:?}", user_ban_vec);
+        Ok(user_ban_vec)
     }
 
     pub fn get_issuer_url() -> Result<oidc::IssuerUrl, AppError> {

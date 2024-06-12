@@ -1,6 +1,7 @@
 use const_format::concatcp;
 use leptos::{component, create_effect, create_rw_signal, create_server_action, expect_context, IntoView, RwSignal, server, ServerFnError, Show, SignalGet, SignalSet, SignalWith, use_context, view};
 use leptos_router::ActionForm;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
@@ -13,6 +14,17 @@ use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct UserBan {
+    pub ban_id: i64,
+    pub user_id: i64,
+    pub forum_id: Option<i64>,
+    pub forum_name: Option<String>,
+    pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
+}
 
 #[cfg(feature = "ssr")]
 pub mod ssr {

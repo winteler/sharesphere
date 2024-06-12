@@ -104,3 +104,13 @@ CREATE TABLE user_forum_roles (
 -- index to guarantee maximum 1 leader per forum
 CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, user_role)
     WHERE (user_forum_roles.user_role = 2);
+
+CREATE TABLE user_bans (
+    ban_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
+    forum_id BIGINT REFERENCES forums (forum_id),
+    forum_name TEXT REFERENCES forums (forum_name),
+    until_timestamp TIMESTAMPTZ,
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_ban UNIQUE NULLS NOT DISTINCT (user_id, forum_id)
+);

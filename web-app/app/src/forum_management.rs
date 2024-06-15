@@ -1,8 +1,7 @@
 use const_format::concatcp;
-use leptos::{component, create_effect, create_rw_signal, create_server_action, expect_context, IntoView, RwSignal, server, ServerFnError, Show, SignalGet, SignalSet, SignalWith, use_context, view};
+use leptos::{component, create_effect, create_rw_signal, create_server_action, expect_context, IntoView, RwSignal, server, ServerFnError, Show, SignalGet, SignalSet, SignalWith, store_value, use_context, view};
 use leptos_router::ActionForm;
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 #[cfg(feature = "ssr")]
@@ -18,21 +17,14 @@ use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
 pub const NONE_STR: &str = "None";
-pub const ONE_DAY_STR: &str = "1 day";
-pub const ONE_WEEK_STR: &str = "1 week";
-pub const ONE_MONTH_STR: &str = "1 month";
-pub const SIX_MONTH_STR: &str = "6 months";
-pub const ONE_YEAR_STR: &str = "1 year";
+pub const DAY_STR: &str = "day";
+pub const DAYS_STR: &str = "days";
 pub const PERMANENT_STR: &str = "Permanent";
 
-#[derive(Debug, PartialEq, EnumIter)]
-pub enum BanDuration {
+#[derive(Clone, Debug, PartialEq, EnumIter)]
+pub enum BanType {
     None,
-    Day,
-    Week,
-    Month,
-    SixMonth,
-    Year,
+    NumDays(usize),
     Permanent,
 }
 
@@ -47,50 +39,49 @@ pub struct UserBan {
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-impl std::str::FromStr for BanDuration {
+impl std::str::FromStr for BanType {
     type Err = AppError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            NONE_STR => Ok(BanDuration::None),
-            ONE_DAY_STR => Ok(BanDuration::Day),
-            ONE_WEEK_STR => Ok(BanDuration::Week),
-            ONE_MONTH_STR => Ok(BanDuration::Month),
-            SIX_MONTH_STR => Ok(BanDuration::SixMonth),
-            ONE_YEAR_STR => Ok(BanDuration::Year),
-            PERMANENT_STR => Ok(BanDuration::Permanent),
-            _ => Err(AppError::InternalServerError(String::from("Failed to create BanDuration from &str"))),
+            NONE_STR => Ok(BanType::None),
+            PERMANENT_STR => Ok(BanType::Permanent),
+            _ => {
+                let split_str_vec : Vec<&str> = s.split(" ").collect();
+                let num_days = split_str_vec[0].parse::<usize>();
+                if num_days.is_ok() && split_str_vec.get(1).is_some_and(|split_str| *split_str == DAY_STR || *split_str == DAYS_STR) {
+                    Ok(BanType::NumDays(num_days.unwrap()))
+                } else {
+                    Err(AppError::InternalServerError(String::from("Failed to create BanType from &str")))
+                }
+            },
         }
     }
 }
 
-impl From<BanDuration> for &'static str {
-    fn from(value: BanDuration) -> Self {
+impl From<BanType> for String {
+    fn from(value: BanType) -> Self {
         match value {
-            BanDuration::None => NONE_STR,
-            BanDuration::Day => ONE_DAY_STR,
-            BanDuration::Week => ONE_WEEK_STR,
-            BanDuration::Month => ONE_MONTH_STR,
-            BanDuration::SixMonth => SIX_MONTH_STR,
-            BanDuration::Year => ONE_YEAR_STR,
-            BanDuration::Permanent => PERMANENT_STR,
+            BanType::None => String::from(NONE_STR),
+            BanType::NumDays(num_day) if num_day < 2 => format!("{num_day} day"),
+            BanType::NumDays(num_days) => format!("{num_days} days"),
+            BanType::Permanent => String::from(PERMANENT_STR),
         }
     }
 }
 
-impl From<&BanDuration> for &'static str {
-    fn from(value: &BanDuration) -> Self {
+impl From<&BanType> for String {
+    fn from(value: &BanType) -> Self {
         match value {
-            BanDuration::None => NONE_STR,
-            BanDuration::Day => ONE_DAY_STR,
-            BanDuration::Week => ONE_WEEK_STR,
-            BanDuration::Month => ONE_MONTH_STR,
-            BanDuration::SixMonth => SIX_MONTH_STR,
-            BanDuration::Year => ONE_YEAR_STR,
-            BanDuration::Permanent => PERMANENT_STR,
+            BanType::None => String::from(NONE_STR),
+            BanType::NumDays(num_day) if *num_day < 2 => format!("{num_day} day"),
+            BanType::NumDays(num_days) => format!("{num_days} days"),
+            BanType::Permanent => String::from(PERMANENT_STR),
         }
     }
 }
+
+
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
@@ -99,6 +90,7 @@ pub mod ssr {
     use crate::auth::User;
     use crate::comment::Comment;
     use crate::errors::AppError;
+    use crate::forum_management::BanType;
     use crate::post::Post;
 
     pub async fn moderate_post(
@@ -208,20 +200,30 @@ pub mod ssr {
 
         Ok(comment)
     }
+
+    pub async fn ban_user(
+        forum_name: Option<String>,
+        user: &User,
+        duration: BanType,
+        db_pool: PgPool,
+    ) -> Result<(), AppError> {
+
+        Ok(())
+    }
 }
 
 #[server]
 pub async fn moderate_post(
     post_id: i64,
     moderated_body: String,
-    ban_duration: String,
+    ban_num_days: Option<String>,
 ) -> Result<Post, ServerFnError> {
     log::info!("Moderate post {post_id}, ban duration = {ban_duration}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
-    let ban_duration_enum: BanDuration = ban_duration.parse::<BanDuration>()?;
-    let ban_duration_str: &str = (&ban_duration_enum).into();
+    let ban_duration_enum: BanType = ban_num_days.parse::<BanType>()?;
+    let ban_duration_str: String = (&ban_duration_enum).into();
     log::info!("Ban duration: {ban_duration_enum:?}, str: {ban_duration_str}");
 
     let post = ssr::moderate_post(
@@ -333,6 +335,16 @@ pub fn ModeratePostDialog(
     let moderate_result = moderate_state.moderate_post_action.value();
     let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
 
+    let ban_type_vec = vec![
+        BanType::None,
+        BanType::NumDays(1),
+        BanType::NumDays(7),
+        BanType::NumDays(30),
+        BanType::NumDays(180),
+        BanType::NumDays(365),
+        BanType::Permanent,
+    ];
+    let ban_type_vec = store_value(ban_type_vec);
     // TODO: add ban option
 
     view! {
@@ -355,7 +367,7 @@ pub fn ModeratePostDialog(
                             placeholder="Message"
                             content=moderate_text
                         />
-                        <EnumDropdown name="ban_duration" enum_iter=BanDuration::iter()/>
+                        <EnumDropdown name="ban_duration" enum_vec=ban_type_vec.get_value()/>
                         <ModalFormButtons
                             disable_publish=is_text_empty
                             show_form=show_dialog

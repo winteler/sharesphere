@@ -1,5 +1,4 @@
 use leptos::*;
-use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
 use crate::comment::CommentSortType;
@@ -180,18 +179,17 @@ pub fn SortWidgetOption(
 
 /// Component to create a dropdown based on a given strum::EnumIter
 #[component]
-pub fn EnumDropdown<I, T>(
+pub fn EnumDropdown<T>(
     name: &'static str,
-    enum_iter: I,
+    enum_vec: Vec<T>,
 ) -> impl IntoView
 where
-    I: IntoIterator<Item = T>,
-    T: std::str::FromStr + Into<&'static str> + IntoEnumIterator
+    T: std::str::FromStr + Into<String>
 {
     view! {
         <select name=name class="select select-bordered w-full max-w-xs">
         {
-            enum_iter.into_iter().map(|enum_val| view! { <option>{enum_val.into()}</option> }).collect_view()
+            enum_vec.into_iter().map(|enum_val| view! { <option>{enum_val.into()}</option> }).collect_view()
         }
         </select>
     }

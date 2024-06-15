@@ -1,18 +1,16 @@
 use const_format::concatcp;
-use leptos::{component, create_effect, create_rw_signal, create_server_action, expect_context, IntoView, RwSignal, server, ServerFnError, Show, SignalGet, SignalSet, SignalWith, store_value, use_context, view};
+use leptos::*;
 use leptos_router::ActionForm;
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumIter;
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
 use crate::app::ModerateState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
-use crate::errors::AppError;
 use crate::icons::HammerIcon;
 use crate::post::Post;
-use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
+use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -20,13 +18,6 @@ pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";
 pub const PERMANENT_STR: &str = "Permanent";
-
-#[derive(Clone, Debug, PartialEq, EnumIter)]
-pub enum BanType {
-    None,
-    NumDays(usize),
-    Permanent,
-}
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -39,50 +30,6 @@ pub struct UserBan {
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-impl std::str::FromStr for BanType {
-    type Err = AppError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            NONE_STR => Ok(BanType::None),
-            PERMANENT_STR => Ok(BanType::Permanent),
-            _ => {
-                let split_str_vec : Vec<&str> = s.split(" ").collect();
-                let num_days = split_str_vec[0].parse::<usize>();
-                if num_days.is_ok() && split_str_vec.get(1).is_some_and(|split_str| *split_str == DAY_STR || *split_str == DAYS_STR) {
-                    Ok(BanType::NumDays(num_days.unwrap()))
-                } else {
-                    Err(AppError::InternalServerError(String::from("Failed to create BanType from &str")))
-                }
-            },
-        }
-    }
-}
-
-impl From<BanType> for String {
-    fn from(value: BanType) -> Self {
-        match value {
-            BanType::None => String::from(NONE_STR),
-            BanType::NumDays(num_day) if num_day < 2 => format!("{num_day} day"),
-            BanType::NumDays(num_days) => format!("{num_days} days"),
-            BanType::Permanent => String::from(PERMANENT_STR),
-        }
-    }
-}
-
-impl From<&BanType> for String {
-    fn from(value: &BanType) -> Self {
-        match value {
-            BanType::None => String::from(NONE_STR),
-            BanType::NumDays(num_day) if *num_day < 2 => format!("{num_day} day"),
-            BanType::NumDays(num_days) => format!("{num_days} days"),
-            BanType::Permanent => String::from(PERMANENT_STR),
-        }
-    }
-}
-
-
-
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
@@ -90,7 +37,6 @@ pub mod ssr {
     use crate::auth::User;
     use crate::comment::Comment;
     use crate::errors::AppError;
-    use crate::forum_management::BanType;
     use crate::post::Post;
 
     pub async fn moderate_post(
@@ -204,7 +150,7 @@ pub mod ssr {
     pub async fn ban_user(
         forum_name: Option<String>,
         user: &User,
-        duration: BanType,
+        duration: Option<i32>,
         db_pool: PgPool,
     ) -> Result<(), AppError> {
 
@@ -212,19 +158,19 @@ pub mod ssr {
     }
 }
 
+/// Function to moderate a post and optionally ban its author
+///
+/// The ban is performed for the forum of the given post and the duration is given by `ban_num_days`.
+/// If `ban_num_days == None`, the duration of the ban is permanent.
 #[server]
 pub async fn moderate_post(
     post_id: i64,
     moderated_body: String,
-    ban_num_days: Option<String>,
+    ban_num_days: Option<i32>,
 ) -> Result<Post, ServerFnError> {
-    log::info!("Moderate post {post_id}, ban duration = {ban_duration}");
+    log::info!("Moderate post {post_id}, ban duration = {ban_num_days:?}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
-
-    let ban_duration_enum: BanType = ban_num_days.parse::<BanType>()?;
-    let ban_duration_str: String = (&ban_duration_enum).into();
-    log::info!("Ban duration: {ban_duration_enum:?}, str: {ban_duration_str}");
 
     let post = ssr::moderate_post(
         post_id,
@@ -335,18 +281,6 @@ pub fn ModeratePostDialog(
     let moderate_result = moderate_state.moderate_post_action.value();
     let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
 
-    let ban_type_vec = vec![
-        BanType::None,
-        BanType::NumDays(1),
-        BanType::NumDays(7),
-        BanType::NumDays(30),
-        BanType::NumDays(180),
-        BanType::NumDays(365),
-        BanType::Permanent,
-    ];
-    let ban_type_vec = store_value(ban_type_vec);
-    // TODO: add ban option
-
     view! {
         <ModalDialog
             class="w-full max-w-xl"
@@ -367,7 +301,7 @@ pub fn ModeratePostDialog(
                             placeholder="Message"
                             content=moderate_text
                         />
-                        <EnumDropdown name="ban_duration" enum_vec=ban_type_vec.get_value()/>
+                        <NumBannedDaysDropdown name="ban_num_days"/>
                         <ModalFormButtons
                             disable_publish=is_text_empty
                             show_form=show_dialog
@@ -432,5 +366,48 @@ pub fn ModerateCommentDialog(
                 <ActionError has_error/>
             </div>
         </ModalDialog>
+    }
+}
+
+/// Dialog to input number of banned days
+#[component]
+pub fn NumBannedDaysDropdown(
+    name: &'static str,
+) -> impl IntoView {
+    let ban_value = create_rw_signal(0);
+    let is_permanent_ban = create_rw_signal(false);
+
+    view! {
+        <input
+            type="number"
+            name=name
+            class="hidden"
+            value=ban_value
+            disabled=is_permanent_ban
+        />
+        <div class="flex gap-1 w-full">
+            <span class="text-xl font-semibold">"Ban duration in days:"</span>
+            <select
+                class="select select-bordered w-full"
+                on:change=move |ev| {
+                    let value = event_target_value(&ev).to_lowercase();
+                    if let Ok(num_days_banned) = value.parse::<i32>() {
+                        ban_value.set(num_days_banned);
+                        is_permanent_ban.set(false);
+                    } else {
+                        ban_value.set(0);
+                        is_permanent_ban.set(true);
+                    }
+                }
+            >
+                <option>"0"</option>
+                <option>"1"</option>
+                <option>"7"</option>
+                <option>"30"</option>
+                <option>"180"</option>
+                <option>"365"</option>
+                <option value="">"Permanent"</option>
+            </select>
+        </div>
     }
 }

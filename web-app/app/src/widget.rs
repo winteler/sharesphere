@@ -177,24 +177,6 @@ pub fn SortWidgetOption(
     }
 }
 
-/// Component to create a dropdown based on a given strum::EnumIter
-#[component]
-pub fn EnumDropdown<T>(
-    name: &'static str,
-    enum_vec: Vec<T>,
-) -> impl IntoView
-where
-    T: std::str::FromStr + Into<String>
-{
-    view! {
-        <select name=name class="select select-bordered w-full max-w-xs">
-        {
-            enum_vec.into_iter().map(|enum_val| view! { <option>{enum_val.into()}</option> }).collect_view()
-        }
-        </select>
-    }
-}
-
 /// Component to render cancel and publish buttons for a modal Form
 #[component]
 pub fn ModalFormButtons<F: Fn() -> bool + 'static>(

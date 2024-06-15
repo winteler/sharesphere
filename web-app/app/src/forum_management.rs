@@ -2,18 +2,39 @@ use const_format::concatcp;
 use leptos::{component, create_effect, create_rw_signal, create_server_action, expect_context, IntoView, RwSignal, server, ServerFnError, Show, SignalGet, SignalSet, SignalWith, use_context, view};
 use leptos_router::ActionForm;
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
 use crate::app::ModerateState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
+use crate::errors::AppError;
 use crate::icons::HammerIcon;
 use crate::post::Post;
-use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
+use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
+pub const NONE_STR: &str = "None";
+pub const ONE_DAY_STR: &str = "1 day";
+pub const ONE_WEEK_STR: &str = "1 week";
+pub const ONE_MONTH_STR: &str = "1 month";
+pub const SIX_MONTH_STR: &str = "6 months";
+pub const ONE_YEAR_STR: &str = "1 year";
+pub const PERMANENT_STR: &str = "Permanent";
+
+#[derive(Debug, PartialEq, EnumIter)]
+pub enum BanDuration {
+    None,
+    Day,
+    Week,
+    Month,
+    SixMonth,
+    Year,
+    Permanent,
+}
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -24,6 +45,51 @@ pub struct UserBan {
     pub forum_name: Option<String>,
     pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+impl std::str::FromStr for BanDuration {
+    type Err = AppError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            NONE_STR => Ok(BanDuration::None),
+            ONE_DAY_STR => Ok(BanDuration::Day),
+            ONE_WEEK_STR => Ok(BanDuration::Week),
+            ONE_MONTH_STR => Ok(BanDuration::Month),
+            SIX_MONTH_STR => Ok(BanDuration::SixMonth),
+            ONE_YEAR_STR => Ok(BanDuration::Year),
+            PERMANENT_STR => Ok(BanDuration::Permanent),
+            _ => Err(AppError::InternalServerError(String::from("Failed to create BanDuration from &str"))),
+        }
+    }
+}
+
+impl From<BanDuration> for &'static str {
+    fn from(value: BanDuration) -> Self {
+        match value {
+            BanDuration::None => NONE_STR,
+            BanDuration::Day => ONE_DAY_STR,
+            BanDuration::Week => ONE_WEEK_STR,
+            BanDuration::Month => ONE_MONTH_STR,
+            BanDuration::SixMonth => SIX_MONTH_STR,
+            BanDuration::Year => ONE_YEAR_STR,
+            BanDuration::Permanent => PERMANENT_STR,
+        }
+    }
+}
+
+impl From<&BanDuration> for &'static str {
+    fn from(value: &BanDuration) -> Self {
+        match value {
+            BanDuration::None => NONE_STR,
+            BanDuration::Day => ONE_DAY_STR,
+            BanDuration::Week => ONE_WEEK_STR,
+            BanDuration::Month => ONE_MONTH_STR,
+            BanDuration::SixMonth => SIX_MONTH_STR,
+            BanDuration::Year => ONE_YEAR_STR,
+            BanDuration::Permanent => PERMANENT_STR,
+        }
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -148,10 +214,15 @@ pub mod ssr {
 pub async fn moderate_post(
     post_id: i64,
     moderated_body: String,
+    ban_duration: String,
 ) -> Result<Post, ServerFnError> {
-    log::trace!("Moderate post {post_id}");
+    log::info!("Moderate post {post_id}, ban duration = {ban_duration}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
+
+    let ban_duration_enum: BanDuration = ban_duration.parse::<BanDuration>()?;
+    let ban_duration_str: &str = (&ban_duration_enum).into();
+    log::info!("Ban duration: {ban_duration_enum:?}, str: {ban_duration_str}");
 
     let post = ssr::moderate_post(
         post_id,
@@ -284,6 +355,7 @@ pub fn ModeratePostDialog(
                             placeholder="Message"
                             content=moderate_text
                         />
+                        <EnumDropdown name="ban_duration" enum_iter=BanDuration::iter()/>
                         <ModalFormButtons
                             disable_publish=is_text_empty
                             show_form=show_dialog

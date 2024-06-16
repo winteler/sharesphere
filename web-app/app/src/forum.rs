@@ -338,9 +338,9 @@ pub async fn get_forum_with_user_info(
 pub async fn create_forum(
     forum_name: String,
     description: String,
-    is_nsfw: Option<String>,
+    is_nsfw: bool,
 ) -> Result<(), ServerFnError> {
-    log::trace!("Create Sphere '{forum_name}', {description}, {is_nsfw:?}");
+    log::info!("Create Sphere '{forum_name}', {description}, {is_nsfw}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
@@ -349,7 +349,7 @@ pub async fn create_forum(
     ssr::create_forum(
         forum_name.as_str(),
         description.as_str(),
-        is_nsfw.is_some(),
+        is_nsfw,
         user.user_id,
         db_pool,
     ).await?;
@@ -683,6 +683,7 @@ pub fn CreateForum() -> impl IntoView {
 
     let is_name_taken = create_rw_signal(false);
     let description = create_rw_signal(String::new());
+    let is_nsfw = create_rw_signal(false);
     let is_name_empty = move || forum_name.with(|forum_name| forum_name.is_empty());
     let is_name_alphanumeric =
         move || forum_name.with(|forum_name| forum_name.chars().all(char::is_alphanumeric));
@@ -692,6 +693,7 @@ pub fn CreateForum() -> impl IntoView {
             || !is_name_alphanumeric()
             || description.with(|description| description.is_empty())
     });
+    let is_nsfw_string = move || is_nsfw.get().to_string();
 
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
@@ -751,9 +753,10 @@ pub fn CreateForum() -> impl IntoView {
                         content=description
                     />
                     <div class="form-control">
+                        <input type="text" name="is_nsfw" value=is_nsfw_string class="hidden"/>
                         <label class="cursor-pointer label p-0">
                             <span class="label-text">"NSFW content"</span>
-                            <input type="checkbox" name="is_nsfw" class="checkbox checkbox-primary"/>
+                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_nsfw on:click=move |_| is_nsfw.update(|value| *value = !*value)/>
                         </label>
                     </div>
                     <Suspense fallback=move || view! { <LoadingIcon/> }>

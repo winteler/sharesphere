@@ -319,18 +319,18 @@ pub async fn create_comment(
     post_id: i64,
     parent_comment_id: Option<i64>,
     comment: String,
-    is_markdown: Option<String>,
+    is_markdown: bool,
 ) -> Result<CommentWithChildren, ServerFnError> {
     log::trace!("Create comment for post {post_id}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     let (comment, markdown_comment) = match is_markdown {
-        Some(_) => (
+        true => (
             get_styled_html_from_markdown(comment.clone()).await?,
             Some(comment.as_str()),
         ),
-        None => (comment, None),
+        false => (comment, None),
     };
 
     let mut comment = ssr::create_comment(
@@ -365,18 +365,18 @@ pub async fn create_comment(
 pub async fn edit_comment(
     comment_id: i64,
     comment: String,
-    is_markdown: Option<String>,
+    is_markdown: bool,
 ) -> Result<Comment, ServerFnError> {
     log::trace!("Edit comment {comment_id}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     let (comment, markdown_comment) = match is_markdown {
-        Some(_) => (
+        true => (
             get_styled_html_from_markdown(comment.clone()).await?,
             Some(comment.as_str()),
         ),
-        None => (comment, None),
+        false => (comment, None),
     };
 
     let comment = ssr::update_comment(

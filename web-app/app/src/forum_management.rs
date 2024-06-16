@@ -166,9 +166,10 @@ pub mod ssr {
 pub async fn moderate_post(
     post_id: i64,
     moderated_body: String,
-    ban_num_days: Option<i32>,
+    ban_duration_days: Option<i32>,
+    is_permanent_ban: bool,
 ) -> Result<Post, ServerFnError> {
-    log::info!("Moderate post {post_id}, ban duration = {ban_num_days:?}");
+    log::info!("Moderate post {post_id}, ban duration = {ban_duration_days:?}, is_permanent_ban = {is_permanent_ban}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
@@ -301,7 +302,7 @@ pub fn ModeratePostDialog(
                             placeholder="Message"
                             content=moderate_text
                         />
-                        <NumBannedDaysDropdown name="ban_num_days"/>
+                        <NumBannedDaysDropdown/>
                         <ModalFormButtons
                             disable_publish=is_text_empty
                             show_form=show_dialog
@@ -371,26 +372,31 @@ pub fn ModerateCommentDialog(
 
 /// Dialog to input number of banned days
 #[component]
-pub fn NumBannedDaysDropdown(
-    name: &'static str,
-) -> impl IntoView {
+pub fn NumBannedDaysDropdown() -> impl IntoView {
     let ban_value = create_rw_signal(0);
     let is_permanent_ban = create_rw_signal(false);
+    let is_permanent_ban_string = move || is_permanent_ban.get().to_string();
 
     view! {
         <input
             type="number"
-            name=name
+            name="ban_duration_days"
             class="hidden"
             value=ban_value
             disabled=is_permanent_ban
+        />
+        <input
+            type="text"
+            name="is_permanent_ban"
+            class="hidden"
+            value=is_permanent_ban_string
         />
         <div class="flex gap-1 w-full">
             <span class="text-xl font-semibold">"Ban duration in days:"</span>
             <select
                 class="select select-bordered w-full"
                 on:change=move |ev| {
-                    let value = event_target_value(&ev).to_lowercase();
+                    let value = event_target_value(&ev);
                     if let Ok(num_days_banned) = value.parse::<i32>() {
                         ban_value.set(num_days_banned);
                         is_permanent_ban.set(false);

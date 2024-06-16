@@ -440,19 +440,19 @@ pub async fn create_post(
     forum: String,
     title: String,
     body: String,
-    is_markdown: Option<String>,
-    is_nsfw: Option<String>,
+    is_markdown: bool,
+    is_nsfw: bool,
     tag: Option<String>,
 ) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
     let (body, markdown_body) = match is_markdown {
-        Some(_) => (
+        true => (
             get_styled_html_from_markdown(body.clone()).await?,
             Some(body.as_str()),
         ),
-        None => (body, None),
+        false => (body, None),
     };
 
     let post = ssr::create_post(
@@ -460,7 +460,7 @@ pub async fn create_post(
         title.as_str(),
         body.as_str(),
         markdown_body,
-        is_nsfw.is_some(),
+        is_nsfw,
         tag,
         &user,
         db_pool.clone(),
@@ -485,8 +485,8 @@ pub async fn edit_post(
     post_id: i64,
     title: String,
     body: String,
-    is_markdown: Option<String>,
-    is_nsfw: Option<String>,
+    is_markdown: bool,
+    is_nsfw: bool,
     tag: Option<String>,
 ) -> Result<Post, ServerFnError> {
     log::trace!("Edit post {post_id}, title = {title}, body = {body}");
@@ -494,11 +494,11 @@ pub async fn edit_post(
     let db_pool = get_db_pool()?;
 
     let (body, markdown_body) = match is_markdown {
-        Some(_) => (
+        true => (
             get_styled_html_from_markdown(body.clone()).await?,
             Some(body.as_str()),
         ),
-        None => (body, None),
+        false => (body, None),
     };
 
     let post = ssr::update_post(
@@ -506,7 +506,7 @@ pub async fn edit_post(
         title.as_str(),
         body.as_str(),
         markdown_body,
-        is_nsfw.is_some(),
+        is_nsfw,
         tag,
         &user,
         db_pool,
@@ -796,8 +796,10 @@ pub fn CreatePost() -> impl IntoView {
     let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
     let post_body = create_rw_signal(String::new());
     let is_title_empty = create_rw_signal(true);
+    let is_nsfw = create_rw_signal(false);
     let is_content_invalid =
         create_memo(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
+    let is_nsfw_string = move || is_nsfw.get().to_string();
 
     let matching_forums_resource = create_resource(
         move || forum_name_debounced.get(),
@@ -855,6 +857,13 @@ pub fn CreatePost() -> impl IntoView {
                         placeholder="Content"
                         content=post_body
                     />
+                    <div class="form-control">
+                        <input type="text" name="is_nsfw" value=is_nsfw_string class="hidden"/>
+                        <label class="cursor-pointer label p-0">
+                            <span class="label-text">"NSFW content"</span>
+                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_nsfw on:click=move |_| is_nsfw.update(|value| *value = !*value)/>
+                        </label>
+                    </div>
                     <select name="tag" class="select select-bordered w-full max-w-xs">
                         <option disabled selected>"Tag"</option>
                         <option>"This should be"</option>

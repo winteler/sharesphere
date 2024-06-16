@@ -194,6 +194,7 @@ pub fn FormMarkdownEditor(
     let num_lines = move || content.with(|content| content.lines().count());
 
     let is_markdown_mode = create_rw_signal(is_markdown);
+    let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
     let markdown_button_class = move || match is_markdown_mode.get() {
         true => "h-full content-center p-2 rounded-md bg-success",
         false => "h-full content-center p-2 rounded-md hover:bg-base-content/20",
@@ -243,10 +244,10 @@ pub fn FormMarkdownEditor(
                     <div class="flex">
                         <label>
                             <input
-                                type="checkbox"
+                                type="text"
                                 class="hidden"
                                 name=is_markdown_name
-                                checked=is_markdown_mode
+                                value=is_markdown_mode_string
                                 on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
                             />
                             <div class=markdown_button_class>

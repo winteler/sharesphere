@@ -19,7 +19,8 @@ CREATE TABLE forums (
     banner_url TEXT,
     num_members INT NOT NULL DEFAULT 0,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (forum_id, forum_name)
 );
 
 CREATE TABLE forum_subscriptions (
@@ -108,9 +109,10 @@ CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, user_role
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users (user_id),
-    forum_id BIGINT REFERENCES forums (forum_id),
-    forum_name TEXT REFERENCES forums (forum_name),
+    forum_id BIGINT,
+    forum_name TEXT,
+    moderator_id BIGINT NOT NULL REFERENCES users (user_id),
     until_timestamp TIMESTAMPTZ,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_ban UNIQUE NULLS NOT DISTINCT (user_id, forum_id)
+    CONSTRAINT forum_exists FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
 );

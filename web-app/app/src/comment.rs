@@ -80,6 +80,7 @@ pub mod ssr {
 
     use crate::auth::User;
     use crate::errors::AppError;
+    use crate::forum::Forum;
     use crate::ranking::VoteValue;
 
     use super::*;
@@ -128,6 +129,25 @@ pub mod ssr {
                 CommentSortType::Recent => "create_timestamp",
             }
         }
+    }
+
+    pub async fn get_comment_forum(
+        comment_id: i64,
+        db_pool: PgPool,
+    ) -> Result<Forum, AppError> {
+        let forum = sqlx::query_as!(
+            Forum,
+            "SELECT f.*
+            FROM forums f
+            JOIN posts p on p.forum_id = f.forum_id
+            JOIN comments c on c.post_id = p.post_id
+            WHERE c.comment_id = $1",
+            comment_id
+        )
+            .fetch_one(&db_pool)
+            .await?;
+
+        Ok(forum)
     }
 
     pub async fn create_comment(

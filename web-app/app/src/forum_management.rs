@@ -4,7 +4,7 @@ use leptos_router::ActionForm;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user};
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, comment::ssr::get_comment_forum};
 use crate::app::ModerateState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
@@ -26,6 +26,7 @@ pub struct UserBan {
     pub user_id: i64,
     pub forum_id: Option<i64>,
     pub forum_name: Option<String>,
+    pub moderator_id: i64,
     pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -37,6 +38,7 @@ pub mod ssr {
     use crate::auth::User;
     use crate::comment::Comment;
     use crate::errors::AppError;
+    use crate::forum_management::UserBan;
     use crate::post::Post;
 
     pub async fn moderate_post(
@@ -147,14 +149,54 @@ pub mod ssr {
         Ok(comment)
     }
 
-    pub async fn ban_user(
-        forum_name: Option<String>,
+    pub async fn ban_user_for_forum(
+        user_id: i64,
+        forum_name: &String,
         user: &User,
-        duration: Option<i32>,
+        ban_duration_days: Option<usize>,
         db_pool: PgPool,
-    ) -> Result<(), AppError> {
-
-        Ok(())
+    ) -> Result<Option<UserBan>, AppError> {
+        if user.is_global_moderator() || user.is_forum_moderator(&forum_name) {
+            let user_ban = match ban_duration_days {
+                Some(0) => None,
+                Some(ban_duration) => {
+                    Some(sqlx::query_as!(
+                        UserBan,
+                        "INSERT INTO user_bans (user_id, forum_id, forum_name, moderator_id, until_timestamp)
+                         VALUES (
+                            $1,
+                            (SELECT forum_id FROM forums WHERE forum_name = $2),
+                            $2, $3, CURRENT_TIMESTAMP + $4 * interval '1 day'
+                        ) RETURNING *",
+                        user_id,
+                        forum_name,
+                        user.user_id,
+                        ban_duration as f64,
+                    )
+                        .fetch_one(&db_pool)
+                        .await?)
+                }
+                None => {
+                    Some(sqlx::query_as!(
+                        UserBan,
+                        "INSERT INTO user_bans (user_id, forum_id, forum_name, moderator_id)
+                         VALUES (
+                            $1,
+                            (SELECT forum_id FROM forums WHERE forum_name = $2),
+                            $2, $3
+                        ) RETURNING *",
+                        user_id,
+                        forum_name,
+                        user.user_id,
+                    )
+                        .fetch_one(&db_pool)
+                        .await?)
+                }
+            };
+            Ok(user_ban)
+        } else {
+            Err(AppError::AuthorizationError)
+        }
     }
 }
 
@@ -166,10 +208,9 @@ pub mod ssr {
 pub async fn moderate_post(
     post_id: i64,
     moderated_body: String,
-    ban_duration_days: Option<i32>,
-    is_permanent_ban: bool,
+    ban_duration_days: Option<usize>,
 ) -> Result<Post, ServerFnError> {
-    log::info!("Moderate post {post_id}, ban duration = {ban_duration_days:?}, is_permanent_ban = {is_permanent_ban}");
+    log::info!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
@@ -180,6 +221,14 @@ pub async fn moderate_post(
         db_pool.clone()
     ).await?;
 
+    ssr::ban_user_for_forum(
+        post.creator_id,
+        &post.forum_name,
+        &user,
+        ban_duration_days,
+        db_pool,
+    ).await?;
+
     Ok(post)
 }
 
@@ -187,6 +236,7 @@ pub async fn moderate_post(
 pub async fn moderate_comment(
     comment_id: i64,
     moderated_body: String,
+    ban_duration_days: Option<usize>,
 ) -> Result<Comment, ServerFnError> {
     log::trace!("Moderate comment {comment_id}");
     let user = check_user()?;
@@ -197,6 +247,16 @@ pub async fn moderate_comment(
         moderated_body.as_str(),
         &user,
         db_pool.clone()
+    ).await?;
+
+    let forum = get_comment_forum(comment_id, db_pool.clone()).await?;
+
+    ssr::ban_user_for_forum(
+        comment.creator_id,
+        &forum.forum_name,
+        &user,
+        ban_duration_days,
+        db_pool
     ).await?;
 
     Ok(comment)
@@ -358,6 +418,7 @@ pub fn ModerateCommentDialog(
                             placeholder="Message"
                             content=moderate_text
                         />
+                        <NumBannedDaysDropdown/>
                         <ModalFormButtons
                             disable_publish=is_text_empty
                             show_form=show_dialog
@@ -375,7 +436,6 @@ pub fn ModerateCommentDialog(
 pub fn NumBannedDaysDropdown() -> impl IntoView {
     let ban_value = create_rw_signal(0);
     let is_permanent_ban = create_rw_signal(false);
-    let is_permanent_ban_string = move || is_permanent_ban.get().to_string();
 
     view! {
         <input
@@ -385,16 +445,10 @@ pub fn NumBannedDaysDropdown() -> impl IntoView {
             value=ban_value
             disabled=is_permanent_ban
         />
-        <input
-            type="text"
-            name="is_permanent_ban"
-            class="hidden"
-            value=is_permanent_ban_string
-        />
-        <div class="flex gap-1 w-full">
-            <span class="text-xl font-semibold">"Ban duration in days:"</span>
+        <div class="flex items-center justify-between w-full">
+            <span class="text-xl font-semibold">"Ban duration (days):"</span>
             <select
-                class="select select-bordered w-full"
+                class="select select-bordered"
                 on:change=move |ev| {
                     let value = event_target_value(&ev);
                     if let Ok(num_days_banned) = value.parse::<i32>() {

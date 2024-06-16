@@ -1,10 +1,12 @@
 use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
+
 use http::status::StatusCode;
 use leptos::{component, IntoView, ServerFnError, view};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
 use crate::icons::{AuthErrorIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthenticatedIcon, NotFoundIcon};
 
 const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you";
@@ -16,6 +18,7 @@ const NOT_AUTHENTICATED_MESSAGE: &str = "You're in a restricted area, please do 
 #[derive(Clone, Debug, Error, Serialize, Deserialize)]
 pub enum AppError {
     AuthenticationError(String),
+    AuthorizationError,
     CommunicationError(ServerFnError),
     DatabaseError(String),
     InternalServerError(String),
@@ -27,6 +30,7 @@ impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             AppError::AuthenticationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::AuthorizationError => StatusCode::FORBIDDEN,
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) => StatusCode::BAD_REQUEST,
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
@@ -42,6 +46,7 @@ impl AppError {
     pub fn user_message(&self) -> &'static str {
         match self {
             AppError::AuthenticationError(_) => AUTH_FAILED_MESSAGE,
+            AppError::AuthorizationError => NOT_AUTHENTICATED_MESSAGE,
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) => "Sorry, we didn't understand your request",
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => "Sorry, we've got noise on the line.",
@@ -135,6 +140,7 @@ pub fn AppErrorIcon(
 ) -> impl IntoView {
     match app_error {
         AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> },
+        AppError::AuthorizationError => view! { <NotAuthenticatedIcon/> },
         AppError::CommunicationError(error) => match error {
             ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> },
             ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> },

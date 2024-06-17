@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 
 #[cfg(feature = "ssr")]
@@ -44,7 +44,7 @@ pub struct User {
     pub admin_role: AdminRole,
     pub user_role_by_forum_map: HashMap<String, UserForumRole>,
     pub is_banned: bool,
-    pub is_banned_by_forum_map: HashMap<String, bool>,
+    pub banned_forum_set: HashSet<String>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub is_deleted: bool,
 }
@@ -59,7 +59,7 @@ impl Default for User {
             admin_role: AdminRole::None,
             user_role_by_forum_map: HashMap::new(),
             is_banned: false,
-            is_banned_by_forum_map: HashMap::new(),
+            banned_forum_set: HashSet::new(),
             timestamp: chrono::DateTime::default(),
             is_deleted: false,
         }
@@ -99,6 +99,10 @@ impl User {
     pub fn is_forum_leader(&self, forum_name: String) -> bool {
         self.user_role_by_forum_map.get(&forum_name).is_some_and(|user_forum_role| user_forum_role.user_role == UserRole::Leader)
     }
+
+    pub fn is_banned(&self, forum_name: String) -> bool {
+        self.is_banned || self.banned_forum_set.get(&forum_name).is_some()
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -133,13 +137,13 @@ pub mod ssr {
                 user_role_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role);
             }
             let mut is_banned = false;
-            let mut is_banned_by_forum_map = HashMap::new();
+            let mut banned_forum_set = HashSet::new();
             let current_timestamp = chrono::offset::Utc::now();
             for user_ban in user_ban_vec {
                 let has_expiration = user_ban.until_timestamp.is_some();
                 if !has_expiration || user_ban.until_timestamp.unwrap() > current_timestamp {
                     match user_ban.forum_name {
-                        Some(forum_name) => { is_banned_by_forum_map.insert(forum_name, true); },
+                        Some(forum_name) => { banned_forum_set.insert(forum_name); },
                         None => { is_banned = true; },
                     };
                 }
@@ -152,7 +156,7 @@ pub mod ssr {
                 admin_role: self.admin_role,
                 user_role_by_forum_map,
                 is_banned,
-                is_banned_by_forum_map,
+                banned_forum_set,
                 timestamp: self.timestamp,
                 is_deleted: self.is_deleted,
             }
@@ -314,20 +318,18 @@ pub mod ssr {
         auth_session.current_user.ok_or(AppError::NotAuthenticated)
     }
 
-    pub fn reload_user() -> Result<Option<User>, AppError> {
+    pub fn reload_user() -> Result<(), AppError> {
         let auth_session = get_session()?;
-        if let Some(current_user) = auth_session.current_user.clone() {
+        if let Some(current_user) = &auth_session.current_user {
             auth_session.logout_user();
             let oidc_user_info = OidcUserInfo {
                 oidc_id: current_user.oidc_id.clone(),
                 username: current_user.username.clone(),
                 email: current_user.email.clone(),
             };
-            auth_session.cache_clear_user(oidc_user_info.clone());
-            auth_session.login_user(oidc_user_info);
-            log::trace!("Reloaded user: {:?}", auth_session.current_user);
-        }
-        Ok(auth_session.current_user)
+            auth_session.cache_clear_user(oidc_user_info)
+        };
+        Ok(())
     }
 }
 

@@ -15,9 +15,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
-use crate::app::ssr::get_session;
+use crate::app::ssr::{get_db_pool, get_session};
 #[cfg(feature = "ssr")]
-use crate::auth::ssr::check_user;
+use crate::auth::ssr::{check_user, create_user, SqlUser};
 use crate::navigation_bar::get_current_path;
 use crate::role::{AdminRole, UserForumRole, UserRole};
 use crate::unpack::SuspenseUnpack;
@@ -66,23 +66,6 @@ impl Default for User {
     }
 }
 
-#[derive(Clone, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub struct OidcUserInfo {
-    pub oidc_id: String,
-    pub username: String,
-    pub email: String,
-}
-
-impl std::fmt::Display for OidcUserInfo {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(
-            fmt,
-            "OidcUserInfo {{{}, {}, {}}}",
-            self.oidc_id, self.username, self.email
-        )
-    }
-}
-
 impl User {
     pub fn is_global_moderator(&self) -> bool {
         self.admin_role > AdminRole::Moderator
@@ -117,7 +100,7 @@ pub mod ssr {
     use super::*;
 
     pub type AuthSession =
-        axum_session_auth::AuthSession<User, OidcUserInfo, SessionPgPool, PgPool>;
+        axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
     #[derive(sqlx::FromRow, Clone)]
     pub struct SqlUser {
@@ -131,6 +114,17 @@ pub mod ssr {
     }
 
     impl SqlUser {
+        pub async fn get_from_oidc_id(oidc_id: &String, db_pool: PgPool) -> Result<SqlUser, AppError> {
+            let sql_user = sqlx::query_as!(
+                SqlUser,
+                "SELECT * FROM users WHERE oidc_id = $1",
+                oidc_id
+            )
+                .fetch_one(&db_pool)
+                .await?;
+
+            Ok(sql_user)
+        }
         pub fn into_user(self, user_role_vec: Vec<UserForumRole>, user_ban_vec: Vec<UserBan>) -> User {
             let mut user_role_by_forum_map = HashMap::new();
             for user_forum_role in user_role_vec {
@@ -164,11 +158,11 @@ pub mod ssr {
     }
 
     impl User {
-        pub async fn get(oidc_info: OidcUserInfo, db_pool: &PgPool) -> Option<Self> {
+        pub async fn get(user_id: i64, db_pool: &PgPool) -> Option<Self> {
             match sqlx::query_as!(
                 SqlUser,
-                "SELECT * FROM users WHERE oidc_id = $1",
-                oidc_info.oidc_id.clone()
+                "SELECT * FROM users WHERE user_id = $1",
+                user_id
             )
             .fetch_one(db_pool)
             .await
@@ -180,26 +174,21 @@ pub mod ssr {
                 },
                 Err(select_error) => {
                     log::debug!("User not found with error: {}", select_error);
-                    if let sqlx::Error::RowNotFound = select_error {
-                        create_user(oidc_info, db_pool).await
-                    } else {
-                        log::error!("Could not get user {}", select_error);
-                        None
-                    }
+                    None
                 }
             }
         }
     }
 
     #[async_trait]
-    impl Authentication<User, OidcUserInfo, PgPool> for User {
+    impl Authentication<User, i64, PgPool> for User {
         async fn load_user(
-            oidc_id: OidcUserInfo,
+            user_id: i64,
             pool: Option<&PgPool>,
         ) -> Result<User, anyhow::Error> {
             let pool = pool.ok_or(anyhow::anyhow!("Cannot get DB pool"))?;
 
-            User::get(oidc_id, pool)
+            User::get(user_id, pool)
                 .await
                 .ok_or_else(|| anyhow::anyhow!("Cannot get user"))
         }
@@ -217,24 +206,19 @@ pub mod ssr {
         }
     }
 
-    pub async fn create_user(oidc_info: OidcUserInfo, db_pool: &PgPool) -> Option<User> {
-        log::debug!("Try to insert new user");
-        match sqlx::query_as!(
+    pub async fn create_user(oidc_id: String, username: String, email: String, db_pool: &PgPool) -> Result<SqlUser, AppError> {
+        log::debug!("Create new user {username}");
+        let sql_user = sqlx::query_as!(
             SqlUser,
             "INSERT INTO users (oidc_id, username, email) VALUES ($1, $2, $3) RETURNING *",
-            oidc_info.oidc_id,
-            oidc_info.username,
-            oidc_info.email,
+            oidc_id,
+            username,
+            email,
         )
-        .fetch_one(db_pool)
-        .await
-        {
-            Ok(sql_user) => Some(sql_user.into_user(Vec::new(), Vec::new())),
-            Err(insert_error) => {
-                log::error!("Error while creating user: {}", insert_error);
-                None
-            }
-        }
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(sql_user)
     }
 
     pub async fn load_user_forum_role_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserForumRole>, AppError> {
@@ -318,17 +302,9 @@ pub mod ssr {
         auth_session.current_user.ok_or(AppError::NotAuthenticated)
     }
 
-    pub fn reload_user() -> Result<(), AppError> {
+    pub fn reload_user(user_id: i64) -> Result<(), AppError> {
         let auth_session = get_session()?;
-        if let Some(current_user) = &auth_session.current_user {
-            auth_session.logout_user();
-            let oidc_user_info = OidcUserInfo {
-                oidc_id: current_user.oidc_id.clone(),
-                username: current_user.username.clone(),
-                email: current_user.email.clone(),
-            };
-            auth_session.cache_clear_user(oidc_user_info)
-        };
+        auth_session.cache_clear_user(user_id);
         Ok(())
     }
 }
@@ -447,13 +423,18 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
         .session
         .set(OIDC_TOKENS_KEY, token_response.clone());
 
-    let oidc_user_info = OidcUserInfo {
-        oidc_id: claims.subject().to_string(),
-        username: claims.preferred_username().unwrap().to_string(),
-        email: claims.email().unwrap().to_string(),
+    let oidc_id = claims.subject().to_string();
+    let db_pool = get_db_pool()?;
+
+    let user = if let Ok(user) = SqlUser::get_from_oidc_id(&oidc_id, db_pool.clone()).await {
+        user
+    } else {
+        let username: String = claims.preferred_username().unwrap().to_string();
+        let email: String = claims.email().unwrap().to_string();
+        create_user(oidc_id, username, email, &db_pool).await?
     };
 
-    auth_session.login_user(oidc_user_info);
+    auth_session.login_user(user.user_id);
 
     leptos_axum::redirect(redirect_url.as_ref());
 

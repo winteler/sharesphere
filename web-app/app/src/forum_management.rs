@@ -35,6 +35,7 @@ pub struct UserBan {
 pub mod ssr {
     use sqlx::PgPool;
 
+    use crate::auth::ssr::reload_user;
     use crate::auth::User;
     use crate::comment::Comment;
     use crate::errors::AppError;
@@ -193,6 +194,7 @@ pub mod ssr {
                         .await?)
                 }
             };
+            reload_user(user_id)?;
             Ok(user_ban)
         } else {
             Err(AppError::AuthorizationError)

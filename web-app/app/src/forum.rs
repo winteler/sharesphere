@@ -354,7 +354,7 @@ pub async fn create_forum(
         db_pool,
     ).await?;
 
-    reload_user()?;
+    reload_user(user.user_id)?;
 
     // Redirect to the new forum
     leptos_axum::redirect(new_forum_path);

@@ -1,18 +1,18 @@
-use axum::{
-    response::{Response, IntoResponse},
-    routing::get,
-    extract::{Path, State},
-    http::{Request},
-    body::Body as AxumBody,
-    Router,
-};
-use leptos::*;
-use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
-
-use axum_session::{SessionPgPool, SessionConfig, SessionLayer, SessionStore, Key};
-use axum_session_auth::{AuthSessionLayer, AuthConfig};
-use sqlx::{PgPool};
 use std::env;
+
+use axum::{
+    body::Body as AxumBody,
+    extract::{Path, State},
+    http::Request,
+    response::{IntoResponse, Response},
+    Router,
+    routing::get,
+};
+use axum_session::{Key, SessionConfig, SessionLayer, SessionPgPool, SessionStore};
+use axum_session_auth::{AuthConfig, AuthSessionLayer};
+use leptos::*;
+use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
+use sqlx::PgPool;
 use wasm_bindgen::UnwrapThrowExt;
 
 use app::{
@@ -22,11 +22,11 @@ use app::{
     auth::ssr::*,
 };
 
-mod fallback;
-mod state;
-
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
+
+mod fallback;
+mod state;
 
 pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
 pub const SESSION_DB_KEY_ENV : &str = "SESSION_DB_KEY";
@@ -116,7 +116,7 @@ async fn main() {
         //.with_security_mode(SecurityMode::PerSession)
     ;
 
-    let auth_config = AuthConfig::<OidcUserInfo>::default().with_anonymous_user_id(Some(OidcUserInfo::default()));
+    let auth_config = AuthConfig::<i64>::default();
     let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
 
     sqlx::migrate!("../migrations/")
@@ -148,7 +148,7 @@ async fn main() {
         .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
         .layer(
-            AuthSessionLayer::<User, OidcUserInfo, SessionPgPool, PgPool>::new(
+            AuthSessionLayer::<User, i64, SessionPgPool, PgPool>::new(
                 Some(pool)
             ).with_config(auth_config)
         )

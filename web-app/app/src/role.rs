@@ -3,9 +3,9 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[strum(serialize_all = "snake_case")]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
-#[repr(i16)]
 pub enum AdminRole {
     None = 0,
     Moderator = 1,
@@ -40,13 +40,9 @@ impl From<String> for PermissionLevel {
     }
 }
 
-impl From<i16> for AdminRole {
-    fn from(value: i16) -> AdminRole {
-        match value {
-            2 => AdminRole::Admin,
-            1 => AdminRole::Moderator,
-            _ => AdminRole::None,
-        }
+impl From<String> for AdminRole {
+    fn from(value: String) -> AdminRole {
+        AdminRole::from_str(&value).unwrap_or(AdminRole::None)
     }
 }
 

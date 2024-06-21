@@ -3,7 +3,7 @@ CREATE TABLE users (
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    admin_role SMALLINT NOT NULL DEFAULT 0 CHECK (admin_role IN (0, 1, 2)),
+    admin_role TEXT NOT NULL DEFAULT 'none' CHECK (admin_role IN ('none', 'moderator', 'admin')),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );

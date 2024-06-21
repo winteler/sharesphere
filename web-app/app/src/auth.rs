@@ -19,7 +19,7 @@ use crate::app::ssr::{get_db_pool, get_session};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::{check_user, create_user, SqlUser};
 use crate::navigation_bar::get_current_path;
-use crate::role::{AdminRole, UserForumRole, UserRole};
+use crate::role::{AdminRole, PermissionLevel, UserForumRole};
 use crate::unpack::SuspenseUnpack;
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
@@ -74,13 +74,15 @@ impl User {
     pub fn is_admin(&self) -> bool {
         self.admin_role == AdminRole::Admin
     }
-    pub fn is_forum_moderator(&self, forum_name: &String) -> bool {
-        self.admin_role > AdminRole::Moderator ||
-            self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.user_role > UserRole::Moderator)
+
+    pub fn can_moderate_forum(&self, forum_name: &String) -> bool {
+        self.admin_role >= AdminRole::Moderator ||
+        self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Moderate)
     }
 
-    pub fn is_forum_leader(&self, forum_name: String) -> bool {
-        self.user_role_by_forum_map.get(&forum_name).is_some_and(|user_forum_role| user_forum_role.user_role == UserRole::Leader)
+    pub fn can_configure_forum(&self, forum_name: &String) -> bool {
+        self.admin_role >= AdminRole::Admin ||
+            self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Configure)
     }
 
     pub fn is_banned(&self, forum_name: String) -> bool {
@@ -224,7 +226,9 @@ pub mod ssr {
     pub async fn load_user_forum_role_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserForumRole>, AppError> {
         let user_forum_role_vec = sqlx::query_as!(
             UserForumRole,
-            "SELECT * FROM user_forum_roles WHERE user_id = $1",
+            "SELECT * \
+            FROM user_forum_roles \
+            WHERE user_id = $1",
             user_id
         )
             .fetch_all(db_pool)

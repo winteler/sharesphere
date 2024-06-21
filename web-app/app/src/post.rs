@@ -137,7 +137,7 @@ pub mod ssr {
                 None => false,
             };
             let can_moderate = match &user {
-                Some(user) => user.is_forum_moderator(&self.post.forum_name),
+                Some(user) => user.can_moderate_forum(&self.post.forum_name),
                 None => false,
             };
 
@@ -548,7 +548,7 @@ pub fn Post() -> impl IntoView {
     let user_state = ModerateState {
         can_moderate: Signal::derive(
             move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.is_forum_moderator(forum_name)),
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.can_moderate_forum(forum_name)),
                 _ => false,
             })
         ),

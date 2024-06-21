@@ -157,7 +157,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.is_global_moderator() || user.is_forum_moderator(&forum_name) {
+        if user.is_global_moderator() || user.can_moderate_forum(&forum_name) {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
                 Some(ban_duration) => {

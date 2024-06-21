@@ -1,11 +1,11 @@
 use std::env;
 use std::sync::Mutex;
 
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 
 use app::auth::ssr::create_user;
-use app::auth::{OidcUserInfo, User};
+use app::auth::User;
 use app::post::{Post, PostSortType};
 
 pub const TEST_DB_URL_ENV: &str = "TEST_DATABASE_URL";
@@ -56,27 +56,17 @@ pub async fn get_db_pool() -> PgPool {
 }
 
 pub async fn create_test_user(db_pool: &PgPool) -> User {
-    let oidc_info = OidcUserInfo {
-        oidc_id: String::from("test"),
-        username: String::from("test"),
-        email: String::from("test@test.com"),
-    };
-
-    create_user(oidc_info, db_pool)
+    let sql_user = create_user(String::from("test"), String::from("test"), String::from("test@test.com"), db_pool)
         .await
-        .expect("Could not create test user.")
+        .expect("Could not create additional user.");
+    User::get(sql_user.user_id, db_pool).await.expect("Could not fetch newly created user.")
 }
 
 pub async fn create_additional_user(db_pool: &PgPool) -> User {
-    let oidc_info = OidcUserInfo {
-        oidc_id: String::from("user"),
-        username: String::from("user"),
-        email: String::from("user@user.com"),
-    };
-
-    create_user(oidc_info, db_pool)
+    let sql_user = create_user(String::from("user"), String::from("user"), String::from("user@user.com"), db_pool)
         .await
-        .expect("Could not create additional user.")
+        .expect("Could not create additional user.");
+    User::get(sql_user.user_id, db_pool).await.expect("Could not fetch newly created user.")
 }
 
 pub fn test_post_vec(

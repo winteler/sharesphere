@@ -1,13 +1,7 @@
-use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
-#[repr(i16)]
-pub enum UserRole {
-    User = 0,
-    Moderator = 1,
-    Leader = 2,
-}
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString, IntoStaticStr};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -18,23 +12,31 @@ pub enum AdminRole {
     Admin = 2,
 }
 
+#[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+pub enum PermissionLevel {
+    None = 0,
+    Moderate = 1,
+    Ban = 2,
+    Configure = 3,
+    Elect = 4,
+    Lead = 5,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UserForumRole {
     pub role_id: i64,
     pub user_id: i64,
     pub forum_id: i64,
     pub forum_name: String,
-    pub user_role: UserRole,
+    pub permission_level: PermissionLevel,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-impl From<i16> for UserRole {
-    fn from(value: i16) -> UserRole {
-        match value {
-            2 => UserRole::Leader,
-            1 => UserRole::Moderator,
-            _ => UserRole::User,
-        }
+impl From<String> for PermissionLevel {
+    fn from(value: String) -> PermissionLevel {
+        PermissionLevel::from_str(&value).unwrap_or(PermissionLevel::None)
     }
 }
 
@@ -62,20 +64,20 @@ pub mod ssr {
         user_id: i64,
         db_pool: PgPool,
     ) -> Result<UserForumRole, AppError> {
-
-        let current_leader_role = sqlx::query_as!(
+        let lead_level_str: &str = PermissionLevel::Lead.into();
+        let current_leader = sqlx::query_as!(
             UserForumRole,
             "SELECT * FROM user_forum_roles \
             WHERE forum_id = $1 AND \
-                  user_role = $2",
+                  permission_level = $2",
             forum.forum_id,
-            UserRole::Leader as i16,
+            lead_level_str,
         )
             .fetch_one(&db_pool)
             .await;
 
-        match current_leader_role {
-            Ok(current_leader_role) => {
+        match current_leader {
+            Ok(current_leader) => {
                 Ok(sqlx::query_as!(
                     UserForumRole,
                     "UPDATE user_forum_roles \
@@ -84,7 +86,7 @@ pub mod ssr {
                     WHERE role_id = $2 \
                     RETURNING *",
                     user_id,
-                    current_leader_role.role_id,
+                    current_leader.role_id,
                 )
                     .fetch_one(&db_pool)
                     .await?)
@@ -92,11 +94,11 @@ pub mod ssr {
             Err(sqlx::error::Error::RowNotFound) => {
                 Ok(sqlx::query_as!(
                     UserForumRole,
-                    "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, user_role) VALUES ($1, $2, $3, $4) RETURNING *",
+                    "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, permission_level) VALUES ($1, $2, $3, $4) RETURNING *",
                     user_id,
                     forum.forum_id,
                     forum.forum_name,
-                    UserRole::Leader as i16,
+                    lead_level_str,
                 )
                     .fetch_one(&db_pool)
                     .await?)

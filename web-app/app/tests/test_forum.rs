@@ -8,7 +8,7 @@ use app::app::ssr::create_db_pool;
 use app::auth::ssr::load_user_forum_role_vec;
 use app::forum;
 use app::forum::Forum;
-use app::role::UserRole;
+use app::role::PermissionLevel;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -304,7 +304,7 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
     assert_eq!(user_forum_role.forum_id, forum.forum_id);
     assert_eq!(user_forum_role.user_id, test_user.user_id);
     assert_eq!(user_forum_role.forum_name, forum.forum_name);
-    assert_eq!(user_forum_role.user_role, UserRole::Leader);
+    assert_eq!(user_forum_role.permission_level, PermissionLevel::Lead);
 
     assert!(
         forum::ssr::create_forum("Test", "forum", false, test_user.user_id, db_pool.clone(),)

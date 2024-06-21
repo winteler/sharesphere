@@ -23,7 +23,7 @@ use crate::post::{
     CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
-use crate::role::UserRole;
+use crate::role::PermissionLevel;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -70,7 +70,7 @@ pub struct ForumWithUserInfo {
     #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub forum: Forum,
     pub subscription_id: Option<i64>,
-    pub user_role: Option<UserRole>,
+    pub user_role: Option<PermissionLevel>,
 }
 
 #[cfg(feature = "ssr")]
@@ -519,7 +519,7 @@ pub fn ForumContents() -> impl IntoView {
 pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
-    let can_manage_forum = forum.user_role.is_some_and(|user_role| user_role > UserRole::User);
+    let can_manage_forum = forum.user_role.is_some_and(|user_role| user_role >= PermissionLevel::Configure);
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());
     let is_subscribed = create_rw_signal(forum.subscription_id.is_some());
 

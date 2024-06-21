@@ -72,7 +72,6 @@ pub struct PostWithUserInfo {
     pub post: Post,
     pub vote: Option<Vote>,
     pub is_author: bool,
-    pub can_moderate: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -136,16 +135,11 @@ pub mod ssr {
                 Some(user) => user.user_id == self.post.creator_id,
                 None => false,
             };
-            let can_moderate = match &user {
-                Some(user) => user.can_moderate_forum(&self.post.forum_name),
-                None => false,
-            };
 
             PostWithUserInfo {
                 post: self.post,
                 vote: post_vote,
                 is_author,
-                can_moderate,
             }
         }
     }
@@ -549,6 +543,12 @@ pub fn Post() -> impl IntoView {
         can_moderate: Signal::derive(
             move || state.user.with(|user| match user {
                 Some(Ok(Some(user))) => forum_name.with( | forum_name| user.can_moderate_forum(forum_name)),
+                _ => false,
+            })
+        ),
+        can_ban: Signal::derive(
+            move || state.user.with(|user| match user {
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.can_ban_users(forum_name)),
                 _ => false,
             })
         ),

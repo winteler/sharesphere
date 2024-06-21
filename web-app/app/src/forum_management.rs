@@ -121,6 +121,7 @@ pub mod ssr {
                 .fetch_one(&db_pool)
                 .await?
         } else {
+            // check if the user has at least the moderate permission for this forum
             sqlx::query_as!(
                 Comment,
                 "UPDATE comments c SET
@@ -157,7 +158,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.is_global_moderator() || user.can_moderate_forum(&forum_name) {
+        if user.can_moderate_forum(&forum_name) && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
                 Some(ban_duration) => {
@@ -198,6 +199,17 @@ pub mod ssr {
             Ok(user_ban)
         } else {
             Err(AppError::AuthorizationError)
+        }
+    }
+
+    async fn is_user_forum_moderator(
+        user_id: i64,
+        forum: &String,
+        db_pool: &PgPool,
+    ) -> Result<bool, AppError> {
+        match User::get(user_id, db_pool).await {
+            Some(user) => Ok(user.can_moderate_forum(&forum)),
+            None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
     }
 }
@@ -364,7 +376,7 @@ pub fn ModeratePostDialog(
                             placeholder="Message"
                             content=moderate_text
                         />
-                        <NumBannedDaysDropdown/>
+                        <BanMenu/>
                         <ModalFormButtons
                             disable_publish=is_text_empty
                             show_form=show_dialog
@@ -392,8 +404,6 @@ pub fn ModerateCommentDialog(
     let moderate_result = moderate_comment_action.value();
     let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
 
-    // TODO: add ban option
-
     create_effect(move |_| {
         if let Some(Ok(moderated_comment)) = moderate_result.get() {
             comment.set(moderated_comment);
@@ -420,7 +430,7 @@ pub fn ModerateCommentDialog(
                             placeholder="Message"
                             content=moderate_text
                         />
-                        <NumBannedDaysDropdown/>
+                        <BanMenu/>
                         <ModalFormButtons
                             disable_publish=is_text_empty
                             show_form=show_dialog
@@ -435,7 +445,8 @@ pub fn ModerateCommentDialog(
 
 /// Dialog to input number of banned days
 #[component]
-pub fn NumBannedDaysDropdown() -> impl IntoView {
+pub fn BanMenu() -> impl IntoView {
+    let moderate_state = expect_context::<ModerateState>();
     let ban_value = create_rw_signal(0);
     let is_permanent_ban = create_rw_signal(false);
 
@@ -447,29 +458,31 @@ pub fn NumBannedDaysDropdown() -> impl IntoView {
             value=ban_value
             disabled=is_permanent_ban
         />
-        <div class="flex items-center justify-between w-full">
-            <span class="text-xl font-semibold">"Ban duration (days):"</span>
-            <select
-                class="select select-bordered"
-                on:change=move |ev| {
-                    let value = event_target_value(&ev);
-                    if let Ok(num_days_banned) = value.parse::<i32>() {
-                        ban_value.set(num_days_banned);
-                        is_permanent_ban.set(false);
-                    } else {
-                        ban_value.set(0);
-                        is_permanent_ban.set(true);
+        <Show when=move || moderate_state.can_ban.get()>
+            <div class="flex items-center justify-between w-full">
+                <span class="text-xl font-semibold">"Ban duration (days):"</span>
+                <select
+                    class="select select-bordered"
+                    on:change=move |ev| {
+                        let value = event_target_value(&ev);
+                        if let Ok(num_days_banned) = value.parse::<i32>() {
+                            ban_value.set(num_days_banned);
+                            is_permanent_ban.set(false);
+                        } else {
+                            ban_value.set(0);
+                            is_permanent_ban.set(true);
+                        }
                     }
-                }
-            >
-                <option>"0"</option>
-                <option>"1"</option>
-                <option>"7"</option>
-                <option>"30"</option>
-                <option>"180"</option>
-                <option>"365"</option>
-                <option value="">"Permanent"</option>
-            </select>
-        </div>
+                >
+                    <option>"0"</option>
+                    <option>"1"</option>
+                    <option>"7"</option>
+                    <option>"30"</option>
+                    <option>"180"</option>
+                    <option>"365"</option>
+                    <option value="">"Permanent"</option>
+                </select>
+            </div>
+        </Show>
     }
 }

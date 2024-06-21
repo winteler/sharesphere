@@ -80,6 +80,11 @@ impl User {
         self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Moderate)
     }
 
+    pub fn can_ban_users(&self, forum_name: &String) -> bool {
+        self.admin_role >= AdminRole::Moderator ||
+            self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Ban)
+    }
+
     pub fn can_configure_forum(&self, forum_name: &String) -> bool {
         self.admin_role >= AdminRole::Admin ||
             self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Configure)

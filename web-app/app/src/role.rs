@@ -50,6 +50,7 @@ impl From<String> for AdminRole {
 pub mod ssr {
     use sqlx::PgPool;
 
+    use crate::auth::ssr::reload_user;
     use crate::errors::AppError;
     use crate::forum::Forum;
 
@@ -74,7 +75,7 @@ pub mod ssr {
 
         match current_leader {
             Ok(current_leader) => {
-                Ok(sqlx::query_as!(
+                let user_forum_role = sqlx::query_as!(
                     UserForumRole,
                     "UPDATE user_forum_roles \
                     SET user_id = $1, \
@@ -85,10 +86,13 @@ pub mod ssr {
                     current_leader.role_id,
                 )
                     .fetch_one(&db_pool)
-                    .await?)
+                    .await?;
+                reload_user(user_id)?;
+                reload_user(current_leader.user_id)?;
+                Ok(user_forum_role)
             },
             Err(sqlx::error::Error::RowNotFound) => {
-                Ok(sqlx::query_as!(
+                let user_forum_role = sqlx::query_as!(
                     UserForumRole,
                     "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, permission_level) VALUES ($1, $2, $3, $4) RETURNING *",
                     user_id,
@@ -97,7 +101,9 @@ pub mod ssr {
                     lead_level_str,
                 )
                     .fetch_one(&db_pool)
-                    .await?)
+                    .await?;
+                reload_user(user_id)?;
+                Ok(user_forum_role)
             },
             Err(e) => {
                 log::error!("Failed to set forum leader with error: {e}");

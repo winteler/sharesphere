@@ -21,6 +21,7 @@ pub const PUBLISH_ROUTE: &str = "/publish";
 #[derive(Copy, Clone)]
 pub struct ModerateState {
     pub can_moderate: Signal<bool>,
+    pub can_ban: Signal<bool>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
 }
 

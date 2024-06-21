@@ -316,6 +316,55 @@ pub mod ssr {
         auth_session.cache_clear_user(user_id);
         Ok(())
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_sql_user_into_user() {
+            let sql_user = SqlUser {
+                user_id: 0,
+                oidc_id: String::from("a"),
+                username: String::from("b"),
+                email: String::from("c"),
+                admin_role: AdminRole::Moderator,
+                timestamp: chrono::DateTime::from_timestamp_nanos(500),
+                is_deleted: false,
+            };
+            let user_forum_role_vec = vec![
+                UserForumRole {
+                    role_id: 0,
+                    user_id: 0,
+                    forum_id: 0,
+                    forum_name: String::from("0"),
+                    permission_level: PermissionLevel::Moderate,
+                    timestamp: chrono::DateTime::from_timestamp_nanos(500),
+                },
+                UserForumRole {
+                    role_id: 0,
+                    user_id: 0,
+                    forum_id: 1,
+                    forum_name: String::from("1"),
+                    permission_level: PermissionLevel::Lead,
+                    timestamp: chrono::DateTime::from_timestamp_nanos(500),
+                },
+            ];
+            let user_ban_vec = vec![
+                UserBan {
+                    ban_id: 0,
+                    user_id: 0,
+                    forum_id: None,
+                    forum_name: None,
+                    moderator_id: 0,
+                    until_timestamp: None,
+                    create_timestamp: Default::default(),
+                }
+            ];
+            let user = sql_user.into_user(user_forum_role_vec, user_ban_vec);
+            assert_eq!(user.user_id, 0);
+        }
+    }
 }
 
 #[server]

@@ -19,6 +19,14 @@ pub fn get_current_path(path: RwSignal<String>) {
     path.update(|value | *value = path_str);
 }
 
+/// # Extract the forum name from the current path, if it exists
+///
+/// ```
+/// use crate::app::navigation_bar::get_forum_from_path;
+///
+/// assert_eq!(get_forum_from_path(&String::from("test")), None);
+/// assert_eq!(get_forum_from_path(&String::from("/forums/test")), Some(String::from("test")));
+/// ```
 pub fn get_forum_from_path(path: &String) -> Option<String> {
     if path.starts_with(FORUM_ROUTE_PREFIX) {
         let mut path_part_it = path.split("/");
@@ -159,16 +167,5 @@ pub fn PlusMenu() -> impl IntoView {
                 </li>
             </ul>
         </div>
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_forum_from_path() {
-        assert_eq!(get_forum_from_path(&String::from("test")), None);
-        assert_eq!(get_forum_from_path(&String::from("/forums/test")), Some(String::from("test")));
     }
 }

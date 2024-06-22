@@ -50,7 +50,6 @@ impl From<String> for AdminRole {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::ssr::reload_user;
     use crate::errors::AppError;
     use crate::forum::Forum;
 
@@ -60,7 +59,7 @@ pub mod ssr {
         forum: Forum,
         user_id: i64,
         db_pool: PgPool,
-    ) -> Result<UserForumRole, AppError> {
+    ) -> Result<(UserForumRole, Option<i64>), AppError> {
         let lead_level_str: &str = PermissionLevel::Lead.into();
         let current_leader = sqlx::query_as!(
             UserForumRole,
@@ -87,9 +86,7 @@ pub mod ssr {
                 )
                     .fetch_one(&db_pool)
                     .await?;
-                reload_user(user_id);
-                reload_user(current_leader.user_id);
-                Ok(user_forum_role)
+                Ok((user_forum_role, Some(current_leader.user_id)))
             },
             Err(sqlx::error::Error::RowNotFound) => {
                 let user_forum_role = sqlx::query_as!(
@@ -102,8 +99,7 @@ pub mod ssr {
                 )
                     .fetch_one(&db_pool)
                     .await?;
-                reload_user(user_id);
-                Ok(user_forum_role)
+                Ok((user_forum_role, None))
             },
             Err(e) => {
                 log::error!("Failed to set forum leader with error: {e}");

@@ -311,14 +311,10 @@ pub mod ssr {
         auth_session.current_user.ok_or(AppError::NotAuthenticated)
     }
 
-    pub fn reload_user(user_id: i64) {
-        if let Ok(auth_session) = get_session() {
-            auth_session.cache_clear_user(user_id);
-        } else {
-            // Don't return an error here to avoid issues with integration tests.
-            // All functions requiring to reload a user should first check the permissions, meaning the auth_session needs to be available.
-            log::error!("Failed to get auth session to clear user from cache.");
-        }
+    pub fn reload_user(user_id: i64) -> Result<(), AppError> {
+        let auth_session = get_session()?;
+        auth_session.cache_clear_user(user_id);
+        Ok(())
     }
 
     #[cfg(test)]

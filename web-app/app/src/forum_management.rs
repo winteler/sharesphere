@@ -4,7 +4,7 @@ use leptos_router::ActionForm;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, comment::ssr::get_comment_forum};
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
 use crate::app::ModerateState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
@@ -35,7 +35,6 @@ pub struct UserBan {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::ssr::reload_user;
     use crate::auth::User;
     use crate::comment::Comment;
     use crate::errors::AppError;
@@ -151,7 +150,7 @@ pub mod ssr {
         Ok(comment)
     }
 
-    pub async fn ban_user_for_forum(
+    pub async fn ban_user_from_forum(
         user_id: i64,
         forum_name: &String,
         user: &User,
@@ -195,7 +194,6 @@ pub mod ssr {
                         .await?)
                 }
             };
-            reload_user(user_id);
             Ok(user_ban)
         } else {
             Err(AppError::AuthorizationError)
@@ -235,13 +233,15 @@ pub async fn moderate_post(
         db_pool.clone()
     ).await?;
 
-    ssr::ban_user_for_forum(
+    ssr::ban_user_from_forum(
         post.creator_id,
         &post.forum_name,
         &user,
         ban_duration_days,
         db_pool,
     ).await?;
+
+    reload_user(post.creator_id)?;
 
     Ok(post)
 }
@@ -265,13 +265,15 @@ pub async fn moderate_comment(
 
     let forum = get_comment_forum(comment_id, db_pool.clone()).await?;
 
-    ssr::ban_user_for_forum(
+    ssr::ban_user_from_forum(
         comment.creator_id,
         &forum.forum_name,
         &user,
         ban_duration_days,
         db_pool
     ).await?;
+
+    reload_user(comment.creator_id)?;
 
     Ok(comment)
 }

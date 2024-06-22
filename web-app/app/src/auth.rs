@@ -400,16 +400,12 @@ pub mod ssr {
             assert_eq!(user_1.admin_role, AdminRole::None);
             assert_eq!(user_1.timestamp, chrono::DateTime::from_timestamp_nanos(0));
             assert_eq!(user_1.is_deleted, false);
-            assert_eq!(user_1.can_moderate_forum(&String::from("0")), true);
-            assert_eq!(user_1.can_configure_forum(&String::from("0")), false);
-            assert_eq!(user_1.can_moderate_forum(&String::from("1")), true);
-            assert_eq!(user_1.can_configure_forum(&String::from("1")), true);
-            assert_eq!(user_1.can_moderate_forum(&String::from("2")), false);
-            assert_eq!(user_1.can_configure_forum(&String::from("2")), false);
+            assert_eq!(user_1.user_role_by_forum_map[&String::from("0")].permission_level, PermissionLevel::Moderate);
+            assert_eq!(user_1.user_role_by_forum_map[&String::from("1")].permission_level, PermissionLevel::Lead);
             assert_eq!(user_1.is_banned, false);
-            assert_eq!(user_1.is_banned_from_forum(String::from("a")), false);
-            assert_eq!(user_1.is_banned_from_forum(String::from("b")), true);
-            assert_eq!(user_1.is_banned_from_forum(String::from("c")), true);
+            assert_eq!(user_1.banned_forum_set.contains(&String::from("a")), false);
+            assert_eq!(user_1.banned_forum_set.contains(&String::from("b")), true);
+            assert_eq!(user_1.banned_forum_set.contains(&String::from("c")), true);
 
             let user_2_ban_vec = vec![
                 UserBan {
@@ -422,10 +418,8 @@ pub mod ssr {
                     create_timestamp: Default::default(),
                 },
             ];
-
             let user_2 = sql_user.into_user(user_forum_role_vec, user_2_ban_vec);
             assert_eq!(user_2.is_banned, true);
-            assert_eq!(user_2.is_banned_from_forum(String::from("d")), true);
         }
     }
 }

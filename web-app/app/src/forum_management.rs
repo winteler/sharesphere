@@ -195,7 +195,7 @@ pub mod ssr {
                         .await?)
                 }
             };
-            reload_user(user_id)?;
+            reload_user(user_id);
             Ok(user_ban)
         } else {
             Err(AppError::AuthorizationError)

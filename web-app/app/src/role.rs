@@ -87,8 +87,8 @@ pub mod ssr {
                 )
                     .fetch_one(&db_pool)
                     .await?;
-                reload_user(user_id)?;
-                reload_user(current_leader.user_id)?;
+                reload_user(user_id);
+                reload_user(current_leader.user_id);
                 Ok(user_forum_role)
             },
             Err(sqlx::error::Error::RowNotFound) => {
@@ -102,7 +102,7 @@ pub mod ssr {
                 )
                     .fetch_one(&db_pool)
                     .await?;
-                reload_user(user_id)?;
+                reload_user(user_id);
                 Ok(user_forum_role)
             },
             Err(e) => {

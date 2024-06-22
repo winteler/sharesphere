@@ -90,7 +90,7 @@ impl User {
             self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Configure)
     }
 
-    pub fn is_banned(&self, forum_name: String) -> bool {
+    pub fn is_banned_from_forum(&self, forum_name: String) -> bool {
         self.is_banned || self.banned_forum_set.get(&forum_name).is_some()
     }
 }
@@ -311,14 +311,22 @@ pub mod ssr {
         auth_session.current_user.ok_or(AppError::NotAuthenticated)
     }
 
-    pub fn reload_user(user_id: i64) -> Result<(), AppError> {
-        let auth_session = get_session()?;
-        auth_session.cache_clear_user(user_id);
-        Ok(())
+    pub fn reload_user(user_id: i64) {
+        if let Ok(auth_session) = get_session() {
+            auth_session.cache_clear_user(user_id);
+        } else {
+            // Don't return an error here to avoid issues with integration tests.
+            // All functions requiring to reload a user should first check the permissions, meaning the auth_session needs to be available.
+            log::error!("Failed to get auth session to clear user from cache.");
+        }
     }
 
     #[cfg(test)]
     mod tests {
+        use std::ops::Add;
+
+        use chrono::{Days, TimeDelta};
+
         use super::*;
 
         #[test]
@@ -328,8 +336,8 @@ pub mod ssr {
                 oidc_id: String::from("a"),
                 username: String::from("b"),
                 email: String::from("c"),
-                admin_role: AdminRole::Moderator,
-                timestamp: chrono::DateTime::from_timestamp_nanos(500),
+                admin_role: AdminRole::None,
+                timestamp: chrono::DateTime::from_timestamp_nanos(0),
                 is_deleted: false,
             };
             let user_forum_role_vec = vec![
@@ -339,7 +347,7 @@ pub mod ssr {
                     forum_id: 0,
                     forum_name: String::from("0"),
                     permission_level: PermissionLevel::Moderate,
-                    timestamp: chrono::DateTime::from_timestamp_nanos(500),
+                    timestamp: chrono::DateTime::from_timestamp_nanos(0),
                 },
                 UserForumRole {
                     role_id: 0,
@@ -347,7 +355,7 @@ pub mod ssr {
                     forum_id: 1,
                     forum_name: String::from("1"),
                     permission_level: PermissionLevel::Lead,
-                    timestamp: chrono::DateTime::from_timestamp_nanos(500),
+                    timestamp: chrono::DateTime::from_timestamp_nanos(0),
                 },
             ];
             let user_ban_vec = vec![
@@ -357,12 +365,71 @@ pub mod ssr {
                     forum_id: None,
                     forum_name: None,
                     moderator_id: 0,
+                    until_timestamp: Some(chrono::DateTime::from_timestamp_nanos(0)),
+                    create_timestamp: Default::default(),
+                },
+                UserBan {
+                    ban_id: 1,
+                    user_id: 0,
+                    forum_id: Some(0),
+                    forum_name: Some(String::from("a")),
+                    moderator_id: 0,
+                    until_timestamp: Some(chrono::DateTime::from_timestamp_nanos(0)),
+                    create_timestamp: Default::default(),
+                },
+                UserBan {
+                    ban_id: 2,
+                    user_id: 0,
+                    forum_id: Some(1),
+                    forum_name: Some(String::from("b")),
+                    moderator_id: 0,
+                    until_timestamp: Some(chrono::offset::Utc::now().add(Days::new(1))),
+                    create_timestamp: Default::default(),
+                },
+                UserBan {
+                    ban_id: 3,
+                    user_id: 0,
+                    forum_id: Some(2),
+                    forum_name: Some(String::from("c")),
+                    moderator_id: 0,
                     until_timestamp: None,
                     create_timestamp: Default::default(),
-                }
+                },
             ];
-            let user = sql_user.into_user(user_forum_role_vec, user_ban_vec);
-            assert_eq!(user.user_id, 0);
+            let user_1 = sql_user.clone().into_user(user_forum_role_vec.clone(), user_ban_vec);
+            assert_eq!(user_1.user_id, 0);
+            assert_eq!(user_1.oidc_id, "a");
+            assert_eq!(user_1.username, "b");
+            assert_eq!(user_1.email, "c");
+            assert_eq!(user_1.admin_role, AdminRole::None);
+            assert_eq!(user_1.timestamp, chrono::DateTime::from_timestamp_nanos(0));
+            assert_eq!(user_1.is_deleted, false);
+            assert_eq!(user_1.can_moderate_forum(&String::from("0")), true);
+            assert_eq!(user_1.can_configure_forum(&String::from("0")), false);
+            assert_eq!(user_1.can_moderate_forum(&String::from("1")), true);
+            assert_eq!(user_1.can_configure_forum(&String::from("1")), true);
+            assert_eq!(user_1.can_moderate_forum(&String::from("2")), false);
+            assert_eq!(user_1.can_configure_forum(&String::from("2")), false);
+            assert_eq!(user_1.is_banned, false);
+            assert_eq!(user_1.is_banned_from_forum(String::from("a")), false);
+            assert_eq!(user_1.is_banned_from_forum(String::from("b")), true);
+            assert_eq!(user_1.is_banned_from_forum(String::from("c")), true);
+
+            let user_2_ban_vec = vec![
+                UserBan {
+                    ban_id: 3,
+                    user_id: 0,
+                    forum_id: None,
+                    forum_name: None,
+                    moderator_id: 0,
+                    until_timestamp: Some(chrono::offset::Utc::now().add(TimeDelta::new(3600, 0).expect("Failed to increment timestamp"))),
+                    create_timestamp: Default::default(),
+                },
+            ];
+
+            let user_2 = sql_user.into_user(user_forum_role_vec, user_2_ban_vec);
+            assert_eq!(user_2.is_banned, true);
+            assert_eq!(user_2.is_banned_from_forum(String::from("d")), true);
         }
     }
 }

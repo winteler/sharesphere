@@ -23,7 +23,6 @@ use crate::post::{
     CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
-use crate::role::PermissionLevel;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -70,7 +69,6 @@ pub struct ForumWithUserInfo {
     #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub forum: Forum,
     pub subscription_id: Option<i64>,
-    pub user_role: Option<PermissionLevel>,
 }
 
 #[cfg(feature = "ssr")]
@@ -101,14 +99,11 @@ pub mod ssr {
         db_pool: PgPool,
     ) -> Result<ForumWithUserInfo, AppError> {
         let forum = sqlx::query_as::<_, ForumWithUserInfo>(
-            "SELECT f.*, s.subscription_id, r.user_role \
+            "SELECT f.*, s.subscription_id \
             FROM forums f \
             LEFT JOIN forum_subscriptions s ON \
                 s.forum_id = f.forum_id AND \
                 s.user_id = $1 \
-            LEFT JOIN user_forum_roles r ON \
-                r.forum_id = f.forum_id AND \
-                r.user_id = $1 \
             WHERE f.forum_name = $2",
         )
         .bind(user_id)
@@ -354,7 +349,7 @@ pub async fn create_forum(
         db_pool,
     ).await?;
 
-    reload_user(user.user_id)?;
+    reload_user(user.user_id);
 
     // Redirect to the new forum
     leptos_axum::redirect(new_forum_path);
@@ -519,7 +514,11 @@ pub fn ForumContents() -> impl IntoView {
 pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
-    let can_manage_forum = forum.user_role.is_some_and(|user_role| user_role >= PermissionLevel::Configure);
+    let forum_name = forum.forum.forum_name.clone();
+    let can_manage_forum = Signal::derive(move || state.user.with(|user| match user {
+        Some(Ok(Some(user))) => user.can_configure_forum(&forum_name),
+        _ => false,
+    }));
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());
     let is_subscribed = create_rw_signal(forum.subscription_id.is_some());
 
@@ -527,7 +526,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
-                <Show when=move || can_manage_forum>
+                <Show when=can_manage_forum>
                     <A href=MANAGE_FORUM_SUFFIX class="btn btn-circle btn-ghost">
                         <SettingsIcon class="h-5 w-5"/>
                     </A>

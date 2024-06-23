@@ -77,9 +77,11 @@ pub mod ssr {
 
     use sqlx::PgPool;
 
+    use crate::auth::User;
     use crate::errors::AppError;
     use crate::forum::{Forum, ForumWithUserInfo};
-    use crate::role::ssr::set_forum_leader;
+    use crate::role::PermissionLevel;
+    use crate::role::ssr::set_user_forum_role;
 
     pub async fn get_forum_by_name(forum_name: &str, db_pool: PgPool) -> Result<Forum, AppError> {
         let forum = sqlx::query_as!(
@@ -199,7 +201,7 @@ pub mod ssr {
         name: &str,
         description: &str,
         is_nsfw: bool,
-        user_id: i64,
+        user: &User,
         db_pool: PgPool,
     ) -> Result<Forum, AppError> {
         if name.is_empty() {
@@ -221,12 +223,12 @@ pub mod ssr {
             name,
             description,
             is_nsfw,
-            user_id
+            user.user_id,
         )
             .fetch_one(&db_pool)
             .await?;
 
-        set_forum_leader(forum.clone(), user_id, db_pool).await?;
+        set_user_forum_role(forum.forum_id, &forum.forum_name, user.user_id, PermissionLevel::Lead, user, db_pool).await?;
 
         Ok(forum)
     }
@@ -345,7 +347,7 @@ pub async fn create_forum(
         forum_name.as_str(),
         description.as_str(),
         is_nsfw,
-        user.user_id,
+        &user,
         db_pool,
     ).await?;
 

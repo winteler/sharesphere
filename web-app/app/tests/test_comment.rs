@@ -88,7 +88,7 @@ async fn test_comment_tree() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     ).await?;
 
@@ -142,7 +142,7 @@ async fn test_update_comment() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     ).await?;
 

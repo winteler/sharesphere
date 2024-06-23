@@ -1,8 +1,9 @@
 use leptos::ServerFnError;
 use sqlx::PgPool;
-use app::comment::Comment;
+
 use app::{comment, forum, post, ranking};
 use app::auth::User;
+use app::comment::Comment;
 use app::forum::Forum;
 use app::post::Post;
 use app::ranking::VoteValue;
@@ -18,7 +19,7 @@ pub async fn create_forum_with_posts(
         forum_name,
         "forum",
         false,
-        user.user_id,
+        &user,
         db_pool.clone(),
     ).await?;
 

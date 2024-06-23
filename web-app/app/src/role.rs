@@ -31,6 +31,7 @@ pub struct UserForumRole {
     pub forum_id: i64,
     pub forum_name: String,
     pub permission_level: PermissionLevel,
+    pub grantor_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
@@ -50,14 +51,44 @@ impl From<String> for AdminRole {
 pub mod ssr {
     use sqlx::PgPool;
 
+    use crate::auth::User;
     use crate::errors::AppError;
-    use crate::forum::Forum;
 
     use super::*;
 
-    pub async fn set_forum_leader(
-        forum: Forum,
+    pub async fn set_user_forum_role(
+        forum_id: i64,
+        forum_name: &str,
         user_id: i64,
+        permission_level: PermissionLevel,
+        grantor: &User,
+        db_pool: PgPool,
+    ) -> Result<(UserForumRole, Option<i64>), AppError> {
+        if permission_level == PermissionLevel::Lead {
+            set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool.clone()).await
+        } else if grantor.can_elect_in_forum(forum_name) {
+            let permission_level_str: &str = permission_level.into();
+            let user_forum_role = sqlx::query_as!(
+                UserForumRole,
+                "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, permission_level, grantor_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+                user_id,
+                forum_id,
+                forum_name,
+                permission_level_str,
+                grantor.user_id,
+            )
+                .fetch_one(&db_pool)
+                .await?;
+            Ok((user_forum_role, None))
+        } else {
+            Err(AppError::AuthorizationError)
+        }
+    }
+    async fn set_forum_leader(
+        forum_id: i64,
+        forum_name: &str,
+        user_id: i64,
+        grantor: &User,
         db_pool: PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
         let lead_level_str: &str = PermissionLevel::Lead.into();
@@ -66,7 +97,7 @@ pub mod ssr {
             "SELECT * FROM user_forum_roles \
             WHERE forum_id = $1 AND \
                   permission_level = $2",
-            forum.forum_id,
+            forum_id,
             lead_level_str,
         )
             .fetch_one(&db_pool)
@@ -74,28 +105,36 @@ pub mod ssr {
 
         match current_leader {
             Ok(current_leader) => {
-                let user_forum_role = sqlx::query_as!(
+                if grantor.is_forum_leader(forum_name) {
+                    let user_forum_role = sqlx::query_as!(
                     UserForumRole,
                     "UPDATE user_forum_roles \
-                    SET user_id = $1, \
-                    timestamp = CURRENT_TIMESTAMP \
-                    WHERE role_id = $2 \
+                    SET \
+                        user_id = $1, \
+                        grantor_id = $2, \
+                        timestamp = CURRENT_TIMESTAMP \
+                    WHERE role_id = $3 \
                     RETURNING *",
                     user_id,
+                    grantor.user_id,
                     current_leader.role_id,
                 )
-                    .fetch_one(&db_pool)
-                    .await?;
-                Ok((user_forum_role, Some(current_leader.user_id)))
+                        .fetch_one(&db_pool)
+                        .await?;
+                    Ok((user_forum_role, Some(current_leader.user_id)))
+                } else {
+                    Err(AppError::AuthorizationError)
+                }
             },
             Err(sqlx::error::Error::RowNotFound) => {
                 let user_forum_role = sqlx::query_as!(
                     UserForumRole,
-                    "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, permission_level) VALUES ($1, $2, $3, $4) RETURNING *",
+                    "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, permission_level, grantor_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
                     user_id,
-                    forum.forum_id,
-                    forum.forum_name,
+                    forum_id,
+                    forum_name,
                     lead_level_str,
+                    grantor.user_id,
                 )
                     .fetch_one(&db_pool)
                     .await?;

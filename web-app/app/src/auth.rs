@@ -107,6 +107,15 @@ impl User {
             self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Configure)
     }
 
+    pub fn can_elect_in_forum(&self, forum_name: &str) -> bool {
+        self.admin_role >= AdminRole::Admin ||
+            self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Elect)
+    }
+
+    pub fn is_forum_leader(&self, forum_name: &str) -> bool {
+        self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level == PermissionLevel::Lead)
+    }
+
     pub fn is_banned_from_forum(&self, forum_name: &str) -> bool {
         self.ban_status.is_active() || self.ban_status_by_forum_map.get(forum_name).is_some_and(|ban_status| ban_status.is_active())
     }
@@ -248,7 +257,7 @@ pub mod ssr {
         }
     }
 
-    pub async fn create_user(oidc_id: String, username: String, email: String, db_pool: &PgPool) -> Result<SqlUser, AppError> {
+    pub async fn create_user(oidc_id: &str, username: &str, email: &str, db_pool: &PgPool) -> Result<SqlUser, AppError> {
         log::debug!("Create new user {username}");
         let sql_user = sqlx::query_as!(
             SqlUser,
@@ -380,6 +389,7 @@ pub mod ssr {
                     forum_id: 0,
                     forum_name: String::from("0"),
                     permission_level: PermissionLevel::Moderate,
+                    grantor_id: 0,
                     timestamp: past_timestamp,
                 },
                 UserForumRole {
@@ -388,6 +398,7 @@ pub mod ssr {
                     forum_id: 1,
                     forum_name: String::from("1"),
                     permission_level: PermissionLevel::Lead,
+                    grantor_id: 0,
                     timestamp: past_timestamp,
                 },
             ];
@@ -589,7 +600,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
     } else {
         let username: String = claims.preferred_username().unwrap().to_string();
         let email: String = claims.email().unwrap().to_string();
-        create_user(oidc_id, username, email, &db_pool).await?
+        create_user(&oidc_id, &username, &email, &db_pool).await?
     };
 
     auth_session.login_user(user.user_id);

@@ -46,7 +46,7 @@ async fn test_is_forum_available() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     )
     .await?;
@@ -75,7 +75,7 @@ async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     )
     .await?;
@@ -104,7 +104,7 @@ async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
                 i.to_string().as_str(),
                 "forum",
                 false,
-                test_user.user_id,
+                &test_user,
                 db_pool.clone(),
             )
             .await?
@@ -126,7 +126,7 @@ async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
                 i.to_string().as_str(),
                 "forum",
                 false,
-                test_user.user_id,
+                &test_user,
                 db_pool.clone(),
             )
             .await?
@@ -154,7 +154,7 @@ async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
             i.to_string().as_str(),
             "forum",
             false,
-            test_user.user_id,
+            &test_user,
             db_pool.clone(),
         )
         .await?;
@@ -179,8 +179,8 @@ async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
 async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     // use two users to make sure behaviour is correct both for forum creator and other users
-    let create_user = create_test_user(&db_pool).await;
-    let member_user = create_additional_user(&db_pool).await;
+    let creator_user = create_test_user(&db_pool).await;
+    let member_user = create_user("user", "user", "user@user.com", &db_pool).await;
 
     let num_forum = 30usize;
     let mut expected_create_sub_forum_vec = Vec::<String>::new();
@@ -190,13 +190,13 @@ async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
             i.to_string().as_str(),
             "forum",
             false,
-            create_user.user_id,
+            &creator_user,
             db_pool.clone(),
         )
         .await?;
 
         if i % 2 == 1 {
-            forum::ssr::subscribe(forum.forum_id, create_user.user_id, db_pool.clone()).await?;
+            forum::ssr::subscribe(forum.forum_id, creator_user.user_id, db_pool.clone()).await?;
             expected_create_sub_forum_vec.push(forum.forum_name);
         } else {
             forum::ssr::subscribe(forum.forum_id, member_user.user_id, db_pool.clone()).await?;
@@ -204,7 +204,7 @@ async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
         }
     }
 
-    let create_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(create_user.user_id, db_pool.clone()).await?;
+    let create_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(creator_user.user_id, db_pool.clone()).await?;
     let member_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(member_user.user_id, db_pool).await?;
 
     assert_eq!(
@@ -235,7 +235,7 @@ async fn test_get_forum_with_user_info() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     )
     .await?;
@@ -290,7 +290,7 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     ).await;
     assert!(
@@ -307,19 +307,19 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
     assert_eq!(user_forum_role.permission_level, PermissionLevel::Lead);
 
     assert!(
-        forum::ssr::create_forum("Test", "forum", false, test_user.user_id, db_pool.clone(),)
+        forum::ssr::create_forum("Test", "forum", false, &test_user, db_pool.clone(),)
             .await
             .is_err()
     );
 
     assert!(
-        forum::ssr::create_forum("", "forum", false, test_user.user_id, db_pool.clone(),)
+        forum::ssr::create_forum("", "forum", false, &test_user, db_pool.clone(),)
             .await
             .is_err()
     );
 
     assert!(
-        forum::ssr::create_forum("test-2", "forum", false, test_user.user_id, db_pool.clone(),)
+        forum::ssr::create_forum("test-2", "forum", false, &test_user, db_pool.clone(),)
             .await
             .is_err()
     );

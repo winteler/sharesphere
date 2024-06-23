@@ -187,7 +187,7 @@ async fn test_update_post() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     ).await?;
 
@@ -237,7 +237,7 @@ async fn test_post_scores() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     ).await?;
 
@@ -288,7 +288,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         forum_name,
         "forum",
         false,
-        test_user.user_id,
+        &test_user,
         db_pool.clone(),
     ).await?;
 

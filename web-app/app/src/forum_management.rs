@@ -196,7 +196,7 @@ pub mod ssr {
             };
             Ok(user_ban)
         } else {
-            Err(AppError::AuthorizationError)
+            Err(AppError::InternalServerError(String::from("Error while trying to ban user. Insufficient permissions or user is a moderator of the forum.")))
         }
     }
 

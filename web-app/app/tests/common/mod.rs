@@ -4,7 +4,6 @@ use std::sync::Mutex;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 
-use app::auth::ssr::create_user;
 use app::auth::User;
 use app::post::{Post, PostSortType};
 
@@ -56,16 +55,18 @@ pub async fn get_db_pool() -> PgPool {
 }
 
 pub async fn create_test_user(db_pool: &PgPool) -> User {
-    let sql_user = create_user(String::from("test"), String::from("test"), String::from("test@test.com"), db_pool)
-        .await
-        .expect("Could not create additional user.");
-    User::get(sql_user.user_id, db_pool).await.expect("Could not fetch newly created user.")
+    create_user("test", "test", "test@test.com", db_pool).await
 }
 
-pub async fn create_additional_user(db_pool: &PgPool) -> User {
-    let sql_user = create_user(String::from("user"), String::from("user"), String::from("user@user.com"), db_pool)
+pub async fn create_user(
+    oidc_user_id: &str,
+    username: &str,
+    email: &str,
+    db_pool: &PgPool
+) -> User {
+    let sql_user = app::auth::ssr::create_user(oidc_user_id, username, email, db_pool)
         .await
-        .expect("Could not create additional user.");
+        .expect("Could not create user.");
     User::get(sql_user.user_id, db_pool).await.expect("Could not fetch newly created user.")
 }
 

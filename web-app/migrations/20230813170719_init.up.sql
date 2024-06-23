@@ -98,6 +98,7 @@ CREATE TABLE user_forum_roles (
     forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
     forum_name TEXT NOT NULL REFERENCES forums (forum_name),
     permission_level TEXT NOT NULL CHECK (permission_level IN ('moderate', 'ban', 'configure', 'elect', 'lead')),
+    grantor_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_role UNIQUE NULLS NOT DISTINCT (user_id, forum_id)
 );

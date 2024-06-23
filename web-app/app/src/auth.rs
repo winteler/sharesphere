@@ -42,7 +42,7 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub admin_role: AdminRole,
-    pub user_role_by_forum_map: HashMap<String, UserForumRole>,
+    pub permission_by_forum_map: HashMap<String, PermissionLevel>,
     pub is_banned: bool,
     pub banned_forum_set: HashSet<String>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -57,7 +57,7 @@ impl Default for User {
             username: String::default(),
             email: String::default(),
             admin_role: AdminRole::None,
-            user_role_by_forum_map: HashMap::new(),
+            permission_by_forum_map: HashMap::new(),
             is_banned: false,
             banned_forum_set: HashSet::new(),
             timestamp: chrono::DateTime::default(),
@@ -75,22 +75,22 @@ impl User {
         self.admin_role == AdminRole::Admin
     }
 
-    pub fn can_moderate_forum(&self, forum_name: &String) -> bool {
+    pub fn can_moderate_forum(&self, forum_name: &str) -> bool {
         self.admin_role >= AdminRole::Moderator ||
-        self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Moderate)
+        self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Moderate)
     }
 
-    pub fn can_ban_users(&self, forum_name: &String) -> bool {
+    pub fn can_ban_users(&self, forum_name: &str) -> bool {
         self.admin_role >= AdminRole::Moderator ||
-            self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Ban)
+            self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Ban)
     }
 
-    pub fn can_configure_forum(&self, forum_name: &String) -> bool {
+    pub fn can_configure_forum(&self, forum_name: &str) -> bool {
         self.admin_role >= AdminRole::Admin ||
-            self.user_role_by_forum_map.get(forum_name).is_some_and(|user_forum_role| user_forum_role.permission_level >= PermissionLevel::Configure)
+            self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Configure)
     }
 
-    pub fn is_banned_from_forum(&self, forum_name: String) -> bool {
+    pub fn is_banned_from_forum(&self, forum_name: &str) -> bool {
         self.is_banned || self.banned_forum_set.get(&forum_name).is_some()
     }
 }
@@ -135,7 +135,7 @@ pub mod ssr {
         pub fn into_user(self, user_role_vec: Vec<UserForumRole>, user_ban_vec: Vec<UserBan>) -> User {
             let mut user_role_by_forum_map = HashMap::new();
             for user_forum_role in user_role_vec {
-                user_role_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role);
+                user_role_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role.permission_level);
             }
             let mut is_banned = false;
             let mut banned_forum_set = HashSet::new();
@@ -155,7 +155,7 @@ pub mod ssr {
                 username: self.username,
                 email: self.email,
                 admin_role: self.admin_role,
-                user_role_by_forum_map,
+                permission_by_forum_map: user_role_by_forum_map,
                 is_banned,
                 banned_forum_set,
                 timestamp: self.timestamp,
@@ -400,8 +400,8 @@ pub mod ssr {
             assert_eq!(user_1.admin_role, AdminRole::None);
             assert_eq!(user_1.timestamp, chrono::DateTime::from_timestamp_nanos(0));
             assert_eq!(user_1.is_deleted, false);
-            assert_eq!(user_1.user_role_by_forum_map[&String::from("0")].permission_level, PermissionLevel::Moderate);
-            assert_eq!(user_1.user_role_by_forum_map[&String::from("1")].permission_level, PermissionLevel::Lead);
+            assert_eq!(user_1.permission_by_forum_map[&String::from("0")], PermissionLevel::Moderate);
+            assert_eq!(user_1.permission_by_forum_map[&String::from("1")], PermissionLevel::Lead);
             assert_eq!(user_1.is_banned, false);
             assert_eq!(user_1.banned_forum_set.contains(&String::from("a")), false);
             assert_eq!(user_1.banned_forum_set.contains(&String::from("b")), true);
@@ -668,5 +668,60 @@ pub fn AuthCallback() -> impl IntoView {
                 View::default()
             }
         </SuspenseUnpack>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_user_permission_map() -> HashMap<String, PermissionLevel> {
+        HashMap::from([
+            (String::from("a"), PermissionLevel::None),
+            (String::from("b"), PermissionLevel::Moderate),
+            (String::from("c"), PermissionLevel::Ban),
+            (String::from("d"), PermissionLevel::Configure),
+        ])
+    }
+    #[test]
+    fn test_user_can_moderate() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.can_moderate_forum("a"), false);
+        assert_eq!(user.can_moderate_forum("b"), true);
+        assert_eq!(user.can_moderate_forum("c"), true);
+        assert_eq!(user.can_moderate_forum("d"), true);
+    }
+    #[test]
+    fn test_user_can_ban_users() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.can_moderate_forum("a"), false);
+        assert_eq!(user.can_moderate_forum("b"), false);
+        assert_eq!(user.can_moderate_forum("c"), true);
+        assert_eq!(user.can_moderate_forum("d"), true);
+    }
+
+    #[test]
+    fn test_user_can_configure_forum() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.can_moderate_forum("a"), false);
+        assert_eq!(user.can_moderate_forum("b"), false);
+        assert_eq!(user.can_moderate_forum("c"), false);
+        assert_eq!(user.can_moderate_forum("d"), true);
+    }
+
+    #[test]
+    fn test_user_is_banned_from_forum() {
+        let mut user = User::default();
+        user.banned_forum_set = HashSet::from([
+            String::from("a"),
+        ]);
+        assert_eq!(user.is_banned_from_forum("a"), true);
+        assert_eq!(user.is_banned_from_forum("b"), false);
+        user.is_banned = true;
+        assert_eq!(user.is_banned_from_forum("a"), true);
+        assert_eq!(user.is_banned_from_forum("b"), true);
     }
 }

@@ -730,6 +730,29 @@ mod tests {
             (String::from("d"), PermissionLevel::Configure),
         ])
     }
+
+    #[test]
+    fn test_ban_status_is_permanent() {
+        let ban_status_none = BanStatus::None;
+        let ban_status_until = BanStatus::Until(chrono::DateTime::from_timestamp_nanos(0));
+        let ban_status_permanent = BanStatus::Permanent;
+        assert_eq!(ban_status_none.is_permanent(), false);
+        assert_eq!(ban_status_until.is_permanent(), false);
+        assert_eq!(ban_status_permanent.is_permanent(), true);
+    }
+
+    #[test]
+    fn test_ban_status_is_active() {
+        let ban_status_none = BanStatus::None;
+        let ban_status_until_past = BanStatus::Until(chrono::DateTime::from_timestamp_nanos(0));
+        let ban_status_until_future = BanStatus::Until(chrono::offset::Utc::now().add(Days::new(1)));
+        let ban_status_permanent = BanStatus::Permanent;
+        assert_eq!(ban_status_none.is_active(), false);
+        assert_eq!(ban_status_until_past.is_active(), false);
+        assert_eq!(ban_status_until_future.is_active(), true);
+        assert_eq!(ban_status_permanent.is_active(), true);
+    }
+
     #[test]
     fn test_user_can_moderate() {
         let mut user = User::default();
@@ -739,6 +762,7 @@ mod tests {
         assert_eq!(user.can_moderate_forum("c"), true);
         assert_eq!(user.can_moderate_forum("d"), true);
     }
+
     #[test]
     fn test_user_can_ban_users() {
         let mut user = User::default();

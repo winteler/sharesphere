@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::env;
 
 #[cfg(feature = "ssr")]
@@ -19,7 +19,7 @@ use crate::app::ssr::{get_db_pool, get_session};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::{check_user, create_user, SqlUser};
 use crate::navigation_bar::get_current_path;
-use crate::role::{AdminRole, PermissionLevel, UserForumRole};
+use crate::role::{AdminRole, PermissionLevel};
 use crate::unpack::SuspenseUnpack;
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
@@ -33,7 +33,12 @@ pub const OIDC_TOKENS_KEY: &str = "oidc_token";
 pub const OIDC_USERNAME_KEY: &str = "oidc_username";
 pub const REDIRECT_URL_KEY: &str = "redirect";
 
-
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum BanStatus {
+    None,
+    Until(chrono::DateTime<chrono::Utc>),
+    Permanent,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct User {
@@ -43,10 +48,22 @@ pub struct User {
     pub email: String,
     pub admin_role: AdminRole,
     pub permission_by_forum_map: HashMap<String, PermissionLevel>,
-    pub is_banned: bool,
-    pub banned_forum_set: HashSet<String>,
+    pub ban_status: BanStatus,
+    pub ban_status_by_forum_map: HashMap<String, BanStatus>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub is_deleted: bool,
+}
+
+impl BanStatus {
+    pub fn is_permanent(&self) -> bool {
+        *self == BanStatus::Permanent
+    }
+    pub fn is_active(&self) -> bool {
+        match self {
+            BanStatus::Until(until_timestamp) => *until_timestamp > chrono::offset::Utc::now(),
+            _ => self.is_permanent()
+        }
+    }
 }
 
 impl Default for User {
@@ -58,8 +75,8 @@ impl Default for User {
             email: String::default(),
             admin_role: AdminRole::None,
             permission_by_forum_map: HashMap::new(),
-            is_banned: false,
-            banned_forum_set: HashSet::new(),
+            ban_status: BanStatus::None,
+            ban_status_by_forum_map: HashMap::new(),
             timestamp: chrono::DateTime::default(),
             is_deleted: false,
         }
@@ -91,7 +108,7 @@ impl User {
     }
 
     pub fn is_banned_from_forum(&self, forum_name: &str) -> bool {
-        self.is_banned || self.banned_forum_set.get(&forum_name).is_some()
+        self.ban_status.is_active() || self.ban_status_by_forum_map.get(forum_name).is_some_and(|ban_status| ban_status.is_active())
     }
 }
 
@@ -103,6 +120,7 @@ pub mod ssr {
 
     use crate::errors::AppError;
     use crate::forum_management::UserBan;
+    use crate::role::UserForumRole;
 
     use super::*;
 
@@ -133,31 +151,48 @@ pub mod ssr {
             Ok(sql_user)
         }
         pub fn into_user(self, user_role_vec: Vec<UserForumRole>, user_ban_vec: Vec<UserBan>) -> User {
-            let mut user_role_by_forum_map = HashMap::new();
+            let mut permission_by_forum_map: HashMap<String, PermissionLevel> = HashMap::new();
             for user_forum_role in user_role_vec {
-                user_role_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role.permission_level);
+                permission_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role.permission_level);
             }
-            let mut is_banned = false;
-            let mut banned_forum_set = HashSet::new();
+            let mut global_ban_status = BanStatus::None;
+            let mut ban_status_by_forum_map: HashMap<String, BanStatus> = HashMap::new();
             let current_timestamp = chrono::offset::Utc::now();
             for user_ban in user_ban_vec {
-                let has_expiration = user_ban.until_timestamp.is_some();
-                if !has_expiration || user_ban.until_timestamp.unwrap() > current_timestamp {
+                let (ban_status, is_valid) = match user_ban.until_timestamp {
+                    Some(until_timestamp) => (BanStatus::Until(until_timestamp), until_timestamp > current_timestamp),
+                    None => (BanStatus::Permanent, true),
+                };
+                if is_valid {
                     match user_ban.forum_name {
-                        Some(forum_name) => { banned_forum_set.insert(forum_name); },
-                        None => { is_banned = true; },
+                        Some(forum_name) => {
+                            match ban_status_by_forum_map.get_mut(&forum_name) {
+                                Some(current_ban_status) => {
+                                    if ban_status > *current_ban_status {
+                                        *current_ban_status = ban_status;
+                                    }
+                                },
+                                None => _ = ban_status_by_forum_map.insert(forum_name, ban_status),
+                            };
+                        },
+                        None => {
+                            if ban_status > global_ban_status {
+                                global_ban_status = ban_status;
+                            }
+                        }
                     };
                 }
             }
+
             User {
                 user_id: self.user_id,
                 oidc_id: self.oidc_id,
                 username: self.username,
                 email: self.email,
                 admin_role: self.admin_role,
-                permission_by_forum_map: user_role_by_forum_map,
-                is_banned,
-                banned_forum_set,
+                permission_by_forum_map,
+                ban_status: global_ban_status,
+                ban_status_by_forum_map,
                 timestamp: self.timestamp,
                 is_deleted: self.is_deleted,
             }
@@ -245,7 +280,7 @@ pub mod ssr {
     pub async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
-            "SELECT * FROM user_bans WHERE user_id = $1 AND until_timestamp > CURRENT_TIMESTAMP",
+            "SELECT * FROM user_bans WHERE user_id = $1 AND (until_timestamp > CURRENT_TIMESTAMP or until_timestamp IS NULL)",
             user_id
         )
             .fetch_all(db_pool)
@@ -321,12 +356,14 @@ pub mod ssr {
     mod tests {
         use std::ops::Add;
 
-        use chrono::{Days, TimeDelta};
+        use chrono::Days;
 
         use super::*;
 
         #[test]
         fn test_sql_user_into_user() {
+            let past_timestamp = chrono::DateTime::from_timestamp_nanos(0);
+            let future_timestamp = chrono::offset::Utc::now().add(Days::new(1));
             let sql_user = SqlUser {
                 user_id: 0,
                 oidc_id: String::from("a"),
@@ -343,7 +380,7 @@ pub mod ssr {
                     forum_id: 0,
                     forum_name: String::from("0"),
                     permission_level: PermissionLevel::Moderate,
-                    timestamp: chrono::DateTime::from_timestamp_nanos(0),
+                    timestamp: past_timestamp,
                 },
                 UserForumRole {
                     role_id: 0,
@@ -351,7 +388,7 @@ pub mod ssr {
                     forum_id: 1,
                     forum_name: String::from("1"),
                     permission_level: PermissionLevel::Lead,
-                    timestamp: chrono::DateTime::from_timestamp_nanos(0),
+                    timestamp: past_timestamp,
                 },
             ];
             let user_ban_vec = vec![
@@ -361,7 +398,7 @@ pub mod ssr {
                     forum_id: None,
                     forum_name: None,
                     moderator_id: 0,
-                    until_timestamp: Some(chrono::DateTime::from_timestamp_nanos(0)),
+                    until_timestamp: Some(past_timestamp),
                     create_timestamp: Default::default(),
                 },
                 UserBan {
@@ -370,7 +407,7 @@ pub mod ssr {
                     forum_id: Some(0),
                     forum_name: Some(String::from("a")),
                     moderator_id: 0,
-                    until_timestamp: Some(chrono::DateTime::from_timestamp_nanos(0)),
+                    until_timestamp: Some(past_timestamp),
                     create_timestamp: Default::default(),
                 },
                 UserBan {
@@ -379,7 +416,7 @@ pub mod ssr {
                     forum_id: Some(1),
                     forum_name: Some(String::from("b")),
                     moderator_id: 0,
-                    until_timestamp: Some(chrono::offset::Utc::now().add(Days::new(1))),
+                    until_timestamp: Some(future_timestamp),
                     create_timestamp: Default::default(),
                 },
                 UserBan {
@@ -402,10 +439,16 @@ pub mod ssr {
             assert_eq!(user_1.is_deleted, false);
             assert_eq!(user_1.permission_by_forum_map[&String::from("0")], PermissionLevel::Moderate);
             assert_eq!(user_1.permission_by_forum_map[&String::from("1")], PermissionLevel::Lead);
-            assert_eq!(user_1.is_banned, false);
-            assert_eq!(user_1.banned_forum_set.contains(&String::from("a")), false);
-            assert_eq!(user_1.banned_forum_set.contains(&String::from("b")), true);
-            assert_eq!(user_1.banned_forum_set.contains(&String::from("c")), true);
+            assert_eq!(user_1.ban_status, BanStatus::None);
+            assert_eq!(user_1.ban_status_by_forum_map.get(&String::from("a")), None);
+            assert_eq!(
+                *user_1.ban_status_by_forum_map.get(&String::from("b")).expect("Did not find ban status for forum 'b'."),
+                BanStatus::Until(future_timestamp)
+            );
+            assert_eq!(
+                *user_1.ban_status_by_forum_map.get(&String::from("c")).expect("Did not find ban status for forum 'c'."),
+                BanStatus::Permanent
+            );
 
             let user_2_ban_vec = vec![
                 UserBan {
@@ -414,12 +457,12 @@ pub mod ssr {
                     forum_id: None,
                     forum_name: None,
                     moderator_id: 0,
-                    until_timestamp: Some(chrono::offset::Utc::now().add(TimeDelta::new(3600, 0).expect("Failed to increment timestamp"))),
+                    until_timestamp: Some(future_timestamp),
                     create_timestamp: Default::default(),
                 },
             ];
             let user_2 = sql_user.into_user(user_forum_role_vec, user_2_ban_vec);
-            assert_eq!(user_2.is_banned, true);
+            assert_eq!(user_2.ban_status, BanStatus::Until(future_timestamp));
         }
     }
 }
@@ -673,6 +716,10 @@ pub fn AuthCallback() -> impl IntoView {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Add;
+
+    use chrono::Days;
+
     use super::*;
 
     fn get_user_permission_map() -> HashMap<String, PermissionLevel> {
@@ -696,32 +743,51 @@ mod tests {
     fn test_user_can_ban_users() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.can_moderate_forum("a"), false);
-        assert_eq!(user.can_moderate_forum("b"), false);
-        assert_eq!(user.can_moderate_forum("c"), true);
-        assert_eq!(user.can_moderate_forum("d"), true);
+        assert_eq!(user.can_ban_users("a"), false);
+        assert_eq!(user.can_ban_users("b"), false);
+        assert_eq!(user.can_ban_users("c"), true);
+        assert_eq!(user.can_ban_users("d"), true);
     }
 
     #[test]
     fn test_user_can_configure_forum() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.can_moderate_forum("a"), false);
-        assert_eq!(user.can_moderate_forum("b"), false);
-        assert_eq!(user.can_moderate_forum("c"), false);
-        assert_eq!(user.can_moderate_forum("d"), true);
+        assert_eq!(user.can_configure_forum("a"), false);
+        assert_eq!(user.can_configure_forum("b"), false);
+        assert_eq!(user.can_configure_forum("c"), false);
+        assert_eq!(user.can_configure_forum("d"), true);
     }
 
     #[test]
     fn test_user_is_banned_from_forum() {
+        let past_timestamp = chrono::DateTime::from_timestamp_nanos(0);
+        let future_timestamp = chrono::offset::Utc::now().add(Days::new(1));
         let mut user = User::default();
-        user.banned_forum_set = HashSet::from([
-            String::from("a"),
+        user.ban_status_by_forum_map = HashMap::from([
+            (String::from("a"), BanStatus::None),
+            (String::from("b"), BanStatus::Until(past_timestamp)),
+            (String::from("c"), BanStatus::Until(future_timestamp)),
+            (String::from("d"), BanStatus::Permanent),
         ]);
-        assert_eq!(user.is_banned_from_forum("a"), true);
+        assert_eq!(user.is_banned_from_forum("a"), false);
         assert_eq!(user.is_banned_from_forum("b"), false);
-        user.is_banned = true;
+        assert_eq!(user.is_banned_from_forum("c"), true);
+        assert_eq!(user.is_banned_from_forum("d"), true);
+        user.ban_status = BanStatus::Until(past_timestamp);
+        assert_eq!(user.is_banned_from_forum("a"), false);
+        assert_eq!(user.is_banned_from_forum("b"), false);
+        assert_eq!(user.is_banned_from_forum("c"), true);
+        assert_eq!(user.is_banned_from_forum("d"), true);
+        user.ban_status = BanStatus::Until(future_timestamp);
         assert_eq!(user.is_banned_from_forum("a"), true);
         assert_eq!(user.is_banned_from_forum("b"), true);
+        assert_eq!(user.is_banned_from_forum("c"), true);
+        assert_eq!(user.is_banned_from_forum("d"), true);
+        user.ban_status = BanStatus::Permanent;
+        assert_eq!(user.is_banned_from_forum("a"), true);
+        assert_eq!(user.is_banned_from_forum("b"), true);
+        assert_eq!(user.is_banned_from_forum("c"), true);
+        assert_eq!(user.is_banned_from_forum("d"), true);
     }
 }

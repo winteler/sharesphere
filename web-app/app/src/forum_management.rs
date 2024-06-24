@@ -47,7 +47,6 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Post, AppError> {
-
         let post = if user.is_global_moderator() {
             sqlx::query_as!(
                 Post,

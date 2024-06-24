@@ -52,7 +52,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::auth::User;
-    use crate::errors::AppError;
+    use crate::errors::{AppError, AuthorizationErrorType};
 
     use super::*;
 
@@ -81,7 +81,7 @@ pub mod ssr {
                 .await?;
             Ok((user_forum_role, None))
         } else {
-            Err(AppError::AuthorizationError)
+            Err(AppError::AuthorizationError(AuthorizationErrorType::MissingPrivilege))
         }
     }
     async fn set_forum_leader(
@@ -123,7 +123,7 @@ pub mod ssr {
                         .await?;
                     Ok((user_forum_role, Some(current_leader.user_id)))
                 } else {
-                    Err(AppError::AuthorizationError)
+                    Err(AppError::AuthorizationError(AuthorizationErrorType::MissingPrivilege))
                 }
             },
             Err(sqlx::error::Error::RowNotFound) => {

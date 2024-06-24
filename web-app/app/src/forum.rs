@@ -204,6 +204,10 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Forum, AppError> {
+        if user.ban_status.is_active() {
+            return Err(AppError::new("Cannot create Sphere with empty name."));
+        }
+
         if name.is_empty() {
             return Err(AppError::new("Cannot create Sphere with empty name."));
         }

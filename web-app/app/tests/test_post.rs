@@ -12,6 +12,29 @@ pub use crate::data_factory::*;
 mod common;
 mod data_factory;
 
+pub fn test_post_vec(
+    post_vec: &Vec<Post>,
+    expected_post_vec: &Vec<Post>,
+    sort_type: PostSortType,
+    expected_user_id: i64,
+) {
+    let mut index = 0usize;
+    for post in post_vec {
+        assert_eq!(post.creator_id, expected_user_id);
+        assert!(expected_post_vec.contains(post));
+        if index > 0 {
+            let previous_post = &post_vec[index - 1];
+            assert!(match sort_type {
+                PostSortType::Hot => post.recommended_score <= previous_post.recommended_score,
+                PostSortType::Trending => post.trending_score <= previous_post.trending_score,
+                PostSortType::Best => post.score <= previous_post.score,
+                PostSortType::Recent => post.create_timestamp <= previous_post.create_timestamp,
+            });
+        }
+        index += 1;
+    }
+}
+
 #[tokio::test]
 async fn test_get_subscribed_post_vec() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;

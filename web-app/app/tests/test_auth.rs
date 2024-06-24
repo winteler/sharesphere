@@ -6,10 +6,9 @@ use app::forum_management::ssr::ban_user_from_forum;
 use app::role::PermissionLevel;
 use app::role::ssr::set_user_forum_role;
 
-pub use crate::common::*;
+use crate::common::{create_test_user, create_user, get_db_pool};
 
 mod common;
-mod data_factory;
 
 #[tokio::test]
 async fn test_user_get() -> Result<(), ServerFnError> {

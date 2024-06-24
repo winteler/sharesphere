@@ -221,7 +221,7 @@ pub fn NetworkErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> i
 }
 
 #[component]
-pub fn NotAuthenticatedIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+pub fn NotAuthorizedIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/errors/stormtrooper.svg" class=class/>
     }

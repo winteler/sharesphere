@@ -85,7 +85,7 @@ impl Default for User {
 
 impl User {
     pub fn is_global_moderator(&self) -> bool {
-        self.admin_role > AdminRole::Moderator
+        self.admin_role >= AdminRole::Moderator
     }
 
     pub fn is_admin(&self) -> bool {
@@ -739,6 +739,8 @@ mod tests {
             (String::from("b"), PermissionLevel::Moderate),
             (String::from("c"), PermissionLevel::Ban),
             (String::from("d"), PermissionLevel::Configure),
+            (String::from("e"), PermissionLevel::Elect),
+            (String::from("f"), PermissionLevel::Lead),
         ])
     }
 
@@ -772,6 +774,8 @@ mod tests {
         assert_eq!(user.can_moderate_forum("b"), true);
         assert_eq!(user.can_moderate_forum("c"), true);
         assert_eq!(user.can_moderate_forum("d"), true);
+        assert_eq!(user.can_moderate_forum("e"), true);
+        assert_eq!(user.can_moderate_forum("f"), true);
     }
 
     #[test]
@@ -782,6 +786,8 @@ mod tests {
         assert_eq!(user.can_ban_users("b"), false);
         assert_eq!(user.can_ban_users("c"), true);
         assert_eq!(user.can_ban_users("d"), true);
+        assert_eq!(user.can_ban_users("e"), true);
+        assert_eq!(user.can_ban_users("f"), true);
     }
 
     #[test]
@@ -792,6 +798,31 @@ mod tests {
         assert_eq!(user.can_configure_forum("b"), false);
         assert_eq!(user.can_configure_forum("c"), false);
         assert_eq!(user.can_configure_forum("d"), true);
+        assert_eq!(user.can_configure_forum("e"), true);
+        assert_eq!(user.can_configure_forum("f"), true);
+    }
+    #[test]
+    fn test_user_can_elect_in_forum() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.can_elect_in_forum("a"), false);
+        assert_eq!(user.can_elect_in_forum("b"), false);
+        assert_eq!(user.can_elect_in_forum("c"), false);
+        assert_eq!(user.can_elect_in_forum("d"), false);
+        assert_eq!(user.can_elect_in_forum("e"), true);
+        assert_eq!(user.can_elect_in_forum("f"), true);
+    }
+
+    #[test]
+    fn test_user_is_forum_leader() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.is_forum_leader("a"), false);
+        assert_eq!(user.is_forum_leader("b"), false);
+        assert_eq!(user.is_forum_leader("c"), false);
+        assert_eq!(user.is_forum_leader("d"), false);
+        assert_eq!(user.is_forum_leader("e"), false);
+        assert_eq!(user.is_forum_leader("f"), true);
     }
 
     #[test]

@@ -18,6 +18,7 @@ use crate::app::GlobalState;
 use crate::app::ssr::{get_db_pool, get_session};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::{check_user, create_user, SqlUser};
+use crate::errors::AppError;
 use crate::navigation_bar::get_current_path;
 use crate::role::{AdminRole, PermissionLevel};
 use crate::unpack::SuspenseUnpack;
@@ -118,6 +119,22 @@ impl User {
 
     pub fn is_banned_from_forum(&self, forum_name: &str) -> bool {
         self.ban_status.is_active() || self.ban_status_by_forum_map.get(forum_name).is_some_and(|ban_status| ban_status.is_active())
+    }
+
+    pub fn check_forum_ban(&self, forum_name: &str) -> Result<(), AppError> {
+        if self.ban_status.is_active() {
+            match self.ban_status {
+                BanStatus::Until(timestamp) => Err(AppError::GlobalBanUntil(timestamp)),
+                BanStatus::Permanent => Err(AppError::PermanentGlobalBan),
+                BanStatus::None => Err(AppError::InternalServerError(String::from("User with BanStatus::None despite ban_status.is_active == true"))), // should never happen
+            }
+        } else {
+            match self.ban_status_by_forum_map.get(forum_name) {
+                Some(BanStatus::Until(timestamp)) => Err(AppError::ForumBanUntil(*timestamp)),
+                Some(BanStatus::Permanent) => Err(AppError::PermanentForumBan),
+                _ => Ok(())
+            }
+        }
     }
 }
 

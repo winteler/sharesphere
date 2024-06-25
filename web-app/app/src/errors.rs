@@ -13,21 +13,18 @@ const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you";
 const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong";
 const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not resist";
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AuthorizationErrorType {
-    MissingPrivilege,
-    ForumBan(Option<chrono::DateTime<chrono::Utc>>),
-    GlobalBan(Option<chrono::DateTime<chrono::Utc>>),
-}
-
 #[derive(Clone, Debug, Error, Serialize, Deserialize)]
 pub enum AppError {
     AuthenticationError(String),
-    AuthorizationError(AuthorizationErrorType),
+    NotAuthenticated,
+    MissingPrivilege,
+    ForumBanUntil(chrono::DateTime<chrono::Utc>),
+    PermanentForumBan,
+    GlobalBanUntil(chrono::DateTime<chrono::Utc>),
+    PermanentGlobalBan,
     CommunicationError(ServerFnError),
     DatabaseError(String),
     InternalServerError(String),
-    NotAuthenticated,
     NotFound,
 }
 
@@ -35,7 +32,8 @@ impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             AppError::AuthenticationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::AuthorizationError(_) => StatusCode::FORBIDDEN,
+            AppError::NotAuthenticated | AppError::MissingPrivilege | AppError::ForumBanUntil(_) |
+            AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => StatusCode::FORBIDDEN,
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) => StatusCode::BAD_REQUEST,
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
@@ -43,7 +41,6 @@ impl AppError {
             },
             AppError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::NotAuthenticated => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
         }
     }
@@ -51,23 +48,11 @@ impl AppError {
     pub fn user_message(&self) -> String {
         match self {
             AppError::AuthenticationError(_) => String::from(AUTH_FAILED_MESSAGE),
-            AppError::AuthorizationError(error_type) => {
-                match error_type {
-                    AuthorizationErrorType::MissingPrivilege => String::from(NOT_AUTHORIZED_MESSAGE),
-                    AuthorizationErrorType::ForumBan(until_timestamp) => {
-                        match until_timestamp {
-                            Some(until_timestamp) => format!("You are banned from this forum until {}", until_timestamp.to_string()),
-                            None => String::from("You are permanently banned from this forum."),
-                        }
-                    },
-                    AuthorizationErrorType::GlobalBan(until_timestamp) => {
-                        match until_timestamp {
-                            Some(until_timestamp) => format!("You are globally banned until {}", until_timestamp.to_string()),
-                            None => String::from("You are permanently banned from this website."),
-                        }
-                    },
-                }
-            },
+            AppError::NotAuthenticated | AppError::MissingPrivilege => String::from(NOT_AUTHORIZED_MESSAGE),
+            AppError::ForumBanUntil(timestamp) => format!("You are banned from this forum until {}", timestamp.to_string()),
+            AppError::PermanentForumBan => String::from("You are permanently banned from this forum."),
+            AppError::GlobalBanUntil(timestamp) => format!("You are globally banned until {}", timestamp.to_string()),
+            AppError::PermanentGlobalBan => String::from("You are permanently banned from this website."),
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) => String::from("Sorry, we didn't understand your request"),
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => String::from("Sorry, we've got noise on the line."),
@@ -75,7 +60,6 @@ impl AppError {
             },
             AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
             AppError::InternalServerError(_) => String::from(INTERNAL_ERROR_MESSAGE),
-            AppError::NotAuthenticated => String::from(NOT_AUTHORIZED_MESSAGE),
             AppError::NotFound => String::from("There's nothing here"),
         }
     }
@@ -161,7 +145,8 @@ pub fn AppErrorIcon(
 ) -> impl IntoView {
     match app_error {
         AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> },
-        AppError::AuthorizationError(_) => view! { <NotAuthorizedIcon/> }, // TODO better icon for bans (judge, hammer?)
+        AppError::NotAuthenticated | AppError::MissingPrivilege |AppError::ForumBanUntil(_) |
+        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <NotAuthorizedIcon/> }, // TODO better icon for bans (judge, hammer?)
         AppError::CommunicationError(error) => match error {
             ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> },
             ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> },
@@ -169,7 +154,6 @@ pub fn AppErrorIcon(
         },
         AppError::DatabaseError(_) => view! { <InternalErrorIcon/> },
         AppError::InternalServerError(_) => view! { <InternalErrorIcon/> },
-        AppError::NotAuthenticated => view! { <NotAuthorizedIcon/> },
         AppError::NotFound => view! { <NotFoundIcon/> },
     }
 }

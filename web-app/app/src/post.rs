@@ -100,6 +100,7 @@ pub mod ssr {
 
     use crate::auth::User;
     use crate::errors::AppError;
+    use crate::forum::Forum;
     use crate::ranking::VoteValue;
 
     use super::*;
@@ -165,6 +166,7 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Post, AppError> {
+        user.check_forum_ban(forum_name)?;
         if forum_name.is_empty() || post_title.is_empty() {
             return Err(AppError::new(
                 "Cannot create content without a valid forum and title.",
@@ -282,6 +284,24 @@ pub mod ssr {
         .await?;
 
         Ok(post_join_vote.into_post_with_info(user))
+    }
+
+    pub async fn get_post_forum(
+        post_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Forum, AppError> {
+        let forum = sqlx::query_as!(
+            Forum,
+            "SELECT f.*
+            FROM forums f
+            JOIN posts p on p.forum_id = f.forum_id
+            WHERE p.post_id = $1",
+            post_id
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(forum)
     }
 
     pub async fn get_post_vec_by_forum_name(

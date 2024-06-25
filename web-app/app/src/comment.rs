@@ -81,6 +81,7 @@ pub mod ssr {
     use crate::auth::User;
     use crate::errors::AppError;
     use crate::forum::Forum;
+    use crate::post::ssr::get_post_forum;
     use crate::ranking::VoteValue;
 
     use super::*;
@@ -158,6 +159,8 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Comment, AppError> {
+        let forum = get_post_forum(post_id, &db_pool).await?;
+        user.check_forum_ban(&forum.forum_name)?;
         if comment.is_empty() {
             return Err(AppError::new("Cannot create empty comment."));
         }

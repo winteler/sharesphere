@@ -156,6 +156,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: PgPool,
     ) -> Result<Option<UserBan>, AppError> {
+        println!("User {} tries to ban {user_id}: {}, {}, {}", user.user_id, user.can_moderate_forum(&forum_name), user.user_id != user_id, !is_user_forum_moderator(user_id, forum_name, &db_pool).await?);
         if user.can_moderate_forum(&forum_name) && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
@@ -195,7 +196,7 @@ pub mod ssr {
             };
             Ok(user_ban)
         } else {
-            Err(AppError::InternalServerError(String::from("Error while trying to ban user. Insufficient permissions or user is a moderator of the forum.")))
+            Err(AppError::InternalServerError(format!("Error while trying to ban user {user_id}. Insufficient permissions or user is a moderator of the forum.")))
         }
     }
 

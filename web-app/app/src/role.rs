@@ -51,7 +51,7 @@ impl From<String> for AdminRole {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::User;
+    use crate::auth::{ssr::SqlUser, User};
     use crate::errors::AppError;
 
     use super::*;
@@ -81,7 +81,7 @@ pub mod ssr {
                 .await?;
             Ok((user_forum_role, None))
         } else {
-            Err(AppError::MissingPrivilege)
+            Err(AppError::InsufficientPrivilege)
         }
     }
     async fn set_forum_leader(
@@ -123,7 +123,7 @@ pub mod ssr {
                         .await?;
                     Ok((user_forum_role, Some(current_leader.user_id)))
                 } else {
-                    Err(AppError::MissingPrivilege)
+                    Err(AppError::InsufficientPrivilege)
                 }
             },
             Err(sqlx::error::Error::RowNotFound) => {
@@ -144,6 +144,33 @@ pub mod ssr {
                 log::error!("Failed to set forum leader with error: {e}");
                 Err(e.into())
             }
+        }
+    }
+
+    pub async fn set_user_admin_role(
+        user_id: i64,
+        admin_role: AdminRole,
+        grantor: &User,
+        db_pool: PgPool,
+    ) -> Result<SqlUser, AppError> {
+        if grantor.is_admin() {
+            let admin_role_str: &str = admin_role.into();
+            let sql_user = sqlx::query_as!(
+                SqlUser,
+                "UPDATE users \
+                SET \
+                    admin_role = $1, \
+                    timestamp = CURRENT_TIMESTAMP \
+                WHERE user_id = $2 \
+                RETURNING *",
+                admin_role_str,
+                user_id,
+            )
+                .fetch_one(&db_pool)
+                .await?;
+            Ok(sql_user)
+        } else {
+            Err(AppError::InsufficientPrivilege)
         }
     }
 }

@@ -9,6 +9,7 @@ use app::forum::ssr::create_forum;
 use app::forum_management::ssr::{ban_user_from_forum, moderate_comment, moderate_post};
 use app::post::ssr::create_post;
 use app::role::AdminRole;
+use app::role::ssr::set_user_admin_role;
 
 use crate::common::*;
 
@@ -72,39 +73,60 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
     let mut global_moderator = create_user("mod", "mod", "mod", &db_pool).await;
+    let mut admin = create_user("admin", "admin", "admin", &db_pool).await;
+    // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
     global_moderator.admin_role = AdminRole::Moderator;
+    admin.admin_role = AdminRole::Admin;
+    set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, db_pool.clone()).await?;
+    set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, db_pool.clone()).await?;
     let unauthorized_user = create_user("user", "user", "user", &db_pool).await;
     let banned_user = create_user("banned", "banned", "banned", &db_pool).await;
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
     let test_user = User::get(test_user.user_id, &db_pool).await.expect("Could not reload test user to update roles.");
 
-    assert!(ban_user_from_forum(global_moderator.user_id, &forum.forum_name, &unauthorized_user, None, db_pool.clone()).await.is_err());
+    // unauthorized used cannot ban
+    assert!(ban_user_from_forum(banned_user.user_id, &forum.forum_name, &unauthorized_user, None, db_pool.clone()).await.is_err());
+    // ban with 0 days has no effect
     assert_eq!(ban_user_from_forum(unauthorized_user.user_id, &forum.forum_name, &test_user, Some(0), db_pool.clone()).await?, None);
     let post = create_post(&forum.forum_name, "a", "b", None, false, None, &unauthorized_user, db_pool.clone()).await?;
 
-    let user_ban = ban_user_from_forum(unauthorized_user.user_id, &forum.forum_name, &global_moderator, Some(1), db_pool.clone()).await?.expect("Expected Some(user_ban).");
+    // cannot ban moderators
+    assert!(ban_user_from_forum(test_user.user_id, &forum.forum_name, &global_moderator, Some(1), db_pool.clone()).await.is_err());
+    assert!(ban_user_from_forum(global_moderator.user_id, &forum.forum_name, &test_user, Some(1), db_pool.clone()).await.is_err());
+    assert!(ban_user_from_forum(admin.user_id, &forum.forum_name, &test_user, Some(1), db_pool.clone()).await.is_err());
+    assert!(ban_user_from_forum(test_user.user_id, &forum.forum_name, &admin, Some(1), db_pool.clone()).await.is_err());
+
+    // forum moderator can ban ordinary users
+    let user_ban = ban_user_from_forum(unauthorized_user.user_id, &forum.forum_name, &test_user, Some(1), db_pool.clone()).await?.expect("Expected Some(user_ban).");
     assert_eq!(user_ban.user_id, unauthorized_user.user_id);
     assert_eq!(user_ban.forum_id, Some(forum.forum_id));
     assert_eq!(user_ban.forum_name, Some(forum.forum_name.clone()));
-    assert_eq!(user_ban.moderator_id, global_moderator.user_id);
+    assert_eq!(user_ban.moderator_id, test_user.user_id);
     assert_eq!(user_ban.until_timestamp, Some(user_ban.create_timestamp.add(Days::new(1))));
 
+    // banned user cannot create new content
     let unauthorized_user = User::get(unauthorized_user.user_id, &db_pool).await.expect("Could not reload unauthorized user to update roles.");
     assert!(create_post(&forum.forum_name, "c", "d", None, false, None, &unauthorized_user, db_pool.clone()).await.is_err());
     assert!(create_comment(post.post_id, None, "a", None, &unauthorized_user, db_pool.clone()).await.is_err());
 
-    assert!(ban_user_from_forum(test_user.user_id, &forum.forum_name, &global_moderator, Some(1), db_pool.clone()).await.is_err());
-    // TODO: need to set global moderator in DB for next line to pass
-    // assert!(ban_user_from_forum(global_moderator.user_id, &forum.forum_name, &test_user, Some(1), db_pool.clone()).await.is_err());
-
-    let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &test_user, None, db_pool.clone()).await?.expect("Expected Some(user_ban).");
+    // global moderator can ban ordinary users
+    let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &global_moderator, Some(2), db_pool.clone()).await?.expect("Expected Some(user_ban).");
     assert_eq!(user_ban.user_id, banned_user.user_id);
     assert_eq!(user_ban.forum_id, Some(forum.forum_id));
     assert_eq!(user_ban.forum_name, Some(forum.forum_name.clone()));
-    assert_eq!(user_ban.moderator_id, test_user.user_id);
+    assert_eq!(user_ban.moderator_id, global_moderator.user_id);
+    assert_eq!(user_ban.until_timestamp, Some(user_ban.create_timestamp.add(Days::new(2))));
+
+    // global moderator can ban ordinary users
+    let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &admin, None, db_pool.clone()).await?.expect("Expected Some(user_ban).");
+    assert_eq!(user_ban.user_id, banned_user.user_id);
+    assert_eq!(user_ban.forum_id, Some(forum.forum_id));
+    assert_eq!(user_ban.forum_name, Some(forum.forum_name.clone()));
+    assert_eq!(user_ban.moderator_id, admin.user_id);
     assert_eq!(user_ban.until_timestamp, None);
 
+    // banned user cannot create new content
     let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Could not reload banned user to update roles.");
     assert!(create_post(&forum.forum_name, "c", "d", None, false, None, &banned_user, db_pool.clone()).await.is_err());
     assert!(create_comment(post.post_id, None, "a", None, &banned_user, db_pool.clone()).await.is_err());

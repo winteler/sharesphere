@@ -1,6 +1,10 @@
+use std::ops::Add;
+
+use chrono::Days;
 use leptos::ServerFnError;
 
 use app::auth::User;
+use app::errors::AppError;
 use app::forum::ssr::create_forum;
 use app::forum_management::ssr::ban_user_from_forum;
 use app::role::PermissionLevel;
@@ -29,8 +33,8 @@ async fn test_user_get() -> Result<(), ServerFnError> {
     set_user_forum_role(forum_b.forum_id, &forum_b.forum_name, test_user.user_id, PermissionLevel::Elect, &creator_user, db_pool.clone()).await?;
 
     ban_user_from_forum(test_user.user_id, &forum_c.forum_name, &creator_user, Some(0), db_pool.clone()).await?;
-    ban_user_from_forum(test_user.user_id, &forum_d.forum_name, &creator_user, Some(1), db_pool.clone()).await?;
-    ban_user_from_forum(test_user.user_id, &forum_e.forum_name, &creator_user, None, db_pool.clone()).await?;
+    let forum_ban_d = ban_user_from_forum(test_user.user_id, &forum_d.forum_name, &creator_user, Some(1), db_pool.clone()).await?.expect("Expected forum ban for forum d.");
+    ban_user_from_forum(test_user.user_id, &forum_e.forum_name, &creator_user, None, db_pool.clone()).await?.expect("Expected forum ban for forum e.");
 
     let result_user = User::get(test_user.user_id, &db_pool).await.expect("Could not get result user.");
 
@@ -40,11 +44,11 @@ async fn test_user_get() -> Result<(), ServerFnError> {
     assert_eq!(result_user.can_moderate_forum(&forum_d.forum_name), false);
     assert_eq!(result_user.can_moderate_forum(&forum_e.forum_name), false);
 
-    assert_eq!(result_user.is_banned_from_forum(&forum_a.forum_name), false);
-    assert_eq!(result_user.is_banned_from_forum(&forum_b.forum_name), false);
-    assert_eq!(result_user.is_banned_from_forum(&forum_c.forum_name), false);
-    assert_eq!(result_user.is_banned_from_forum(&forum_d.forum_name), true);
-    assert_eq!(result_user.is_banned_from_forum(&forum_e.forum_name), true);
+    assert_eq!(result_user.check_forum_ban(&forum_a.forum_name), Ok(()));
+    assert_eq!(result_user.check_forum_ban(&forum_b.forum_name), Ok(()));
+    assert_eq!(result_user.check_forum_ban(&forum_c.forum_name), Ok(()));
+    assert_eq!(result_user.check_forum_ban(&forum_d.forum_name), Err(AppError::ForumBanUntil(forum_ban_d.create_timestamp.add(Days::new(1)))));
+    assert_eq!(result_user.check_forum_ban(&forum_e.forum_name), Err(AppError::PermanentForumBan));
 
     // TODO test global ban when ssr function is implemented
 

@@ -13,7 +13,7 @@ const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you";
 const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong";
 const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not resist";
 
-#[derive(Clone, Debug, Error, Serialize, Deserialize)]
+#[derive(Clone, Debug, Error, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AppError {
     AuthenticationError(String),
     NotAuthenticated,

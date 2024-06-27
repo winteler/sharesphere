@@ -166,7 +166,7 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Post, AppError> {
-        user.check_forum_ban(forum_name)?;
+        user.can_publish_on_forum(forum_name)?;
         if forum_name.is_empty() || post_title.is_empty() {
             return Err(AppError::new(
                 "Cannot create content without a valid forum and title.",
@@ -562,13 +562,13 @@ pub fn Post() -> impl IntoView {
     let user_state = ModerateState {
         can_moderate: Signal::derive(
             move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.can_moderate_forum(forum_name)),
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_can_moderate_forum(forum_name).is_ok()),
                 _ => false,
             })
         ),
         can_ban: Signal::derive(
             move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.can_ban_users(forum_name)),
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_can_ban_users(forum_name).is_ok()),
                 _ => false,
             })
         ),

@@ -38,17 +38,17 @@ async fn test_user_get() -> Result<(), ServerFnError> {
 
     let result_user = User::get(test_user.user_id, &db_pool).await.expect("Could not get result user.");
 
-    assert_eq!(result_user.can_moderate_forum(&forum_a.forum_name), true);
-    assert_eq!(result_user.can_moderate_forum(&forum_b.forum_name), true);
-    assert_eq!(result_user.can_moderate_forum(&forum_c.forum_name), false);
-    assert_eq!(result_user.can_moderate_forum(&forum_d.forum_name), false);
-    assert_eq!(result_user.can_moderate_forum(&forum_e.forum_name), false);
+    assert_eq!(result_user.check_can_moderate_forum(&forum_a.forum_name), Ok(()));
+    assert_eq!(result_user.check_can_moderate_forum(&forum_b.forum_name), Ok(()));
+    assert_eq!(result_user.check_can_moderate_forum(&forum_c.forum_name), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_can_moderate_forum(&forum_d.forum_name), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_can_moderate_forum(&forum_e.forum_name), Err(AppError::InsufficientPrivileges));
 
-    assert_eq!(result_user.check_forum_ban(&forum_a.forum_name), Ok(()));
-    assert_eq!(result_user.check_forum_ban(&forum_b.forum_name), Ok(()));
-    assert_eq!(result_user.check_forum_ban(&forum_c.forum_name), Ok(()));
-    assert_eq!(result_user.check_forum_ban(&forum_d.forum_name), Err(AppError::ForumBanUntil(forum_ban_d.create_timestamp.add(Days::new(1)))));
-    assert_eq!(result_user.check_forum_ban(&forum_e.forum_name), Err(AppError::PermanentForumBan));
+    assert_eq!(result_user.can_publish_on_forum(&forum_a.forum_name), Ok(()));
+    assert_eq!(result_user.can_publish_on_forum(&forum_b.forum_name), Ok(()));
+    assert_eq!(result_user.can_publish_on_forum(&forum_c.forum_name), Ok(()));
+    assert_eq!(result_user.can_publish_on_forum(&forum_d.forum_name), Err(AppError::ForumBanUntil(forum_ban_d.create_timestamp.add(Days::new(1)))));
+    assert_eq!(result_user.can_publish_on_forum(&forum_e.forum_name), Err(AppError::PermanentForumBan));
 
     // TODO test global ban when ssr function is implemented
 

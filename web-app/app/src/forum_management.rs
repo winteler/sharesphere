@@ -47,7 +47,7 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Post, AppError> {
-        let post = if user.is_global_moderator() {
+        let post = if user.check_is_global_moderator().is_ok() {
             sqlx::query_as!(
                 Post,
                 "UPDATE posts SET
@@ -100,7 +100,7 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Comment, AppError> {
-        let comment = if user.is_global_moderator() {
+        let comment = if user.check_is_global_moderator().is_ok() {
             sqlx::query_as!(
                 Comment,
                 "UPDATE comments SET
@@ -156,7 +156,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.can_moderate_forum(&forum_name) && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
+        if user.check_can_moderate_forum(&forum_name).is_ok() && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
                 Some(ban_duration) => {
@@ -205,7 +205,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<bool, AppError> {
         match User::get(user_id, db_pool).await {
-            Some(user) => Ok(user.can_moderate_forum(&forum)),
+            Some(user) => Ok(user.check_can_moderate_forum(&forum).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
     }

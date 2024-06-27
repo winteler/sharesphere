@@ -17,7 +17,7 @@ const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not
 pub enum AppError {
     AuthenticationError(String),
     NotAuthenticated,
-    InsufficientPrivilege,
+    InsufficientPrivileges,
     ForumBanUntil(chrono::DateTime<chrono::Utc>),
     PermanentForumBan,
     GlobalBanUntil(chrono::DateTime<chrono::Utc>),
@@ -32,7 +32,7 @@ impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             AppError::AuthenticationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::NotAuthenticated | AppError::InsufficientPrivilege | AppError::ForumBanUntil(_) |
+            AppError::NotAuthenticated | AppError::InsufficientPrivileges | AppError::ForumBanUntil(_) |
             AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => StatusCode::FORBIDDEN,
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) => StatusCode::BAD_REQUEST,
@@ -48,7 +48,7 @@ impl AppError {
     pub fn user_message(&self) -> String {
         match self {
             AppError::AuthenticationError(_) => String::from(AUTH_FAILED_MESSAGE),
-            AppError::NotAuthenticated | AppError::InsufficientPrivilege => String::from(NOT_AUTHORIZED_MESSAGE),
+            AppError::NotAuthenticated | AppError::InsufficientPrivileges => String::from(NOT_AUTHORIZED_MESSAGE),
             AppError::ForumBanUntil(timestamp) => format!("You are banned from this forum until {}", timestamp.to_string()),
             AppError::PermanentForumBan => String::from("You are permanently banned from this forum."),
             AppError::GlobalBanUntil(timestamp) => format!("You are globally banned until {}", timestamp.to_string()),
@@ -145,7 +145,7 @@ pub fn AppErrorIcon(
 ) -> impl IntoView {
     match app_error {
         AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> },
-        AppError::NotAuthenticated | AppError::InsufficientPrivilege |AppError::ForumBanUntil(_) |
+        AppError::NotAuthenticated | AppError::InsufficientPrivileges |AppError::ForumBanUntil(_) |
         AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <NotAuthorizedIcon/> }, // TODO better icon for bans (judge, hammer?)
         AppError::CommunicationError(error) => match error {
             ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> },

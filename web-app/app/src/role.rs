@@ -66,7 +66,8 @@ pub mod ssr {
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
         if permission_level == PermissionLevel::Lead {
             set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool.clone()).await
-        } else if grantor.can_elect_in_forum(forum_name) {
+        } else {
+            grantor.check_can_elect_in_forum(forum_name)?;
             let permission_level_str: &str = permission_level.into();
             let user_forum_role = sqlx::query_as!(
                 UserForumRole,
@@ -80,8 +81,6 @@ pub mod ssr {
                 .fetch_one(&db_pool)
                 .await?;
             Ok((user_forum_role, None))
-        } else {
-            Err(AppError::InsufficientPrivilege)
         }
     }
     async fn set_forum_leader(
@@ -105,8 +104,8 @@ pub mod ssr {
 
         match current_leader {
             Ok(current_leader) => {
-                if grantor.is_forum_leader(forum_name) {
-                    let user_forum_role = sqlx::query_as!(
+                grantor.check_is_forum_leader(forum_name)?;
+                let user_forum_role = sqlx::query_as!(
                     UserForumRole,
                     "UPDATE user_forum_roles \
                     SET \
@@ -119,12 +118,9 @@ pub mod ssr {
                     grantor.user_id,
                     current_leader.role_id,
                 )
-                        .fetch_one(&db_pool)
-                        .await?;
-                    Ok((user_forum_role, Some(current_leader.user_id)))
-                } else {
-                    Err(AppError::InsufficientPrivilege)
-                }
+                    .fetch_one(&db_pool)
+                    .await?;
+                Ok((user_forum_role, Some(current_leader.user_id)))
             },
             Err(sqlx::error::Error::RowNotFound) => {
                 let user_forum_role = sqlx::query_as!(
@@ -141,7 +137,7 @@ pub mod ssr {
                 Ok((user_forum_role, None))
             },
             Err(e) => {
-                log::error!("Failed to set forum leader with error: {e}");
+                log::error!("Failed to get current forum leader with error: {e}");
                 Err(e.into())
             }
         }
@@ -153,24 +149,21 @@ pub mod ssr {
         grantor: &User,
         db_pool: PgPool,
     ) -> Result<SqlUser, AppError> {
-        if grantor.is_admin() {
-            let admin_role_str: &str = admin_role.into();
-            let sql_user = sqlx::query_as!(
-                SqlUser,
-                "UPDATE users \
-                SET \
-                    admin_role = $1, \
-                    timestamp = CURRENT_TIMESTAMP \
-                WHERE user_id = $2 \
-                RETURNING *",
-                admin_role_str,
-                user_id,
-            )
-                .fetch_one(&db_pool)
-                .await?;
-            Ok(sql_user)
-        } else {
-            Err(AppError::InsufficientPrivilege)
-        }
+        grantor.check_is_admin()?;
+        let admin_role_str: &str = admin_role.into();
+        let sql_user = sqlx::query_as!(
+            SqlUser,
+            "UPDATE users \
+            SET \
+                admin_role = $1, \
+                timestamp = CURRENT_TIMESTAMP \
+            WHERE user_id = $2 \
+            RETURNING *",
+            admin_role_str,
+            user_id,
+        )
+            .fetch_one(&db_pool)
+            .await?;
+        Ok(sql_user)
     }
 }

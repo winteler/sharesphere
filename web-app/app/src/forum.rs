@@ -522,7 +522,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
     let forum_id = forum.forum.forum_id;
     let forum_name = forum.forum.forum_name.clone();
     let can_manage_forum = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => user.can_configure_forum(&forum_name),
+        Some(Ok(Some(user))) => user.check_can_configure_forum(&forum_name).is_ok(),
         _ => false,
     }));
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());

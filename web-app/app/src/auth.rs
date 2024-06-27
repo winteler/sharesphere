@@ -85,39 +85,55 @@ impl Default for User {
 }
 
 impl User {
-    pub fn is_global_moderator(&self) -> bool {
-        self.admin_role >= AdminRole::Moderator
+    fn check_admin_role(&self, req_admin_role: AdminRole) -> Result<(), AppError> {
+        match self.admin_role >= req_admin_role {
+            true => Ok(()),
+            false => Err(AppError::InsufficientPrivileges),
+        }
     }
 
-    pub fn is_admin(&self) -> bool {
-        self.admin_role == AdminRole::Admin
+    fn check_forum_permissions(&self, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        match self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= req_permission_level) {
+            true => Ok(()),
+            false => Err(AppError::InsufficientPrivileges)
+        }
     }
 
-    pub fn can_moderate_forum(&self, forum_name: &str) -> bool {
-        self.admin_role >= AdminRole::Moderator ||
-        self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Moderate)
+    fn check_permissions(&self, req_admin_role: AdminRole, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        match self.check_admin_role(req_admin_role).is_ok() || self.check_forum_permissions(forum_name, req_permission_level).is_ok() {
+            true => Ok(()),
+            false => Err(AppError::InsufficientPrivileges)
+        }
+    }
+    pub fn check_is_global_moderator(&self) -> Result<(), AppError> {
+        self.check_admin_role(AdminRole::Moderator)
     }
 
-    pub fn can_ban_users(&self, forum_name: &str) -> bool {
-        self.admin_role >= AdminRole::Moderator ||
-            self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Ban)
+    pub fn check_is_admin(&self) -> Result<(), AppError> {
+        self.check_admin_role(AdminRole::Admin)
     }
 
-    pub fn can_configure_forum(&self, forum_name: &str) -> bool {
-        self.admin_role >= AdminRole::Admin ||
-            self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Configure)
+    pub fn check_can_moderate_forum(&self, forum_name: &str) -> Result<(), AppError> {
+        self.check_permissions(AdminRole::Moderator, forum_name, PermissionLevel::Moderate)
     }
 
-    pub fn can_elect_in_forum(&self, forum_name: &str) -> bool {
-        self.admin_role >= AdminRole::Admin ||
-            self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= PermissionLevel::Elect)
+    pub fn check_can_ban_users(&self, forum_name: &str) -> Result<(), AppError> {
+        self.check_permissions(AdminRole::Moderator, forum_name, PermissionLevel::Ban)
     }
 
-    pub fn is_forum_leader(&self, forum_name: &str) -> bool {
-        self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level == PermissionLevel::Lead)
+    pub fn check_can_configure_forum(&self, forum_name: &str) -> Result<(), AppError> {
+        self.check_permissions(AdminRole::Admin, forum_name, PermissionLevel::Configure)
     }
 
-    pub fn check_forum_ban(&self, forum_name: &str) -> Result<(), AppError> {
+    pub fn check_can_elect_in_forum(&self, forum_name: &str) -> Result<(), AppError> {
+        self.check_permissions(AdminRole::Admin, forum_name, PermissionLevel::Elect)
+    }
+
+    pub fn check_is_forum_leader(&self, forum_name: &str) -> Result<(), AppError> {
+        self.check_forum_permissions(forum_name, PermissionLevel::Lead)
+    }
+
+    pub fn can_publish_on_forum(&self, forum_name: &str) -> Result<(), AppError> {
         if self.ban_status.is_active() {
             match self.ban_status {
                 BanStatus::Until(timestamp) => Err(AppError::GlobalBanUntil(timestamp)),
@@ -783,66 +799,114 @@ mod tests {
     }
 
     #[test]
-    fn test_user_can_moderate() {
+    fn test_user_check_admin_role() {
         let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.can_moderate_forum("a"), false);
-        assert_eq!(user.can_moderate_forum("b"), true);
-        assert_eq!(user.can_moderate_forum("c"), true);
-        assert_eq!(user.can_moderate_forum("d"), true);
-        assert_eq!(user.can_moderate_forum("e"), true);
-        assert_eq!(user.can_moderate_forum("f"), true);
+        assert_eq!(user.check_admin_role(AdminRole::None), Ok(()));
+        assert_eq!(user.check_admin_role(AdminRole::Moderator), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_admin_role(AdminRole::Admin), Err(AppError::InsufficientPrivileges));
+        user.admin_role = AdminRole::Moderator;
+        assert_eq!(user.check_admin_role(AdminRole::None), Ok(()));
+        assert_eq!(user.check_admin_role(AdminRole::Moderator), Ok(()));
+        assert_eq!(user.check_admin_role(AdminRole::Admin), Err(AppError::InsufficientPrivileges));
+        user.admin_role = AdminRole::Admin;
+        assert_eq!(user.check_admin_role(AdminRole::None), Ok(()));
+        assert_eq!(user.check_admin_role(AdminRole::Moderator), Ok(()));
+        assert_eq!(user.check_admin_role(AdminRole::Admin), Ok(()));
     }
 
     #[test]
-    fn test_user_can_ban_users() {
+    fn test_user_check_can_moderate() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.can_ban_users("a"), false);
-        assert_eq!(user.can_ban_users("b"), false);
-        assert_eq!(user.can_ban_users("c"), true);
-        assert_eq!(user.can_ban_users("d"), true);
-        assert_eq!(user.can_ban_users("e"), true);
-        assert_eq!(user.can_ban_users("f"), true);
+        assert_eq!(user.check_can_moderate_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_moderate_forum("b"), Ok(()));
+        assert_eq!(user.check_can_moderate_forum("c"), Ok(()));
+        assert_eq!(user.check_can_moderate_forum("d"), Ok(()));
+        assert_eq!(user.check_can_moderate_forum("e"), Ok(()));
+        assert_eq!(user.check_can_moderate_forum("f"), Ok(()));
+        let mut admin = User::default();
+        admin.admin_role = AdminRole::Moderator;
+        assert_eq!(admin.check_can_moderate_forum("a"), Ok(()));
+        admin.admin_role = AdminRole::Admin;
+        assert_eq!(admin.check_can_moderate_forum("a"), Ok(()));
     }
 
     #[test]
-    fn test_user_can_configure_forum() {
+    fn test_user_check_can_ban_users() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.can_configure_forum("a"), false);
-        assert_eq!(user.can_configure_forum("b"), false);
-        assert_eq!(user.can_configure_forum("c"), false);
-        assert_eq!(user.can_configure_forum("d"), true);
-        assert_eq!(user.can_configure_forum("e"), true);
-        assert_eq!(user.can_configure_forum("f"), true);
-    }
-    #[test]
-    fn test_user_can_elect_in_forum() {
-        let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.can_elect_in_forum("a"), false);
-        assert_eq!(user.can_elect_in_forum("b"), false);
-        assert_eq!(user.can_elect_in_forum("c"), false);
-        assert_eq!(user.can_elect_in_forum("d"), false);
-        assert_eq!(user.can_elect_in_forum("e"), true);
-        assert_eq!(user.can_elect_in_forum("f"), true);
+        assert_eq!(user.check_can_ban_users("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_ban_users("b"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_ban_users("c"), Ok(()));
+        assert_eq!(user.check_can_ban_users("d"), Ok(()));
+        assert_eq!(user.check_can_ban_users("e"), Ok(()));
+        assert_eq!(user.check_can_ban_users("f"), Ok(()));
+        let mut admin = User::default();
+        admin.admin_role = AdminRole::Moderator;
+        assert_eq!(admin.check_can_ban_users("a"), Ok(()));
+        admin.admin_role = AdminRole::Admin;
+        assert_eq!(admin.check_can_ban_users("a"), Ok(()));
     }
 
     #[test]
-    fn test_user_is_forum_leader() {
+    fn test_user_check_can_configure_forum() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.is_forum_leader("a"), false);
-        assert_eq!(user.is_forum_leader("b"), false);
-        assert_eq!(user.is_forum_leader("c"), false);
-        assert_eq!(user.is_forum_leader("d"), false);
-        assert_eq!(user.is_forum_leader("e"), false);
-        assert_eq!(user.is_forum_leader("f"), true);
+        assert_eq!(user.check_can_configure_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_configure_forum("b"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_configure_forum("c"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_configure_forum("d"), Ok(()));
+        assert_eq!(user.check_can_configure_forum("e"), Ok(()));
+        assert_eq!(user.check_can_configure_forum("f"), Ok(()));
+        let mut admin = User::default();
+        admin.admin_role = AdminRole::Moderator;
+        assert_eq!(admin.check_can_configure_forum("a"), Err(AppError::InsufficientPrivileges));
+        admin.admin_role = AdminRole::Admin;
+        assert_eq!(admin.check_can_configure_forum("a"), Ok(()));
+        admin.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(admin.check_can_configure_forum("f"), Ok(()));
+
+    }
+    #[test]
+    fn test_user_check_can_elect_in_forum() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.check_can_elect_in_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_elect_in_forum("b"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_elect_in_forum("c"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_elect_in_forum("d"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_elect_in_forum("e"), Ok(()));
+        assert_eq!(user.check_can_elect_in_forum("f"), Ok(()));
+        let mut admin = User::default();
+        admin.admin_role = AdminRole::Moderator;
+        assert_eq!(admin.check_can_elect_in_forum("a"), Err(AppError::InsufficientPrivileges));
+        admin.admin_role = AdminRole::Admin;
+        assert_eq!(admin.check_can_elect_in_forum("a"), Ok(()));
+        admin.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(admin.check_can_configure_forum("f"), Ok(()));
     }
 
     #[test]
-    fn test_user_check_forum_ban() {
+    fn test_user_check_is_forum_leader() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_forum_leader("b"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_forum_leader("c"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_forum_leader("d"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_forum_leader("e"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_forum_leader("f"), Ok(()));
+        let mut admin = User::default();
+        admin.admin_role = AdminRole::Moderator;
+        assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
+        admin.admin_role = AdminRole::Admin;
+        assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
+        admin.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(admin.check_can_configure_forum("f"), Ok(()));
+    }
+
+    #[test]
+    fn test_user_can_publish_on_forum() {
         let past_timestamp = chrono::DateTime::from_timestamp_nanos(0);
         let future_timestamp = chrono::offset::Utc::now().add(Days::new(1));
         let mut user = User::default();
@@ -852,24 +916,24 @@ mod tests {
             (String::from("c"), BanStatus::Until(future_timestamp)),
             (String::from("d"), BanStatus::Permanent),
         ]);
-        assert_eq!(user.check_forum_ban("a"), Ok(()));
-        assert_eq!(user.check_forum_ban("b"), Ok(()));
-        assert_eq!(user.check_forum_ban("c"), Err(AppError::ForumBanUntil(future_timestamp)));
-        assert_eq!(user.check_forum_ban("d"), Err(AppError::PermanentForumBan));
+        assert_eq!(user.can_publish_on_forum("a"), Ok(()));
+        assert_eq!(user.can_publish_on_forum("b"), Ok(()));
+        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
+        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
         user.ban_status = BanStatus::Until(past_timestamp);
-        assert_eq!(user.check_forum_ban("a"), Ok(()));
-        assert_eq!(user.check_forum_ban("b"), Ok(()));
-        assert_eq!(user.check_forum_ban("c"), Err(AppError::ForumBanUntil(future_timestamp)));
-        assert_eq!(user.check_forum_ban("d"), Err(AppError::PermanentForumBan));
+        assert_eq!(user.can_publish_on_forum("a"), Ok(()));
+        assert_eq!(user.can_publish_on_forum("b"), Ok(()));
+        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
+        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
         user.ban_status = BanStatus::Until(future_timestamp);
-        assert_eq!(user.check_forum_ban("a"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.check_forum_ban("b"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.check_forum_ban("c"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.check_forum_ban("d"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.can_publish_on_forum("a"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.can_publish_on_forum("b"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::GlobalBanUntil(future_timestamp)));
         user.ban_status = BanStatus::Permanent;
-        assert_eq!(user.check_forum_ban("a"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.check_forum_ban("b"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.check_forum_ban("c"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.check_forum_ban("d"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.can_publish_on_forum("a"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.can_publish_on_forum("b"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::PermanentGlobalBan));
     }
 }

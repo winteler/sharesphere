@@ -6,7 +6,7 @@ use leptos::ServerFnError;
 use app::auth::User;
 use app::comment::ssr::create_comment;
 use app::forum::ssr::create_forum;
-use app::forum_management::ssr::{ban_user_from_forum, moderate_comment, moderate_post};
+use app::forum_management::ssr::{ban_user_from_forum, is_user_forum_moderator, moderate_comment, moderate_post};
 use app::post::ssr::create_post;
 use app::role::AdminRole;
 use app::role::ssr::set_user_admin_role;
@@ -130,6 +130,30 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Could not reload banned user to update roles.");
     assert!(create_post(&forum.forum_name, "c", "d", None, false, None, &banned_user, db_pool.clone()).await.is_err());
     assert!(create_comment(post.post_id, None, "a", None, &banned_user, db_pool.clone()).await.is_err());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_is_user_forum_moderator() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+    let mut global_moderator = create_user("mod", "mod", "mod", &db_pool).await;
+    let mut admin = create_user("admin", "admin", "admin", &db_pool).await;
+    // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
+    global_moderator.admin_role = AdminRole::Moderator;
+    admin.admin_role = AdminRole::Admin;
+    set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, db_pool.clone()).await?;
+    set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, db_pool.clone()).await?;
+    let ordinary_user = create_user("user", "user", "user", &db_pool).await;
+
+    let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
+
+    assert_eq!(is_user_forum_moderator(test_user.user_id, &forum.forum_name, &db_pool).await, Ok(true));
+    assert_eq!(is_user_forum_moderator(global_moderator.user_id, &forum.forum_name, &db_pool).await, Ok(true));
+    assert_eq!(is_user_forum_moderator(admin.user_id, &forum.forum_name, &db_pool).await, Ok(true));
+    assert_eq!(is_user_forum_moderator(ordinary_user.user_id, &forum.forum_name, &db_pool).await, Ok(false));
+    assert!(is_user_forum_moderator(ordinary_user.user_id + 1, &forum.forum_name, &db_pool).await.is_err());
 
     Ok(())
 }

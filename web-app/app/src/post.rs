@@ -118,6 +118,7 @@ pub mod ssr {
     }
 
     impl PostJoinVote {
+        // TODO add unit test
         pub fn into_post_with_info(self, user: &Option<User>) -> PostWithUserInfo {
             let post_vote = if self.vote_id.is_some() {
                 Some(Vote {
@@ -146,6 +147,7 @@ pub mod ssr {
     }
 
     impl PostSortType {
+        // TODO add unit test
         pub fn to_order_by_code(self) -> &'static str {
             match self {
                 PostSortType::Hot => "recommended_score",

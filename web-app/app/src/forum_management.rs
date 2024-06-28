@@ -199,7 +199,7 @@ pub mod ssr {
         }
     }
 
-    async fn is_user_forum_moderator(
+    pub async fn is_user_forum_moderator(
         user_id: i64,
         forum: &String,
         db_pool: &PgPool,

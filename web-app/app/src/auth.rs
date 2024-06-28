@@ -833,6 +833,8 @@ mod tests {
         assert_eq!(admin.check_can_moderate_forum("a"), Ok(()));
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_can_moderate_forum("a"), Ok(()));
+        admin.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(admin.check_can_ban_users("b"), Ok(()));
     }
 
     #[test]
@@ -850,6 +852,8 @@ mod tests {
         assert_eq!(admin.check_can_ban_users("a"), Ok(()));
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_can_ban_users("a"), Ok(()));
+        admin.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(admin.check_can_ban_users("c"), Ok(()));
     }
 
     #[test]
@@ -868,7 +872,7 @@ mod tests {
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_can_configure_forum("a"), Ok(()));
         admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_configure_forum("f"), Ok(()));
+        assert_eq!(admin.check_can_configure_forum("d"), Ok(()));
 
     }
     #[test]
@@ -887,7 +891,7 @@ mod tests {
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_can_elect_in_forum("a"), Ok(()));
         admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_configure_forum("f"), Ok(()));
+        assert_eq!(admin.check_can_configure_forum("e"), Ok(()));
     }
 
     #[test]

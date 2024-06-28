@@ -48,8 +48,8 @@ async fn test_user_get() -> Result<(), ServerFnError> {
     // reload creator_user so that it has the updated roles after creating forums.
     let creator_user = User::get(creator_user.user_id, &db_pool).await.expect("Could not get creator user.");
 
-    set_user_forum_role(forum_a.forum_id, &forum_a.forum_name, test_user.user_id, PermissionLevel::Moderate, &creator_user, db_pool.clone()).await?;
-    set_user_forum_role(forum_b.forum_id, &forum_b.forum_name, test_user.user_id, PermissionLevel::Elect, &creator_user, db_pool.clone()).await?;
+    set_user_forum_role(forum_a.forum_id, &forum_a.forum_name, test_user.user_id, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
+    set_user_forum_role(forum_b.forum_id, &forum_b.forum_name, test_user.user_id, PermissionLevel::Elect, &creator_user, &db_pool).await?;
 
     ban_user_from_forum(test_user.user_id, &forum_c.forum_name, &creator_user, Some(0), db_pool.clone()).await?;
     let forum_ban_d = ban_user_from_forum(test_user.user_id, &forum_d.forum_name, &creator_user, Some(1), db_pool.clone()).await?.expect("Expected forum ban for forum d.");

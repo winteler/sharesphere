@@ -62,10 +62,10 @@ pub mod ssr {
         user_id: i64,
         permission_level: PermissionLevel,
         grantor: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
         if permission_level == PermissionLevel::Lead {
-            set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool.clone()).await
+            set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool).await
         } else {
             grantor.check_can_elect_in_forum(forum_name)?;
             let permission_level_str: &str = permission_level.into();
@@ -78,7 +78,7 @@ pub mod ssr {
                 permission_level_str,
                 grantor.user_id,
             )
-                .fetch_one(&db_pool)
+                .fetch_one(db_pool)
                 .await?;
             Ok((user_forum_role, None))
         }
@@ -88,7 +88,7 @@ pub mod ssr {
         forum_name: &str,
         user_id: i64,
         grantor: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
         let lead_level_str: &str = PermissionLevel::Lead.into();
         let current_leader = sqlx::query_as!(
@@ -99,7 +99,7 @@ pub mod ssr {
             forum_id,
             lead_level_str,
         )
-            .fetch_one(&db_pool)
+            .fetch_one(db_pool)
             .await;
 
         match current_leader {
@@ -118,7 +118,7 @@ pub mod ssr {
                     grantor.user_id,
                     current_leader.role_id,
                 )
-                    .fetch_one(&db_pool)
+                    .fetch_one(db_pool)
                     .await?;
                 Ok((user_forum_role, Some(current_leader.user_id)))
             },
@@ -132,7 +132,7 @@ pub mod ssr {
                     lead_level_str,
                     grantor.user_id,
                 )
-                    .fetch_one(&db_pool)
+                    .fetch_one(db_pool)
                     .await?;
                 Ok((user_forum_role, None))
             },

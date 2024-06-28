@@ -3,16 +3,35 @@ use std::ops::Add;
 use chrono::Days;
 use leptos::ServerFnError;
 
+use app::auth::ssr::SqlUser;
 use app::auth::User;
 use app::errors::AppError;
 use app::forum::ssr::create_forum;
 use app::forum_management::ssr::ban_user_from_forum;
-use app::role::PermissionLevel;
+use app::role::{AdminRole, PermissionLevel};
 use app::role::ssr::set_user_forum_role;
 
 use crate::common::{create_test_user, create_user, get_db_pool};
 
 mod common;
+
+#[tokio::test]
+async fn test_sql_user_get_from_oidc_id() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let oidc_id = "id";
+    let username = "username";
+    let email = "user@user.com";
+    let user = create_user(oidc_id, username, email, &db_pool).await;
+    let sql_user = SqlUser::get_from_oidc_id(&user.oidc_id, db_pool).await?;
+
+    assert_eq!(sql_user.user_id, user.user_id);
+    assert_eq!(sql_user.oidc_id, oidc_id);
+    assert_eq!(sql_user.username, username);
+    assert_eq!(sql_user.email, email);
+    assert_eq!(sql_user.admin_role, AdminRole::None);
+
+    Ok(())
+}
 
 #[tokio::test]
 async fn test_user_get() -> Result<(), ServerFnError> {

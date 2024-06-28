@@ -5,7 +5,7 @@ use rand::Rng;
 use sqlx::PgPool;
 
 use app::app::ssr::create_db_pool;
-use app::auth::ssr::load_user_forum_role_vec;
+use app::auth::User;
 use app::forum;
 use app::forum::Forum;
 use app::role::PermissionLevel;
@@ -285,43 +285,46 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
-    let forum_name = "test1";
-    let forum_result = forum::ssr::create_forum(
+    let forum_name = "a";
+    let forum_description = "a";
+    let forum = forum::ssr::create_forum(
         forum_name,
-        "forum",
+        forum_description,
         false,
         &test_user,
         db_pool.clone(),
-    ).await;
-    assert!(
-        forum_result.is_ok()
-    );
-    let forum = forum_result?;
-    let user_forum_role_vec = load_user_forum_role_vec(test_user.user_id, &db_pool).await?;
+    ).await.expect("Could not create forum");
 
-    assert_eq!(user_forum_role_vec.len(), 1);
-    let user_forum_role = user_forum_role_vec.first().expect("Exactly on user role after forum creation.");
-    assert_eq!(user_forum_role.forum_id, forum.forum_id);
-    assert_eq!(user_forum_role.user_id, test_user.user_id);
-    assert_eq!(user_forum_role.forum_name, forum.forum_name);
-    assert_eq!(user_forum_role.permission_level, PermissionLevel::Lead);
+    assert_eq!(forum.forum_name, forum_name);
+    assert_eq!(forum.creator_id, test_user.user_id);
+    assert_eq!(forum.description, forum_description);
+    assert_eq!(forum.is_nsfw, false);
+
+    // Check new permissions were created
+    let test_user = User::get(test_user.user_id, &db_pool).await.expect("Could not reload user after creating forum.");
+    assert_eq!(test_user.permission_by_forum_map.len(), 1);
+    let forum_permission = test_user.permission_by_forum_map.get(forum_name).expect("Exactly one user role after forum creation.");
+    assert_eq!(*forum_permission, PermissionLevel::Lead);
 
     assert!(
-        forum::ssr::create_forum("Test", "forum", false, &test_user, db_pool.clone(),)
+        forum::ssr::create_forum("A", "a", false, &test_user, db_pool.clone())
             .await
             .is_err()
     );
-
     assert!(
-        forum::ssr::create_forum("", "forum", false, &test_user, db_pool.clone(),)
+        forum::ssr::create_forum("", "a", false, &test_user, db_pool.clone())
             .await
             .is_err()
     );
-
     assert!(
-        forum::ssr::create_forum("test-2", "forum", false, &test_user, db_pool.clone(),)
+        forum::ssr::create_forum("-", "a", false, &test_user, db_pool.clone())
             .await
             .is_err()
+    );
+    assert!(
+        forum::ssr::create_forum("b", "b", false, &test_user, db_pool.clone())
+            .await
+            .is_ok()
     );
 
     Ok(())

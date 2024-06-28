@@ -304,7 +304,7 @@ pub mod ssr {
         Ok(sql_user)
     }
 
-    pub async fn load_user_forum_role_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserForumRole>, AppError> {
+    async fn load_user_forum_role_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserForumRole>, AppError> {
         let user_forum_role_vec = sqlx::query_as!(
             UserForumRole,
             "SELECT * \
@@ -318,7 +318,7 @@ pub mod ssr {
         Ok(user_forum_role_vec)
     }
 
-    pub async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
+    async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
             "SELECT * FROM user_bans WHERE user_id = $1 AND (until_timestamp > CURRENT_TIMESTAMP or until_timestamp IS NULL)",
@@ -338,14 +338,14 @@ pub mod ssr {
         Ok(oidc::ClientId::new(env::var(AUTH_CLIENT_ID_ENV)?))
     }
 
-    pub fn get_client_secret() -> Option<oidc::ClientSecret> {
+    fn get_client_secret() -> Option<oidc::ClientSecret> {
         match env::var(AUTH_CLIENT_SECRET_ENV) {
             Ok(secret) => Some(oidc::ClientSecret::new(secret)),
             Err(_) => None,
         }
     }
 
-    pub fn get_base_url() -> Result<String, AppError> {
+    fn get_base_url() -> Result<String, AppError> {
         Ok(env::var(BASE_URL_ENV)?)
     }
 

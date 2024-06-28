@@ -160,7 +160,7 @@ pub mod ssr {
         db_pool: PgPool,
     ) -> Result<Comment, AppError> {
         let forum = get_post_forum(post_id, &db_pool).await?;
-        user.can_publish_on_forum(&forum.forum_name)?;
+        user.check_can_publish_on_forum(&forum.forum_name)?;
         if comment.is_empty() {
             return Err(AppError::new("Cannot create empty comment."));
         }

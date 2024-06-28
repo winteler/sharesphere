@@ -166,7 +166,7 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Post, AppError> {
-        user.can_publish_on_forum(forum_name)?;
+        user.check_can_publish_on_forum(forum_name)?;
         if forum_name.is_empty() || post_title.is_empty() {
             return Err(AppError::new(
                 "Cannot create content without a valid forum and title.",

@@ -63,11 +63,11 @@ async fn test_user_get() -> Result<(), ServerFnError> {
     assert_eq!(result_user.check_can_moderate_forum(&forum_d.forum_name), Err(AppError::InsufficientPrivileges));
     assert_eq!(result_user.check_can_moderate_forum(&forum_e.forum_name), Err(AppError::InsufficientPrivileges));
 
-    assert_eq!(result_user.can_publish_on_forum(&forum_a.forum_name), Ok(()));
-    assert_eq!(result_user.can_publish_on_forum(&forum_b.forum_name), Ok(()));
-    assert_eq!(result_user.can_publish_on_forum(&forum_c.forum_name), Ok(()));
-    assert_eq!(result_user.can_publish_on_forum(&forum_d.forum_name), Err(AppError::ForumBanUntil(forum_ban_d.create_timestamp.add(Days::new(1)))));
-    assert_eq!(result_user.can_publish_on_forum(&forum_e.forum_name), Err(AppError::PermanentForumBan));
+    assert_eq!(result_user.check_can_publish_on_forum(&forum_a.forum_name), Ok(()));
+    assert_eq!(result_user.check_can_publish_on_forum(&forum_b.forum_name), Ok(()));
+    assert_eq!(result_user.check_can_publish_on_forum(&forum_c.forum_name), Ok(()));
+    assert_eq!(result_user.check_can_publish_on_forum(&forum_d.forum_name), Err(AppError::ForumBanUntil(forum_ban_d.create_timestamp.add(Days::new(1)))));
+    assert_eq!(result_user.check_can_publish_on_forum(&forum_e.forum_name), Err(AppError::PermanentForumBan));
 
     // TODO test global ban when ssr function is implemented
 

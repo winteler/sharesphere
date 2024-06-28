@@ -133,22 +133,26 @@ impl User {
         self.check_forum_permissions(forum_name, PermissionLevel::Lead)
     }
 
-    pub fn can_publish_on_forum(&self, forum_name: &str) -> Result<(), AppError> {
-        if self.ban_status.is_active() {
-            match self.ban_status {
+    pub fn check_can_publish(&self) -> Result<(), AppError> {
+        match self.ban_status.is_active() {
+            true => match self.ban_status {
                 BanStatus::Until(timestamp) => Err(AppError::GlobalBanUntil(timestamp)),
                 BanStatus::Permanent => Err(AppError::PermanentGlobalBan),
                 BanStatus::None => Err(AppError::InternalServerError(String::from("User with BanStatus::None despite ban_status.is_active == true"))), // should never happen
-            }
-        } else {
-            match self.ban_status_by_forum_map.get(forum_name) {
-                Some(ban_status) if ban_status.is_active() => match ban_status {
-                    BanStatus::Until(timestamp) => Err(AppError::ForumBanUntil(*timestamp)),
-                    BanStatus::Permanent => Err(AppError::PermanentForumBan),
-                    BanStatus::None => Err(AppError::InternalServerError(String::from("User with forum BanStatus::None despite ban_status.is_active == true"))), // should never happen
-                },
-                _ => Ok(())
-            }
+            },
+            false => Ok(())
+        }
+    }
+
+    pub fn check_can_publish_on_forum(&self, forum_name: &str) -> Result<(), AppError> {
+        self.check_can_publish()?;
+        match self.ban_status_by_forum_map.get(forum_name) {
+            Some(ban_status) if ban_status.is_active() => match ban_status {
+                BanStatus::Until(timestamp) => Err(AppError::ForumBanUntil(*timestamp)),
+                BanStatus::Permanent => Err(AppError::PermanentForumBan),
+                BanStatus::None => Err(AppError::InternalServerError(String::from("User with forum BanStatus::None despite ban_status.is_active == true"))), // should never happen
+            },
+            _ => Ok(())
         }
     }
 }
@@ -906,7 +910,21 @@ mod tests {
     }
 
     #[test]
-    fn test_user_can_publish_on_forum() {
+    fn test_user_check_can_publish() {
+        let past_timestamp = chrono::DateTime::from_timestamp_nanos(0);
+        let future_timestamp = chrono::offset::Utc::now().add(Days::new(1));
+        let mut user = User::default();
+        assert_eq!(user.check_can_publish(), Ok(()));
+        user.ban_status = BanStatus::Until(past_timestamp);
+        assert_eq!(user.check_can_publish(), Ok(()));
+        user.ban_status = BanStatus::Until(future_timestamp);
+        assert_eq!(user.check_can_publish(), Err(AppError::GlobalBanUntil(future_timestamp)));
+        user.ban_status = BanStatus::Permanent;
+        assert_eq!(user.check_can_publish(), Err(AppError::PermanentGlobalBan));
+    }
+
+    #[test]
+    fn test_user_check_can_publish_on_forum() {
         let past_timestamp = chrono::DateTime::from_timestamp_nanos(0);
         let future_timestamp = chrono::offset::Utc::now().add(Days::new(1));
         let mut user = User::default();
@@ -916,24 +934,24 @@ mod tests {
             (String::from("c"), BanStatus::Until(future_timestamp)),
             (String::from("d"), BanStatus::Permanent),
         ]);
-        assert_eq!(user.can_publish_on_forum("a"), Ok(()));
-        assert_eq!(user.can_publish_on_forum("b"), Ok(()));
-        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
-        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
+        assert_eq!(user.check_can_publish_on_forum("a"), Ok(()));
+        assert_eq!(user.check_can_publish_on_forum("b"), Ok(()));
+        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
         user.ban_status = BanStatus::Until(past_timestamp);
-        assert_eq!(user.can_publish_on_forum("a"), Ok(()));
-        assert_eq!(user.can_publish_on_forum("b"), Ok(()));
-        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
-        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
+        assert_eq!(user.check_can_publish_on_forum("a"), Ok(()));
+        assert_eq!(user.check_can_publish_on_forum("b"), Ok(()));
+        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
         user.ban_status = BanStatus::Until(future_timestamp);
-        assert_eq!(user.can_publish_on_forum("a"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.can_publish_on_forum("b"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_forum("a"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_forum("b"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::GlobalBanUntil(future_timestamp)));
         user.ban_status = BanStatus::Permanent;
-        assert_eq!(user.can_publish_on_forum("a"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.can_publish_on_forum("b"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.can_publish_on_forum("c"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.can_publish_on_forum("d"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_forum("a"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_forum("b"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::PermanentGlobalBan));
     }
 }

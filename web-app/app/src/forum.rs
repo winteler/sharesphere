@@ -79,6 +79,7 @@ pub mod ssr {
 
     use crate::auth::User;
     use crate::errors::AppError;
+    use crate::errors::AppError::InternalServerError;
     use crate::forum::{Forum, ForumWithUserInfo};
     use crate::role::PermissionLevel;
     use crate::role::ssr::set_user_forum_role;
@@ -204,10 +205,7 @@ pub mod ssr {
         user: &User,
         db_pool: PgPool,
     ) -> Result<Forum, AppError> {
-        if user.ban_status.is_active() {
-            return Err(AppError::new("Cannot create Sphere with empty name."));
-        }
-
+        user.check_can_publish()?;
         if name.is_empty() {
             return Err(AppError::new("Cannot create Sphere with empty name."));
         }
@@ -257,13 +255,18 @@ pub mod ssr {
     }
 
     pub async fn unsubscribe(forum_id: i64, user_id: i64, db_pool: PgPool) -> Result<(), AppError> {
-        sqlx::query!(
+        let deleted_rows = sqlx::query!(
             "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
             user_id,
             forum_id,
         )
-        .execute(&db_pool)
-        .await?;
+            .execute(&db_pool)
+            .await?
+            .rows_affected();
+
+        if deleted_rows != 1 {
+            return Err(InternalServerError(format!("Expected one subscription deleted, got {deleted_rows} instead.")))
+        }
 
         sqlx::query!(
             "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",

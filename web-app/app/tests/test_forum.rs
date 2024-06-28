@@ -8,6 +8,7 @@ use app::app::ssr::create_db_pool;
 use app::auth::User;
 use app::forum;
 use app::forum::Forum;
+use app::forum::ssr::{subscribe, unsubscribe};
 use app::role::PermissionLevel;
 
 pub use crate::common::*;
@@ -326,6 +327,57 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
             .await
             .is_ok()
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_subscribe() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum_name = "a";
+    let forum_description = "a";
+    let forum = forum::ssr::create_forum(
+        forum_name,
+        forum_description,
+        false,
+        &test_user,
+        db_pool.clone(),
+    ).await.expect("Could not create forum");
+
+    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("Failed to subscribe to forum.");
+
+    // duplicated subscription fails
+    assert!(subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.is_err());
+    // Subscribe to non-existent forum fails
+    assert!(subscribe(forum.forum_id + 1, test_user.user_id, db_pool.clone()).await.is_err());
+    // Subscribe with non-existent user fails
+    assert!(subscribe(forum.forum_id, test_user.user_id + 1, db_pool.clone()).await.is_err());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_unsubscribe() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum_name = "a";
+    let forum_description = "a";
+    let forum = forum::ssr::create_forum(
+        forum_name,
+        forum_description,
+        false,
+        &test_user,
+        db_pool.clone(),
+    ).await.expect("Could not create forum");
+
+    // unsubscribe without subscription fails
+    assert!(unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.is_err());
+
+    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("Failed to subscribe to forum.");
+    unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("Failed to unsubscribe to forum.");
 
     Ok(())
 }

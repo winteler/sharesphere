@@ -5,3 +5,4 @@ DROP TABLE posts;
 DROP TABLE comments;
 DROP TABLE votes;
 DROP TABLE user_forum_roles;
+DROP TABLE user_bans;

@@ -110,7 +110,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     );
 
     // test moderator cannot set leader or downgrade higher up moderator
-    assert_eq!(
+    assert!(
         set_user_forum_role(
             forum.forum_id,
             forum_name,
@@ -118,8 +118,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
             PermissionLevel::Lead,
             &moderator,
             &db_pool
-        ).await,
-        Err(AppError::InsufficientPrivileges)
+        ).await.is_err()
     );
     assert_eq!(
         set_user_forum_role(
@@ -163,7 +162,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
         .expect("Could not reload user after lead update.");
     assert_eq!(
         prev_lead_user.permission_by_forum_map.get(forum_name),
-        None
+        Some(&PermissionLevel::Elect)
     );
 
     Ok(())

@@ -56,6 +56,25 @@ pub mod ssr {
 
     use super::*;
 
+    pub async fn get_user_forum_role(
+        user_id: i64,
+        forum_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<UserForumRole, AppError> {
+        let user_forum_role = sqlx::query_as!(
+            UserForumRole,
+            "SELECT * FROM user_forum_roles \
+            WHERE user_id = $1 AND \
+                  forum_name = $2",
+            user_id,
+            forum_name,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(user_forum_role)
+    }
+
     pub async fn set_user_forum_role(
         forum_id: i64,
         forum_name: &str,
@@ -67,7 +86,7 @@ pub mod ssr {
         if permission_level == PermissionLevel::Lead {
             set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool).await
         } else {
-            grantor.check_can_elect_in_forum(forum_name)?;
+            grantor.check_can_set_user_forum_role(user_id, forum_name, db_pool).await?;
             let permission_level_str: &str = permission_level.into();
             let user_forum_role = sqlx::query_as!(
                 UserForumRole,

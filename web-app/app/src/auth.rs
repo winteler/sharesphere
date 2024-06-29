@@ -62,7 +62,7 @@ impl BanStatus {
     pub fn is_active(&self) -> bool {
         match self {
             BanStatus::Until(until_timestamp) => *until_timestamp > chrono::offset::Utc::now(),
-            _ => self.is_permanent()
+            _ => self.is_permanent(),
         }
     }
 }
@@ -165,12 +165,12 @@ pub mod ssr {
 
     use crate::errors::AppError;
     use crate::forum_management::UserBan;
+    use crate::role::ssr::get_user_forum_role;
     use crate::role::UserForumRole;
 
     use super::*;
 
-    pub type AuthSession =
-        axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
+    pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
     #[derive(sqlx::FromRow, Clone)]
     pub struct SqlUser {
@@ -195,17 +195,27 @@ pub mod ssr {
 
             Ok(sql_user)
         }
-        pub fn into_user(self, user_role_vec: Vec<UserForumRole>, user_ban_vec: Vec<UserBan>) -> User {
+        pub fn into_user(
+            self,
+            user_role_vec: Vec<UserForumRole>,
+            user_ban_vec: Vec<UserBan>,
+        ) -> User {
             let mut permission_by_forum_map: HashMap<String, PermissionLevel> = HashMap::new();
             for user_forum_role in user_role_vec {
-                permission_by_forum_map.insert(user_forum_role.forum_name.clone(), user_forum_role.permission_level);
+                permission_by_forum_map.insert(
+                    user_forum_role.forum_name.clone(),
+                    user_forum_role.permission_level,
+                );
             }
             let mut global_ban_status = BanStatus::None;
             let mut ban_status_by_forum_map: HashMap<String, BanStatus> = HashMap::new();
             let current_timestamp = chrono::offset::Utc::now();
             for user_ban in user_ban_vec {
                 let (ban_status, is_valid) = match user_ban.until_timestamp {
-                    Some(until_timestamp) => (BanStatus::Until(until_timestamp), until_timestamp > current_timestamp),
+                    Some(until_timestamp) => (
+                        BanStatus::Until(until_timestamp),
+                        until_timestamp > current_timestamp,
+                    ),
                     None => (BanStatus::Permanent, true),
                 };
                 if is_valid {
@@ -246,33 +256,54 @@ pub mod ssr {
 
     impl User {
         pub async fn get(user_id: i64, db_pool: &PgPool) -> Option<Self> {
-            match sqlx::query_as!(
-                SqlUser,
-                "SELECT * FROM users WHERE user_id = $1",
-                user_id
-            )
-            .fetch_one(db_pool)
-            .await
+            match sqlx::query_as!(SqlUser, "SELECT * FROM users WHERE user_id = $1", user_id)
+                .fetch_one(db_pool)
+                .await
             {
                 Ok(sql_user) => {
-                    let user_forum_role_vec = load_user_forum_role_vec(sql_user.user_id, db_pool).await.unwrap_or_default();
-                    let user_ban_vec = load_user_ban_vec(sql_user.user_id, db_pool).await.unwrap_or_default();
+                    let user_forum_role_vec = load_user_forum_role_vec(sql_user.user_id, db_pool)
+                        .await
+                        .unwrap_or_default();
+                    let user_ban_vec = load_user_ban_vec(sql_user.user_id, db_pool)
+                        .await
+                        .unwrap_or_default();
                     Some(sql_user.into_user(user_forum_role_vec, user_ban_vec))
-                },
+                }
                 Err(select_error) => {
                     log::debug!("User not found with error: {}", select_error);
                     None
                 }
             }
         }
+
+        pub async fn check_can_set_user_forum_role(
+            &self,
+            user_id: i64,
+            forum_name: &str,
+            db_pool: &PgPool,
+        ) -> Result<(), AppError> {
+            match get_user_forum_role(user_id, forum_name, db_pool).await {
+                Ok(user_role) => {
+                    match self.admin_role == AdminRole::Admin
+                        || self.permission_by_forum_map.get(forum_name).is_some_and(
+                            |forum_permission| {
+                                *forum_permission > PermissionLevel::Elect
+                                    && *forum_permission > user_role.permission_level
+                            },
+                        ) {
+                        true => Ok(()),
+                        false => Err(AppError::InsufficientPrivileges),
+                    }
+                }
+                Err(AppError::NotFound) => self.check_can_elect_in_forum(forum_name),
+                Err(e) => Err(e),
+            }
+        }
     }
 
     #[async_trait]
     impl Authentication<User, i64, PgPool> for User {
-        async fn load_user(
-            user_id: i64,
-            pool: Option<&PgPool>,
-        ) -> Result<User, anyhow::Error> {
+        async fn load_user(user_id: i64, pool: Option<&PgPool>) -> Result<User, anyhow::Error> {
             let pool = pool.ok_or(anyhow::anyhow!("Cannot get DB pool"))?;
 
             User::get(user_id, pool)
@@ -293,7 +324,12 @@ pub mod ssr {
         }
     }
 
-    pub async fn create_user(oidc_id: &str, username: &str, email: &str, db_pool: &PgPool) -> Result<SqlUser, AppError> {
+    pub async fn create_user(
+        oidc_id: &str,
+        username: &str,
+        email: &str,
+        db_pool: &PgPool,
+    ) -> Result<SqlUser, AppError> {
         log::debug!("Create new user {username}");
         let sql_user = sqlx::query_as!(
             SqlUser,
@@ -308,7 +344,10 @@ pub mod ssr {
         Ok(sql_user)
     }
 
-    async fn load_user_forum_role_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserForumRole>, AppError> {
+    async fn load_user_forum_role_vec(
+        user_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<UserForumRole>, AppError> {
         let user_forum_role_vec = sqlx::query_as!(
             UserForumRole,
             "SELECT * \
@@ -354,15 +393,11 @@ pub mod ssr {
     }
 
     pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
-        Ok(oidc::RedirectUrl::new(
-            String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE,
-        )?)
+        Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE)?)
     }
 
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
-        Ok(oidc::PostLogoutRedirectUrl::new(
-            String::from("http://") + get_base_url()?.as_str(),
-        )?)
+        Ok(oidc::PostLogoutRedirectUrl::new(String::from("http://") + get_base_url()?.as_str())?)
     }
 
     pub async fn get_auth_client() -> Result<oidc::core::CoreClient, AppError> {
@@ -497,17 +532,15 @@ pub mod ssr {
                 BanStatus::Permanent
             );
 
-            let user_2_ban_vec = vec![
-                UserBan {
-                    ban_id: 3,
-                    user_id: 0,
-                    forum_id: None,
-                    forum_name: None,
-                    moderator_id: 0,
-                    until_timestamp: Some(future_timestamp),
-                    create_timestamp: Default::default(),
-                },
-            ];
+            let user_2_ban_vec = vec![UserBan {
+                ban_id: 3,
+                user_id: 0,
+                forum_id: None,
+                forum_name: None,
+                moderator_id: 0,
+                until_timestamp: Some(future_timestamp),
+                create_timestamp: Default::default(),
+            }];
             let user_2 = sql_user.into_user(user_forum_role_vec, user_2_ban_vec);
             assert_eq!(user_2.ban_status, BanStatus::Until(future_timestamp));
         }
@@ -822,7 +855,10 @@ mod tests {
     fn test_user_check_can_moderate() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.check_can_moderate_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(
+            user.check_can_moderate_forum("a"),
+            Err(AppError::InsufficientPrivileges)
+        );
         assert_eq!(user.check_can_moderate_forum("b"), Ok(()));
         assert_eq!(user.check_can_moderate_forum("c"), Ok(()));
         assert_eq!(user.check_can_moderate_forum("d"), Ok(()));
@@ -873,21 +909,35 @@ mod tests {
         assert_eq!(admin.check_can_configure_forum("a"), Ok(()));
         admin.permission_by_forum_map = get_user_permission_map();
         assert_eq!(admin.check_can_configure_forum("d"), Ok(()));
-
     }
     #[test]
     fn test_user_check_can_elect_in_forum() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.check_can_elect_in_forum("a"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_elect_in_forum("b"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_elect_in_forum("c"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_elect_in_forum("d"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(
+            user.check_can_elect_in_forum("a"),
+            Err(AppError::InsufficientPrivileges)
+        );
+        assert_eq!(
+            user.check_can_elect_in_forum("b"),
+            Err(AppError::InsufficientPrivileges)
+        );
+        assert_eq!(
+            user.check_can_elect_in_forum("c"),
+            Err(AppError::InsufficientPrivileges)
+        );
+        assert_eq!(
+            user.check_can_elect_in_forum("d"),
+            Err(AppError::InsufficientPrivileges)
+        );
         assert_eq!(user.check_can_elect_in_forum("e"), Ok(()));
         assert_eq!(user.check_can_elect_in_forum("f"), Ok(()));
         let mut admin = User::default();
         admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_can_elect_in_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(
+            admin.check_can_elect_in_forum("a"),
+            Err(AppError::InsufficientPrivileges)
+        );
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_can_elect_in_forum("a"), Ok(()));
         admin.permission_by_forum_map = get_user_permission_map();

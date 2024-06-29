@@ -24,8 +24,12 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     ).await?;
     let creator_user = User::get(creator_user.user_id, &db_pool).await.expect("Could not reload user.");
 
-    set_user_forum_role(forum.forum_id, forum_name, test_user.user_id, PermissionLevel::Moderate, &creator_user, &db_pool).await.expect("Could not assign forum role.");
-    assert!(set_user_forum_role(forum.forum_id, forum_name, test_user.user_id, PermissionLevel::Ban, &creator_user, &db_pool).await.is_err());
+    set_user_forum_role(forum.forum_id, forum_name, test_user.user_id, PermissionLevel::Moderate, &creator_user, &db_pool).await.expect("Could not assign role.");
+    let test_user = User::get(test_user.user_id, &db_pool).await.expect("Could not reload user.");
+    assert_eq!(*test_user.permission_by_forum_map.get(forum_name).expect("Has permission for forum."), PermissionLevel::Moderate);
+    set_user_forum_role(forum.forum_id, forum_name, test_user.user_id, PermissionLevel::Ban, &creator_user, &db_pool).await.expect("Could not update role.");
+    let test_user = User::get(test_user.user_id, &db_pool).await.expect("Could not reload user after role update.");
+    assert_eq!(*test_user.permission_by_forum_map.get(forum_name).expect("Has permission for forum."), PermissionLevel::Ban);
 
     Ok(())
 }

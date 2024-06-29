@@ -71,7 +71,12 @@ pub mod ssr {
             let permission_level_str: &str = permission_level.into();
             let user_forum_role = sqlx::query_as!(
                 UserForumRole,
-                "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, permission_level, grantor_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+                "INSERT INTO user_forum_roles (user_id, forum_id, forum_name, permission_level, grantor_id) \
+                VALUES ($1, $2, $3, $4, $5) \
+                ON CONFLICT (user_id, forum_id) DO UPDATE \
+                SET permission_level = EXCLUDED.permission_level, \
+                    timestamp = CURRENT_TIMESTAMP \
+                RETURNING *",
                 user_id,
                 forum_id,
                 forum_name,

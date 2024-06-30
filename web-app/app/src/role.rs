@@ -179,7 +179,7 @@ pub mod ssr {
         user_id: i64,
         admin_role: AdminRole,
         grantor: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<SqlUser, AppError> {
         grantor.check_is_admin()?;
         let admin_role_str: &str = admin_role.into();
@@ -194,7 +194,7 @@ pub mod ssr {
             admin_role_str,
             user_id,
         )
-            .fetch_one(&db_pool)
+            .fetch_one(db_pool)
             .await?;
         Ok(sql_user)
     }

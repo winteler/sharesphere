@@ -3,8 +3,8 @@ use leptos::ServerFnError;
 use app::auth::User;
 use app::errors::AppError;
 use app::forum;
-use app::role::PermissionLevel;
-use app::role::ssr::set_user_forum_role;
+use app::role::{AdminRole, PermissionLevel};
+use app::role::ssr::{set_user_admin_role, set_user_forum_role};
 
 use crate::common::{create_test_user, create_user, get_db_pool};
 
@@ -164,6 +164,41 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
         prev_lead_user.permission_by_forum_map.get(forum_name),
         Some(&PermissionLevel::Elect)
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_set_user_admin_role() -> Result<(), ServerFnError> {
+
+    let db_pool = get_db_pool().await;
+    let ordinary_user = create_test_user(&db_pool).await;
+    let moderator = create_user("a", "a", "a", &db_pool).await;
+    let mut admin = create_user("b", "b", "b", &db_pool).await;
+
+    // ordinary user cannot set admin role
+    assert_eq!(set_user_admin_role(ordinary_user.user_id, AdminRole::Admin, &ordinary_user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(set_user_admin_role(ordinary_user.user_id, AdminRole::Moderator, &ordinary_user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(set_user_admin_role(ordinary_user.user_id, AdminRole::None, &ordinary_user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+
+    // admin can set admin roles
+    admin.admin_role = AdminRole::Admin;
+    let sql_admin = set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await.expect("Could not set admin role.");
+    assert_eq!(sql_admin.user_id, admin.user_id);
+    assert_eq!(sql_admin.admin_role, AdminRole::Admin);
+    let admin = User::get(admin.user_id, &db_pool).await.expect("Cannot reload admin user");
+    assert_eq!(admin.admin_role, AdminRole::Admin);
+
+    let sql_moderator = set_user_admin_role(moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await.expect("Could not set admin role.");
+    assert_eq!(sql_moderator.user_id, moderator.user_id);
+    assert_eq!(sql_moderator.admin_role, AdminRole::Moderator);
+    let moderator = User::get(moderator.user_id, &db_pool).await.expect("Cannot reload moderator user");
+    assert_eq!(moderator.admin_role, AdminRole::Moderator);
+
+    // moderator cannot set admin roles
+    assert_eq!(set_user_admin_role(ordinary_user.user_id, AdminRole::Admin, &moderator, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(set_user_admin_role(ordinary_user.user_id, AdminRole::Moderator, &moderator, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(set_user_admin_role(ordinary_user.user_id, AdminRole::None, &moderator, &db_pool).await, Err(AppError::InsufficientPrivileges));
 
     Ok(())
 }

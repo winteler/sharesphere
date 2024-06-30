@@ -172,7 +172,7 @@ pub mod ssr {
 
     pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
-    #[derive(sqlx::FromRow, Clone)]
+    #[derive(sqlx::FromRow, Clone, Debug, PartialEq)]
     pub struct SqlUser {
         pub user_id: i64,
         pub oidc_id: String,

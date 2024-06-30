@@ -77,8 +77,8 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
     global_moderator.admin_role = AdminRole::Moderator;
     admin.admin_role = AdminRole::Admin;
-    set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, db_pool.clone()).await?;
-    set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, db_pool.clone()).await?;
+    set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await?;
+    set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await?;
     let unauthorized_user = create_user("user", "user", "user", &db_pool).await;
     let banned_user = create_user("banned", "banned", "banned", &db_pool).await;
 
@@ -143,8 +143,8 @@ async fn test_is_user_forum_moderator() -> Result<(), ServerFnError> {
     // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
     global_moderator.admin_role = AdminRole::Moderator;
     admin.admin_role = AdminRole::Admin;
-    set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, db_pool.clone()).await?;
-    set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, db_pool.clone()).await?;
+    set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await?;
+    set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await?;
     let ordinary_user = create_user("user", "user", "user", &db_pool).await;
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;

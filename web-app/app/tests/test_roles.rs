@@ -4,11 +4,86 @@ use app::auth::User;
 use app::errors::AppError;
 use app::forum;
 use app::role::{AdminRole, PermissionLevel};
-use app::role::ssr::{set_user_admin_role, set_user_forum_role};
+use app::role::ssr::{get_user_forum_role, set_user_admin_role, set_user_forum_role};
 
 use crate::common::{create_test_user, create_user, get_db_pool};
 
 mod common;
+
+#[tokio::test]
+async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let user_a = create_user("a", "a", "a", &db_pool).await;
+    let user_b = create_user("b", "b", "b", &db_pool).await;
+    let user_c = create_test_user(&db_pool).await;
+
+    let forum_1 = forum::ssr::create_forum("1", "forum", false, &user_a, db_pool.clone()).await?;
+    let forum_2 = forum::ssr::create_forum("2", "forum", false, &user_a, db_pool.clone()).await?;
+    let forum_3 = forum::ssr::create_forum("3", "forum", false, &user_b, db_pool.clone()).await?;
+    let user_a = User::get(user_a.user_id, &db_pool).await.expect("Could not reload user.");
+    let user_b = User::get(user_b.user_id, &db_pool).await.expect("Could not reload user.");
+
+    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_b.user_id, PermissionLevel::Elect, &user_a, &db_pool).await.expect("Couldn't set Elect forum role.");
+    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_c.user_id, PermissionLevel::Configure, &user_a, &db_pool).await.expect("Couldn't set Configure forum role.");
+    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_b.user_id, PermissionLevel::Ban, &user_a, &db_pool).await.expect("Couldn't set Ban forum role.");
+    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_c.user_id, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("Couldn't set Moderate forum role.");
+
+    let user_a_forum_1_role = get_user_forum_role(user_a.user_id, &forum_1.forum_name, &db_pool).await.expect("Couldn't get user role");
+    assert_eq!(user_a_forum_1_role.user_id, user_a.user_id);
+    assert_eq!(user_a_forum_1_role.forum_id, forum_1.forum_id);
+    assert_eq!(user_a_forum_1_role.forum_name, forum_1.forum_name);
+    assert_eq!(user_a_forum_1_role.grantor_id, user_a.user_id);
+    assert_eq!(user_a_forum_1_role.permission_level, PermissionLevel::Lead);
+
+    let user_b_forum_1_role = get_user_forum_role(user_b.user_id, &forum_1.forum_name, &db_pool).await.expect("Couldn't get user role");
+    assert_eq!(user_b_forum_1_role.user_id, user_b.user_id);
+    assert_eq!(user_b_forum_1_role.forum_id, forum_1.forum_id);
+    assert_eq!(user_b_forum_1_role.forum_name, forum_1.forum_name);
+    assert_eq!(user_b_forum_1_role.grantor_id, user_a.user_id);
+    assert_eq!(user_b_forum_1_role.permission_level, PermissionLevel::Elect);
+
+    let user_c_forum_1_role = get_user_forum_role(user_c.user_id, &forum_1.forum_name, &db_pool).await.expect("Couldn't get user role");
+    assert_eq!(user_c_forum_1_role.user_id, user_c.user_id);
+    assert_eq!(user_c_forum_1_role.forum_id, forum_1.forum_id);
+    assert_eq!(user_c_forum_1_role.forum_name, forum_1.forum_name);
+    assert_eq!(user_c_forum_1_role.grantor_id, user_a.user_id);
+    assert_eq!(user_c_forum_1_role.permission_level, PermissionLevel::Configure);
+
+    let user_a_forum_2_role = get_user_forum_role(user_a.user_id, &forum_2.forum_name, &db_pool).await.expect("Couldn't get user role");
+    assert_eq!(user_a_forum_2_role.user_id, user_a.user_id);
+    assert_eq!(user_a_forum_2_role.forum_id, forum_2.forum_id);
+    assert_eq!(user_a_forum_2_role.forum_name, forum_2.forum_name);
+    assert_eq!(user_a_forum_2_role.grantor_id, user_a.user_id);
+    assert_eq!(user_a_forum_2_role.permission_level, PermissionLevel::Lead);
+
+    let user_b_forum_2_role = get_user_forum_role(user_b.user_id, &forum_2.forum_name, &db_pool).await.expect("Couldn't get user role");
+    assert_eq!(user_b_forum_2_role.user_id, user_b.user_id);
+    assert_eq!(user_b_forum_2_role.forum_id, forum_2.forum_id);
+    assert_eq!(user_b_forum_2_role.forum_name, forum_2.forum_name);
+    assert_eq!(user_b_forum_2_role.grantor_id, user_a.user_id);
+    assert_eq!(user_b_forum_2_role.permission_level, PermissionLevel::Ban);
+
+    let user_c_forum_2_role = get_user_forum_role(user_c.user_id, &forum_2.forum_name, &db_pool).await.expect("Couldn't get user role");
+    assert_eq!(user_c_forum_2_role.user_id, user_c.user_id);
+    assert_eq!(user_c_forum_2_role.forum_id, forum_2.forum_id);
+    assert_eq!(user_c_forum_2_role.forum_name, forum_2.forum_name);
+    assert_eq!(user_c_forum_2_role.grantor_id, user_a.user_id);
+    assert_eq!(user_c_forum_2_role.permission_level, PermissionLevel::Moderate);
+
+    assert_eq!(get_user_forum_role(user_a.user_id, &forum_3.forum_name, &db_pool).await, Err(AppError::NotFound));
+
+    let user_b_forum_3_role = get_user_forum_role(user_b.user_id, &forum_3.forum_name, &db_pool).await.expect("Couldn't get user role");
+    assert_eq!(user_b_forum_3_role.user_id, user_b.user_id);
+    assert_eq!(user_b_forum_3_role.forum_id, forum_3.forum_id);
+    assert_eq!(user_b_forum_3_role.forum_name, forum_3.forum_name);
+    assert_eq!(user_b_forum_3_role.grantor_id, user_b.user_id);
+    assert_eq!(user_b_forum_3_role.permission_level, PermissionLevel::Lead);
+
+    assert_eq!(get_user_forum_role(user_c.user_id, &forum_3.forum_name, &db_pool).await, Err(AppError::NotFound));
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;

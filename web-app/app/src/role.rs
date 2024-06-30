@@ -83,6 +83,7 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
+        // TODO add branch for None to delete existing permissions or enable None in DB
         if permission_level == PermissionLevel::Lead {
             set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool).await
         } else {

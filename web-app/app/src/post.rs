@@ -38,7 +38,7 @@ pub const POST_ROUTE: &str =
 pub const POST_BATCH_SIZE: i64 = 50;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Post {
     pub post_id: i64,
     pub title: String,
@@ -99,6 +99,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::auth::User;
+    use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
     use crate::errors::AppError;
     use crate::forum::Forum;
     use crate::ranking::VoteValue;
@@ -118,8 +119,7 @@ pub mod ssr {
     }
 
     impl PostJoinVote {
-        // TODO add unit test
-        pub fn into_post_with_info(self, user: &Option<User>) -> PostWithUserInfo {
+        pub fn into_post_with_info(self, user: Option<&User>) -> PostWithUserInfo {
             let post_vote = if self.vote_id.is_some() {
                 Some(Vote {
                     vote_id: self.vote_id.unwrap(),
@@ -147,13 +147,12 @@ pub mod ssr {
     }
 
     impl PostSortType {
-        // TODO add unit test
         pub fn to_order_by_code(self) -> &'static str {
             match self {
-                PostSortType::Hot => "recommended_score",
-                PostSortType::Trending => "trending_score",
-                PostSortType::Best => "score",
-                PostSortType::Recent => "create_timestamp",
+                PostSortType::Hot => HOT_ORDER_BY_COLUMN,
+                PostSortType::Trending => TRENDING_ORDER_BY_COLUMN,
+                PostSortType::Best => BEST_ORDER_BY_COLUMN,
+                PostSortType::Recent => RECENT_ORDER_BY_COLUMN,
             }
         }
     }
@@ -256,7 +255,7 @@ pub mod ssr {
 
     pub async fn get_post_with_info_by_id(
         post_id: i64,
-        user: &Option<User>,
+        user: Option<&User>,
         db_pool: PgPool,
     ) -> Result<PostWithUserInfo, AppError> {
 
@@ -387,12 +386,90 @@ pub mod ssr {
 
         Ok(post_vec)
     }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::auth::User;
+        use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
+        use crate::post::{Post, PostSortType};
+        use crate::post::ssr::PostJoinVote;
+        use crate::ranking::VoteValue;
+
+        #[test]
+        fn test_post_join_vote_into_post_with_info() {
+            let user = User::default();
+            let mut user_post = Post::default();
+            user_post.creator_id = user.user_id;
+
+            let user_post_without_vote = PostJoinVote {
+                post: user_post.clone(),
+                vote_id: None,
+                vote_post_id: None,
+                vote_comment_id: None,
+                vote_user_id: None,
+                value: None,
+                vote_timestamp: None,
+            };
+            let user_post_with_info = user_post_without_vote.into_post_with_info(Some(&user));
+            assert_eq!(user_post_with_info.post, user_post);
+            assert_eq!(user_post_with_info.vote, None);
+            assert_eq!(user_post_with_info.is_author, true);
+
+            let user_post_with_vote = PostJoinVote {
+                post: user_post.clone(),
+                vote_id: Some(0),
+                vote_post_id: Some(user_post.post_id),
+                vote_comment_id: None,
+                vote_user_id: Some(user.user_id),
+                value: Some(1),
+                vote_timestamp: Some(user_post.create_timestamp),
+            };
+            let user_post_with_info = user_post_with_vote.into_post_with_info(Some(&user));
+            let user_vote = user_post_with_info.vote.expect("Expected vote in PostWithUserInfo.");
+            assert_eq!(user_post_with_info.post, user_post);
+            assert_eq!(user_post_with_info.is_author, true);
+            assert_eq!(user_vote.user_id, user.user_id);
+            assert_eq!(user_vote.post_id, user_post.post_id);
+            assert_eq!(user_vote.value, VoteValue::Up);
+            assert_eq!(user_vote.comment_id, None);
+
+            let mut other_post = Post::default();
+            other_post.creator_id = user.user_id + 1;
+
+            let other_post_with_vote = PostJoinVote {
+                post: other_post.clone(),
+                vote_id: Some(0),
+                vote_post_id: Some(other_post.post_id),
+                vote_comment_id: None,
+                vote_user_id: Some(user.user_id),
+                value: Some(-1),
+                vote_timestamp: Some(other_post.create_timestamp),
+            };
+            let other_post_with_info = other_post_with_vote.into_post_with_info(Some(&user));
+            let user_vote = other_post_with_info.vote.expect("Expected vote in PostWithUserInfo.");
+            assert_eq!(other_post_with_info.post, other_post);
+            assert_eq!(other_post_with_info.is_author, false);
+            assert_eq!(user_vote.user_id, user.user_id);
+            assert_eq!(user_vote.post_id, other_post.post_id);
+            assert_eq!(user_vote.value, VoteValue::Down);
+            assert_eq!(user_vote.comment_id, None);
+        }
+
+        #[test]
+        fn test_post_sort_type_to_order_by_code() {
+            assert_eq!(PostSortType::Hot.to_order_by_code(), HOT_ORDER_BY_COLUMN);
+            assert_eq!(PostSortType::Trending.to_order_by_code(), TRENDING_ORDER_BY_COLUMN);
+            assert_eq!(PostSortType::Best.to_order_by_code(), BEST_ORDER_BY_COLUMN);
+            assert_eq!(PostSortType::Recent.to_order_by_code(), RECENT_ORDER_BY_COLUMN);
+        }
+    }
 }
 
 #[server]
 pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, ServerFnError> {
     let db_pool = get_db_pool()?;
-    Ok(ssr::get_post_with_info_by_id(post_id, &get_user().await?, db_pool).await?)
+    let user = get_user().await?;
+    Ok(ssr::get_post_with_info_by_id(post_id, user.as_ref(), db_pool).await?)
 }
 
 #[server]

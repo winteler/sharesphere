@@ -9,3 +9,7 @@ pub const SECONDS_IN_MONTH: i64 = DAYS_IN_MONTH*SECONDS_IN_DAY;
 pub const SECONDS_IN_YEAR: i64 = DAYS_IN_YEAR*SECONDS_IN_DAY;
 pub const SPOILER_TAG: &str = "||";
 pub const MULTI_LINE_SPOILER_TAG: &str = "|||";
+pub const HOT_ORDER_BY_COLUMN: &str = "recommended_score";
+pub const TRENDING_ORDER_BY_COLUMN: &str = "trending_score";
+pub const BEST_ORDER_BY_COLUMN: &str = "score";
+pub const RECENT_ORDER_BY_COLUMN: &str = "create_timestamp";

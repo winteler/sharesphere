@@ -32,7 +32,7 @@ const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
 ];
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Comment {
     pub comment_id: i64,
     pub body: String,
@@ -79,6 +79,7 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use crate::auth::User;
+    use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
     use crate::errors::AppError;
     use crate::forum::Forum;
     use crate::post::ssr::get_post_forum;
@@ -126,8 +127,8 @@ pub mod ssr {
     impl CommentSortType {
         pub fn to_order_by_code(self) -> &'static str {
             match self {
-                CommentSortType::Best => "score",
-                CommentSortType::Recent => "create_timestamp",
+                CommentSortType::Best => BEST_ORDER_BY_COLUMN,
+                CommentSortType::Recent => RECENT_ORDER_BY_COLUMN,
             }
         }
     }
@@ -310,6 +311,60 @@ pub mod ssr {
         }
 
         Ok(comment_tree)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::auth::User;
+        use crate::comment::{Comment, CommentSortType};
+        use crate::comment::ssr::CommentWithVote;
+        use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
+        use crate::ranking::VoteValue;
+
+        #[test]
+        fn test_comment_join_vote_into_comment_with_children() {
+            let user = User::default();
+            let mut comment = Comment::default();
+            comment.creator_id = user.user_id;
+
+            let comment_without_vote = CommentWithVote {
+                comment: comment.clone(),
+                vote_id: None,
+                vote_post_id: None,
+                vote_comment_id: None,
+                vote_user_id: None,
+                value: None,
+                vote_timestamp: None,
+            };
+            let comment_without_vote = comment_without_vote.into_comment_with_children();
+            assert_eq!(comment_without_vote.comment, comment);
+            assert_eq!(comment_without_vote.vote, None);
+            assert_eq!(comment_without_vote.child_comments.is_empty(), true);
+
+            let comment_with_vote = CommentWithVote {
+                comment: comment.clone(),
+                vote_id: Some(0),
+                vote_post_id: Some(comment.post_id),
+                vote_comment_id: Some(Some(comment.comment_id)),
+                vote_user_id: Some(user.user_id),
+                value: Some(1),
+                vote_timestamp: Some(comment.create_timestamp),
+            };
+            let comment_with_vote = comment_with_vote.into_comment_with_children();
+            let user_vote = comment_with_vote.vote.expect("Expected vote in CommentWithChildren.");
+            assert_eq!(comment_with_vote.comment, comment);
+            assert_eq!(user_vote.user_id, user.user_id);
+            assert_eq!(user_vote.comment_id, Some(comment.comment_id));
+            assert_eq!(user_vote.value, VoteValue::Up);
+            assert_eq!(user_vote.comment_id, Some(comment.comment_id));
+            assert_eq!(comment_with_vote.child_comments.is_empty(), true);
+        }
+
+        #[test]
+        fn test_comment_sort_type_to_order_by_code() {
+            assert_eq!(CommentSortType::Best.to_order_by_code(), BEST_ORDER_BY_COLUMN);
+            assert_eq!(CommentSortType::Recent.to_order_by_code(), RECENT_ORDER_BY_COLUMN);
+        }
     }
 }
 

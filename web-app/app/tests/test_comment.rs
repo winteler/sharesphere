@@ -154,7 +154,7 @@ async fn test_update_comment() -> Result<(), ServerFnError> {
         false,
         None,
         &test_user,
-        db_pool.clone(),
+        &db_pool.clone(),
     ).await?;
 
     let comment = comment::ssr::create_comment(

@@ -33,7 +33,7 @@ pub async fn create_forum_with_posts(
             false,
             None,
             user,
-            db_pool.clone(),
+            &db_pool,
         ).await?;
 
         if let Some(score_vec) = &score_vec {
@@ -66,7 +66,7 @@ pub async fn create_post_with_comments(
         false,
         None,
         user,
-        db_pool.clone(),
+        &db_pool,
     ).await?;
 
     let mut comment_id_vec = Vec::<i64>::new();

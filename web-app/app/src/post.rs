@@ -49,12 +49,12 @@ pub struct Post {
     pub spoiler_level: i32,
     pub tags: Option<String>,
     pub is_edited: bool,
-    pub moderated_body: Option<String>,
     pub meta_post_id: Option<i64>,
     pub forum_id: i64,
     pub forum_name: String,
     pub creator_id: i64,
     pub creator_name: String,
+    pub moderated_body: Option<String>,
     pub moderator_id: Option<i64>,
     pub moderator_name: Option<String>,
     pub num_comments: i32,
@@ -165,7 +165,7 @@ pub mod ssr {
         is_nsfw: bool,
         tag: Option<String>,
         user: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         user.check_can_publish_on_forum(forum_name)?;
         if forum_name.is_empty() || post_title.is_empty() {
@@ -173,7 +173,6 @@ pub mod ssr {
                 "Cannot create content without a valid forum and title.",
             ));
         }
-
         let post = sqlx::query_as!(
             Post,
             "INSERT INTO posts (title, body, markdown_body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
@@ -186,12 +185,12 @@ pub mod ssr {
             post_body,
             post_markdown_body,
             is_nsfw,
-            tag.unwrap_or_default(),
+            tag,
             forum_name,
             user.user_id,
             user.username,
         )
-            .fetch_one(&db_pool)
+            .fetch_one(db_pool)
             .await?;
 
         Ok(post)
@@ -256,7 +255,7 @@ pub mod ssr {
     pub async fn get_post_with_info_by_id(
         post_id: i64,
         user: Option<&User>,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<PostWithUserInfo, AppError> {
 
         let user_id = match &user {
@@ -281,7 +280,7 @@ pub mod ssr {
         )
         .bind(user_id)
         .bind(post_id)
-        .fetch_one(&db_pool)
+        .fetch_one(db_pool)
         .await?;
 
         Ok(post_join_vote.into_post_with_info(user))
@@ -469,7 +468,7 @@ pub mod ssr {
 pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user = get_user().await?;
-    Ok(ssr::get_post_with_info_by_id(post_id, user.as_ref(), db_pool).await?)
+    Ok(ssr::get_post_with_info_by_id(post_id, user.as_ref(), &db_pool).await?)
 }
 
 #[server]
@@ -556,9 +555,9 @@ pub async fn create_post(
         is_nsfw,
         tag,
         &user,
-        db_pool.clone(),
+        &db_pool,
     )
-    .await?;
+        .await?;
 
     let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, db_pool).await?;
 

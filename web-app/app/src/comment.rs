@@ -179,6 +179,8 @@ pub mod ssr {
             .fetch_one(&db_pool)
             .await?;
 
+        // TODO increase post comment count
+
         Ok(comment)
     }
 

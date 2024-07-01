@@ -71,7 +71,6 @@ pub struct Post {
 pub struct PostWithUserInfo {
     pub post: Post,
     pub vote: Option<Vote>,
-    pub is_author: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -119,7 +118,7 @@ pub mod ssr {
     }
 
     impl PostJoinVote {
-        pub fn into_post_with_info(self, user: Option<&User>) -> PostWithUserInfo {
+        pub fn into_post_with_info(self) -> PostWithUserInfo {
             let post_vote = if self.vote_id.is_some() {
                 Some(Vote {
                     vote_id: self.vote_id.unwrap(),
@@ -133,15 +132,9 @@ pub mod ssr {
                 None
             };
 
-            let is_author = match &user {
-                Some(user) => user.user_id == self.post.creator_id,
-                None => false,
-            };
-
             PostWithUserInfo {
                 post: self.post,
                 vote: post_vote,
-                is_author,
             }
         }
     }
@@ -283,7 +276,7 @@ pub mod ssr {
         .fetch_one(db_pool)
         .await?;
 
-        Ok(post_join_vote.into_post_with_info(user))
+        Ok(post_join_vote.into_post_with_info())
     }
 
     pub async fn get_post_forum(
@@ -409,10 +402,9 @@ pub mod ssr {
                 value: None,
                 vote_timestamp: None,
             };
-            let user_post_with_info = user_post_without_vote.into_post_with_info(Some(&user));
+            let user_post_with_info = user_post_without_vote.into_post_with_info();
             assert_eq!(user_post_with_info.post, user_post);
             assert_eq!(user_post_with_info.vote, None);
-            assert_eq!(user_post_with_info.is_author, true);
 
             let user_post_with_vote = PostJoinVote {
                 post: user_post.clone(),
@@ -423,10 +415,9 @@ pub mod ssr {
                 value: Some(1),
                 vote_timestamp: Some(user_post.create_timestamp),
             };
-            let user_post_with_info = user_post_with_vote.into_post_with_info(Some(&user));
+            let user_post_with_info = user_post_with_vote.into_post_with_info();
             let user_vote = user_post_with_info.vote.expect("Expected vote in PostWithUserInfo.");
             assert_eq!(user_post_with_info.post, user_post);
-            assert_eq!(user_post_with_info.is_author, true);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, user_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Up);
@@ -444,10 +435,9 @@ pub mod ssr {
                 value: Some(-1),
                 vote_timestamp: Some(other_post.create_timestamp),
             };
-            let other_post_with_info = other_post_with_vote.into_post_with_info(Some(&user));
+            let other_post_with_info = other_post_with_vote.into_post_with_info();
             let user_vote = other_post_with_info.vote.expect("Expected vote in PostWithUserInfo.");
             assert_eq!(other_post_with_info.post, other_post);
-            assert_eq!(other_post_with_info.is_author, false);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, other_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Down);

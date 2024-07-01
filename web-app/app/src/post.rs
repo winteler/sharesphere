@@ -44,7 +44,6 @@ pub struct Post {
     pub title: String,
     pub body: String,
     pub markdown_body: Option<String>,
-    pub is_meta_post: bool,
     pub is_nsfw: bool,
     pub spoiler_level: i32,
     pub tags: Option<String>,

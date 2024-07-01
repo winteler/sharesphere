@@ -119,7 +119,6 @@ async fn test_create_post() -> Result<(), ServerFnError> {
     assert_eq!(post_1.title, post_1_title);
     assert_eq!(post_1.body, post_1_body);
     assert_eq!(post_1.markdown_body, None);
-    assert_eq!(post_1.is_meta_post, false);
     assert_eq!(post_1.is_nsfw, false);
     assert_eq!(post_1.spoiler_level, 0);
     assert_eq!(post_1.tags, None);
@@ -143,7 +142,6 @@ async fn test_create_post() -> Result<(), ServerFnError> {
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
     assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
-    assert_eq!(post_2.is_meta_post, false);
     assert_eq!(post_2.is_nsfw, false);
     assert_eq!(post_2.spoiler_level, 0);
     assert_eq!(post_2.tags, None);

@@ -37,7 +37,6 @@ CREATE TABLE posts (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     markdown_body TEXT,
-    is_meta_post BOOLEAN NOT NULL DEFAULT FALSE,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     spoiler_level INT NOT NULL DEFAULT 0,
     tags TEXT,

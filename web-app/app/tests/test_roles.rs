@@ -27,6 +27,7 @@ async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
     set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_c.user_id, PermissionLevel::Configure, &user_a, &db_pool).await.expect("User should be able to grant Configure permissions.");
     set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_b.user_id, PermissionLevel::Ban, &user_a, &db_pool).await.expect("User should be able to grant Ban permissions.");
     set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_c.user_id, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
+    set_user_forum_role(forum_3.forum_id, &forum_3.forum_name, user_a.user_id, PermissionLevel::None, &user_b, &db_pool).await.expect("User should be able to grant Moderate permissions.");
 
     let user_a_forum_1_role = get_user_forum_role(user_a.user_id, &forum_1.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_a_forum_1_role.user_id, user_a.user_id);
@@ -70,7 +71,12 @@ async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
     assert_eq!(user_c_forum_2_role.grantor_id, user_a.user_id);
     assert_eq!(user_c_forum_2_role.permission_level, PermissionLevel::Moderate);
 
-    assert_eq!(get_user_forum_role(user_a.user_id, &forum_3.forum_name, &db_pool).await, Err(AppError::NotFound));
+    let user_a_forum_3_role = get_user_forum_role(user_a.user_id, &forum_3.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
+    assert_eq!(user_a_forum_3_role.user_id, user_a.user_id);
+    assert_eq!(user_a_forum_3_role.forum_id, forum_3.forum_id);
+    assert_eq!(user_a_forum_3_role.forum_name, forum_3.forum_name);
+    assert_eq!(user_a_forum_3_role.grantor_id, user_b.user_id);
+    assert_eq!(user_a_forum_3_role.permission_level, PermissionLevel::None);
 
     let user_b_forum_3_role = get_user_forum_role(user_b.user_id, &forum_3.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_b_forum_3_role.user_id, user_b.user_id);

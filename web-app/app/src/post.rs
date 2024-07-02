@@ -149,101 +149,6 @@ pub mod ssr {
         }
     }
 
-    pub async fn create_post(
-        forum_name: &str,
-        post_title: &str,
-        post_body: &str,
-        post_markdown_body: Option<&str>,
-        is_nsfw: bool,
-        tag: Option<String>,
-        user: &User,
-        db_pool: &PgPool,
-    ) -> Result<Post, AppError> {
-        user.check_can_publish_on_forum(forum_name)?;
-        if forum_name.is_empty() || post_title.is_empty() {
-            return Err(AppError::new(
-                "Cannot create content without a valid forum and title.",
-            ));
-        }
-        let post = sqlx::query_as!(
-            Post,
-            "INSERT INTO posts (title, body, markdown_body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
-             VALUES (
-                $1, $2, $3, $4, $5,
-                (SELECT forum_id FROM forums WHERE forum_name = $6),
-                $6, $7, $8
-            ) RETURNING *",
-            post_title,
-            post_body,
-            post_markdown_body,
-            is_nsfw,
-            tag,
-            forum_name,
-            user.user_id,
-            user.username,
-        )
-            .fetch_one(db_pool)
-            .await?;
-
-        Ok(post)
-    }
-
-    pub async fn update_post(
-        post_id: i64,
-        post_title: &str,
-        post_body: &str,
-        post_markdown_body: Option<&str>,
-        is_nsfw: bool,
-        tag: Option<String>,
-        user: &User,
-        db_pool: PgPool,
-    ) -> Result<Post, AppError> {
-        if post_title.is_empty() {
-            return Err(AppError::new(
-                "Cannot create content without a valid forum and title.",
-            ));
-        }
-
-        let post = sqlx::query_as!(
-            Post,
-            "UPDATE posts SET
-                title = $1,
-                body = $2,
-                markdown_body = $3,
-                is_nsfw = $4,
-                tags = $5,
-                edit_timestamp = CURRENT_TIMESTAMP
-            WHERE
-                post_id = $6 AND
-                creator_id = $7
-            RETURNING *",
-            post_title,
-            post_body,
-            post_markdown_body,
-            is_nsfw,
-            tag.unwrap_or_default(),
-            post_id,
-            user.user_id,
-        )
-        .fetch_one(&db_pool)
-        .await?;
-
-        Ok(post)
-    }
-
-    pub async fn update_post_scores() -> Result<(), AppError> {
-        let db_pool = get_db_pool()?;
-        sqlx::query!(
-            "UPDATE posts \
-            SET scoring_timestamp = CURRENT_TIMESTAMP \
-            WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
-        )
-        .execute(&db_pool)
-        .await?;
-
-        Ok(())
-    }
-
     pub async fn get_post_with_info_by_id(
         post_id: i64,
         user: Option<&User>,
@@ -378,6 +283,101 @@ pub mod ssr {
         Ok(post_vec)
     }
 
+    pub async fn create_post(
+        forum_name: &str,
+        post_title: &str,
+        post_body: &str,
+        post_markdown_body: Option<&str>,
+        is_nsfw: bool,
+        tag: Option<String>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Post, AppError> {
+        user.check_can_publish_on_forum(forum_name)?;
+        if forum_name.is_empty() || post_title.is_empty() {
+            return Err(AppError::new(
+                "Cannot create content without a valid forum and title.",
+            ));
+        }
+        let post = sqlx::query_as!(
+            Post,
+            "INSERT INTO posts (title, body, markdown_body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
+             VALUES (
+                $1, $2, $3, $4, $5,
+                (SELECT forum_id FROM forums WHERE forum_name = $6),
+                $6, $7, $8
+            ) RETURNING *",
+            post_title,
+            post_body,
+            post_markdown_body,
+            is_nsfw,
+            tag,
+            forum_name,
+            user.user_id,
+            user.username,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(post)
+    }
+
+    pub async fn update_post(
+        post_id: i64,
+        post_title: &str,
+        post_body: &str,
+        post_markdown_body: Option<&str>,
+        is_nsfw: bool,
+        tag: Option<String>,
+        user: &User,
+        db_pool: PgPool,
+    ) -> Result<Post, AppError> {
+        if post_title.is_empty() {
+            return Err(AppError::new(
+                "Cannot create content without a valid forum and title.",
+            ));
+        }
+
+        let post = sqlx::query_as!(
+            Post,
+            "UPDATE posts SET
+                title = $1,
+                body = $2,
+                markdown_body = $3,
+                is_nsfw = $4,
+                tags = $5,
+                edit_timestamp = CURRENT_TIMESTAMP
+            WHERE
+                post_id = $6 AND
+                creator_id = $7
+            RETURNING *",
+            post_title,
+            post_body,
+            post_markdown_body,
+            is_nsfw,
+            tag.unwrap_or_default(),
+            post_id,
+            user.user_id,
+        )
+            .fetch_one(&db_pool)
+            .await?;
+
+        Ok(post)
+    }
+
+    pub async fn update_post_scores() -> Result<(), AppError> {
+        let db_pool = get_db_pool()?;
+        sqlx::query!(
+            "UPDATE posts \
+            SET scoring_timestamp = CURRENT_TIMESTAMP \
+            WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
+        )
+            .execute(&db_pool)
+            .await?;
+
+        Ok(())
+    }
+
     #[cfg(test)]
     mod tests {
         use crate::auth::User;
@@ -415,7 +415,7 @@ pub mod ssr {
                 vote_timestamp: Some(user_post.create_timestamp),
             };
             let user_post_with_info = user_post_with_vote.into_post_with_info();
-            let user_vote = user_post_with_info.vote.expect("Expected vote in PostWithUserInfo.");
+            let user_vote = user_post_with_info.vote.expect("PostWithUserInfo should contain vote.");
             assert_eq!(user_post_with_info.post, user_post);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, user_post.post_id);
@@ -435,7 +435,7 @@ pub mod ssr {
                 vote_timestamp: Some(other_post.create_timestamp),
             };
             let other_post_with_info = other_post_with_vote.into_post_with_info();
-            let user_vote = other_post_with_info.vote.expect("Expected vote in PostWithUserInfo.");
+            let user_vote = other_post_with_info.vote.expect("PostWithUserInfo should contain vote.");
             assert_eq!(other_post_with_info.post, other_post);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, other_post.post_id);
@@ -548,7 +548,7 @@ pub async fn create_post(
     )
         .await?;
 
-    let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, db_pool).await?;
+    let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
 
     log::trace!("Created post with id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()

@@ -353,7 +353,7 @@ pub mod ssr {
                 vote_timestamp: Some(comment.create_timestamp),
             };
             let comment_with_vote = comment_with_vote.into_comment_with_children();
-            let user_vote = comment_with_vote.vote.expect("Expected vote in CommentWithChildren.");
+            let user_vote = comment_with_vote.vote.expect("CommentWithChildren should contain vote.");
             assert_eq!(comment_with_vote.comment, comment);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.comment_id, Some(comment.comment_id));
@@ -429,7 +429,7 @@ pub async fn create_comment(
         Some(comment.comment_id),
         None,
         &user,
-        db_pool,
+        &db_pool,
     )
     .await?;
     comment.score = 1;

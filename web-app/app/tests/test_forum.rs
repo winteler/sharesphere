@@ -294,7 +294,7 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
         false,
         &test_user,
         db_pool.clone(),
-    ).await.expect("Could not create forum");
+    ).await.expect("Should be possible to create forum.");
 
     assert_eq!(forum.forum_name, forum_name);
     assert_eq!(forum.creator_id, test_user.user_id);
@@ -302,9 +302,9 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
     assert_eq!(forum.is_nsfw, false);
 
     // Check new permissions were created
-    let test_user = User::get(test_user.user_id, &db_pool).await.expect("Could not reload user after creating forum.");
+    let test_user = User::get(test_user.user_id, &db_pool).await.expect("User should be available in DB.");
     assert_eq!(test_user.permission_by_forum_map.len(), 1);
-    let forum_permission = test_user.permission_by_forum_map.get(forum_name).expect("Exactly one user role after forum creation.");
+    let forum_permission = test_user.permission_by_forum_map.get(forum_name).expect("User should have leader role after forum creation.");
     assert_eq!(*forum_permission, PermissionLevel::Lead);
 
     assert!(
@@ -344,9 +344,9 @@ async fn test_subscribe() -> Result<(), ServerFnError> {
         false,
         &test_user,
         db_pool.clone(),
-    ).await.expect("Could not create forum");
+    ).await.expect("Should be possible to create forum.");
 
-    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("Failed to subscribe to forum.");
+    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("User should be able to subscribe to forum");
 
     // duplicated subscription fails
     assert!(subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.is_err());
@@ -371,13 +371,13 @@ async fn test_unsubscribe() -> Result<(), ServerFnError> {
         false,
         &test_user,
         db_pool.clone(),
-    ).await.expect("Could not create forum");
+    ).await.expect("Should be possible to create forum.");
 
     // unsubscribe without subscription fails
     assert!(unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.is_err());
 
-    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("Failed to subscribe to forum.");
-    unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("Failed to unsubscribe to forum.");
+    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("User should be able to subscribe to forum.");
+    unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("User should be able to unsubscribe to forum.");
 
     Ok(())
 }
@@ -386,7 +386,7 @@ async fn test_unsubscribe() -> Result<(), ServerFnError> {
 #[ignore]
 /// "fake" test used to easily populate dev DB
 async fn populate_dev_db() -> Result<(), ServerFnError> {
-    let db_pool = create_db_pool().await.expect("Failed to get DB pool");
+    let db_pool = create_db_pool().await.expect("DB pool should be available.");
     let test_user = create_test_user(&db_pool).await;
 
     let forum_name = "test";

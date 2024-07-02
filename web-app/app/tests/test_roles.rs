@@ -20,50 +20,50 @@ async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
     let forum_1 = forum::ssr::create_forum("1", "forum", false, &user_a, db_pool.clone()).await?;
     let forum_2 = forum::ssr::create_forum("2", "forum", false, &user_a, db_pool.clone()).await?;
     let forum_3 = forum::ssr::create_forum("3", "forum", false, &user_b, db_pool.clone()).await?;
-    let user_a = User::get(user_a.user_id, &db_pool).await.expect("Could not reload user.");
-    let user_b = User::get(user_b.user_id, &db_pool).await.expect("Could not reload user.");
+    let user_a = User::get(user_a.user_id, &db_pool).await.expect("Should be able to reload user.");
+    let user_b = User::get(user_b.user_id, &db_pool).await.expect("Should be able to reload user.");
 
-    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_b.user_id, PermissionLevel::Elect, &user_a, &db_pool).await.expect("Couldn't set Elect forum role.");
-    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_c.user_id, PermissionLevel::Configure, &user_a, &db_pool).await.expect("Couldn't set Configure forum role.");
-    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_b.user_id, PermissionLevel::Ban, &user_a, &db_pool).await.expect("Couldn't set Ban forum role.");
-    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_c.user_id, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("Couldn't set Moderate forum role.");
+    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_b.user_id, PermissionLevel::Elect, &user_a, &db_pool).await.expect("User should be able to grant Elect permissions.");
+    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_c.user_id, PermissionLevel::Configure, &user_a, &db_pool).await.expect("User should be able to grant Configure permissions.");
+    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_b.user_id, PermissionLevel::Ban, &user_a, &db_pool).await.expect("User should be able to grant Ban permissions.");
+    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_c.user_id, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
 
-    let user_a_forum_1_role = get_user_forum_role(user_a.user_id, &forum_1.forum_name, &db_pool).await.expect("Couldn't get user role");
+    let user_a_forum_1_role = get_user_forum_role(user_a.user_id, &forum_1.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_a_forum_1_role.user_id, user_a.user_id);
     assert_eq!(user_a_forum_1_role.forum_id, forum_1.forum_id);
     assert_eq!(user_a_forum_1_role.forum_name, forum_1.forum_name);
     assert_eq!(user_a_forum_1_role.grantor_id, user_a.user_id);
     assert_eq!(user_a_forum_1_role.permission_level, PermissionLevel::Lead);
 
-    let user_b_forum_1_role = get_user_forum_role(user_b.user_id, &forum_1.forum_name, &db_pool).await.expect("Couldn't get user role");
+    let user_b_forum_1_role = get_user_forum_role(user_b.user_id, &forum_1.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_b_forum_1_role.user_id, user_b.user_id);
     assert_eq!(user_b_forum_1_role.forum_id, forum_1.forum_id);
     assert_eq!(user_b_forum_1_role.forum_name, forum_1.forum_name);
     assert_eq!(user_b_forum_1_role.grantor_id, user_a.user_id);
     assert_eq!(user_b_forum_1_role.permission_level, PermissionLevel::Elect);
 
-    let user_c_forum_1_role = get_user_forum_role(user_c.user_id, &forum_1.forum_name, &db_pool).await.expect("Couldn't get user role");
+    let user_c_forum_1_role = get_user_forum_role(user_c.user_id, &forum_1.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_c_forum_1_role.user_id, user_c.user_id);
     assert_eq!(user_c_forum_1_role.forum_id, forum_1.forum_id);
     assert_eq!(user_c_forum_1_role.forum_name, forum_1.forum_name);
     assert_eq!(user_c_forum_1_role.grantor_id, user_a.user_id);
     assert_eq!(user_c_forum_1_role.permission_level, PermissionLevel::Configure);
 
-    let user_a_forum_2_role = get_user_forum_role(user_a.user_id, &forum_2.forum_name, &db_pool).await.expect("Couldn't get user role");
+    let user_a_forum_2_role = get_user_forum_role(user_a.user_id, &forum_2.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_a_forum_2_role.user_id, user_a.user_id);
     assert_eq!(user_a_forum_2_role.forum_id, forum_2.forum_id);
     assert_eq!(user_a_forum_2_role.forum_name, forum_2.forum_name);
     assert_eq!(user_a_forum_2_role.grantor_id, user_a.user_id);
     assert_eq!(user_a_forum_2_role.permission_level, PermissionLevel::Lead);
 
-    let user_b_forum_2_role = get_user_forum_role(user_b.user_id, &forum_2.forum_name, &db_pool).await.expect("Couldn't get user role");
+    let user_b_forum_2_role = get_user_forum_role(user_b.user_id, &forum_2.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_b_forum_2_role.user_id, user_b.user_id);
     assert_eq!(user_b_forum_2_role.forum_id, forum_2.forum_id);
     assert_eq!(user_b_forum_2_role.forum_name, forum_2.forum_name);
     assert_eq!(user_b_forum_2_role.grantor_id, user_a.user_id);
     assert_eq!(user_b_forum_2_role.permission_level, PermissionLevel::Ban);
 
-    let user_c_forum_2_role = get_user_forum_role(user_c.user_id, &forum_2.forum_name, &db_pool).await.expect("Couldn't get user role");
+    let user_c_forum_2_role = get_user_forum_role(user_c.user_id, &forum_2.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_c_forum_2_role.user_id, user_c.user_id);
     assert_eq!(user_c_forum_2_role.forum_id, forum_2.forum_id);
     assert_eq!(user_c_forum_2_role.forum_name, forum_2.forum_name);
@@ -72,7 +72,7 @@ async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
 
     assert_eq!(get_user_forum_role(user_a.user_id, &forum_3.forum_name, &db_pool).await, Err(AppError::NotFound));
 
-    let user_b_forum_3_role = get_user_forum_role(user_b.user_id, &forum_3.forum_name, &db_pool).await.expect("Couldn't get user role");
+    let user_b_forum_3_role = get_user_forum_role(user_b.user_id, &forum_3.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_b_forum_3_role.user_id, user_b.user_id);
     assert_eq!(user_b_forum_3_role.forum_id, forum_3.forum_id);
     assert_eq!(user_b_forum_3_role.forum_name, forum_3.forum_name);
@@ -95,7 +95,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     let forum = forum::ssr::create_forum(forum_name, "forum", false, &lead_user, db_pool.clone()).await?;
     let lead_user = User::get(lead_user.user_id, &db_pool)
         .await
-        .expect("Could not reload user.");
+        .expect("Should be able to reload lead_user.");
 
     // test elect moderator
     let (moderate_role, prev_leader_id) = set_user_forum_role(
@@ -107,7 +107,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
         &db_pool,
     )
         .await
-        .expect("Could not assign role.");
+        .expect("Moderate role should be assignable by lead_user.");
     assert_eq!(moderate_role.user_id, moderator.user_id);
     assert_eq!(moderate_role.forum_id, forum.forum_id);
     assert_eq!(moderate_role.forum_name, forum.forum_name);
@@ -116,7 +116,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     assert_eq!(prev_leader_id, None);
     let moderator = User::get(moderator.user_id, &db_pool)
         .await
-        .expect("Could not reload user.");
+        .expect("Should be able to reload moderator.");
     assert_eq!(
         moderator.permission_by_forum_map.get(forum_name),
         Some(&PermissionLevel::Moderate)
@@ -145,7 +145,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
         &db_pool,
     )
         .await
-        .expect("Could not update role.");
+        .expect("lead_user should be able to update role to Elect.");
     assert_eq!(moderate_role.user_id, moderator.user_id);
     assert_eq!(moderate_role.forum_id, forum.forum_id);
     assert_eq!(moderate_role.forum_name, forum.forum_name);
@@ -154,7 +154,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     assert_eq!(prev_leader_id, None);
     let moderator = User::get(moderator.user_id, &db_pool)
         .await
-        .expect("Could not reload user after role update.");
+        .expect("Should be able to reload moderator after role update.");
     assert_eq!(
         moderator.permission_by_forum_map.get(forum_name),
         Some(&PermissionLevel::Elect)
@@ -178,7 +178,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     assert_eq!(prev_leader_id, None);
     let ordinary_user = User::get(ordinary_user.user_id, &db_pool)
         .await
-        .expect("Could not reload user after role update.");
+        .expect("Should be able to reload ordinary_user.");
     assert_eq!(
         ordinary_user.permission_by_forum_map.get(forum_name),
         Some(&PermissionLevel::Moderate)
@@ -217,7 +217,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
         &db_pool,
     )
         .await
-        .expect("Could not change leader.");
+        .expect("lead_user should be able to elect new leader.");
 
     assert_eq!(new_lead_role.user_id, ordinary_user.user_id);
     assert_eq!(new_lead_role.forum_id, forum.forum_id);
@@ -227,14 +227,14 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     assert_eq!(prev_leader_id, Some(lead_user.user_id));
     let ordinary_user = User::get(ordinary_user.user_id, &db_pool)
         .await
-        .expect("Could not reload user after lead update.");
+        .expect("Should be able to reload ordinary_user after lead update.");
     assert_eq!(
         ordinary_user.permission_by_forum_map.get(forum_name),
         Some(&PermissionLevel::Lead)
     );
     let prev_lead_user = User::get(lead_user.user_id, &db_pool)
         .await
-        .expect("Could not reload user after lead update.");
+        .expect("Should be able to reload lead_use after lead update.");
     assert_eq!(
         prev_lead_user.permission_by_forum_map.get(forum_name),
         Some(&PermissionLevel::Elect)
@@ -258,16 +258,16 @@ async fn test_set_user_admin_role() -> Result<(), ServerFnError> {
 
     // admin can set admin roles
     admin.admin_role = AdminRole::Admin;
-    let sql_admin = set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await.expect("Could not set admin role.");
+    let sql_admin = set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await.expect("Admin should be able to grant admin role.");
     assert_eq!(sql_admin.user_id, admin.user_id);
     assert_eq!(sql_admin.admin_role, AdminRole::Admin);
-    let admin = User::get(admin.user_id, &db_pool).await.expect("Cannot reload admin user");
+    let admin = User::get(admin.user_id, &db_pool).await.expect("Should be able to reload admin.");
     assert_eq!(admin.admin_role, AdminRole::Admin);
 
-    let sql_moderator = set_user_admin_role(moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await.expect("Could not set admin role.");
+    let sql_moderator = set_user_admin_role(moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await.expect("Admin should be able to grant moderator role.");
     assert_eq!(sql_moderator.user_id, moderator.user_id);
     assert_eq!(sql_moderator.admin_role, AdminRole::Moderator);
-    let moderator = User::get(moderator.user_id, &db_pool).await.expect("Cannot reload moderator user");
+    let moderator = User::get(moderator.user_id, &db_pool).await.expect("Should be able to reload moderator.");
     assert_eq!(moderator.admin_role, AdminRole::Moderator);
 
     // moderator cannot set admin roles

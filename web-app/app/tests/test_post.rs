@@ -6,6 +6,7 @@ use app::editor::get_styled_html_from_markdown;
 use app::post::{Post, PostSortType, ssr};
 use app::post::ssr::{create_post, get_post_with_info_by_id};
 use app::ranking::{SortType, VoteInfo, VoteValue};
+use app::ranking::ssr::vote_on_content;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -34,6 +35,64 @@ pub fn test_post_vec(
         }
         index += 1;
     }
+}
+
+#[tokio::test]
+async fn test_get_post_with_info_by_id() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, db_pool.clone()).await?;
+
+    let post_1_title = "1";
+    let post_1_body = "test";
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+
+    let post_2_title = "1";
+    let post_2_body = "test";
+    let post_2_markdown_body = "test";
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+
+    let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
+    assert_eq!(post_1_without_vote.post, post_1);
+    assert_eq!(post_1_without_vote.vote, None);
+
+    let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 1.");
+    assert_eq!(post_1_without_vote.post, post_1);
+    assert_eq!(post_1_without_vote.vote, None);
+
+    let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, None, &db_pool).await.expect("Should be able to load post 2.");
+    assert_eq!(post_2_without_vote.post, post_2);
+    assert_eq!(post_2_without_vote.vote, None);
+
+    let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 2.");
+    assert_eq!(post_2_without_vote.post, post_2);
+    assert_eq!(post_2_without_vote.vote, None);
+
+    let post_1_vote = vote_on_content(VoteValue::Up, post_1.post_id, None, None, &test_user, &db_pool).await.expect("Should be possible to vote on post_1.");
+    let post_2_vote = vote_on_content(VoteValue::Down, post_2.post_id, None, None, &test_user, &db_pool).await.expect("Should be possible to vote on post_2.");
+
+    let post_1_with_vote = get_post_with_info_by_id(post_1.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 1.");
+    assert_eq!(post_1_with_vote.post.post_id, post_1.post_id);
+    assert_eq!(post_1_with_vote.post.creator_id, test_user.user_id);
+    assert_eq!(post_1_with_vote.post.creator_name, test_user.username);
+    assert_eq!(post_1_with_vote.post.title, post_1_title);
+    assert_eq!(post_1_with_vote.post.body, post_1_body);
+    assert_eq!(post_1_with_vote.post.markdown_body, None);
+    assert_eq!(post_1_with_vote.post.score, 1);
+    assert_eq!(post_1_with_vote.vote, post_1_vote);
+
+    let post_2_with_vote = get_post_with_info_by_id(post_2.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 2.");
+    assert_eq!(post_2_with_vote.post.post_id, post_2.post_id);
+    assert_eq!(post_2_with_vote.post.creator_id, test_user.user_id);
+    assert_eq!(post_2_with_vote.post.creator_name, test_user.username);
+    assert_eq!(post_2_with_vote.post.title, post_2_title);
+    assert_eq!(post_2_with_vote.post.body, post_2_body);
+    assert_eq!(post_2_with_vote.post.markdown_body, Some(String::from(post_2_markdown_body)));
+    assert_eq!(post_2_with_vote.post.score, -1);
+    assert_eq!(post_2_with_vote.vote, post_2_vote);
+
+    Ok(())
 }
 
 #[tokio::test]
@@ -114,7 +173,7 @@ async fn test_create_post() -> Result<(), ServerFnError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Couldn't create post 1.");
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
 
     assert_eq!(post_1.title, post_1_title);
     assert_eq!(post_1.body, post_1_body);
@@ -137,7 +196,7 @@ async fn test_create_post() -> Result<(), ServerFnError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Couldn't create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
@@ -157,12 +216,12 @@ async fn test_create_post() -> Result<(), ServerFnError> {
     assert_eq!(post_2.num_comments, 0);
     assert_eq!(post_2.score, 0);
 
-    let post_1_with_info = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Couldn't load post 1.");
+    let post_1_with_info = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
 
     assert_eq!(post_1_with_info.post, post_1);
     assert_eq!(post_1_with_info.vote, None);
 
-    let post_2_with_info = get_post_with_info_by_id(post_2.post_id, None, &db_pool).await.expect("Couldn't load post 2.");
+    let post_2_with_info = get_post_with_info_by_id(post_2.post_id, None, &db_pool).await.expect("Should be able to load post 2.");
 
     assert_eq!(post_2_with_info.post, post_2);
     assert_eq!(post_2_with_info.vote, None);
@@ -404,7 +463,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         None,
         None,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await?;
 
     let post_with_vote =
@@ -427,7 +486,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
             value: vote.value,
         }),
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     )
         .await
         .is_err());
@@ -439,7 +498,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
         None,
         None,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     )
         .await
         .is_err());
@@ -453,13 +512,13 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
             value: vote.value,
         }),
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await?;
 
     let post_with_vote =
         post::ssr::get_post_with_info_by_id(post.post_id, Some(&test_user), &db_pool)
             .await?;
-    let vote = post_with_vote.vote.expect("Vote not found");
+    let vote = post_with_vote.vote.expect("Post should have vote");
     assert_eq!(vote.value, VoteValue::Down);
     assert_eq!(vote.user_id, test_user.user_id);
     assert_eq!(vote.post_id, post.post_id);
@@ -474,7 +533,7 @@ async fn test_post_votes() -> Result<(), ServerFnError> {
             value: vote.value,
         }),
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await?;
 
     let post_with_vote =

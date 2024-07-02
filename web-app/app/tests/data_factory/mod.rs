@@ -97,7 +97,7 @@ pub async fn create_post_with_comments(
                 Some(comment.comment_id),
                 None,
                 user,
-                db_pool.clone(),
+                &db_pool,
             ).await?;
         }
     }

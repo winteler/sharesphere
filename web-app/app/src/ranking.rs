@@ -138,7 +138,7 @@ pub mod ssr {
         comment_id: Option<i64>,
         previous_vote_info: Option<VoteInfo>,
         user: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Option<Vote>, AppError> {
         if previous_vote_info
             .as_ref()
@@ -166,7 +166,7 @@ pub mod ssr {
                         //comment_id, TODO where condition on nullable field is causing issue
                         user.user_id,
                     )
-                    .fetch_one(&db_pool)
+                    .fetch_one(db_pool)
                     .await?,
                 )
             } else {
@@ -180,7 +180,7 @@ pub mod ssr {
                     post_id,
                     user.user_id,
                 )
-                .execute(&db_pool)
+                .execute(db_pool)
                 .await?;
                 None
             }
@@ -195,7 +195,7 @@ pub mod ssr {
                     user.user_id,
                     vote_value as i16,
                 )
-                    .fetch_one(&db_pool)
+                    .fetch_one(db_pool)
                     .await?)
         };
 
@@ -204,7 +204,7 @@ pub mod ssr {
             post_id,
             comment_id,
             previous_vote_info,
-            &db_pool,
+            db_pool,
         )
         .await?;
 
@@ -266,7 +266,7 @@ pub async fn vote_on_content(
         comment_id,
         previous_vote_info,
         &user,
-        db_pool,
+        &db_pool,
     )
     .await?;
 

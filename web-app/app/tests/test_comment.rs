@@ -36,13 +36,13 @@ fn test_comment_with_children(
         .comment
         .body
         .parse::<usize>()
-        .expect("Failed to get comment number");
+        .expect("Comment number in body should be parsable.");
     let expected_vote_value = get_vote_from_comment_num(comment_num);
     if let Some(expected_vote_value) = expected_vote_value {
         let vote: Vote = comment_with_children
             .vote
             .clone()
-            .expect(format!("Expected vote for comment {comment_num}").as_str());
+            .expect(format!("Comment {comment_num} should have a vote.").as_str());
         assert_eq!(vote.value, expected_vote_value);
         assert_eq!(vote.user_id, expected_user_id);
         assert_eq!(vote.post_id, expected_post_id);

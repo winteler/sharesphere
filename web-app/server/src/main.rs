@@ -92,7 +92,7 @@ async fn server_fn_handler(
 
 #[tokio::main]
 async fn main() {
-    simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
+    simple_logger::init_with_level(log::Level::Info).expect("Should be able to initialize logging.");
 
     let subscriber = tracing_subscriber::fmt().with_max_level(tracing::Level::ERROR).finish();
     tracing::subscriber::set_global_default(subscriber).unwrap_throw();
@@ -122,7 +122,7 @@ async fn main() {
     sqlx::migrate!("../migrations/")
         .run(&pool)
         .await
-        .expect("could not run SQLx migrations");
+        .expect("Should be able to run SQLx migrations.");
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:

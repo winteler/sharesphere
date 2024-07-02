@@ -10,12 +10,12 @@ pub const TEST_DB_URL_ENV: &str = "TEST_DATABASE_URL";
 static DB_NUM: Mutex<i32> = Mutex::new(0);
 async fn get_main_db_pool() -> PgPool {
     let main_db = "postgres";
-    let main_db_url = env::var(TEST_DB_URL_ENV).expect("Could not get test DB address.") + main_db;
+    let main_db_url = env::var(TEST_DB_URL_ENV).expect(&format!("Test DB address should be in env variable {TEST_DB_URL_ENV}.")) + main_db;
     PgPoolOptions::new()
         .max_connections(5)
         .connect(&main_db_url)
         .await
-        .expect("Failed to connect to test DB")
+        .expect("Should be able to connect to Test DB.")
 }
 
 pub async fn get_db_pool() -> PgPool {
@@ -27,15 +27,15 @@ pub async fn get_db_pool() -> PgPool {
     sqlx::query(format!("DROP DATABASE IF EXISTS {db_name} WITH (FORCE)").as_str())
         .execute(&main_db_pool)
         .await
-        .expect(format!("Could not delete database: {db_name}").as_str());
+        .expect(format!("Should be able to delete database: {db_name}").as_str());
 
     sqlx::query(format!("CREATE DATABASE {db_name}").as_str())
         .execute(&main_db_pool)
         .await
-        .expect("Could not create database");
+        .expect(format!("Should be able to create database {db_name}").as_str());
 
     let test_db_url =
-        env::var(TEST_DB_URL_ENV).expect("Could not get test DB address.") + db_name.as_str();
+        env::var(TEST_DB_URL_ENV).expect(format!("Test DB address should be available in env variable {TEST_DB_URL_ENV}.").as_str()) + db_name.as_str();
 
     *db_num = *db_num + 1;
 
@@ -43,12 +43,12 @@ pub async fn get_db_pool() -> PgPool {
         .max_connections(5)
         .connect(&test_db_url)
         .await
-        .expect("Failed to connect to test DB");
+        .expect("Should be able to connect test DB");
 
     sqlx::migrate!("../migrations/")
         .run(&db_pool)
         .await
-        .expect("could not run SQLx migrations");
+        .expect("SQLx migrations should be executed.");
 
     db_pool
 }
@@ -65,6 +65,6 @@ pub async fn create_user(
 ) -> User {
     let sql_user = app::auth::ssr::create_user(oidc_user_id, username, email, db_pool)
         .await
-        .expect("Could not create user.");
-    User::get(sql_user.user_id, db_pool).await.expect("Could not fetch newly created user.")
+        .expect("Should be possible to create user.");
+    User::get(sql_user.user_id, db_pool).await.expect("New user should be available in DB.")
 }

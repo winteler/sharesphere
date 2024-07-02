@@ -524,11 +524,11 @@ pub mod ssr {
             assert_eq!(user_1.ban_status, BanStatus::None);
             assert_eq!(user_1.ban_status_by_forum_map.get(&String::from("a")), None);
             assert_eq!(
-                *user_1.ban_status_by_forum_map.get(&String::from("b")).expect("Did not find ban status for forum 'b'."),
+                *user_1.ban_status_by_forum_map.get(&String::from("b")).expect("User should have ban for forum 'b'."),
                 BanStatus::Until(future_timestamp)
             );
             assert_eq!(
-                *user_1.ban_status_by_forum_map.get(&String::from("c")).expect("Did not find ban status for forum 'c'."),
+                *user_1.ban_status_by_forum_map.get(&String::from("c")).expect("User should have ban for forum 'c'."),
                 BanStatus::Permanent
             );
 

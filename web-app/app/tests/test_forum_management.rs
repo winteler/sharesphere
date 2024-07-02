@@ -83,7 +83,7 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     let banned_user = create_user("banned", "banned", "banned", &db_pool).await;
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
-    let test_user = User::get(test_user.user_id, &db_pool).await.expect("Could not reload test user to update roles.");
+    let test_user = User::get(test_user.user_id, &db_pool).await.expect("Should be able to reload user.");
 
     // unauthorized used cannot ban
     assert!(ban_user_from_forum(banned_user.user_id, &forum.forum_name, &unauthorized_user, None, db_pool.clone()).await.is_err());
@@ -98,7 +98,7 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     assert!(ban_user_from_forum(test_user.user_id, &forum.forum_name, &admin, Some(1), db_pool.clone()).await.is_err());
 
     // forum moderator can ban ordinary users
-    let user_ban = ban_user_from_forum(unauthorized_user.user_id, &forum.forum_name, &test_user, Some(1), db_pool.clone()).await?.expect("Expected Some(user_ban).");
+    let user_ban = ban_user_from_forum(unauthorized_user.user_id, &forum.forum_name, &test_user, Some(1), db_pool.clone()).await?.expect("User ban from forum should be possible.");
     assert_eq!(user_ban.user_id, unauthorized_user.user_id);
     assert_eq!(user_ban.forum_id, Some(forum.forum_id));
     assert_eq!(user_ban.forum_name, Some(forum.forum_name.clone()));
@@ -106,12 +106,12 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     assert_eq!(user_ban.until_timestamp, Some(user_ban.create_timestamp.add(Days::new(1))));
 
     // banned user cannot create new content
-    let unauthorized_user = User::get(unauthorized_user.user_id, &db_pool).await.expect("Could not reload unauthorized user to update roles.");
+    let unauthorized_user = User::get(unauthorized_user.user_id, &db_pool).await.expect("Should be able to reload user.");
     assert!(create_post(&forum.forum_name, "c", "d", None, false, None, &unauthorized_user, &db_pool).await.is_err());
     assert!(create_comment(post.post_id, None, "a", None, &unauthorized_user, db_pool.clone()).await.is_err());
 
     // global moderator can ban ordinary users
-    let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &global_moderator, Some(2), db_pool.clone()).await?.expect("Expected Some(user_ban).");
+    let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &global_moderator, Some(2), db_pool.clone()).await?.expect("User ban from forum should be possible.");
     assert_eq!(user_ban.user_id, banned_user.user_id);
     assert_eq!(user_ban.forum_id, Some(forum.forum_id));
     assert_eq!(user_ban.forum_name, Some(forum.forum_name.clone()));
@@ -119,7 +119,7 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     assert_eq!(user_ban.until_timestamp, Some(user_ban.create_timestamp.add(Days::new(2))));
 
     // global moderator can ban ordinary users
-    let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &admin, None, db_pool.clone()).await?.expect("Expected Some(user_ban).");
+    let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &admin, None, db_pool.clone()).await?.expect("User ban from forum should be possible.");
     assert_eq!(user_ban.user_id, banned_user.user_id);
     assert_eq!(user_ban.forum_id, Some(forum.forum_id));
     assert_eq!(user_ban.forum_name, Some(forum.forum_name.clone()));
@@ -127,7 +127,7 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     assert_eq!(user_ban.until_timestamp, None);
 
     // banned user cannot create new content
-    let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Could not reload banned user to update roles.");
+    let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Should be possible to reload banned user.");
     assert!(create_post(&forum.forum_name, "c", "d", None, false, None, &banned_user, &db_pool).await.is_err());
     assert!(create_comment(post.post_id, None, "a", None, &banned_user, db_pool.clone()).await.is_err());
 

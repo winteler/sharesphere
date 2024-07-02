@@ -4,7 +4,7 @@ use rand::Rng;
 use app::{forum, post, ranking};
 use app::editor::get_styled_html_from_markdown;
 use app::post::{Post, PostSortType, ssr};
-use app::post::ssr::{create_post, get_post_with_info_by_id};
+use app::post::ssr::{create_post, get_post_forum, get_post_with_info_by_id};
 use app::ranking::{SortType, VoteInfo, VoteValue};
 use app::ranking::ssr::vote_on_content;
 
@@ -91,6 +91,20 @@ async fn test_get_post_with_info_by_id() -> Result<(), ServerFnError> {
     assert_eq!(post_2_with_vote.post.markdown_body, Some(String::from(post_2_markdown_body)));
     assert_eq!(post_2_with_vote.post.score, -1);
     assert_eq!(post_2_with_vote.vote, post_2_vote);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_post_forum() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, db_pool.clone()).await?;
+    let post = create_post(&forum.forum_name, "1", "test", None, false, None, &test_user, &db_pool).await.expect("Should be able to create post.");
+
+    let result_forum = get_post_forum(post.post_id, &db_pool).await.expect("Post forum should be available.");
+    assert_eq!(result_forum, forum);
 
     Ok(())
 }

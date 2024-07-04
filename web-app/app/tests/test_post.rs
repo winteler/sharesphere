@@ -1,10 +1,13 @@
+use std::time::Duration;
+
+use float_cmp::approx_eq;
 use leptos::ServerFnError;
 use rand::Rng;
 
 use app::{forum, post, ranking};
 use app::editor::get_styled_html_from_markdown;
 use app::post::{Post, PostSortType, ssr};
-use app::post::ssr::{create_post, get_post_forum, get_post_with_info_by_id};
+use app::post::ssr::{create_post, get_post_forum, get_post_with_info_by_id, update_post_scores};
 use app::ranking::{SortType, VoteInfo, VoteValue};
 use app::ranking::ssr::vote_on_content;
 
@@ -35,6 +38,20 @@ pub fn test_post_vec(
         }
         index += 1;
     }
+}
+
+pub fn test_post_score(post: &Post) {
+    let num_days_old = (post
+        .scoring_timestamp
+        .signed_duration_since(post.create_timestamp)
+        .num_seconds() as f32)
+        / 86400.0;
+
+    let expected_recommended_score = (post.score as f32) * f32::powf(2.0, 3.0 * (2.0 - num_days_old));
+    let expected_trending_score = (post.score as f32) * f32::powf(2.0, 8.0 * (1.0 - num_days_old));
+
+    assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score, epsilon = f32::EPSILON, ulps = 5));
+    assert!(approx_eq!(f32, post.trending_score, expected_trending_score, epsilon = f32::EPSILON, ulps = 5));
 }
 
 #[tokio::test]
@@ -179,71 +196,6 @@ async fn test_get_subscribed_post_vec() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_create_post() -> Result<(), ServerFnError> {
-    let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
-
-    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, db_pool.clone()).await?;
-
-    let post_1_title = "1";
-    let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
-
-    assert_eq!(post_1.title, post_1_title);
-    assert_eq!(post_1.body, post_1_body);
-    assert_eq!(post_1.markdown_body, None);
-    assert_eq!(post_1.is_nsfw, false);
-    assert_eq!(post_1.spoiler_level, 0);
-    assert_eq!(post_1.tags, None);
-    assert_eq!(post_1.is_edited, false);
-    assert_eq!(post_1.meta_post_id, None);
-    assert_eq!(post_1.forum_id, forum.forum_id);
-    assert_eq!(post_1.forum_name, forum.forum_name);
-    assert_eq!(post_1.creator_id, test_user.user_id);
-    assert_eq!(post_1.creator_name, test_user.username);
-    assert_eq!(post_1.moderated_body, None);
-    assert_eq!(post_1.moderator_id, None);
-    assert_eq!(post_1.moderator_name, None);
-    assert_eq!(post_1.num_comments, 0);
-    assert_eq!(post_1.score, 0);
-
-    let post_2_title = "1";
-    let post_2_body = "test";
-    let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
-
-    assert_eq!(post_2.title, post_2_title);
-    assert_eq!(post_2.body, post_2_body);
-    assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
-    assert_eq!(post_2.is_nsfw, false);
-    assert_eq!(post_2.spoiler_level, 0);
-    assert_eq!(post_2.tags, None);
-    assert_eq!(post_2.is_edited, false);
-    assert_eq!(post_2.meta_post_id, None);
-    assert_eq!(post_2.forum_id, forum.forum_id);
-    assert_eq!(post_2.forum_name, forum.forum_name);
-    assert_eq!(post_2.creator_id, test_user.user_id);
-    assert_eq!(post_2.creator_name, test_user.username);
-    assert_eq!(post_2.moderated_body, None);
-    assert_eq!(post_2.moderator_id, None);
-    assert_eq!(post_2.moderator_name, None);
-    assert_eq!(post_2.num_comments, 0);
-    assert_eq!(post_2.score, 0);
-
-    let post_1_with_info = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
-
-    assert_eq!(post_1_with_info.post, post_1);
-    assert_eq!(post_1_with_info.vote, None);
-
-    let post_2_with_info = get_post_with_info_by_id(post_2.post_id, None, &db_pool).await.expect("Should be able to load post 2.");
-
-    assert_eq!(post_2_with_info.post, post_2);
-    assert_eq!(post_2_with_info.vote, None);
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn test_get_sorted_post_vec() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
@@ -340,6 +292,71 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
+async fn test_create_post() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, db_pool.clone()).await?;
+
+    let post_1_title = "1";
+    let post_1_body = "test";
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+
+    assert_eq!(post_1.title, post_1_title);
+    assert_eq!(post_1.body, post_1_body);
+    assert_eq!(post_1.markdown_body, None);
+    assert_eq!(post_1.is_nsfw, false);
+    assert_eq!(post_1.spoiler_level, 0);
+    assert_eq!(post_1.tags, None);
+    assert_eq!(post_1.is_edited, false);
+    assert_eq!(post_1.meta_post_id, None);
+    assert_eq!(post_1.forum_id, forum.forum_id);
+    assert_eq!(post_1.forum_name, forum.forum_name);
+    assert_eq!(post_1.creator_id, test_user.user_id);
+    assert_eq!(post_1.creator_name, test_user.username);
+    assert_eq!(post_1.moderated_body, None);
+    assert_eq!(post_1.moderator_id, None);
+    assert_eq!(post_1.moderator_name, None);
+    assert_eq!(post_1.num_comments, 0);
+    assert_eq!(post_1.score, 0);
+
+    let post_2_title = "1";
+    let post_2_body = "test";
+    let post_2_markdown_body = "test";
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+
+    assert_eq!(post_2.title, post_2_title);
+    assert_eq!(post_2.body, post_2_body);
+    assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
+    assert_eq!(post_2.is_nsfw, false);
+    assert_eq!(post_2.spoiler_level, 0);
+    assert_eq!(post_2.tags, None);
+    assert_eq!(post_2.is_edited, false);
+    assert_eq!(post_2.meta_post_id, None);
+    assert_eq!(post_2.forum_id, forum.forum_id);
+    assert_eq!(post_2.forum_name, forum.forum_name);
+    assert_eq!(post_2.creator_id, test_user.user_id);
+    assert_eq!(post_2.creator_name, test_user.username);
+    assert_eq!(post_2.moderated_body, None);
+    assert_eq!(post_2.moderator_id, None);
+    assert_eq!(post_2.moderator_name, None);
+    assert_eq!(post_2.num_comments, 0);
+    assert_eq!(post_2.score, 0);
+
+    let post_1_with_info = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
+
+    assert_eq!(post_1_with_info.post, post_1);
+    assert_eq!(post_1_with_info.vote, None);
+
+    let post_2_with_info = get_post_with_info_by_id(post_2.post_id, None, &db_pool).await.expect("Should be able to load post 2.");
+
+    assert_eq!(post_2_with_info.post, post_2);
+    assert_eq!(post_2_with_info.vote, None);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_update_post() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
@@ -390,51 +407,48 @@ async fn test_update_post() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
+async fn test_update_post_score() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let (_, post) = create_forum_with_post("forum", &test_user, &db_pool).await;
+    let post = set_post_score(post.post_id, 10, &db_pool).await.expect("Post score should be set.");
+
+    // wait to have a meaningful difference in scores after update
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    update_post_scores(&db_pool).await.expect("Post scores should be updatable.");
+
+    let updated_post = get_post_with_info_by_id(post.post_id, None, &db_pool).await.expect("Should be able to get updated post.");
+
+    test_post_score(&post);
+    test_post_score(&updated_post.post);
+    assert_eq!(post.score, updated_post.post.score);
+    assert_eq!(post.create_timestamp, updated_post.post.create_timestamp);
+    assert!(post.scoring_timestamp < updated_post.post.scoring_timestamp);
+    assert!(post.recommended_score > updated_post.post.recommended_score);
+    assert!(post.trending_score > updated_post.post.trending_score);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_post_scores() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
-    forum::ssr::create_forum(
-        forum_name,
-        "forum",
-        false,
-        &test_user,
-        db_pool.clone(),
-    ).await?;
-
-    let post = post::ssr::create_post(
-        forum_name,
-        "post",
-        "body",
-        None,
-        false,
-        None,
-        &test_user,
-        &db_pool,
-    ).await?;
+    let (_, post) = create_forum_with_post("forum", &test_user, &db_pool).await;
 
     let mut rng = rand::thread_rng();
 
-    set_post_score(post.post_id, rng.gen_range(-100..101), db_pool.clone()).await?;
+    // wait to have a meaningful difference in scores after update
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let post_with_vote =
-        post::ssr::get_post_with_info_by_id(post.post_id, Some(&test_user), &db_pool)
-            .await?;
+    set_post_score(post.post_id, rng.gen_range(-100..101), &db_pool).await?;
 
-    let post = post_with_vote.post;
-    let post_num_days_old = (post
-        .scoring_timestamp
-        .signed_duration_since(post.create_timestamp)
-        .num_seconds() as f32)
-        / 86400.0;
-    let expected_recommended_score =
-        (post.score as f32) * f32::powf(2.0, 3.0 * (2.0 - post_num_days_old));
-    let expected_trending_score =
-        (post.score as f32) * f32::powf(2.0, 8.0 * (1.0 - post_num_days_old));
+    let post_with_vote = post::ssr::get_post_with_info_by_id(post.post_id, Some(&test_user), &db_pool).await?;
 
-    assert_eq!(post.recommended_score, expected_recommended_score);
-    assert_eq!(post.trending_score, expected_trending_score);
+    test_post_score(&post_with_vote.post);
     assert_eq!(post_with_vote.vote, None);
 
     Ok(())

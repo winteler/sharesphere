@@ -422,7 +422,7 @@ async fn populate_dev_db() -> Result<(), ServerFnError> {
         db_pool.clone()
     ).await?;
 
-    set_post_score(post.post_id, 200, db_pool.clone()).await?;
+    set_post_score(post.post_id, 200, &db_pool).await?;
 
     Ok(())
 }

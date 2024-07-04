@@ -365,14 +365,13 @@ pub mod ssr {
         Ok(post)
     }
 
-    pub async fn update_post_scores() -> Result<(), AppError> {
-        let db_pool = get_db_pool()?;
+    pub async fn update_post_scores(db_pool: &PgPool) -> Result<(), AppError> {
         sqlx::query!(
             "UPDATE posts \
             SET scoring_timestamp = CURRENT_TIMESTAMP \
             WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
         )
-            .execute(&db_pool)
+            .execute(db_pool)
             .await?;
 
         Ok(())

@@ -4,6 +4,7 @@ use rand::Rng;
 use app::{forum, post};
 use app::comment::{COMMENT_BATCH_SIZE, CommentSortType, CommentWithChildren};
 use app::comment;
+use app::comment::ssr::get_comment_forum;
 use app::editor::get_styled_html_from_markdown;
 use app::ranking::{SortType, Vote, VoteValue};
 
@@ -79,7 +80,21 @@ fn test_comment_with_children(
 }
 
 #[tokio::test]
-async fn test_comment_tree() -> Result<(), ServerFnError> {
+async fn test_get_comment_forum() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+
+    let (expected_forum, _, comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
+
+    let forum = get_comment_forum(comment.comment_id, &db_pool).await.expect("Should be able to get comment forum.");
+
+    assert_eq!(forum, expected_forum);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -163,7 +178,7 @@ async fn test_update_comment() -> Result<(), ServerFnError> {
         "comment",
         None,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await?;
 
     let updated_markdown_body = "# Here is a comment with markdown";

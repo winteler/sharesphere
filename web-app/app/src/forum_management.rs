@@ -262,7 +262,7 @@ pub async fn moderate_comment(
         db_pool.clone()
     ).await?;
 
-    let forum = get_comment_forum(comment_id, db_pool.clone()).await?;
+    let forum = get_comment_forum(comment_id, &db_pool).await?;
 
     ssr::ban_user_from_forum(
         comment.creator_id,

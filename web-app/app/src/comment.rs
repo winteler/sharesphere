@@ -135,7 +135,7 @@ pub mod ssr {
 
     pub async fn get_comment_forum(
         comment_id: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Forum, AppError> {
         let forum = sqlx::query_as!(
             Forum,
@@ -146,70 +146,10 @@ pub mod ssr {
             WHERE c.comment_id = $1",
             comment_id
         )
-            .fetch_one(&db_pool)
+            .fetch_one(db_pool)
             .await?;
 
         Ok(forum)
-    }
-
-    pub async fn create_comment(
-        post_id: i64,
-        parent_comment_id: Option<i64>,
-        comment: &str,
-        markdown_comment: Option<&str>,
-        user: &User,
-        db_pool: PgPool,
-    ) -> Result<Comment, AppError> {
-        let forum = get_post_forum(post_id, &db_pool).await?;
-        user.check_can_publish_on_forum(&forum.forum_name)?;
-        if comment.is_empty() {
-            return Err(AppError::new("Cannot create empty comment."));
-        }
-
-        let comment = sqlx::query_as!(
-            Comment,
-            "INSERT INTO comments (body, markdown_body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-            comment,
-            markdown_comment,
-            parent_comment_id,
-            post_id,
-            user.user_id,
-            user.username,
-        )
-            .fetch_one(&db_pool)
-            .await?;
-
-        // TODO increase post comment count
-
-        Ok(comment)
-    }
-
-    pub async fn update_comment(
-        comment_id: i64,
-        comment_body: &str,
-        comment_markdown_body: Option<&str>,
-        user: &User,
-        db_pool: PgPool,
-    ) -> Result<Comment, AppError> {
-        let comment = sqlx::query_as!(
-            Comment,
-            "UPDATE comments SET
-                body = $1,
-                markdown_body = $2,
-                edit_timestamp = CURRENT_TIMESTAMP
-            WHERE
-                comment_id = $3 AND
-                creator_id = $4
-            RETURNING *",
-            comment_body,
-            comment_markdown_body,
-            comment_id,
-            user.user_id,
-        )
-        .fetch_one(&db_pool)
-        .await?;
-
-        Ok(comment)
     }
 
     pub async fn get_post_comment_tree(
@@ -271,14 +211,14 @@ pub mod ssr {
             SELECT * FROM comment_tree
             ORDER BY path DESC"
             )
-            .as_str(),
+                .as_str(),
         )
-        .bind(user_id)
-        .bind(post_id)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&db_pool)
-        .await?;
+            .bind(user_id)
+            .bind(post_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&db_pool)
+            .await?;
 
         let mut comment_tree = Vec::<CommentWithChildren>::new();
         let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
@@ -313,6 +253,66 @@ pub mod ssr {
         }
 
         Ok(comment_tree)
+    }
+
+    pub async fn create_comment(
+        post_id: i64,
+        parent_comment_id: Option<i64>,
+        comment: &str,
+        markdown_comment: Option<&str>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Comment, AppError> {
+        let forum = get_post_forum(post_id, &db_pool).await?;
+        user.check_can_publish_on_forum(&forum.forum_name)?;
+        if comment.is_empty() {
+            return Err(AppError::new("Cannot create empty comment."));
+        }
+
+        let comment = sqlx::query_as!(
+            Comment,
+            "INSERT INTO comments (body, markdown_body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+            comment,
+            markdown_comment,
+            parent_comment_id,
+            post_id,
+            user.user_id,
+            user.username,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        // TODO increase post comment count
+
+        Ok(comment)
+    }
+
+    pub async fn update_comment(
+        comment_id: i64,
+        comment_body: &str,
+        comment_markdown_body: Option<&str>,
+        user: &User,
+        db_pool: PgPool,
+    ) -> Result<Comment, AppError> {
+        let comment = sqlx::query_as!(
+            Comment,
+            "UPDATE comments SET
+                body = $1,
+                markdown_body = $2,
+                edit_timestamp = CURRENT_TIMESTAMP
+            WHERE
+                comment_id = $3 AND
+                creator_id = $4
+            RETURNING *",
+            comment_body,
+            comment_markdown_body,
+            comment_id,
+            user.user_id,
+        )
+        .fetch_one(&db_pool)
+        .await?;
+
+        Ok(comment)
     }
 
     #[cfg(test)]
@@ -419,7 +419,7 @@ pub async fn create_comment(
         comment.as_str(),
         markdown_comment,
         &user,
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
 

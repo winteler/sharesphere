@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use app::{comment, forum, post, ranking};
 use app::auth::User;
 use app::comment::Comment;
+use app::comment::ssr::create_comment;
 use app::forum::Forum;
 use app::post::Post;
 use app::ranking::VoteValue;
@@ -33,6 +34,18 @@ pub async fn create_forum_with_post(
     ).await.expect("Should be able to create post.");
 
     (forum, post)
+}
+
+pub async fn create_forum_with_post_and_comment(
+    forum_name: &str,
+    user: &User,
+    db_pool:& PgPool,
+) -> (Forum, Post, Comment) {
+    let (forum, post) = create_forum_with_post(forum_name, user, db_pool).await;
+
+    let comment = create_comment(post.post_id, None, "comment", None, user, db_pool).await.expect("Comment should be created.");
+
+    (forum, post, comment)
 }
 
 pub async fn create_forum_with_posts(
@@ -107,7 +120,7 @@ pub async fn create_post_with_comments(
             i.to_string().as_str(),
             None,
             user,
-            db_pool.clone(),
+            &db_pool,
         ).await?;
 
         comment_id_vec.push(comment.comment_id);

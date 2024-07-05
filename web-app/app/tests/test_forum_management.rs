@@ -51,7 +51,7 @@ async fn test_moderate_comment() -> Result<(), ServerFnError> {
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
     let post = create_post(&forum.forum_name, "a", "body", None, false, None, &test_user, &db_pool).await?;
-    let comment = create_comment(post.post_id, None, "comment", None, &test_user, db_pool.clone()).await?;
+    let comment = create_comment(post.post_id, None, "comment", None, &test_user, &db_pool).await?;
 
     assert!(moderate_comment(comment.comment_id, "unauthorized", &unauthorized_user, db_pool.clone()).await.is_err());
 
@@ -108,7 +108,7 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     // banned user cannot create new content
     let unauthorized_user = User::get(unauthorized_user.user_id, &db_pool).await.expect("Should be able to reload user.");
     assert!(create_post(&forum.forum_name, "c", "d", None, false, None, &unauthorized_user, &db_pool).await.is_err());
-    assert!(create_comment(post.post_id, None, "a", None, &unauthorized_user, db_pool.clone()).await.is_err());
+    assert!(create_comment(post.post_id, None, "a", None, &unauthorized_user, &db_pool).await.is_err());
 
     // global moderator can ban ordinary users
     let user_ban = ban_user_from_forum(banned_user.user_id, &forum.forum_name, &global_moderator, Some(2), db_pool.clone()).await?.expect("User ban from forum should be possible.");
@@ -129,7 +129,7 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     // banned user cannot create new content
     let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Should be possible to reload banned user.");
     assert!(create_post(&forum.forum_name, "c", "d", None, false, None, &banned_user, &db_pool).await.is_err());
-    assert!(create_comment(post.post_id, None, "a", None, &banned_user, db_pool.clone()).await.is_err());
+    assert!(create_comment(post.post_id, None, "a", None, &banned_user, &db_pool).await.is_err());
 
     Ok(())
 }

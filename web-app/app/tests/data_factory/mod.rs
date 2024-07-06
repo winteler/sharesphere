@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use leptos::ServerFnError;
 use sqlx::PgPool;
 

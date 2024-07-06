@@ -38,12 +38,6 @@ pub struct Vote {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct VoteInfo {
-    pub vote_id: i64,
-    pub value: VoteValue,
-}
-
 impl From<i16> for VoteValue {
     fn from(value: i16) -> VoteValue {
         if value > 0 {
@@ -72,7 +66,7 @@ pub mod ssr {
 
     use crate::auth::User;
     use crate::errors::AppError;
-    use crate::ranking::{SortType, Vote, VoteInfo, VoteValue};
+    use crate::ranking::{SortType, Vote, VoteValue};
 
     impl SortType {
         pub fn to_order_by_code(self) -> &'static str {
@@ -95,65 +89,48 @@ pub mod ssr {
 
         (score_delta, minus_delta)
     }
-    async fn update_content_score(
-        vote: VoteValue,
+
+    async fn get_user_vote_on_content(
         post_id: i64,
-        comment_id: Option<i64>,
-        previous_vote_info: Option<VoteInfo>,
+        vote_id: i64,
+        user: &User,
         db_pool: &PgPool,
-    ) -> Result<(), AppError> {
-        let previous_vote = match previous_vote_info {
-            Some(vote_info) => vote_info.value,
-            None => VoteValue::None,
-        };
+    ) -> Result<Vote, AppError> {
+        let vote = sqlx::query_as!(
+            Vote,
+            "SELECT *
+            FROM votes
+            WHERE
+                post_id = $1 AND
+                vote_id = $2 AND
+                user_id = $3",
+            post_id,
+            //comment_id, //TODO where condition on nullable field is causing issue
+            vote_id,
+            user.user_id,
+        )
+            .fetch_one(db_pool)
+            .await?;
 
-        let (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
-
-        if comment_id.is_some() {
-            sqlx::query!(
-                "UPDATE comments set score = score + $1, score_minus = score_minus + $2 where comment_id = $3",
-                score_delta,
-                minus_delta,
-                comment_id,
-            )
-                .execute(db_pool)
-                .await?;
-        } else {
-            sqlx::query!(
-                "UPDATE posts set score = score + $1, score_minus = score_minus + $2, scoring_timestamp = CURRENT_TIMESTAMP where post_id = $3",
-                score_delta,
-                minus_delta,
-                post_id,
-            )
-                .execute(db_pool)
-                .await?;
-        }
-
-        Ok(())
+        Ok(vote)
     }
 
     pub async fn vote_on_content(
         vote_value: VoteValue,
         post_id: i64,
         comment_id: Option<i64>,
-        previous_vote_info: Option<VoteInfo>,
+        vote_id: Option<i64>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Option<Vote>, AppError> {
-        if previous_vote_info
-            .as_ref()
-            .is_some_and(|vote_info: &VoteInfo| vote_info.value == vote_value)
-        {
-            return Err(AppError::new("Identical to previous vote."));
-        }
-
-        let vote = if previous_vote_info.is_some() {
-            let vote_id = previous_vote_info.as_ref().unwrap().vote_id;
-            if vote_value != VoteValue::None {
+        let (prev_vote_value, vote) = if let Some(vote_id) = vote_id {
+            let current_vote = get_user_vote_on_content(post_id, vote_id, user, db_pool).await?;
+            if current_vote.value == vote_value {
+                log::debug!("Vote already has the right value, don't update it.");
+                (current_vote.value, Some(current_vote))
+            } else if vote_value != VoteValue::None {
                 log::debug!("Update vote {vote_id} with value {vote_value:?}");
-                println!("Update vote {vote_id} where post_id = {post_id}, comment_id = {comment_id:?}, user_id = {}, with value {}", user.user_id, vote_value as i16);
-                Some(
-                    sqlx::query_as!(
+                let vote = sqlx::query_as!(
                         Vote,
                         "UPDATE votes SET value = $1 \
                         WHERE vote_id = $2 AND \
@@ -163,12 +140,12 @@ pub mod ssr {
                         vote_value as i16,
                         vote_id,
                         post_id,
-                        //comment_id, TODO where condition on nullable field is causing issue
+                        //comment_id, //TODO where condition on nullable field is causing issue
                         user.user_id,
                     )
                     .fetch_one(db_pool)
-                    .await?,
-                )
+                    .await?;
+                (current_vote.value, Some(vote))
             } else {
                 log::debug!("Delete vote {vote_id}");
                 sqlx::query!(
@@ -180,14 +157,13 @@ pub mod ssr {
                     post_id,
                     user.user_id,
                 )
-                .execute(db_pool)
-                .await?;
-                None
+                    .execute(db_pool)
+                    .await?;
+                (current_vote.value, None)
             }
         } else {
             log::debug!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
-            Some(
-                sqlx::query_as!(
+            let vote = sqlx::query_as!(
                     Vote,
                     "INSERT INTO votes (post_id, comment_id, user_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
                     post_id,
@@ -196,24 +172,72 @@ pub mod ssr {
                     vote_value as i16,
                 )
                     .fetch_one(db_pool)
-                    .await?)
+                    .await?;
+            (VoteValue::None, Some(vote))
         };
 
         update_content_score(
             vote_value,
             post_id,
             comment_id,
-            previous_vote_info,
+            prev_vote_value,
             db_pool,
-        )
-        .await?;
+        ).await?;
 
         Ok(vote)
     }
 
+    async fn update_content_score(
+        vote: VoteValue,
+        post_id: i64,
+        comment_id: Option<i64>,
+        previous_vote: VoteValue,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        if vote != previous_vote {
+            let (score_delta, minus_delta) = get_vote_deltas(vote, previous_vote);
+
+            if comment_id.is_some() {
+                sqlx::query!(
+                    "UPDATE comments set score = score + $1, score_minus = score_minus + $2 where comment_id = $3",
+                    score_delta,
+                    minus_delta,
+                    comment_id,
+                )
+                    .execute(db_pool)
+                    .await?;
+            } else {
+                sqlx::query!(
+                    "UPDATE posts set score = score + $1, score_minus = score_minus + $2, scoring_timestamp = CURRENT_TIMESTAMP where post_id = $3",
+                    score_delta,
+                    minus_delta,
+                    post_id,
+                )
+                    .execute(db_pool)
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
     #[cfg(test)]
     mod tests {
+        use crate::comment::CommentSortType;
+        use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
+        use crate::post::PostSortType;
+
         use super::*;
+
+        #[test]
+        fn test_sort_type_to_order_by_code() {
+            assert_eq!(SortType::Post(PostSortType::Hot).to_order_by_code(), HOT_ORDER_BY_COLUMN);
+            assert_eq!(SortType::Post(PostSortType::Trending).to_order_by_code(), TRENDING_ORDER_BY_COLUMN);
+            assert_eq!(SortType::Post(PostSortType::Best).to_order_by_code(), BEST_ORDER_BY_COLUMN);
+            assert_eq!(SortType::Post(PostSortType::Recent).to_order_by_code(), RECENT_ORDER_BY_COLUMN);
+            assert_eq!(SortType::Comment(CommentSortType::Best).to_order_by_code(), BEST_ORDER_BY_COLUMN);
+            assert_eq!(SortType::Comment(CommentSortType::Recent).to_order_by_code(), RECENT_ORDER_BY_COLUMN);
+        }
 
         #[test]
         fn test_get_vote_deltas() {
@@ -255,7 +279,7 @@ pub async fn vote_on_content(
     vote_value: VoteValue,
     post_id: i64,
     comment_id: Option<i64>,
-    previous_vote_info: Option<VoteInfo>,
+    vote_id: Option<i64>,
 ) -> Result<Option<Vote>, ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -264,7 +288,7 @@ pub async fn vote_on_content(
         vote_value,
         post_id,
         comment_id,
-        previous_vote_info,
+        vote_id,
         &user,
         &db_pool,
     )
@@ -318,6 +342,7 @@ pub fn VotePanel<'a>(
     };
 
     let score = create_rw_signal(score);
+    let vote_id = create_rw_signal(vote_id);
     let vote = create_rw_signal(vote_value.unwrap_or(VoteValue::None));
 
     let vote_action = create_server_action::<VoteOnContent>();
@@ -337,12 +362,11 @@ pub fn VotePanel<'a>(
                     on:click=move |_| {
                         on_content_vote(
                             vote,
+                            vote_id,
                             score,
                             post_id,
                             comment_id,
                             initial_score,
-                            vote_id,
-                            vote_value,
                             vote_action,
                             true
                         );
@@ -362,12 +386,11 @@ pub fn VotePanel<'a>(
                     on:click=move |_| {
                         on_content_vote(
                             vote,
+                            vote_id,
                             score,
                             post_id,
                             comment_id,
                             initial_score,
-                            vote_id,
-                            vote_value,
                             vote_action,
                             false
                         );
@@ -383,12 +406,11 @@ pub fn VotePanel<'a>(
 // Function to react to an post's upvote or downvote button being clicked.
 pub fn on_content_vote(
     vote: RwSignal<VoteValue>,
+    vote_id: RwSignal<Option<i64>>,
     score: RwSignal<i32>,
     post_id: i64,
     comment_id: Option<i64>,
     initial_score: i32,
-    current_vote_id: Option<i64>,
-    current_vote_value: Option<VoteValue>,
     vote_action: Action<VoteOnContent, Result<Option<Vote>, ServerFnError>>,
     is_upvote: bool,
 ) {
@@ -396,76 +418,13 @@ pub fn on_content_vote(
 
     log::trace!("Content vote value {:?}", vote.get_untracked());
 
-    let previous_vote_info = if vote_action.version().get_untracked() == 0
-        && current_vote_id.is_some()
-        && current_vote_value.is_some()
-    {
-        Some(VoteInfo {
-            vote_id: current_vote_id.unwrap(),
-            value: current_vote_value.unwrap(),
-        })
-    } else {
-        match vote_action.value().get_untracked() {
-            Some(Ok(Some(vote))) => Some(VoteInfo {
-                vote_id: vote.vote_id,
-                value: vote.value,
-            }),
-            _ => None,
-        }
-    };
-
     vote_action.dispatch(VoteOnContent {
         vote_value: vote.get_untracked(),
         post_id,
         comment_id,
-        previous_vote_info,
+        vote_id: vote_id.get_untracked(),
     });
     score.set(initial_score + (vote.get_untracked() as i32));
-}
-
-// Function to react to an post's upvote or downvote button being clicked.
-pub fn get_on_content_vote_closure(
-    vote: RwSignal<VoteValue>,
-    score: RwSignal<i32>,
-    post_id: i64,
-    comment_id: Option<i64>,
-    initial_score: i32,
-    current_vote_id: Option<i64>,
-    current_vote_value: Option<VoteValue>,
-    vote_action: Action<VoteOnContent, Result<Option<Vote>, ServerFnError>>,
-    is_upvote: bool,
-) -> impl Fn(ev::MouseEvent) {
-    move |_| {
-        vote.update(|vote| update_vote_value(vote, is_upvote));
-
-        log::trace!("Content vote value {:?}", vote.get_untracked());
-
-        let previous_vote_info = if vote_action.version().get_untracked() == 0
-            && current_vote_id.is_some()
-            && current_vote_value.is_some()
-        {
-            Some(VoteInfo {
-                vote_id: current_vote_id.unwrap(),
-                value: current_vote_value.unwrap(),
-            })
-        } else {
-            match vote_action.value().get_untracked() {
-                Some(Ok(Some(vote))) => Some(VoteInfo {
-                    vote_id: vote.vote_id,
-                    value: vote.value,
-                }),
-                _ => None,
-            }
-        };
-
-        vote_action.dispatch(VoteOnContent {
-            vote_value: vote.get_untracked(),
-            post_id,
-            comment_id,
-            previous_vote_info,
-        });
-        score.set(initial_score + (vote.get_untracked() as i32));
-    }
 }
 
 // Function to obtain the css classes of a vote button

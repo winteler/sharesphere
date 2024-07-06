@@ -1,10 +1,9 @@
 use leptos::ServerFnError;
 use rand::Rng;
 
-use app::{forum, post};
 use app::comment::{COMMENT_BATCH_SIZE, CommentSortType, CommentWithChildren};
 use app::comment;
-use app::comment::ssr::get_comment_forum;
+use app::comment::ssr::{create_comment, get_comment_forum};
 use app::editor::get_styled_html_from_markdown;
 use app::ranking::{SortType, Vote, VoteValue};
 
@@ -99,7 +98,7 @@ async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
     let test_user = create_test_user(&db_pool).await;
 
     let forum_name = "forum";
-    forum::ssr::create_forum(
+    app::forum::ssr::create_forum(
         forum_name,
         "forum",
         false,
@@ -148,38 +147,55 @@ async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
+async fn test_create_comment() -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+
+    let (_forum, post) = create_forum_with_post("forum", &user, &db_pool).await;
+
+    let comment_body = "a";
+    let comment = create_comment(post.post_id, None, comment_body, None, &user, &db_pool).await.expect("Comment should be created.");
+
+    assert_eq!(comment.body, comment_body);
+    assert_eq!(comment.markdown_body, None);
+    assert_eq!(comment.is_edited, false);
+    assert_eq!(comment.moderated_body, None);
+    assert_eq!(comment.parent_id, None);
+    assert_eq!(comment.post_id, post.post_id);
+    assert_eq!(comment.creator_id, user.user_id);
+    assert_eq!(comment.creator_name, user.username);
+    assert_eq!(comment.moderator_id, None);
+    assert_eq!(comment.moderator_name, None);
+    assert_eq!(comment.score, 0);
+    assert_eq!(comment.score_minus, 0);
+    assert_eq!(comment.edit_timestamp, None);
+
+    let markdown_body = "# markdown";
+    let child_comment = create_comment(post.post_id, Some(comment.comment_id), comment_body, Some(markdown_body), &user, &db_pool).await.expect("Comment should be created.");
+
+    assert_eq!(child_comment.body, comment_body);
+    assert_eq!(child_comment.markdown_body, Some(String::from(markdown_body)));
+    assert_eq!(child_comment.is_edited, false);
+    assert_eq!(child_comment.moderated_body, None);
+    assert_eq!(child_comment.parent_id, Some(comment.comment_id));
+    assert_eq!(child_comment.post_id, post.post_id);
+    assert_eq!(child_comment.creator_id, user.user_id);
+    assert_eq!(child_comment.creator_name, user.username);
+    assert_eq!(child_comment.moderator_id, None);
+    assert_eq!(child_comment.moderator_name, None);
+    assert_eq!(child_comment.score, 0);
+    assert_eq!(child_comment.score_minus, 0);
+    assert_eq!(child_comment.edit_timestamp, None);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_update_comment() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
-    forum::ssr::create_forum(
-        forum_name,
-        "forum",
-        false,
-        &test_user,
-        db_pool.clone(),
-    ).await?;
-
-    let post = post::ssr::create_post(
-        forum_name,
-        "post",
-        "body",
-        None,
-        false,
-        None,
-        &test_user,
-        &db_pool.clone(),
-    ).await?;
-
-    let comment = comment::ssr::create_comment(
-        post.post_id,
-        None,
-        "comment",
-        None,
-        &test_user,
-        &db_pool,
-    ).await?;
+    let (_forum, _post, comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
 
     let updated_markdown_body = "# Here is a comment with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await?;
@@ -187,7 +203,7 @@ async fn test_update_comment() -> Result<(), ServerFnError> {
         comment.comment_id,
         &updated_html_body,
         Some(updated_markdown_body),
-        &test_user,
+        &user,
         db_pool
     ).await?;
 

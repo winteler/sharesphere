@@ -423,6 +423,7 @@ pub async fn create_comment(
     )
     .await?;
 
+    // TODO: move in create comment?
     let vote = vote_on_content(
         VoteValue::Up,
         comment.post_id,

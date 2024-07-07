@@ -479,7 +479,27 @@ pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {
 
 #[cfg(test)]
 mod tests {
-    use crate::ranking::{update_vote_value, VoteValue};
+    use leptos::{create_rw_signal, SignalSet};
+
+    use crate::ranking::{get_vote_button_css, update_vote_value, VoteValue};
+
+    #[test]
+    fn test_get_vote_button_css() {
+        let vote_signal = create_rw_signal(VoteValue::None);
+        let upvote_css = get_vote_button_css(vote_signal, true);
+        let downvote_css = get_vote_button_css(vote_signal, false);
+
+        assert_eq!(upvote_css(), String::from("p-1 rounded-full hover:bg-success"));
+        assert_eq!(downvote_css(), String::from("p-1 rounded-full hover:bg-error"));
+
+        vote_signal.set(VoteValue::Up);
+        assert_eq!(upvote_css(), String::from("p-1 rounded-full bg-success"));
+        assert_eq!(downvote_css(), String::from("p-1 rounded-full hover:bg-error"));
+
+        vote_signal.set(VoteValue::Down);
+        assert_eq!(upvote_css(), String::from("p-1 rounded-full hover:bg-success"));
+        assert_eq!(downvote_css(), String::from("p-1 rounded-full bg-error"));
+    }
 
     #[test]
     fn test_update_vote_value() {

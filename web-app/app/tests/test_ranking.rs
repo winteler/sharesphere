@@ -16,9 +16,7 @@ async fn test_vote_on_content_post() -> Result<(), ServerFnError> {
 
     let (_, post, _) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
 
-    let post_with_vote =
-        post::ssr::get_post_with_info_by_id(post.post_id, Some(&user), &db_pool)
-            .await?;
+    let post_with_vote = post::ssr::get_post_with_info_by_id(post.post_id, Some(&user), &db_pool).await?;
     assert!(post_with_vote.vote.is_none());
 
     let vote_value = VoteValue::Up;

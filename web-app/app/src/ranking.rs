@@ -342,13 +342,21 @@ pub fn VotePanel<'a>(
     };
 
     let score = create_rw_signal(score);
-    let vote_id = create_rw_signal(vote_id);
     let vote = create_rw_signal(vote_value.unwrap_or(VoteValue::None));
 
     let vote_action = create_server_action::<VoteOnContent>();
 
     let upvote_button_css = get_vote_button_css(vote, true);
     let downvote_button_css = get_vote_button_css(vote, false);
+
+    let vote_id = create_memo(move |current_vote_id| {
+        vote_action.value().with(|action_value| match action_value {
+            Some(Ok(Some(vote))) => Some(vote.vote_id),
+            Some(Ok(None)) => None,
+            Some(Err(_)) if current_vote_id.is_some() => *current_vote_id.unwrap(),
+            _ => vote_id,
+        })
+    });
 
     view! {
         <div class="flex items-center gap-1">
@@ -406,7 +414,7 @@ pub fn VotePanel<'a>(
 // Function to react to an post's upvote or downvote button being clicked.
 pub fn on_content_vote(
     vote: RwSignal<VoteValue>,
-    vote_id: RwSignal<Option<i64>>,
+    vote_id: Memo<Option<i64>>,
     score: RwSignal<i32>,
     post_id: i64,
     comment_id: Option<i64>,

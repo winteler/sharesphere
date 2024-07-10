@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::env;
 use std::sync::Mutex;
 
@@ -54,16 +56,14 @@ pub async fn get_db_pool() -> PgPool {
 }
 
 pub async fn create_test_user(db_pool: &PgPool) -> User {
-    create_user("test", "test", "test@test.com", db_pool).await
+    create_user("test", db_pool).await
 }
 
 pub async fn create_user(
-    oidc_user_id: &str,
-    username: &str,
-    email: &str,
+    test_id: &str,
     db_pool: &PgPool
 ) -> User {
-    let sql_user = app::auth::ssr::create_user(oidc_user_id, username, email, db_pool)
+    let sql_user = app::auth::ssr::create_user(test_id, test_id, test_id, db_pool)
         .await
         .expect("Should be possible to create user.");
     User::get(sql_user.user_id, db_pool).await.expect("New user should be available in DB.")

@@ -180,8 +180,8 @@ async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
 async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
     // use two users to make sure behaviour is correct both for forum creator and other users
-    let creator_user = create_test_user(&db_pool).await;
-    let member_user = create_user("user", "user", "user@user.com", &db_pool).await;
+    let creator_user = create_user("creator", &db_pool).await;
+    let member_user = create_user("user", &db_pool).await;
 
     let num_forum = 30usize;
     let mut expected_create_sub_forum_vec = Vec::<String>::new();

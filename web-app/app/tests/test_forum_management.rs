@@ -18,10 +18,10 @@ mod common;
 #[tokio::test]
 async fn test_moderate_post() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
-    let mut global_moderator = create_user("mod", "mod", "mod", &db_pool).await;
+    let test_user = create_user("test", &db_pool).await;
+    let mut global_moderator = create_user("mod", &db_pool).await;
     global_moderator.admin_role = AdminRole::Moderator;
-    let unauthorized_user = create_user("user", "user", "user", &db_pool).await;
+    let unauthorized_user = create_user("user", &db_pool).await;
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
     let post = create_post(&forum.forum_name, "a", "body", None, false, None, &test_user, &db_pool).await?;
@@ -44,10 +44,10 @@ async fn test_moderate_post() -> Result<(), ServerFnError> {
 #[tokio::test]
 async fn test_moderate_comment() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
-    let mut global_moderator = create_user("mod", "mod", "mod", &db_pool).await;
+    let test_user = create_user("test", &db_pool).await;
+    let mut global_moderator = create_user("mod", &db_pool).await;
     global_moderator.admin_role = AdminRole::Moderator;
-    let unauthorized_user = create_user("user", "user", "user", &db_pool).await;
+    let unauthorized_user = create_user("user", &db_pool).await;
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
     let post = create_post(&forum.forum_name, "a", "body", None, false, None, &test_user, &db_pool).await?;
@@ -71,16 +71,16 @@ async fn test_moderate_comment() -> Result<(), ServerFnError> {
 #[tokio::test]
 async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
-    let mut global_moderator = create_user("mod", "mod", "mod", &db_pool).await;
-    let mut admin = create_user("admin", "admin", "admin", &db_pool).await;
+    let test_user = create_user("test", &db_pool).await;
+    let mut global_moderator = create_user("mod", &db_pool).await;
+    let mut admin = create_user("admin", &db_pool).await;
     // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
     global_moderator.admin_role = AdminRole::Moderator;
     admin.admin_role = AdminRole::Admin;
     set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await?;
     set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await?;
-    let unauthorized_user = create_user("user", "user", "user", &db_pool).await;
-    let banned_user = create_user("banned", "banned", "banned", &db_pool).await;
+    let unauthorized_user = create_user("user", &db_pool).await;
+    let banned_user = create_user("banned", &db_pool).await;
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
     let test_user = User::get(test_user.user_id, &db_pool).await.expect("Should be able to reload user.");
@@ -137,15 +137,15 @@ async fn test_ban_user_from_forum() -> Result<(), ServerFnError> {
 #[tokio::test]
 async fn test_is_user_forum_moderator() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
-    let mut global_moderator = create_user("mod", "mod", "mod", &db_pool).await;
-    let mut admin = create_user("admin", "admin", "admin", &db_pool).await;
+    let test_user = create_user("test", &db_pool).await;
+    let mut global_moderator = create_user("mod", &db_pool).await;
+    let mut admin = create_user("admin", &db_pool).await;
     // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
     global_moderator.admin_role = AdminRole::Moderator;
     admin.admin_role = AdminRole::Admin;
     set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await?;
     set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await?;
-    let ordinary_user = create_user("user", "user", "user", &db_pool).await;
+    let ordinary_user = create_user("user", &db_pool).await;
 
     let forum = create_forum("forum", "a", false, &test_user, db_pool.clone()).await?;
 

@@ -287,7 +287,7 @@ pub mod ssr {
                     match self.admin_role == AdminRole::Admin
                         || self.permission_by_forum_map.get(forum_name).is_some_and(
                             |forum_permission| {
-                                *forum_permission > PermissionLevel::Elect
+                                *forum_permission >= PermissionLevel::Elect
                                     && *forum_permission > user_role.permission_level
                             },
                         ) {

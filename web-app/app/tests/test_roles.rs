@@ -6,16 +6,16 @@ use app::forum;
 use app::role::{AdminRole, PermissionLevel};
 use app::role::ssr::{get_user_forum_role, set_user_admin_role, set_user_forum_role};
 
-use crate::common::{create_test_user, create_user, get_db_pool};
+use crate::common::{create_user, get_db_pool};
 
 mod common;
 
 #[tokio::test]
 async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let user_a = create_user("a", "a", "a", &db_pool).await;
-    let user_b = create_user("b", "b", "b", &db_pool).await;
-    let user_c = create_test_user(&db_pool).await;
+    let user_a = create_user("a", &db_pool).await;
+    let user_b = create_user("b", &db_pool).await;
+    let user_c = create_user("c", &db_pool).await;
 
     let forum_1 = forum::ssr::create_forum("1", "forum", false, &user_a, db_pool.clone()).await?;
     let forum_2 = forum::ssr::create_forum("2", "forum", false, &user_a, db_pool.clone()).await?;
@@ -93,9 +93,9 @@ async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
 #[tokio::test]
 async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
     let db_pool = get_db_pool().await;
-    let lead_user = create_user("user", "user", "user@user.com", &db_pool).await;
-    let ordinary_user = create_user("a", "a", "a", &db_pool).await;
-    let moderator = create_test_user(&db_pool).await;
+    let lead_user = create_user("lead", &db_pool).await;
+    let ordinary_user = create_user("a", &db_pool).await;
+    let moderator = create_user("mod", &db_pool).await;
 
     let forum_name = "forum";
     let forum = forum::ssr::create_forum(forum_name, "forum", false, &lead_user, db_pool.clone()).await?;
@@ -253,9 +253,9 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
 async fn test_set_user_admin_role() -> Result<(), ServerFnError> {
 
     let db_pool = get_db_pool().await;
-    let ordinary_user = create_test_user(&db_pool).await;
-    let moderator = create_user("a", "a", "a", &db_pool).await;
-    let mut admin = create_user("b", "b", "b", &db_pool).await;
+    let ordinary_user = create_user("user", &db_pool).await;
+    let moderator = create_user("mod", &db_pool).await;
+    let mut admin = create_user("admin", &db_pool).await;
 
     // ordinary user cannot set admin role
     assert_eq!(set_user_admin_role(ordinary_user.user_id, AdminRole::Admin, &ordinary_user, &db_pool).await, Err(AppError::InsufficientPrivileges));

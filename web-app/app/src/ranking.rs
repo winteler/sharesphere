@@ -484,6 +484,15 @@ mod tests {
     use crate::ranking::{get_vote_button_css, update_vote_value, VoteValue};
 
     #[test]
+    fn test_vote_value_from_i64() {
+        assert_eq!(VoteValue::from(1), VoteValue::Up);
+        assert_eq!(VoteValue::from(123), VoteValue::Up);
+        assert_eq!(VoteValue::from(0), VoteValue::None);
+        assert_eq!(VoteValue::from(-1), VoteValue::Down);
+        assert_eq!(VoteValue::from(-312), VoteValue::Down);
+    }
+
+    #[test]
     fn test_get_vote_button_css() {
         let vote_signal = create_rw_signal(VoteValue::None);
         let upvote_css = get_vote_button_css(vote_signal, true);

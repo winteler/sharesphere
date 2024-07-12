@@ -1,11 +1,11 @@
 use std::collections::BTreeSet;
 
-use leptos::ServerFnError;
 use rand::Rng;
 use sqlx::PgPool;
 
 use app::app::ssr::create_db_pool;
 use app::auth::User;
+use app::errors::AppError;
 use app::forum;
 use app::forum::Forum;
 use app::forum::ssr::{subscribe, unsubscribe};
@@ -20,8 +20,8 @@ mod data_factory;
 async fn set_forum_num_members(
     forum_id: i64,
     num_members: i32,
-    db_pool: PgPool,
-) -> Result<Forum, ServerFnError> {
+    db_pool: &PgPool,
+) -> Result<Forum, AppError> {
     let forum = sqlx::query_as!(
         Forum,
         "UPDATE forums \
@@ -31,14 +31,14 @@ async fn set_forum_num_members(
         num_members,
         forum_id
     )
-    .fetch_one(&db_pool)
+    .fetch_one(db_pool)
     .await?;
 
     Ok(forum)
 }
 
 #[tokio::test]
-async fn test_is_forum_available() -> Result<(), ServerFnError> {
+async fn test_is_forum_available() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -48,18 +48,18 @@ async fn test_is_forum_available() -> Result<(), ServerFnError> {
         "forum",
         false,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
 
-    forum::ssr::is_forum_available(forum_name, db_pool.clone()).await?;
+    forum::ssr::is_forum_available(forum_name, &db_pool).await?;
 
     assert_eq!(
-        forum::ssr::is_forum_available(forum_name, db_pool.clone()).await?,
+        forum::ssr::is_forum_available(forum_name, &db_pool).await?,
         false
     );
     assert_eq!(
-        forum::ssr::is_forum_available("AvailableForum", db_pool).await?,
+        forum::ssr::is_forum_available("AvailableForum", &db_pool).await?,
         true
     );
 
@@ -67,7 +67,7 @@ async fn test_is_forum_available() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
+async fn test_get_forum_by_name() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -77,15 +77,15 @@ async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
         "forum",
         false,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
 
-    let forum = forum::ssr::get_forum_by_name(forum_name, db_pool.clone()).await?;
+    let forum = forum::ssr::get_forum_by_name(forum_name, &db_pool).await?;
 
     assert_eq!(forum, expected_forum);
 
-    assert!(forum::ssr::get_forum_by_name("invalid_name", db_pool)
+    assert!(forum::ssr::get_forum_by_name("invalid_name", &db_pool)
         .await
         .is_err());
 
@@ -93,7 +93,7 @@ async fn test_get_forum_by_name() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
+async fn test_get_matching_forum_names() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -106,7 +106,7 @@ async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
                 "forum",
                 false,
                 &test_user,
-                db_pool.clone(),
+                &db_pool,
             )
             .await?
             .forum_name,
@@ -114,7 +114,7 @@ async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
     }
 
     let forum_name_set =
-        forum::ssr::get_matching_forum_names(String::from("1"), num_forums as i64, db_pool.clone())
+        forum::ssr::get_matching_forum_names(String::from("1"), num_forums as i64, &db_pool)
             .await?;
 
     for forum_name in forum_name_set {
@@ -128,7 +128,7 @@ async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
                 "forum",
                 false,
                 &test_user,
-                db_pool.clone(),
+                &db_pool,
             )
             .await?
             .forum_name,
@@ -136,7 +136,7 @@ async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
     }
 
     let forum_name_set =
-        forum::ssr::get_matching_forum_names(String::default(), num_forums as i64, db_pool).await?;
+        forum::ssr::get_matching_forum_names(String::default(), num_forums as i64, &db_pool).await?;
 
     assert_eq!(forum_name_set.len(), num_forums);
 
@@ -144,7 +144,7 @@ async fn test_get_matching_forum_names() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
+async fn test_get_popular_forum_names() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -156,15 +156,15 @@ async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
             "forum",
             false,
             &test_user,
-            db_pool.clone(),
+            &db_pool,
         )
         .await?;
 
-        set_forum_num_members(forum.forum_id, i, db_pool.clone()).await?;
+        set_forum_num_members(forum.forum_id, i, &db_pool).await?;
     }
 
     let popular_forum_name_vec =
-        forum::ssr::get_popular_forum_names(num_forum_fetch as i64, db_pool).await?;
+        forum::ssr::get_popular_forum_names(num_forum_fetch as i64, &db_pool).await?;
 
     assert_eq!(popular_forum_name_vec.len(), num_forum_fetch);
     let mut expected_forum_num = num_forum - 1;
@@ -177,7 +177,7 @@ async fn test_get_popular_forum_names() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
+async fn test_get_subscribed_forum_names() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     // use two users to make sure behaviour is correct both for forum creator and other users
     let creator_user = create_user("creator", &db_pool).await;
@@ -192,21 +192,21 @@ async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
             "forum",
             false,
             &creator_user,
-            db_pool.clone(),
+            &db_pool,
         )
         .await?;
 
         if i % 2 == 1 {
-            forum::ssr::subscribe(forum.forum_id, creator_user.user_id, db_pool.clone()).await?;
+            forum::ssr::subscribe(forum.forum_id, creator_user.user_id, &db_pool).await?;
             expected_create_sub_forum_vec.push(forum.forum_name);
         } else {
-            forum::ssr::subscribe(forum.forum_id, member_user.user_id, db_pool.clone()).await?;
+            forum::ssr::subscribe(forum.forum_id, member_user.user_id, &db_pool).await?;
             expected_member_sub_forum_vec.push(forum.forum_name);
         }
     }
 
-    let create_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(creator_user.user_id, db_pool.clone()).await?;
-    let member_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(member_user.user_id, db_pool).await?;
+    let create_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(creator_user.user_id, &db_pool).await?;
+    let member_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(member_user.user_id, &db_pool).await?;
 
     assert_eq!(
         create_sub_forum_name_vec.len(),
@@ -227,7 +227,7 @@ async fn test_get_subscribed_forum_names() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_forum_with_user_info() -> Result<(), ServerFnError> {
+async fn test_get_forum_with_user_info() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -237,12 +237,12 @@ async fn test_get_forum_with_user_info() -> Result<(), ServerFnError> {
         "forum",
         false,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
 
     let forum_with_subscription =
-        forum::ssr::get_forum_with_user_info(forum_name, None, db_pool.clone()).await?;
+        forum::ssr::get_forum_with_user_info(forum_name, None, &db_pool).await?;
 
     assert_eq!(forum_with_subscription.forum.forum_id, forum.forum_id);
     assert_eq!(
@@ -255,25 +255,25 @@ async fn test_get_forum_with_user_info() -> Result<(), ServerFnError> {
     let forum_with_subscription = forum::ssr::get_forum_with_user_info(
         forum_name,
         Some(test_user.user_id),
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
     assert!(forum_with_subscription.subscription_id.is_none());
 
-    forum::ssr::subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await?;
+    forum::ssr::subscribe(forum.forum_id, test_user.user_id, &db_pool).await?;
     let forum_with_subscription = forum::ssr::get_forum_with_user_info(
         forum_name,
         Some(test_user.user_id),
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
     assert!(forum_with_subscription.subscription_id.is_some());
 
-    forum::ssr::unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await?;
+    forum::ssr::unsubscribe(forum.forum_id, test_user.user_id, &db_pool).await?;
     let forum_with_subscription = forum::ssr::get_forum_with_user_info(
         forum_name,
         Some(test_user.user_id),
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
     assert!(forum_with_subscription.subscription_id.is_none());
@@ -282,7 +282,7 @@ async fn test_get_forum_with_user_info() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_create_forum() -> Result<(), ServerFnError> {
+async fn test_create_forum() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -293,7 +293,7 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
         forum_description,
         false,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await.expect("Should be possible to create forum.");
 
     assert_eq!(forum.forum_name, forum_name);
@@ -308,22 +308,22 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
     assert_eq!(*forum_permission, PermissionLevel::Lead);
 
     assert!(
-        forum::ssr::create_forum("A", "a", false, &test_user, db_pool.clone())
+        forum::ssr::create_forum("A", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        forum::ssr::create_forum("", "a", false, &test_user, db_pool.clone())
+        forum::ssr::create_forum("", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        forum::ssr::create_forum("-", "a", false, &test_user, db_pool.clone())
+        forum::ssr::create_forum("-", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        forum::ssr::create_forum("b", "b", false, &test_user, db_pool.clone())
+        forum::ssr::create_forum("b", "b", false, &test_user, &db_pool)
             .await
             .is_ok()
     );
@@ -332,7 +332,7 @@ async fn test_create_forum() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_subscribe() -> Result<(), ServerFnError> {
+async fn test_subscribe() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -343,23 +343,23 @@ async fn test_subscribe() -> Result<(), ServerFnError> {
         forum_description,
         false,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await.expect("Should be possible to create forum.");
 
-    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("User should be able to subscribe to forum");
+    subscribe(forum.forum_id, test_user.user_id, &db_pool).await.expect("User should be able to subscribe to forum");
 
     // duplicated subscription fails
-    assert!(subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.is_err());
+    assert!(subscribe(forum.forum_id, test_user.user_id, &db_pool).await.is_err());
     // Subscribe to non-existent forum fails
-    assert!(subscribe(forum.forum_id + 1, test_user.user_id, db_pool.clone()).await.is_err());
+    assert!(subscribe(forum.forum_id + 1, test_user.user_id, &db_pool).await.is_err());
     // Subscribe with non-existent user fails
-    assert!(subscribe(forum.forum_id, test_user.user_id + 1, db_pool.clone()).await.is_err());
+    assert!(subscribe(forum.forum_id, test_user.user_id + 1, &db_pool).await.is_err());
 
     Ok(())
 }
 
 #[tokio::test]
-async fn test_unsubscribe() -> Result<(), ServerFnError> {
+async fn test_unsubscribe() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -370,14 +370,14 @@ async fn test_unsubscribe() -> Result<(), ServerFnError> {
         forum_description,
         false,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await.expect("Should be possible to create forum.");
 
     // unsubscribe without subscription fails
-    assert!(unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.is_err());
+    assert!(unsubscribe(forum.forum_id, test_user.user_id, &db_pool).await.is_err());
 
-    subscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("User should be able to subscribe to forum.");
-    unsubscribe(forum.forum_id, test_user.user_id, db_pool.clone()).await.expect("User should be able to unsubscribe to forum.");
+    subscribe(forum.forum_id, test_user.user_id, &db_pool).await.expect("User should be able to subscribe to forum.");
+    unsubscribe(forum.forum_id, test_user.user_id, &db_pool).await.expect("User should be able to unsubscribe to forum.");
 
     Ok(())
 }
@@ -385,7 +385,7 @@ async fn test_unsubscribe() -> Result<(), ServerFnError> {
 #[tokio::test]
 #[ignore]
 /// "fake" test used to easily populate dev DB
-async fn populate_dev_db() -> Result<(), ServerFnError> {
+async fn populate_dev_db() -> Result<(), AppError> {
     let db_pool = create_db_pool().await.expect("DB pool should be available.");
     let test_user = create_test_user(&db_pool).await;
 
@@ -400,7 +400,7 @@ async fn populate_dev_db() -> Result<(), ServerFnError> {
         num_posts,
         Some((0..num_posts).map(|_| rng.gen_range(-100..101)).collect()),
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
 
@@ -419,7 +419,7 @@ async fn populate_dev_db() -> Result<(), ServerFnError> {
         (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),
         (0..num_comments).map(|_| None).collect(),
         &test_user,
-        db_pool.clone()
+        &db_pool
     ).await?;
 
     set_post_score(post.post_id, 200, &db_pool).await?;

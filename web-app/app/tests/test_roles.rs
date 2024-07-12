@@ -1,5 +1,3 @@
-use leptos::ServerFnError;
-
 use app::auth::User;
 use app::errors::AppError;
 use app::forum;
@@ -11,15 +9,15 @@ use crate::common::{create_user, get_db_pool};
 mod common;
 
 #[tokio::test]
-async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
+async fn test_get_user_forum_role() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user_a = create_user("a", &db_pool).await;
     let user_b = create_user("b", &db_pool).await;
     let user_c = create_user("c", &db_pool).await;
 
-    let forum_1 = forum::ssr::create_forum("1", "forum", false, &user_a, db_pool.clone()).await?;
-    let forum_2 = forum::ssr::create_forum("2", "forum", false, &user_a, db_pool.clone()).await?;
-    let forum_3 = forum::ssr::create_forum("3", "forum", false, &user_b, db_pool.clone()).await?;
+    let forum_1 = forum::ssr::create_forum("1", "forum", false, &user_a, &db_pool).await?;
+    let forum_2 = forum::ssr::create_forum("2", "forum", false, &user_a, &db_pool).await?;
+    let forum_3 = forum::ssr::create_forum("3", "forum", false, &user_b, &db_pool).await?;
     let user_a = User::get(user_a.user_id, &db_pool).await.expect("Should be able to reload user.");
     let user_b = User::get(user_b.user_id, &db_pool).await.expect("Should be able to reload user.");
 
@@ -91,14 +89,14 @@ async fn test_get_user_forum_role() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
+async fn test_set_user_forum_role() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let lead_user = create_user("lead", &db_pool).await;
     let ordinary_user = create_user("a", &db_pool).await;
     let moderator = create_user("mod", &db_pool).await;
 
     let forum_name = "forum";
-    let forum = forum::ssr::create_forum(forum_name, "forum", false, &lead_user, db_pool.clone()).await?;
+    let forum = forum::ssr::create_forum(forum_name, "forum", false, &lead_user, &db_pool).await?;
     let lead_user = User::get(lead_user.user_id, &db_pool)
         .await
         .expect("Should be able to reload lead_user.");
@@ -250,7 +248,7 @@ async fn test_set_user_forum_role() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_set_user_admin_role() -> Result<(), ServerFnError> {
+async fn test_set_user_admin_role() -> Result<(), AppError> {
 
     let db_pool = get_db_pool().await;
     let ordinary_user = create_user("user", &db_pool).await;

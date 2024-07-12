@@ -45,7 +45,7 @@ pub mod ssr {
         post_id: i64,
         moderated_body: &str,
         user: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         let post = if user.check_is_global_moderator().is_ok() {
             sqlx::query_as!(
@@ -63,7 +63,7 @@ pub mod ssr {
                 user.username,
                 post_id,
             )
-                .fetch_one(&db_pool)
+                .fetch_one(db_pool)
                 .await?
         } else {
             sqlx::query_as!(
@@ -87,7 +87,7 @@ pub mod ssr {
                 user.username,
                 post_id,
             )
-                .fetch_one(&db_pool)
+                .fetch_one(db_pool)
                 .await?
         };
 
@@ -98,7 +98,7 @@ pub mod ssr {
         comment_id: i64,
         moderated_body: &str,
         user: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         let comment = if user.check_is_global_moderator().is_ok() {
             sqlx::query_as!(
@@ -116,7 +116,7 @@ pub mod ssr {
                 user.username,
                 comment_id,
             )
-                .fetch_one(&db_pool)
+                .fetch_one(db_pool)
                 .await?
         } else {
             // check if the user has at least the moderate permission for this forum
@@ -142,7 +142,7 @@ pub mod ssr {
                 user.username,
                 comment_id,
             )
-                .fetch_one(&db_pool)
+                .fetch_one(db_pool)
                 .await?
         };
 
@@ -154,7 +154,7 @@ pub mod ssr {
         forum_name: &String,
         user: &User,
         ban_duration_days: Option<usize>,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Option<UserBan>, AppError> {
         if user.check_can_moderate_forum(&forum_name).is_ok() && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
             let user_ban = match ban_duration_days {
@@ -173,7 +173,7 @@ pub mod ssr {
                         user.user_id,
                         ban_duration as f64,
                     )
-                        .fetch_one(&db_pool)
+                        .fetch_one(db_pool)
                         .await?)
                 }
                 None => {
@@ -189,7 +189,7 @@ pub mod ssr {
                         forum_name,
                         user.user_id,
                     )
-                        .fetch_one(&db_pool)
+                        .fetch_one(db_pool)
                         .await?)
                 }
             };
@@ -229,7 +229,7 @@ pub async fn moderate_post(
         post_id,
         moderated_body.as_str(),
         &user,
-        db_pool.clone()
+        &db_pool
     ).await?;
 
     ssr::ban_user_from_forum(
@@ -237,7 +237,7 @@ pub async fn moderate_post(
         &post.forum_name,
         &user,
         ban_duration_days,
-        db_pool,
+        &db_pool,
     ).await?;
 
     reload_user(post.creator_id)?;
@@ -259,7 +259,7 @@ pub async fn moderate_comment(
         comment_id,
         moderated_body.as_str(),
         &user,
-        db_pool.clone()
+        &db_pool
     ).await?;
 
     let forum = get_comment_forum(comment_id, &db_pool).await?;
@@ -269,7 +269,7 @@ pub async fn moderate_comment(
         &forum.forum_name,
         &user,
         ban_duration_days,
-        db_pool
+        &db_pool
     ).await?;
 
     reload_user(comment.creator_id)?;

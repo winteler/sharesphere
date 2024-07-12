@@ -84,13 +84,13 @@ pub mod ssr {
     use crate::role::PermissionLevel;
     use crate::role::ssr::set_user_forum_role;
 
-    pub async fn get_forum_by_name(forum_name: &str, db_pool: PgPool) -> Result<Forum, AppError> {
+    pub async fn get_forum_by_name(forum_name: &str, db_pool: &PgPool) -> Result<Forum, AppError> {
         let forum = sqlx::query_as!(
             Forum,
             "SELECT * FROM forums WHERE forum_name = $1",
             forum_name
         )
-        .fetch_one(&db_pool)
+        .fetch_one(db_pool)
         .await?;
 
         Ok(forum)
@@ -99,7 +99,7 @@ pub mod ssr {
     pub async fn get_forum_with_user_info(
         forum_name: &str,
         user_id: Option<i64>,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<ForumWithUserInfo, AppError> {
         let forum = sqlx::query_as::<_, ForumWithUserInfo>(
             "SELECT f.*, s.subscription_id \
@@ -111,18 +111,18 @@ pub mod ssr {
         )
         .bind(user_id)
         .bind(forum_name)
-        .fetch_one(&db_pool)
+        .fetch_one(db_pool)
         .await?;
 
         Ok(forum)
     }
 
-    pub async fn is_forum_available(forum_name: &str, db_pool: PgPool) -> Result<bool, AppError> {
+    pub async fn is_forum_available(forum_name: &str, db_pool: &PgPool) -> Result<bool, AppError> {
         let forum_exist = sqlx::query!(
             "SELECT forum_id FROM forums WHERE forum_name = $1",
             forum_name
         )
-        .fetch_one(&db_pool)
+        .fetch_one(db_pool)
         .await;
 
         match forum_exist {
@@ -135,14 +135,14 @@ pub mod ssr {
     pub async fn get_matching_forum_names(
         forum_prefix: String,
         limit: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<BTreeSet<String>, AppError> {
         let forum_name_vec = sqlx::query!(
             "SELECT forum_name FROM forums WHERE forum_name like $1 LIMIT $2",
             forum_prefix + "%",
             limit,
         )
-        .fetch_all(&db_pool)
+        .fetch_all(db_pool)
         .await?;
 
         let mut forum_name_set = BTreeSet::<String>::new();
@@ -156,13 +156,13 @@ pub mod ssr {
 
     pub async fn get_popular_forum_names(
         limit: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Vec<String>, AppError> {
         let forum_record_vec = sqlx::query!(
             "SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT $1",
             limit
         )
-        .fetch_all(&db_pool)
+        .fetch_all(db_pool)
         .await?;
 
         let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
@@ -176,7 +176,7 @@ pub mod ssr {
 
     pub async fn get_subscribed_forum_names(
         user_id: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Vec<String>, AppError> {
         let forum_record_vec = sqlx::query!(
             "SELECT f.forum_name FROM forums f \
@@ -186,7 +186,7 @@ pub mod ssr {
             ORDER BY forum_name",
             user_id,
         )
-        .fetch_all(&db_pool)
+        .fetch_all(db_pool)
         .await?;
 
         let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
@@ -203,7 +203,7 @@ pub mod ssr {
         description: &str,
         is_nsfw: bool,
         user: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Forum, AppError> {
         user.check_can_publish()?;
         if name.is_empty() {
@@ -227,7 +227,7 @@ pub mod ssr {
             is_nsfw,
             user.user_id,
         )
-            .fetch_one(&db_pool)
+            .fetch_one(db_pool)
             .await?;
 
         set_user_forum_role(forum.forum_id, &forum.forum_name, user.user_id, PermissionLevel::Lead, user, &db_pool).await?;
@@ -235,32 +235,32 @@ pub mod ssr {
         Ok(forum)
     }
 
-    pub async fn subscribe(forum_id: i64, user_id: i64, db_pool: PgPool) -> Result<(), AppError> {
+    pub async fn subscribe(forum_id: i64, user_id: i64, db_pool: &PgPool) -> Result<(), AppError> {
         sqlx::query!(
             "INSERT INTO forum_subscriptions (user_id, forum_id) VALUES ($1, $2)",
             user_id,
             forum_id
         )
-        .execute(&db_pool)
+        .execute(db_pool)
         .await?;
 
         sqlx::query!(
             "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",
             forum_id
         )
-        .execute(&db_pool)
+        .execute(db_pool)
         .await?;
 
         Ok(())
     }
 
-    pub async fn unsubscribe(forum_id: i64, user_id: i64, db_pool: PgPool) -> Result<(), AppError> {
+    pub async fn unsubscribe(forum_id: i64, user_id: i64, db_pool: &PgPool) -> Result<(), AppError> {
         let deleted_rows = sqlx::query!(
             "DELETE FROM forum_subscriptions WHERE user_id = $1 AND forum_id = $2",
             user_id,
             forum_id,
         )
-            .execute(&db_pool)
+            .execute(db_pool)
             .await?
             .rows_affected();
 
@@ -272,7 +272,7 @@ pub mod ssr {
             "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",
             forum_id
         )
-        .execute(&db_pool)
+        .execute(db_pool)
         .await?;
 
         Ok(())
@@ -282,14 +282,14 @@ pub mod ssr {
 #[server]
 pub async fn is_forum_available(forum_name: String) -> Result<bool, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_existence = ssr::is_forum_available(&forum_name, db_pool).await?;
+    let forum_existence = ssr::is_forum_available(&forum_name, &db_pool).await?;
     Ok(forum_existence)
 }
 
 #[server]
 pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum = ssr::get_forum_by_name(&forum_name, db_pool).await?;
+    let forum = ssr::get_forum_by_name(&forum_name, &db_pool).await?;
     Ok(forum)
 }
 
@@ -299,7 +299,7 @@ pub async fn get_matching_forum_names(
 ) -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let forum_name_set =
-        ssr::get_matching_forum_names(forum_prefix, FORUM_FETCH_LIMIT, db_pool).await?;
+        ssr::get_matching_forum_names(forum_prefix, FORUM_FETCH_LIMIT, &db_pool).await?;
     Ok(forum_name_set)
 }
 
@@ -308,7 +308,7 @@ pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> 
     let db_pool = get_db_pool()?;
     match get_user().await {
         Ok(Some(user)) => {
-            let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, db_pool).await?;
+            let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, &db_pool).await?;
             Ok(forum_name_vec)
         }
         _ => Ok(Vec::<String>::new()),
@@ -318,7 +318,7 @@ pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> 
 #[server]
 pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_vec = ssr::get_popular_forum_names(FORUM_FETCH_LIMIT, db_pool).await?;
+    let forum_name_vec = ssr::get_popular_forum_names(FORUM_FETCH_LIMIT, &db_pool).await?;
     Ok(forum_name_vec)
 }
 
@@ -333,7 +333,7 @@ pub async fn get_forum_with_user_info(
     };
 
     let forum_content =
-        ssr::get_forum_with_user_info(forum_name.as_str(), user_id, db_pool).await?;
+        ssr::get_forum_with_user_info(forum_name.as_str(), user_id, &db_pool).await?;
 
     Ok(forum_content)
 }
@@ -355,7 +355,7 @@ pub async fn create_forum(
         description.as_str(),
         is_nsfw,
         &user,
-        db_pool,
+        &db_pool,
     ).await?;
 
     reload_user(user.user_id)?;
@@ -370,7 +370,7 @@ pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
-    ssr::subscribe(forum_id, user.user_id, db_pool).await?;
+    ssr::subscribe(forum_id, user.user_id, &db_pool).await?;
 
     Ok(())
 }
@@ -380,7 +380,7 @@ pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
-    ssr::unsubscribe(forum_id, user.user_id, db_pool).await?;
+    ssr::unsubscribe(forum_id, user.user_id, &db_pool).await?;
     Ok(())
 }
 

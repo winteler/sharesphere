@@ -518,6 +518,7 @@ mod tests {
         Ok(())
     }
 
+    // TODO split in smaller chunks
     #[tokio::test]
     async fn test_get_styled_html_from_markdown() -> Result<(), ServerFnError> {
         let markdown = String::from(

@@ -184,13 +184,13 @@ pub mod ssr {
     }
 
     impl SqlUser {
-        pub async fn get_from_oidc_id(oidc_id: &String, db_pool: PgPool) -> Result<SqlUser, AppError> {
+        pub async fn get_from_oidc_id(oidc_id: &String, db_pool: &PgPool) -> Result<SqlUser, AppError> {
             let sql_user = sqlx::query_as!(
                 SqlUser,
                 "SELECT * FROM users WHERE oidc_id = $1",
                 oidc_id
             )
-                .fetch_one(&db_pool)
+                .fetch_one(db_pool)
                 .await?;
 
             Ok(sql_user)
@@ -664,7 +664,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
     let oidc_id = claims.subject().to_string();
     let db_pool = get_db_pool()?;
 
-    let user = if let Ok(user) = SqlUser::get_from_oidc_id(&oidc_id, db_pool.clone()).await {
+    let user = if let Ok(user) = SqlUser::get_from_oidc_id(&oidc_id, &db_pool).await {
         user
     } else {
         let username: String = claims.preferred_username().unwrap().to_string();

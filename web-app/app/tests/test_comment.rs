@@ -1,10 +1,10 @@
-use leptos::ServerFnError;
 use rand::Rng;
 
 use app::comment::{COMMENT_BATCH_SIZE, CommentSortType, CommentWithChildren};
 use app::comment;
 use app::comment::ssr::{create_comment, get_comment_forum};
 use app::editor::get_styled_html_from_markdown;
+use app::errors::AppError;
 use app::ranking::{SortType, Vote, VoteValue};
 
 pub use crate::common::*;
@@ -79,7 +79,7 @@ fn test_comment_with_children(
 }
 
 #[tokio::test]
-async fn test_get_comment_forum() -> Result<(), ServerFnError> {
+async fn test_get_comment_forum() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
@@ -93,7 +93,7 @@ async fn test_get_comment_forum() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
+async fn test_get_post_comment_tree() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -103,7 +103,7 @@ async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
         "forum",
         false,
         &test_user,
-        db_pool.clone(),
+        &db_pool,
     ).await?;
 
     let num_comments = 200;
@@ -120,7 +120,7 @@ async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
         (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),
         (0..num_comments).map(|i| get_vote_from_comment_num(i)).collect(),
         &test_user,
-        db_pool.clone()
+        &db_pool
     ).await?;
 
     let comment_sort_type_array = [CommentSortType::Best, CommentSortType::Recent];
@@ -132,7 +132,7 @@ async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
             Some(test_user.user_id),
             COMMENT_BATCH_SIZE,
             0,
-            db_pool.clone(),
+            &db_pool,
         ).await?;
 
         for comment in comment_tree {
@@ -147,7 +147,7 @@ async fn test_get_post_comment_tree() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_create_comment() -> Result<(), ServerFnError> {
+async fn test_create_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
@@ -191,20 +191,20 @@ async fn test_create_comment() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_update_comment() -> Result<(), ServerFnError> {
+async fn test_update_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
     let (_forum, _post, comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
 
     let updated_markdown_body = "# Here is a comment with markdown";
-    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await?;
+    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");
     let updated_comment = comment::ssr::update_comment(
         comment.comment_id,
         &updated_html_body,
         Some(updated_markdown_body),
         &user,
-        db_pool
+        &db_pool
     ).await?;
 
     assert_eq!(updated_comment.body, updated_html_body);

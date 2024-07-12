@@ -206,7 +206,7 @@ pub mod ssr {
         sort_type: SortType,
         limit: i64,
         offset: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
@@ -223,7 +223,7 @@ pub mod ssr {
         .bind(forum_name)
         .bind(limit)
         .bind(offset)
-        .fetch_all(&db_pool)
+        .fetch_all(db_pool)
         .await?;
 
         Ok(post_vec)
@@ -233,7 +233,7 @@ pub mod ssr {
         sort_type: SortType,
         limit: i64,
         offset: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
@@ -247,7 +247,7 @@ pub mod ssr {
         )
         .bind(limit)
         .bind(offset)
-        .fetch_all(&db_pool)
+        .fetch_all(db_pool)
         .await?;
 
         Ok(post_vec)
@@ -258,7 +258,7 @@ pub mod ssr {
         sort_type: SortType,
         limit: i64,
         offset: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
@@ -277,7 +277,7 @@ pub mod ssr {
         .bind(user_id)
         .bind(limit)
         .bind(offset)
-        .fetch_all(&db_pool)
+        .fetch_all(db_pool)
         .await?;
 
         Ok(post_vec)
@@ -330,7 +330,7 @@ pub mod ssr {
         is_nsfw: bool,
         tag: Option<String>,
         user: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         if post_title.is_empty() {
             return Err(AppError::new(
@@ -359,7 +359,7 @@ pub mod ssr {
             post_id,
             user.user_id,
         )
-            .fetch_one(&db_pool)
+            .fetch_one(db_pool)
             .await?;
 
         Ok(post)
@@ -470,7 +470,7 @@ pub async fn get_sorted_post_vec(
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
-        db_pool,
+        &db_pool,
     )
     .await?;
 
@@ -490,7 +490,7 @@ pub async fn get_subscribed_post_vec(
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
-        db_pool,
+        &db_pool,
     )
     .await?;
 
@@ -509,7 +509,7 @@ pub async fn get_post_vec_by_forum_name(
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
-        db_pool,
+        &db_pool,
     )
     .await?;
     Ok(post_vec)
@@ -590,7 +590,7 @@ pub async fn edit_post(
         is_nsfw,
         tag,
         &user,
-        db_pool,
+        &db_pool,
     )
     .await?;
 

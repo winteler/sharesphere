@@ -158,7 +158,7 @@ pub mod ssr {
         user_id: Option<i64>,
         limit: i64,
         offset: i64,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Vec<CommentWithChildren>, AppError> {
         if post_id < 1 {
             return Err(AppError::new("Invalid post id."));
@@ -217,7 +217,7 @@ pub mod ssr {
             .bind(post_id)
             .bind(limit)
             .bind(offset)
-            .fetch_all(&db_pool)
+            .fetch_all(db_pool)
             .await?;
 
         let mut comment_tree = Vec::<CommentWithChildren>::new();
@@ -292,7 +292,7 @@ pub mod ssr {
         comment_body: &str,
         comment_markdown_body: Option<&str>,
         user: &User,
-        db_pool: PgPool,
+        db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         let comment = sqlx::query_as!(
             Comment,
@@ -309,7 +309,7 @@ pub mod ssr {
             comment_id,
             user.user_id,
         )
-        .fetch_one(&db_pool)
+        .fetch_one(db_pool)
         .await?;
 
         Ok(comment)
@@ -387,7 +387,7 @@ pub async fn get_post_comment_tree(
         user_id,
         COMMENT_BATCH_SIZE,
         num_already_loaded as i64,
-        db_pool,
+        &db_pool,
     )
     .await?;
 
@@ -465,7 +465,7 @@ pub async fn edit_comment(
         comment.as_str(),
         markdown_comment,
         &user,
-        db_pool.clone(),
+        &db_pool,
     )
     .await?;
 

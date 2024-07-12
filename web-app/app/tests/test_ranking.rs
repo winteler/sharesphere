@@ -1,5 +1,3 @@
-use leptos::ServerFnError;
-
 use app::{post, ranking};
 use app::errors::AppError;
 use app::ranking::VoteValue;
@@ -13,7 +11,7 @@ mod data_factory;
 mod utils;
 
 #[tokio::test]
-async fn test_vote_on_content_post() -> Result<(), ServerFnError> {
+async fn test_vote_on_content_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
@@ -97,7 +95,7 @@ async fn test_vote_on_content_post() -> Result<(), ServerFnError> {
 }
 
 #[tokio::test]
-async fn test_vote_on_content_comment() -> Result<(), ServerFnError> {
+async fn test_vote_on_content_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 

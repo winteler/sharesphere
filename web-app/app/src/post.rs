@@ -12,6 +12,7 @@ use crate::app::ssr::get_db_pool;
 #[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
 use crate::comment::{COMMENT_BATCH_SIZE, CommentButton, CommentSection, CommentWithChildren, get_post_comment_tree};
+use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
@@ -83,10 +84,10 @@ pub enum PostSortType {
 impl fmt::Display for PostSortType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let sort_type_name = match self {
-            PostSortType::Hot => "Hot",
-            PostSortType::Trending => "Trending",
-            PostSortType::Best => "Best",
-            PostSortType::Recent => "Recent",
+            PostSortType::Hot => HOT_STR,
+            PostSortType::Trending => TRENDING_STR,
+            PostSortType::Best => BEST_STR,
+            PostSortType::Recent => RECENT_STR,
         };
         write!(f, "{sort_type_name}")
     }
@@ -1056,5 +1057,19 @@ pub fn EditPostForm(
             </ActionForm>
             <ActionError has_error/>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
+    use crate::post::PostSortType;
+
+    #[test]
+    fn test_post_sort_type_display() {
+        assert_eq!(PostSortType::Hot.to_string(), HOT_STR);
+        assert_eq!(PostSortType::Trending.to_string(), TRENDING_STR);
+        assert_eq!(PostSortType::Best.to_string(), BEST_STR);
+        assert_eq!(PostSortType::Recent.to_string(), RECENT_STR);
     }
 }

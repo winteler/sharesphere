@@ -10,6 +10,7 @@ use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
+use crate::constants::{BEST_STR, RECENT_STR};
 use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
@@ -67,8 +68,8 @@ pub enum CommentSortType {
 impl fmt::Display for CommentSortType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let sort_type_name = match self {
-            CommentSortType::Best => "Best",
-            CommentSortType::Recent => "Recent",
+            CommentSortType::Best => BEST_STR,
+            CommentSortType::Recent => RECENT_STR,
         };
         write!(f, "{sort_type_name}")
     }
@@ -901,5 +902,17 @@ pub fn EditCommentForm(
             </ActionForm>
             <ActionError has_error/>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::comment::CommentSortType;
+    use crate::constants::{BEST_STR, RECENT_STR};
+
+    #[test]
+    fn test_post_sort_type_display() {
+        assert_eq!(CommentSortType::Best.to_string(), BEST_STR);
+        assert_eq!(CommentSortType::Recent.to_string(), RECENT_STR);
     }
 }

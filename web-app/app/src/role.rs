@@ -19,9 +19,8 @@ pub enum PermissionLevel {
     None = 0,
     Moderate = 1,
     Ban = 2,
-    Configure = 3,
-    Elect = 4,
-    Lead = 5,
+    Manage = 3,
+    Lead = 4,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

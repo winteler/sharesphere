@@ -121,12 +121,8 @@ impl User {
         self.check_permissions(AdminRole::Moderator, forum_name, PermissionLevel::Ban)
     }
 
-    pub fn check_can_configure_forum(&self, forum_name: &str) -> Result<(), AppError> {
-        self.check_permissions(AdminRole::Admin, forum_name, PermissionLevel::Configure)
-    }
-
-    pub fn check_can_elect_in_forum(&self, forum_name: &str) -> Result<(), AppError> {
-        self.check_permissions(AdminRole::Admin, forum_name, PermissionLevel::Elect)
+    pub fn check_can_manage_forum(&self, forum_name: &str) -> Result<(), AppError> {
+        self.check_permissions(AdminRole::Admin, forum_name, PermissionLevel::Manage)
     }
 
     pub fn check_is_forum_leader(&self, forum_name: &str) -> Result<(), AppError> {
@@ -163,6 +159,7 @@ pub mod ssr {
     use axum_session::SessionPgPool;
     use sqlx::PgPool;
 
+    use crate::app::App;
     use crate::errors::AppError;
     use crate::forum_management::UserBan;
     use crate::role::ssr::get_user_forum_role;
@@ -278,25 +275,20 @@ pub mod ssr {
 
         pub async fn check_can_set_user_forum_role(
             &self,
+            permission_level: PermissionLevel,
             user_id: i64,
             forum_name: &str,
             db_pool: &PgPool,
         ) -> Result<(), AppError> {
-            match get_user_forum_role(user_id, forum_name, db_pool).await {
-                Ok(user_role) => {
-                    match self.admin_role == AdminRole::Admin
-                        || self.permission_by_forum_map.get(forum_name).is_some_and(
-                            |forum_permission| {
-                                *forum_permission >= PermissionLevel::Elect
-                                    && *forum_permission > user_role.permission_level
-                            },
-                        ) {
-                        true => Ok(()),
-                        false => Err(AppError::InsufficientPrivileges),
+            match (self.admin_role, self.permission_by_forum_map.get(forum_name)) {
+                (AdminRole::Admin, _) => Ok(()),
+                (_, Some(own_level)) if *own_level >= PermissionLevel::Manage && *own_level > permission_level => {
+                    match get_user_forum_role(user_id, forum_name, db_pool).await {
+                        Err(AppError::NotFound) | Ok(user_role) if *own_level > user_role.permission_level => Ok(()),
+                        _ => Err(AppError::InsufficientPrivileges),
                     }
-                }
-                Err(AppError::NotFound) => self.check_can_elect_in_forum(forum_name),
-                Err(e) => Err(e),
+                },
+                _ => Err(AppError::InsufficientPrivileges),
             }
         }
     }
@@ -807,9 +799,8 @@ mod tests {
             (String::from("a"), PermissionLevel::None),
             (String::from("b"), PermissionLevel::Moderate),
             (String::from("c"), PermissionLevel::Ban),
-            (String::from("d"), PermissionLevel::Configure),
-            (String::from("e"), PermissionLevel::Elect),
-            (String::from("f"), PermissionLevel::Lead),
+            (String::from("d"), PermissionLevel::Manage),
+            (String::from("e"), PermissionLevel::Lead),
         ])
     }
 

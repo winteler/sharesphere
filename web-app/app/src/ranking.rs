@@ -224,10 +224,20 @@ pub mod ssr {
     #[cfg(test)]
     mod tests {
         use crate::comment::CommentSortType;
-        use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
+        use crate::constants::{BEST_ORDER_BY_COLUMN, BEST_STR, HOT_ORDER_BY_COLUMN, HOT_STR, RECENT_ORDER_BY_COLUMN, RECENT_STR, TRENDING_ORDER_BY_COLUMN, TRENDING_STR};
         use crate::post::PostSortType;
 
         use super::*;
+
+        #[test]
+        fn test_sort_type_display() {
+            assert_eq!(SortType::Post(PostSortType::Hot).to_string(), HOT_STR);
+            assert_eq!(SortType::Post(PostSortType::Trending).to_string(), TRENDING_STR);
+            assert_eq!(SortType::Post(PostSortType::Best).to_string(), BEST_STR);
+            assert_eq!(SortType::Post(PostSortType::Recent).to_string(), RECENT_STR);
+            assert_eq!(SortType::Comment(CommentSortType::Best).to_string(), BEST_STR);
+            assert_eq!(SortType::Comment(CommentSortType::Recent).to_string(), RECENT_STR);
+        }
 
         #[test]
         fn test_sort_type_to_order_by_code() {

@@ -83,7 +83,6 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
-        // TODO add branch for None to delete existing permissions or enable None in DB
         if permission_level == PermissionLevel::Lead {
             set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool).await
         } else {
@@ -198,5 +197,29 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
         Ok(sql_user)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::role::{AdminRole, PermissionLevel};
+
+    #[test]
+    fn test_permission_level_from_string() {
+        assert_eq!(PermissionLevel::from(String::from("none")), PermissionLevel::None);
+        assert_eq!(PermissionLevel::from(String::from("moderate")), PermissionLevel::Moderate);
+        assert_eq!(PermissionLevel::from(String::from("ban")), PermissionLevel::Ban);
+        assert_eq!(PermissionLevel::from(String::from("configure")), PermissionLevel::Configure);
+        assert_eq!(PermissionLevel::from(String::from("elect")), PermissionLevel::Elect);
+        assert_eq!(PermissionLevel::from(String::from("lead")), PermissionLevel::Lead);
+        assert_eq!(PermissionLevel::from(String::from("invalid")), PermissionLevel::None);
+    }
+
+    #[test]
+    fn test_admin_role_from_string() {
+        assert_eq!(AdminRole::from(String::from("none")), AdminRole::None);
+        assert_eq!(AdminRole::from(String::from("moderator")), AdminRole::Moderator);
+        assert_eq!(AdminRole::from(String::from("admin")), AdminRole::Admin);
+        assert_eq!(AdminRole::from(String::from("invalid")), AdminRole::None);
     }
 }

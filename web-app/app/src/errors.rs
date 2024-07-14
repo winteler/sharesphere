@@ -12,6 +12,13 @@ use crate::icons::{AuthErrorIcon, InternalErrorIcon, InvalidRequestIcon, Network
 const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you";
 const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong";
 const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not resist";
+const FORUM_BAN_UNTIL_MESSAGE: &str = "You are banned from this forum until";
+const PERMANENT_FORUM_BAN_MESSAGE: &str = "You are permanently banned from this website.";
+const GLOBAL_BAN_UNTIL_MESSAGE: &str = "You are globally banned until";
+const PERMANENT_GLOBAL_BAN_MESSAGE: &str = "You are permanently banned from this website.";
+const BAD_REQUEST_MESSAGE: &str = "Sorry, we didn't understand your request";
+const UNAVAILABLE_MESSAGE: &str = "Sorry, we've got noise on the line.";
+const NOT_FOUND_MESSAGE: &str = "There's nothing here";
 
 #[derive(Clone, Debug, Error, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AppError {
@@ -35,7 +42,7 @@ impl AppError {
             AppError::NotAuthenticated | AppError::InsufficientPrivileges | AppError::ForumBanUntil(_) |
             AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => StatusCode::FORBIDDEN,
             AppError::CommunicationError(error) => match error {
-                ServerFnError::Args(_) | ServerFnError::MissingArg(_) => StatusCode::BAD_REQUEST,
+                ServerFnError::Args(_) | ServerFnError::MissingArg(_) | ServerFnError::Serialization(_) | ServerFnError::Deserialization(_) => StatusCode::BAD_REQUEST,
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
@@ -49,18 +56,19 @@ impl AppError {
         match self {
             AppError::AuthenticationError(_) => String::from(AUTH_FAILED_MESSAGE),
             AppError::NotAuthenticated | AppError::InsufficientPrivileges => String::from(NOT_AUTHORIZED_MESSAGE),
-            AppError::ForumBanUntil(timestamp) => format!("You are banned from this forum until {}", timestamp.to_string()),
-            AppError::PermanentForumBan => String::from("You are permanently banned from this forum."),
-            AppError::GlobalBanUntil(timestamp) => format!("You are globally banned until {}", timestamp.to_string()),
-            AppError::PermanentGlobalBan => String::from("You are permanently banned from this website."),
+            AppError::ForumBanUntil(timestamp) => format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, timestamp.to_string()),
+            AppError::PermanentForumBan => String::from(PERMANENT_FORUM_BAN_MESSAGE),
+            AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp.to_string()),
+            AppError::PermanentGlobalBan => String::from(PERMANENT_GLOBAL_BAN_MESSAGE),
             AppError::CommunicationError(error) => match error {
-                ServerFnError::Args(_) | ServerFnError::MissingArg(_) => String::from("Sorry, we didn't understand your request"),
-                ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => String::from("Sorry, we've got noise on the line."),
+                ServerFnError::Args(_) | ServerFnError::MissingArg(_) |
+                ServerFnError::Serialization(_) | ServerFnError::Deserialization(_) => String::from(BAD_REQUEST_MESSAGE),
+                ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => String::from(UNAVAILABLE_MESSAGE),
                 _ => String::from(INTERNAL_ERROR_MESSAGE),
             },
             AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
             AppError::InternalServerError(_) => String::from(INTERNAL_ERROR_MESSAGE),
-            AppError::NotFound => String::from("There's nothing here"),
+            AppError::NotFound => String::from(NOT_FOUND_MESSAGE),
         }
     }
 
@@ -160,10 +168,144 @@ pub fn AppErrorIcon(
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use http::StatusCode;
     use leptos::server_fn::error::NoCustomError;
     use leptos::ServerFnError;
 
-    use crate::errors::AppError;
+    use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, FORUM_BAN_UNTIL_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_FORUM_BAN_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, UNAVAILABLE_MESSAGE};
+
+    #[test]
+    fn test_app_error_status_code() {
+        let test_string = String::from("test");
+        let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
+        let server_fn_error = ServerFnError::new("test");
+        let args_error = ServerFnError::Args(String::from("test"));
+        let missing_arg_error = ServerFnError::MissingArg(String::from("test"));
+        let request_error = ServerFnError::Request(String::from("test"));
+        let response_error = ServerFnError::Response(String::from("test"));
+        let registration_error = ServerFnError::Registration(String::from("test"));
+        let serialization_error = ServerFnError::Serialization(String::from("test"));
+        let deserialization_error = ServerFnError::Deserialization(String::from("test"));
+        let wrapper_error = ServerFnError::WrappedServerError(NoCustomError);
+        assert_eq!(AppError::AuthenticationError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(AppError::NotAuthenticated.status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::InsufficientPrivileges.status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::ForumBanUntil(test_timestamp.clone()).status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::PermanentForumBan.status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::GlobalBanUntil(test_timestamp.clone()).status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::PermanentGlobalBan.status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::CommunicationError(server_fn_error).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(AppError::CommunicationError(args_error).status_code(), StatusCode::BAD_REQUEST);
+        assert_eq!(AppError::CommunicationError(missing_arg_error).status_code(), StatusCode::BAD_REQUEST);
+        assert_eq!(AppError::CommunicationError(serialization_error).status_code(), StatusCode::BAD_REQUEST);
+        assert_eq!(AppError::CommunicationError(deserialization_error).status_code(), StatusCode::BAD_REQUEST);
+        assert_eq!(AppError::CommunicationError(request_error).status_code(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(AppError::CommunicationError(response_error).status_code(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(AppError::CommunicationError(registration_error).status_code(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(AppError::CommunicationError(wrapper_error).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(AppError::DatabaseError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(AppError::InternalServerError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(AppError::NotFound.status_code(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_app_error_user_message() {
+        let test_string = String::from("test");
+        let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
+        let server_fn_error = ServerFnError::new("test");
+        let args_error = ServerFnError::Args(String::from("test"));
+        let missing_arg_error = ServerFnError::MissingArg(String::from("test"));
+        let request_error = ServerFnError::Request(String::from("test"));
+        let response_error = ServerFnError::Response(String::from("test"));
+        let registration_error = ServerFnError::Registration(String::from("test"));
+        let serialization_error = ServerFnError::Serialization(String::from("test"));
+        let deserialization_error = ServerFnError::Deserialization(String::from("test"));
+        let wrapper_error = ServerFnError::WrappedServerError(NoCustomError);
+        assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), String::from(AUTH_FAILED_MESSAGE));
+        assert_eq!(AppError::NotAuthenticated.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
+        assert_eq!(AppError::InsufficientPrivileges.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
+        assert_eq!(AppError::ForumBanUntil(test_timestamp.clone()).user_message(), format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, test_timestamp.clone().to_string()));
+        assert_eq!(AppError::PermanentForumBan.user_message(), String::from(PERMANENT_FORUM_BAN_MESSAGE));
+        assert_eq!(AppError::GlobalBanUntil(test_timestamp.clone()).user_message(), format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, test_timestamp.to_string()));
+        assert_eq!(AppError::PermanentGlobalBan.user_message(), String::from(PERMANENT_GLOBAL_BAN_MESSAGE));
+        assert_eq!(AppError::CommunicationError(server_fn_error).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
+        assert_eq!(AppError::CommunicationError(args_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
+        assert_eq!(AppError::CommunicationError(missing_arg_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
+        assert_eq!(AppError::CommunicationError(serialization_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
+        assert_eq!(AppError::CommunicationError(deserialization_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
+        assert_eq!(AppError::CommunicationError(request_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
+        assert_eq!(AppError::CommunicationError(response_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
+        assert_eq!(AppError::CommunicationError(registration_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
+        assert_eq!(AppError::CommunicationError(wrapper_error).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
+        assert_eq!(AppError::DatabaseError(test_string.clone()).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
+        assert_eq!(AppError::InternalServerError(test_string.clone()).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
+        assert_eq!(AppError::NotFound.user_message(), String::from(NOT_FOUND_MESSAGE));
+    }
+
+    #[test]
+    fn test_app_error_new() {
+        let test_str = "test";
+        assert_eq!(AppError::new(test_str), AppError::InternalServerError(String::from(test_str)));
+    }
+
+    #[test]
+    fn test_app_error_display_and_from_string() {
+        let test_string = String::from("test");
+        let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
+        let server_fn_error = ServerFnError::new("test");
+        let server_fn_error_2 = ServerFnError::MissingArg(test_string.clone());
+        assert_eq!(
+            AppError::from_str(AppError::AuthenticationError(test_string.clone()).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::AuthenticationError(test_string.clone())
+        );
+        assert_eq!(
+            AppError::from_str(AppError::NotAuthenticated.to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::NotAuthenticated
+        );
+        assert_eq!(
+            AppError::from_str(AppError::InsufficientPrivileges.to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::InsufficientPrivileges
+        );
+        assert_eq!(
+            AppError::from_str(AppError::ForumBanUntil(test_timestamp).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::ForumBanUntil(test_timestamp)
+        );
+        assert_eq!(
+            AppError::from_str(AppError::PermanentForumBan.to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::PermanentForumBan
+        );
+        assert_eq!(
+            AppError::from_str(AppError::GlobalBanUntil(test_timestamp).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::GlobalBanUntil(test_timestamp)
+        );
+        assert_eq!(
+            AppError::from_str(AppError::PermanentGlobalBan.to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::PermanentGlobalBan
+        );
+        assert_eq!(
+            AppError::from_str(AppError::CommunicationError(server_fn_error.clone()).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::CommunicationError(server_fn_error)
+        );
+        assert_eq!(
+            AppError::from_str(AppError::CommunicationError(server_fn_error_2.clone()).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::CommunicationError(server_fn_error_2)
+        );
+        assert_eq!(
+            AppError::from_str(AppError::DatabaseError(test_string.clone()).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::DatabaseError(test_string.clone())
+        );
+        assert_eq!(
+            AppError::from_str(AppError::InternalServerError(test_string.clone()).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::InternalServerError(test_string.clone())
+        );
+        assert_eq!(
+            AppError::from_str(AppError::NotFound.to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::NotFound
+        );
+        assert!(AppError::from_str("invalid").is_err());
+    }
 
     #[test]
     fn test_app_error_from_server_fn_error() {

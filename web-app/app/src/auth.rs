@@ -159,7 +159,6 @@ pub mod ssr {
     use axum_session::SessionPgPool;
     use sqlx::PgPool;
 
-    use crate::app::App;
     use crate::errors::AppError;
     use crate::forum_management::UserBan;
     use crate::role::ssr::get_user_forum_role;
@@ -284,7 +283,8 @@ pub mod ssr {
                 (AdminRole::Admin, _) => Ok(()),
                 (_, Some(own_level)) if *own_level >= PermissionLevel::Manage && *own_level > permission_level => {
                     match get_user_forum_role(user_id, forum_name, db_pool).await {
-                        Err(AppError::NotFound) | Ok(user_role) if *own_level > user_role.permission_level => Ok(()),
+                        Err(AppError::NotFound) => Ok(()),
+                        Ok(user_role) if *own_level > user_role.permission_level => Ok(()),
                         _ => Err(AppError::InsufficientPrivileges),
                     }
                 },
@@ -854,7 +854,6 @@ mod tests {
         assert_eq!(user.check_can_moderate_forum("c"), Ok(()));
         assert_eq!(user.check_can_moderate_forum("d"), Ok(()));
         assert_eq!(user.check_can_moderate_forum("e"), Ok(()));
-        assert_eq!(user.check_can_moderate_forum("f"), Ok(()));
         let mut admin = User::default();
         admin.admin_role = AdminRole::Moderator;
         assert_eq!(admin.check_can_moderate_forum("a"), Ok(()));
@@ -873,7 +872,6 @@ mod tests {
         assert_eq!(user.check_can_ban_users("c"), Ok(()));
         assert_eq!(user.check_can_ban_users("d"), Ok(()));
         assert_eq!(user.check_can_ban_users("e"), Ok(()));
-        assert_eq!(user.check_can_ban_users("f"), Ok(()));
         let mut admin = User::default();
         admin.admin_role = AdminRole::Moderator;
         assert_eq!(admin.check_can_ban_users("a"), Ok(()));
@@ -884,55 +882,21 @@ mod tests {
     }
 
     #[test]
-    fn test_user_check_can_configure_forum() {
+    fn test_user_check_can_manage_forum() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.check_can_configure_forum("a"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_configure_forum("b"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_configure_forum("c"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_configure_forum("d"), Ok(()));
-        assert_eq!(user.check_can_configure_forum("e"), Ok(()));
-        assert_eq!(user.check_can_configure_forum("f"), Ok(()));
+        assert_eq!(user.check_can_manage_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_manage_forum("b"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_manage_forum("c"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_manage_forum("d"), Ok(()));
+        assert_eq!(user.check_can_manage_forum("e"), Ok(()));
         let mut admin = User::default();
         admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_can_configure_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(admin.check_can_manage_forum("a"), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_can_configure_forum("a"), Ok(()));
+        assert_eq!(admin.check_can_manage_forum("a"), Ok(()));
         admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_configure_forum("d"), Ok(()));
-    }
-    #[test]
-    fn test_user_check_can_elect_in_forum() {
-        let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(
-            user.check_can_elect_in_forum("a"),
-            Err(AppError::InsufficientPrivileges)
-        );
-        assert_eq!(
-            user.check_can_elect_in_forum("b"),
-            Err(AppError::InsufficientPrivileges)
-        );
-        assert_eq!(
-            user.check_can_elect_in_forum("c"),
-            Err(AppError::InsufficientPrivileges)
-        );
-        assert_eq!(
-            user.check_can_elect_in_forum("d"),
-            Err(AppError::InsufficientPrivileges)
-        );
-        assert_eq!(user.check_can_elect_in_forum("e"), Ok(()));
-        assert_eq!(user.check_can_elect_in_forum("f"), Ok(()));
-        let mut admin = User::default();
-        admin.admin_role = AdminRole::Moderator;
-        assert_eq!(
-            admin.check_can_elect_in_forum("a"),
-            Err(AppError::InsufficientPrivileges)
-        );
-        admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_can_elect_in_forum("a"), Ok(()));
-        admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_configure_forum("e"), Ok(()));
+        assert_eq!(admin.check_can_manage_forum("d"), Ok(()));
     }
 
     #[test]
@@ -943,15 +907,14 @@ mod tests {
         assert_eq!(user.check_is_forum_leader("b"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_is_forum_leader("c"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_is_forum_leader("d"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_is_forum_leader("e"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_is_forum_leader("f"), Ok(()));
+        assert_eq!(user.check_is_forum_leader("e"), Ok(()));
         let mut admin = User::default();
         admin.admin_role = AdminRole::Moderator;
         assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
         admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_configure_forum("f"), Ok(()));
+        assert_eq!(admin.check_can_manage_forum("f"), Ok(()));
     }
 
     #[test]

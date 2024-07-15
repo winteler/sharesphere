@@ -49,7 +49,7 @@ async fn test_user_get() -> Result<(), AppError> {
     let creator_user = User::get(creator_user.user_id, &db_pool).await.expect("Creator user should be created.");
 
     set_user_forum_role(forum_a.forum_id, &forum_a.forum_name, test_user.user_id, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
-    set_user_forum_role(forum_b.forum_id, &forum_b.forum_name, test_user.user_id, PermissionLevel::Elect, &creator_user, &db_pool).await?;
+    set_user_forum_role(forum_b.forum_id, &forum_b.forum_name, test_user.user_id, PermissionLevel::Manage, &creator_user, &db_pool).await?;
 
     ban_user_from_forum(test_user.user_id, &forum_c.forum_name, &creator_user, Some(0), &db_pool).await?;
     let forum_ban_d = ban_user_from_forum(test_user.user_id, &forum_d.forum_name, &creator_user, Some(1), &db_pool).await?.expect("User should have ban for forum d.");
@@ -78,7 +78,7 @@ async fn test_user_get() -> Result<(), AppError> {
 async fn test_user_check_can_set_user_forum_role() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let lead_user = create_user("lead", &db_pool).await;
-    let elect_mod = create_user("elect", &db_pool).await;
+    let manage_mod = create_user("elect", &db_pool).await;
     let simple_mod = create_user("mod", &db_pool).await;
     let mut global_moderator = create_user("gmod", &db_pool).await;
     let mut admin = create_user("admin", &db_pool).await;
@@ -92,78 +92,98 @@ async fn test_user_check_can_set_user_forum_role() -> Result<(), AppError> {
         .expect("Should be able to reload lead_user.");
 
     // set user roles
-    set_user_forum_role(forum.forum_id, forum_name, elect_mod.user_id, PermissionLevel::Elect, &lead_user, &db_pool)
+    set_user_forum_role(forum.forum_id, forum_name, manage_mod.user_id, PermissionLevel::Manage, &lead_user, &db_pool)
         .await.expect("Moderate role should be assignable by lead_user.");
-    set_user_forum_role(forum.forum_id, forum_name, simple_mod.user_id, PermissionLevel::Configure, &lead_user, &db_pool)
+    set_user_forum_role(forum.forum_id, forum_name, simple_mod.user_id, PermissionLevel::Ban, &lead_user, &db_pool)
         .await.expect("Moderate role should be assignable by lead_user.");
-    let elect_mod = User::get(elect_mod.user_id, &db_pool).await.expect("Should be able to get elect mod.");
+    let manage_mod = User::get(manage_mod.user_id, &db_pool).await.expect("Should be able to get elect mod.");
     let simple_mod = User::get(simple_mod.user_id, &db_pool).await.expect("Should be able to get simple mod.");
     admin.admin_role = AdminRole::Admin;
     global_moderator.admin_role = AdminRole::Moderator;
 
     // normal user, simple moderator, global moderator cannot set any role
     assert_eq!(
-        std_user.check_can_set_user_forum_role(test_user.user_id, forum_name, &db_pool).await,
+        std_user.check_can_set_user_forum_role(PermissionLevel::Moderate, test_user.user_id, forum_name, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
     assert_eq!(
-        simple_mod.check_can_set_user_forum_role(test_user.user_id, forum_name, &db_pool).await,
+        simple_mod.check_can_set_user_forum_role(PermissionLevel::Moderate, test_user.user_id, forum_name, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
     assert_eq!(
-        global_moderator.check_can_set_user_forum_role(test_user.user_id, forum_name, &db_pool).await,
+        global_moderator.check_can_set_user_forum_role(PermissionLevel::Moderate, test_user.user_id, forum_name, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
 
-    // elect mods can set user role for normal users, moderators with a lower level but not elect mods and leaders
+    // manage mods can set user role for normal users, moderators with a lower level but not manage mods and leaders
     assert_eq!(
-        elect_mod.check_can_set_user_forum_role(test_user.user_id, forum_name, &db_pool).await,
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::Ban, test_user.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        elect_mod.check_can_set_user_forum_role(simple_mod.user_id, forum_name, &db_pool).await,
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::None, simple_mod.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        elect_mod.check_can_set_user_forum_role(elect_mod.user_id, forum_name, &db_pool).await,
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::Ban, simple_mod.user_id, forum_name, &db_pool).await,
+        Ok(())
+    );
+    assert_eq!(
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::Manage, simple_mod.user_id, forum_name, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
     assert_eq!(
-        elect_mod.check_can_set_user_forum_role(lead_user.user_id, forum_name, &db_pool).await,
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::Lead, simple_mod.user_id, forum_name, &db_pool).await,
+        Err(AppError::InsufficientPrivileges)
+    );
+    assert_eq!(
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::Moderate, manage_mod.user_id, forum_name, &db_pool).await,
+        Err(AppError::InsufficientPrivileges)
+    );
+    assert_eq!(
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::Moderate, lead_user.user_id, forum_name, &db_pool).await,
+        Err(AppError::InsufficientPrivileges)
+    );
+    assert_eq!(
+        manage_mod.check_can_set_user_forum_role(PermissionLevel::Manage, lead_user.user_id, forum_name, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
 
     // lead users and admin can set user role for everyone (lead user cannot set for himself, as this function is not used for leader changes)
     assert_eq!(
-        lead_user.check_can_set_user_forum_role(test_user.user_id, forum_name, &db_pool).await,
+        lead_user.check_can_set_user_forum_role(PermissionLevel::Ban, test_user.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        lead_user.check_can_set_user_forum_role(simple_mod.user_id, forum_name, &db_pool).await,
+        lead_user.check_can_set_user_forum_role(PermissionLevel::Manage, test_user.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        lead_user.check_can_set_user_forum_role(elect_mod.user_id, forum_name, &db_pool).await,
+        lead_user.check_can_set_user_forum_role(PermissionLevel::Manage, simple_mod.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        lead_user.check_can_set_user_forum_role(lead_user.user_id, forum_name, &db_pool).await,
+        lead_user.check_can_set_user_forum_role(PermissionLevel::None, manage_mod.user_id, forum_name, &db_pool).await,
+        Ok(())
+    );
+    assert_eq!(
+        lead_user.check_can_set_user_forum_role(PermissionLevel::Manage, lead_user.user_id, forum_name, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
     assert_eq!(
-        admin.check_can_set_user_forum_role(test_user.user_id, forum_name, &db_pool).await,
+        admin.check_can_set_user_forum_role(PermissionLevel::Lead, test_user.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        admin.check_can_set_user_forum_role(simple_mod.user_id, forum_name, &db_pool).await,
+        admin.check_can_set_user_forum_role(PermissionLevel::Manage, simple_mod.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        admin.check_can_set_user_forum_role(elect_mod.user_id, forum_name, &db_pool).await,
+        admin.check_can_set_user_forum_role(PermissionLevel::Moderate, manage_mod.user_id, forum_name, &db_pool).await,
         Ok(())
     );
     assert_eq!(
-        admin.check_can_set_user_forum_role(lead_user.user_id, forum_name, &db_pool).await,
+        admin.check_can_set_user_forum_role(PermissionLevel::None, lead_user.user_id, forum_name, &db_pool).await,
         Ok(())
     );
 

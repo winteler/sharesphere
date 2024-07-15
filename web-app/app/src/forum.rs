@@ -524,8 +524,8 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
     let forum_name = forum.forum.forum_name.clone();
-    let can_manage_forum = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => user.check_can_configure_forum(&forum_name).is_ok(),
+    let can_moderate_forum = Signal::derive(move || state.user.with(|user| match user {
+        Some(Ok(Some(user))) => user.check_can_moderate_forum(&forum_name).is_ok(),
         _ => false,
     }));
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());
@@ -535,7 +535,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
-                <Show when=can_manage_forum>
+                <Show when=can_moderate_forum>
                     <A href=MANAGE_FORUM_SUFFIX class="btn btn-circle btn-ghost">
                         <SettingsIcon class="h-5 w-5"/>
                     </A>

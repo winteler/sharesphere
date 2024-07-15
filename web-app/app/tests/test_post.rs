@@ -51,6 +51,7 @@ pub fn test_post_score(post: &Post) {
     let expected_trending_score = (post.score as f32) * f32::powf(2.0, 8.0 * (1.0 - num_days_old));
 
     assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score, epsilon = f32::EPSILON, ulps = 5));
+    println!("Trending: {}, expected: {}", post.trending_score, expected_trending_score);
     assert!(approx_eq!(f32, post.trending_score, expected_trending_score, epsilon = f32::EPSILON, ulps = 5));
 }
 
@@ -415,7 +416,7 @@ async fn test_update_post_scores() -> Result<(), AppError> {
     let post = set_post_score(post.post_id, 10, &db_pool).await.expect("Post score should be set.");
 
     // wait to have a meaningful difference in scores after update
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
     update_post_scores(&db_pool).await.expect("Post scores should be updatable.");
 

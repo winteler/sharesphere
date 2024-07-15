@@ -85,7 +85,7 @@ pub mod ssr {
         if permission_level == PermissionLevel::Lead {
             set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool).await
         } else {
-            grantor.check_can_set_user_forum_role(user_id, forum_name, db_pool).await?;
+            grantor.check_can_set_user_forum_role(permission_level, user_id, forum_name, db_pool).await?;
             let user_forum_role = insert_user_forum_role(
                 forum_id,
                 forum_name,
@@ -106,7 +106,7 @@ pub mod ssr {
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
         match grantor.check_is_forum_leader(forum_name).is_ok() {
             true => {
-                let elect_level_str: &str = PermissionLevel::Elect.into();
+                let manage_level_str: &str = PermissionLevel::Manage.into();
                 sqlx::query_as!(
                     UserForumRole,
                     "UPDATE user_forum_roles \
@@ -116,7 +116,7 @@ pub mod ssr {
                     WHERE user_id = $2 AND \
                           forum_name = $3 \
                     RETURNING *",
-                    elect_level_str,
+                    manage_level_str,
                     grantor.user_id,
                     forum_name,
                 )
@@ -208,8 +208,7 @@ mod tests {
         assert_eq!(PermissionLevel::from(String::from("none")), PermissionLevel::None);
         assert_eq!(PermissionLevel::from(String::from("moderate")), PermissionLevel::Moderate);
         assert_eq!(PermissionLevel::from(String::from("ban")), PermissionLevel::Ban);
-        assert_eq!(PermissionLevel::from(String::from("configure")), PermissionLevel::Configure);
-        assert_eq!(PermissionLevel::from(String::from("elect")), PermissionLevel::Elect);
+        assert_eq!(PermissionLevel::from(String::from("manage")), PermissionLevel::Manage);
         assert_eq!(PermissionLevel::from(String::from("lead")), PermissionLevel::Lead);
         assert_eq!(PermissionLevel::from(String::from("invalid")), PermissionLevel::None);
     }

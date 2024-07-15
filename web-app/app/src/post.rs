@@ -213,7 +213,9 @@ pub mod ssr {
             format!(
                 "SELECT p.* FROM posts p \
                 JOIN forums f on f.forum_id = p.forum_id \
-                WHERE f.forum_name = $1 \
+                WHERE \
+                    f.forum_name = $1 AND \
+                    p.moderator_id IS NULL \
                 ORDER BY {} DESC \
                 LIMIT $2 \
                 OFFSET $3",
@@ -239,6 +241,7 @@ pub mod ssr {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT * FROM posts \
+                WHERE moderator_id IS NULL \
                 ORDER BY {} DESC \
                 LIMIT $1 \
                 OFFSET $2",
@@ -265,9 +268,11 @@ pub mod ssr {
             format!(
                 "SELECT p.* FROM posts p \
                 JOIN forums f on f.forum_id = p.forum_id \
-                WHERE f.forum_id IN ( \
-                    SELECT forum_id FROM forum_subscriptions WHERE user_id = $1 \
-                ) \
+                WHERE \
+                    f.forum_id IN (\
+                        SELECT forum_id FROM forum_subscriptions WHERE user_id = $1\
+                    ) AND \
+                    p.moderator_id IS NULL \
                 ORDER BY {} DESC \
                 LIMIT $2 \
                 OFFSET $3",

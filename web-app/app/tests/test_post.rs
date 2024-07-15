@@ -6,6 +6,7 @@ use rand::Rng;
 use app::{forum, post};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
+use app::forum_management::ssr::moderate_post;
 use app::post::{Post, PostSortType, ssr};
 use app::post::ssr::{create_post, get_post_forum, get_post_with_info_by_id, update_post_scores};
 use app::ranking::{SortType, VoteValue};
@@ -183,6 +184,25 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
     }
 
+    // test banned post are not returned
+    let moderated_post = moderate_post(
+        expected_post_vec.first().expect("First post should be accessible.").post_id,
+        "test",
+        &test_user,
+        &db_pool,
+    ).await.expect("Post should be moderated.");
+
+    let post_vec = ssr::get_subscribed_post_vec(
+        test_user.user_id,
+        SortType::Post(PostSortType::Hot),
+        num_post as i64,
+        0,
+        &db_pool,
+    ).await?;
+
+    assert!(!post_vec.contains(&moderated_post));
+
+    // test no posts are returned after unsubscribing
     forum::ssr::unsubscribe(forum1.forum_id, test_user.user_id, &db_pool).await?;
     let post_vec = ssr::get_subscribed_post_vec(
         test_user.user_id,
@@ -236,6 +256,17 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
     }
 
+    let moderated_post = moderate_post(
+        expected_post_vec.first().expect("First post should be accessible.").post_id,
+        "test",
+        &test_user,
+        &db_pool,
+    ).await.expect("Post should be moderated.");
+
+    let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Hot), num_post as i64, 0, &db_pool).await?;
+
+    assert!(!post_vec.contains(&moderated_post));
+
     Ok(())
 }
 
@@ -288,6 +319,23 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     ).await?;
 
     assert_eq!(post_vec.len(), partial_load_num_post);
+
+    let moderated_post = moderate_post(
+        post_vec.first().expect("First post should be accessible.").post_id,
+        "test",
+        &test_user,
+        &db_pool,
+    ).await.expect("Post should be moderated.");
+
+    let post_vec = ssr::get_post_vec_by_forum_name(
+        forum_name,
+        SortType::Post(PostSortType::Hot),
+        num_posts as i64,
+        0,
+        &db_pool,
+    ).await?;
+
+    assert!(!post_vec.contains(&moderated_post));
 
     Ok(())
 }
@@ -416,7 +464,7 @@ async fn test_update_post_scores() -> Result<(), AppError> {
     let post = set_post_score(post.post_id, 10, &db_pool).await.expect("Post score should be set.");
 
     // wait to have a meaningful difference in scores after update
-    tokio::time::sleep(Duration::from_secs(5)).await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     update_post_scores(&db_pool).await.expect("Post scores should be updatable.");
 
@@ -443,7 +491,7 @@ async fn test_post_scores() -> Result<(), AppError> {
     let mut rng = rand::thread_rng();
 
     // wait to have a meaningful impact of elapsed time on the score
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     set_post_score(post.post_id, rng.gen_range(-100..101), &db_pool).await?;
 

@@ -1,6 +1,6 @@
 use const_format::concatcp;
 use leptos::*;
-use leptos_router::ActionForm;
+use leptos_router::{ActionForm, use_params_map};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
@@ -8,8 +8,11 @@ use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user
 use crate::app::ModerateState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
+use crate::forum::get_forum_name_memo;
 use crate::icons::HammerIcon;
 use crate::post::Post;
+use crate::role::get_forum_role_vec;
+use crate::unpack::TransitionUnpack;
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
@@ -280,12 +283,34 @@ pub async fn moderate_comment(
 /// Component to manage a forum
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
-
-
+    let params = use_params_map();
+    let forum_name = get_forum_name_memo(params);
+    let forum_roles_resource = create_resource(
+        move || forum_name.get(),
+        move |forum_name| get_forum_role_vec(forum_name)
+    );
 
     view! {
-        <div>
-            "Forum Cockpit"
+        <div class="flex flex-col gap-1 content-center">
+            <div>
+                "Forum Cockpit"
+            </div>
+            <div class="flex flex-col gap-1 content-center">
+                <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
+                {
+                    let forum_role_vec = forum_role_vec.clone();
+                    view! {
+                        <For
+                            each= move || forum_role_vec.clone().into_iter().enumerate()
+                            key=|(_index, role)| (role.user_id, role.permission_level)
+                            let:child
+                        >
+                            <div>{format!("{}: {}", child.1.user_id, child.1.permission_level.to_string())}</div>
+                        </For>
+                    }
+                }
+                </TransitionUnpack>
+            </div>
         </div>
     }
 }

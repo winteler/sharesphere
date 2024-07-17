@@ -16,7 +16,7 @@ pub enum AdminRole {
     Admin = 2,
 }
 
-#[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[strum(serialize_all = "snake_case")]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum PermissionLevel {

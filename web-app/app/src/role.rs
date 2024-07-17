@@ -1,7 +1,11 @@
 use std::str::FromStr;
 
+use leptos::{server, ServerFnError};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
+
+#[cfg(feature = "ssr")]
+use crate::app::ssr::get_db_pool;
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[strum(serialize_all = "snake_case")]
@@ -72,6 +76,22 @@ pub mod ssr {
             .await?;
 
         Ok(user_forum_role)
+    }
+
+    pub async fn get_forum_role_vec(
+        forum_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<Vec<UserForumRole>, AppError> {
+        let forum_role_vec = sqlx::query_as!(
+            UserForumRole,
+            "SELECT * FROM user_forum_roles \
+            WHERE forum_name = $1",
+            forum_name,
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(forum_role_vec)
     }
 
     pub async fn set_user_forum_role(
@@ -197,6 +217,18 @@ pub mod ssr {
             .await?;
         Ok(sql_user)
     }
+}
+
+#[server]
+pub async fn get_forum_role_vec(forum_name: String) -> Result<Vec<UserForumRole>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+
+    let role_vec = ssr::get_forum_role_vec(
+        &forum_name,
+        &db_pool,
+    ).await?;
+
+    Ok(role_vec)
 }
 
 #[cfg(test)]

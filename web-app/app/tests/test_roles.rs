@@ -2,7 +2,7 @@ use app::auth::User;
 use app::errors::AppError;
 use app::forum;
 use app::role::{AdminRole, PermissionLevel};
-use app::role::ssr::{get_user_forum_role, set_user_admin_role, set_user_forum_role};
+use app::role::ssr::{get_forum_role_vec, get_user_forum_role, set_user_admin_role, set_user_forum_role};
 
 use crate::common::{create_user, get_db_pool};
 
@@ -84,6 +84,44 @@ async fn test_get_user_forum_role() -> Result<(), AppError> {
     assert_eq!(user_b_forum_3_role.permission_level, PermissionLevel::Lead);
 
     assert_eq!(get_user_forum_role(user_c.user_id, &forum_3.forum_name, &db_pool).await, Err(AppError::NotFound));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_forum_role_vec() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user_a = create_user("a", &db_pool).await;
+    let user_b = create_user("b", &db_pool).await;
+    let user_c = create_user("c", &db_pool).await;
+
+    let forum = forum::ssr::create_forum("1", "forum", false, &user_a, &db_pool).await?;
+    let user_a = User::get(user_a.user_id, &db_pool).await.expect("Should be able to reload user.");
+
+    let user_a_forum_role = get_user_forum_role(user_a.user_id, &forum.forum_name, &db_pool).await.expect("User a should have lead role.");
+    let (user_b_forum_role, _) = set_user_forum_role(
+        forum.forum_id,
+        &forum.forum_name,
+        user_b.user_id,
+        PermissionLevel::Manage,
+        &user_a,
+        &db_pool
+    ).await.expect("User should be able to grant Manage permissions.");
+    let (user_c_forum_role, _) = set_user_forum_role(
+        forum.forum_id,
+        &forum.forum_name,
+        user_c.user_id,
+        PermissionLevel::None,
+        &user_a,
+        &db_pool
+    ).await.expect("User should be able to grant None permissions.");
+
+    let forum_role_vec = get_forum_role_vec(&forum.forum_name, &db_pool).await.expect("Should load forum role vec");
+
+    assert_eq!(forum_role_vec.len(), 3);
+    assert!(forum_role_vec.contains(&user_a_forum_role));
+    assert!(forum_role_vec.contains(&user_b_forum_role));
+    assert!(forum_role_vec.contains(&user_c_forum_role));
 
     Ok(())
 }

@@ -280,6 +280,9 @@ pub async fn moderate_comment(
 /// Component to manage a forum
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
+
+
+
     view! {
         <div>
             "Forum Cockpit"

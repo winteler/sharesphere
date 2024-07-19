@@ -5,7 +5,8 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     admin_role TEXT NOT NULL DEFAULT 'none' CHECK (admin_role IN ('none', 'moderator', 'admin')),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    UNIQUE (user_id, username)
 );
 
 CREATE TABLE forums (
@@ -93,13 +94,16 @@ CREATE TABLE votes (
 
 CREATE TABLE user_forum_roles (
     role_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users (user_id),
-    forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
-    forum_name TEXT NOT NULL REFERENCES forums (forum_name),
+    user_id BIGINT NOT NULL,
+    username TEXT NOT NULL,
+    forum_id BIGINT NOT NULL,
+    forum_name TEXT NOT NULL,
     permission_level TEXT NOT NULL CHECK (permission_level IN ('none', 'moderate', 'ban', 'manage', 'lead')),
     grantor_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_role UNIQUE NULLS NOT DISTINCT (user_id, forum_id)
+    CONSTRAINT unique_role UNIQUE (user_id, forum_id),
+    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username),
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
 );
 
 -- index to guarantee maximum 1 leader per forum
@@ -108,11 +112,13 @@ CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, permissio
 
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users (user_id),
+    user_id BIGINT NOT NULL,
+    username TEXT NOT NULL,
     forum_id BIGINT,
     forum_name TEXT,
     moderator_id BIGINT NOT NULL REFERENCES users (user_id),
     until_timestamp TIMESTAMPTZ,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT forum_exists FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
+    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username),
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
 );

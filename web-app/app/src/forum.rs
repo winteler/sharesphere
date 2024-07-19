@@ -344,7 +344,7 @@ pub async fn create_forum(
     description: String,
     is_nsfw: bool,
 ) -> Result<(), ServerFnError> {
-    log::info!("Create Sphere '{forum_name}', {description}, {is_nsfw}");
+    log::trace!("Create Sphere '{forum_name}', {description}, {is_nsfw}");
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 

@@ -27,6 +27,7 @@ pub const PERMANENT_STR: &str = "Permanent";
 pub struct UserBan {
     pub ban_id: i64,
     pub user_id: i64,
+    pub username: String,
     pub forum_id: Option<i64>,
     pub forum_name: Option<String>,
     pub moderator_id: i64,
@@ -165,9 +166,10 @@ pub mod ssr {
                 Some(ban_duration) => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, forum_id, forum_name, moderator_id, until_timestamp)
+                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, moderator_id, until_timestamp)
                          VALUES (
                             $1,
+                            (SELECT username FROM users WHERE user_id = $1),
                             (SELECT forum_id FROM forums WHERE forum_name = $2),
                             $2, $3, CURRENT_TIMESTAMP + $4 * interval '1 day'
                         ) RETURNING *",
@@ -182,9 +184,10 @@ pub mod ssr {
                 None => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, forum_id, forum_name, moderator_id)
+                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, moderator_id)
                          VALUES (
                             $1,
+                            (SELECT username FROM users WHERE user_id = $1),
                             (SELECT forum_id FROM forums WHERE forum_name = $2),
                             $2, $3
                         ) RETURNING *",
@@ -292,10 +295,9 @@ pub fn ForumCockpit() -> impl IntoView {
 
     view! {
         <div class="flex flex-col gap-1 content-center">
-            <div>
-                "Forum Cockpit"
-            </div>
-            <div class="flex flex-col gap-1 content-center">
+            <div class="text-2xl text-center">"Forum Cockpit"</div>
+            <div class="flex flex-col gap-1 content-center w-fit bg-base-200 p-2 rounded">
+                <div class="text-xl">"Moderator list"</div>
                 <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
                 {
                     let forum_role_vec = forum_role_vec.clone();
@@ -305,7 +307,7 @@ pub fn ForumCockpit() -> impl IntoView {
                             key=|(_index, role)| (role.user_id, role.permission_level)
                             let:child
                         >
-                            <div>{format!("{}: {}", child.1.user_id, child.1.permission_level.to_string())}</div>
+                            <div class="w-fit">{format!("{}: {}", child.1.user_id, child.1.permission_level.to_string())}</div>
                         </For>
                     }
                 }

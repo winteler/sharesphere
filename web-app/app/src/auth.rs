@@ -449,6 +449,7 @@ pub mod ssr {
                 UserForumRole {
                     role_id: 0,
                     user_id: 0,
+                    username: String::from("b"),
                     forum_id: 0,
                     forum_name: String::from("0"),
                     permission_level: PermissionLevel::Moderate,
@@ -458,6 +459,7 @@ pub mod ssr {
                 UserForumRole {
                     role_id: 0,
                     user_id: 0,
+                    username: String::from("b"),
                     forum_id: 1,
                     forum_name: String::from("1"),
                     permission_level: PermissionLevel::Lead,
@@ -469,6 +471,7 @@ pub mod ssr {
                 UserBan {
                     ban_id: 0,
                     user_id: 0,
+                    username: String::from("b"),
                     forum_id: None,
                     forum_name: None,
                     moderator_id: 0,
@@ -478,6 +481,7 @@ pub mod ssr {
                 UserBan {
                     ban_id: 1,
                     user_id: 0,
+                    username: String::from("b"),
                     forum_id: Some(0),
                     forum_name: Some(String::from("a")),
                     moderator_id: 0,
@@ -487,6 +491,7 @@ pub mod ssr {
                 UserBan {
                     ban_id: 2,
                     user_id: 0,
+                    username: String::from("b"),
                     forum_id: Some(1),
                     forum_name: Some(String::from("b")),
                     moderator_id: 0,
@@ -496,6 +501,7 @@ pub mod ssr {
                 UserBan {
                     ban_id: 3,
                     user_id: 0,
+                    username: String::from("b"),
                     forum_id: Some(2),
                     forum_name: Some(String::from("c")),
                     moderator_id: 0,
@@ -527,6 +533,7 @@ pub mod ssr {
             let user_2_ban_vec = vec![UserBan {
                 ban_id: 3,
                 user_id: 0,
+                username: String::from("b"),
                 forum_id: None,
                 forum_name: None,
                 moderator_id: 0,

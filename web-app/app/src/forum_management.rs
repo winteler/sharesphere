@@ -11,7 +11,7 @@ use crate::editor::FormTextEditor;
 use crate::forum::get_forum_name_memo;
 use crate::icons::HammerIcon;
 use crate::post::Post;
-use crate::role::get_forum_role_vec;
+use crate::role::{get_forum_role_vec, SetUserForumRole};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 
@@ -286,32 +286,79 @@ pub async fn moderate_comment(
 /// Component to manage a forum
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
-    let forum_roles_resource = create_resource(
-        move || forum_name.get(),
-        move |forum_name| get_forum_role_vec(forum_name)
-    );
-
     view! {
         <div class="flex flex-col gap-1 content-center">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
-            <div class="flex flex-col gap-1 content-center w-fit bg-base-200 p-2 rounded">
-                <div class="text-xl">"Moderator list"</div>
-                <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
-                {
-                    let forum_role_vec = forum_role_vec.clone();
-                    view! {
-                        <For
-                            each= move || forum_role_vec.clone().into_iter().enumerate()
-                            key=|(_index, role)| (role.user_id, role.permission_level)
-                            let:child
-                        >
-                            <div class="w-fit">{format!("{}: {}", child.1.user_id, child.1.permission_level.to_string())}</div>
-                        </For>
-                    }
+            <ModeratorPanel/>
+        </div>
+    }
+}
+
+/// Component to manage moderators
+#[component]
+pub fn ModeratorPanel() -> impl IntoView {
+    let params = use_params_map();
+    let forum_name = get_forum_name_memo(params);
+    let username_input = create_rw_signal(String::default());
+
+    let set_role_action = create_server_action::<SetUserForumRole>();
+    let forum_roles_resource = create_resource(
+        move || (forum_name.get(), set_role_action.version().get()),
+        move |(forum_name, _)| get_forum_role_vec(forum_name)
+    );
+    view! {
+        <div class="flex flex-col gap-1 content-center w-fit bg-base-200 p-2 rounded">
+            <div class="text-xl">"Moderator list"</div>
+            <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
+            {
+                let forum_role_vec = forum_role_vec.clone();
+                view! {
+                    <For
+                        each= move || forum_role_vec.clone().into_iter().enumerate()
+                        key=|(_index, role)| (role.user_id, role.permission_level)
+                        let:child
+                    >
+                        <div class="w-fit">{format!("{}: {}", child.1.username, child.1.permission_level.to_string())}</div>
+                    </For>
                 }
-                </TransitionUnpack>
+            }
+            </TransitionUnpack>
+            // menu to set permissions: input with suggestion for username, dropdown (generic for enums) for permission levels, publish button
+            // on click in list, set username and permission level in inputs
+            <div class="flex gap-1 content-center">
+                <ActionForm action=set_role_action>
+                    <div class="flex flex-col gap-2 w-full">
+                        <div class="dropdown dropdown-end">
+                            <input
+                                tabindex="0"
+                                type="text"
+                                name="forum"
+                                placeholder="Username"
+                                autocomplete="off"
+                                class="input input-bordered input-primary w-full h-input_m"
+                                on:input=move |ev| {
+                                    username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                                }
+                                prop:value=username_input
+                            />
+                            /*<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
+                                <TransitionUnpack resource=matching_forums_resource let:forum_set>
+                                {
+                                    forum_set.iter().map(|forum_name| {
+                                        view! {
+                                            <li>
+                                                <button type="button" value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
+                                                    {forum_name}
+                                                </button>
+                                            </li>
+                                        }
+                                    }).collect_view()
+                                }
+                                </TransitionUnpack>
+                            </ul>*/
+                        </div>
+                    </div>
+                </ActionForm>
             </div>
         </div>
     }

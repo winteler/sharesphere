@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
 #[cfg(feature = "ssr")]
-use crate::app::ssr::get_db_pool;
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user};
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[strum(serialize_all = "snake_case")]
@@ -96,7 +96,6 @@ pub mod ssr {
     }
 
     pub async fn set_user_forum_role(
-        forum_id: i64,
         forum_name: &str,
         user_id: i64,
         permission_level: PermissionLevel,
@@ -104,11 +103,10 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
         if permission_level == PermissionLevel::Lead {
-            set_forum_leader(forum_id, forum_name, user_id, grantor, db_pool).await
+            set_forum_leader(forum_name, user_id, grantor, db_pool).await
         } else {
             grantor.check_can_set_user_forum_role(permission_level, user_id, forum_name, db_pool).await?;
             let user_forum_role = insert_user_forum_role(
-                forum_id,
                 forum_name,
                 user_id,
                 permission_level,
@@ -119,7 +117,6 @@ pub mod ssr {
         }
     }
     async fn set_forum_leader(
-        forum_id: i64,
         forum_name: &str,
         user_id: i64,
         grantor: &User,
@@ -144,7 +141,6 @@ pub mod ssr {
                     .fetch_one(db_pool)
                     .await?;
                 let user_forum_role = insert_user_forum_role(
-                    forum_id,
                     forum_name,
                     user_id,
                     PermissionLevel::Lead,
@@ -155,7 +151,6 @@ pub mod ssr {
             },
             false => {
                 let user_forum_role = insert_user_forum_role(
-                    forum_id,
                     forum_name,
                     user_id,
                     PermissionLevel::Lead,
@@ -168,7 +163,6 @@ pub mod ssr {
     }
 
     async fn insert_user_forum_role(
-        forum_id: i64,
         forum_name: &str,
         user_id: i64,
         permission_level: PermissionLevel,
@@ -178,16 +172,16 @@ pub mod ssr {
         let permission_level_str: &str = permission_level.into();
         let user_forum_role = sqlx::query_as!(
                 UserForumRole,
-                "INSERT INTO user_forum_roles (user_id, username, forum_id, forum_name, permission_level, grantor_id) \
-                VALUES ($1,\
-                    (SELECT username from users where user_id = $1), \
-                    $2, $3, $4, $5) \
-                ON CONFLICT (user_id, forum_id) DO UPDATE \
-                SET permission_level = EXCLUDED.permission_level, \
-                    timestamp = CURRENT_TIMESTAMP \
+                "INSERT INTO user_forum_roles (user_id, username, forum_id, forum_name, permission_level, grantor_id)
+                VALUES ($1,
+                    (SELECT username from users where user_id = $1),
+                    (SELECT forum_id FROM forums WHERE forum_name = $2),
+                    $2, $3, $4)
+                ON CONFLICT (user_id, forum_id) DO UPDATE
+                SET permission_level = EXCLUDED.permission_level,
+                    timestamp = CURRENT_TIMESTAMP
                 RETURNING *",
                 user_id,
-                forum_id,
                 forum_name,
                 permission_level_str,
                 grantor.user_id,
@@ -232,6 +226,28 @@ pub async fn get_forum_role_vec(forum_name: String) -> Result<Vec<UserForumRole>
     ).await?;
 
     Ok(role_vec)
+}
+
+#[server]
+pub async fn set_user_forum_role(
+    forum_name: String,
+    user_id: i64,
+    permission_level: PermissionLevel,
+) -> Result<UserForumRole, ServerFnError> {
+    let user = check_user()?;
+    let db_pool = get_db_pool()?;
+
+    let (forum_role, _) = ssr::set_user_forum_role(
+        &forum_name,
+        user_id,
+        permission_level,
+        &user,
+        &db_pool,
+    ).await?;
+
+    reload_user(user_id)?;
+
+    Ok(forum_role)
 }
 
 #[cfg(test)]

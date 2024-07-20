@@ -2,6 +2,7 @@ use const_format::concatcp;
 use leptos::*;
 use leptos_router::{ActionForm, use_params_map};
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
@@ -11,9 +12,9 @@ use crate::editor::FormTextEditor;
 use crate::forum::get_forum_name_memo;
 use crate::icons::HammerIcon;
 use crate::post::Post;
-use crate::role::{get_forum_role_vec, SetUserForumRole};
+use crate::role::{get_forum_role_vec, PermissionLevel, SetUserForumRole};
 use crate::unpack::TransitionUnpack;
-use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
+use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -325,41 +326,36 @@ pub fn ModeratorPanel() -> impl IntoView {
             </TransitionUnpack>
             // menu to set permissions: input with suggestion for username, dropdown (generic for enums) for permission levels, publish button
             // on click in list, set username and permission level in inputs
-            <div class="flex gap-1 content-center">
-                <ActionForm action=set_role_action>
-                    <div class="flex flex-col gap-2 w-full">
-                        <div class="dropdown dropdown-end">
-                            <input
-                                tabindex="0"
-                                type="text"
-                                name="forum"
-                                placeholder="Username"
-                                autocomplete="off"
-                                class="input input-bordered input-primary w-full h-input_m"
-                                on:input=move |ev| {
-                                    username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
-                                }
-                                prop:value=username_input
-                            />
-                            /*<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
-                                <TransitionUnpack resource=matching_forums_resource let:forum_set>
-                                {
-                                    forum_set.iter().map(|forum_name| {
-                                        view! {
-                                            <li>
-                                                <button type="button" value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
-                                                    {forum_name}
-                                                </button>
-                                            </li>
-                                        }
-                                    }).collect_view()
-                                }
-                                </TransitionUnpack>
-                            </ul>*/
-                        </div>
+            <ActionForm action=set_role_action>
+                <input
+                    name="forum_name"
+                    class="hidden"
+                    value=forum_name
+                />
+                <div class="flex gap-1 content-center">
+                    <div class="dropdown dropdown-end">
+                        <input
+                            tabindex="0"
+                            type="text"
+                            name="username"
+                            placeholder="Username"
+                            autocomplete="off"
+                            class="input input-bordered input-primary w-full"
+                            on:input=move |ev| {
+                                username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                            }
+                            prop:value=username_input
+                        />
                     </div>
-                </ActionForm>
-            </div>
+                    <EnumDropdown name="ban_duration" enum_iter=PermissionLevel::iter()/>
+                    <button
+                        type="submit"
+                        class="btn btn-active btn-secondary"
+                    >
+                        "Assign"
+                    </button>
+                </div>
+            </ActionForm>
         </div>
     }
 }

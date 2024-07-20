@@ -1,4 +1,5 @@
 use leptos::*;
+use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
 use crate::comment::CommentSortType;
@@ -36,6 +37,25 @@ pub fn ModalDialog(
                 </div>
             </div>
         </Show>
+    }
+}
+
+/// Component to create a dropdown based on a given strum::EnumIter
+#[component]
+pub fn EnumDropdown<I, T>(
+    name: &'static str,
+    enum_iter: I,
+) -> impl IntoView
+where
+    I: IntoIterator<Item = T>,
+    T: std::str::FromStr + Into<&'static str> + IntoEnumIterator
+{
+    view! {
+        <select name=name class="select select-bordered w-full max-w-xs">
+        {
+            enum_iter.into_iter().map(|enum_val| view! { <option>{enum_val.into()}</option> }).collect_view()
+        }
+        </select>
     }
 }
 

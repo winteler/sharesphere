@@ -230,7 +230,7 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
-        set_user_forum_role(&forum.forum_name, user.user_id, PermissionLevel::Lead, user, &db_pool).await?;
+        set_user_forum_role(user.user_id, &forum.forum_name, PermissionLevel::Lead, user, &db_pool).await?;
 
         Ok(forum)
     }

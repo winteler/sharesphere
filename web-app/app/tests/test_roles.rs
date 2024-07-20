@@ -21,11 +21,11 @@ async fn test_get_user_forum_role() -> Result<(), AppError> {
     let user_a = User::get(user_a.user_id, &db_pool).await.expect("Should be able to reload user.");
     let user_b = User::get(user_b.user_id, &db_pool).await.expect("Should be able to reload user.");
 
-    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_b.user_id, PermissionLevel::Manage, &user_a, &db_pool).await.expect("User should be able to grant Manage permissions.");
-    set_user_forum_role(forum_1.forum_id, &forum_1.forum_name, user_c.user_id, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
-    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_b.user_id, PermissionLevel::Ban, &user_a, &db_pool).await.expect("User should be able to grant Ban permissions.");
-    set_user_forum_role(forum_2.forum_id, &forum_2.forum_name, user_c.user_id, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
-    set_user_forum_role(forum_3.forum_id, &forum_3.forum_name, user_a.user_id, PermissionLevel::None, &user_b, &db_pool).await.expect("User should be able to grant Moderate permissions.");
+    set_user_forum_role(user_b.user_id, &forum_1.forum_name, PermissionLevel::Manage, &user_a, &db_pool).await.expect("User should be able to grant Manage permissions.");
+    set_user_forum_role(user_c.user_id, &forum_1.forum_name, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
+    set_user_forum_role(user_b.user_id, &forum_2.forum_name, PermissionLevel::Ban, &user_a, &db_pool).await.expect("User should be able to grant Ban permissions.");
+    set_user_forum_role(user_c.user_id, &forum_2.forum_name, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
+    set_user_forum_role(user_a.user_id, &forum_3.forum_name, PermissionLevel::None, &user_b, &db_pool).await.expect("User should be able to grant Moderate permissions.");
 
     let user_a_forum_1_role = get_user_forum_role(user_a.user_id, &forum_1.forum_name, &db_pool).await.expect("get_user_forum_role should return user role.");
     assert_eq!(user_a_forum_1_role.user_id, user_a.user_id);
@@ -100,17 +100,15 @@ async fn test_get_forum_role_vec() -> Result<(), AppError> {
 
     let user_a_forum_role = get_user_forum_role(user_a.user_id, &forum.forum_name, &db_pool).await.expect("User a should have lead role.");
     let (user_b_forum_role, _) = set_user_forum_role(
-        forum.forum_id,
-        &forum.forum_name,
         user_b.user_id,
+        &forum.forum_name,
         PermissionLevel::Manage,
         &user_a,
         &db_pool
     ).await.expect("User should be able to grant Manage permissions.");
     let (user_c_forum_role, _) = set_user_forum_role(
-        forum.forum_id,
-        &forum.forum_name,
         user_c.user_id,
+        &forum.forum_name,
         PermissionLevel::None,
         &user_a,
         &db_pool
@@ -141,9 +139,8 @@ async fn test_set_user_forum_role() -> Result<(), AppError> {
 
     // test elect moderator
     let (moderate_role, prev_leader_id) = set_user_forum_role(
-        forum.forum_id,
-        forum_name,
         moderator.user_id,
+        forum_name,
         PermissionLevel::Moderate,
         &lead_user,
         &db_pool,
@@ -167,9 +164,8 @@ async fn test_set_user_forum_role() -> Result<(), AppError> {
     // test need elect permissions to add moderators
     assert_eq!(
         set_user_forum_role(
-            forum.forum_id,
-            forum_name,
             ordinary_user.user_id,
+            forum_name,
             PermissionLevel::Moderate,
             &moderator,
             &db_pool
@@ -179,9 +175,8 @@ async fn test_set_user_forum_role() -> Result<(), AppError> {
 
     // test change permission level to Elect
     let (moderate_role, prev_leader_id) = set_user_forum_role(
-        forum.forum_id,
-        forum_name,
         moderator.user_id,
+        forum_name,
         PermissionLevel::Manage,
         &lead_user,
         &db_pool,
@@ -204,9 +199,8 @@ async fn test_set_user_forum_role() -> Result<(), AppError> {
 
     // test can now elect other moderators
     let (moderate_role, prev_leader_id) = set_user_forum_role(
-        forum.forum_id,
-        forum_name,
         ordinary_user.user_id,
+        forum_name,
         PermissionLevel::Moderate,
         &moderator,
         &db_pool,
@@ -229,9 +223,8 @@ async fn test_set_user_forum_role() -> Result<(), AppError> {
     // test moderator cannot set leader or downgrade higher up moderator
     assert!(
         set_user_forum_role(
-            forum.forum_id,
-            forum_name,
             ordinary_user.user_id,
+            forum_name,
             PermissionLevel::Lead,
             &moderator,
             &db_pool
@@ -239,9 +232,8 @@ async fn test_set_user_forum_role() -> Result<(), AppError> {
     );
     assert_eq!(
         set_user_forum_role(
-            forum.forum_id,
-            forum_name,
             lead_user.user_id,
+            forum_name,
             PermissionLevel::Moderate,
             &moderator,
             &db_pool
@@ -251,9 +243,8 @@ async fn test_set_user_forum_role() -> Result<(), AppError> {
 
     // test leader can choose another leader
     let (new_lead_role, prev_leader_id) = set_user_forum_role(
-        forum.forum_id,
-        forum_name,
         ordinary_user.user_id,
+        forum_name,
         PermissionLevel::Lead,
         &lead_user,
         &db_pool,

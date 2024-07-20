@@ -3,9 +3,10 @@ use std::str::FromStr;
 use leptos::{server, ServerFnError};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
+use strum_macros::EnumIter;
 
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user};
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, auth::ssr::SqlUser};
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[strum(serialize_all = "snake_case")]
@@ -16,7 +17,7 @@ pub enum AdminRole {
     Admin = 2,
 }
 
-#[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[strum(serialize_all = "snake_case")]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum PermissionLevel {
@@ -96,19 +97,19 @@ pub mod ssr {
     }
 
     pub async fn set_user_forum_role(
-        forum_name: &str,
         user_id: i64,
+        forum_name: &str,
         permission_level: PermissionLevel,
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
         if permission_level == PermissionLevel::Lead {
-            set_forum_leader(forum_name, user_id, grantor, db_pool).await
+            set_forum_leader(user_id, forum_name, grantor, db_pool).await
         } else {
             grantor.check_can_set_user_forum_role(permission_level, user_id, forum_name, db_pool).await?;
             let user_forum_role = insert_user_forum_role(
-                forum_name,
                 user_id,
+                forum_name,
                 permission_level,
                 grantor,
                 db_pool,
@@ -117,8 +118,8 @@ pub mod ssr {
         }
     }
     async fn set_forum_leader(
-        forum_name: &str,
         user_id: i64,
+        forum_name: &str,
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserForumRole, Option<i64>), AppError> {
@@ -127,12 +128,12 @@ pub mod ssr {
                 let manage_level_str: &str = PermissionLevel::Manage.into();
                 sqlx::query_as!(
                     UserForumRole,
-                    "UPDATE user_forum_roles \
-                    SET \
-                        permission_level = $1, \
-                        timestamp = CURRENT_TIMESTAMP \
-                    WHERE user_id = $2 AND \
-                          forum_name = $3 \
+                    "UPDATE user_forum_roles
+                    SET
+                        permission_level = $1,
+                        timestamp = CURRENT_TIMESTAMP
+                    WHERE user_id = $2 AND
+                          forum_name = $3
                     RETURNING *",
                     manage_level_str,
                     grantor.user_id,
@@ -141,8 +142,8 @@ pub mod ssr {
                     .fetch_one(db_pool)
                     .await?;
                 let user_forum_role = insert_user_forum_role(
-                    forum_name,
                     user_id,
+                    forum_name,
                     PermissionLevel::Lead,
                     grantor,
                     db_pool,
@@ -151,8 +152,8 @@ pub mod ssr {
             },
             false => {
                 let user_forum_role = insert_user_forum_role(
-                    forum_name,
                     user_id,
+                    forum_name,
                     PermissionLevel::Lead,
                     grantor,
                     db_pool,
@@ -163,8 +164,8 @@ pub mod ssr {
     }
 
     async fn insert_user_forum_role(
-        forum_name: &str,
         user_id: i64,
+        forum_name: &str,
         permission_level: PermissionLevel,
         grantor: &User,
         db_pool: &PgPool,
@@ -201,11 +202,11 @@ pub mod ssr {
         let admin_role_str: &str = admin_role.into();
         let sql_user = sqlx::query_as!(
             SqlUser,
-            "UPDATE users \
-            SET \
-                admin_role = $1, \
-                timestamp = CURRENT_TIMESTAMP \
-            WHERE user_id = $2 \
+            "UPDATE users
+            SET
+                admin_role = $1,
+                timestamp = CURRENT_TIMESTAMP
+            WHERE user_id = $2
             RETURNING *",
             admin_role_str,
             user_id,
@@ -230,22 +231,24 @@ pub async fn get_forum_role_vec(forum_name: String) -> Result<Vec<UserForumRole>
 
 #[server]
 pub async fn set_user_forum_role(
+    username: String,
     forum_name: String,
-    user_id: i64,
     permission_level: PermissionLevel,
 ) -> Result<UserForumRole, ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
+    let assigned_user = SqlUser::get_by_username(&username, &db_pool).await?;
+
     let (forum_role, _) = ssr::set_user_forum_role(
+        assigned_user.user_id,
         &forum_name,
-        user_id,
         permission_level,
         &user,
         &db_pool,
     ).await?;
 
-    reload_user(user_id)?;
+    reload_user(forum_role.user_id)?;
 
     Ok(forum_role)
 }

@@ -180,6 +180,20 @@ pub mod ssr {
     }
 
     impl SqlUser {
+        pub async fn get_by_username(
+            username: &str,
+            db_pool: &PgPool,
+        ) -> Result<SqlUser, AppError> {
+            let sql_user = sqlx::query_as!(
+            SqlUser,
+            "SELECT * FROM users WHERE username = $1",
+            username,
+        )
+                .fetch_one(db_pool)
+                .await?;
+
+            Ok(sql_user)
+        }
         pub async fn get_from_oidc_id(oidc_id: &String, db_pool: &PgPool) -> Result<SqlUser, AppError> {
             let sql_user = sqlx::query_as!(
                 SqlUser,

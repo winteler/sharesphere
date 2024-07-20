@@ -16,6 +16,24 @@ use crate::common::{create_user, get_db_pool};
 mod common;
 
 #[tokio::test]
+async fn test_sql_user_get_by_username() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let oidc_id = "id";
+    let username = "username";
+    let email = "user@user.com";
+    let user = app::auth::ssr::create_user(oidc_id, username, email, &db_pool).await.expect("Sql user should be created");
+    let sql_user = SqlUser::get_by_username(&user.username, &db_pool).await?;
+
+    assert_eq!(sql_user.user_id, user.user_id);
+    assert_eq!(sql_user.oidc_id, oidc_id);
+    assert_eq!(sql_user.username, username);
+    assert_eq!(sql_user.email, email);
+    assert_eq!(sql_user.admin_role, AdminRole::None);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_sql_user_get_from_oidc_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let oidc_id = "id";
@@ -48,8 +66,8 @@ async fn test_user_get() -> Result<(), AppError> {
     // reload creator_user so that it has the updated roles after creating forums.
     let creator_user = User::get(creator_user.user_id, &db_pool).await.expect("Creator user should be created.");
 
-    set_user_forum_role(forum_a.forum_id, &forum_a.forum_name, test_user.user_id, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
-    set_user_forum_role(forum_b.forum_id, &forum_b.forum_name, test_user.user_id, PermissionLevel::Manage, &creator_user, &db_pool).await?;
+    set_user_forum_role(test_user.user_id, &forum_a.forum_name, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
+    set_user_forum_role(test_user.user_id, &forum_b.forum_name, PermissionLevel::Manage, &creator_user, &db_pool).await?;
 
     ban_user_from_forum(test_user.user_id, &forum_c.forum_name, &creator_user, Some(0), &db_pool).await?;
     let forum_ban_d = ban_user_from_forum(test_user.user_id, &forum_d.forum_name, &creator_user, Some(1), &db_pool).await?.expect("User should have ban for forum d.");
@@ -92,9 +110,9 @@ async fn test_user_check_can_set_user_forum_role() -> Result<(), AppError> {
         .expect("Should be able to reload lead_user.");
 
     // set user roles
-    set_user_forum_role(forum.forum_id, forum_name, manage_mod.user_id, PermissionLevel::Manage, &lead_user, &db_pool)
+    set_user_forum_role(manage_mod.user_id, &forum.forum_name, PermissionLevel::Manage, &lead_user, &db_pool)
         .await.expect("Moderate role should be assignable by lead_user.");
-    set_user_forum_role(forum.forum_id, forum_name, simple_mod.user_id, PermissionLevel::Ban, &lead_user, &db_pool)
+    set_user_forum_role(simple_mod.user_id, &forum.forum_name, PermissionLevel::Ban, &lead_user, &db_pool)
         .await.expect("Moderate role should be assignable by lead_user.");
     let manage_mod = User::get(manage_mod.user_id, &db_pool).await.expect("Should be able to get elect mod.");
     let simple_mod = User::get(simple_mod.user_id, &db_pool).await.expect("Should be able to get simple mod.");

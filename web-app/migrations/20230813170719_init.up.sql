@@ -3,7 +3,7 @@ CREATE TABLE users (
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    admin_role TEXT NOT NULL DEFAULT 'none' CHECK (admin_role IN ('none', 'moderator', 'admin')),
+    admin_role TEXT NOT NULL DEFAULT 'None' CHECK (admin_role IN ('None', 'Moderator', 'Admin')),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (user_id, username)
@@ -98,7 +98,7 @@ CREATE TABLE user_forum_roles (
     username TEXT NOT NULL,
     forum_id BIGINT NOT NULL,
     forum_name TEXT NOT NULL,
-    permission_level TEXT NOT NULL CHECK (permission_level IN ('none', 'moderate', 'ban', 'manage', 'lead')),
+    permission_level TEXT NOT NULL CHECK (permission_level IN ('None', 'Moderate', 'Ban', 'Manage', 'Lead')),
     grantor_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_role UNIQUE (user_id, forum_id),
@@ -108,7 +108,7 @@ CREATE TABLE user_forum_roles (
 
 -- index to guarantee maximum 1 leader per forum
 CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, permission_level)
-    WHERE (user_forum_roles.permission_level = 'lead');
+    WHERE (user_forum_roles.permission_level = 'Lead');
 
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,

@@ -347,7 +347,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                             prop:value=username_input
                         />
                     </div>
-                    <EnumDropdown name="ban_duration" enum_iter=PermissionLevel::iter()/>
+                    <EnumDropdown name="permission_level" enum_iter=PermissionLevel::iter()/>
                     <button
                         type="submit"
                         class="btn btn-active btn-secondary"

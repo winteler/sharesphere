@@ -9,7 +9,6 @@ use strum_macros::EnumIter;
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, auth::ssr::SqlUser};
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[strum(serialize_all = "snake_case")]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum AdminRole {
     None = 0,
@@ -18,7 +17,6 @@ pub enum AdminRole {
 }
 
 #[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[strum(serialize_all = "snake_case")]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum PermissionLevel {
     None = 0,

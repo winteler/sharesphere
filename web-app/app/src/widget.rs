@@ -51,7 +51,7 @@ where
     T: std::str::FromStr + Into<&'static str> + IntoEnumIterator
 {
     view! {
-        <select name=name class="select select-bordered w-full max-w-xs">
+        <select name=name class="select select-bordered w-fit">
         {
             enum_iter.into_iter().map(|enum_val| view! { <option>{enum_val.into()}</option> }).collect_view()
         }

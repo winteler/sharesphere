@@ -18,9 +18,9 @@ use wasm_bindgen::UnwrapThrowExt;
 use app::{
     app::*,
     app::ssr::get_db_pool,
-    auth::*,
     auth::ssr::*,
 };
+use app::user::User;
 
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;

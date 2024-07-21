@@ -64,9 +64,9 @@ impl fmt::Display for SortType {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::User;
     use crate::errors::AppError;
     use crate::ranking::{SortType, Vote, VoteValue};
+    use crate::user::User;
 
     impl SortType {
         pub fn to_order_by_code(self) -> &'static str {

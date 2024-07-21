@@ -17,4 +17,5 @@ pub mod ranking;
 pub mod role;
 pub mod sidebar;
 pub mod unpack;
+pub mod user;
 pub mod widget;

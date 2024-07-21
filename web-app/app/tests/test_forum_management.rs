@@ -2,7 +2,6 @@ use std::ops::Add;
 
 use chrono::Days;
 
-use app::auth::User;
 use app::comment::ssr::create_comment;
 use app::errors::AppError;
 use app::forum::ssr::create_forum;
@@ -10,6 +9,7 @@ use app::forum_management::ssr::{ban_user_from_forum, is_user_forum_moderator, m
 use app::post::ssr::create_post;
 use app::role::AdminRole;
 use app::role::ssr::set_user_admin_role;
+use app::user::User;
 
 use crate::common::*;
 

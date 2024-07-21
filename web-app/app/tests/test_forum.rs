@@ -4,12 +4,12 @@ use rand::Rng;
 use sqlx::PgPool;
 
 use app::app::ssr::create_db_pool;
-use app::auth::User;
 use app::errors::AppError;
 use app::forum;
 use app::forum::Forum;
 use app::forum::ssr::{subscribe, unsubscribe};
 use app::role::PermissionLevel;
+use app::user::User;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -93,7 +93,7 @@ async fn test_get_forum_by_name() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_matching_forum_names() -> Result<(), AppError> {
+async fn test_get_matching_forum_name_set() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -113,12 +113,15 @@ async fn test_get_matching_forum_names() -> Result<(), AppError> {
         );
     }
 
-    let forum_name_set =
-        forum::ssr::get_matching_forum_names(String::from("1"), num_forums as i64, &db_pool)
-            .await?;
+    let forum_name_set = forum::ssr::get_matching_forum_name_set("1", num_forums as i64, &db_pool).await?;
 
+    let mut previous_forum_name = None;
     for forum_name in forum_name_set {
         assert_eq!(forum_name.chars().next().unwrap(), '1');
+        if let Some(previous_forum_name) = previous_forum_name {
+            assert!(previous_forum_name < forum_name)
+        }
+        previous_forum_name = Some(forum_name);
     }
 
     for i in num_forums..2 * num_forums {
@@ -136,7 +139,7 @@ async fn test_get_matching_forum_names() -> Result<(), AppError> {
     }
 
     let forum_name_set =
-        forum::ssr::get_matching_forum_names(String::default(), num_forums as i64, &db_pool).await?;
+        forum::ssr::get_matching_forum_name_set("", num_forums as i64, &db_pool).await?;
 
     assert_eq!(forum_name_set.len(), num_forums);
 

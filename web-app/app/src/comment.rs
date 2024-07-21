@@ -79,12 +79,12 @@ impl fmt::Display for CommentSortType {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::User;
     use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
     use crate::errors::AppError;
     use crate::forum::Forum;
     use crate::post::ssr::get_post_forum;
     use crate::ranking::VoteValue;
+    use crate::user::User;
 
     use super::*;
 
@@ -318,11 +318,11 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use crate::auth::User;
         use crate::comment::{Comment, CommentSortType};
         use crate::comment::ssr::CommentWithVote;
         use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
         use crate::ranking::VoteValue;
+        use crate::user::User;
 
         #[test]
         fn test_comment_join_vote_into_comment_with_children() {

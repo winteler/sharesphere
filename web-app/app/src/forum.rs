@@ -77,12 +77,12 @@ pub mod ssr {
 
     use sqlx::PgPool;
 
-    use crate::auth::User;
     use crate::errors::AppError;
     use crate::errors::AppError::InternalServerError;
     use crate::forum::{Forum, ForumWithUserInfo};
     use crate::role::PermissionLevel;
     use crate::role::ssr::set_user_forum_role;
+    use crate::user::User;
 
     pub async fn get_forum_by_name(forum_name: &str, db_pool: &PgPool) -> Result<Forum, AppError> {
         let forum = sqlx::query_as!(
@@ -132,14 +132,14 @@ pub mod ssr {
         }
     }
 
-    pub async fn get_matching_forum_names(
-        forum_prefix: String,
+    pub async fn get_matching_forum_name_set(
+        forum_prefix: &str,
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<BTreeSet<String>, AppError> {
         let forum_name_vec = sqlx::query!(
-            "SELECT forum_name FROM forums WHERE forum_name like $1 LIMIT $2",
-            forum_prefix + "%",
+            "SELECT forum_name FROM forums WHERE forum_name LIKE $1 ORDER BY forum_name LIMIT $2",
+            format!("{forum_prefix}%"),
             limit,
         )
         .fetch_all(db_pool)
@@ -294,12 +294,12 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
 }
 
 #[server]
-pub async fn get_matching_forum_names(
+pub async fn get_matching_forum_name_set(
     forum_prefix: String,
 ) -> Result<BTreeSet<String>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let forum_name_set =
-        ssr::get_matching_forum_names(forum_prefix, FORUM_FETCH_LIMIT, &db_pool).await?;
+        ssr::get_matching_forum_name_set(&forum_prefix, FORUM_FETCH_LIMIT, &db_pool).await?;
     Ok(forum_name_set)
 }
 

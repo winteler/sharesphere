@@ -1,6 +1,9 @@
+use std::collections::BTreeSet;
+
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::{ActionForm, use_params_map};
+use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
@@ -14,6 +17,7 @@ use crate::icons::HammerIcon;
 use crate::post::Post;
 use crate::role::{get_forum_role_vec, PermissionLevel, SetUserForumRole};
 use crate::unpack::TransitionUnpack;
+use crate::user::get_matching_username_set;
 use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
@@ -40,11 +44,11 @@ pub struct UserBan {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::User;
     use crate::comment::Comment;
     use crate::errors::AppError;
     use crate::forum_management::UserBan;
     use crate::post::Post;
+    use crate::user::User;
 
     pub async fn moderate_post(
         post_id: i64,
@@ -301,6 +305,21 @@ pub fn ModeratorPanel() -> impl IntoView {
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
     let username_input = create_rw_signal(String::default());
+    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    let matching_user_resource = create_resource(
+        move || username_debounced.get(),
+        move |username| async {
+            if username.is_empty() {
+                Ok(BTreeSet::<String>::default())
+            } else {
+                get_matching_username_set(username).await
+            }
+        },
+    );
+    let is_invalid_username = move || matching_user_resource.with(|value| match value {
+        Some(Ok(set)) => username_input.with(|username| !set.contains(username)),
+        _ => false,
+    });
 
     let set_role_action = create_server_action::<SetUserForumRole>();
     let forum_roles_resource = create_resource(
@@ -346,11 +365,29 @@ pub fn ModeratorPanel() -> impl IntoView {
                             }
                             prop:value=username_input
                         />
+                        <Show when=move || username_input.with(|username| !username.is_empty())>
+                            <TransitionUnpack resource=matching_user_resource let:username_set>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
+                                {
+                                    username_set.iter().map(|username| {
+                                        view! {
+                                            <li>
+                                                <button type="button" value=username on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
+                                                    {username}
+                                                </button>
+                                            </li>
+                                        }
+                                    }).collect_view()
+                                }
+                                </ul>
+                            </TransitionUnpack>
+                        </Show>
                     </div>
                     <EnumDropdown name="permission_level" enum_iter=PermissionLevel::iter()/>
                     <button
                         type="submit"
                         class="btn btn-active btn-secondary"
+                        disabled=is_invalid_username
                     >
                         "Assign"
                     </button>

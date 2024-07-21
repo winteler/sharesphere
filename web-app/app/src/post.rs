@@ -18,7 +18,7 @@ use crate::editor::FormMarkdownEditor;
 use crate::editor::get_styled_html_from_markdown;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum::{get_forum_name_memo, get_matching_forum_names};
+use crate::forum::{get_forum_name_memo, get_matching_forum_name_set};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::forum_management::{ModeratePost, ModeratePostButton};
@@ -97,11 +97,11 @@ impl fmt::Display for PostSortType {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::User;
     use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
     use crate::errors::AppError;
     use crate::forum::Forum;
     use crate::ranking::VoteValue;
+    use crate::user::User;
 
     use super::*;
 
@@ -385,11 +385,11 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use crate::auth::User;
         use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
         use crate::post::{Post, PostSortType};
         use crate::post::ssr::PostJoinVote;
         use crate::ranking::VoteValue;
+        use crate::user::User;
 
         #[test]
         fn test_post_join_vote_into_post_with_info() {
@@ -896,7 +896,7 @@ pub fn CreatePost() -> impl IntoView {
 
     let matching_forums_resource = create_resource(
         move || forum_name_debounced.get(),
-        move |forum_prefix| get_matching_forum_names(forum_prefix),
+        move |forum_prefix| get_matching_forum_name_set(forum_prefix),
     );
 
     view! {

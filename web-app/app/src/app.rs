@@ -13,6 +13,7 @@ use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
 use crate::sidebar::*;
+use crate::user::User;
 use crate::widget::PostSortWidget;
 
 pub const PARAM_ROUTE_PREFIX: &str = "/:";

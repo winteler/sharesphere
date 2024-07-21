@@ -6,7 +6,7 @@ use strum_macros::{Display, EnumString, IntoStaticStr};
 use strum_macros::EnumIter;
 
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, auth::ssr::SqlUser};
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, user::ssr::SqlUser};
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -54,8 +54,8 @@ impl From<String> for AdminRole {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::auth::{ssr::SqlUser, User};
     use crate::errors::AppError;
+    use crate::user::{ssr::SqlUser, User};
 
     use super::*;
 
@@ -257,19 +257,19 @@ mod tests {
 
     #[test]
     fn test_permission_level_from_string() {
-        assert_eq!(PermissionLevel::from(String::from("none")), PermissionLevel::None);
-        assert_eq!(PermissionLevel::from(String::from("moderate")), PermissionLevel::Moderate);
-        assert_eq!(PermissionLevel::from(String::from("ban")), PermissionLevel::Ban);
-        assert_eq!(PermissionLevel::from(String::from("manage")), PermissionLevel::Manage);
-        assert_eq!(PermissionLevel::from(String::from("lead")), PermissionLevel::Lead);
+        assert_eq!(PermissionLevel::from(String::from("None")), PermissionLevel::None);
+        assert_eq!(PermissionLevel::from(String::from("Moderate")), PermissionLevel::Moderate);
+        assert_eq!(PermissionLevel::from(String::from("Ban")), PermissionLevel::Ban);
+        assert_eq!(PermissionLevel::from(String::from("Manage")), PermissionLevel::Manage);
+        assert_eq!(PermissionLevel::from(String::from("Lead")), PermissionLevel::Lead);
         assert_eq!(PermissionLevel::from(String::from("invalid")), PermissionLevel::None);
     }
 
     #[test]
     fn test_admin_role_from_string() {
-        assert_eq!(AdminRole::from(String::from("none")), AdminRole::None);
-        assert_eq!(AdminRole::from(String::from("moderator")), AdminRole::Moderator);
-        assert_eq!(AdminRole::from(String::from("admin")), AdminRole::Admin);
+        assert_eq!(AdminRole::from(String::from("None")), AdminRole::None);
+        assert_eq!(AdminRole::from(String::from("Moderator")), AdminRole::Moderator);
+        assert_eq!(AdminRole::from(String::from("Admin")), AdminRole::Admin);
         assert_eq!(AdminRole::from(String::from("invalid")), AdminRole::None);
     }
 }

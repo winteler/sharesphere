@@ -2,13 +2,13 @@
 use sqlx::PgPool;
 
 use app::{comment, forum, post, ranking};
-use app::auth::User;
 use app::comment::Comment;
 use app::comment::ssr::create_comment;
 use app::errors::AppError;
 use app::forum::Forum;
 use app::post::Post;
 use app::ranking::VoteValue;
+use app::user::User;
 
 pub async fn create_forum_with_post(
     forum_name: &str,

@@ -1,8 +1,8 @@
-use app::auth::User;
 use app::errors::AppError;
 use app::forum;
 use app::role::{AdminRole, PermissionLevel};
 use app::role::ssr::{get_forum_role_vec, get_user_forum_role, set_user_admin_role, set_user_forum_role};
+use app::user::User;
 
 use crate::common::{create_user, get_db_pool};
 

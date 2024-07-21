@@ -617,7 +617,7 @@ pub fn ForumPostMiniatures(
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
     view! {
-        <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20 "
+        <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20"
             on:scroll=move |_| match list_ref.get() {
                 Some(node_ref) => {
                     if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {

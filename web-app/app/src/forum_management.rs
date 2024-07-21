@@ -316,10 +316,6 @@ pub fn ModeratorPanel() -> impl IntoView {
             }
         },
     );
-    let is_invalid_username = move || matching_user_resource.with(|value| match value {
-        Some(Ok(set)) => username_input.with(|username| !set.contains(username)),
-        _ => false,
-    });
 
     let set_role_action = create_server_action::<SetUserForumRole>();
     let forum_roles_resource = create_resource(
@@ -327,19 +323,32 @@ pub fn ModeratorPanel() -> impl IntoView {
         move |(forum_name, _)| get_forum_role_vec(forum_name)
     );
     view! {
-        <div class="flex flex-col gap-1 content-center w-fit bg-base-200 p-2 rounded">
-            <div class="text-xl">"Moderator list"</div>
+        <div class="flex flex-col gap-2 content-center w-fit bg-base-200 p-2 rounded">
+            <div class="text-xl text-center">"Moderator list"</div>
             <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
             {
                 let forum_role_vec = forum_role_vec.clone();
                 view! {
-                    <For
-                        each= move || forum_role_vec.clone().into_iter().enumerate()
-                        key=|(_index, role)| (role.user_id, role.permission_level)
-                        let:child
-                    >
-                        <div class="w-fit">{format!("{}: {}", child.1.username, child.1.permission_level.to_string())}</div>
-                    </For>
+                    <table>
+                        <thead>
+                            <tr class="border-b border-base-content/20">
+                                <th class="px-6 py-2 text-left font-bold">Username</th>
+                                <th class="px-6 py-2 text-left font-bold">Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <For
+                                each= move || forum_role_vec.clone().into_iter().enumerate()
+                                key=|(_index, role)| (role.user_id, role.permission_level)
+                                let:child
+                            >
+                                <tr class="border-b border-base-content/20">
+                                    <td class="px-6 py-1">{child.1.username}</td>
+                                    <td class="px-6 py-1">{child.1.permission_level.to_string()}</td>
+                                </tr>
+                            </For>
+                        </tbody>
+                    </table>
                 }
             }
             </TransitionUnpack>
@@ -387,7 +396,6 @@ pub fn ModeratorPanel() -> impl IntoView {
                     <button
                         type="submit"
                         class="btn btn-active btn-secondary"
-                        disabled=is_invalid_username
                     >
                         "Assign"
                     </button>

@@ -84,8 +84,10 @@ pub mod ssr {
     ) -> Result<Vec<UserForumRole>, AppError> {
         let forum_role_vec = sqlx::query_as!(
             UserForumRole,
-            "SELECT * FROM user_forum_roles \
-            WHERE forum_name = $1",
+            "SELECT * FROM user_forum_roles
+            WHERE
+                forum_name = $1 AND
+                permission_level != 'None'",
             forum_name,
         )
             .fetch_all(db_pool)

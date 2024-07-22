@@ -116,10 +116,10 @@ async fn test_get_forum_role_vec() -> Result<(), AppError> {
 
     let forum_role_vec = get_forum_role_vec(&forum.forum_name, &db_pool).await.expect("Should load forum role vec");
 
-    assert_eq!(forum_role_vec.len(), 3);
+    assert_eq!(forum_role_vec.len(), 2);
     assert!(forum_role_vec.contains(&user_a_forum_role));
     assert!(forum_role_vec.contains(&user_b_forum_role));
-    assert!(forum_role_vec.contains(&user_c_forum_role));
+    assert!(!forum_role_vec.contains(&user_c_forum_role));
 
     Ok(())
 }

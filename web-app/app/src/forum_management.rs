@@ -412,20 +412,24 @@ pub fn ModeratorPanel() -> impl IntoView {
                         />
                         <Show when=move || username_input.with(|username| !username.is_empty())>
                             <TransitionUnpack resource=matching_user_resource let:username_set>
-                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
-                                {
-                                    // TODO change to For
-                                    username_set.iter().map(|username| {
-                                        view! {
+                            {
+                                let username_set = username_set.clone();
+                                view! {
+                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
+                                        <For
+                                            each= move || username_set.clone().into_iter().enumerate()
+                                            key=|(_index, username)| username.clone()
+                                            let:child
+                                        >
                                             <li>
-                                                <button type="button" value=username on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
-                                                    {username}
+                                                <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
+                                                    {child.1}
                                                 </button>
                                             </li>
-                                        }
-                                    }).collect_view()
+                                        </For>
+                                    </ul>
                                 }
-                                </ul>
+                            }
                             </TransitionUnpack>
                         </Show>
                     </div>

@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use chrono::SecondsFormat;
 use const_format::concatcp;
 use leptos::*;
 use leptos_router::{ActionForm, use_params_map};
@@ -49,6 +50,21 @@ pub mod ssr {
     use crate::forum_management::UserBan;
     use crate::post::Post;
     use crate::user::User;
+
+    pub async fn get_forum_ban_vec(
+        forum_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<Vec<UserBan>, AppError> {
+        let user_ban_vec = sqlx::query_as!(
+            UserBan,
+            "SELECT * FROM user_bans WHERE forum_name = $1",
+            forum_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(user_ban_vec)
+    }
 
     pub async fn moderate_post(
         post_id: i64,
@@ -222,6 +238,15 @@ pub mod ssr {
     }
 }
 
+#[server]
+pub async fn get_forum_bans(
+    forum_name: String
+) -> Result<Vec<UserBan>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let ban_vec = ssr::get_forum_ban_vec(&forum_name, &db_pool).await?;
+    Ok(ban_vec)
+}
+
 /// Function to moderate a post and optionally ban its author
 ///
 /// The ban is performed for the forum of the given post and the duration is given by `ban_num_days`.
@@ -256,6 +281,10 @@ pub async fn moderate_post(
     Ok(post)
 }
 
+/// Function to moderate a comment and optionally ban its author
+///
+/// The ban is performed for the forum of the given comment and the duration is given by `ban_num_days`.
+/// If `ban_num_days == None`, the duration of the ban is permanent.
 #[server]
 pub async fn moderate_comment(
     comment_id: i64,
@@ -295,6 +324,7 @@ pub fn ForumCockpit() -> impl IntoView {
         <div class="flex flex-col gap-1 content-center">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
+            <BanPanel/>
         </div>
     }
 }
@@ -324,7 +354,7 @@ pub fn ModeratorPanel() -> impl IntoView {
     );
     view! {
         <div class="flex flex-col gap-2 content-center w-fit bg-base-200 p-2 rounded">
-            <div class="text-xl text-center">"Moderator list"</div>
+            <div class="text-xl text-center">"Moderators"</div>
             <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
             {
                 let forum_role_vec = forum_role_vec.clone();
@@ -340,20 +370,26 @@ pub fn ModeratorPanel() -> impl IntoView {
                             <For
                                 each= move || forum_role_vec.clone().into_iter().enumerate()
                                 key=|(_index, role)| (role.user_id, role.permission_level)
-                                let:child
-                            >
-                                <tr class="border-b border-base-content/20">
-                                    <td class="px-6 py-1">{child.1.username}</td>
-                                    <td class="px-6 py-1">{child.1.permission_level.to_string()}</td>
-                                </tr>
-                            </For>
+                                children=move |(_, role)| {
+                                    let username = store_value(role.username);
+                                    view! {
+                                        <tr
+                                            class="hover:bg-base-content/20"
+                                            on:click=move |_| {
+                                                username_input.set(username.get_value());
+                                            }
+                                        >
+                                            <td class="px-6 py-1 select-none">{username.get_value()}</td>
+                                            <td class="px-6 py-1 select-none">{role.permission_level.to_string()}</td>
+                                        </tr>
+                                    }
+                                }
+                            />
                         </tbody>
                     </table>
                 }
             }
             </TransitionUnpack>
-            // menu to set permissions: input with suggestion for username, dropdown (generic for enums) for permission levels, publish button
-            // on click in list, set username and permission level in inputs
             <ActionForm action=set_role_action>
                 <input
                     name="forum_name"
@@ -378,6 +414,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                             <TransitionUnpack resource=matching_user_resource let:username_set>
                                 <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
                                 {
+                                    // TODO change to For
                                     username_set.iter().map(|username| {
                                         view! {
                                             <li>
@@ -401,6 +438,56 @@ pub fn ModeratorPanel() -> impl IntoView {
                     </button>
                 </div>
             </ActionForm>
+        </div>
+    }
+}
+
+/// Component to manage ban users
+#[component]
+pub fn BanPanel() -> impl IntoView {
+    let params = use_params_map();
+    let forum_name = get_forum_name_memo(params);
+
+    let unban_action = create_server_action::<SetUserForumRole>();
+    let banned_users_resource = create_resource(
+        move || (forum_name.get(), unban_action.version().get()),
+        move |(forum_name, _)| get_forum_bans(forum_name)
+    );
+    view! {
+        <div class="flex flex-col gap-2 content-center w-fit bg-base-200 p-2 rounded">
+            <div class="text-xl text-center">"Banned users"</div>
+            <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
+            {
+                let banned_user_vec = banned_user_vec.clone();
+                view! {
+                    <table>
+                        <thead>
+                            <tr class="border-b border-base-content/20">
+                                <th class="px-6 py-2 text-left font-bold">Username</th>
+                                <th class="px-6 py-2 text-left font-bold">Until</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <For
+                                each= move || banned_user_vec.clone().into_iter().enumerate()
+                                key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
+                                let:child
+                            >
+                                <tr class="rounded-lg my-1 rounded-full hover:bg-base-content/20">
+                                    <td class="px-6 py-1">{child.1.username}</td>
+                                    <td class="px-6 py-1">{
+                                        match child.1.until_timestamp {
+                                            Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
+                                            None => String::from("Permanent"),
+                                        }
+                                    }</td>
+                                </tr>
+                            </For>
+                        </tbody>
+                    </table>
+                }
+            }
+            </TransitionUnpack>
         </div>
     }
 }

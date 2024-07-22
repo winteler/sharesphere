@@ -22,7 +22,7 @@ axum_session = { version = "0.12", features = [ "postgres-rustls"] }
 axum_session_auth = { version = "0.12", features = [ "postgres-rustls" ] }
 console_error_panic_hook = "0.1.7"
 console_log = "1"
-chrono = { version = "0.4.38", features = [ "serde" ] }
+chrono = { version = "0.4.38", features = [ "alloc", "serde" ] }
 http = "1"
 log = "0.4.20"
 serde = { version = "*", features = ["derive"] }

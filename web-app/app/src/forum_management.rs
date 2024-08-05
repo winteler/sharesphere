@@ -321,7 +321,7 @@ pub async fn moderate_comment(
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-1 content-center">
+        <div class="flex flex-col gap-1 w-full 2xl:w-1/4 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
             <BanPanel/>
@@ -354,44 +354,40 @@ pub fn ModeratorPanel() -> impl IntoView {
         move |(forum_name, _)| get_forum_role_vec(forum_name)
     );
     view! {
-        <div class="flex flex-col gap-2 content-center w-fit bg-base-200 p-2 rounded">
+        <div class="flex flex-col gap-2 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
             <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
             {
                 let forum_role_vec = forum_role_vec.clone();
                 view! {
-                    <table>
-                        <thead>
-                            <tr class="border-b border-base-content/20">
-                                <th class="px-6 py-2 text-left font-bold">Username</th>
-                                <th class="px-6 py-2 text-left font-bold">Role</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <For
-                                each= move || forum_role_vec.clone().into_iter().enumerate()
-                                key=|(_index, role)| (role.user_id, role.permission_level)
-                                children=move |(_, role)| {
-                                    let username = store_value(role.username);
-                                    view! {
-                                        <tr
-                                            class="hover:bg-base-content/20"
-                                            on:click=move |_| {
-                                                username_input.set(username.get_value());
-                                                match select_ref.get_untracked() {
-                                                    Some(select_ref) => select_ref.set_selected_index(role.permission_level as i32),
-                                                    None => log::error!("Form permission level select failed to load."),
-                                                };
-                                            }
-                                        >
-                                            <td class="px-6 py-1 select-none">{username.get_value()}</td>
-                                            <td class="px-6 py-1 select-none">{role.permission_level.to_string()}</td>
-                                        </tr>
-                                    }
+                    <div class="flex flex-col">
+                        <div class="flex border-b border-base-content/20">
+                            <div class="w-1/2 px-6 py-2 text-left font-bold">Username</div>
+                            <div class="w-1/2 px-6 py-2 text-left font-bold">Role</div>
+                        </div>
+                        <For
+                            each= move || forum_role_vec.clone().into_iter().enumerate()
+                            key=|(_index, role)| (role.user_id, role.permission_level)
+                            children=move |(_, role)| {
+                                let username = store_value(role.username);
+                                view! {
+                                    <div
+                                        class="flex hover:bg-base-content/20"
+                                        on:click=move |_| {
+                                            username_input.set(username.get_value());
+                                            match select_ref.get_untracked() {
+                                                Some(select_ref) => select_ref.set_selected_index(role.permission_level as i32),
+                                                None => log::error!("Form permission level select failed to load."),
+                                            };
+                                        }
+                                    >
+                                        <div class="w-1/2 px-6 py-1 select-none">{username.get_value()}</div>
+                                        <div class="w-1/2 px-6 py-1 select-none">{role.permission_level.to_string()}</div>
+                                    </div>
                                 }
-                            />
-                        </tbody>
-                    </table>
+                            }
+                        />
+                    </div>
                 }
             }
             </TransitionUnpack>
@@ -467,37 +463,33 @@ pub fn BanPanel() -> impl IntoView {
         move |(forum_name, _)| get_forum_bans(forum_name)
     );
     view! {
-        <div class="flex flex-col gap-2 content-center w-fit bg-base-200 p-2 rounded">
+        <div class="flex flex-col gap-2 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
             <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
             {
                 let banned_user_vec = banned_user_vec.clone();
                 view! {
-                    <table>
-                        <thead>
-                            <tr class="border-b border-base-content/20">
-                                <th class="px-6 py-2 text-left font-bold">Username</th>
-                                <th class="px-6 py-2 text-left font-bold">Until</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <For
-                                each= move || banned_user_vec.clone().into_iter().enumerate()
-                                key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
-                                let:child
-                            >
-                                <tr class="rounded-lg my-1 rounded-full hover:bg-base-content/20">
-                                    <td class="px-6 py-1">{child.1.username}</td>
-                                    <td class="px-6 py-1">{
-                                        match child.1.until_timestamp {
-                                            Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
-                                            None => String::from("Permanent"),
-                                        }
-                                    }</td>
-                                </tr>
-                            </For>
-                        </tbody>
-                    </table>
+                    <div class="flex flex-col">
+                        <div class="flex border-b border-base-content/20">
+                            <div class="w-1/2 px-6 py-2 text-left font-bold">Username</div>
+                            <div class="w-1/2 px-6 py-2 text-left font-bold">Until</div>
+                        </div>
+                        <For
+                            each= move || banned_user_vec.clone().into_iter().enumerate()
+                            key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
+                            let:child
+                        >
+                            <div class="flex rounded-lg my-1 rounded-full hover:bg-base-content/20">
+                                <div class="w-1/2 px-6 py-1">{child.1.username}</div>
+                                <div class="w-1/2 px-6 py-1">{
+                                    match child.1.until_timestamp {
+                                        Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
+                                        None => String::from("Permanent"),
+                                    }
+                                }</div>
+                            </div>
+                        </For>
+                    </div>
                 }
             }
             </TransitionUnpack>

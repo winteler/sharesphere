@@ -346,6 +346,7 @@ pub fn ModeratorPanel() -> impl IntoView {
             }
         },
     );
+    let select_ref = create_node_ref::<html::Select>();
 
     let set_role_action = create_server_action::<SetUserForumRole>();
     let forum_roles_resource = create_resource(
@@ -377,6 +378,10 @@ pub fn ModeratorPanel() -> impl IntoView {
                                             class="hover:bg-base-content/20"
                                             on:click=move |_| {
                                                 username_input.set(username.get_value());
+                                                match select_ref.get_untracked() {
+                                                    Some(select_ref) => select_ref.set_selected_index(role.permission_level as i32),
+                                                    None => log::error!("Form permission level select failed to load."),
+                                                };
                                             }
                                         >
                                             <td class="px-6 py-1 select-none">{username.get_value()}</td>
@@ -433,7 +438,11 @@ pub fn ModeratorPanel() -> impl IntoView {
                             </TransitionUnpack>
                         </Show>
                     </div>
-                    <EnumDropdown name="permission_level" enum_iter=PermissionLevel::iter()/>
+                    <EnumDropdown
+                        name="permission_level"
+                        enum_iter=PermissionLevel::iter()
+                        _select_ref=select_ref
+                    />
                     <button
                         type="submit"
                         class="btn btn-active btn-secondary"

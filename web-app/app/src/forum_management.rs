@@ -14,7 +14,7 @@ use crate::app::ModerateState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::forum::get_forum_name_memo;
-use crate::icons::HammerIcon;
+use crate::icons::{DeleteIcon, HammerIcon};
 use crate::post::Post;
 use crate::role::{get_forum_role_vec, PermissionLevel, SetUserForumRole};
 use crate::unpack::TransitionUnpack;
@@ -354,13 +354,13 @@ pub fn ModeratorPanel() -> impl IntoView {
         move |(forum_name, _)| get_forum_role_vec(forum_name)
     );
     view! {
-        <div class="flex flex-col gap-2 content-center w-full bg-base-200 p-2 rounded">
+        <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
             <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
             {
                 let forum_role_vec = forum_role_vec.clone();
                 view! {
-                    <div class="flex flex-col">
+                    <div class="flex flex-col gap-1">
                         <div class="flex border-b border-base-content/20">
                             <div class="w-1/2 px-6 py-2 text-left font-bold">Username</div>
                             <div class="w-1/2 px-6 py-2 text-left font-bold">Role</div>
@@ -372,7 +372,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                                 let username = store_value(role.username);
                                 view! {
                                     <div
-                                        class="flex hover:bg-base-content/20"
+                                        class="flex py-1 rounded hover:bg-base-content/20 transform active:scale-95 transition duration-250"
                                         on:click=move |_| {
                                             username_input.set(username.get_value());
                                             match select_ref.get_untracked() {
@@ -381,8 +381,8 @@ pub fn ModeratorPanel() -> impl IntoView {
                                             };
                                         }
                                     >
-                                        <div class="w-1/2 px-6 py-1 select-none">{username.get_value()}</div>
-                                        <div class="w-1/2 px-6 py-1 select-none">{role.permission_level.to_string()}</div>
+                                        <div class="w-1/2 px-6 select-none">{username.get_value()}</div>
+                                        <div class="w-1/2 px-6 select-none">{role.permission_level.to_string()}</div>
                                     </div>
                                 }
                             }
@@ -463,30 +463,31 @@ pub fn BanPanel() -> impl IntoView {
         move |(forum_name, _)| get_forum_bans(forum_name)
     );
     view! {
-        <div class="flex flex-col gap-2 content-center w-full bg-base-200 p-2 rounded">
+        <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
             <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
             {
                 let banned_user_vec = banned_user_vec.clone();
                 view! {
-                    <div class="flex flex-col">
+                    <div class="flex flex-col gap-1">
                         <div class="flex border-b border-base-content/20">
-                            <div class="w-1/2 px-6 py-2 text-left font-bold">Username</div>
-                            <div class="w-1/2 px-6 py-2 text-left font-bold">Until</div>
+                            <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
+                            <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
                         </div>
                         <For
                             each= move || banned_user_vec.clone().into_iter().enumerate()
                             key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
                             let:child
                         >
-                            <div class="flex rounded-lg my-1 rounded-full hover:bg-base-content/20">
-                                <div class="w-1/2 px-6 py-1">{child.1.username}</div>
-                                <div class="w-1/2 px-6 py-1">{
+                            <div class="flex items-center">
+                                <div class="w-2/5 px-6">{child.1.username}</div>
+                                <div class="w-2/5 px-6">{
                                     match child.1.until_timestamp {
                                         Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
                                         None => String::from("Permanent"),
                                     }
                                 }</div>
+                                <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250"><DeleteIcon/></button>
                             </div>
                         </For>
                     </div>

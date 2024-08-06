@@ -66,6 +66,34 @@ pub mod ssr {
         Ok(user_ban_vec)
     }
 
+    pub async fn remove_user_ban(
+        ban_id: i64,
+        grantor: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        let user_ban = sqlx::query_as!(
+            UserBan,
+            "SELECT * FROM user_bans WHERE ban_id = $1",
+            ban_id
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        match user_ban.forum_name {
+            Some(forum_name) => grantor.check_can_ban_users(&forum_name),
+            None => grantor.check_is_global_moderator(),
+        }?;
+
+        sqlx::query!(
+            "DELETE FROM user_bans WHERE ban_id = $1",
+            ban_id
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn moderate_post(
         post_id: i64,
         moderated_body: &str,
@@ -245,6 +273,16 @@ pub async fn get_forum_bans(
     let db_pool = get_db_pool()?;
     let ban_vec = ssr::get_forum_ban_vec(&forum_name, &db_pool).await?;
     Ok(ban_vec)
+}
+
+#[server]
+pub async fn remove_user_ban(
+    ban_id: i64
+) -> Result<(), ServerFnError> {
+    let user = check_user()?;
+    let db_pool = get_db_pool()?;
+    ssr::remove_user_ban(ban_id, &user, &db_pool).await?;
+    Ok(())
 }
 
 /// Function to moderate a post and optionally ban its author
@@ -457,7 +495,7 @@ pub fn BanPanel() -> impl IntoView {
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
 
-    let unban_action = create_server_action::<SetUserForumRole>();
+    let unban_action = create_server_action::<RemoveUserBan>();
     let banned_users_resource = create_resource(
         move || (forum_name.get(), unban_action.version().get()),
         move |(forum_name, _)| get_forum_bans(forum_name)
@@ -469,7 +507,7 @@ pub fn BanPanel() -> impl IntoView {
             {
                 let banned_user_vec = banned_user_vec.clone();
                 view! {
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-2">
                         <div class="flex border-b border-base-content/20">
                             <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
                             <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
@@ -479,7 +517,7 @@ pub fn BanPanel() -> impl IntoView {
                             key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
                             let:child
                         >
-                            <div class="flex items-center">
+                            <div class="flex">
                                 <div class="w-2/5 px-6">{child.1.username}</div>
                                 <div class="w-2/5 px-6">{
                                     match child.1.until_timestamp {
@@ -487,7 +525,16 @@ pub fn BanPanel() -> impl IntoView {
                                         None => String::from("Permanent"),
                                     }
                                 }</div>
-                                <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250"><DeleteIcon/></button>
+                                <ActionForm action=unban_action class="mx-auto w-1/5">
+                                    <input
+                                        name="ban_id"
+                                        class="hidden"
+                                        value=child.1.ban_id
+                                    />
+                                    <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250">
+                                        <DeleteIcon/>
+                                    </button>
+                                </ActionForm>
                             </div>
                         </For>
                     </div>

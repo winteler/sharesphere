@@ -5,7 +5,7 @@ use chrono::Days;
 use app::comment::ssr::create_comment;
 use app::errors::AppError;
 use app::forum::ssr::create_forum;
-use app::forum_management::ssr::{ban_user_from_forum, get_forum_ban_vec, is_user_forum_moderator, moderate_comment, moderate_post};
+use app::forum_management::ssr::{ban_user_from_forum, get_forum_ban_vec, is_user_forum_moderator, moderate_comment, moderate_post, remove_user_ban};
 use app::post::ssr::create_post;
 use app::role::AdminRole;
 use app::role::ssr::set_user_admin_role;
@@ -47,6 +47,55 @@ async fn test_get_forum_ban_vec() -> Result<(), AppError> {
     assert_eq!(banned_user_vec.len(), 2);
     assert!(banned_user_vec.contains(&ban_user_1));
     assert!(banned_user_vec.contains(&ban_user_2));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_remove_user_ban() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let lead = create_user("test", &db_pool).await;
+    let mut global_mod = create_user("global", &db_pool).await;
+    global_mod.admin_role = AdminRole::Moderator;
+    let banned_user_1 = create_user("1", &db_pool).await;
+
+    let forum = create_forum("forum", "a", false, &lead, &db_pool).await?;
+    let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after forum creation");
+
+    let ban_user_1 = ban_user_from_forum(
+        banned_user_1.user_id,&
+        forum.forum_name,
+        &lead,
+        Some(1),
+        &db_pool
+    ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    assert_eq!(banned_user_vec.len(), 1);
+    assert!(banned_user_vec.contains(&ban_user_1));
+
+    assert_eq!(remove_user_ban(ban_user_1.ban_id, &banned_user_1, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(remove_user_ban(ban_user_1.ban_id, &lead, &db_pool).await, Ok(()));
+
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    assert!(banned_user_vec.is_empty());
+
+    let ban_user_1 = ban_user_from_forum(
+        banned_user_1.user_id,&
+        forum.forum_name,
+        &lead,
+        Some(1),
+        &db_pool
+    ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    assert_eq!(banned_user_vec.len(), 1);
+    assert!(banned_user_vec.contains(&ban_user_1));
+
+    assert_eq!(remove_user_ban(ban_user_1.ban_id, &global_mod, &db_pool).await, Ok(()));
+
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    assert!(banned_user_vec.is_empty());
+
+    // TODO add test to remove global ban when possible to create it
 
     Ok(())
 }

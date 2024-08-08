@@ -3205,6 +3205,10 @@ html {
   width: 50%;
 }
 
+.w-1\/5 {
+  width: 20%;
+}
+
 .w-12 {
   width: 3rem;
 }
@@ -3280,10 +3284,6 @@ html {
 
 .w-screen {
   width: 100vw;
-}
-
-.w-1\/5 {
-  width: 20%;
 }
 
 .min-w-6 {
@@ -3390,10 +3390,6 @@ html {
 
 .justify-between {
   justify-content: space-between;
-}
-
-.justify-around {
-  justify-content: space-around;
 }
 
 .justify-evenly {
@@ -4001,7 +3997,7 @@ html {
     width: 33.333333%;
   }
 
-  .\32xl\:w-1\/4 {
-    width: 25%;
+  .\32xl\:w-2\/5 {
+    width: 40%;
   }
 }

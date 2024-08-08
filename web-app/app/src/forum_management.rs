@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
-use crate::app::ModerateState;
+use crate::app::{GlobalState, ModerateState};
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::forum::get_forum_name_memo;
@@ -359,7 +359,7 @@ pub async fn moderate_comment(
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-1 w-full 2xl:w-1/4 mx-auto">
+        <div class="flex flex-col gap-1 w-full 2xl:w-2/5 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
             <BanPanel/>
@@ -370,6 +370,7 @@ pub fn ForumCockpit() -> impl IntoView {
 /// Component to manage moderators
 #[component]
 pub fn ModeratorPanel() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
     let username_input = create_rw_signal(String::default());
@@ -391,6 +392,11 @@ pub fn ModeratorPanel() -> impl IntoView {
         move || (forum_name.get(), set_role_action.version().get()),
         move |(forum_name, _)| get_forum_role_vec(forum_name)
     );
+    let can_manage_moderators = Signal::derive(move || state.user.with(|user| match user {
+        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_can_manage_forum(forum_name).is_ok()),
+        _ => false,
+    }));
+
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
@@ -400,8 +406,8 @@ pub fn ModeratorPanel() -> impl IntoView {
                 view! {
                     <div class="flex flex-col gap-1">
                         <div class="flex border-b border-base-content/20">
-                            <div class="w-1/2 px-6 py-2 text-left font-bold">Username</div>
-                            <div class="w-1/2 px-6 py-2 text-left font-bold">Role</div>
+                            <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
+                            <div class="w-2/5 px-6 py-2 text-left font-bold">Role</div>
                         </div>
                         <For
                             each= move || forum_role_vec.clone().into_iter().enumerate()
@@ -419,8 +425,8 @@ pub fn ModeratorPanel() -> impl IntoView {
                                             };
                                         }
                                     >
-                                        <div class="w-1/2 px-6 select-none">{username.get_value()}</div>
-                                        <div class="w-1/2 px-6 select-none">{role.permission_level.to_string()}</div>
+                                        <div class="w-2/5 px-6 select-none">{username.get_value()}</div>
+                                        <div class="w-2/5 px-6 select-none">{role.permission_level.to_string()}</div>
                                     </div>
                                 }
                             }
@@ -429,62 +435,64 @@ pub fn ModeratorPanel() -> impl IntoView {
                 }
             }
             </TransitionUnpack>
-            <ActionForm action=set_role_action>
-                <input
-                    name="forum_name"
-                    class="hidden"
-                    value=forum_name
-                />
-                <div class="flex gap-1 content-center">
-                    <div class="dropdown dropdown-end">
-                        <input
-                            tabindex="0"
-                            type="text"
-                            name="username"
-                            placeholder="Username"
-                            autocomplete="off"
-                            class="input input-bordered input-primary w-full"
-                            on:input=move |ev| {
-                                username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
-                            }
-                            prop:value=username_input
-                        />
-                        <Show when=move || username_input.with(|username| !username.is_empty())>
-                            <TransitionUnpack resource=matching_user_resource let:username_set>
-                            {
-                                let username_set = username_set.clone();
-                                view! {
-                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
-                                        <For
-                                            each= move || username_set.clone().into_iter().enumerate()
-                                            key=|(_index, username)| username.clone()
-                                            let:child
-                                        >
-                                            <li>
-                                                <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
-                                                    {child.1}
-                                                </button>
-                                            </li>
-                                        </For>
-                                    </ul>
-                                }
-                            }
-                            </TransitionUnpack>
-                        </Show>
-                    </div>
-                    <EnumDropdown
-                        name="permission_level"
-                        enum_iter=PermissionLevel::iter()
-                        _select_ref=select_ref
+            <Show when=can_manage_moderators>
+                <ActionForm action=set_role_action>
+                    <input
+                        name="forum_name"
+                        class="hidden"
+                        value=forum_name
                     />
-                    <button
-                        type="submit"
-                        class="btn btn-active btn-secondary"
-                    >
-                        "Assign"
-                    </button>
-                </div>
-            </ActionForm>
+                    <div class="flex gap-1 content-center">
+                        <div class="dropdown dropdown-end">
+                            <input
+                                tabindex="0"
+                                type="text"
+                                name="username"
+                                placeholder="Username"
+                                autocomplete="off"
+                                class="input input-bordered input-primary w-full"
+                                on:input=move |ev| {
+                                    username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                                }
+                                prop:value=username_input
+                            />
+                            <Show when=move || username_input.with(|username| !username.is_empty())>
+                                <TransitionUnpack resource=matching_user_resource let:username_set>
+                                {
+                                    let username_set = username_set.clone();
+                                    view! {
+                                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
+                                            <For
+                                                each= move || username_set.clone().into_iter().enumerate()
+                                                key=|(_index, username)| username.clone()
+                                                let:child
+                                            >
+                                                <li>
+                                                    <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
+                                                        {child.1}
+                                                    </button>
+                                                </li>
+                                            </For>
+                                        </ul>
+                                    }
+                                }
+                                </TransitionUnpack>
+                            </Show>
+                        </div>
+                        <EnumDropdown
+                            name="permission_level"
+                            enum_iter=PermissionLevel::iter()
+                            _select_ref=select_ref
+                        />
+                        <button
+                            type="submit"
+                            class="btn btn-active btn-secondary"
+                        >
+                            "Assign"
+                        </button>
+                    </div>
+                </ActionForm>
+            </Show>
         </div>
     }
 }
@@ -492,6 +500,7 @@ pub fn ModeratorPanel() -> impl IntoView {
 /// Component to manage ban users
 #[component]
 pub fn BanPanel() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
 
@@ -500,6 +509,11 @@ pub fn BanPanel() -> impl IntoView {
         move || (forum_name.get(), unban_action.version().get()),
         move |(forum_name, _)| get_forum_bans(forum_name)
     );
+    let can_ban_users = Signal::derive(move || state.user.with(|user| match user {
+        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_can_ban_users(forum_name).is_ok()),
+        _ => false,
+    }));
+
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
@@ -525,16 +539,18 @@ pub fn BanPanel() -> impl IntoView {
                                         None => String::from("Permanent"),
                                     }
                                 }</div>
-                                <ActionForm action=unban_action class="mx-auto w-1/5">
-                                    <input
-                                        name="ban_id"
-                                        class="hidden"
-                                        value=child.1.ban_id
-                                    />
-                                    <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250">
-                                        <DeleteIcon/>
-                                    </button>
-                                </ActionForm>
+                                <Show when=can_ban_users>
+                                    <ActionForm action=unban_action class="mx-auto w-1/5">
+                                        <input
+                                            name="ban_id"
+                                            class="hidden"
+                                            value=child.1.ban_id
+                                        />
+                                        <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250">
+                                            <DeleteIcon/>
+                                        </button>
+                                    </ActionForm>
+                                </Show>
                             </div>
                         </For>
                     </div>

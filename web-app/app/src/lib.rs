@@ -1,5 +1,3 @@
-#![feature(lazy_cell)]
-
 pub mod app;
 pub mod auth;
 pub mod comment;

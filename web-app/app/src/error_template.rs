@@ -53,22 +53,30 @@ pub fn ErrorTemplate(
                 key=|(index, _error)| *index
                 // renders each item to a view
                 children=move |(_, error)| {
-                    let error_string = error.to_string();
-                    let status_code =  error.status_code().as_u16();
-                    let user_message = error.user_message();
-
-                    log::error!("Caught error in ErrorTemplate, status_code: {status_code}, error message: {error_string}");
-                    view! {
-                        <div class="flex items-center gap-2">
-                            <AppErrorIcon app_error=error/>
-                            <div class="flex flex-col">
-                                <h2 class="text-2xl">{status_code}</h2>
-                                <h3 class="text-xl">{user_message}</h3>
-                            </div>
-                        </div>
-                    }
+                    view! { <ErrorDisplay error/> }
                 }
             />
+        </div>
+    }
+}
+
+// Displays an error
+#[component]
+pub fn ErrorDisplay(
+    error: AppError
+) -> impl IntoView {
+    let error_string = error.to_string();
+    let status_code =  error.status_code().as_u16();
+    let user_message = error.user_message();
+
+    log::error!("Caught error in ErrorTemplate, status_code: {status_code}, error message: {error_string}");
+    view! {
+        <div class="w-full flex items-center gap-2 justify-center">
+            <AppErrorIcon app_error=error/>
+            <div class="flex flex-col">
+                <h2 class="text-2xl">{status_code}</h2>
+                <h3 class="text-xl">{user_message}</h3>
+            </div>
         </div>
     }
 }

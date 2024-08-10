@@ -23,6 +23,7 @@ use crate::post::{
     CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
+use crate::role::PermissionLevel;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -525,7 +526,7 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
     let forum_id = forum.forum.forum_id;
     let forum_name = forum.forum.forum_name.clone();
     let can_moderate_forum = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => user.check_can_moderate_forum(&forum_name).is_ok(),
+        Some(Ok(Some(user))) => user.check_permissions(&forum_name, PermissionLevel::Moderate).is_ok(),
         _ => false,
     }));
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());

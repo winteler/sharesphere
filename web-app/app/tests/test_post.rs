@@ -19,13 +19,12 @@ mod common;
 mod data_factory;
 
 pub fn test_post_vec(
-    post_vec: &Vec<Post>,
-    expected_post_vec: &Vec<Post>,
+    post_vec: &[Post],
+    expected_post_vec: &[Post],
     sort_type: PostSortType,
     expected_user_id: i64,
 ) {
-    let mut index = 0usize;
-    for post in post_vec {
+    for (index, post) in post_vec.iter().enumerate() {
         assert_eq!(post.creator_id, expected_user_id);
         assert!(expected_post_vec.contains(post));
         if index > 0 {
@@ -37,23 +36,33 @@ pub fn test_post_vec(
                 PostSortType::Recent => post.create_timestamp <= previous_post.create_timestamp,
             });
         }
-        index += 1;
     }
 }
 
 pub fn test_post_score(post: &Post) {
+    let second_delta = post
+        .scoring_timestamp
+        .signed_duration_since(post.create_timestamp)
+        .num_milliseconds();
     let num_days_old = (post
         .scoring_timestamp
         .signed_duration_since(post.create_timestamp)
-        .num_seconds() as f32)
-        / 86400.0;
+        .num_milliseconds() as f64)
+        / 86400000.0;
 
-    let expected_recommended_score = (post.score as f32) * f32::powf(2.0, 3.0 * (2.0 - num_days_old));
-    let expected_trending_score = (post.score as f32) * f32::powf(2.0, 8.0 * (1.0 - num_days_old));
+    println!(
+        "Scoring timestamp: {}, create timestamp: {}, second delta: {second_delta}, num_days_old: {num_days_old}",
+        post.scoring_timestamp,
+        post.create_timestamp,
+    );
 
-    assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score, epsilon = f32::EPSILON, ulps = 5));
+    let expected_recommended_score = (post.score as f64) * f64::powf(2.0, 3.0 * (2.0 - num_days_old));
+    let expected_trending_score = (post.score as f64) * f64::powf(2.0, 8.0 * (1.0 - num_days_old));
+
+    println!("Recommended: {}, expected: {}", post.recommended_score, expected_recommended_score);
+    assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score as f32, epsilon = f32::EPSILON, ulps = 5));
     println!("Trending: {}, expected: {}", post.trending_score, expected_trending_score);
-    assert!(approx_eq!(f32, post.trending_score, expected_trending_score, epsilon = f32::EPSILON, ulps = 5));
+    assert!(approx_eq!(f32, post.trending_score, expected_trending_score as f32, epsilon = f32::EPSILON, ulps = 5));
 }
 
 #[tokio::test]

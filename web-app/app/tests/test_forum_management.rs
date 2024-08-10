@@ -74,7 +74,7 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
     assert!(banned_user_vec.contains(&ban_user_1));
 
     assert_eq!(remove_user_ban(ban_user_1.ban_id, &banned_user_1, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    assert_eq!(remove_user_ban(ban_user_1.ban_id, &lead, &db_pool).await, Ok(()));
+    assert_eq!(remove_user_ban(ban_user_1.ban_id, &lead, &db_pool).await, Ok(ban_user_1));
 
     let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
     assert!(banned_user_vec.is_empty());
@@ -90,7 +90,7 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
     assert_eq!(banned_user_vec.len(), 1);
     assert!(banned_user_vec.contains(&ban_user_1));
 
-    assert_eq!(remove_user_ban(ban_user_1.ban_id, &global_mod, &db_pool).await, Ok(()));
+    assert_eq!(remove_user_ban(ban_user_1.ban_id, &global_mod, &db_pool).await, Ok(ban_user_1));
 
     let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
     assert!(banned_user_vec.is_empty());

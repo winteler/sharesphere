@@ -26,6 +26,7 @@ use crate::icons::{EditIcon, HammerIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
+use crate::role::PermissionLevel;
 use crate::unpack::TransitionUnpack;
 use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
@@ -635,13 +636,13 @@ pub fn Post() -> impl IntoView {
     let user_state = ModerateState {
         can_moderate: Signal::derive(
             move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_can_moderate_forum(forum_name).is_ok()),
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate).is_ok()),
                 _ => false,
             })
         ),
         can_ban: Signal::derive(
             move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_can_ban_users(forum_name).is_ok()),
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_permissions(forum_name, PermissionLevel::Ban).is_ok()),
                 _ => false,
             })
         ),

@@ -44,6 +44,18 @@ impl From<String> for PermissionLevel {
     }
 }
 
+impl PermissionLevel {
+    pub fn equivalent_admin_role(self) -> AdminRole {
+        match self {
+            PermissionLevel::None => AdminRole::None,
+            PermissionLevel::Moderate => AdminRole::Moderator,
+            PermissionLevel::Ban => AdminRole::Moderator,
+            PermissionLevel::Manage => AdminRole::Admin,
+            PermissionLevel::Lead => AdminRole::Admin,
+        }
+    }
+}
+
 impl From<String> for AdminRole {
     fn from(value: String) -> AdminRole {
         AdminRole::from_str(&value).unwrap_or(AdminRole::None)
@@ -170,6 +182,9 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<UserForumRole, AppError> {
+        if user_id == grantor.user_id && grantor.check_is_forum_leader(forum_name).is_ok() {
+            return Err(AppError::InternalServerError(String::from("Forum leader cannot lower his permissions, must designate another leader.")))
+        }
         let permission_level_str: &str = permission_level.into();
         let user_forum_role = sqlx::query_as!(
                 UserForumRole,
@@ -198,7 +213,7 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<SqlUser, AppError> {
-        grantor.check_is_admin()?;
+        grantor.check_admin_role(AdminRole::Admin)?;
         let admin_role_str: &str = admin_role.into();
         let sql_user = sqlx::query_as!(
             SqlUser,

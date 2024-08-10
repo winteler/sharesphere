@@ -12,6 +12,7 @@ use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
+use crate::role::PermissionLevel;
 use crate::sidebar::*;
 use crate::user::User;
 use crate::widget::PostSortWidget;
@@ -34,15 +35,13 @@ pub struct GlobalState {
     pub unsubscribe_action: Action<Unsubscribe, Result<(), ServerFnError>>,
     pub edit_post_action: Action<EditPost, Result<Post, ServerFnError>>,
     pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
-    pub current_forum_name: Memo<String>,
-    pub current_post_id: Option<Memo<i64>>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
     pub user: Resource<(usize, usize, usize), Result<Option<User>, ServerFnError>>,
 }
 
 impl GlobalState {
-    pub fn new() -> Self {
+    pub fn default() -> Self {
         let login_action = create_server_action::<Login>();
         let logout_action = create_server_action::<EndSession>();
         let create_forum_action = create_server_action::<CreateForum>();
@@ -53,18 +52,6 @@ impl GlobalState {
             unsubscribe_action: create_server_action::<Unsubscribe>(),
             edit_post_action: create_server_action::<EditPost>(),
             create_forum_action,
-            current_forum_name: create_memo(move |current_forum_name: Option<&String>| {
-                if let Some(new_forum_name) =
-                    use_params_map().with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
-                {
-                    log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
-                    new_forum_name
-                } else {
-                    log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
-                    current_forum_name.cloned().unwrap_or_default()
-                }
-            }),
-            current_post_id: None,
             post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
             comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
             user: create_local_resource(
@@ -144,7 +131,7 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     // Provide global context for app
-    provide_context(GlobalState::new());
+    provide_context(GlobalState::default());
 
     view! {
         // injects a stylesheet into the document <head>
@@ -238,9 +225,7 @@ fn ModeratorGuard() -> impl IntoView {
                 move || {
                      state.user.with(|user| match user {
                         Some(Ok(Some(user))) => {
-                            let forum_name_str = forum_name.get();
-                            log::info!("Forum name: {forum_name_str}, can moderate: {:?}", user.check_can_moderate_forum(&forum_name_str));
-                            match forum_name.with(|forum_name| user.check_can_moderate_forum(forum_name)) {
+                            match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
                                 Ok(_) => view! { <Outlet/> }.into_view(),
                                 Err(error) => view! { <ErrorDisplay error/> }.into_view(),
                             }

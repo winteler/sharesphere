@@ -61,44 +61,27 @@ impl Default for User {
 }
 
 impl User {
-    fn check_admin_role(&self, req_admin_role: AdminRole) -> Result<(), AppError> {
-        match self.admin_role >= req_admin_role {
-            true => Ok(()),
-            false => Err(AppError::InsufficientPrivileges),
-        }
-    }
-
     fn check_forum_permissions(&self, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
         match self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= req_permission_level) {
             true => Ok(()),
             false => Err(AppError::InsufficientPrivileges)
         }
     }
+    
+    pub fn check_admin_role(&self, req_admin_role: AdminRole) -> Result<(), AppError> {
+        match self.admin_role >= req_admin_role {
+            true => Ok(()),
+            false => Err(AppError::InsufficientPrivileges),
+        }
+    }
 
-    fn check_permissions(&self, req_admin_role: AdminRole, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        match self.check_admin_role(req_admin_role).is_ok() || self.check_forum_permissions(forum_name, req_permission_level).is_ok() {
+    pub fn check_permissions(&self, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        let has_admin_permission = self.check_admin_role(req_permission_level.equivalent_admin_role()).is_ok();
+        let has_forum_permission = self.check_forum_permissions(forum_name, req_permission_level).is_ok();
+        match has_admin_permission || has_forum_permission {
             true => Ok(()),
             false => Err(AppError::InsufficientPrivileges)
         }
-    }
-    pub fn check_is_global_moderator(&self) -> Result<(), AppError> {
-        self.check_admin_role(AdminRole::Moderator)
-    }
-
-    pub fn check_is_admin(&self) -> Result<(), AppError> {
-        self.check_admin_role(AdminRole::Admin)
-    }
-
-    pub fn check_can_moderate_forum(&self, forum_name: &str) -> Result<(), AppError> {
-        self.check_permissions(AdminRole::Moderator, forum_name, PermissionLevel::Moderate)
-    }
-
-    pub fn check_can_ban_users(&self, forum_name: &str) -> Result<(), AppError> {
-        self.check_permissions(AdminRole::Moderator, forum_name, PermissionLevel::Ban)
-    }
-
-    pub fn check_can_manage_forum(&self, forum_name: &str) -> Result<(), AppError> {
-        self.check_permissions(AdminRole::Admin, forum_name, PermissionLevel::Manage)
     }
 
     pub fn check_is_forum_leader(&self, forum_name: &str) -> Result<(), AppError> {
@@ -352,8 +335,8 @@ pub mod ssr {
     ) -> Result<Vec<UserForumRole>, AppError> {
         let user_forum_role_vec = sqlx::query_as!(
             UserForumRole,
-            "SELECT * \
-            FROM user_forum_roles \
+            "SELECT *
+            FROM user_forum_roles
             WHERE user_id = $1",
             user_id
         )
@@ -563,60 +546,116 @@ mod tests {
     }
 
     #[test]
-    fn test_user_check_can_moderate() {
+    fn test_user_check_permissions() {
         let mut user = User::default();
         user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(
-            user.check_can_moderate_forum("a"),
-            Err(AppError::InsufficientPrivileges)
-        );
-        assert_eq!(user.check_can_moderate_forum("b"), Ok(()));
-        assert_eq!(user.check_can_moderate_forum("c"), Ok(()));
-        assert_eq!(user.check_can_moderate_forum("d"), Ok(()));
-        assert_eq!(user.check_can_moderate_forum("e"), Ok(()));
-        let mut admin = User::default();
-        admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_can_moderate_forum("a"), Ok(()));
-        admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_can_moderate_forum("a"), Ok(()));
-        admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_ban_users("b"), Ok(()));
-    }
+        assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::None), Ok(()));
 
-    #[test]
-    fn test_user_check_can_ban_users() {
-        let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.check_can_ban_users("a"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_ban_users("b"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_ban_users("c"), Ok(()));
-        assert_eq!(user.check_can_ban_users("d"), Ok(()));
-        assert_eq!(user.check_can_ban_users("e"), Ok(()));
-        let mut admin = User::default();
-        admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_can_ban_users("a"), Ok(()));
-        admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_can_ban_users("a"), Ok(()));
-        admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_ban_users("c"), Ok(()));
-    }
+        assert_eq!(user.check_permissions("a", PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Moderate), Ok(()));
 
-    #[test]
-    fn test_user_check_can_manage_forum() {
-        let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.check_can_manage_forum("a"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_manage_forum("b"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_manage_forum("c"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_manage_forum("d"), Ok(()));
-        assert_eq!(user.check_can_manage_forum("e"), Ok(()));
+        assert_eq!(user.check_permissions("a", PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Ban), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Manage), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Lead), Ok(()));
+        
+        user.admin_role = AdminRole::Moderator;
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::None), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Moderate), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Ban), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Manage), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Lead), Ok(()));
+
+        user.admin_role = AdminRole::Admin;
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::None), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Moderate), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Ban), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Manage), Ok(()));
+
+        assert_eq!(user.check_permissions("a", PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_permissions("b", PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_permissions("c", PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_permissions("d", PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_permissions("e", PermissionLevel::Lead), Ok(()));
+        
         let mut admin = User::default();
         admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_can_manage_forum("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::None), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Ban), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_can_manage_forum("a"), Ok(()));
-        admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_manage_forum("d"), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::None), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Ban), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Manage), Ok(()));
+        assert_eq!(admin.check_permissions("a", PermissionLevel::Lead), Ok(()));
     }
 
     #[test]
@@ -633,8 +672,6 @@ mod tests {
         assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
-        admin.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(admin.check_can_manage_forum("f"), Ok(()));
     }
 
     #[test]

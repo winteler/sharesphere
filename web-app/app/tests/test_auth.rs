@@ -74,11 +74,11 @@ async fn test_user_get() -> Result<(), AppError> {
 
     let result_user = User::get(test_user.user_id, &db_pool).await.expect("result_user should be available in DB.");
 
-    assert_eq!(result_user.check_can_moderate_forum(&forum_a.forum_name), Ok(()));
-    assert_eq!(result_user.check_can_moderate_forum(&forum_b.forum_name), Ok(()));
-    assert_eq!(result_user.check_can_moderate_forum(&forum_c.forum_name), Err(AppError::InsufficientPrivileges));
-    assert_eq!(result_user.check_can_moderate_forum(&forum_d.forum_name), Err(AppError::InsufficientPrivileges));
-    assert_eq!(result_user.check_can_moderate_forum(&forum_e.forum_name), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_permissions(&forum_a.forum_name, PermissionLevel::Moderate), Ok(()));
+    assert_eq!(result_user.check_permissions(&forum_b.forum_name, PermissionLevel::Moderate), Ok(()));
+    assert_eq!(result_user.check_permissions(&forum_c.forum_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_permissions(&forum_d.forum_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_permissions(&forum_e.forum_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
 
     assert_eq!(result_user.check_can_publish_on_forum(&forum_a.forum_name), Ok(()));
     assert_eq!(result_user.check_can_publish_on_forum(&forum_b.forum_name), Ok(()));

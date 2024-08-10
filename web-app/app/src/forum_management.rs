@@ -16,7 +16,7 @@ use crate::editor::FormTextEditor;
 use crate::forum::get_forum_name_memo;
 use crate::icons::{DeleteIcon, HammerIcon};
 use crate::post::Post;
-use crate::role::{get_forum_role_vec, PermissionLevel, SetUserForumRole};
+use crate::role::{get_forum_role_vec, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::TransitionUnpack;
 use crate::user::get_matching_username_set;
 use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
@@ -49,6 +49,7 @@ pub mod ssr {
     use crate::errors::AppError;
     use crate::forum_management::UserBan;
     use crate::post::Post;
+    use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
 
     pub async fn get_forum_ban_vec(
@@ -70,7 +71,7 @@ pub mod ssr {
         ban_id: i64,
         grantor: &User,
         db_pool: &PgPool,
-    ) -> Result<(), AppError> {
+    ) -> Result<UserBan, AppError> {
         let user_ban = sqlx::query_as!(
             UserBan,
             "SELECT * FROM user_bans WHERE ban_id = $1",
@@ -79,9 +80,9 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
-        match user_ban.forum_name {
-            Some(forum_name) => grantor.check_can_ban_users(&forum_name),
-            None => grantor.check_is_global_moderator(),
+        match &user_ban.forum_name {
+            Some(forum_name) => grantor.check_permissions(forum_name, PermissionLevel::Ban),
+            None => grantor.check_admin_role(AdminRole::Moderator),
         }?;
 
         sqlx::query!(
@@ -91,7 +92,7 @@ pub mod ssr {
             .execute(db_pool)
             .await?;
 
-        Ok(())
+        Ok(user_ban)
     }
 
     pub async fn moderate_post(
@@ -100,7 +101,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
-        let post = if user.check_is_global_moderator().is_ok() {
+        let post = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as!(
                 Post,
                 "UPDATE posts SET
@@ -153,7 +154,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        let comment = if user.check_is_global_moderator().is_ok() {
+        let comment = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as!(
                 Comment,
                 "UPDATE comments SET
@@ -209,7 +210,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: &PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.check_can_moderate_forum(&forum_name).is_ok() && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
+        if user.check_permissions(&forum_name, PermissionLevel::Moderate).is_ok() && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
                 Some(ban_duration) => {
@@ -260,7 +261,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<bool, AppError> {
         match User::get(user_id, db_pool).await {
-            Some(user) => Ok(user.check_can_moderate_forum(&forum).is_ok()),
+            Some(user) => Ok(user.check_permissions(&forum, PermissionLevel::Moderate).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
     }
@@ -281,7 +282,8 @@ pub async fn remove_user_ban(
 ) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
-    ssr::remove_user_ban(ban_id, &user, &db_pool).await?;
+    let deleted_user_ban = ssr::remove_user_ban(ban_id, &user, &db_pool).await?;
+    reload_user(deleted_user_ban.user_id)?;
     Ok(())
 }
 
@@ -374,17 +376,6 @@ pub fn ModeratorPanel() -> impl IntoView {
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
     let username_input = create_rw_signal(String::default());
-    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
-    let matching_user_resource = create_resource(
-        move || username_debounced.get(),
-        move |username| async {
-            if username.is_empty() {
-                Ok(BTreeSet::<String>::default())
-            } else {
-                get_matching_username_set(username).await
-            }
-        },
-    );
     let select_ref = create_node_ref::<html::Select>();
 
     let set_role_action = create_server_action::<SetUserForumRole>();
@@ -393,7 +384,7 @@ pub fn ModeratorPanel() -> impl IntoView {
         move |(forum_name, _)| get_forum_role_vec(forum_name)
     );
     let can_manage_moderators = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_can_manage_forum(forum_name).is_ok()),
+        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Manage).is_ok()),
         _ => false,
     }));
 
@@ -436,64 +427,94 @@ pub fn ModeratorPanel() -> impl IntoView {
             }
             </TransitionUnpack>
             <Show when=can_manage_moderators>
-                <ActionForm action=set_role_action>
-                    <input
-                        name="forum_name"
-                        class="hidden"
-                        value=forum_name
-                    />
-                    <div class="flex gap-1 content-center">
-                        <div class="dropdown dropdown-end">
-                            <input
-                                tabindex="0"
-                                type="text"
-                                name="username"
-                                placeholder="Username"
-                                autocomplete="off"
-                                class="input input-bordered input-primary w-full"
-                                on:input=move |ev| {
-                                    username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
-                                }
-                                prop:value=username_input
-                            />
-                            <Show when=move || username_input.with(|username| !username.is_empty())>
-                                <TransitionUnpack resource=matching_user_resource let:username_set>
-                                {
-                                    let username_set = username_set.clone();
-                                    view! {
-                                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
-                                            <For
-                                                each= move || username_set.clone().into_iter().enumerate()
-                                                key=|(_index, username)| username.clone()
-                                                let:child
-                                            >
-                                                <li>
-                                                    <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
-                                                        {child.1}
-                                                    </button>
-                                                </li>
-                                            </For>
-                                        </ul>
-                                    }
-                                }
-                                </TransitionUnpack>
-                            </Show>
-                        </div>
-                        <EnumDropdown
-                            name="permission_level"
-                            enum_iter=PermissionLevel::iter()
-                            _select_ref=select_ref
-                        />
-                        <button
-                            type="submit"
-                            class="btn btn-active btn-secondary"
-                        >
-                            "Assign"
-                        </button>
-                    </div>
-                </ActionForm>
+                <PermissionLevelForm
+                    forum_name
+                    username_input
+                    select_ref
+                    set_role_action
+                />
             </Show>
         </div>
+    }
+}
+
+/// Component to set permission levels for a forum
+#[component]
+pub fn PermissionLevelForm(
+    forum_name: Memo<String>,
+    username_input: RwSignal<String>,
+    select_ref: NodeRef<html::Select>,
+    set_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>
+) -> impl IntoView {
+    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    let matching_user_resource = create_resource(
+        move || username_debounced.get(),
+        move |username| async {
+            if username.is_empty() {
+                Ok(BTreeSet::<String>::default())
+            } else {
+                get_matching_username_set(username).await
+            }
+        },
+    );
+
+    view! {
+        <ActionForm action=set_role_action>
+            <input
+                name="forum_name"
+                class="hidden"
+                value=forum_name
+            />
+            <div class="flex gap-1 content-center">
+                <div class="dropdown dropdown-end">
+                    <input
+                        tabindex="0"
+                        type="text"
+                        name="username"
+                        placeholder="Username"
+                        autocomplete="off"
+                        class="input input-bordered input-primary w-full"
+                        on:input=move |ev| {
+                            username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                        }
+                        prop:value=username_input
+                    />
+                    <Show when=move || username_input.with(|username| !username.is_empty())>
+                        <TransitionUnpack resource=matching_user_resource let:username_set>
+                        {
+                            let username_set = username_set.clone();
+                            view! {
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
+                                    <For
+                                        each= move || username_set.clone().into_iter().enumerate()
+                                        key=|(_index, username)| username.clone()
+                                        let:child
+                                    >
+                                        <li>
+                                            <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
+                                                {child.1}
+                                            </button>
+                                        </li>
+                                    </For>
+                                </ul>
+                            }
+                        }
+                        </TransitionUnpack>
+                    </Show>
+                </div>
+                <EnumDropdown
+                    name="permission_level"
+                    enum_iter=PermissionLevel::iter()
+                    _select_ref=select_ref
+                />
+                <button
+                    type="submit"
+                    class="btn btn-active btn-secondary"
+                >
+                    "Assign"
+                </button>
+            </div>
+        </ActionForm>
     }
 }
 
@@ -510,7 +531,7 @@ pub fn BanPanel() -> impl IntoView {
         move |(forum_name, _)| get_forum_bans(forum_name)
     );
     let can_ban_users = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_can_ban_users(forum_name).is_ok()),
+        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Ban).is_ok()),
         _ => false,
     }));
 

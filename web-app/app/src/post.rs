@@ -6,27 +6,26 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-use crate::app::{GlobalState, ModerateState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
+use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
-use crate::comment::{COMMENT_BATCH_SIZE, CommentButton, CommentSection, CommentWithChildren, get_post_comment_tree};
+use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
+use crate::editor::FormMarkdownEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum::{get_forum_name_memo, get_matching_forum_name_set};
 #[cfg(feature = "ssr")]
 use crate::forum::FORUM_ROUTE_PREFIX;
-use crate::forum_management::{ModeratePost, ModeratePostButton};
+use crate::forum::{get_matching_forum_name_set, ForumState};
+use crate::forum_management::ModeratePostButton;
 use crate::icons::{EditIcon, HammerIcon, InternalErrorIcon, LoadingIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::role::PermissionLevel;
 use crate::unpack::TransitionUnpack;
 use crate::widget::{ActionError, AuthorWidget, CommentSortWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
@@ -387,8 +386,8 @@ pub mod ssr {
     #[cfg(test)]
     mod tests {
         use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
-        use crate::post::{Post, PostSortType};
         use crate::post::ssr::PostJoinVote;
+        use crate::post::{Post, PostSortType};
         use crate::ranking::VoteValue;
         use crate::user::User;
 
@@ -629,29 +628,12 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 #[component]
 pub fn Post() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let forum_state = expect_context::<ForumState>();
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
-    let forum_name = get_forum_name_memo(params);
-
-    let user_state = ModerateState {
-        can_moderate: Signal::derive(
-            move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate).is_ok()),
-                _ => false,
-            })
-        ),
-        can_ban: Signal::derive(
-            move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.check_permissions(forum_name, PermissionLevel::Ban).is_ok()),
-                _ => false,
-            })
-        ),
-        moderate_post_action: create_server_action::<ModeratePost>(),
-    };
-    provide_context(user_state);
 
     let post_resource = create_resource(
-        move || (post_id.get(), state.edit_post_action.version().get(), user_state.moderate_post_action.version().get()),
+        move || (post_id.get(), state.edit_post_action.version().get(), forum_state.moderate_post_action.version().get()),
         move |(post_id, _, _)| {
             log::debug!("Load data for post: {post_id}");
             get_post_with_info_by_id(post_id)

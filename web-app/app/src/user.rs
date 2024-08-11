@@ -88,6 +88,10 @@ impl User {
         self.check_forum_permissions(forum_name, PermissionLevel::Lead)
     }
 
+    pub fn get_forum_permission_level(&self, forum_name: &str) -> PermissionLevel {
+        self.permission_by_forum_map.get(forum_name).cloned().unwrap_or(PermissionLevel::None)
+    }
+    
     pub fn check_can_publish(&self) -> Result<(), AppError> {
         match self.ban_status.is_active() {
             true => match self.ban_status {
@@ -672,6 +676,18 @@ mod tests {
         assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
+    }
+
+    #[test]
+    fn test_user_get_forum_permission_level() {
+        let mut user = User::default();
+        user.permission_by_forum_map = get_user_permission_map();
+        assert_eq!(user.get_forum_permission_level("missing"), PermissionLevel::None);
+        assert_eq!(user.get_forum_permission_level("a"), PermissionLevel::None);
+        assert_eq!(user.get_forum_permission_level("b"), PermissionLevel::Moderate);
+        assert_eq!(user.get_forum_permission_level("c"), PermissionLevel::Ban);
+        assert_eq!(user.get_forum_permission_level("d"), PermissionLevel::Manage);
+        assert_eq!(user.get_forum_permission_level("e"), PermissionLevel::Lead);
     }
 
     #[test]

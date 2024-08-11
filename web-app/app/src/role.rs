@@ -1,10 +1,12 @@
 use std::str::FromStr;
 
-use leptos::{server, ServerFnError};
+use leptos::{component, expect_context, server, view, ChildrenFn, IntoView, ServerFnError, Show, SignalWith};
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString, IntoStaticStr};
 use strum_macros::EnumIter;
+use strum_macros::{Display, EnumString, IntoStaticStr};
 
+use crate::app::GlobalState;
+use crate::forum::ForumState;
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, user::ssr::SqlUser};
 
@@ -266,6 +268,27 @@ pub async fn set_user_forum_role(
     reload_user(forum_role.user_id)?;
 
     Ok(forum_role)
+}
+
+/// Component to show children when the user has at least the input permission level
+#[component]
+pub fn AuthorizedShow(
+    permission_level: PermissionLevel,
+    children: ChildrenFn,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let forum_state = expect_context::<ForumState>();
+    
+    let show_children = move || state.user.with(|user| match user {
+        Some(Ok(Some(user))) => forum_state.forum_name.with(|forum_name| user.check_permissions(forum_name, permission_level).is_ok()),
+        _ => false,
+    });
+    
+    view! {
+        <Show when=show_children>
+            {children()}
+        </Show>
+    }
 }
 
 #[cfg(test)]

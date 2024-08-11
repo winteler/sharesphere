@@ -7,7 +7,7 @@ use crate::comment::CommentSortType;
 use crate::error_template::{ErrorDisplay, ErrorTemplate};
 use crate::errors::AppError;
 use crate::forum::*;
-use crate::forum_management::{ForumCockpit, MANAGE_FORUM_ROUTE, ModeratePost};
+use crate::forum_management::{ForumCockpit, MANAGE_FORUM_ROUTE};
 use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
@@ -19,13 +19,6 @@ use crate::widget::PostSortWidget;
 
 pub const PARAM_ROUTE_PREFIX: &str = "/:";
 pub const PUBLISH_ROUTE: &str = "/publish";
-
-#[derive(Copy, Clone)]
-pub struct ModerateState {
-    pub can_moderate: Signal<bool>,
-    pub can_ban: Signal<bool>,
-    pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
-}
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {
@@ -74,7 +67,7 @@ pub mod ssr {
     use std::sync::OnceLock;
 
     use anyhow::Context;
-    use sqlx::{PgPool, postgres::PgPoolOptions};
+    use sqlx::{postgres::PgPoolOptions, PgPool};
     use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;

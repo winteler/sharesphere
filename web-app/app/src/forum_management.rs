@@ -3,23 +3,23 @@ use std::collections::BTreeSet;
 use chrono::SecondsFormat;
 use const_format::concatcp;
 use leptos::*;
-use leptos_router::{ActionForm, use_params_map};
+use leptos_router::{use_params_map, ActionForm};
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
-use crate::app::{GlobalState, ModerateState};
+use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
-use crate::forum::get_forum_name_memo;
+use crate::forum::{get_forum_name_memo, ForumState};
 use crate::icons::{DeleteIcon, HammerIcon};
 use crate::post::Post;
-use crate::role::{get_forum_role_vec, PermissionLevel, SetUserForumRole, UserForumRole};
+use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::TransitionUnpack;
 use crate::user::get_matching_username_set;
 use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -585,16 +585,12 @@ pub fn BanPanel() -> impl IntoView {
 /// Component to moderate a post
 #[component]
 pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
-    let moderate_state = use_context::<ModerateState>();
     let edit_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
     };
     view! {
-        <Show when=move || match moderate_state {
-            Some(user_state) => user_state.can_moderate.get(),
-            None => false,
-        }>
+        <AuthorizedShow permission_level=PermissionLevel::Moderate>
             <button
                 class=edit_button_class
                 aria-expanded=move || show_dialog.get().to_string()
@@ -603,7 +599,7 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
             >
                 <HammerIcon/>
             </button>
-        </Show>
+        </AuthorizedShow>
     }
 }
 
@@ -644,12 +640,12 @@ pub fn ModeratePostDialog(
     post_id: i64,
     show_dialog: RwSignal<bool>
 ) -> impl IntoView {
-    let moderate_state = expect_context::<ModerateState>();
+    let forum_state = expect_context::<ForumState>();
 
     let moderate_text = create_rw_signal(String::new());
     let is_text_empty = move || moderate_text.with(|moderate_text: &String| moderate_text.is_empty());
 
-    let moderate_result = moderate_state.moderate_post_action.value();
+    let moderate_result = forum_state.moderate_post_action.value();
     let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
 
     view! {
@@ -659,7 +655,7 @@ pub fn ModeratePostDialog(
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
                 <div class="text-center font-bold text-2xl">"Moderate a post"</div>
-                <ActionForm action=moderate_state.moderate_post_action>
+                <ActionForm action=forum_state.moderate_post_action>
                     <div class="flex flex-col gap-3 w-full">
                         <input
                             type="text"
@@ -742,7 +738,6 @@ pub fn ModerateCommentDialog(
 /// Dialog to input number of banned days
 #[component]
 pub fn BanMenu() -> impl IntoView {
-    let moderate_state = expect_context::<ModerateState>();
     let ban_value = create_rw_signal(0);
     let is_permanent_ban = create_rw_signal(false);
 
@@ -754,7 +749,7 @@ pub fn BanMenu() -> impl IntoView {
             value=ban_value
             disabled=is_permanent_ban
         />
-        <Show when=move || moderate_state.can_ban.get()>
+        <AuthorizedShow permission_level=PermissionLevel::Ban>
             <div class="flex items-center justify-between w-full">
                 <span class="text-xl font-semibold">"Ban duration (days):"</span>
                 <select
@@ -779,6 +774,6 @@ pub fn BanMenu() -> impl IntoView {
                     <option value="">"Permanent"</option>
                 </select>
             </div>
-        </Show>
+        </AuthorizedShow>
     }
 }

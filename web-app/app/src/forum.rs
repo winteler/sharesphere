@@ -6,26 +6,26 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
+use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::MANAGE_FORUM_SUFFIX;
+use crate::forum_management::{ModeratePost, MANAGE_FORUM_SUFFIX};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
-    CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
+    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
 use crate::role::PermissionLevel;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -72,6 +72,13 @@ pub struct ForumWithUserInfo {
     pub subscription_id: Option<i64>,
 }
 
+#[derive(Copy, Clone)]
+pub struct ForumState {
+    pub forum_name: Memo<String>,
+    pub permission_level: Signal<PermissionLevel>,
+    pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::collections::BTreeSet;
@@ -81,8 +88,8 @@ pub mod ssr {
     use crate::errors::AppError;
     use crate::errors::AppError::InternalServerError;
     use crate::forum::{Forum, ForumWithUserInfo};
-    use crate::role::PermissionLevel;
     use crate::role::ssr::set_user_forum_role;
+    use crate::role::PermissionLevel;
     use crate::user::User;
 
     pub async fn get_forum_by_name(forum_name: &str, db_pool: &PgPool) -> Result<Forum, AppError> {
@@ -405,6 +412,7 @@ pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
 /// Component to display a forum's banner
 #[component]
 pub fn ForumBanner() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let params = use_params_map();
     let forum_name = get_forum_name_memo(params);
     let forum_path = move || {
@@ -423,6 +431,18 @@ pub fn ForumBanner() -> impl IntoView {
             get_forum_by_name(forum_name)
         },
     );
+
+    let forum_state = ForumState {
+        forum_name,
+        permission_level: Signal::derive(
+            move || state.user.with(|user| match user {
+                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.get_forum_permission_level(forum_name)),
+                _ => PermissionLevel::None,
+            })
+        ),
+        moderate_post_action: create_server_action::<ModeratePost>(),
+    };
+    provide_context(forum_state);
 
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">

@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::collections::{BTreeSet, HashMap};
 
 use leptos::{server, ServerFnError};
@@ -76,7 +77,7 @@ impl User {
     }
 
     pub fn check_permissions(&self, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        let has_admin_permission = self.check_admin_role(req_permission_level.equivalent_admin_role()).is_ok();
+        let has_admin_permission = self.admin_role.equivalent_permission() >= req_permission_level;
         let has_forum_permission = self.check_forum_permissions(forum_name, req_permission_level).is_ok();
         match has_admin_permission || has_forum_permission {
             true => Ok(()),
@@ -89,7 +90,7 @@ impl User {
     }
 
     pub fn get_forum_permission_level(&self, forum_name: &str) -> PermissionLevel {
-        self.permission_by_forum_map.get(forum_name).cloned().unwrap_or(PermissionLevel::None)
+        max(self.admin_role.equivalent_permission(), self.permission_by_forum_map.get(forum_name).cloned().unwrap_or(PermissionLevel::None))
     }
     
     pub fn check_can_publish(&self) -> Result<(), AppError> {

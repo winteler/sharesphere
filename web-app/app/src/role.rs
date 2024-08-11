@@ -1,14 +1,13 @@
 use std::str::FromStr;
 
-use leptos::{component, expect_context, server, view, ChildrenFn, IntoView, ServerFnError, Show, SignalWith};
+use leptos::{ChildrenFn, component, expect_context, IntoView, server, ServerFnError, Show, SignalWith, view};
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
+use strum_macros::EnumIter;
 
-use crate::app::GlobalState;
-use crate::forum::ForumState;
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, user::ssr::SqlUser};
+use crate::forum::ForumState;
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -46,14 +45,12 @@ impl From<String> for PermissionLevel {
     }
 }
 
-impl PermissionLevel {
-    pub fn equivalent_admin_role(self) -> AdminRole {
+impl AdminRole {
+    pub fn equivalent_permission(self) -> PermissionLevel {
         match self {
-            PermissionLevel::None => AdminRole::None,
-            PermissionLevel::Moderate => AdminRole::Moderator,
-            PermissionLevel::Ban => AdminRole::Moderator,
-            PermissionLevel::Manage => AdminRole::Admin,
-            PermissionLevel::Lead => AdminRole::Admin,
+            AdminRole::None => PermissionLevel::None,
+            AdminRole::Moderator => PermissionLevel::Ban,
+            AdminRole::Admin => PermissionLevel::Lead,
         }
     }
 }
@@ -276,16 +273,9 @@ pub fn AuthorizedShow(
     permission_level: PermissionLevel,
     children: ChildrenFn,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let forum_state = expect_context::<ForumState>();
-    
-    let show_children = move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => forum_state.forum_name.with(|forum_name| user.check_permissions(forum_name, permission_level).is_ok()),
-        _ => false,
-    });
-    
     view! {
-        <Show when=show_children>
+        <Show when=move || forum_state.permission_level.with(|value| *value >= permission_level)>
             {children()}
         </Show>
     }

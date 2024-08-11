@@ -23,7 +23,7 @@ use crate::post::{
     CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
-use crate::role::PermissionLevel;
+use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -395,12 +395,9 @@ pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page
 fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     create_memo(move |current_forum_name: Option<&String>| {
-        if let Some(new_forum_name) =
-            params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
+        if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
         {
-            log::trace!(
-                "Current forum name {current_forum_name:?}, new forum name: {new_forum_name}"
-            );
+            log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
             new_forum_name
         } else {
             log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
@@ -535,11 +532,6 @@ pub fn ForumContents() -> impl IntoView {
 pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
-    let forum_name = forum.forum.forum_name.clone();
-    let can_moderate_forum = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => user.check_permissions(&forum_name, PermissionLevel::Moderate).is_ok(),
-        _ => false,
-    }));
     let forum_name = create_rw_signal(forum.forum.forum_name.clone());
     let is_subscribed = create_rw_signal(forum.subscription_id.is_some());
 
@@ -547,11 +539,11 @@ pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
-                <Show when=can_moderate_forum>
+                <AuthorizedShow permission_level=PermissionLevel::Moderate>
                     <A href=MANAGE_FORUM_SUFFIX class="btn btn-circle btn-ghost">
                         <SettingsIcon class="h-5 w-5"/>
                     </A>
-                </Show>
+                </AuthorizedShow>
                 <div class="tooltip" data-tip="Join">
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"

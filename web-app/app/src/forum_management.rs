@@ -10,7 +10,6 @@ use strum::IntoEnumIterator;
 
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
-use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
@@ -372,7 +371,6 @@ pub fn ForumCockpit() -> impl IntoView {
 /// Component to manage moderators
 #[component]
 pub fn ModeratorPanel() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let forum_name = expect_context::<ForumState>().forum_name;
     let username_input = create_rw_signal(String::default());
     let select_ref = create_node_ref::<html::Select>();
@@ -382,10 +380,6 @@ pub fn ModeratorPanel() -> impl IntoView {
         move || (forum_name.get(), set_role_action.version().get()),
         move |(forum_name, _)| get_forum_role_vec(forum_name)
     );
-    let can_manage_moderators = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Manage).is_ok()),
-        _ => false,
-    }));
 
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
@@ -425,14 +419,14 @@ pub fn ModeratorPanel() -> impl IntoView {
                 }
             }
             </TransitionUnpack>
-            <Show when=can_manage_moderators>
+            <AuthorizedShow permission_level=PermissionLevel::Manage>
                 <PermissionLevelForm
                     forum_name
                     username_input
                     select_ref
                     set_role_action
                 />
-            </Show>
+            </AuthorizedShow>
         </div>
     }
 }
@@ -520,7 +514,6 @@ pub fn PermissionLevelForm(
 /// Component to manage ban users
 #[component]
 pub fn BanPanel() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let forum_name = expect_context::<ForumState>().forum_name;
 
     let unban_action = create_server_action::<RemoveUserBan>();
@@ -528,10 +521,6 @@ pub fn BanPanel() -> impl IntoView {
         move || (forum_name.get(), unban_action.version().get()),
         move |(forum_name, _)| get_forum_bans(forum_name)
     );
-    let can_ban_users = Signal::derive(move || state.user.with(|user| match user {
-        Some(Ok(Some(user))) => forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Ban).is_ok()),
-        _ => false,
-    }));
 
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
@@ -558,7 +547,7 @@ pub fn BanPanel() -> impl IntoView {
                                         None => String::from("Permanent"),
                                     }
                                 }</div>
-                                <Show when=can_ban_users>
+                                <AuthorizedShow permission_level=PermissionLevel::Ban>
                                     <ActionForm action=unban_action class="mx-auto w-1/5">
                                         <input
                                             name="ban_id"
@@ -569,7 +558,7 @@ pub fn BanPanel() -> impl IntoView {
                                             <DeleteIcon/>
                                         </button>
                                     </ActionForm>
-                                </Show>
+                                </AuthorizedShow>
                             </div>
                         </For>
                     </div>

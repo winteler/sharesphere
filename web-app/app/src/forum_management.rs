@@ -3,23 +3,23 @@ use std::collections::BTreeSet;
 use chrono::SecondsFormat;
 use const_format::concatcp;
 use leptos::*;
-use leptos_router::{use_params_map, ActionForm};
+use leptos_router::ActionForm;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
 use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
-use crate::forum::{get_forum_name_memo, ForumState};
+use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, HammerIcon};
 use crate::post::Post;
-use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
+use crate::role::{AuthorizedShow, get_forum_role_vec, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::TransitionUnpack;
 use crate::user::get_matching_username_set;
 use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -373,8 +373,7 @@ pub fn ForumCockpit() -> impl IntoView {
 #[component]
 pub fn ModeratorPanel() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
+    let forum_name = expect_context::<ForumState>().forum_name;
     let username_input = create_rw_signal(String::default());
     let select_ref = create_node_ref::<html::Select>();
 
@@ -522,8 +521,7 @@ pub fn PermissionLevelForm(
 #[component]
 pub fn BanPanel() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
+    let forum_name = expect_context::<ForumState>().forum_name;
 
     let unban_action = create_server_action::<RemoveUserBan>();
     let banned_users_resource = create_resource(

@@ -6,26 +6,26 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::{ModeratePost, MANAGE_FORUM_SUFFIX};
+use crate::forum_management::{MANAGE_FORUM_SUFFIX, ModeratePost};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
-    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
+    CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
 use crate::role::PermissionLevel;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -88,8 +88,8 @@ pub mod ssr {
     use crate::errors::AppError;
     use crate::errors::AppError::InternalServerError;
     use crate::forum::{Forum, ForumWithUserInfo};
-    use crate::role::ssr::set_user_forum_role;
     use crate::role::PermissionLevel;
+    use crate::role::ssr::set_user_forum_role;
     use crate::user::User;
 
     pub async fn get_forum_by_name(forum_name: &str, db_pool: &PgPool) -> Result<Forum, AppError> {
@@ -393,7 +393,7 @@ pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
 }
 
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page
-pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
+fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     create_memo(move |current_forum_name: Option<&String>| {
         if let Some(new_forum_name) =
             params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
@@ -413,25 +413,7 @@ pub fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
 #[component]
 pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
-    let forum_path = move || {
-        FORUM_ROUTE_PREFIX.to_owned()
-            + "/"
-            + params
-                .with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
-                .unwrap_or_default()
-                .as_ref()
-    };
-
-    let forum_resource = create_resource(
-        move || forum_name(),
-        move |forum_name| {
-            log::debug!("Load data for forum: {forum_name}");
-            get_forum_by_name(forum_name)
-        },
-    );
-
+    let forum_name = get_forum_name_memo(use_params_map());
     let forum_state = ForumState {
         forum_name,
         permission_level: Signal::derive(
@@ -443,6 +425,16 @@ pub fn ForumBanner() -> impl IntoView {
         moderate_post_action: create_server_action::<ModeratePost>(),
     };
     provide_context(forum_state);
+
+    let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name.get();
+
+    let forum_resource = create_resource(
+        move || forum_name.get(),
+        move |forum_name| {
+            log::debug!("Load data for forum: {forum_name}");
+            get_forum_by_name(forum_name)
+        },
+    );
 
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
@@ -457,7 +449,7 @@ pub fn ForumBanner() -> impl IntoView {
                     >
                         <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
                             <LogoIcon class="h-12 w-12"/>
-                            <span class="text-4xl">{forum_name()}</span>
+                            <span class="text-4xl">{forum_state.forum_name.get()}</span>
                         </div>
                     </a>
                 }
@@ -472,8 +464,7 @@ pub fn ForumBanner() -> impl IntoView {
 #[component]
 pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let params = use_params_map();
-    let forum_name = get_forum_name_memo(params);
+    let forum_name = expect_context::<ForumState>().forum_name;
     let post_vec = create_rw_signal(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
     let additional_load_count = create_rw_signal(0);
     let is_loading = create_rw_signal(false);

@@ -67,7 +67,7 @@ pub mod ssr {
     use std::sync::OnceLock;
 
     use anyhow::Context;
-    use sqlx::{postgres::PgPoolOptions, PgPool};
+    use sqlx::{PgPool, postgres::PgPoolOptions};
     use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;
@@ -211,7 +211,7 @@ fn LoginGuard() -> impl IntoView {
 #[component]
 fn ModeratorGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let forum_name = get_forum_name_memo(use_params_map());
+    let forum_name = expect_context::<ForumState>().forum_name;
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             {

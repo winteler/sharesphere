@@ -360,7 +360,7 @@ pub async fn moderate_comment(
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-1 w-full 2xl:w-2/5 mx-auto">
+        <div class="flex flex-col gap-1 w-full 2xl:w-1/4 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
             <BanPanel/>
@@ -548,7 +548,7 @@ pub fn BanPanel() -> impl IntoView {
                                     }
                                 }</div>
                                 <AuthorizedShow permission_level=PermissionLevel::Ban>
-                                    <ActionForm action=unban_action class="mx-auto w-1/5">
+                                    <ActionForm action=unban_action class="w-1/5 flex justify-center">
                                         <input
                                             name="ban_id"
                                             class="hidden"

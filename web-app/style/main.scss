@@ -3140,10 +3140,6 @@ html {
   height: 7rem;
 }
 
-.h-36 {
-  height: 9rem;
-}
-
 .h-4 {
   height: 1rem;
 }
@@ -3195,10 +3191,6 @@ html {
 
 .min-h-full {
   min-height: 100%;
-}
-
-.min-h-screen {
-  min-height: 100vh;
 }
 
 .w-1 {
@@ -3657,10 +3649,6 @@ html {
   padding: 0.75rem;
 }
 
-.p-4 {
-  padding: 1rem;
-}
-
 .px-1 {
   padding-left: 0.25rem;
   padding-right: 0.25rem;
@@ -3999,5 +3987,9 @@ html {
 
   .\32xl\:w-2\/5 {
     width: 40%;
+  }
+
+  .\32xl\:w-1\/4 {
+    width: 25%;
   }
 }

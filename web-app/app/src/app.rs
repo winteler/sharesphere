@@ -165,9 +165,6 @@ pub fn App() -> impl IntoView {
                                 <Route path=CREATE_POST_SUFFIX view=CreatePost/>
                             </Route>
                         </Routes>
-                        <div class="max-2xl:hidden">
-                            <RightSidebar/>
-                        </div>
                     </div>
                 </div>
                 <div class="drawer-side">
@@ -204,6 +201,9 @@ fn LoginGuard() -> impl IntoView {
                 }
             }
         </Transition>
+        <div class="max-2xl:hidden">
+            <HomeSidebar/>
+        </div>
     }
 }
 
@@ -293,6 +293,9 @@ fn HomePage() -> impl IntoView {
 
                 }}
             </Transition>
+        </div>
+        <div class="max-2xl:hidden">
+            <HomeSidebar/>
         </div>
     }
 }

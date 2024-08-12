@@ -1,44 +1,44 @@
 use leptos::*;
 
 use crate::app::GlobalState;
-use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, FORUM_ROUTE_PREFIX};
+use crate::forum::{FORUM_ROUTE_PREFIX, ForumState, get_popular_forum_names, get_subscribed_forum_names};
 use crate::unpack::TransitionUnpack;
 
 /// Component to display a list of forum links
 #[component]
 pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl IntoView {
     if forum_name_vec.is_empty() {
-        View::default()
-    } else {
-        view! {
-            <ul class="menu h-full">
-                <li>
-                    <details open>
-                        <summary class="text-xl font-medium">{title}</summary>
-                        <ul class="menu-dropdown">
-                            <For
-                                // a function that returns the items we're iterating over; a signal is fine
-                                each=move || forum_name_vec.clone().into_iter().enumerate()
-                                // a unique key for each item as a reference
-                                key=|(_, forum_name)| forum_name.clone()
-                                // renders each item to a view
-                                children=move |(_, forum_name)| {
-                                    let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name;
-                                    view! {
-                                        <li>
-                                            <a href=forum_path>
-                                                {forum_name}
-                                            </a>
-                                        </li>
-                                    }
-                                }
-                            />
-                        </ul>
-                    </details>
-                </li>
-            </ul>
-        }.into_view()
+        return View::default()
     }
+
+    view! {
+        <ul class="menu h-full">
+            <li>
+                <details open>
+                    <summary class="text-xl font-medium">{title}</summary>
+                    <ul class="menu-dropdown">
+                        <For
+                            // a function that returns the items we're iterating over; a signal is fine
+                            each=move || forum_name_vec.clone().into_iter().enumerate()
+                            // a unique key for each item as a reference
+                            key=|(_, forum_name)| forum_name.clone()
+                            // renders each item to a view
+                            children=move |(_, forum_name)| {
+                                let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name;
+                                view! {
+                                    <li>
+                                        <a href=forum_path>
+                                            {forum_name}
+                                        </a>
+                                    </li>
+                                }
+                            }
+                        />
+                    </ul>
+                </details>
+            </li>
+        </ul>
+    }.into_view()
 }
 
 /// Left sidebar component
@@ -81,10 +81,23 @@ pub fn LeftSidebar() -> impl IntoView {
     }
 }
 
-/// Right sidebar component
+/// Home right sidebar component
 #[component]
-pub fn RightSidebar() -> impl IntoView {
+pub fn HomeSidebar() -> impl IntoView {
     view! {
-        <div class="h-full p-4 w-40"></div>
+        <div class="flex flex-col justify-start w-40 h-full">
+            "Home"
+        </div>
+    }
+}
+
+/// Forum right sidebar component
+#[component]
+pub fn ForumSidebar() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    view! {
+        <div class="flex flex-col justify-start w-40 h-full">
+            {forum_state.forum_name}
+        </div>
     }
 }

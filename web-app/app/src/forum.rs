@@ -24,6 +24,7 @@ use crate::post::{
 };
 use crate::ranking::ScoreIndicator;
 use crate::role::{AuthorizedShow, PermissionLevel};
+use crate::sidebar::ForumSidebar;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
 
@@ -453,6 +454,9 @@ pub fn ForumBanner() -> impl IntoView {
             }
             </TransitionUnpack>
             <Outlet/>
+        </div>
+        <div class="max-2xl:hidden">
+            <ForumSidebar/>
         </div>
     }
 }

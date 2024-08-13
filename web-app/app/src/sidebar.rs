@@ -85,7 +85,7 @@ pub fn LeftSidebar() -> impl IntoView {
 #[component]
 pub fn HomeSidebar() -> impl IntoView {
     view! {
-        <div class="flex flex-col justify-start w-40 h-full">
+        <div class="flex flex-col justify-start w-60 h-full">
             "Home"
         </div>
     }
@@ -96,8 +96,13 @@ pub fn HomeSidebar() -> impl IntoView {
 pub fn ForumSidebar() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col justify-start w-40 h-full">
-            {forum_state.forum_name}
+        <div class="flex flex-col justify-start w-60 h-full">
+            <div class="p-2 flex flex-col gap-1">
+                <div class="text-2xl text-center">{forum_state.forum_name}</div>
+                <TransitionUnpack resource=forum_state.forum_resource let:forum>
+                    <div>{forum.description.clone()}</div>
+                </TransitionUnpack>
+            </div>
         </div>
     }
 }

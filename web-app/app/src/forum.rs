@@ -77,6 +77,7 @@ pub struct ForumWithUserInfo {
 pub struct ForumState {
     pub forum_name: Memo<String>,
     pub permission_level: Signal<PermissionLevel>,
+    pub forum_resource: Resource<String, Result<Forum, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
 }
 
@@ -420,23 +421,19 @@ pub fn ForumBanner() -> impl IntoView {
                 _ => PermissionLevel::None,
             })
         ),
+        forum_resource: create_resource(
+            move || forum_name.get(),
+            move |forum_name| get_forum_by_name(forum_name)
+        ),
         moderate_post_action: create_server_action::<ModeratePost>(),
     };
     provide_context(forum_state);
 
     let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name.get();
 
-    let forum_resource = create_resource(
-        move || forum_name.get(),
-        move |forum_name| {
-            log::debug!("Load data for forum: {forum_name}");
-            get_forum_by_name(forum_name)
-        },
-    );
-
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
-            <TransitionUnpack resource=forum_resource let:forum>
+            <TransitionUnpack resource=forum_state.forum_resource let:forum>
             {
                 let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("/banner.jpg")));
                 view! {

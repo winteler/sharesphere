@@ -23,7 +23,7 @@ use crate::post::{
     CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
-use crate::role::{AuthorizedShow, PermissionLevel};
+use crate::role::{AuthorizedShow, get_forum_role_vec, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
@@ -78,7 +78,9 @@ pub struct ForumState {
     pub forum_name: Memo<String>,
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<String, Result<Forum, ServerFnError>>,
+    pub forum_roles_resource: Resource<(String, usize), Result<Vec<UserForumRole>, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
+    pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
 }
 
 #[cfg(feature = "ssr")]
@@ -413,6 +415,7 @@ fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
 pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = get_forum_name_memo(use_params_map());
+    let set_forum_role_action = create_server_action::<SetUserForumRole>();
     let forum_state = ForumState {
         forum_name,
         permission_level: Signal::derive(
@@ -425,7 +428,12 @@ pub fn ForumBanner() -> impl IntoView {
             move || forum_name.get(),
             move |forum_name| get_forum_by_name(forum_name)
         ),
+        forum_roles_resource: create_resource(
+            move || (forum_name.get(), set_forum_role_action.version().get()),
+            move |(forum_name, _)| get_forum_role_vec(forum_name),
+        ),
         moderate_post_action: create_server_action::<ModeratePost>(),
+        set_forum_role_action,
     };
     provide_context(forum_state);
 

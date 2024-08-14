@@ -3274,6 +3274,10 @@ html {
   width: 100vw;
 }
 
+.w-80 {
+  width: 20rem;
+}
+
 .min-w-6 {
   min-width: 1.5rem;
 }
@@ -3678,6 +3682,11 @@ html {
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
 }
 
 .pb-2 {

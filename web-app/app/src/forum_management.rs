@@ -15,7 +15,7 @@ use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, HammerIcon};
 use crate::post::Post;
-use crate::role::{AuthorizedShow, get_forum_role_vec, PermissionLevel, SetUserForumRole, UserForumRole};
+use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::TransitionUnpack;
 use crate::user::get_matching_username_set;
 use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
@@ -371,20 +371,17 @@ pub fn ForumCockpit() -> impl IntoView {
 /// Component to manage moderators
 #[component]
 pub fn ModeratorPanel() -> impl IntoView {
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let forum_state = expect_context::<ForumState>();
+    let forum_name = forum_state.forum_name;
     let username_input = create_rw_signal(String::default());
     let select_ref = create_node_ref::<html::Select>();
 
     let set_role_action = create_server_action::<SetUserForumRole>();
-    let forum_roles_resource = create_resource(
-        move || (forum_name.get(), set_role_action.version().get()),
-        move |(forum_name, _)| get_forum_role_vec(forum_name)
-    );
 
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
-            <TransitionUnpack resource=forum_roles_resource let:forum_role_vec>
+            <TransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
             {
                 let forum_role_vec = forum_role_vec.clone();
                 view! {

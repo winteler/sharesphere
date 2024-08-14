@@ -85,8 +85,14 @@ pub fn LeftSidebar() -> impl IntoView {
 #[component]
 pub fn HomeSidebar() -> impl IntoView {
     view! {
-        <div class="flex flex-col justify-start w-60 h-full">
-            "Home"
+        <div class="flex flex-col justify-start w-80 h-full px-3 py-2">
+            <div class="flex flex-col gap-2">
+                <div class="text-2xl text-center">"Welcome to ShareSphere!"</div>
+                <div class="flex flex-col gap-1 text-justify">
+                    <p>"ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."</p>
+                    <p>"ShareSphere is a non-profit, open source website. You can find more information on the website and its rules below."</p>
+                </div>
+            </div>
         </div>
     }
 }
@@ -96,11 +102,40 @@ pub fn HomeSidebar() -> impl IntoView {
 pub fn ForumSidebar() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col justify-start w-60 h-full">
-            <div class="p-2 flex flex-col gap-1">
+        <div class="flex flex-col gap-4 justify-start w-80 h-full px-3 py-2">
+            <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">{forum_state.forum_name}</div>
                 <TransitionUnpack resource=forum_state.forum_resource let:forum>
-                    <div>{forum.description.clone()}</div>
+                    <div class="text-justify">{forum.description.clone()}</div>
+                </TransitionUnpack>
+            </div>
+            <div class="flex flex-col gap-1">
+                <div class="text-xl text-center">"Moderators"</div>
+                <TransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
+                {
+                    let forum_role_vec = forum_role_vec.clone();
+                    view! {
+                        <div class="flex flex-col gap-1">
+                            <div class="flex border-b border-base-content/20">
+                                <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
+                                <div class="w-2/5 px-6 py-2 text-left font-bold">Role</div>
+                            </div>
+                            <For
+                                each= move || forum_role_vec.clone().into_iter().enumerate()
+                                key=|(_index, role)| (role.user_id, role.permission_level)
+                                children=move |(_, role)| {
+                                    let username = store_value(role.username);
+                                    view! {
+                                        <div class="flex py-1 rounded hover:bg-base-content/20">
+                                            <div class="w-2/5 px-6 select-none">{username.get_value()}</div>
+                                            <div class="w-2/5 px-6 select-none">{role.permission_level.to_string()}</div>
+                                        </div>
+                                    }
+                                }
+                            />
+                        </div>
+                    }
+                }
                 </TransitionUnpack>
             </div>
         </div>

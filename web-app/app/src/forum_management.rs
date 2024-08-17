@@ -40,16 +40,90 @@ pub struct UserBan {
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct Rule {
+    pub rule_id: i64,
+    pub forum_id: Option<i64>,
+    pub forum_name: Option<String>,
+    pub priority: i16,
+    pub title: String,
+    pub description: String,
+    pub user_id: i64,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
+    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
 
     use crate::comment::Comment;
     use crate::errors::AppError;
-    use crate::forum_management::UserBan;
+    use crate::forum_management::{Rule, UserBan};
     use crate::post::Post;
     use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
+
+    pub async fn is_user_forum_moderator(
+        user_id: i64,
+        forum: &String,
+        db_pool: &PgPool,
+    ) -> Result<bool, AppError> {
+        match User::get(user_id, db_pool).await {
+            Some(user) => Ok(user.check_permissions(&forum, PermissionLevel::Moderate).is_ok()),
+            None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
+        }
+    }
+
+    pub async fn get_forum_rule_vec(
+        forum_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<Vec<Rule>, AppError> {
+        let forum_rule_vec = sqlx::query_as!(
+            Rule,
+            "SELECT * FROM rules
+            WHERE COALESCE(forum_name, $1) = $1
+            ORDER BY priority, create_timestamp",
+            forum_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(forum_rule_vec)
+    }
+
+    pub async fn set_rule(
+        forum_name: Option<&str>,
+        number: i16,
+        title: &str,
+        description: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Rule, AppError> {
+        match forum_name {
+            Some(forum_name) => user.check_permissions(forum_name, PermissionLevel::Manage)?,
+            None => user.check_admin_role(AdminRole::Admin)?,
+        };
+        let rule = sqlx::query_as!(
+            Rule,
+            "INSERT INTO rules
+            (forum_id, forum_name, priority, title, description, user_id)
+            VALUES (
+                (SELECT forum_id FROM forums WHERE forum_name = $1),
+                $1, $2, $3, $4, $5
+            ) RETURNING *",
+            forum_name,
+            number,
+            title,
+            description,
+            user.user_id,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(rule)
+    }
 
     pub async fn get_forum_ban_vec(
         forum_name: &str,
@@ -253,21 +327,32 @@ pub mod ssr {
             Err(AppError::InternalServerError(format!("Error while trying to ban user {user_id}. Insufficient permissions or user is a moderator of the forum.")))
         }
     }
-
-    pub async fn is_user_forum_moderator(
-        user_id: i64,
-        forum: &String,
-        db_pool: &PgPool,
-    ) -> Result<bool, AppError> {
-        match User::get(user_id, db_pool).await {
-            Some(user) => Ok(user.check_permissions(&forum, PermissionLevel::Moderate).is_ok()),
-            None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
-        }
-    }
 }
 
 #[server]
-pub async fn get_forum_bans(
+pub async fn get_forum_rule_vec(
+    forum_name: String
+) -> Result<Vec<Rule>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let rule_vec = ssr::get_forum_rule_vec(&forum_name, &db_pool).await?;
+    Ok(rule_vec)
+}
+
+#[server]
+pub async fn set_rule(
+    forum_name: Option<String>,
+    priority: i16,
+    title: String,
+    description: String,
+) -> Result<Rule, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let user = check_user()?;
+    let rule = ssr::set_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
+    Ok(rule)
+}
+
+#[server]
+pub async fn get_forum_ban_vec(
     forum_name: String
 ) -> Result<Vec<UserBan>, ServerFnError> {
     let db_pool = get_db_pool()?;
@@ -508,6 +593,45 @@ pub fn PermissionLevelForm(
     }
 }
 
+/// Component to manage forum rules
+#[component]
+pub fn ForumRulesPanel() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+
+    view! {
+        <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
+            <div class="text-xl text-center">"Moderators"</div>
+            <TransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
+            {
+                let forum_rule_vec = forum_rule_vec.clone();
+                view! {
+                    <div class="flex flex-col gap-1">
+                        <div class="flex border-b border-base-content/20">
+                            <div class="w-2/5 px-6 py-2 text-left font-bold">Title</div>
+                            <div class="w-2/5 px-6 py-2 text-left font-bold">Description</div>
+                        </div>
+                        <For
+                            each= move || forum_rule_vec.clone().into_iter().enumerate()
+                            key=|(_index, rule)| rule.rule_id
+                            children=move |(_, rule)| {
+                                let title = store_value(rule.title);
+                                let description = store_value(rule.description);
+                                view! {
+                                    <div class="flex py-1 rounded hover:bg-base-content/20 transform active:scale-95 transition duration-250">
+                                        <div class="w-2/5 px-6 select-none">{title.get_value()}</div>
+                                        <div class="w-2/5 px-6 select-none">{description.get_value()}</div>
+                                    </div>
+                                }
+                            }
+                        />
+                    </div>
+                }
+            }
+            </TransitionUnpack>
+        </div>
+    }
+}
+
 /// Component to manage ban users
 #[component]
 pub fn BanPanel() -> impl IntoView {
@@ -516,7 +640,7 @@ pub fn BanPanel() -> impl IntoView {
     let unban_action = create_server_action::<RemoveUserBan>();
     let banned_users_resource = create_resource(
         move || (forum_name.get(), unban_action.version().get()),
-        move |(forum_name, _)| get_forum_bans(forum_name)
+        move |(forum_name, _)| get_forum_ban_vec(forum_name)
     );
 
     view! {

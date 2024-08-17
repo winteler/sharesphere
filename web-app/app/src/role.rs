@@ -46,7 +46,7 @@ impl From<String> for PermissionLevel {
 }
 
 impl AdminRole {
-    pub fn equivalent_permission(self) -> PermissionLevel {
+    pub fn get_permission_level(self) -> PermissionLevel {
         match self {
             AdminRole::None => PermissionLevel::None,
             AdminRole::Moderator => PermissionLevel::Ban,
@@ -293,6 +293,13 @@ mod tests {
         assert_eq!(PermissionLevel::from(String::from("Manage")), PermissionLevel::Manage);
         assert_eq!(PermissionLevel::from(String::from("Lead")), PermissionLevel::Lead);
         assert_eq!(PermissionLevel::from(String::from("invalid")), PermissionLevel::None);
+    }
+
+    #[test]
+    fn test_admin_role_get_permission_level() {
+        assert_eq!(AdminRole::None.get_permission_level(), PermissionLevel::None);
+        assert_eq!(AdminRole::Moderator.get_permission_level(), PermissionLevel::Ban);
+        assert_eq!(AdminRole::Admin.get_permission_level(), PermissionLevel::Lead);
     }
 
     #[test]

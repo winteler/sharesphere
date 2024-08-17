@@ -108,7 +108,25 @@ CREATE TABLE user_forum_roles (
 
 -- index to guarantee maximum 1 leader per forum
 CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, permission_level)
-    WHERE (user_forum_roles.permission_level = 'Lead');
+    WHERE user_forum_roles.permission_level = 'Lead';
+
+CREATE TABLE rules (
+    rule_id BIGSERIAL PRIMARY KEY,
+    forum_id BIGINT,
+    forum_name TEXT,
+    priority SMALLINT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delete_timestamp TIMESTAMPTZ,
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
+);
+
+-- index to guarantee numbering of rules is unique
+--CREATE UNIQUE INDEX unique_rule ON rules (forum_id, number)
+--    WHERE rules.delete_timestamp IS NULL;
+
 
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,

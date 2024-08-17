@@ -15,7 +15,7 @@ use crate::auth::ssr::check_user;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::{MANAGE_FORUM_SUFFIX, ModeratePost};
+use crate::forum_management::{get_forum_rule_vec, MANAGE_FORUM_SUFFIX, ModeratePost, Rule};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
@@ -79,6 +79,7 @@ pub struct ForumState {
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<String, Result<Forum, ServerFnError>>,
     pub forum_roles_resource: Resource<(String, usize), Result<Vec<UserForumRole>, ServerFnError>>,
+    pub forum_rules_resource: Resource<(String, usize), Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
     pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
 }
@@ -431,6 +432,10 @@ pub fn ForumBanner() -> impl IntoView {
         forum_roles_resource: create_resource(
             move || (forum_name.get(), set_forum_role_action.version().get()),
             move |(forum_name, _)| get_forum_role_vec(forum_name),
+        ),
+        forum_rules_resource: create_resource(
+            move || (forum_name.get(), set_forum_role_action.version().get()),
+            move |(forum_name, _)| get_forum_rule_vec(forum_name),
         ),
         moderate_post_action: create_server_action::<ModeratePost>(),
         set_forum_role_action,

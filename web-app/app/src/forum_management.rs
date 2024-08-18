@@ -456,9 +456,10 @@ pub async fn moderate_comment(
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-1 w-full 2xl:w-1/4 mx-auto">
+        <div class="flex flex-col gap-1 w-full 2xl:w-1/3 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
+            <ForumRulesPanel/>
             <BanPanel/>
         </div>
     }
@@ -611,15 +612,16 @@ pub fn ForumRulesPanel() -> impl IntoView {
 
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
-            <div class="text-xl text-center">"Moderators"</div>
+            <div class="text-xl text-center">"Rules"</div>
             <TransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
             {
                 let forum_rule_vec = forum_rule_vec.clone();
                 view! {
                     <div class="flex flex-col gap-1">
                         <div class="flex border-b border-base-content/20">
-                            <div class="w-2/5 px-6 py-2 text-left font-bold">Title</div>
-                            <div class="w-2/5 px-6 py-2 text-left font-bold">Description</div>
+                            <div class="w-1/6 pl-6 py-2 text-left font-bold">"N°"</div>
+                            <div class="w-1/3 py-2 text-left font-bold">"Title"</div>
+                            <div class="w-1/3 py-2 text-left font-bold">"Description"</div>
                         </div>
                         <For
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
@@ -628,9 +630,10 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                 let title = store_value(rule.title);
                                 let description = store_value(rule.description);
                                 view! {
-                                    <div class="flex py-1 rounded hover:bg-base-content/20 transform active:scale-95 transition duration-250">
-                                        <div class="w-2/5 px-6 select-none">{title.get_value()}</div>
-                                        <div class="w-2/5 px-6 select-none">{description.get_value()}</div>
+                                    <div class="flex py-1 rounded">
+                                        <div class="w-1/6 pl-6 select-none">{rule.priority}</div>
+                                        <div class="w-1/3 select-none">{title.get_value()}</div>
+                                        <div class="w-1/3 select-none">{description.get_value()}</div>
                                     </div>
                                 }
                             }
@@ -639,7 +642,59 @@ pub fn ForumRulesPanel() -> impl IntoView {
                 }
             }
             </TransitionUnpack>
+            <CreateRuleForm/>
         </div>
+    }
+}
+
+/// Component to create forum rules
+#[component]
+pub fn CreateRuleForm() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    let title = create_rw_signal(String::default());
+    let description = create_rw_signal(String::default());
+    let invalid_inputs = move || with!(|title, description| title.is_empty() || description.is_empty());
+
+    view! {
+        <ActionForm action=forum_state.add_rule_action>
+            <input
+                name="forum_name"
+                class="hidden"
+                value=forum_state.forum_name
+            />
+            <div class="flex gap-1 content-center">
+                <input
+                    tabindex="0"
+                    type="number"
+                    name="priority"
+                    autocomplete="off"
+                    class="input input-bordered input-primary w-1/6"
+                />
+                <input
+                    tabindex="0"
+                    type="text"
+                    name="title"
+                    placeholder="Title"
+                    autocomplete="off"
+                    class="input input-bordered input-primary w-1/3"
+                    on:input=move |ev| {
+                        title.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                    }
+                />
+                <FormTextEditor
+                    name="description"
+                    placeholder="Description"
+                    content=description
+                />
+                <button
+                    type="submit"
+                    disabled=invalid_inputs
+                    class="btn btn-active btn-secondary w-fit"
+                >
+                    "Add rule"
+                </button>
+            </div>
+        </ActionForm>
     }
 }
 

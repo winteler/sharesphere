@@ -15,7 +15,7 @@ use crate::auth::ssr::check_user;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::{get_forum_rule_vec, MANAGE_FORUM_SUFFIX, ModeratePost, Rule};
+use crate::forum_management::{AddRule, get_forum_rule_vec, MANAGE_FORUM_SUFFIX, ModeratePost, Rule};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
@@ -82,6 +82,7 @@ pub struct ForumState {
     pub forum_rules_resource: Resource<(String, usize), Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
     pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
+    pub add_rule_action: Action<AddRule, Result<Rule, ServerFnError>>,
 }
 
 #[cfg(feature = "ssr")]
@@ -417,6 +418,7 @@ pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = get_forum_name_memo(use_params_map());
     let set_forum_role_action = create_server_action::<SetUserForumRole>();
+    let add_rule_action = create_server_action::<AddRule>();
     let forum_state = ForumState {
         forum_name,
         permission_level: Signal::derive(
@@ -434,11 +436,12 @@ pub fn ForumBanner() -> impl IntoView {
             move |(forum_name, _)| get_forum_role_vec(forum_name),
         ),
         forum_rules_resource: create_resource(
-            move || (forum_name.get(), set_forum_role_action.version().get()),
+            move || (forum_name.get(), add_rule_action.version().get()),
             move |(forum_name, _)| get_forum_rule_vec(forum_name),
         ),
         moderate_post_action: create_server_action::<ModeratePost>(),
         set_forum_role_action,
+        add_rule_action,
     };
     provide_context(forum_state);
 

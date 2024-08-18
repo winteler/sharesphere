@@ -84,7 +84,7 @@ pub mod ssr {
             Rule,
             "SELECT * FROM rules
             WHERE COALESCE(forum_name, $1) = $1
-            ORDER BY priority, create_timestamp",
+            ORDER BY forum_name NULLS FIRST, priority, create_timestamp",
             forum_name
         )
             .fetch_all(db_pool)
@@ -93,9 +93,9 @@ pub mod ssr {
         Ok(forum_rule_vec)
     }
 
-    pub async fn set_rule(
+    pub async fn add_rule(
         forum_name: Option<&str>,
-        number: i16,
+        priority: i16,
         title: &str,
         description: &str,
         user: &User,
@@ -105,6 +105,17 @@ pub mod ssr {
             Some(forum_name) => user.check_permissions(forum_name, PermissionLevel::Manage)?,
             None => user.check_admin_role(AdminRole::Admin)?,
         };
+
+        sqlx::query!(
+            "UPDATE rules
+             SET priority = priority + 1
+             WHERE priority >= $2 AND forum_name IS NOT DISTINCT FROM $1",
+            forum_name,
+            priority,
+        )
+            .execute(db_pool)
+            .await?;
+
         let rule = sqlx::query_as!(
             Rule,
             "INSERT INTO rules
@@ -114,7 +125,7 @@ pub mod ssr {
                 $1, $2, $3, $4, $5
             ) RETURNING *",
             forum_name,
-            number,
+            priority,
             title,
             description,
             user.user_id,
@@ -339,7 +350,7 @@ pub async fn get_forum_rule_vec(
 }
 
 #[server]
-pub async fn set_rule(
+pub async fn add_rule(
     forum_name: Option<String>,
     priority: i16,
     title: String,
@@ -347,7 +358,7 @@ pub async fn set_rule(
 ) -> Result<Rule, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user = check_user()?;
-    let rule = ssr::set_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
+    let rule = ssr::add_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
     Ok(rule)
 }
 

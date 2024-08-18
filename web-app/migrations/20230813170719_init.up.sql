@@ -124,8 +124,8 @@ CREATE TABLE rules (
 );
 
 -- index to guarantee numbering of rules is unique
---CREATE UNIQUE INDEX unique_rule ON rules (forum_id, number)
---    WHERE rules.delete_timestamp IS NULL;
+CREATE UNIQUE INDEX unique_rule ON rules (forum_id, priority)
+    WHERE rules.delete_timestamp IS NULL;
 
 
 CREATE TABLE user_bans (

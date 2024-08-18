@@ -92,6 +92,7 @@ pub mod ssr {
 
     async fn get_user_vote_on_content(
         post_id: i64,
+        comment_id: Option<i64>,
         vote_id: i64,
         user: &User,
         db_pool: &PgPool,
@@ -102,10 +103,11 @@ pub mod ssr {
             FROM votes
             WHERE
                 post_id = $1 AND
-                vote_id = $2 AND
-                user_id = $3",
+                comment_id IS NOT DISTINCT FROM $2 AND
+                vote_id = $3 AND
+                user_id = $4",
             post_id,
-            //comment_id, //TODO where condition on nullable field is causing issue
+            comment_id,
             vote_id,
             user.user_id,
         )
@@ -124,7 +126,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Option<Vote>, AppError> {
         let (prev_vote_value, vote) = if let Some(vote_id) = vote_id {
-            let current_vote = get_user_vote_on_content(post_id, vote_id, user, db_pool).await?;
+            let current_vote = get_user_vote_on_content(post_id,  comment_id, vote_id, user, db_pool).await?;
             if current_vote.value == vote_value {
                 log::debug!("Vote already has the right value, don't update it.");
                 (current_vote.value, Some(current_vote))
@@ -132,15 +134,16 @@ pub mod ssr {
                 log::debug!("Update vote {vote_id} with value {vote_value:?}");
                 let vote = sqlx::query_as!(
                         Vote,
-                        "UPDATE votes SET value = $1 \
-                        WHERE vote_id = $2 AND \
-                              post_id = $3 AND \
-                              user_id = $4 \
+                        "UPDATE votes SET value = $1
+                        WHERE vote_id = $2 AND
+                              post_id = $3 AND
+                              comment_id IS NOT DISTINCT FROM $4 AND
+                              user_id = $5
                         RETURNING *",
                         vote_value as i16,
                         vote_id,
                         post_id,
-                        //comment_id, //TODO where condition on nullable field is causing issue
+                        comment_id,
                         user.user_id,
                     )
                     .fetch_one(db_pool)

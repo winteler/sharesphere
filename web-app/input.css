@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Don't make button's text uppercase */
+/* Don't make button's text uppercase, change default rounding */
 .btn {
     text-transform: none;
     @apply rounded-sm;
@@ -22,6 +22,18 @@
 
 .checkbox {
     @apply rounded-sm;
+}
+
+/* class to remove spinner from number inputs */
+/* Chromium */
+input[type="number"].no-spinner::-webkit-outer-spin-button,
+input[type="number"].no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+/* Firefox */
+input[type="number"].no-spinner {
+    -moz-appearance: textfield;
 }
 
 /* For Firefox */

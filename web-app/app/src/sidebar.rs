@@ -1,7 +1,7 @@
 use leptos::*;
 
 use crate::app::GlobalState;
-use crate::forum::{FORUM_ROUTE_PREFIX, ForumState, get_popular_forum_names, get_subscribed_forum_names};
+use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, ForumState, FORUM_ROUTE_PREFIX};
 use crate::unpack::TransitionUnpack;
 
 /// Component to display a list of forum links
@@ -60,7 +60,7 @@ pub fn LeftSidebar() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col justify-start w-60 h-full max-2xl:bg-base-200">
+        <div class="flex flex-col justify-start w-60 h-full max-2xl:bg-base-300">
             <div>
                 <TransitionUnpack resource=subscribed_forum_vec_resource let:forum_vec>
                     <ForumLinkList
@@ -85,7 +85,7 @@ pub fn LeftSidebar() -> impl IntoView {
 #[component]
 pub fn HomeSidebar() -> impl IntoView {
     view! {
-        <div class="flex flex-col justify-start w-80 h-full px-3 py-2">
+        <div class="flex flex-col justify-start w-80 h-full px-3 py-2 bg-base-200">
             <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">"Welcome to ShareSphere!"</div>
                 <div class="flex flex-col gap-1 text-justify">
@@ -102,11 +102,11 @@ pub fn HomeSidebar() -> impl IntoView {
 pub fn ForumSidebar() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col gap-4 justify-start w-80 h-full px-3 py-2">
+        <div class="flex flex-col gap-4 justify-start w-80 h-full px-4 py-2">
             <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">{forum_state.forum_name}</div>
                 <TransitionUnpack resource=forum_state.forum_resource let:forum>
-                    <div class="text-justify">{forum.description.clone()}</div>
+                    <div class="text-justify pl-4">{forum.description.clone()}</div>
                 </TransitionUnpack>
             </div>
             <div class="flex flex-col gap-1">
@@ -116,9 +116,9 @@ pub fn ForumSidebar() -> impl IntoView {
                     let forum_role_vec = forum_role_vec.clone();
                     view! {
                         <div class="flex flex-col gap-1">
-                            <div class="flex border-b border-base-content/20">
-                                <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
-                                <div class="w-2/5 px-6 py-2 text-left font-bold">Role</div>
+                            <div class="flex border-b border-base-content/20 pl-4">
+                                <div class="w-1/2 py-2 text-left font-bold">Username</div>
+                                <div class="w-1/2 py-2 text-left font-bold">Role</div>
                             </div>
                             <For
                                 each= move || forum_role_vec.clone().into_iter().enumerate()
@@ -126,9 +126,9 @@ pub fn ForumSidebar() -> impl IntoView {
                                 children=move |(_, role)| {
                                     let username = store_value(role.username);
                                     view! {
-                                        <div class="flex py-1 rounded hover:bg-base-content/20">
-                                            <div class="w-2/5 px-6 select-none">{username.get_value()}</div>
-                                            <div class="w-2/5 px-6 select-none">{role.permission_level.to_string()}</div>
+                                        <div class="flex py-1 rounded hover:bg-base-content/20 pl-4">
+                                            <div class="w-1/2 select-none">{username.get_value()}</div>
+                                            <div class="w-1/2 select-none">{role.permission_level.to_string()}</div>
                                         </div>
                                     }
                                 }

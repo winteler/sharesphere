@@ -8,8 +8,6 @@ use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
@@ -19,6 +17,8 @@ use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRo
 use crate::unpack::TransitionUnpack;
 use crate::user::get_matching_username_set;
 use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -483,9 +483,9 @@ pub fn ModeratorPanel() -> impl IntoView {
                 let forum_role_vec = forum_role_vec.clone();
                 view! {
                     <div class="flex flex-col gap-1">
-                        <div class="flex border-b border-base-content/20">
-                            <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
-                            <div class="w-2/5 px-6 py-2 text-left font-bold">Role</div>
+                        <div class="flex gap-1 border-b border-base-content/20">
+                            <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
+                            <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
                         </div>
                         <For
                             each= move || forum_role_vec.clone().into_iter().enumerate()
@@ -494,7 +494,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                                 let username = store_value(role.username);
                                 view! {
                                     <div
-                                        class="flex py-1 rounded hover:bg-base-content/20 transform active:scale-95 transition duration-250"
+                                        class="flex gap-1 py-1 rounded hover:bg-base-content/20 transform active:scale-95 transition duration-250"
                                         on:click=move |_| {
                                             username_input.set(username.get_value());
                                             match select_ref.get_untracked() {
@@ -503,8 +503,8 @@ pub fn ModeratorPanel() -> impl IntoView {
                                             };
                                         }
                                     >
-                                        <div class="w-2/5 px-6 select-none">{username.get_value()}</div>
-                                        <div class="w-2/5 px-6 select-none">{role.permission_level.to_string()}</div>
+                                        <div class="w-2/5 px-4 select-none">{username.get_value()}</div>
+                                        <div class="w-2/5 px-4 select-none">{role.permission_level.to_string()}</div>
                                     </div>
                                 }
                             }
@@ -553,7 +553,7 @@ pub fn PermissionLevelForm(
                 value=forum_name
             />
             <div class="flex gap-1 content-center">
-                <div class="dropdown dropdown-end">
+                <div class="dropdown dropdown-end w-2/5">
                     <input
                         tabindex="0"
                         type="text"
@@ -571,7 +571,7 @@ pub fn PermissionLevelForm(
                         {
                             let username_set = username_set.clone();
                             view! {
-                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
                                     <For
                                         each= move || username_set.clone().into_iter().enumerate()
                                         key=|(_index, username)| username.clone()
@@ -618,10 +618,10 @@ pub fn ForumRulesPanel() -> impl IntoView {
                 let forum_rule_vec = forum_rule_vec.clone();
                 view! {
                     <div class="flex flex-col gap-1">
-                        <div class="flex border-b border-base-content/20">
-                            <div class="w-1/6 pl-6 py-2 text-left font-bold">"N°"</div>
-                            <div class="w-1/3 py-2 text-left font-bold">"Title"</div>
-                            <div class="w-1/3 py-2 text-left font-bold">"Description"</div>
+                        <div class="flex gap-1 border-b border-base-content/20 pl-2">
+                            <div class="w-1/12 py-2 font-bold">"N°"</div>
+                            <div class="w-1/3 py-2 font-bold">"Title"</div>
+                            <div class="w-5/12 py-2 font-bold">"Description"</div>
                         </div>
                         <For
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
@@ -630,10 +630,10 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                 let title = store_value(rule.title);
                                 let description = store_value(rule.description);
                                 view! {
-                                    <div class="flex py-1 rounded">
-                                        <div class="w-1/6 pl-6 select-none">{rule.priority}</div>
+                                    <div class="flex gap-1 py-1 rounded pl-2">
+                                        <div class="w-1/12 select-none">{rule.priority}</div>
                                         <div class="w-1/3 select-none">{title.get_value()}</div>
-                                        <div class="w-1/3 select-none">{description.get_value()}</div>
+                                        <div class="w-5/12 select-none">{description.get_value()}</div>
                                     </div>
                                 }
                             }
@@ -667,24 +667,21 @@ pub fn CreateRuleForm() -> impl IntoView {
                     tabindex="0"
                     type="number"
                     name="priority"
+                    placeholder="N°"
                     autocomplete="off"
-                    class="input input-bordered input-primary w-1/6"
+                    class="input input-bordered input-primary no-spinner px-1 w-1/12"
                 />
-                <input
-                    tabindex="0"
-                    type="text"
+                <FormTextEditor
                     name="title"
                     placeholder="Title"
-                    autocomplete="off"
-                    class="input input-bordered input-primary w-1/3"
-                    on:input=move |ev| {
-                        title.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
-                    }
+                    content=title
+                    class="w-1/3"
                 />
                 <FormTextEditor
                     name="description"
                     placeholder="Description"
                     content=description
+                    class="w-5/12"
                 />
                 <button
                     type="submit"

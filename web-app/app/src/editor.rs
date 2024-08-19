@@ -25,8 +25,8 @@ pub enum FormatType {
 mod ssr {
     use std::io::Cursor;
 
-    use quick_xml::{Reader, Writer};
     use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
+    use quick_xml::{Reader, Writer};
 
     use crate::constants::SPOILER_TAG;
     use crate::errors::AppError;
@@ -150,11 +150,15 @@ pub fn FormTextEditor(
     placeholder: &'static str,
     /// Signal to synchronize content between this component and its parent
     content: RwSignal<String>,
+    /// Additional css classes
+    #[prop(default = "w-full")]
+    class: &'static str,
 ) -> impl IntoView {
     let num_lines = move || content.with(|content| content.lines().count());
+    let class = format!("group max-w-full p-2 border border-primary rounded-sm bg-base-100 {class}");
 
     view! {
-        <div class="group w-full max-w-full p-2 border border-primary rounded-sm bg-base-100">
+        <div class=class>
             <div class="w-full rounded-t-lg">
                 <label for="text" class="sr-only">
                     "Your text"

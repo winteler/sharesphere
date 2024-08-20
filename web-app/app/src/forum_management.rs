@@ -501,7 +501,7 @@ pub async fn moderate_comment(
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-1 w-full 2xl:w-1/3 mx-auto">
+        <div class="flex flex-col gap-5 w-full 2xl:w-1/3 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
             <ForumRulesPanel/>
@@ -641,7 +641,7 @@ pub fn PermissionLevelForm(
                 />
                 <button
                     type="submit"
-                    class="btn btn-active btn-secondary"
+                    class="py-1 px-3 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
                 >
                     "Assign"
                 </button>
@@ -679,8 +679,11 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                         <div class="w-1/12 select-none">{rule.priority}</div>
                                         <div class="w-1/3 select-none">{title.get_value()}</div>
                                         <div class="w-5/12 select-none">{description.get_value()}</div>
+                                        <button class="grow p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250">
+                                            "Edit"
+                                        </button>
                                         <AuthorizedShow permission_level=PermissionLevel::Manage>
-                                            <ActionForm action=forum_state.remove_rule_action class="w-1/6 flex justify-center">
+                                            <ActionForm action=forum_state.remove_rule_action class="w-1/18 flex justify-center">
                                                 <input
                                                     name="forum_name"
                                                     class="hidden"
@@ -691,7 +694,7 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                                     class="hidden"
                                                     value=rule.priority
                                                 />
-                                                <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250">
+                                                <button class="p-1 rounded-sm bg-error hover:bg-error/75 transform active:scale-90 transition duration-250">
                                                     <DeleteIcon/>
                                                 </button>
                                             </ActionForm>
@@ -748,7 +751,7 @@ pub fn CreateRuleForm() -> impl IntoView {
                 <button
                     type="submit"
                     disabled=invalid_inputs
-                    class="btn btn-active btn-secondary w-fit"
+                    class="h-fit grow p-2 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
                 >
                     "Add rule"
                 </button>
@@ -800,7 +803,7 @@ pub fn BanPanel() -> impl IntoView {
                                             class="hidden"
                                             value=child.1.ban_id
                                         />
-                                        <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250">
+                                        <button class="p-1 rounded-sm bg-error hover:bg-error/75 transform active:scale-90 transition duration-250">
                                             <DeleteIcon/>
                                         </button>
                                     </ActionForm>

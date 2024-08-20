@@ -6,27 +6,27 @@ use leptos_router::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
-use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
+use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::{AddRule, get_forum_rule_vec, MANAGE_FORUM_SUFFIX, ModeratePost, Rule};
+use crate::forum_management::{get_forum_rule_vec, AddRule, ModeratePost, RemoveRule, Rule, MANAGE_FORUM_SUFFIX};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
-    CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, Post, POST_ROUTE_PREFIX,
+    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
-use crate::role::{AuthorizedShow, get_forum_role_vec, PermissionLevel, SetUserForumRole, UserForumRole};
+use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -79,10 +79,11 @@ pub struct ForumState {
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<String, Result<Forum, ServerFnError>>,
     pub forum_roles_resource: Resource<(String, usize), Result<Vec<UserForumRole>, ServerFnError>>,
-    pub forum_rules_resource: Resource<(String, usize), Result<Vec<Rule>, ServerFnError>>,
+    pub forum_rules_resource: Resource<(String, usize, usize), Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
     pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
     pub add_rule_action: Action<AddRule, Result<Rule, ServerFnError>>,
+    pub remove_rule_action: Action<RemoveRule, Result<(), ServerFnError>>,
 }
 
 #[cfg(feature = "ssr")]
@@ -94,8 +95,8 @@ pub mod ssr {
     use crate::errors::AppError;
     use crate::errors::AppError::InternalServerError;
     use crate::forum::{Forum, ForumWithUserInfo};
-    use crate::role::PermissionLevel;
     use crate::role::ssr::set_user_forum_role;
+    use crate::role::PermissionLevel;
     use crate::user::User;
 
     pub async fn get_forum_by_name(forum_name: &str, db_pool: &PgPool) -> Result<Forum, AppError> {
@@ -419,6 +420,7 @@ pub fn ForumBanner() -> impl IntoView {
     let forum_name = get_forum_name_memo(use_params_map());
     let set_forum_role_action = create_server_action::<SetUserForumRole>();
     let add_rule_action = create_server_action::<AddRule>();
+    let remove_rule_action = create_server_action::<RemoveRule>();
     let forum_state = ForumState {
         forum_name,
         permission_level: Signal::derive(
@@ -436,12 +438,13 @@ pub fn ForumBanner() -> impl IntoView {
             move |(forum_name, _)| get_forum_role_vec(forum_name),
         ),
         forum_rules_resource: create_resource(
-            move || (forum_name.get(), add_rule_action.version().get()),
-            move |(forum_name, _)| get_forum_rule_vec(forum_name),
+            move || (forum_name.get(), add_rule_action.version().get(), remove_rule_action.version().get()),
+            move |(forum_name, _, _)| get_forum_rule_vec(forum_name),
         ),
         moderate_post_action: create_server_action::<ModeratePost>(),
         set_forum_role_action,
         add_rule_action,
+        remove_rule_action,
     };
     provide_context(forum_state);
 

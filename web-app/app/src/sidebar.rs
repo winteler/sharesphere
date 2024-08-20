@@ -85,7 +85,7 @@ pub fn LeftSidebar() -> impl IntoView {
 #[component]
 pub fn HomeSidebar() -> impl IntoView {
     view! {
-        <div class="flex flex-col justify-start w-80 h-full px-3 py-2 bg-base-200">
+        <div class="flex flex-col justify-start w-80 h-full px-3 py-2">
             <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">"Welcome to ShareSphere!"</div>
                 <div class="flex flex-col gap-1 text-justify">

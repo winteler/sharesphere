@@ -83,7 +83,7 @@ pub mod ssr {
         let forum_rule_vec = sqlx::query_as!(
             Rule,
             "SELECT * FROM rules
-            WHERE COALESCE(forum_name, $1) = $1
+            WHERE COALESCE(forum_name, $1) = $1 AND delete_timestamp IS NULL
             ORDER BY forum_name NULLS FIRST, priority, create_timestamp",
             forum_name
         )
@@ -109,7 +109,7 @@ pub mod ssr {
         sqlx::query!(
             "UPDATE rules
              SET priority = priority + 1
-             WHERE priority >= $2 AND forum_name IS NOT DISTINCT FROM $1",
+             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority >= $2 AND delete_timestamp IS NULL",
             forum_name,
             priority,
         )
@@ -134,6 +134,40 @@ pub mod ssr {
             .await?;
 
         Ok(rule)
+    }
+
+    pub async fn remove_rule(
+        forum_name: Option<&str>,
+        priority: i16,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        match forum_name {
+            Some(forum_name) => user.check_permissions(forum_name, PermissionLevel::Manage)?,
+            None => user.check_admin_role(AdminRole::Admin)?,
+        };
+
+        sqlx::query!(
+            "UPDATE rules
+             SET delete_timestamp = CURRENT_TIMESTAMP
+             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL",
+            forum_name,
+            priority,
+        )
+            .execute(db_pool)
+            .await?;
+
+        sqlx::query!(
+            "UPDATE rules
+             SET priority = priority - 1
+             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority > $2 AND delete_timestamp IS NULL",
+            forum_name,
+            priority,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn get_forum_ban_vec(
@@ -360,6 +394,17 @@ pub async fn add_rule(
     let user = check_user()?;
     let rule = ssr::add_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
     Ok(rule)
+}
+
+#[server]
+pub async fn remove_rule(
+    forum_name: Option<String>,
+    priority: i16,
+) -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let user = check_user()?;
+    ssr::remove_rule(forum_name.as_ref().map(String::as_str), priority, &user, &db_pool).await?;
+    Ok(())
 }
 
 #[server]
@@ -634,6 +679,23 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                         <div class="w-1/12 select-none">{rule.priority}</div>
                                         <div class="w-1/3 select-none">{title.get_value()}</div>
                                         <div class="w-5/12 select-none">{description.get_value()}</div>
+                                        <AuthorizedShow permission_level=PermissionLevel::Manage>
+                                            <ActionForm action=forum_state.remove_rule_action class="w-1/6 flex justify-center">
+                                                <input
+                                                    name="forum_name"
+                                                    class="hidden"
+                                                    value=forum_state.forum_name
+                                                />
+                                                <input
+                                                    name="priority"
+                                                    class="hidden"
+                                                    value=rule.priority
+                                                />
+                                                <button class="p-1 rounded hover:bg-base-content/20 transform active:scale-90 transition duration-250">
+                                                    <DeleteIcon/>
+                                                </button>
+                                            </ActionForm>
+                                        </AuthorizedShow>
                                     </div>
                                 }
                             }

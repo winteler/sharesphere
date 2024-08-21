@@ -112,6 +112,7 @@ CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, permissio
 
 CREATE TABLE rules (
     rule_id BIGSERIAL PRIMARY KEY,
+    rule_key BIGSERIAL, -- business id to track rule across updates
     forum_id BIGINT,
     forum_name TEXT,
     priority SMALLINT NOT NULL,

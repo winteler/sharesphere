@@ -44,6 +44,7 @@ pub struct UserBan {
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Rule {
     pub rule_id: i64,
+    pub rule_key: i64, // business id to track rule across updates
     pub forum_id: Option<i64>,
     pub forum_name: Option<String>,
     pub priority: i16,
@@ -589,6 +590,7 @@ pub fn PermissionLevelForm(
             }
         },
     );
+    let disable_submit = move || username_input.with(|username| username.is_empty());
 
     view! {
         <ActionForm action=set_role_action>
@@ -641,7 +643,8 @@ pub fn PermissionLevelForm(
                 />
                 <button
                     type="submit"
-                    class="py-1 px-3 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+                    class="btn btn-secondary"
+                    disabled=disable_submit
                 >
                     "Assign"
                 </button>
@@ -672,34 +675,31 @@ pub fn ForumRulesPanel() -> impl IntoView {
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
                             key=|(_index, rule)| rule.rule_id
                             children=move |(_, rule)| {
-                                let title = store_value(rule.title);
-                                let description = store_value(rule.description);
+                                let rule = store_value(rule);
+                                let show_edit_form = create_rw_signal(false);
                                 view! {
-                                    <div class="flex gap-1 py-1 rounded pl-2">
-                                        <div class="w-1/12 select-none">{rule.priority}</div>
-                                        <div class="w-1/3 select-none">{title.get_value()}</div>
-                                        <div class="w-5/12 select-none">{description.get_value()}</div>
-                                        <button class="grow p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250">
-                                            "Edit"
-                                        </button>
-                                        <AuthorizedShow permission_level=PermissionLevel::Manage>
-                                            <ActionForm action=forum_state.remove_rule_action class="w-1/18 flex justify-center">
-                                                <input
-                                                    name="forum_name"
-                                                    class="hidden"
-                                                    value=forum_state.forum_name
-                                                />
-                                                <input
-                                                    name="priority"
-                                                    class="hidden"
-                                                    value=rule.priority
-                                                />
-                                                <button class="p-1 rounded-sm bg-error hover:bg-error/75 transform active:scale-90 transition duration-250">
-                                                    <DeleteIcon/>
-                                                </button>
-                                            </ActionForm>
-                                        </AuthorizedShow>
+                                    <div class="flex gap-1 py-1 rounded pl-1">
+                                        <div class="grow flex gap-1">
+                                            <div class="w-1/12 select-none">{rule.get_value().priority}</div>
+                                            <div class="w-1/3 select-none">{rule.get_value().title}</div>
+                                            <div class="grow select-none">{rule.get_value().description}</div>
+                                        </div>
+                                        <div class="w-20 flex gap-1">
+                                            <button
+                                                class="grow p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+                                                on:click=move |_| show_edit_form.update(|value| *value = !*value)
+                                            >
+                                                "Edit"
+                                            </button>
+                                            <DeleteRuleButton rule/>
+                                        </div>
                                     </div>
+                                    <ModalDialog
+                                        class="w-full max-w-xl"
+                                        show_dialog=show_edit_form
+                                    >
+                                        <EditRuleForm rule show_form=show_edit_form/>
+                                    </ModalDialog>
                                 }
                             }
                         />
@@ -712,13 +712,76 @@ pub fn ForumRulesPanel() -> impl IntoView {
     }
 }
 
-/// Component to create forum rules
+/// Component to delete a forum rule
+#[component]
+pub fn DeleteRuleButton(
+    rule: StoredValue<Rule>
+) -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    view! {
+        <AuthorizedShow permission_level=PermissionLevel::Manage>
+            <ActionForm action=forum_state.remove_rule_action class="flex justify-center">
+                <input
+                    name="forum_name"
+                    class="hidden"
+                    value=forum_state.forum_name
+                />
+                <input
+                    name="priority"
+                    class="hidden"
+                    value=rule.get_value().priority
+                />
+                <button class="p-1 rounded-sm bg-error hover:bg-error/75 transform active:scale-90 transition duration-250">
+                    <DeleteIcon/>
+                </button>
+            </ActionForm>
+        </AuthorizedShow>
+    }
+}
+
+/// Component to edit a forum rule
+#[component]
+pub fn EditRuleForm(
+    rule: StoredValue<Rule>,
+    show_form: RwSignal<bool>,
+) -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    let rule = rule.get_value();
+    let priority = create_rw_signal(rule.priority.to_string());
+    let title = create_rw_signal(rule.title);
+    let description = create_rw_signal(rule.description);
+    let invalid_inputs = move || with!(|priority, title, description| priority.is_empty() || title.is_empty() || description.is_empty());
+
+    view! {
+        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Edit a rule"</div>
+            // TODO change action
+            <ActionForm action=forum_state.add_rule_action>
+                <input
+                    name="rule_key"
+                    class="hidden"
+                    value=rule.rule_key
+                />
+                <div class="flex flex-col gap-3 w-full">
+                    <RuleInputs priority title description/>
+                    <ModalFormButtons
+                        disable_publish=invalid_inputs
+                        show_form
+                    />
+                </div>
+            </ActionForm>
+        </div>
+    }
+}
+
+/// Component to create a forum rule
 #[component]
 pub fn CreateRuleForm() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
+    let priority = create_rw_signal(String::default());
     let title = create_rw_signal(String::default());
     let description = create_rw_signal(String::default());
-    let invalid_inputs = move || with!(|title, description| title.is_empty() || description.is_empty());
+    let invalid_inputs = move || with!(|priority, title, description| priority.is_empty() || title.is_empty() || description.is_empty());
 
     view! {
         <ActionForm action=forum_state.add_rule_action>
@@ -728,35 +791,53 @@ pub fn CreateRuleForm() -> impl IntoView {
                 value=forum_state.forum_name
             />
             <div class="flex gap-1 content-center">
-                <input
-                    tabindex="0"
-                    type="number"
-                    name="priority"
-                    placeholder="N°"
-                    autocomplete="off"
-                    class="input input-bordered input-primary no-spinner px-1 w-1/12"
-                />
-                <FormTextEditor
-                    name="title"
-                    placeholder="Title"
-                    content=title
-                    class="w-1/3"
-                />
-                <FormTextEditor
-                    name="description"
-                    placeholder="Description"
-                    content=description
-                    class="w-5/12"
-                />
+                <div class="grow">
+                    <RuleInputs priority title description/>
+                </div>
                 <button
                     type="submit"
                     disabled=invalid_inputs
-                    class="h-fit grow p-2 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+                    class="h-fit w-20 btn btn-secondary"
                 >
                     "Add rule"
                 </button>
             </div>
         </ActionForm>
+    }
+}
+
+/// Components with inputs to create or edit a rule
+#[component]
+pub fn RuleInputs(
+    priority: RwSignal<String>,
+    title: RwSignal<String>,
+    description: RwSignal<String>,
+) -> impl IntoView {
+    view! {
+        <div class="flex gap-1 content-center">
+            <input
+                tabindex="0"
+                type="number"
+                name="priority"
+                placeholder="N°"
+                autocomplete="off"
+                class="input input-bordered input-primary no-spinner px-1 w-1/12"
+                value=priority
+                on:input=move |ev| priority.set(event_target_value(&ev))
+            />
+            <FormTextEditor
+                name="title"
+                placeholder="Title"
+                content=title
+                class="w-1/3"
+            />
+            <FormTextEditor
+                name="description"
+                placeholder="Description"
+                content=description
+                class="grow"
+            />
+        </div>
     }
 }
 

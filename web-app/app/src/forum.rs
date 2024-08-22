@@ -13,7 +13,7 @@ use crate::auth::LoginGuardButton;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::{get_forum_rule_vec, AddRule, ModeratePost, RemoveRule, Rule, MANAGE_FORUM_SUFFIX};
+use crate::forum_management::{get_forum_rule_vec, AddRule, ModeratePost, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_SUFFIX};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
@@ -79,10 +79,11 @@ pub struct ForumState {
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<String, Result<Forum, ServerFnError>>,
     pub forum_roles_resource: Resource<(String, usize), Result<Vec<UserForumRole>, ServerFnError>>,
-    pub forum_rules_resource: Resource<(String, usize, usize), Result<Vec<Rule>, ServerFnError>>,
+    pub forum_rules_resource: Resource<(String, usize, usize, usize), Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
     pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
     pub add_rule_action: Action<AddRule, Result<Rule, ServerFnError>>,
+    pub update_rule_action: Action<UpdateRule, Result<Rule, ServerFnError>>,
     pub remove_rule_action: Action<RemoveRule, Result<(), ServerFnError>>,
 }
 
@@ -420,6 +421,7 @@ pub fn ForumBanner() -> impl IntoView {
     let forum_name = get_forum_name_memo(use_params_map());
     let set_forum_role_action = create_server_action::<SetUserForumRole>();
     let add_rule_action = create_server_action::<AddRule>();
+    let update_rule_action = create_server_action::<UpdateRule>();
     let remove_rule_action = create_server_action::<RemoveRule>();
     let forum_state = ForumState {
         forum_name,
@@ -438,12 +440,18 @@ pub fn ForumBanner() -> impl IntoView {
             move |(forum_name, _)| get_forum_role_vec(forum_name),
         ),
         forum_rules_resource: create_resource(
-            move || (forum_name.get(), add_rule_action.version().get(), remove_rule_action.version().get()),
-            move |(forum_name, _, _)| get_forum_rule_vec(forum_name),
+            move || (
+                forum_name.get(),
+                add_rule_action.version().get(),
+                update_rule_action.version().get(),
+                remove_rule_action.version().get()
+            ),
+            move |(forum_name, _, _, _)| get_forum_rule_vec(forum_name),
         ),
         moderate_post_action: create_server_action::<ModeratePost>(),
         set_forum_role_action,
         add_rule_action,
+        update_rule_action,
         remove_rule_action,
     };
     provide_context(forum_state);

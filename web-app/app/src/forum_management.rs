@@ -137,6 +137,78 @@ pub mod ssr {
         Ok(rule)
     }
 
+    pub async fn update_rule(
+        forum_name: Option<&str>,
+        current_priority: i16,
+        priority: i16,
+        title: &str,
+        description: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Rule, AppError> {
+        match forum_name {
+            Some(forum_name) => user.check_permissions(forum_name, PermissionLevel::Manage)?,
+            None => user.check_admin_role(AdminRole::Admin)?,
+        };
+
+        let current_rule = sqlx::query_as!(
+            Rule,
+            "UPDATE rules
+             SET delete_timestamp = CURRENT_TIMESTAMP
+             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL
+             RETURNING *",
+            forum_name,
+            current_priority,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        if priority > current_priority {
+            sqlx::query!(
+                "UPDATE rules
+                SET priority = priority - 1
+                WHERE forum_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $2 AND $3 AND delete_timestamp IS NULL",
+                forum_name,
+                current_priority,
+                priority,
+            )
+                .execute(db_pool)
+                .await?;
+        } else if priority < current_priority {
+            sqlx::query!(
+                "UPDATE rules
+                SET priority = priority + 1
+                WHERE forum_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $3 AND $2 AND delete_timestamp IS NULL",
+                forum_name,
+                current_priority,
+                priority,
+            )
+                .execute(db_pool)
+                .await?;
+        }
+
+        let new_rule = sqlx::query_as!(
+            Rule,
+            "INSERT INTO rules
+            (rule_key, forum_id, forum_name, priority, title, description, user_id)
+            VALUES (
+                $1,
+                (SELECT forum_id FROM forums WHERE forum_name = $2),
+                $2, $3, $4, $5, $6
+            ) RETURNING *",
+            current_rule.rule_key,
+            forum_name,
+            priority,
+            title,
+            description,
+            user.user_id,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(new_rule)
+    }
+
     pub async fn remove_rule(
         forum_name: Option<&str>,
         priority: i16,
@@ -394,6 +466,20 @@ pub async fn add_rule(
     let db_pool = get_db_pool()?;
     let user = check_user()?;
     let rule = ssr::add_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
+    Ok(rule)
+}
+
+#[server]
+pub async fn update_rule(
+    forum_name: Option<String>,
+    current_priority: i16,
+    priority: i16,
+    title: String,
+    description: String,
+) -> Result<Rule, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let user = check_user()?;
+    let rule = ssr::update_rule(forum_name.as_ref().map(String::as_str), current_priority, priority, &title, &description, &user, &db_pool).await?;
     Ok(rule)
 }
 
@@ -666,10 +752,12 @@ pub fn ForumRulesPanel() -> impl IntoView {
                 let forum_rule_vec = forum_rule_vec.clone();
                 view! {
                     <div class="flex flex-col gap-1">
-                        <div class="flex gap-1 border-b border-base-content/20 pl-2">
-                            <div class="w-1/12 py-2 font-bold">"N°"</div>
-                            <div class="w-1/3 py-2 font-bold">"Title"</div>
-                            <div class="w-5/12 py-2 font-bold">"Description"</div>
+                        <div class="border-b border-base-content/20 pl-1">
+                            <div class="w-5/6 flex gap-1">
+                                <div class="w-1/12 py-2 font-bold">"N°"</div>
+                                <div class="w-4/12 py-2 font-bold">"Title"</div>
+                                <div class="w-7/12 py-2 font-bold">"Description"</div>
+                            </div>
                         </div>
                         <For
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
@@ -679,14 +767,14 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                 let show_edit_form = create_rw_signal(false);
                                 view! {
                                     <div class="flex gap-1 py-1 rounded pl-1">
-                                        <div class="grow flex gap-1">
+                                        <div class="w-5/6 flex gap-1">
                                             <div class="w-1/12 select-none">{rule.get_value().priority}</div>
-                                            <div class="w-1/3 select-none">{rule.get_value().title}</div>
-                                            <div class="grow select-none">{rule.get_value().description}</div>
+                                            <div class="w-4/12 select-none">{rule.get_value().title}</div>
+                                            <div class="w-7/12 select-none">{rule.get_value().description}</div>
                                         </div>
-                                        <div class="w-20 flex gap-1">
+                                        <div class="w-1/6 flex gap-1">
                                             <button
-                                                class="grow p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+                                                class="grow h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                             >
                                                 "Edit"
@@ -720,7 +808,7 @@ pub fn DeleteRuleButton(
     let forum_state = expect_context::<ForumState>();
     view! {
         <AuthorizedShow permission_level=PermissionLevel::Manage>
-            <ActionForm action=forum_state.remove_rule_action class="flex justify-center">
+            <ActionForm action=forum_state.remove_rule_action class="h-fit flex justify-center">
                 <input
                     name="forum_name"
                     class="hidden"
@@ -755,12 +843,16 @@ pub fn EditRuleForm(
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Edit a rule"</div>
-            // TODO change action
-            <ActionForm action=forum_state.add_rule_action>
+            <ActionForm action=forum_state.update_rule_action>
                 <input
-                    name="rule_key"
+                    name="forum_name"
                     class="hidden"
-                    value=rule.rule_key
+                    value=forum_state.forum_name
+                />
+                <input
+                    name="current_priority"
+                    class="hidden"
+                    value=rule.priority
                 />
                 <div class="flex flex-col gap-3 w-full">
                     <RuleInputs priority title description/>
@@ -791,13 +883,11 @@ pub fn CreateRuleForm() -> impl IntoView {
                 value=forum_state.forum_name
             />
             <div class="flex gap-1 content-center">
-                <div class="grow">
-                    <RuleInputs priority title description/>
-                </div>
+                <RuleInputs priority title description/>
                 <button
                     type="submit"
                     disabled=invalid_inputs
-                    class="h-fit w-20 btn btn-secondary"
+                    class="h-fit w-1/6 btn btn-secondary"
                 >
                     "Add rule"
                 </button>
@@ -829,13 +919,13 @@ pub fn RuleInputs(
                 name="title"
                 placeholder="Title"
                 content=title
-                class="w-1/3"
+                class="w-4/12"
             />
             <FormTextEditor
                 name="description"
                 placeholder="Description"
                 content=description
-                class="grow"
+                class="w-7/12"
             />
         </div>
     }

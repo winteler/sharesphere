@@ -103,6 +103,66 @@ async fn test_add_rule() -> Result<(), AppError> {
 }
 
 #[tokio::test]
+async fn test_update_rule() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_user("user", &db_pool).await;
+    let lead = create_user("lead", &db_pool).await;
+    let mut admin = create_user("admin", &db_pool).await;
+    admin.admin_role = AdminRole::Admin;
+    let forum = create_forum("forum", "a", false, &lead, &db_pool).await?;
+    let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after forum creation");
+
+    let title = "title";
+    let description = "description";
+    let updated_title = "updated";
+    let updated_desc = "updated";
+
+    let common_rule_1 = ssr::add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = ssr::add_rule(None, 1, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_3 = ssr::add_rule(None, 2, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let rule_1 = ssr::add_rule(Some(&forum.forum_name), 0, title, description, &lead, &db_pool).await.expect("Rule should be created.");
+    let rule_2 = ssr::add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let rule_3 = ssr::add_rule(Some(&forum.forum_name), 2, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+
+    assert_eq!(ssr::update_rule(None, 0, 1, updated_title, updated_desc, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(ssr::update_rule(None, 0, 1, updated_title, updated_desc,  &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    let common_rule_1_updated = ssr::update_rule(None, 0, 1, updated_title, updated_desc, &admin, &db_pool).await.expect("Rule should be updated.");
+    assert_eq!(common_rule_1_updated.rule_key, common_rule_1.rule_key);
+    assert_eq!(common_rule_1_updated.priority, 1);
+    assert_eq!(common_rule_1_updated.forum_id, None);
+    assert_eq!(common_rule_1_updated.forum_name, None);
+    assert_eq!(common_rule_1_updated.title, updated_title);
+    assert_eq!(common_rule_1_updated.description, updated_desc);
+
+    assert_eq!(ssr::update_rule(Some(&forum.forum_name), 1, 0, updated_title, updated_desc, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    let rule_2_updated = ssr::update_rule(Some(&forum.forum_name), 1, 0, updated_title, updated_desc,  &lead, &db_pool).await.expect("Rule should be updated.");
+    assert_eq!(rule_2_updated.rule_key, rule_2.rule_key);
+    assert_eq!(rule_2_updated.priority, 0);
+    assert_eq!(rule_2_updated.forum_id, Some(forum.forum_id));
+    assert_eq!(rule_2_updated.forum_name, Some(forum.forum_name.clone()));
+    assert_eq!(rule_2_updated.title, updated_title);
+    assert_eq!(rule_2_updated.description, updated_desc);
+    let rule_3_updated = ssr::update_rule(Some(&forum.forum_name), 2, 1, updated_title, updated_desc, &admin, &db_pool).await.expect("Rule should be updated.");
+    assert_eq!(rule_3_updated.rule_key, rule_3.rule_key);
+    assert_eq!(rule_3_updated.priority, 1);
+    assert_eq!(rule_3_updated.forum_id, Some(forum.forum_id));
+    assert_eq!(rule_3_updated.forum_name, Some(forum.forum_name.clone()));
+    assert_eq!(rule_3_updated.title, updated_title);
+    assert_eq!(rule_3_updated.description, updated_desc);
+
+    let forum_rule_vec = ssr::get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    assert_eq!(forum_rule_vec.len(), 6);
+    assert_eq!(forum_rule_vec.get(0).unwrap().rule_id, common_rule_2.rule_id);
+    assert_eq!(forum_rule_vec.get(1), Some(&common_rule_1_updated));
+    assert_eq!(forum_rule_vec.get(2), Some(&common_rule_3));
+    assert_eq!(forum_rule_vec.get(3), Some(&rule_2_updated));
+    assert_eq!(forum_rule_vec.get(4), Some(&rule_3_updated));
+    assert_eq!(forum_rule_vec.get(5).unwrap().rule_id, rule_1.rule_id);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_remove_rule() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_user("user", &db_pool).await;

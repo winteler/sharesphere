@@ -8,8 +8,8 @@ use app::forum::ssr::create_forum;
 use app::forum_management::ssr;
 use app::forum_management::ssr::{ban_user_from_forum, get_forum_ban_vec, is_user_forum_moderator, moderate_comment, moderate_post, remove_user_ban};
 use app::post::ssr::create_post;
-use app::role::AdminRole;
 use app::role::ssr::set_user_admin_role;
+use app::role::AdminRole;
 use app::user::User;
 
 use crate::common::*;
@@ -98,6 +98,47 @@ async fn test_add_rule() -> Result<(), AppError> {
     assert_eq!(forum_rule_vec.get(1).unwrap().rule_id, common_rule_1.rule_id);
     assert_eq!(forum_rule_vec.get(2), Some(&rule_2));
     assert_eq!(forum_rule_vec.get(3).unwrap().rule_id, rule_1.rule_id);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_remove_rule() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_user("user", &db_pool).await;
+    let lead = create_user("lead", &db_pool).await;
+    let mut admin = create_user("admin", &db_pool).await;
+    admin.admin_role = AdminRole::Admin;
+    let forum = create_forum("forum", "a", false, &lead, &db_pool).await?;
+    let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after forum creation");
+
+    let title = "title";
+    let description = "description";
+
+    let _common_rule_1 = ssr::add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = ssr::add_rule(None, 1, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let _rule_1 = ssr::add_rule(Some(&forum.forum_name), 0, title, description, &lead, &db_pool).await.expect("Rule should be created.");
+    let rule_2 = ssr::add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+
+    assert_eq!(ssr::remove_rule(None, 0, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(ssr::remove_rule(None, 0, &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(ssr::remove_rule(None, 0, &admin, &db_pool).await, Ok(()));
+
+    assert_eq!(ssr::remove_rule(Some(&forum.forum_name), 0, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(ssr::remove_rule(Some(&forum.forum_name), 0, &lead, &db_pool).await, Ok(()));
+
+    let forum_rule_vec = ssr::get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    assert_eq!(forum_rule_vec.len(), 2);
+    assert_eq!(forum_rule_vec.get(0).unwrap().rule_id, common_rule_2.rule_id);
+    assert_eq!(forum_rule_vec.get(0).unwrap().priority, 0);
+    assert_eq!(forum_rule_vec.get(1).unwrap().rule_id, rule_2.rule_id);
+    assert_eq!(forum_rule_vec.get(1).unwrap().priority, 0);
+
+    assert_eq!(ssr::remove_rule(Some(&forum.forum_name), 0, &admin, &db_pool).await, Ok(()));
+
+    let forum_rule_vec = ssr::get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    assert_eq!(forum_rule_vec.len(), 1);
+    assert_eq!(forum_rule_vec.get(0).unwrap().rule_id, common_rule_2.rule_id);
 
     Ok(())
 }

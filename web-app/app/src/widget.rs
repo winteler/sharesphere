@@ -207,7 +207,7 @@ pub fn SortWidgetOption(
 pub fn ModalFormButtons<F: Fn() -> bool + 'static>(
     /// functions returning whether the publish buttons should be disabled
     disable_publish: F,
-    /// signal to hide the form upon submitting
+    /// signal to hide the form upon submitting or cancelling
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     view! {

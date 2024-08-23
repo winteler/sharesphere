@@ -765,13 +765,13 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                 let rule = store_value(rule);
                                 let show_edit_form = create_rw_signal(false);
                                 view! {
-                                    <div class="flex gap-1 py-1 rounded pl-1">
-                                        <div class="w-11/12 flex gap-1">
+                                    <div class="flex gap-1 rounded pl-1">
+                                        <div class="grow flex gap-1">
                                             <div class="w-1/12 select-none">{rule.get_value().priority}</div>
                                             <div class="w-5/12 select-none">{rule.get_value().title}</div>
                                             <div class="w-6/12 select-none">{rule.get_value().description}</div>
                                         </div>
-                                        <div class="w-1/12 flex gap-1">
+                                        <div class="w-fit flex gap-1">
                                             <button
                                                 class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
@@ -807,7 +807,10 @@ pub fn DeleteRuleButton(
     let forum_state = expect_context::<ForumState>();
     view! {
         <AuthorizedShow permission_level=PermissionLevel::Manage>
-            <ActionForm action=forum_state.remove_rule_action class="h-fit flex justify-center">
+            <ActionForm
+                action=forum_state.remove_rule_action
+                class="h-fit flex justify-center"
+            >
                 <input
                     name="forum_name"
                     class="hidden"
@@ -888,7 +891,10 @@ pub fn CreateRuleForm() -> impl IntoView {
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Add a rule"</div>
-                <ActionForm action=forum_state.add_rule_action>
+                <ActionForm
+                    action=forum_state.add_rule_action
+                    on:submit=move |_| show_dialog.set(false)
+                >
                     <input
                         name="forum_name"
                         class="hidden"

@@ -11,7 +11,7 @@ use strum::IntoEnumIterator;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
-use crate::icons::{DeleteIcon, HammerIcon};
+use crate::icons::{DeleteIcon, EditIcon, HammerIcon, PlusIcon};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::TransitionUnpack;
@@ -588,7 +588,7 @@ pub async fn moderate_comment(
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-5 w-full 2xl:w-1/3 mx-auto">
+        <div class="flex flex-col gap-5 w-full 2xl:w-1/2 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
             <ForumRulesPanel/>
@@ -743,7 +743,6 @@ pub fn PermissionLevelForm(
 #[component]
 pub fn ForumRulesPanel() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
-
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
@@ -753,10 +752,10 @@ pub fn ForumRulesPanel() -> impl IntoView {
                 view! {
                     <div class="flex flex-col gap-1">
                         <div class="border-b border-base-content/20 pl-1">
-                            <div class="w-5/6 flex gap-1">
+                            <div class="w-11/12 flex gap-1">
                                 <div class="w-1/12 py-2 font-bold">"N°"</div>
-                                <div class="w-4/12 py-2 font-bold">"Title"</div>
-                                <div class="w-7/12 py-2 font-bold">"Description"</div>
+                                <div class="w-5/12 py-2 font-bold">"Title"</div>
+                                <div class="w-6/12 py-2 font-bold">"Description"</div>
                             </div>
                         </div>
                         <For
@@ -767,17 +766,17 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                 let show_edit_form = create_rw_signal(false);
                                 view! {
                                     <div class="flex gap-1 py-1 rounded pl-1">
-                                        <div class="w-5/6 flex gap-1">
+                                        <div class="w-11/12 flex gap-1">
                                             <div class="w-1/12 select-none">{rule.get_value().priority}</div>
-                                            <div class="w-4/12 select-none">{rule.get_value().title}</div>
-                                            <div class="w-7/12 select-none">{rule.get_value().description}</div>
+                                            <div class="w-5/12 select-none">{rule.get_value().title}</div>
+                                            <div class="w-6/12 select-none">{rule.get_value().description}</div>
                                         </div>
-                                        <div class="w-1/6 flex gap-1">
+                                        <div class="w-1/12 flex gap-1">
                                             <button
-                                                class="grow h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+                                                class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                             >
-                                                "Edit"
+                                                <EditIcon/>
                                             </button>
                                             <DeleteRuleButton rule/>
                                         </div>
@@ -870,29 +869,41 @@ pub fn EditRuleForm(
 #[component]
 pub fn CreateRuleForm() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
+    let show_dialog = create_rw_signal(false);
     let priority = create_rw_signal(String::default());
     let title = create_rw_signal(String::default());
     let description = create_rw_signal(String::default());
     let invalid_inputs = move || with!(|priority, title, description| priority.is_empty() || title.is_empty() || description.is_empty());
 
     view! {
-        <ActionForm action=forum_state.add_rule_action>
-            <input
-                name="forum_name"
-                class="hidden"
-                value=forum_state.forum_name
-            />
-            <div class="flex gap-1 content-center">
-                <RuleInputs priority title description/>
-                <button
-                    type="submit"
-                    disabled=invalid_inputs
-                    class="h-fit w-1/6 btn btn-secondary"
-                >
-                    "Add rule"
-                </button>
+        <button
+            class="self-end w-fit h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+            on:click=move |_| show_dialog.update(|value| *value = !*value)
+        >
+            <PlusIcon/>
+        </button>
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Add a rule"</div>
+                <ActionForm action=forum_state.add_rule_action>
+                    <input
+                        name="forum_name"
+                        class="hidden"
+                        value=forum_state.forum_name
+                    />
+                    <div class="flex flex-col gap-3 w-full">
+                        <RuleInputs priority title description/>
+                        <ModalFormButtons
+                            disable_publish=invalid_inputs
+                            show_form=show_dialog
+                        />
+                    </div>
+                </ActionForm>
             </div>
-        </ActionForm>
+        </ModalDialog>
     }
 }
 
@@ -919,13 +930,13 @@ pub fn RuleInputs(
                 name="title"
                 placeholder="Title"
                 content=title
-                class="w-4/12"
+                class="w-5/12"
             />
             <FormTextEditor
                 name="description"
                 placeholder="Description"
                 content=description
-                class="w-7/12"
+                class="w-6/12"
             />
         </div>
     }

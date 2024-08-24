@@ -626,7 +626,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                                 let username = store_value(role.username);
                                 view! {
                                     <div
-                                        class="flex gap-1 py-1 rounded hover:bg-base-content/20 transform active:scale-95 transition duration-250"
+                                        class="flex gap-1 py-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
                                         on:click=move |_| {
                                             username_input.set(username.get_value());
                                             match select_ref.get_untracked() {
@@ -774,7 +774,7 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                         </div>
                                         <div class="flex gap-1 justify-end">
                                             <button
-                                                class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+                                                class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                             >
                                                 <EditIcon/>
@@ -822,7 +822,7 @@ pub fn DeleteRuleButton(
                     class="hidden"
                     value=rule.get_value().priority
                 />
-                <button class="p-1 rounded-sm bg-error hover:bg-error/75 transform active:scale-90 transition duration-250">
+                <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                     <DeleteIcon/>
                 </button>
             </ActionForm>
@@ -881,7 +881,7 @@ pub fn CreateRuleForm() -> impl IntoView {
 
     view! {
         <button
-            class="self-end p-1 bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+            class="self-end p-1 bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <PlusIcon/>
@@ -992,7 +992,7 @@ pub fn BanPanel() -> impl IntoView {
                                             class="hidden"
                                             value=child.1.ban_id
                                         />
-                                        <button class="p-1 rounded-sm bg-error hover:bg-error/75 transform active:scale-90 transition duration-250">
+                                        <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                                             <DeleteIcon/>
                                         </button>
                                     </ActionForm>

@@ -6,7 +6,7 @@ use crate::comment::CommentSortType;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, ModeratorIcon, PodiumIcon};
+use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, FlameIcon, GraphIcon, HourglassIcon, InternalErrorIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, PodiumIcon};
 use crate::post::PostSortType;
 use crate::ranking::SortType;
 
@@ -125,6 +125,33 @@ pub fn TimeSinceEditWidget(
                 }
             </div>
         </Show>
+    }
+}
+
+/// Component to display a minimize or maximize icon with transitions
+#[component]
+pub fn MinimizeMaximizeWidget(
+    is_maximized: RwSignal<bool>
+) -> impl IntoView {
+    let invisible_class = "transition opacity-0 invisible h-0 w-0";
+    let visible_class = "transition rotate-90 duration-300 opacity-100 visible";
+    let minimize_class = move || match is_maximized.get() {
+        true => visible_class,
+        false => invisible_class,
+    };
+    let maximize_class = move || match is_maximized.get() {
+        true => invisible_class,
+        false => visible_class,
+    };
+    view! {
+        <div>
+            <div class=minimize_class>
+                <MinimizeIcon/>
+            </div>
+            <div class=maximize_class>
+                <MaximizeIcon/>
+            </div>
+        </div>
     }
 }
 

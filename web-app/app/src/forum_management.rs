@@ -588,7 +588,7 @@ pub async fn moderate_comment(
 #[component]
 pub fn ForumCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-5 w-full 2xl:w-1/2 mx-auto">
+        <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-1/2 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ModeratorPanel/>
             <ForumRulesPanel/>
@@ -752,11 +752,12 @@ pub fn ForumRulesPanel() -> impl IntoView {
                 view! {
                     <div class="flex flex-col gap-1">
                         <div class="border-b border-base-content/20 pl-1">
-                            <div class="w-11/12 flex gap-1">
+                            <div class="w-5/6 flex gap-1">
                                 <div class="w-1/12 py-2 font-bold">"N°"</div>
                                 <div class="w-5/12 py-2 font-bold">"Title"</div>
                                 <div class="w-6/12 py-2 font-bold">"Description"</div>
                             </div>
+                            //<div class="w-16 min-w-16">""</div>
                         </div>
                         <For
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
@@ -765,13 +766,13 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                 let rule = store_value(rule);
                                 let show_edit_form = create_rw_signal(false);
                                 view! {
-                                    <div class="flex gap-1 rounded pl-1">
-                                        <div class="grow flex gap-1">
+                                    <div class="flex gap-1 justify-between rounded pl-1">
+                                        <div class="w-5/6 flex gap-1">
                                             <div class="w-1/12 select-none">{rule.get_value().priority}</div>
                                             <div class="w-5/12 select-none">{rule.get_value().title}</div>
                                             <div class="w-6/12 select-none">{rule.get_value().description}</div>
                                         </div>
-                                        <div class="w-fit flex gap-1">
+                                        <div class="flex gap-1 justify-end">
                                             <button
                                                 class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
@@ -880,7 +881,7 @@ pub fn CreateRuleForm() -> impl IntoView {
 
     view! {
         <button
-            class="self-end w-fit h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
+            class="self-end p-1 bg-secondary rounded-sm hover:bg-secondary/75 transform active:scale-90 transition duration-250"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <PlusIcon/>

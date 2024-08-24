@@ -3294,8 +3294,20 @@ html {
   width: 100vw;
 }
 
+.w-14 {
+  width: 3.5rem;
+}
+
+.w-5\/6 {
+  width: 83.333333%;
+}
+
 .min-w-6 {
   min-width: 1.5rem;
+}
+
+.min-w-16 {
+  min-width: 4rem;
 }
 
 .max-w-full {
@@ -3392,6 +3404,10 @@ html {
   justify-content: flex-start;
 }
 
+.justify-end {
+  justify-content: flex-end;
+}
+
 .justify-center {
   justify-content: center;
 }
@@ -3446,6 +3462,10 @@ html {
 
 .self-end {
   align-self: flex-end;
+}
+
+.justify-self-end {
+  justify-self: end;
 }
 
 .overflow-auto {

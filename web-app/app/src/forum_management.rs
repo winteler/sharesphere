@@ -35,6 +35,9 @@ pub struct UserBan {
     pub username: String,
     pub forum_id: Option<i64>,
     pub forum_name: Option<String>,
+    pub post_id: i64,
+    pub comment_id: Option<i64>,
+    pub infringed_rule_id: i64,
     pub moderator_id: i64,
     pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
@@ -68,11 +71,11 @@ pub mod ssr {
 
     pub async fn is_user_forum_moderator(
         user_id: i64,
-        forum: &String,
+        forum: &str,
         db_pool: &PgPool,
     ) -> Result<bool, AppError> {
         match User::get(user_id, db_pool).await {
-            Some(user) => Ok(user.check_permissions(&forum, PermissionLevel::Moderate).is_ok()),
+            Some(user) => Ok(user.check_permissions(forum, PermissionLevel::Moderate).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
     }
@@ -286,24 +289,51 @@ pub mod ssr {
         Ok(user_ban)
     }
 
+    async fn get_moderated_body(
+        rule_id: i64,
+        moderator_comment: &str,
+        db_pool: &PgPool,
+    ) -> Result<String, AppError> {
+        let rule = sqlx::query_as!(
+                Rule,
+                "SELECT * FROM rules WHERE rule_id = $1",
+                rule_id,
+            )
+            .fetch_one(db_pool)
+            .await?;
+
+        // TODO format moderated body properly
+        let moderated_body = format!(
+            "{}-{}",
+            rule.title,
+            moderator_comment,
+        );
+
+        Ok(moderated_body)
+    }
+
     pub async fn moderate_post(
         post_id: i64,
-        moderated_body: &str,
+        rule_id: i64,
+        moderator_message: &str,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
+        let moderated_body = get_moderated_body(rule_id, moderator_message, db_pool).await?;
         let post = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as!(
                 Post,
                 "UPDATE posts SET
                     moderated_body = $1,
+                    infringed_rule_id = $2,
                     edit_timestamp = CURRENT_TIMESTAMP,
-                    moderator_id = $2,
-                    moderator_name = $3
+                    moderator_id = $3,
+                    moderator_name = $4
                 WHERE
-                    post_id = $4
+                    post_id = $5
                 RETURNING *",
                 moderated_body,
+                rule_id,
                 user.user_id,
                 user.username,
                 post_id,
@@ -315,19 +345,21 @@ pub mod ssr {
                 Post,
                 "UPDATE posts p SET
                     moderated_body = $1,
+                    infringed_rule_id = $2,
                     edit_timestamp = CURRENT_TIMESTAMP,
-                    moderator_id = $2,
-                    moderator_name = $3
+                    moderator_id = $3,
+                    moderator_name = $4
                 WHERE
-                    p.post_id = $4 AND
+                    p.post_id = $5 AND
                     EXISTS (
                         SELECT * FROM user_forum_roles r
                         WHERE
                             r.forum_id = p.forum_id AND
-                            r.user_id = $2
+                            r.user_id = $3
                     )
                 RETURNING *",
                 moderated_body,
+                rule_id,
                 user.user_id,
                 user.username,
                 post_id,
@@ -341,22 +373,26 @@ pub mod ssr {
 
     pub async fn moderate_comment(
         comment_id: i64,
-        moderated_body: &str,
+        rule_id: i64,
+        moderator_message: &str,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
+        let moderated_body = get_moderated_body(rule_id, moderator_message, db_pool).await?;
         let comment = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as!(
                 Comment,
                 "UPDATE comments SET
                     moderated_body = $1,
+                    infringed_rule_id = $2,
                     edit_timestamp = CURRENT_TIMESTAMP,
-                    moderator_id = $2,
-                    moderator_name = $3
+                    moderator_id = $3,
+                    moderator_name = $4
                 WHERE
-                    comment_id = $4
+                    comment_id = $5
                 RETURNING *",
                 moderated_body,
+                rule_id,
                 user.user_id,
                 user.username,
                 comment_id,
@@ -369,20 +405,22 @@ pub mod ssr {
                 Comment,
                 "UPDATE comments c SET
                     moderated_body = $1,
+                    infringed_rule_id = $2,
                     edit_timestamp = CURRENT_TIMESTAMP,
-                    moderator_id = $2,
-                    moderator_name = $3
+                    moderator_id = $3,
+                    moderator_name = $4
                 WHERE
-                    c.comment_id = $4 AND
+                    c.comment_id = $5 AND
                     EXISTS (
                         SELECT * FROM user_forum_roles r
                         JOIN posts p ON p.forum_id = r.forum_id
                         WHERE
                             p.post_id = c.post_id AND
-                            r.user_id = $2
+                            r.user_id = $3
                     )
                 RETURNING *",
                 moderated_body,
+                rule_id,
                 user.user_id,
                 user.username,
                 comment_id,
@@ -397,6 +435,9 @@ pub mod ssr {
     pub async fn ban_user_from_forum(
         user_id: i64,
         forum_name: &String,
+        post_id: i64,
+        comment_id: Option<i64>,
+        rule_id: i64,
         user: &User,
         ban_duration_days: Option<usize>,
         db_pool: &PgPool,
@@ -407,15 +448,18 @@ pub mod ssr {
                 Some(ban_duration) => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, moderator_id, until_timestamp)
+                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
                          VALUES (
                             $1,
                             (SELECT username FROM users WHERE user_id = $1),
                             (SELECT forum_id FROM forums WHERE forum_name = $2),
-                            $2, $3, CURRENT_TIMESTAMP + $4 * interval '1 day'
+                            $2, $3, $4, $5, $6, CURRENT_TIMESTAMP + $7 * interval '1 day'
                         ) RETURNING *",
                         user_id,
                         forum_name,
+                        post_id,
+                        comment_id,
+                        rule_id,
                         user.user_id,
                         ban_duration as f64,
                     )
@@ -425,15 +469,18 @@ pub mod ssr {
                 None => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, moderator_id)
+                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, post_id, comment_id, infringed_rule_id, moderator_id)
                          VALUES (
                             $1,
                             (SELECT username FROM users WHERE user_id = $1),
                             (SELECT forum_id FROM forums WHERE forum_name = $2),
-                            $2, $3
+                            $2, $3, $4, $5, $6
                         ) RETURNING *",
                         user_id,
                         forum_name,
+                        post_id,
+                        comment_id,
+                        rule_id,
                         user.user_id,
                     )
                         .fetch_one(db_pool)
@@ -521,7 +568,8 @@ pub async fn remove_user_ban(
 #[server]
 pub async fn moderate_post(
     post_id: i64,
-    moderated_body: String,
+    rule_id: i64,
+    moderator_message: String,
     ban_duration_days: Option<usize>,
 ) -> Result<Post, ServerFnError> {
     log::info!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
@@ -530,7 +578,8 @@ pub async fn moderate_post(
 
     let post = ssr::moderate_post(
         post_id,
-        moderated_body.as_str(),
+        rule_id,
+        moderator_message.as_str(),
         &user,
         &db_pool
     ).await?;
@@ -538,6 +587,9 @@ pub async fn moderate_post(
     ssr::ban_user_from_forum(
         post.creator_id,
         &post.forum_name,
+        post.post_id,
+        None,
+        rule_id,
         &user,
         ban_duration_days,
         &db_pool,
@@ -555,7 +607,8 @@ pub async fn moderate_post(
 #[server]
 pub async fn moderate_comment(
     comment_id: i64,
-    moderated_body: String,
+    rule_id: i64,
+    moderator_message: String,
     ban_duration_days: Option<usize>,
 ) -> Result<Comment, ServerFnError> {
     log::trace!("Moderate comment {comment_id}");
@@ -564,7 +617,8 @@ pub async fn moderate_comment(
 
     let comment = ssr::moderate_comment(
         comment_id,
-        moderated_body.as_str(),
+        rule_id,
+        moderator_message.as_str(),
         &user,
         &db_pool
     ).await?;
@@ -574,6 +628,9 @@ pub async fn moderate_comment(
     ssr::ban_user_from_forum(
         comment.creator_id,
         &forum.forum_name,
+        comment.post_id,
+        Some(comment.comment_id),
+        rule_id,
         &user,
         ban_duration_days,
         &db_pool
@@ -1089,7 +1146,7 @@ pub fn ModeratePostDialog(
                             value=post_id
                         />
                         <FormTextEditor
-                            name="moderated_body"
+                            name="moderator_message"
                             placeholder="Message"
                             content=moderate_text
                         />
@@ -1142,8 +1199,9 @@ pub fn ModerateCommentDialog(
                             class="hidden"
                             value=comment_id
                         />
+                        // TODO add rules select
                         <FormTextEditor
-                            name="moderated_body"
+                            name="moderator_message"
                             placeholder="Message"
                             content=moderate_text
                         />

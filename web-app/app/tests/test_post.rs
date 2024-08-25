@@ -3,17 +3,17 @@ use std::time::Duration;
 use float_cmp::approx_eq;
 use rand::Rng;
 
-use app::{forum, post};
+pub use crate::common::*;
+pub use crate::data_factory::*;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::forum_management::ssr::moderate_post;
-use app::post::{Post, PostSortType, ssr};
 use app::post::ssr::{create_post, get_post_forum, get_post_with_info_by_id, update_post_scores};
-use app::ranking::{SortType, VoteValue};
+use app::post::{ssr, Post, PostSortType};
 use app::ranking::ssr::vote_on_content;
-
-pub use crate::common::*;
-pub use crate::data_factory::*;
+use app::ranking::{SortType, VoteValue};
+use app::role::AdminRole;
+use app::{forum, forum_management, post};
 
 mod common;
 mod data_factory;
@@ -140,7 +140,7 @@ async fn test_get_post_forum() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let mut test_user = create_test_user(&db_pool).await;
 
     let forum1_name = "1";
     let forum2_name = "2";
@@ -194,8 +194,11 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     }
 
     // test banned post are not returned
+    test_user.admin_role = AdminRole::Admin;
+    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &test_user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         expected_post_vec.first().expect("First post should be accessible.").post_id,
+        rule.rule_id,
         "test",
         &test_user,
         &db_pool,
@@ -228,7 +231,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let mut test_user = create_test_user(&db_pool).await;
 
     let forum1_name = "1";
     let forum2_name = "2";
@@ -265,8 +268,12 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
     }
 
+    // Moderate post, test that it is no longer in the result
+    test_user.admin_role = AdminRole::Admin;
+    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &test_user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         expected_post_vec.first().expect("First post should be accessible.").post_id,
+        rule.rule_id,
         "test",
         &test_user,
         &db_pool,
@@ -282,7 +289,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let mut test_user = create_test_user(&db_pool).await;
 
     let forum_name = "forum";
     let num_posts = 20usize;
@@ -329,8 +336,11 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 
     assert_eq!(post_vec.len(), partial_load_num_post);
 
+    test_user.admin_role = AdminRole::Admin;
+    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &test_user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         post_vec.first().expect("First post should be accessible.").post_id,
+        rule.rule_id,
         "test",
         &test_user,
         &db_pool,

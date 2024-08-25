@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 use sqlx::PgPool;
 
-use app::{comment, forum, post, ranking};
-use app::comment::Comment;
 use app::comment::ssr::create_comment;
+use app::comment::Comment;
 use app::errors::AppError;
 use app::forum::Forum;
 use app::post::Post;
 use app::ranking::VoteValue;
 use app::user::User;
+use app::{comment, forum, post, ranking};
 
 pub async fn create_forum_with_post(
     forum_name: &str,
@@ -60,8 +60,8 @@ pub async fn create_forum_with_posts(
         forum_name,
         "forum",
         false,
-        &user,
-        &db_pool,
+        user,
+        db_pool,
     ).await?;
 
     let mut expected_post_vec = Vec::<Post>::with_capacity(num_posts);

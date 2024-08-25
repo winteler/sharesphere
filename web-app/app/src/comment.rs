@@ -4,22 +4,22 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
 use crate::app::GlobalState;
-use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
+use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
-use crate::editor::FormMarkdownEditor;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
+use crate::editor::FormMarkdownEditor;
 use crate::forum_management::ModerateCommentButton;
-use crate::icons::{CommentIcon, EditIcon, HammerIcon, MaximizeIcon, MinimizeIcon};
+use crate::icons::{CommentIcon, EditIcon, HammerIcon};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{ActionError, AuthorWidget, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{app::ssr::get_db_pool, auth::get_user};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -40,6 +40,7 @@ pub struct Comment {
     pub markdown_body: Option<String>,
     pub is_edited: bool,
     pub moderated_body: Option<String>,
+    pub infringed_rule_id: Option<i64>,
     pub parent_id: Option<i64>,
     pub post_id: i64,
     pub creator_id: i64,
@@ -318,8 +319,8 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use crate::comment::{Comment, CommentSortType};
         use crate::comment::ssr::CommentWithVote;
+        use crate::comment::{Comment, CommentSortType};
         use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
         use crate::ranking::VoteValue;
         use crate::user::User;
@@ -526,11 +527,10 @@ pub fn CommentBox(
                 class=sidebar_css
                 on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
             >
+                <MinimizeMaximizeWidget is_maximized=maximize/>
                 <Show
                     when=maximize
-                    fallback=move || view! { <MinimizeIcon class="h-5 w-5"/> }
                 >
-                    <MaximizeIcon class="h-5 w-5"/>
                     <div class=color_bar_css.clone()/>
                 </Show>
             </div>

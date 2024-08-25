@@ -55,6 +55,7 @@ pub struct Post {
     pub creator_id: i64,
     pub creator_name: String,
     pub moderated_body: Option<String>,
+    pub infringed_rule_id: Option<i64>,
     pub moderator_id: Option<i64>,
     pub moderator_name: Option<String>,
     pub num_comments: i32,

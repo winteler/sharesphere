@@ -3,16 +3,17 @@ use std::ops::Add;
 use chrono::Days;
 
 use app::errors::AppError;
-use app::forum;
-use app::forum::ssr::create_forum;
 use app::forum_management::ssr::ban_user_from_forum;
-use app::role::{AdminRole, PermissionLevel};
 use app::role::ssr::set_user_forum_role;
+use app::role::{AdminRole, PermissionLevel};
 use app::user::{ssr::SqlUser, User};
+use app::{forum, forum_management};
 
 use crate::common::{create_user, get_db_pool};
+use crate::data_factory::create_forum_with_post;
 
 mod common;
+mod data_factory;
 
 #[tokio::test]
 async fn test_sql_user_get_by_username() -> Result<(), AppError> {
@@ -55,12 +56,17 @@ async fn test_user_get() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let creator_user = create_user("creator", &db_pool).await;
     let test_user = create_user("user", &db_pool).await;
+    let mut admin = create_user("admin", &db_pool).await;
+    admin.admin_role = AdminRole::Admin;
 
-    let forum_a = create_forum("a", "test", false, &creator_user, &db_pool).await?;
-    let forum_b = create_forum("b", "test", false, &creator_user, &db_pool).await?;
-    let forum_c = create_forum("c", "test", false, &creator_user, &db_pool).await?;
-    let forum_d = create_forum("d", "test", false, &creator_user, &db_pool).await?;
-    let forum_e = create_forum("e", "test", false, &creator_user, &db_pool).await?;
+    // Create common rule to enable bans
+    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
+
+    let (forum_a, _post_a) = create_forum_with_post("a", &creator_user, &db_pool).await;
+    let (forum_b, _post_b) = create_forum_with_post("b", &creator_user, &db_pool).await;
+    let (forum_c, post_c) = create_forum_with_post("c", &creator_user, &db_pool).await;
+    let (forum_d, post_d) = create_forum_with_post("d", &creator_user, &db_pool).await;
+    let (forum_e, post_e) = create_forum_with_post("e", &creator_user, &db_pool).await;
 
     // reload creator_user so that it has the updated roles after creating forums.
     let creator_user = User::get(creator_user.user_id, &db_pool).await.expect("Creator user should be created.");
@@ -68,9 +74,16 @@ async fn test_user_get() -> Result<(), AppError> {
     set_user_forum_role(test_user.user_id, &forum_a.forum_name, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
     set_user_forum_role(test_user.user_id, &forum_b.forum_name, PermissionLevel::Manage, &creator_user, &db_pool).await?;
 
-    ban_user_from_forum(test_user.user_id, &forum_c.forum_name, &creator_user, Some(0), &db_pool).await?;
-    let forum_ban_d = ban_user_from_forum(test_user.user_id, &forum_d.forum_name, &creator_user, Some(1), &db_pool).await?.expect("User should have ban for forum d.");
-    ban_user_from_forum(test_user.user_id, &forum_e.forum_name, &creator_user, None, &db_pool).await?.expect("User should have ban for forum e.");
+    assert_eq!(
+        ban_user_from_forum(test_user.user_id, &forum_c.forum_name, post_c.post_id, None, rule.rule_id, &creator_user, Some(0), &db_pool).await.expect("User ban should be created for forum c."),
+        None
+    );
+    let forum_ban_d = ban_user_from_forum(test_user.user_id, &forum_d.forum_name, post_d.post_id, None, rule.rule_id, &creator_user, Some(1), &db_pool).await
+        ?
+        .expect("User should have ban for forum d.");
+    ban_user_from_forum(test_user.user_id, &forum_e.forum_name, post_e.post_id, None, rule.rule_id, &creator_user, None, &db_pool).await
+        .expect("User ban should be created for forum e.")
+        .expect("User should have ban for forum e.");
 
     let result_user = User::get(test_user.user_id, &db_pool).await.expect("result_user should be available in DB.");
 

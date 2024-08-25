@@ -24,6 +24,46 @@ CREATE TABLE forums (
     UNIQUE (forum_id, forum_name)
 );
 
+CREATE TABLE user_forum_roles (
+    role_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    username TEXT NOT NULL,
+    forum_id BIGINT NOT NULL,
+    forum_name TEXT NOT NULL,
+    permission_level TEXT NOT NULL CHECK (permission_level IN ('None', 'Moderate', 'Ban', 'Manage', 'Lead')),
+    grantor_id BIGINT NOT NULL REFERENCES users (user_id),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_role UNIQUE (user_id, forum_id),
+    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
+);
+
+-- index to guarantee maximum 1 leader per forum
+CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, permission_level)
+    WHERE user_forum_roles.permission_level = 'Lead';
+
+CREATE TABLE rules (
+    rule_id BIGSERIAL PRIMARY KEY,
+    rule_key BIGSERIAL, -- business id to track rule across updates
+    forum_id BIGINT,
+    forum_name TEXT,
+    priority SMALLINT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delete_timestamp TIMESTAMPTZ,
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL,
+    CONSTRAINT unique_forum UNIQUE (rule_id, forum_id)
+);
+
+-- index to guarantee numbering of rules is unique
+CREATE UNIQUE INDEX unique_rule ON rules (forum_id, priority)
+    WHERE rules.delete_timestamp IS NULL;
+-- index to guarantee there is only one active rule for a given rule_key
+CREATE UNIQUE INDEX unique_rule_key ON rules (rule_key)
+    WHERE rules.delete_timestamp IS NULL;
+
 CREATE TABLE forum_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,
    user_id BIGINT NOT NULL REFERENCES users (user_id),
@@ -31,7 +71,6 @@ CREATE TABLE forum_subscriptions (
    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
    CONSTRAINT unique_subscription UNIQUE (user_id, forum_id)
 );
-
 
 CREATE TABLE posts (
     post_id BIGSERIAL PRIMARY KEY,
@@ -43,11 +82,12 @@ CREATE TABLE posts (
     tags TEXT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     meta_post_id BIGINT,
-    forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
-    forum_name TEXT NOT NULL REFERENCES forums (forum_name),
+    forum_id BIGINT NOT NULL,
+    forum_name TEXT NOT NULL,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
     moderated_body TEXT,
+    infringed_rule_id BIGINT REFERENCES rules (rule_id),
     moderator_id BIGINT REFERENCES users (user_id),
     moderator_name TEXT,
     num_comments INT NOT NULL DEFAULT 0,
@@ -61,7 +101,8 @@ CREATE TABLE posts (
         ) STORED,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,
-    scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
 );
 
 CREATE TABLE comments (
@@ -70,6 +111,7 @@ CREATE TABLE comments (
     markdown_body TEXT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderated_body TEXT,
+    infringed_rule_id BIGINT REFERENCES rules (rule_id),
     parent_id BIGINT REFERENCES comments (comment_id),
     post_id BIGINT NOT NULL REFERENCES posts (post_id),
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
@@ -92,55 +134,18 @@ CREATE TABLE votes (
     CONSTRAINT unique_vote UNIQUE NULLS NOT DISTINCT (post_id, comment_id, user_id)
 );
 
-CREATE TABLE user_forum_roles (
-    role_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    username TEXT NOT NULL,
-    forum_id BIGINT NOT NULL,
-    forum_name TEXT NOT NULL,
-    permission_level TEXT NOT NULL CHECK (permission_level IN ('None', 'Moderate', 'Ban', 'Manage', 'Lead')),
-    grantor_id BIGINT NOT NULL REFERENCES users (user_id),
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_role UNIQUE (user_id, forum_id),
-    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username),
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
-);
-
--- index to guarantee maximum 1 leader per forum
-CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, permission_level)
-    WHERE user_forum_roles.permission_level = 'Lead';
-
-CREATE TABLE rules (
-    rule_id BIGSERIAL PRIMARY KEY,
-    rule_key BIGSERIAL, -- business id to track rule across updates
-    forum_id BIGINT,
-    forum_name TEXT,
-    priority SMALLINT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    user_id BIGINT NOT NULL REFERENCES users (user_id),
-    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
-);
-
--- index to guarantee numbering of rules is unique
-CREATE UNIQUE INDEX unique_rule ON rules (forum_id, priority)
-    WHERE rules.delete_timestamp IS NULL;
--- index to guarantee there is only one active rule for a given rule_key
-CREATE UNIQUE INDEX unique_rule_key ON rules (rule_key)
-    WHERE rules.delete_timestamp IS NULL;
-
-
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     username TEXT NOT NULL,
     forum_id BIGINT,
     forum_name TEXT,
+    post_id BIGINT NOT NULL,
+    comment_id BIGINT,
+    infringed_rule_id BIGINT NOT NULL REFERENCES rules (rule_id),
     moderator_id BIGINT NOT NULL REFERENCES users (user_id),
     until_timestamp TIMESTAMPTZ,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username),
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name)
+    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
 );

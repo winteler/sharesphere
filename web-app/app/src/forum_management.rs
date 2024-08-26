@@ -1145,6 +1145,7 @@ pub fn ModeratePostDialog(
                             class="hidden"
                             value=post_id
                         />
+                        <RuleSelect name="rule_id"/>
                         <FormTextEditor
                             name="moderator_message"
                             placeholder="Message"
@@ -1199,7 +1200,7 @@ pub fn ModerateCommentDialog(
                             class="hidden"
                             value=comment_id
                         />
-                        // TODO add rules select
+                        <RuleSelect name="rule_id"/>
                         <FormTextEditor
                             name="moderator_message"
                             placeholder="Message"
@@ -1215,6 +1216,35 @@ pub fn ModerateCommentDialog(
                 <ActionError has_error/>
             </div>
         </ModalDialog>
+    }
+}
+
+/// Dialog to input number of banned days
+#[component]
+pub fn RuleSelect(
+    name: &'static str,
+) -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    view! {
+        <div class="flex items-center justify-between w-full">
+            <span class="text-xl font-semibold">"Infringed rule:"</span>
+            <select
+                class="select select-bordered"
+                name=name
+            >
+                <TransitionUnpack resource=forum_state.forum_rules_resource let:rules_vec>
+                {
+                    rules_vec.iter().map(|rule| {
+                        view! {
+                            <option value=rule.rule_id>
+                                {rule.title.clone()}
+                            </option>
+                        }
+                    }).collect_view()
+                }
+                </TransitionUnpack>
+            </select>
+        </div>
     }
 }
 

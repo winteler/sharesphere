@@ -9,6 +9,7 @@ pub mod footer;
 pub mod forum;
 pub mod icons;
 pub mod forum_management;
+pub mod moderation;
 pub mod navigation_bar;
 pub mod post;
 pub mod ranking;

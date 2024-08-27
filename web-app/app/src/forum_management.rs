@@ -288,30 +288,7 @@ pub mod ssr {
 
         Ok(user_ban)
     }
-
-    async fn get_moderated_body(
-        rule_id: i64,
-        moderator_comment: &str,
-        db_pool: &PgPool,
-    ) -> Result<String, AppError> {
-        let rule = sqlx::query_as!(
-                Rule,
-                "SELECT * FROM rules WHERE rule_id = $1",
-                rule_id,
-            )
-            .fetch_one(db_pool)
-            .await?;
-
-        // TODO format moderated body properly
-        let moderated_body = format!(
-            "{}-{}",
-            rule.title,
-            moderator_comment,
-        );
-
-        Ok(moderated_body)
-    }
-
+    
     pub async fn moderate_post(
         post_id: i64,
         rule_id: i64,
@@ -319,20 +296,20 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
-        let moderated_body = get_moderated_body(rule_id, moderator_message, db_pool).await?;
         let post = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as!(
                 Post,
                 "UPDATE posts SET
-                    moderated_body = $1,
+                    moderator_message = $1,
                     infringed_rule_id = $2,
+                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                     edit_timestamp = CURRENT_TIMESTAMP,
                     moderator_id = $3,
                     moderator_name = $4
                 WHERE
                     post_id = $5
                 RETURNING *",
-                moderated_body,
+                moderator_message,
                 rule_id,
                 user.user_id,
                 user.username,
@@ -344,8 +321,9 @@ pub mod ssr {
             sqlx::query_as!(
                 Post,
                 "UPDATE posts p SET
-                    moderated_body = $1,
+                    moderator_message = $1,
                     infringed_rule_id = $2,
+                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                     edit_timestamp = CURRENT_TIMESTAMP,
                     moderator_id = $3,
                     moderator_name = $4
@@ -358,7 +336,7 @@ pub mod ssr {
                             r.user_id = $3
                     )
                 RETURNING *",
-                moderated_body,
+                moderator_message,
                 rule_id,
                 user.user_id,
                 user.username,
@@ -378,20 +356,20 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        let moderated_body = get_moderated_body(rule_id, moderator_message, db_pool).await?;
         let comment = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as!(
                 Comment,
                 "UPDATE comments SET
-                    moderated_body = $1,
+                    moderator_message = $1,
                     infringed_rule_id = $2,
+                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                     edit_timestamp = CURRENT_TIMESTAMP,
                     moderator_id = $3,
                     moderator_name = $4
                 WHERE
                     comment_id = $5
                 RETURNING *",
-                moderated_body,
+                moderator_message,
                 rule_id,
                 user.user_id,
                 user.username,
@@ -404,8 +382,9 @@ pub mod ssr {
             sqlx::query_as!(
                 Comment,
                 "UPDATE comments c SET
-                    moderated_body = $1,
+                    moderator_message = $1,
                     infringed_rule_id = $2,
+                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                     edit_timestamp = CURRENT_TIMESTAMP,
                     moderator_id = $3,
                     moderator_name = $4
@@ -419,7 +398,7 @@ pub mod ssr {
                             r.user_id = $3
                     )
                 RETURNING *",
-                moderated_body,
+                moderator_message,
                 rule_id,
                 user.user_id,
                 user.username,

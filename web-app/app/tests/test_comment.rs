@@ -1,8 +1,8 @@
 use rand::Rng;
 
-use app::comment::{COMMENT_BATCH_SIZE, CommentSortType, CommentWithChildren};
 use app::comment;
 use app::comment::ssr::{create_comment, get_comment_forum};
+use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::ranking::{SortType, Vote, VoteValue};
@@ -159,7 +159,9 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.body, comment_body);
     assert_eq!(comment.markdown_body, None);
     assert_eq!(comment.is_edited, false);
-    assert_eq!(comment.moderated_body, None);
+    assert_eq!(comment.moderator_message, None);
+    assert_eq!(comment.infringed_rule_id, None);
+    assert_eq!(comment.infringed_rule_title, None);
     assert_eq!(comment.parent_id, None);
     assert_eq!(comment.post_id, post.post_id);
     assert_eq!(comment.creator_id, user.user_id);
@@ -176,7 +178,9 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(child_comment.body, comment_body);
     assert_eq!(child_comment.markdown_body, Some(String::from(markdown_body)));
     assert_eq!(child_comment.is_edited, false);
-    assert_eq!(child_comment.moderated_body, None);
+    assert_eq!(child_comment.moderator_message, None);
+    assert_eq!(child_comment.infringed_rule_id, None);
+    assert_eq!(child_comment.infringed_rule_title, None);
     assert_eq!(child_comment.parent_id, Some(comment.comment_id));
     assert_eq!(child_comment.post_id, post.post_id);
     assert_eq!(child_comment.creator_id, user.user_id);

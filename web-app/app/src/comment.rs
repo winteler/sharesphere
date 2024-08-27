@@ -13,7 +13,8 @@ use crate::constants::{BEST_STR, RECENT_STR};
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
 use crate::forum_management::ModerateCommentButton;
-use crate::icons::{CommentIcon, EditIcon, HammerIcon};
+use crate::icons::{CommentIcon, EditIcon};
+use crate::moderation::ModeratedBody;
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -39,8 +40,9 @@ pub struct Comment {
     pub body: String,
     pub markdown_body: Option<String>,
     pub is_edited: bool,
-    pub moderated_body: Option<String>,
+    pub moderator_message: Option<String>,
     pub infringed_rule_id: Option<i64>,
+    pub infringed_rule_title: Option<String>,
     pub parent_id: Option<i64>,
     pub post_id: i64,
     pub creator_id: i64,
@@ -586,35 +588,22 @@ pub fn CommentBody(comment: RwSignal<Comment>) -> impl IntoView {
     };
 
     view! {
-        <Show
-            when=move || comment.with(|comment| comment.moderated_body.is_none())
-            fallback=move || view! { <ModeratedCommentBody comment/> }
-        >
-            <div
-                class=comment_class
-                inner_html=comment_body
-            />
-        </Show>
-    }
-}
-
-/// Displays the body of a moderated comment
-#[component]
-pub fn ModeratedCommentBody(comment: RwSignal<Comment>) -> impl IntoView {
-    view! {
-        <div class="flex items-stretch w-fit">
-            <div class="flex justify-center items-center p-2 rounded-l bg-base-content/20">
-                <HammerIcon/>
-            </div>
-            <div class="p-2 rounded-r bg-base-300 whitespace-pre align-middle">
-                {
-                    move || comment.with(|comment| comment.moderated_body.clone().unwrap_or_else(|| {
-                        log::error!("Missing moderated body, leave empty.");
-                        String::default()
-                    }))
-                }
-            </div>
-        </div>
+        {
+            move || comment.with(|comment| match (&comment.moderator_message, &comment.infringed_rule_title) {
+                (Some(moderator_message), Some(infringed_rule_title)) => view! {
+                    <ModeratedBody
+                        infringed_rule_title=infringed_rule_title.clone()
+                        moderator_message=moderator_message.clone()
+                    />
+                },
+                _ => view! {
+                    <div
+                        class=comment_class
+                        inner_html=comment_body
+                    />
+                }.into_view(),
+            })
+        }
     }
 }
 

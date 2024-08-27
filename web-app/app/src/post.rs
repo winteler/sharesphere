@@ -22,7 +22,8 @@ use crate::errors::AppError;
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::forum_management::ModeratePostButton;
-use crate::icons::{EditIcon, HammerIcon, InternalErrorIcon, LoadingIcon};
+use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
+use crate::moderation::ModeratedBody;
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -54,8 +55,9 @@ pub struct Post {
     pub forum_name: String,
     pub creator_id: i64,
     pub creator_name: String,
-    pub moderated_body: Option<String>,
+    pub moderator_message: Option<String>,
     pub infringed_rule_id: Option<i64>,
+    pub infringed_rule_title: Option<String>,
     pub moderator_id: Option<i64>,
     pub moderator_name: Option<String>,
     pub num_comments: i32,
@@ -758,9 +760,14 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
 
     view! {
         {
-            match &post.moderated_body {
-                Some(moderated_body) => view! { <ModeratedPostBody moderated_body=moderated_body.clone()/> },
-                None => view! {
+            match (&post.moderator_message, &post.infringed_rule_title) {
+                (Some(moderator_message), Some(infringed_rule_title)) => view! { 
+                    <ModeratedBody
+                        infringed_rule_title=infringed_rule_title.clone()
+                        moderator_message=moderator_message.clone()
+                    />
+                },
+                _ => view! {
                     <div
                         class=post_body_class
                         inner_html=post_body
@@ -768,21 +775,6 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
                 }.into_view(),
             }
         }
-    }
-}
-
-/// Displays the body of a moderated post
-#[component]
-pub fn ModeratedPostBody(moderated_body: String) -> impl IntoView {
-    view! {
-        <div class="flex items-stretch w-fit">
-            <div class="flex justify-center items-center p-2 rounded-l bg-base-content/20">
-                <HammerIcon/>
-            </div>
-            <div class="p-2 rounded-r bg-base-300 whitespace-pre align-middle">
-                {moderated_body}
-            </div>
-        </div>
     }
 }
 

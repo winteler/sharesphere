@@ -382,7 +382,9 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.forum_name, forum.forum_name);
     assert_eq!(post_1.creator_id, test_user.user_id);
     assert_eq!(post_1.creator_name, test_user.username);
-    assert_eq!(post_1.moderated_body, None);
+    assert_eq!(post_1.moderator_message, None);
+    assert_eq!(post_1.infringed_rule_id, None);
+    assert_eq!(post_1.infringed_rule_title, None);
     assert_eq!(post_1.moderator_id, None);
     assert_eq!(post_1.moderator_name, None);
     assert_eq!(post_1.num_comments, 0);
@@ -405,7 +407,9 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.forum_name, forum.forum_name);
     assert_eq!(post_2.creator_id, test_user.user_id);
     assert_eq!(post_2.creator_name, test_user.username);
-    assert_eq!(post_2.moderated_body, None);
+    assert_eq!(post_2.moderator_message, None);
+    assert_eq!(post_2.infringed_rule_id, None);
+    assert_eq!(post_2.infringed_rule_title, None);
     assert_eq!(post_2.moderator_id, None);
     assert_eq!(post_2.moderator_name, None);
     assert_eq!(post_2.num_comments, 0);

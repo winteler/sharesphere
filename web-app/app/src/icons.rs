@@ -180,6 +180,13 @@ pub fn LogoIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoVi
 }
 
 #[component]
+pub fn MagnifierIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/magnifier.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn MarkdownIcon(#[prop(default = "h-4 w-8")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
@@ -266,13 +273,6 @@ pub fn QuoteIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoV
 pub fn ScoreIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/score.svg" class=class/>
-    }
-}
-
-#[component]
-pub fn SearchIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/search.svg" class=class/>
     }
 }
 

@@ -79,10 +79,10 @@ pub fn NavigationBar(
                             <input class="input join-item input-md" placeholder="Search"/>
                         </div>
                     </div>
-                    <button class="btn join-item button-md"><SearchIcon/></button>
+                    <button class="btn join-item button-md"><MagnifierIcon/></button>
                 </div>
                 <button class="btn btn-ghost btn-circle 2xl:hidden">
-                    <SearchIcon/>
+                    <MagnifierIcon/>
                 </button>
                 <PlusMenu/>
                 <UserProfile/>

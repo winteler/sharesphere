@@ -11,7 +11,7 @@ use strum::IntoEnumIterator;
 use crate::comment::Comment;
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
-use crate::icons::{DeleteIcon, EditIcon, HammerIcon, PlusIcon};
+use crate::icons::{DeleteIcon, EditIcon, HammerIcon, MagnifierIcon, PlusIcon};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::TransitionUnpack;
@@ -1021,18 +1021,21 @@ pub fn BanPanel() -> impl IntoView {
                                         None => String::from("Permanent"),
                                     }
                                 }</div>
-                                <AuthorizedShow permission_level=PermissionLevel::Ban>
-                                    <ActionForm action=unban_action class="w-1/5 flex justify-center">
-                                        <input
-                                            name="ban_id"
-                                            class="hidden"
-                                            value=child.1.ban_id
-                                        />
-                                        <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
-                                            <DeleteIcon/>
-                                        </button>
-                                    </ActionForm>
-                                </AuthorizedShow>
+                                <div class="w-1/5 flex justify-end gap-1">
+                                    <BanDetailButton/>
+                                    <AuthorizedShow permission_level=PermissionLevel::Ban>
+                                        <ActionForm action=unban_action>
+                                            <input
+                                                name="ban_id"
+                                                class="hidden"
+                                                value=child.1.ban_id
+                                            />
+                                            <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                                                <DeleteIcon/>
+                                            </button>
+                                        </ActionForm>
+                                    </AuthorizedShow>
+                                </div>
                             </div>
                         </For>
                     </div>
@@ -1040,6 +1043,21 @@ pub fn BanPanel() -> impl IntoView {
             }
             </TransitionUnpack>
         </div>
+    }
+}
+
+/// Component to display a button opening a modal dialog with a ban's details
+#[component]
+pub fn BanDetailButton() -> impl IntoView {
+    let show_dialog = create_rw_signal(false);
+
+    view! {
+        <button
+            class="p-1 h-full bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+            on:click=move |_| show_dialog.update(|value| *value = !*value)
+        >
+            <MagnifierIcon/>
+        </button>
     }
 }
 

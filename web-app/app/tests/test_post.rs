@@ -8,7 +8,7 @@ pub use crate::data_factory::*;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::forum_management::ssr::moderate_post;
-use app::post::ssr::{create_post, get_post_forum, get_post_with_info_by_id, update_post_scores};
+use app::post::ssr::{create_post, get_post_by_id, get_post_forum, get_post_with_info_by_id, update_post_scores};
 use app::post::{ssr, Post, PostSortType};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
@@ -63,6 +63,30 @@ pub fn test_post_score(post: &Post) {
     assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score as f32, epsilon = f32::EPSILON, ulps = 5));
     println!("Trending: {}, expected: {}", post.trending_score, expected_trending_score);
     assert!(approx_eq!(f32, post.trending_score, expected_trending_score as f32, epsilon = f32::EPSILON, ulps = 5));
+}
+
+#[tokio::test]
+async fn test_get_post_by_id() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let test_user = create_test_user(&db_pool).await;
+
+    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, &db_pool).await?;
+
+    let post_1_title = "1";
+    let post_1_body = "test";
+    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+
+    let post_2_title = "1";
+    let post_2_body = "test";
+    let post_2_markdown_body = "test";
+    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+
+    let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
+    assert_eq!(post_1, expected_post_1);
+    let post_2 = get_post_by_id(expected_post_2.post_id, &db_pool).await.expect("Should be able to load post 1.");
+    assert_eq!(post_2, expected_post_2);
+
+    Ok(())
 }
 
 #[tokio::test]

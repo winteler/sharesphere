@@ -60,6 +60,7 @@ pub struct Rule {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use leptos::server_fn::response::Res;
     use sqlx::PgPool;
 
     use crate::comment::Comment;
@@ -78,6 +79,22 @@ pub mod ssr {
             Some(user) => Ok(user.check_permissions(forum, PermissionLevel::Moderate).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
+    }
+    
+    pub async fn get_rule_by_id(
+        rule_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Rule, AppError> {
+        let rule = sqlx::query_as!(
+            Rule,
+            "SELECT * FROM rules
+            WHERE rule_id = $1",
+            rule_id
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(rule)
     }
 
     pub async fn get_forum_rule_vec(
@@ -517,6 +534,16 @@ pub async fn remove_rule(
     let db_pool = get_db_pool()?;
     let user = check_user()?;
     ssr::remove_rule(forum_name.as_ref().map(String::as_str), priority, &user, &db_pool).await?;
+    Ok(())
+}
+
+#[server]
+pub async fn get_ban_details(
+    ban_id: i64,
+    post_id: i64,
+    comment_id: Option<i64>,
+) -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool()?;
     Ok(())
 }
 
@@ -1048,7 +1075,9 @@ pub fn BanPanel() -> impl IntoView {
 
 /// Component to display a button opening a modal dialog with a ban's details
 #[component]
-pub fn BanDetailButton() -> impl IntoView {
+pub fn BanDetailButton<'a>(
+    ban: &'a UserBan,
+) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
 
     view! {
@@ -1058,6 +1087,31 @@ pub fn BanDetailButton() -> impl IntoView {
         >
             <MagnifierIcon/>
         </button>
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Add a rule"</div>
+                <ActionForm
+                    action=forum_state.add_rule_action
+                    on:submit=move |_| show_dialog.set(false)
+                >
+                    <input
+                        name="forum_name"
+                        class="hidden"
+                        value=forum_state.forum_name
+                    />
+                    <div class="flex flex-col gap-3 w-full">
+                        <RuleInputs priority title description/>
+                        <ModalFormButtons
+                            disable_publish=invalid_inputs
+                            show_form=show_dialog
+                        />
+                    </div>
+                </ActionForm>
+            </div>
+        </ModalDialog>
     }
 }
 

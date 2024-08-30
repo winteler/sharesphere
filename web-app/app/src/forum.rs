@@ -366,13 +366,15 @@ pub async fn create_forum(
 
     let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str());
 
-    ssr::create_forum(
+    let forum = ssr::create_forum(
         forum_name.as_str(),
         description.as_str(),
         is_nsfw,
         &user,
         &db_pool,
     ).await?;
+    
+    ssr::subscribe(forum.forum_id, user.user_id, &db_pool).await?;
 
     reload_user(user.user_id)?;
 

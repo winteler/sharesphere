@@ -98,13 +98,12 @@ impl fmt::Display for PostSortType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use sqlx::PgPool;
-
     use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
     use crate::errors::AppError;
     use crate::forum::Forum;
     use crate::ranking::VoteValue;
     use crate::user::User;
+    use sqlx::PgPool;
 
     use super::*;
 
@@ -151,6 +150,22 @@ pub mod ssr {
                 PostSortType::Recent => RECENT_ORDER_BY_COLUMN,
             }
         }
+    }
+
+    pub async fn get_post_by_id(
+        post_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Post, AppError> {
+        let post = sqlx::query_as!(
+            Post,
+            "SELECT * FROM posts
+            WHERE post_id = $1",
+            post_id
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(post)
     }
 
     pub async fn get_post_with_info_by_id(

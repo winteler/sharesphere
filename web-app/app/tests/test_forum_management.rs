@@ -20,6 +20,27 @@ mod common;
 mod data_factory;
 
 #[tokio::test]
+async fn test_get_rule_by_id() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_user("test", &db_pool).await;
+    let mut admin = create_user("admin", &db_pool).await;
+    admin.admin_role = AdminRole::Admin;
+    let forum_1 = create_forum("1", "a", false, &user, &db_pool).await?;
+    let user = User::get(user.user_id, &db_pool).await.expect("User should be loaded after forum creation");
+
+    let expected_common_rule = ssr::add_rule(None, 0, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let expected_forum_rule = ssr::add_rule(Some(&forum_1.forum_name), 1, "forum_1_rule_1", "test", &user, &db_pool).await.expect("Rule should be created.");
+    
+    let common_rule = ssr::get_rule_by_id(expected_common_rule.rule_id, &db_pool).await?;
+    let forum_rule = ssr::get_rule_by_id(expected_forum_rule.rule_id, &db_pool).await?;
+
+    assert_eq!(common_rule, expected_common_rule);
+    assert_eq!(forum_rule, expected_forum_rule);
+    
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_get_forum_rule_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_user("test", &db_pool).await;

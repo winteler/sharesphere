@@ -1,7 +1,7 @@
 use rand::Rng;
 
 use app::comment;
-use app::comment::ssr::{create_comment, get_comment_forum};
+use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_forum};
 use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
@@ -76,6 +76,20 @@ fn test_comment_with_children(
         index += 1;
         test_comment_with_children(child_comment, sort_type, expected_user_id, expected_post_id);
     }
+}
+
+#[tokio::test]
+async fn test_get_comment_by_id() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+
+    let (_, _, expected_comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
+
+    let comment = get_comment_by_id(expected_comment.comment_id, &db_pool).await.expect("Should be able to get comment forum.");
+
+    assert_eq!(comment, expected_comment);
+    
+    Ok(())
 }
 
 #[tokio::test]

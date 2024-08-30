@@ -1,4 +1,5 @@
 <svg width="800px" height="800px" viewBox="0 0 32 32" version="1.1" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" stroke="white">
-	<circle cx="14" cy="14" fill="none" r="9" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2.5"/>
+	<!-- Vectors and icons by <a href="https://dribbble.com/JumpWhale?ref=svgrepo.com" target="_blank">Ayub Irawan</a> in CC Attribution License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
+    <circle cx="14" cy="14" fill="none" r="9" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2.5"/>
     <line stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2.5" x1="27" x2="20.366" y1="27" y2="20.366"/>
 </svg>

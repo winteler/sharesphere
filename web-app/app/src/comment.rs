@@ -596,20 +596,10 @@ pub fn CommentBox(
 
 /// Displays the body of a comment
 #[component]
-pub fn CommentBody(comment: RwSignal<Comment>) -> impl IntoView {
-    let comment_body = move || {
-        comment.with(|comment| match &comment.markdown_body {
-            Some(markdown_body) => markdown_body.clone(),
-            None => comment.body.clone(),
-        })
-    };
-    let comment_class = move || {
-        comment.with(|comment| match comment.markdown_body.is_some() {
-            true => "pl-2",
-            false => "pl-2 whitespace-pre",
-        })
-    };
-
+pub fn CommentBody(
+    #[prop(into)]
+    comment: Signal<Comment>
+) -> impl IntoView {
     view! {
         {
             move || comment.with(|comment| match (&comment.moderator_message, &comment.infringed_rule_title) {
@@ -620,13 +610,28 @@ pub fn CommentBody(comment: RwSignal<Comment>) -> impl IntoView {
                     />
                 },
                 _ => view! {
-                    <div
-                        class=comment_class
-                        inner_html=comment_body
-                    />
+                    <UserCommentBody comment/>
                 }.into_view(),
             })
         }
+    }
+}
+
+/// Displays the user body of a comment, without taking moderation into account
+#[component]
+pub fn UserCommentBody<'a>(
+    comment: &'a Comment
+) -> impl IntoView {
+    let comment_class = match comment.markdown_body.is_some() {
+        true => "pl-2",
+        false => "pl-2 whitespace-pre",
+    };
+
+    view! {
+        <div
+            class=comment_class
+            inner_html=comment.body.clone()
+        />
     }
 }
 

@@ -8,7 +8,7 @@ use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-use crate::comment::{Comment, Content};
+use crate::comment::{Comment, Content, UserCommentBody};
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, EditIcon, HammerIcon, MagnifierIcon, PlusIcon};
@@ -1143,15 +1143,17 @@ pub fn BanDetailButton(
                                     <div>{post.moderator_message.clone()}</div>
                                 </div>
                             },
-                            Content::Comment(comment) => view! {
-                                <div class="flex flex-col gap-1 p-2">
-                                    <div class="font-semibold text-xl">"Content"</div>
-                                    <div>{comment.body.clone()}</div>
-                                </div>
-                                <div class="flex flex-col gap-1 p-2">
-                                    <div class="font-semibold text-xl">"Moderator message"</div>
-                                    <div>{comment.moderator_message.clone()}</div>
-                                </div>
+                            Content::Comment(comment) => {
+                                view! {
+                                    <div class="flex flex-col gap-1 p-2">
+                                        <div class="font-semibold text-xl">"Content"</div>
+                                        <UserCommentBody comment/>
+                                    </div>
+                                    <div class="flex flex-col gap-1 p-2">
+                                        <div class="font-semibold text-xl">"Moderator message"</div>
+                                        <div>{comment.moderator_message.clone()}</div>
+                                    </div>
+                                }
                             }
                         }
                     }

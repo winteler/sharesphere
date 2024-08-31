@@ -8,7 +8,7 @@ use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-use crate::comment::Comment;
+use crate::comment::{Comment, Content};
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, EditIcon, HammerIcon, MagnifierIcon, PlusIcon};
@@ -18,7 +18,13 @@ use crate::unpack::TransitionUnpack;
 use crate::user::get_matching_username_set;
 use crate::widget::{ActionError, EnumDropdown, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, comment::ssr::get_comment_forum};
+use crate::{
+    app::ssr::get_db_pool,
+    auth::ssr::{check_user, reload_user},
+    comment::ssr::{get_comment_by_id, get_comment_forum},
+    forum_management::ssr::get_rule_by_id,
+    post::ssr::get_post_by_id
+};
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
 pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
@@ -58,9 +64,14 @@ pub struct Rule {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct BanContext {
+    pub rule: Rule,
+    pub content: Content,
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use leptos::server_fn::response::Res;
     use sqlx::PgPool;
 
     use crate::comment::Comment;
@@ -538,13 +549,28 @@ pub async fn remove_rule(
 }
 
 #[server]
-pub async fn get_ban_details(
-    ban_id: i64,
+pub async fn get_ban_context(
+    rule_id: i64,
     post_id: i64,
     comment_id: Option<i64>,
-) -> Result<(), ServerFnError> {
+) -> Result<BanContext, ServerFnError> {
     let db_pool = get_db_pool()?;
-    Ok(())
+    let rule = get_rule_by_id(rule_id, &db_pool).await?;
+    let content = match comment_id {
+        Some(comment_id) => {
+            let comment = get_comment_by_id(comment_id, &db_pool).await?;
+            Content::Comment(comment)
+        },
+        None => {
+            let post = get_post_by_id(post_id, &db_pool).await?;
+            Content::Post(post)
+        },
+    };
+
+    Ok(BanContext {
+        rule,
+        content,
+    })
 }
 
 #[server]
@@ -1049,7 +1075,11 @@ pub fn BanPanel() -> impl IntoView {
                                     }
                                 }</div>
                                 <div class="w-1/5 flex justify-end gap-1">
-                                    <BanDetailButton/>
+                                    <BanDetailButton
+                                        infringed_rule_id=child.1.infringed_rule_id
+                                        post_id=child.1.post_id
+                                        comment_id=child.1.comment_id
+                                    />
                                     <AuthorizedShow permission_level=PermissionLevel::Ban>
                                         <ActionForm action=unban_action>
                                             <input
@@ -1075,10 +1105,16 @@ pub fn BanPanel() -> impl IntoView {
 
 /// Component to display a button opening a modal dialog with a ban's details
 #[component]
-pub fn BanDetailButton<'a>(
-    ban: &'a UserBan,
+pub fn BanDetailButton(
+    infringed_rule_id: i64,
+    post_id: i64,
+    comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
+    let ban_detail_resource = create_resource(
+        move || (),
+        move |_| get_ban_context(infringed_rule_id, post_id, comment_id)
+    );
 
     view! {
         <button
@@ -1092,24 +1128,47 @@ pub fn BanDetailButton<'a>(
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Add a rule"</div>
-                <ActionForm
-                    action=forum_state.add_rule_action
-                    on:submit=move |_| show_dialog.set(false)
-                >
-                    <input
-                        name="forum_name"
-                        class="hidden"
-                        value=forum_state.forum_name
-                    />
-                    <div class="flex flex-col gap-3 w-full">
-                        <RuleInputs priority title description/>
-                        <ModalFormButtons
-                            disable_publish=invalid_inputs
-                            show_form=show_dialog
-                        />
+                <div class="text-center font-bold text-2xl">"Ban details"</div>
+                <TransitionUnpack resource=ban_detail_resource let:ban_detail>
+                    {
+                        match &ban_detail.content {
+                            Content::Post(post) => view! {
+                                <div class="flex flex-col gap-1 p-2">
+                                    <div class="font-semibold text-xl">"Content"</div>
+                                    <div>{post.title.clone()}</div>
+                                    <div>{post.body.clone()}</div>
+                                </div>
+                                <div class="flex flex-col gap-1 p-2">
+                                    <div class="font-semibold text-xl">"Moderator message"</div>
+                                    <div>{post.moderator_message.clone()}</div>
+                                </div>
+                            },
+                            Content::Comment(comment) => view! {
+                                <div class="flex flex-col gap-1 p-2">
+                                    <div class="font-semibold text-xl">"Content"</div>
+                                    <div>{comment.body.clone()}</div>
+                                </div>
+                                <div class="flex flex-col gap-1 p-2">
+                                    <div class="font-semibold text-xl">"Moderator message"</div>
+                                    <div>{comment.moderator_message.clone()}</div>
+                                </div>
+                            }
+                        }
+                    }
+                    <div class="flex flex-col gap-1 p-2">
+                        <div class="font-semibold text-xl">"Infringed rule"</div>
+                        <div class="text-lg font-medium">{ban_detail.rule.title.clone()}</div>
+                        <div>{ban_detail.rule.description.clone()}</div>
                     </div>
-                </ActionForm>
+                    <button
+                        type="button"
+                        class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                        on:click=move |_| show_dialog.set(false)
+                    >
+                        "Close"
+                    </button>
+                </TransitionUnpack>
+                
             </div>
         </ModalDialog>
     }

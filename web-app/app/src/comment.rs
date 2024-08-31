@@ -15,6 +15,7 @@ use crate::editor::FormMarkdownEditor;
 use crate::forum_management::ModerateCommentButton;
 use crate::icons::{CommentIcon, EditIcon};
 use crate::moderation::ModeratedBody;
+use crate::post::Post;
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -66,6 +67,12 @@ pub struct CommentWithChildren {
 pub enum CommentSortType {
     Best,
     Recent,
+}
+
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub enum Content {
+    Post(Post),
+    Comment(Comment),
 }
 
 impl fmt::Display for CommentSortType {

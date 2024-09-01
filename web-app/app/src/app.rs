@@ -4,6 +4,7 @@ use leptos_router::*;
 
 use crate::auth::*;
 use crate::comment::CommentSortType;
+use crate::content::PostSortWidget;
 use crate::error_template::{ErrorDisplay, ErrorTemplate};
 use crate::errors::AppError;
 use crate::forum::*;
@@ -15,7 +16,6 @@ use crate::ranking::SortType;
 use crate::role::PermissionLevel;
 use crate::sidebar::*;
 use crate::user::User;
-use crate::widget::PostSortWidget;
 
 pub const PARAM_ROUTE_PREFIX: &str = "/:";
 pub const PUBLISH_ROUTE: &str = "/publish";

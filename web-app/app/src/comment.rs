@@ -13,9 +13,8 @@ use crate::content::ContentBody;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
-use crate::forum_management::ModerateCommentButton;
 use crate::icons::{CommentIcon, EditIcon};
-use crate::moderation::ModeratedBody;
+use crate::moderation::{ModerateCommentButton, ModeratedBody};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};

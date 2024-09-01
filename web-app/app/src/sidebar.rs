@@ -127,7 +127,7 @@ pub fn ForumRuleList() -> impl IntoView {
             {
                 let forum_rule_vec = forum_rule_vec.clone();
                 view! {
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 pl-4">
                         <For
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
                             key=|(_index, rule)| (rule.rule_id)

@@ -10,11 +10,13 @@ use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
+use crate::content::PostSortWidget;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::{get_forum_rule_vec, AddRule, ModeratePost, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_SUFFIX};
+use crate::forum_management::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_SUFFIX};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
+use crate::moderation::ModeratePost;
 use crate::navigation_bar::get_create_post_path;
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
@@ -24,7 +26,7 @@ use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
-use crate::widget::{AuthorWidget, PostSortWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
 

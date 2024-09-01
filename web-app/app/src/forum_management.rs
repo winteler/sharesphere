@@ -8,7 +8,8 @@ use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-use crate::comment::{Comment, Content, UserCommentBody};
+use crate::comment::Comment;
+use crate::content::{Content, ContentBody};
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, EditIcon, HammerIcon, MagnifierIcon, PlusIcon};
@@ -280,7 +281,7 @@ pub mod ssr {
     ) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
-            "SELECT * FROM user_bans WHERE forum_name = $1",
+            "SELECT * FROM user_bans WHERE forum_name = $1 ORDER BY until_timestamp DESC",
             forum_name
         )
             .fetch_all(db_pool)
@@ -1056,7 +1057,7 @@ pub fn BanPanel() -> impl IntoView {
             {
                 let banned_user_vec = banned_user_vec.clone();
                 view! {
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-1">
                         <div class="flex border-b border-base-content/20">
                             <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
                             <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
@@ -1128,29 +1129,35 @@ pub fn BanDetailButton(
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-                <div class="text-center font-bold text-2xl">"Ban details"</div>
+                <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
                 <TransitionUnpack resource=ban_detail_resource let:ban_detail>
                     {
                         match &ban_detail.content {
                             Content::Post(post) => view! {
-                                <div class="flex flex-col gap-1 p-2">
-                                    <div class="font-semibold text-xl">"Content"</div>
+                                <div class="flex flex-col gap-1 p-2 border-b">
+                                    <h1 class="font-bold text-2xl pl-6">"Content"</h1>
                                     <div>{post.title.clone()}</div>
-                                    <div>{post.body.clone()}</div>
+                                    <ContentBody
+                                        body=post.body.clone()
+                                        is_markdown=post.markdown_body.is_some()
+                                    />
                                 </div>
-                                <div class="flex flex-col gap-1 p-2">
-                                    <div class="font-semibold text-xl">"Moderator message"</div>
+                                <div class="flex flex-col gap-1 p-2 border-b">
+                                    <h1 class="font-bold text-2xl pl-6">"Moderator message"</h1>
                                     <div>{post.moderator_message.clone()}</div>
                                 </div>
                             },
                             Content::Comment(comment) => {
                                 view! {
-                                    <div class="flex flex-col gap-1 p-2">
-                                        <div class="font-semibold text-xl">"Content"</div>
-                                        <UserCommentBody comment/>
+                                    <div class="flex flex-col gap-1 p-2 border-b">
+                                        <div class="font-bold text-2xl pl-6">"Content"</div>
+                                        <ContentBody
+                                            body=comment.body.clone()
+                                            is_markdown=comment.markdown_body.is_some()
+                                        />
                                     </div>
-                                    <div class="flex flex-col gap-1 p-2">
-                                        <div class="font-semibold text-xl">"Moderator message"</div>
+                                    <div class="flex flex-col gap-1 p-2 border-b">
+                                        <div class="font-bold text-2xl pl-6">"Moderator message"</div>
                                         <div>{comment.moderator_message.clone()}</div>
                                     </div>
                                 }
@@ -1158,8 +1165,8 @@ pub fn BanDetailButton(
                         }
                     }
                     <div class="flex flex-col gap-1 p-2">
-                        <div class="font-semibold text-xl">"Infringed rule"</div>
-                        <div class="text-lg font-medium">{ban_detail.rule.title.clone()}</div>
+                        <h1 class="font-bold text-2xl pl-6">"Infringed rule"</h1>
+                        <div class="text-lg font-semibold">{ban_detail.rule.title.clone()}</div>
                         <div>{ban_detail.rule.description.clone()}</div>
                     </div>
                     <button

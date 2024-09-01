@@ -2,6 +2,7 @@ pub mod app;
 pub mod auth;
 pub mod comment;
 pub mod constants;
+pub mod content;
 pub mod editor;
 pub mod errors;
 pub mod error_template;

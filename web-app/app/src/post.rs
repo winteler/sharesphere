@@ -13,6 +13,7 @@ use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::{get_user, ssr::check_user};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
+use crate::content::ContentBody;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
@@ -763,16 +764,6 @@ pub fn Post() -> impl IntoView {
 #[component]
 pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
 
-    let post_body_class = match post.markdown_body {
-        Some(_) => "",
-        None => "whitespace-pre",
-    };
-
-    let post_body = match &post.markdown_body {
-        Some(markdown_body) => markdown_body,
-        None => &post.body,
-    };
-
     view! {
         {
             match (&post.moderator_message, &post.infringed_rule_title) {
@@ -783,9 +774,9 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
                     />
                 },
                 _ => view! {
-                    <div
-                        class=post_body_class
-                        inner_html=post_body
+                    <ContentBody
+                        body=post.body.clone()
+                        is_markdown=post.markdown_body.is_some()
                     />
                 }.into_view(),
             }

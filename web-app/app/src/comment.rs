@@ -9,13 +9,13 @@ use crate::app::GlobalState;
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
+use crate::content::ContentBody;
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
 use crate::forum_management::ModerateCommentButton;
 use crate::icons::{CommentIcon, EditIcon};
 use crate::moderation::ModeratedBody;
-use crate::post::Post;
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -67,12 +67,6 @@ pub struct CommentWithChildren {
 pub enum CommentSortType {
     Best,
     Recent,
-}
-
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub enum Content {
-    Post(Post),
-    Comment(Comment),
 }
 
 impl fmt::Display for CommentSortType {
@@ -610,28 +604,15 @@ pub fn CommentBody(
                     />
                 },
                 _ => view! {
-                    <UserCommentBody comment/>
+                    <div class="pl-2">
+                        <ContentBody 
+                            body=comment.body.clone()
+                            is_markdown=comment.markdown_body.is_some()
+                        />
+                    </div>
                 }.into_view(),
             })
         }
-    }
-}
-
-/// Displays the user body of a comment, without taking moderation into account
-#[component]
-pub fn UserCommentBody<'a>(
-    comment: &'a Comment
-) -> impl IntoView {
-    let comment_class = match comment.markdown_body.is_some() {
-        true => "pl-2",
-        false => "pl-2 whitespace-pre",
-    };
-
-    view! {
-        <div
-            class=comment_class
-            inner_html=comment.body.clone()
-        />
     }
 }
 

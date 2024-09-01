@@ -273,12 +273,17 @@ pub mod ssr {
 
     pub async fn get_forum_ban_vec(
         forum_name: &str,
+        username_prefix: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
-            "SELECT * FROM user_bans WHERE forum_name = $1 ORDER BY until_timestamp DESC",
-            forum_name
+            "SELECT * FROM user_bans
+            WHERE forum_name = $1 AND
+                  username like $2
+            ORDER BY until_timestamp DESC",
+            forum_name,
+            format!("{username_prefix}%"),
         )
             .fetch_all(db_pool)
             .await?;
@@ -389,10 +394,11 @@ pub async fn get_ban_context(
 
 #[server]
 pub async fn get_forum_ban_vec(
-    forum_name: String
+    forum_name: String,
+    username_prefix: String,
 ) -> Result<Vec<UserBan>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let ban_vec = ssr::get_forum_ban_vec(&forum_name, &db_pool).await?;
+    let ban_vec = ssr::get_forum_ban_vec(&forum_name, &username_prefix, &db_pool).await?;
     Ok(ban_vec)
 }
 
@@ -776,25 +782,34 @@ pub fn RuleInputs(
 #[component]
 pub fn BanPanel() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
+    let username_input = create_rw_signal(String::default());
+    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
 
     let unban_action = create_server_action::<RemoveUserBan>();
     let banned_users_resource = create_resource(
-        move || (forum_name.get(), unban_action.version().get()),
-        move |(forum_name, _)| get_forum_ban_vec(forum_name)
+        move || (forum_name.get(), username_debounced.get(), unban_action.version().get()),
+        move |(forum_name, username, _)| get_forum_ban_vec(forum_name, username)
     );
 
     view! {
         <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
-            <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
-            {
-                let banned_user_vec = banned_user_vec.clone();
-                view! {
-                    <div class="flex flex-col gap-1">
-                        <div class="flex border-b border-base-content/20">
-                            <div class="w-2/5 px-6 py-2 text-left font-bold">Username</div>
-                            <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
-                        </div>
+            <div class="flex flex-col gap-1">
+                <div class="flex flex-col border-b border-base-content/20">
+                    <div class="flex">
+                        <input
+                            class="input input-bordered input-primary px-6 w-2/5"
+                            placeholder="Username"
+                            value=username_input
+                            on:input=move |ev| username_input.update(|user_prefix: &mut String| *user_prefix = event_target_value(&ev))
+                        />
+                        <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
+                    </div>
+                </div>
+                <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
+                {
+                    let banned_user_vec = banned_user_vec.clone();
+                    view! {
                         <For
                             each= move || banned_user_vec.clone().into_iter().enumerate()
                             key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
@@ -829,10 +844,10 @@ pub fn BanPanel() -> impl IntoView {
                                 </div>
                             </div>
                         </For>
-                    </div>
+                    }
                 }
-            }
-            </TransitionUnpack>
+                </TransitionUnpack>
+            </div>
         </div>
     }
 }

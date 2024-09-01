@@ -155,9 +155,9 @@ pub fn App() -> impl IntoView {
                             <Route path=FORUM_ROUTE view=ForumBanner>
                                 <Route path=POST_ROUTE view=Post/>
                                 <Route path=MANAGE_FORUM_ROUTE view=ModeratorGuard>
-                                    <Route path="" view=ForumCockpit/>
+                                    <Route path="/" view=ForumCockpit/>
                                 </Route>
-                                <Route path="" view=ForumContents/>
+                                <Route path="/" view=ForumContents/>
                             </Route>
                             <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
                             <Route path=PUBLISH_ROUTE view=LoginGuard>

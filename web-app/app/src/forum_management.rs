@@ -437,7 +437,7 @@ pub fn ModeratorPanel() -> impl IntoView {
     let set_role_action = create_server_action::<SetUserForumRole>();
 
     view! {
-        <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
+        <div class="flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
             <TransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
             {
@@ -573,7 +573,7 @@ pub fn PermissionLevelForm(
 pub fn ForumRulesPanel() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
+        <div class="flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
             <TransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
             {
@@ -792,7 +792,7 @@ pub fn BanPanel() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
+        <div class="flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">

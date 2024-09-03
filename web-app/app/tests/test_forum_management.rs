@@ -5,9 +5,8 @@ use chrono::Days;
 use app::comment::ssr::create_comment;
 use app::errors::AppError;
 use app::forum::ssr::create_forum;
-use app::forum_management;
-use app::forum_management::ssr;
-use app::forum_management::ssr::{ban_user_from_forum, get_forum_ban_vec, is_user_forum_moderator, moderate_comment, moderate_post, remove_user_ban};
+use app::forum_management::ssr::{add_rule, get_forum_ban_vec, get_forum_rule_vec, get_rule_by_id, is_user_forum_moderator, remove_rule, remove_user_ban, update_rule};
+use app::moderation::ssr::{ban_user_from_forum, moderate_comment, moderate_post};
 use app::post::ssr::create_post;
 use app::role::ssr::set_user_admin_role;
 use app::role::AdminRole;
@@ -28,11 +27,11 @@ async fn test_get_rule_by_id() -> Result<(), AppError> {
     let forum_1 = create_forum("1", "a", false, &user, &db_pool).await?;
     let user = User::get(user.user_id, &db_pool).await.expect("User should be loaded after forum creation");
 
-    let expected_common_rule = ssr::add_rule(None, 0, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
-    let expected_forum_rule = ssr::add_rule(Some(&forum_1.forum_name), 1, "forum_1_rule_1", "test", &user, &db_pool).await.expect("Rule should be created.");
+    let expected_common_rule = add_rule(None, 0, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let expected_forum_rule = add_rule(Some(&forum_1.forum_name), 1, "forum_1_rule_1", "test", &user, &db_pool).await.expect("Rule should be created.");
     
-    let common_rule = ssr::get_rule_by_id(expected_common_rule.rule_id, &db_pool).await?;
-    let forum_rule = ssr::get_rule_by_id(expected_forum_rule.rule_id, &db_pool).await?;
+    let common_rule = get_rule_by_id(expected_common_rule.rule_id, &db_pool).await?;
+    let forum_rule = get_rule_by_id(expected_forum_rule.rule_id, &db_pool).await?;
 
     assert_eq!(common_rule, expected_common_rule);
     assert_eq!(forum_rule, expected_forum_rule);
@@ -50,20 +49,20 @@ async fn test_get_forum_rule_vec() -> Result<(), AppError> {
     let forum_2 = create_forum("2", "b", false, &user, &db_pool).await?;
     let user = User::get(user.user_id, &db_pool).await.expect("User should be loaded after forum creation");
 
-    let common_rule_1 = ssr::add_rule(None, 0, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_2 = ssr::add_rule(None, 3, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
-    let forum_1_rule_1 = ssr::add_rule(Some(&forum_1.forum_name), 1, "forum_1_rule_1", "test", &user, &db_pool).await.expect("Rule should be created.");
-    let forum_1_rule_2 = ssr::add_rule(Some(&forum_1.forum_name), 2, "forum_1_rule_2", "test", &user, &db_pool).await.expect("Rule should be created.");
-    let forum_2_rule_1 = ssr::add_rule(Some(&forum_2.forum_name), 1, "forum_2_rule_1", "test", &user, &db_pool).await.expect("Rule should be created.");
+    let common_rule_1 = add_rule(None, 0, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = add_rule(None, 3, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let forum_1_rule_1 = add_rule(Some(&forum_1.forum_name), 1, "forum_1_rule_1", "test", &user, &db_pool).await.expect("Rule should be created.");
+    let forum_1_rule_2 = add_rule(Some(&forum_1.forum_name), 2, "forum_1_rule_2", "test", &user, &db_pool).await.expect("Rule should be created.");
+    let forum_2_rule_1 = add_rule(Some(&forum_2.forum_name), 1, "forum_2_rule_1", "test", &user, &db_pool).await.expect("Rule should be created.");
 
-    let forum_1_rule_vec = ssr::get_forum_rule_vec(&forum_1.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    let forum_1_rule_vec = get_forum_rule_vec(&forum_1.forum_name, &db_pool).await.expect("Forum rules should be loaded");
     assert_eq!(forum_1_rule_vec.len(), 4);
     assert_eq!(forum_1_rule_vec.get(0), Some(&common_rule_1));
     assert_eq!(forum_1_rule_vec.get(1), Some(&common_rule_2));
     assert_eq!(forum_1_rule_vec.get(2), Some(&forum_1_rule_1));
     assert_eq!(forum_1_rule_vec.get(3), Some(&forum_1_rule_2));
 
-    let forum_2_rule_vec = ssr::get_forum_rule_vec(&forum_2.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    let forum_2_rule_vec = get_forum_rule_vec(&forum_2.forum_name, &db_pool).await.expect("Forum rules should be loaded");
     assert_eq!(forum_2_rule_vec.len(), 3);
     assert_eq!(forum_2_rule_vec.get(0), Some(&common_rule_1));
     assert_eq!(forum_2_rule_vec.get(1), Some(&common_rule_2));
@@ -85,9 +84,9 @@ async fn test_add_rule() -> Result<(), AppError> {
     let title = "title";
     let description = "description";
 
-    assert_eq!(ssr::add_rule(None, 0, title, description, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    assert_eq!(ssr::add_rule(None, 0, title, description, &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    let common_rule_1 = ssr::add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    assert_eq!(add_rule(None, 0, title, description, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(add_rule(None, 0, title, description, &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    let common_rule_1 = add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
 
     assert_eq!(common_rule_1.forum_id, None);
     assert_eq!(common_rule_1.forum_name, None);
@@ -96,10 +95,10 @@ async fn test_add_rule() -> Result<(), AppError> {
     assert_eq!(common_rule_1.description, description);
     assert_eq!(common_rule_1.user_id, admin.user_id);
 
-    assert_eq!(ssr::add_rule(Some(&forum.forum_name), 1, title, description, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    let rule_1 = ssr::add_rule(Some(&forum.forum_name), 1, title, description, &lead, &db_pool).await.expect("Rule should be created.");
+    assert_eq!(add_rule(Some(&forum.forum_name), 1, title, description, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    let rule_1 = add_rule(Some(&forum.forum_name), 1, title, description, &lead, &db_pool).await.expect("Rule should be created.");
     // creating rule_2 should increment rule_1's priority
-    let rule_2 = ssr::add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let rule_2 = add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
 
     assert_eq!(rule_1.forum_id, Some(forum.forum_id));
     assert_eq!(rule_1.forum_name, Some(forum.forum_name.clone()));
@@ -115,8 +114,8 @@ async fn test_add_rule() -> Result<(), AppError> {
     assert_eq!(rule_2.description, description);
     assert_eq!(rule_2.user_id, admin.user_id);
 
-    let common_rule_2 = ssr::add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
-    let forum_rule_vec = ssr::get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    let common_rule_2 = add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let forum_rule_vec = get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
     assert_eq!(forum_rule_vec.len(), 4);
     assert_eq!(forum_rule_vec.get(0), Some(&common_rule_2));
     assert_eq!(forum_rule_vec.get(1).unwrap().rule_id, common_rule_1.rule_id);
@@ -141,16 +140,16 @@ async fn test_update_rule() -> Result<(), AppError> {
     let updated_title = "updated";
     let updated_desc = "updated";
 
-    let common_rule_1 = ssr::add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_2 = ssr::add_rule(None, 1, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_3 = ssr::add_rule(None, 2, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
-    let rule_1 = ssr::add_rule(Some(&forum.forum_name), 0, title, description, &lead, &db_pool).await.expect("Rule should be created.");
-    let rule_2 = ssr::add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
-    let rule_3 = ssr::add_rule(Some(&forum.forum_name), 2, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_1 = add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = add_rule(None, 1, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_3 = add_rule(None, 2, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let rule_1 = add_rule(Some(&forum.forum_name), 0, title, description, &lead, &db_pool).await.expect("Rule should be created.");
+    let rule_2 = add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let rule_3 = add_rule(Some(&forum.forum_name), 2, title, description, &admin, &db_pool).await.expect("Rule should be created.");
 
-    assert_eq!(ssr::update_rule(None, 0, 1, updated_title, updated_desc, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    assert_eq!(ssr::update_rule(None, 0, 1, updated_title, updated_desc,  &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    let common_rule_1_updated = ssr::update_rule(None, 0, 1, updated_title, updated_desc, &admin, &db_pool).await.expect("Rule should be updated.");
+    assert_eq!(update_rule(None, 0, 1, updated_title, updated_desc, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(update_rule(None, 0, 1, updated_title, updated_desc,  &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    let common_rule_1_updated = update_rule(None, 0, 1, updated_title, updated_desc, &admin, &db_pool).await.expect("Rule should be updated.");
     assert_eq!(common_rule_1_updated.rule_key, common_rule_1.rule_key);
     assert_eq!(common_rule_1_updated.priority, 1);
     assert_eq!(common_rule_1_updated.forum_id, None);
@@ -158,15 +157,15 @@ async fn test_update_rule() -> Result<(), AppError> {
     assert_eq!(common_rule_1_updated.title, updated_title);
     assert_eq!(common_rule_1_updated.description, updated_desc);
 
-    assert_eq!(ssr::update_rule(Some(&forum.forum_name), 1, 0, updated_title, updated_desc, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    let rule_2_updated = ssr::update_rule(Some(&forum.forum_name), 1, 0, updated_title, updated_desc,  &lead, &db_pool).await.expect("Rule should be updated.");
+    assert_eq!(update_rule(Some(&forum.forum_name), 1, 0, updated_title, updated_desc, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    let rule_2_updated = update_rule(Some(&forum.forum_name), 1, 0, updated_title, updated_desc,  &lead, &db_pool).await.expect("Rule should be updated.");
     assert_eq!(rule_2_updated.rule_key, rule_2.rule_key);
     assert_eq!(rule_2_updated.priority, 0);
     assert_eq!(rule_2_updated.forum_id, Some(forum.forum_id));
     assert_eq!(rule_2_updated.forum_name, Some(forum.forum_name.clone()));
     assert_eq!(rule_2_updated.title, updated_title);
     assert_eq!(rule_2_updated.description, updated_desc);
-    let rule_3_updated = ssr::update_rule(Some(&forum.forum_name), 2, 1, updated_title, updated_desc, &admin, &db_pool).await.expect("Rule should be updated.");
+    let rule_3_updated = update_rule(Some(&forum.forum_name), 2, 1, updated_title, updated_desc, &admin, &db_pool).await.expect("Rule should be updated.");
     assert_eq!(rule_3_updated.rule_key, rule_3.rule_key);
     assert_eq!(rule_3_updated.priority, 1);
     assert_eq!(rule_3_updated.forum_id, Some(forum.forum_id));
@@ -174,7 +173,7 @@ async fn test_update_rule() -> Result<(), AppError> {
     assert_eq!(rule_3_updated.title, updated_title);
     assert_eq!(rule_3_updated.description, updated_desc);
 
-    let forum_rule_vec = ssr::get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    let forum_rule_vec = get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
     assert_eq!(forum_rule_vec.len(), 6);
     assert_eq!(forum_rule_vec.get(0).unwrap().rule_id, common_rule_2.rule_id);
     assert_eq!(forum_rule_vec.get(1), Some(&common_rule_1_updated));
@@ -199,28 +198,28 @@ async fn test_remove_rule() -> Result<(), AppError> {
     let title = "title";
     let description = "description";
 
-    let _common_rule_1 = ssr::add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_2 = ssr::add_rule(None, 1, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
-    let _rule_1 = ssr::add_rule(Some(&forum.forum_name), 0, title, description, &lead, &db_pool).await.expect("Rule should be created.");
-    let rule_2 = ssr::add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let _common_rule_1 = add_rule(None, 0, title, description, &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = add_rule(None, 1, "common", "0", &admin, &db_pool).await.expect("Rule should be created.");
+    let _rule_1 = add_rule(Some(&forum.forum_name), 0, title, description, &lead, &db_pool).await.expect("Rule should be created.");
+    let rule_2 = add_rule(Some(&forum.forum_name), 1, title, description, &admin, &db_pool).await.expect("Rule should be created.");
 
-    assert_eq!(ssr::remove_rule(None, 0, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    assert_eq!(ssr::remove_rule(None, 0, &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    assert_eq!(ssr::remove_rule(None, 0, &admin, &db_pool).await, Ok(()));
+    assert_eq!(remove_rule(None, 0, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(remove_rule(None, 0, &lead, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(remove_rule(None, 0, &admin, &db_pool).await, Ok(()));
 
-    assert_eq!(ssr::remove_rule(Some(&forum.forum_name), 0, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
-    assert_eq!(ssr::remove_rule(Some(&forum.forum_name), 0, &lead, &db_pool).await, Ok(()));
+    assert_eq!(remove_rule(Some(&forum.forum_name), 0, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
+    assert_eq!(remove_rule(Some(&forum.forum_name), 0, &lead, &db_pool).await, Ok(()));
 
-    let forum_rule_vec = ssr::get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    let forum_rule_vec = get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
     assert_eq!(forum_rule_vec.len(), 2);
     assert_eq!(forum_rule_vec.get(0).unwrap().rule_id, common_rule_2.rule_id);
     assert_eq!(forum_rule_vec.get(0).unwrap().priority, 0);
     assert_eq!(forum_rule_vec.get(1).unwrap().rule_id, rule_2.rule_id);
     assert_eq!(forum_rule_vec.get(1).unwrap().priority, 0);
 
-    assert_eq!(ssr::remove_rule(Some(&forum.forum_name), 0, &admin, &db_pool).await, Ok(()));
+    assert_eq!(remove_rule(Some(&forum.forum_name), 0, &admin, &db_pool).await, Ok(()));
 
-    let forum_rule_vec = ssr::get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
+    let forum_rule_vec = get_forum_rule_vec(&forum.forum_name, &db_pool).await.expect("Forum rules should be loaded");
     assert_eq!(forum_rule_vec.len(), 1);
     assert_eq!(forum_rule_vec.get(0).unwrap().rule_id, common_rule_2.rule_id);
 
@@ -237,7 +236,7 @@ async fn test_get_forum_ban_vec() -> Result<(), AppError> {
     let (forum, post) = create_forum_with_post("forum", &lead, &db_pool).await;
     let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after forum creation");
 
-    let rule = forum_management::ssr::add_rule(Some(&forum.forum_name), 0, "test", "test", &lead, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(Some(&forum.forum_name), 0, "test", "test", &lead, &db_pool).await.expect("Rule should be added.");
 
     let ban_user_1 = ban_user_from_forum(
         banned_user_1.user_id,&
@@ -249,7 +248,7 @@ async fn test_get_forum_ban_vec() -> Result<(), AppError> {
         Some(1),
         &db_pool
     ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
-    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "", &db_pool).await.expect("Should load forum bans");
     assert_eq!(banned_user_vec.len(), 1);
     assert!(banned_user_vec.contains(&ban_user_1));
 
@@ -263,10 +262,17 @@ async fn test_get_forum_ban_vec() -> Result<(), AppError> {
         Some(7),
         &db_pool
     ).await.expect("User 2 should be banned").expect("User 2 ban should be Some.");
-    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "", &db_pool).await.expect("Should load forum bans");
     assert_eq!(banned_user_vec.len(), 2);
     assert!(banned_user_vec.contains(&ban_user_1));
     assert!(banned_user_vec.contains(&ban_user_2));
+
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "1", &db_pool).await.expect("Should load forum bans");
+    assert_eq!(banned_user_vec.len(), 1);
+    assert!(banned_user_vec.contains(&ban_user_1));
+
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "x", &db_pool).await.expect("Should load forum bans");
+    assert_eq!(banned_user_vec.len(), 0);
 
     Ok(())
 }
@@ -282,7 +288,7 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
     let (forum, post) = create_forum_with_post("forum", &lead, &db_pool).await;
     let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after forum creation");
     
-    let rule = forum_management::ssr::add_rule(Some(&forum.forum_name), 0, "test", "test", &lead, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(Some(&forum.forum_name), 0, "test", "test", &lead, &db_pool).await.expect("Rule should be added.");
 
     let ban_user_1 = ban_user_from_forum(
         banned_user_1.user_id,&
@@ -294,14 +300,14 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
         Some(1),
         &db_pool
     ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
-    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "", &db_pool).await.expect("Should load forum bans");
     assert_eq!(banned_user_vec.len(), 1);
     assert!(banned_user_vec.contains(&ban_user_1));
 
     assert_eq!(remove_user_ban(ban_user_1.ban_id, &banned_user_1, &db_pool).await, Err(AppError::InsufficientPrivileges));
     assert_eq!(remove_user_ban(ban_user_1.ban_id, &lead, &db_pool).await, Ok(ban_user_1));
 
-    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "", &db_pool).await.expect("Should load forum bans");
     assert!(banned_user_vec.is_empty());
 
     let ban_user_1 = ban_user_from_forum(
@@ -314,13 +320,13 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
         Some(1),
         &db_pool
     ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
-    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "", &db_pool).await.expect("Should load forum bans");
     assert_eq!(banned_user_vec.len(), 1);
     assert!(banned_user_vec.contains(&ban_user_1));
 
     assert_eq!(remove_user_ban(ban_user_1.ban_id, &global_mod, &db_pool).await, Ok(ban_user_1));
 
-    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, &db_pool).await.expect("Should load forum bans");
+    let banned_user_vec = get_forum_ban_vec(&forum.forum_name, "", &db_pool).await.expect("Should load forum bans");
     assert!(banned_user_vec.is_empty());
 
     // TODO add test to remove global ban when possible to create it
@@ -338,7 +344,7 @@ async fn test_moderate_post() -> Result<(), AppError> {
 
     let (forum, post) = create_forum_with_post("forum", &user, &db_pool).await;
     let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded after forum creation");
-    let rule = forum_management::ssr::add_rule(Some(&forum.forum_name), 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(Some(&forum.forum_name), 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_post(post.post_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 
@@ -369,7 +375,7 @@ async fn test_moderate_comment() -> Result<(), AppError> {
     
     let (forum, _post, comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
     let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded after forum creation");
-    let rule = forum_management::ssr::add_rule(Some(&forum.forum_name), 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(Some(&forum.forum_name), 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_comment(comment.comment_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 
@@ -405,7 +411,7 @@ async fn test_ban_user_from_forum() -> Result<(), AppError> {
     let banned_user = create_user("banned", &db_pool).await;
 
     let (forum, post) = create_forum_with_post("forum", &user, &db_pool).await;
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
     let user = User::get(user.user_id, &db_pool).await.expect("Should be able to reload user.");
 
     // unauthorized used cannot ban

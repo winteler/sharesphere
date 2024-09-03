@@ -7,7 +7,7 @@ pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
-use app::forum_management::ssr::moderate_post;
+use app::moderation::ssr::moderate_post;
 use app::post::ssr::{create_post, get_post_by_id, get_post_forum, get_post_with_info_by_id, update_post_scores};
 use app::post::{ssr, Post, PostSortType};
 use app::ranking::ssr::vote_on_content;

@@ -8,10 +8,11 @@ use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-use crate::content::{Content, ContentBody};
+use crate::content::Content;
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon};
+use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::TransitionUnpack;
 use crate::user::get_matching_username_set;
@@ -20,9 +21,6 @@ use crate::widget::{EnumDropdown, ModalDialog, ModalFormButtons};
 use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
-    comment::ssr::get_comment_by_id,
-    forum_management::ssr::get_rule_by_id,
-    post::ssr::get_post_by_id
 };
 
 pub const MANAGE_FORUM_SUFFIX: &str = "manage";
@@ -64,7 +62,7 @@ pub struct Rule {
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct BanContext {
+pub struct ModerationInfo {
     pub rule: Rule,
     pub content: Content,
 }
@@ -368,31 +366,6 @@ pub async fn remove_rule(
 }
 
 #[server]
-pub async fn get_ban_context(
-    rule_id: i64,
-    post_id: i64,
-    comment_id: Option<i64>,
-) -> Result<BanContext, ServerFnError> {
-    let db_pool = get_db_pool()?;
-    let rule = get_rule_by_id(rule_id, &db_pool).await?;
-    let content = match comment_id {
-        Some(comment_id) => {
-            let comment = get_comment_by_id(comment_id, &db_pool).await?;
-            Content::Comment(comment)
-        },
-        None => {
-            let post = get_post_by_id(post_id, &db_pool).await?;
-            Content::Post(post)
-        },
-    };
-
-    Ok(BanContext {
-        rule,
-        content,
-    })
-}
-
-#[server]
 pub async fn get_forum_ban_vec(
     forum_name: String,
     username_prefix: String,
@@ -437,7 +410,7 @@ pub fn ModeratorPanel() -> impl IntoView {
     let set_role_action = create_server_action::<SetUserForumRole>();
 
     view! {
-        <div class="flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
             <TransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
             {
@@ -573,7 +546,7 @@ pub fn PermissionLevelForm(
 pub fn ForumRulesPanel() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
             <TransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
             {
@@ -792,7 +765,7 @@ pub fn BanPanel() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">
@@ -824,8 +797,7 @@ pub fn BanPanel() -> impl IntoView {
                                     }
                                 }</div>
                                 <div class="w-1/5 flex justify-end gap-1">
-                                    <BanDetailButton
-                                        infringed_rule_id=child.1.infringed_rule_id
+                                    <ModerationInfoButton
                                         post_id=child.1.post_id
                                         comment_id=child.1.comment_id
                                     />
@@ -854,15 +826,14 @@ pub fn BanPanel() -> impl IntoView {
 
 /// Component to display a button opening a modal dialog with a ban's details
 #[component]
-pub fn BanDetailButton(
-    infringed_rule_id: i64,
+pub fn ModerationInfoButton(
     post_id: i64,
     comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     let ban_detail_resource = create_resource(
         move || (),
-        move |_| get_ban_context(infringed_rule_id, post_id, comment_id)
+        move |_| get_moderation_info(post_id, comment_id)
     );
 
     view! {
@@ -877,46 +848,11 @@ pub fn BanDetailButton(
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-                <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
-                <TransitionUnpack resource=ban_detail_resource let:ban_detail>
-                    {
-                        match &ban_detail.content {
-                            Content::Post(post) => view! {
-                                <div class="flex flex-col gap-1 p-2 border-b">
-                                    <h1 class="font-bold text-2xl pl-6">"Content"</h1>
-                                    <div>{post.title.clone()}</div>
-                                    <ContentBody
-                                        body=post.body.clone()
-                                        is_markdown=post.markdown_body.is_some()
-                                    />
-                                </div>
-                                <div class="flex flex-col gap-1 p-2 border-b">
-                                    <h1 class="font-bold text-2xl pl-6">"Moderator message"</h1>
-                                    <div>{post.moderator_message.clone()}</div>
-                                </div>
-                            },
-                            Content::Comment(comment) => {
-                                view! {
-                                    <div class="flex flex-col gap-1 p-2 border-b">
-                                        <div class="font-bold text-2xl pl-6">"Content"</div>
-                                        <ContentBody
-                                            body=comment.body.clone()
-                                            is_markdown=comment.markdown_body.is_some()
-                                        />
-                                    </div>
-                                    <div class="flex flex-col gap-1 p-2 border-b">
-                                        <div class="font-bold text-2xl pl-6">"Moderator message"</div>
-                                        <div>{comment.moderator_message.clone()}</div>
-                                    </div>
-                                }
-                            }
-                        }
-                    }
-                    <div class="flex flex-col gap-1 p-2">
-                        <h1 class="font-bold text-2xl pl-6">"Infringed rule"</h1>
-                        <div class="text-lg font-semibold">{ban_detail.rule.title.clone()}</div>
-                        <div>{ban_detail.rule.description.clone()}</div>
-                    </div>
+                <TransitionUnpack resource=ban_detail_resource let:moderation_info>
+                    <ModerationInfoDialog
+                        content=&moderation_info.content
+                        rule=&moderation_info.rule
+                    />
                     <button
                         type="button"
                         class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
@@ -925,7 +861,6 @@ pub fn BanDetailButton(
                         "Close"
                     </button>
                 </TransitionUnpack>
-                
             </div>
         </ModalDialog>
     }

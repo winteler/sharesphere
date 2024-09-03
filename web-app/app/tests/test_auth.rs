@@ -1,9 +1,8 @@
+use chrono::Days;
 use std::ops::Add;
 
-use chrono::Days;
-
 use app::errors::AppError;
-use app::forum_management::ssr::ban_user_from_forum;
+use app::moderation::ssr::ban_user_from_forum;
 use app::role::ssr::set_user_forum_role;
 use app::role::{AdminRole, PermissionLevel};
 use app::user::{ssr::SqlUser, User};

@@ -3,8 +3,10 @@ use leptos::*;
 use leptos_router::ActionForm;
 
 use crate::comment::Comment;
+use crate::content::{Content, ContentBody};
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
+use crate::forum_management::{ModerationInfo, Rule};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::unpack::TransitionUnpack;
@@ -13,7 +15,10 @@ use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
-    comment::ssr::get_comment_forum,
+    comment::ssr::{get_comment_by_id, get_comment_forum},
+    errors::AppError,
+    forum_management::ssr::get_rule_by_id,
+    post::ssr::get_post_by_id
 };
 
 #[cfg(feature = "ssr")]
@@ -209,6 +214,34 @@ pub mod ssr {
             Err(AppError::InternalServerError(format!("Error while trying to ban user {user_id}. Insufficient permissions or user is a moderator of the forum.")))
         }
     }
+}
+
+/// 
+#[server]
+pub async fn get_moderation_info(
+    post_id: i64,
+    comment_id: Option<i64>,
+) -> Result<ModerationInfo, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let (rule_id, content) = match comment_id {
+        Some(comment_id) => {
+            let comment = get_comment_by_id(comment_id, &db_pool).await?;
+            (comment.infringed_rule_id, Content::Comment(comment))
+        },
+        None => {
+            let post = get_post_by_id(post_id, &db_pool).await?;
+            (post.infringed_rule_id, Content::Post(post))
+        },
+    };
+    let rule = match rule_id {
+        Some(rule_id) => get_rule_by_id(rule_id, &db_pool).await,
+        None => Err(AppError::InternalServerError(String::from("Content is not moderated, cannot find moderation info.")))
+    }?;
+
+    Ok(ModerationInfo {
+        rule,
+        content,
+    })
 }
 
 /// Function to moderate a post and optionally ban its author
@@ -536,5 +569,56 @@ pub fn BanMenu() -> impl IntoView {
                 </select>
             </div>
         </AuthorizedShow>
+    }
+}
+
+/// Component to display a button opening a modal dialog with a ban's details
+#[component]
+pub fn ModerationInfoDialog<'a>(
+    content: &'a Content,
+    rule: &'a Rule,
+) -> impl IntoView {
+    view! {
+        <div class="flex flex-col gap-3">
+            <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
+            {
+                match &content {
+                    Content::Post(post) => view! {
+                        <div class="flex flex-col gap-1 p-2 border-b">
+                            <h1 class="font-bold text-2xl pl-6">"Content"</h1>
+                            <div>{post.title.clone()}</div>
+                            <ContentBody
+                                body=post.body.clone()
+                                is_markdown=post.markdown_body.is_some()
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1 p-2 border-b">
+                            <h1 class="font-bold text-2xl pl-6">"Moderator message"</h1>
+                            <div>{post.moderator_message.clone()}</div>
+                        </div>
+                    },
+                    Content::Comment(comment) => {
+                        view! {
+                            <div class="flex flex-col gap-1 p-2 border-b">
+                                <div class="font-bold text-2xl pl-6">"Content"</div>
+                                <ContentBody
+                                    body=comment.body.clone()
+                                    is_markdown=comment.markdown_body.is_some()
+                                />
+                            </div>
+                            <div class="flex flex-col gap-1 p-2 border-b">
+                                <div class="font-bold text-2xl pl-6">"Moderator message"</div>
+                                <div>{comment.moderator_message.clone()}</div>
+                            </div>
+                        }
+                    }
+                }
+            }
+            <div class="flex flex-col gap-1 p-2">
+                <h1 class="font-bold text-2xl pl-6">"Infringed rule"</h1>
+                <div class="text-lg font-semibold">{rule.title.clone()}</div>
+                <div>{rule.description.clone()}</div>
+            </div>
+        </div>
     }
 }

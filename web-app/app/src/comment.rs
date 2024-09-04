@@ -9,12 +9,12 @@ use crate::app::GlobalState;
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
-use crate::content::ContentBody;
+use crate::content::{Content, ContentBody};
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
 use crate::icons::{CommentIcon, EditIcon};
-use crate::moderation::{ModerateCommentButton, ModeratedBody};
+use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -635,6 +635,7 @@ fn CommentWidgetBar(
     let timestamp = Signal::derive(move || comment.with(|comment| comment.create_timestamp));
     let edit_timestamp = Signal::derive(move || comment.with(|comment| comment.edit_timestamp));
     let moderator = Signal::derive(move || comment.with(|comment| comment.moderator_name.clone()));
+    let content = Signal::derive(move || Content::Comment(comment.get()));
     view! {
         <div class="flex gap-1">
             <VotePanel
@@ -657,6 +658,7 @@ fn CommentWidgetBar(
                 comment_id
                 comment
             />
+            <ModerationInfoButton content/>
             <AuthorWidget author/>
             <ModeratorWidget moderator/>
             <TimeSinceWidget timestamp/>

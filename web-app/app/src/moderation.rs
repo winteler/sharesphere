@@ -1,4 +1,4 @@
-use crate::icons::HammerIcon;
+use crate::icons::{HammerIcon, MagnifierIcon};
 use leptos::*;
 use leptos_router::ActionForm;
 
@@ -6,10 +6,10 @@ use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
-use crate::forum_management::{ModerationInfo, Rule};
+use crate::forum_management::{get_rule_by_id, ModerationInfo, Rule};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::unpack::TransitionUnpack;
+use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -17,7 +17,7 @@ use crate::{
     auth::ssr::{check_user, reload_user},
     comment::ssr::{get_comment_by_id, get_comment_forum},
     errors::AppError,
-    forum_management::ssr::get_rule_by_id,
+    forum_management::ssr::load_rule_by_id,
     post::ssr::get_post_by_id
 };
 
@@ -234,7 +234,7 @@ pub async fn get_moderation_info(
         },
     };
     let rule = match rule_id {
-        Some(rule_id) => get_rule_by_id(rule_id, &db_pool).await,
+        Some(rule_id) => load_rule_by_id(rule_id, &db_pool).await,
         None => Err(AppError::InternalServerError(String::from("Content is not moderated, cannot find moderation info.")))
     }?;
 
@@ -572,7 +572,89 @@ pub fn BanMenu() -> impl IntoView {
     }
 }
 
+/// Displays the body of a moderated post or comment
+#[component]
+pub fn ModerationInfoButton(
+    #[prop(into)]
+    content: MaybeSignal<Content>,
+) -> impl IntoView {
+
+    let content = store_value(content);
+    let show_button = move || content.get_value().with(|content| match &content {
+        Content::Post(post) => post.infringed_rule_id.is_some(),
+        Content::Comment(comment) => comment.infringed_rule_id.is_some(),
+    });
+    let show_dialog = create_rw_signal(false);
+    let button_class = move || match show_dialog.get() {
+        true => "btn btn-circle btn-sm btn-primary",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
+
+
+    view! {
+        <Show when=show_button>
+            <button
+                class=button_class
+                on:click=move |_| show_dialog.update(|value| *value = !*value)
+            >
+                <MagnifierIcon/>
+            </button>
+            <ModalDialog
+                class="w-full max-w-xl"
+                show_dialog
+            >
+                <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+                    <ContentModerationInfo content=content.get_value()/>
+                    <button
+                        type="button"
+                        class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                        on:click=move |_| show_dialog.set(false)
+                    >
+                        "Close"
+                    </button>
+                </div>
+            </ModalDialog>
+        </Show>
+    }.into_view()
+}
+
 /// Component to display a button opening a modal dialog with a ban's details
+#[component]
+pub fn ContentModerationInfo(
+    #[prop(into)]
+    content: MaybeSignal<Content>,
+) -> impl IntoView {
+    let mod_info_resource = create_resource(
+        move || content.get(),
+        move |content| async move {
+            let rule_id = match &content {
+                Content::Post(post) => post.infringed_rule_id,
+                Content::Comment(comment) => comment.infringed_rule_id
+            };
+            match rule_id {
+                Some(rule_id) => {
+                    let rule = get_rule_by_id(rule_id).await?;
+                    Ok(ModerationInfo {
+                        content,
+                        rule,
+                    })
+                },
+                None => Err(ServerFnError::new("Content is not moderated.")),
+            }
+        }
+    );
+
+    view! {
+        <SuspenseUnpack resource=mod_info_resource let:moderation_info>
+            <ModerationInfoDialog
+                content=&moderation_info.content
+                rule=&moderation_info.rule
+            />
+        </SuspenseUnpack>
+    }
+}
+
+/// Component to display the details of a moderation instance
 #[component]
 pub fn ModerationInfoDialog<'a>(
     content: &'a Content,

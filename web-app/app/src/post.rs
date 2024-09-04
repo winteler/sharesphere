@@ -13,7 +13,7 @@ use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
 use crate::auth::{get_user, ssr::check_user};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-use crate::content::{CommentSortWidget, ContentBody};
+use crate::content::{CommentSortWidget, Content, ContentBody};
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
@@ -23,7 +23,7 @@ use crate::errors::AppError;
 use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
-use crate::moderation::{ModeratePostButton, ModeratedBody};
+use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -802,6 +802,7 @@ fn PostWidgetBar<'a>(
             <ModeratePostButton post_id=post.post.post_id/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <ModeratorWidget moderator=post.post.moderator_name.clone()/>
+            <ModerationInfoButton content=Content::Post(post.post.clone())/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
         </div>

@@ -64,7 +64,7 @@ where
 #[component]
 pub fn AuthorWidget(author: String) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn pr-1.5 gap-1.5 items-center text-sm">
+        <div class="flex rounded-btn px-1.5 gap-1.5 items-center text-sm">
             <AuthorIcon/>
             {author}
         </div>
@@ -80,7 +80,7 @@ pub fn ModeratorWidget(
     let moderator = store_value(moderator);
     view! {
         <Show when=move || moderator.get_value().with(|moderator| moderator.is_some())>
-            <div class="flex rounded-btn pr-1.5 gap-1.5 items-center text-sm">
+            <div class="flex pr-1.5 gap-1.5 items-center text-sm">
                 <ModeratorIcon/>
                 {
                     move || moderator.get_value().get().unwrap_or_default()

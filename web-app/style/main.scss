@@ -3310,10 +3310,6 @@ html {
   width: 100vw;
 }
 
-.min-w-16 {
-  min-width: 4rem;
-}
-
 .min-w-6 {
   min-width: 1.5rem;
 }
@@ -3714,6 +3710,11 @@ html {
 .px-1 {
   padding-left: 0.25rem;
   padding-right: 0.25rem;
+}
+
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
 }
 
 .px-2 {

@@ -14,7 +14,7 @@ use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
-use crate::unpack::TransitionUnpack;
+use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::user::get_matching_username_set;
 use crate::widget::{EnumDropdown, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
@@ -87,7 +87,7 @@ pub mod ssr {
         }
     }
     
-    pub async fn get_rule_by_id(
+    pub async fn load_rule_by_id(
         rule_id: i64,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
@@ -316,6 +316,15 @@ pub mod ssr {
 
         Ok(user_ban)
     }
+}
+
+#[server]
+pub async fn get_rule_by_id(
+    rule_id: i64
+) -> Result<Rule, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let rule = ssr::load_rule_by_id(rule_id, &db_pool).await?;
+    Ok(rule)
 }
 
 #[server]
@@ -559,7 +568,6 @@ pub fn ForumRulesPanel() -> impl IntoView {
                                 <div class="w-5/12 py-2 font-bold">"Title"</div>
                                 <div class="w-6/12 py-2 font-bold">"Description"</div>
                             </div>
-                            //<div class="w-16 min-w-16">""</div>
                         </div>
                         <For
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
@@ -797,7 +805,7 @@ pub fn BanPanel() -> impl IntoView {
                                     }
                                 }</div>
                                 <div class="w-1/5 flex justify-end gap-1">
-                                    <ModerationInfoButton
+                                    <BanInfoButton
                                         post_id=child.1.post_id
                                         comment_id=child.1.comment_id
                                     />
@@ -826,15 +834,11 @@ pub fn BanPanel() -> impl IntoView {
 
 /// Component to display a button opening a modal dialog with a ban's details
 #[component]
-pub fn ModerationInfoButton(
+pub fn BanInfoButton(
     post_id: i64,
     comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
-    let ban_detail_resource = create_resource(
-        move || (),
-        move |_| get_moderation_info(post_id, comment_id)
-    );
 
     view! {
         <button
@@ -847,21 +851,29 @@ pub fn ModerationInfoButton(
             class="w-full max-w-xl"
             show_dialog
         >
-            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-                <TransitionUnpack resource=ban_detail_resource let:moderation_info>
-                    <ModerationInfoDialog
-                        content=&moderation_info.content
-                        rule=&moderation_info.rule
-                    />
-                    <button
-                        type="button"
-                        class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
-                        on:click=move |_| show_dialog.set(false)
-                    >
-                        "Close"
-                    </button>
-                </TransitionUnpack>
-            </div>
+            {
+                let ban_detail_resource = create_resource(
+                    move || (),
+                    move |_| get_moderation_info(post_id, comment_id)
+                );
+                view! {
+                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+                        <SuspenseUnpack resource=ban_detail_resource let:moderation_info>
+                            <ModerationInfoDialog
+                                content=&moderation_info.content
+                                rule=&moderation_info.rule
+                            />
+                            <button
+                                type="button"
+                                class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                                on:click=move |_| show_dialog.set(false)
+                            >
+                                "Close"
+                            </button>
+                        </SuspenseUnpack>
+                    </div>
+                }
+            }
         </ModalDialog>
     }
 }

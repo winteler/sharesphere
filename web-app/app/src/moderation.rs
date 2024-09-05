@@ -2,6 +2,7 @@ use crate::icons::{HammerIcon, MagnifierIcon};
 use leptos::*;
 use leptos_router::ActionForm;
 
+use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
 use crate::editor::FormTextEditor;
@@ -353,16 +354,14 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
         false => "btn btn-circle btn-sm btn-ghost",
     };
     view! {
-        <AuthorizedShow permission_level=PermissionLevel::Moderate>
-            <button
-                class=edit_button_class
-                aria-expanded=move || show_dialog.get().to_string()
-                aria-haspopup="dialog"
-                on:click=move |_| show_dialog.set(true)
-            >
-                <HammerIcon/>
-            </button>
-        </AuthorizedShow>
+        <button
+            class=edit_button_class
+            aria-expanded=move || show_dialog.get().to_string()
+            aria-haspopup="dialog"
+            on:click=move |_| show_dialog.set(true)
+        >
+            <HammerIcon/>
+        </button>
     }
 }
 
@@ -371,13 +370,15 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
 pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     view! {
-        <div>
-            <ModerateButton show_dialog/>
-            <ModeratePostDialog
-                post_id
-                show_dialog
-            />
-        </div>
+        <AuthorizedShow permission_level=PermissionLevel::Moderate>
+            <div>
+                <ModerateButton show_dialog/>
+                <ModeratePostDialog
+                    post_id
+                    show_dialog
+                />
+            </div>
+        </AuthorizedShow>
     }
 }
 
@@ -386,14 +387,16 @@ pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
 pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> impl IntoView {
     let show_dialog = create_rw_signal(false);
     view! {
-        <div>
-            <ModerateButton show_dialog/>
-            <ModerateCommentDialog
-                comment_id
-                comment
-                show_dialog
-            />
-        </div>
+        <AuthorizedShow permission_level=PermissionLevel::Moderate>
+            <div>
+                <ModerateButton show_dialog/>
+                <ModerateCommentDialog
+                    comment_id
+                    comment
+                    show_dialog
+                />
+            </div>
+        </AuthorizedShow>
     }
 }
 
@@ -578,12 +581,21 @@ pub fn ModerationInfoButton(
     #[prop(into)]
     content: MaybeSignal<Content>,
 ) -> impl IntoView {
-
+    let state = expect_context::<GlobalState>();
+    let forum_state = expect_context::<ForumState>();
     let content = store_value(content);
-    let show_button = move || content.get_value().with(|content| match &content {
-        Content::Post(post) => post.infringed_rule_id.is_some(),
-        Content::Comment(comment) => comment.infringed_rule_id.is_some(),
-    });
+    let show_button = move || {
+        let (is_moderated, creator_id) = content.get_value().with(|content| match &content {
+            Content::Post(post) => (post.infringed_rule_id.is_some(), post.creator_id),
+            Content::Comment(comment) => (comment.infringed_rule_id.is_some(), comment.creator_id),
+        });
+        let is_author = state.user.with(|user| match user {
+            Some(Ok(Some(user))) => user.user_id == creator_id,
+            _ => false
+        });
+        let is_moderator = forum_state.permission_level.with(|value| *value >= PermissionLevel::Moderate);
+        is_moderated && (is_author || is_moderator)
+    };
     let show_dialog = create_rw_signal(false);
     let button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",

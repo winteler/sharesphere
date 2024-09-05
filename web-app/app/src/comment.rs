@@ -795,34 +795,33 @@ pub fn EditCommentButton(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let show_dialog = create_rw_signal(false);
+    let show_button = move || state.user.with(|result| match result {
+        Some(Ok(Some(user))) => user.user_id == author_id,
+        _ => false,
+    });
     let comment_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
     };
 
     view! {
-        <div>
-            {
-                move || state.user.map(|result| match result {
-                    Ok(Some(user)) if user.user_id == author_id => view! {
-                        <button
-                            class=comment_button_class
-                            aria-expanded=move || show_dialog.get().to_string()
-                            aria-haspopup="dialog"
-                            on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                        >
-                            <EditIcon/>
-                        </button>
-                    }.into_view(),
-                    _ => View::default()
-                })
-            }
-            <EditCommentDialog
-                comment_id
-                comment
-                show_dialog
-            />
-        </div>
+        <Show when=show_button>
+            <div>
+                <button
+                    class=comment_button_class
+                    aria-expanded=move || show_dialog.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                >
+                    <EditIcon/>
+                </button>
+                <EditCommentDialog
+                    comment_id
+                    comment
+                    show_dialog
+                />
+            </div>
+        </Show>
     }
 }
 

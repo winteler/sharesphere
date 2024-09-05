@@ -64,7 +64,7 @@ where
 #[component]
 pub fn AuthorWidget(author: String) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn px-1.5 gap-1.5 items-center text-sm">
+        <div class="flex px-1 gap-1.5 items-center text-sm">
             <AuthorIcon/>
             {author}
         </div>
@@ -80,7 +80,7 @@ pub fn ModeratorWidget(
     let moderator = store_value(moderator);
     view! {
         <Show when=move || moderator.get_value().with(|moderator| moderator.is_some())>
-            <div class="flex pr-1.5 gap-1.5 items-center text-sm">
+            <div class="flex px-1 gap-1.5 items-center text-sm">
                 <ModeratorIcon/>
                 {
                     move || moderator.get_value().get().unwrap_or_default()
@@ -97,7 +97,7 @@ pub fn TimeSinceWidget(
     timestamp: MaybeSignal<chrono::DateTime<chrono::Utc>>
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-1.5 items-center text-sm pr-1.5">
+        <div class="flex gap-1.5 items-center text-sm px-1">
             <ClockIcon/>
             {
                 move || get_elapsed_time_string(timestamp.get())
@@ -114,7 +114,7 @@ pub fn TimeSinceEditWidget(
 ) -> impl IntoView {
     view! {
         <Show when=move || edit_timestamp.with(|edit_timestamp| edit_timestamp.is_some())>
-            <div class="flex gap-1.5 items-center text-sm pr-1.5">
+            <div class="flex gap-1.5 items-center text-sm px-1">
                 <EditTimeIcon/>
                 {
                     move || get_elapsed_time_string(edit_timestamp.get().unwrap())

@@ -798,7 +798,8 @@ fn PostWidgetBar<'a>(
                 vote=&post.vote
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
-            <EditPostButton author_id=post.post.creator_id post=&post.post/>
+            
+            <EditPostButton author_id=post.post.creator_id post=post.post.clone()/>
             <ModeratePostButton post_id=post.post.post_id/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <ModeratorWidget moderator=post.post.moderator_name.clone()/>
@@ -811,41 +812,38 @@ fn PostWidgetBar<'a>(
 
 /// Component to edit a post
 #[component]
-pub fn EditPostButton<'a>(
-    post: &'a Post,
+pub fn EditPostButton(
+    post: Post,
     author_id: i64
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let post = store_value(post);
     let show_dialog = create_rw_signal(false);
+    let show_button = move || state.user.with(|result| match result {
+        Some(Ok(Some(user))) => user.user_id == author_id,
+        _ => false,
+    });
     let edit_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
     };
     view! {
-        <div>
-            {
-                move || state.user.map(|result| match result {
-                    Ok(Some(user)) if user.user_id == author_id => view! {
-                        <button
-                            class=edit_button_class
-                            aria-expanded=move || show_dialog.get().to_string()
-                            aria-haspopup="dialog"
-                            on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                        >
-                            <EditIcon/>
-                        </button>
-                    }.into_view(),
-                    _ => View::default()
-                })
-            }
-            <EditPostDialog
-                post_id=post.post_id
-                post_title=post.title.clone()
-                post_body=post.body.clone()
-                markdown_body=post.markdown_body.clone()
-                show_dialog
-            />
-        </div>
+        <Show when=show_button>
+            <div>
+                <button
+                    class=edit_button_class
+                    aria-expanded=move || show_dialog.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                >
+                    <EditIcon/>
+                </button>
+                <EditPostDialog
+                    post=post.get_value()
+                    show_dialog
+                />
+            </div>
+        </Show>
     }
 }
 
@@ -963,10 +961,7 @@ pub fn CreatePost() -> impl IntoView {
 /// Dialog to edit a post
 #[component]
 pub fn EditPostDialog(
-    post_id: i64,
-    post_title: String,
-    post_body: String,
-    markdown_body: Option<String>,
+    post: Post,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -975,10 +970,10 @@ pub fn EditPostDialog(
             show_dialog
         >
             <EditPostForm
-                post_id
-                post_title=post_title.clone()
-                post_body=post_body.clone()
-                markdown_body=markdown_body.clone()
+                post_id=post.post_id
+                post_title=post.title.clone()
+                post_body=post.body.clone()
+                markdown_body=post.markdown_body.clone()
                 show_form=show_dialog
             />
         </ModalDialog>

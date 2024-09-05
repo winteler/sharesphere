@@ -116,7 +116,7 @@ pub fn LoggedInMenu<'a>(
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
                 <UserIcon/>
             </label>
-            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-200 rounded-sm w-52">
                 <li><a href="#">"Settings"</a></li>
                 <li>
                     <form action=state.logout_action.url() method="post" rel="external" class="flex">

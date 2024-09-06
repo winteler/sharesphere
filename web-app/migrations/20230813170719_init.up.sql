@@ -20,6 +20,7 @@ CREATE TABLE forums (
     banner_url TEXT,
     num_members INT NOT NULL DEFAULT 0,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (forum_id, forum_name)
 );

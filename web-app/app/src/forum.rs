@@ -55,6 +55,7 @@ pub struct Forum {
     pub banner_url: Option<String>,
     pub num_members: i32,
     pub creator_id: i64,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
@@ -81,8 +82,9 @@ pub struct ForumState {
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<String, Result<Forum, ServerFnError>>,
     pub forum_roles_resource: Resource<(String, usize), Result<Vec<UserForumRole>, ServerFnError>>,
-    pub forum_rules_resource: Resource<(String, usize, usize, usize), Result<Vec<Rule>, ServerFnError>>,
+    pub forum_rules_resource: Resource<(String, usize, usize, usize, usize), Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
+    pub update_forum_desc_action: Action<UpdateForumDescription, Result<(), ServerFnError>>,
     pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
     pub add_rule_action: Action<AddRule, Result<Rule, ServerFnError>>,
     pub update_rule_action: Action<UpdateRule, Result<Rule, ServerFnError>>,
@@ -262,11 +264,11 @@ pub mod ssr {
         user.check_permissions(forum_name, PermissionLevel::Manage)?;
         let forum = sqlx::query_as!(
             Forum,
-            "UPDATE forum SET description = $1 where forum_name = $2",
+            "UPDATE forums SET description = $1, timestamp = CURRENT_TIMESTAMP WHERE forum_name = $2 RETURNING *",
             description,
             forum_name,
         )
-            .execute(db_pool)
+            .fetch_one(db_pool)
             .await?;
 
         Ok(forum)
@@ -405,6 +407,19 @@ pub async fn create_forum(
 }
 
 #[server]
+pub async fn update_forum_description(
+    forum_name: String,
+    description: String,
+) -> Result<(), ServerFnError> {
+    let user = check_user()?;
+    let db_pool = get_db_pool()?;
+
+    ssr::update_forum_description(&forum_name, &description, &user, &db_pool).await?;
+
+    Ok(())
+}
+
+#[server]
 pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -442,6 +457,7 @@ fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
 pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = get_forum_name_memo(use_params_map());
+    let update_forum_desc_action = create_server_action::<UpdateForumDescription>();
     let set_forum_role_action = create_server_action::<SetUserForumRole>();
     let add_rule_action = create_server_action::<AddRule>();
     let update_rule_action = create_server_action::<UpdateRule>();
@@ -465,13 +481,15 @@ pub fn ForumBanner() -> impl IntoView {
         forum_rules_resource: create_resource(
             move || (
                 forum_name.get(),
+                update_forum_desc_action.version().get(),
                 add_rule_action.version().get(),
                 update_rule_action.version().get(),
                 remove_rule_action.version().get()
             ),
-            move |(forum_name, _, _, _)| get_forum_rule_vec(forum_name),
+            move |(forum_name, _, _, _, _)| get_forum_rule_vec(forum_name),
         ),
         moderate_post_action: create_server_action::<ModeratePost>(),
+        update_forum_desc_action,
         set_forum_role_action,
         add_rule_action,
         update_rule_action,

@@ -5,9 +5,10 @@ use sqlx::PgPool;
 
 use app::app::ssr::create_db_pool;
 use app::errors::AppError;
+use app::errors::AppError::InsufficientPrivileges;
 use app::forum;
-use app::forum::Forum;
 use app::forum::ssr::{subscribe, unsubscribe};
+use app::forum::Forum;
 use app::role::PermissionLevel;
 use app::user::User;
 
@@ -303,6 +304,7 @@ async fn test_create_forum() -> Result<(), AppError> {
     assert_eq!(forum.creator_id, test_user.user_id);
     assert_eq!(forum.description, forum_description);
     assert_eq!(forum.is_nsfw, false);
+    assert_eq!(forum.timestamp, forum.create_timestamp);
 
     // Check new permissions were created
     let test_user = User::get(test_user.user_id, &db_pool).await.expect("User should be available in DB.");
@@ -330,6 +332,46 @@ async fn test_create_forum() -> Result<(), AppError> {
             .await
             .is_ok()
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_update_forum_description() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let lead = create_user("lead", &db_pool).await;
+    let ordinary_user = create_user("user", &db_pool).await;
+    let forum = forum::ssr::create_forum(
+        "test",
+        "first",
+        false,
+        &lead,
+        &db_pool
+    ).await.expect("Should be possible to create forum.");
+    let lead = User::get(lead.user_id, &db_pool).await.expect("User should be available in DB.");
+
+    let updated_description = "second";
+    assert_eq!(
+        forum::ssr::update_forum_description(
+            &forum.forum_name,
+            updated_description,
+            &ordinary_user,
+            &db_pool
+        ).await,
+        Err(InsufficientPrivileges),
+    );
+    let updated_forum = forum::ssr::update_forum_description(
+        &forum.forum_name,
+        updated_description,
+        &lead,
+        &db_pool
+    ).await.expect("Should be possible to update forum.");
+
+    assert_eq!(updated_forum.forum_id, forum.forum_id);
+    assert_eq!(updated_forum.creator_id, lead.user_id);
+    assert_eq!(updated_forum.description, updated_description);
+    assert!(updated_forum.timestamp > forum.timestamp);
+    assert!(updated_forum.timestamp > updated_forum.create_timestamp);
 
     Ok(())
 }

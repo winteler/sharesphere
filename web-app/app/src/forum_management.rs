@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 
 use crate::content::Content;
 use crate::editor::FormTextEditor;
-use crate::forum::ForumState;
+use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
@@ -401,10 +401,42 @@ pub fn ForumCockpit() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-1/2 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
+            <ForumDescriptionDialog/>
             <ModeratorPanel/>
             <ForumRulesPanel/>
             <BanPanel/>
         </div>
+    }
+}
+
+/// Component to edit a forum's description
+#[component]
+pub fn ForumDescriptionDialog() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    view! {
+        <AuthorizedShow permission_level=PermissionLevel::Manage>
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+                <div class="text-xl text-center">"Forum description"</div>
+                <SuspenseUnpack resource=forum_state.forum_resource let:forum>
+                    <ForumDescriptionForm forum/>
+                </SuspenseUnpack>
+            </div>
+        </AuthorizedShow>
+    }
+}
+
+/// Component to edit a forum's description
+#[component]
+pub fn ForumDescriptionForm<'a>(
+    forum: &'a Forum,
+) -> impl IntoView {
+    let description = create_rw_signal(forum.description.clone());
+    view! {
+        <FormTextEditor
+            name="description"
+            placeholder="Description"
+            content=description
+        />
     }
 }
 

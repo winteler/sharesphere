@@ -253,14 +253,33 @@ pub mod ssr {
         Ok(forum)
     }
 
+    pub async fn update_forum_description(
+        forum_name: &str,
+        description: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Forum, AppError> {
+        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+        let forum = sqlx::query_as!(
+            Forum,
+            "UPDATE forum SET description = $1 where forum_name = $2",
+            description,
+            forum_name,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(forum)
+    }
+
     pub async fn subscribe(forum_id: i64, user_id: i64, db_pool: &PgPool) -> Result<(), AppError> {
         sqlx::query!(
             "INSERT INTO forum_subscriptions (user_id, forum_id) VALUES ($1, $2)",
             user_id,
             forum_id
         )
-        .execute(db_pool)
-        .await?;
+            .execute(db_pool)
+            .await?;
 
         sqlx::query!(
             "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",

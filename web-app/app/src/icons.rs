@@ -270,6 +270,13 @@ pub fn QuoteIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoV
 }
 
 #[component]
+pub fn SaveIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/form/save.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn ScoreIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/score.svg" class=class/>

@@ -11,7 +11,7 @@ use strum::IntoEnumIterator;
 use crate::content::Content;
 use crate::editor::FormTextEditor;
 use crate::forum::{Forum, ForumState};
-use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon};
+use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
@@ -430,13 +430,32 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
 pub fn ForumDescriptionForm<'a>(
     forum: &'a Forum,
 ) -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
     let description = create_rw_signal(forum.description.clone());
+    let disable_submit = move || description.with(|description| description.is_empty());
     view! {
-        <FormTextEditor
-            name="description"
-            placeholder="Description"
-            content=description
-        />
+        <ActionForm
+            action=forum_state.update_forum_desc_action
+            class="flex flex-col gap-1"
+        >
+            <input
+                name="forum_name"
+                class="hidden"
+                value=forum_state.forum_name
+            />
+            <FormTextEditor
+                name="description"
+                placeholder="Description"
+                content=description
+            />
+            <button
+                type="submit"
+                class="btn btn-secondary btn-sm p-1 self-end"
+                disabled=disable_submit
+            >
+                <SaveIcon/>
+            </button>
+        </ActionForm>
     }
 }
 

@@ -107,7 +107,7 @@ pub fn ForumSidebar() -> impl IntoView {
             <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">{forum_state.forum_name}</div>
                 <TransitionUnpack resource=forum_state.forum_resource let:forum>
-                    <div class="text-justify pl-4">{forum.description.clone()}</div>
+                    <div class="pl-4 whitespace-pre-wrap">{forum.description.clone()}</div>
                 </TransitionUnpack>
             </div>
             <ForumRuleList/>

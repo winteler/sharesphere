@@ -20,7 +20,7 @@ pub fn ContentBody(
 ) -> impl IntoView {
     let class = match is_markdown {
         true => "",
-        false => "whitespace-pre",
+        false => "whitespace-pre-wrap",
     };
 
     view! {

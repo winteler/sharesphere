@@ -80,9 +80,9 @@ pub struct ForumWithUserInfo {
 pub struct ForumState {
     pub forum_name: Memo<String>,
     pub permission_level: Signal<PermissionLevel>,
-    pub forum_resource: Resource<String, Result<Forum, ServerFnError>>,
+    pub forum_resource: Resource<(String, usize), Result<Forum, ServerFnError>>,
     pub forum_roles_resource: Resource<(String, usize), Result<Vec<UserForumRole>, ServerFnError>>,
-    pub forum_rules_resource: Resource<(String, usize, usize, usize, usize), Result<Vec<Rule>, ServerFnError>>,
+    pub forum_rules_resource: Resource<(String, usize, usize, usize), Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
     pub update_forum_desc_action: Action<UpdateForumDescription, Result<(), ServerFnError>>,
     pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
@@ -471,8 +471,8 @@ pub fn ForumBanner() -> impl IntoView {
             })
         ),
         forum_resource: create_resource(
-            move || forum_name.get(),
-            move |forum_name| get_forum_by_name(forum_name)
+            move || (forum_name.get(), update_forum_desc_action.version().get(),),
+            move |(forum_name, _)| get_forum_by_name(forum_name)
         ),
         forum_roles_resource: create_resource(
             move || (forum_name.get(), set_forum_role_action.version().get()),
@@ -481,12 +481,11 @@ pub fn ForumBanner() -> impl IntoView {
         forum_rules_resource: create_resource(
             move || (
                 forum_name.get(),
-                update_forum_desc_action.version().get(),
                 add_rule_action.version().get(),
                 update_rule_action.version().get(),
                 remove_rule_action.version().get()
             ),
-            move |(forum_name, _, _, _, _)| get_forum_rule_vec(forum_name),
+            move |(forum_name, _, _, _)| get_forum_rule_vec(forum_name),
         ),
         moderate_post_action: create_server_action::<ModeratePost>(),
         update_forum_desc_action,

@@ -7,20 +7,20 @@ use leptos_router::*;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
-use openidconnect::{OAuth2TokenResponse, TokenResponse};
-#[cfg(feature = "ssr")]
 use openidconnect::reqwest::*;
+#[cfg(feature = "ssr")]
+use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
+use crate::app::GlobalState;
+use crate::navigation_bar::get_current_path;
+use crate::unpack::SuspenseUnpack;
+use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::{get_db_pool, get_session},
     auth::ssr::check_user,
     user::ssr::{create_user, SqlUser}
 };
-use crate::app::GlobalState;
-use crate::navigation_bar::get_current_path;
-use crate::unpack::SuspenseUnpack;
-use crate::user::User;
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_ADDR";
@@ -35,7 +35,7 @@ pub const REDIRECT_URL_KEY: &str = "redirect";
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use axum_session::SessionPgPool;
+    use axum_session_sqlx::SessionPgPool;
     use sqlx::PgPool;
 
     use crate::errors::AppError;

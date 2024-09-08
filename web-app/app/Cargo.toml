@@ -16,6 +16,7 @@ leptos-use.workspace = true
 anyhow = { workspace = true, optional = true }
 axum_session = { workspace = true, optional = true }
 axum_session_auth = { workspace = true, optional = true }
+axum_session_sqlx = { workspace = true, optional = true }
 chrono.workspace = true
 http.workspace = true
 log.workspace = true
@@ -27,13 +28,13 @@ tokio = { workspace = true, optional = true }
 async-trait = { version = "*", optional = true }
 
 cfg-if = "1"
-const_format = "0.2.31"
-markdown = { version = "1.0.0-alpha.16", optional = true }
-quick-xml = { version = "0.31.0", optional = true }
-openidconnect = { version = "3.3.0", optional = true }
-strum = "0.26.2"
+const_format = "0.2.33"
+markdown = { version = "1.0.0-alpha.20", optional = true }
+quick-xml = { version = "0.36.1", optional = true }
+openidconnect = { version = "3.5.0", optional = true }
+strum = "0.26.3"
 strum_macros = "0.26.4"
-serde_json = "1.0.115"
+serde_json = "1.0.128"
 tracing-subscriber = "0.3.18"
 
 [dev-dependencies]
@@ -52,6 +53,7 @@ ssr = [
     "dep:async-trait",
     "dep:axum_session",
     "dep:axum_session_auth",
+    "dep:axum_session_sqlx",
     "dep:markdown",
     "dep:quick-xml",
     "dep:leptos_axum",

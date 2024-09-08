@@ -5,22 +5,23 @@ use axum::{
     extract::{Path, State},
     http::Request,
     response::{IntoResponse, Response},
-    Router,
     routing::get,
+    Router,
 };
-use axum_session::{Key, SessionConfig, SessionLayer, SessionPgPool, SessionStore};
+use axum_session::{Key, SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer};
+use axum_session_sqlx::SessionPgPool;
 use leptos::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
 use wasm_bindgen::UnwrapThrowExt;
 
+use app::user::User;
 use app::{
-    app::*,
     app::ssr::get_db_pool,
+    app::*,
     auth::ssr::*,
 };
-use app::user::User;
 
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;

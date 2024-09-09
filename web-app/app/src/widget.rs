@@ -1,4 +1,5 @@
-use leptos::*;
+use leptos::html;
+use leptos::prelude::*;
 use strum::IntoEnumIterator;
 
 use crate::constants::{
@@ -77,7 +78,7 @@ pub fn ModeratorWidget(
     #[prop(into)]
     moderator: MaybeSignal<Option<String>>
 ) -> impl IntoView {
-    let moderator = store_value(moderator);
+    let moderator = StoredValue::new(moderator);
     view! {
         <Show when=move || moderator.get_value().with(|moderator| moderator.is_some())>
             <div class="flex px-1 gap-1.5 items-center text-sm">
@@ -153,7 +154,7 @@ pub fn MinimizeMaximizeWidget(
 
 /// Component to render cancel and publish buttons for a modal Form
 #[component]
-pub fn ModalFormButtons<F: Fn() -> bool + 'static>(
+pub fn ModalFormButtons<F: Fn() -> bool + Send + Sync + 'static>(
     /// functions returning whether the publish buttons should be disabled
     disable_publish: F,
     /// signal to hide the form upon submitting or cancelling
@@ -181,15 +182,12 @@ pub fn ModalFormButtons<F: Fn() -> bool + 'static>(
 
 /// Component to render a server action's error
 #[component]
-pub fn ActionError<F: Fn() -> bool + 'static>(
+pub fn ActionError<F: Fn() -> bool + Send + Sync + 'static>(
     /// functions returning whether the publish buttons should be disabled
     has_error: F,
 ) -> impl IntoView {
     view! {
-        <Show
-            when=has_error
-            fallback=move || ()
-        >
+        <Show when=has_error>
             <div class="alert alert-error flex justify-center">
                 <InternalErrorIcon/>
                 <span>"Server error. Please reload the page and retry."</span>

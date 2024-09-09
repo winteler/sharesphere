@@ -3,7 +3,8 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use http::status::StatusCode;
-use leptos::{component, IntoView, ServerFnError, view};
+use leptos::prelude::IntoAny;
+use leptos::{component, prelude::ServerFnError, view, IntoView};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -152,17 +153,17 @@ pub fn AppErrorIcon(
     app_error: AppError,
 ) -> impl IntoView {
     match app_error {
-        AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> },
+        AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> }.into_any(),
         AppError::NotAuthenticated | AppError::InsufficientPrivileges |AppError::ForumBanUntil(_) |
-        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <NotAuthorizedIcon/> }, // TODO better icon for bans (judge, hammer?)
+        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <NotAuthorizedIcon/> }.into_any(), // TODO better icon for bans (judge, hammer?)
         AppError::CommunicationError(error) => match error {
-            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> },
-            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> },
-            _ => view! { <InternalErrorIcon/> },
+            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
+            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),
+            _ => view! { <InternalErrorIcon/> }.into_any(),
         },
-        AppError::DatabaseError(_) => view! { <InternalErrorIcon/> },
-        AppError::InternalServerError(_) => view! { <InternalErrorIcon/> },
-        AppError::NotFound => view! { <NotFoundIcon/> },
+        AppError::DatabaseError(_) => view! { <InternalErrorIcon/> }.into_any(),
+        AppError::InternalServerError(_) => view! { <InternalErrorIcon/> }.into_any(),
+        AppError::NotFound => view! { <NotFoundIcon/> }.into_any(),
     }
 }
 
@@ -171,8 +172,8 @@ mod tests {
     use std::str::FromStr;
 
     use http::StatusCode;
+    use leptos::prelude::ServerFnError;
     use leptos::server_fn::error::NoCustomError;
-    use leptos::ServerFnError;
 
     use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, FORUM_BAN_UNTIL_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_FORUM_BAN_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, UNAVAILABLE_MESSAGE};
 
@@ -373,9 +374,9 @@ mod tests {
 
     #[test]
     fn test_app_error_from_quick_xml_error() {
-        let error = quick_xml::Error::EndEventMismatch {
-            expected: String::from("test"),
-            found: String::from("error")
+        let error = quick_xml::Error::InvalidPrefixBind {
+            prefix: vec![1],
+            namespace: vec![1],
         };
         assert_eq!(AppError::from(error.clone()), AppError::InternalServerError(error.to_string()));
     }

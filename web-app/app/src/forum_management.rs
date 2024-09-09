@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use chrono::SecondsFormat;
 use const_format::concatcp;
-use leptos::*;
-use leptos_router::ActionForm;
+use leptos::html;
+use leptos::prelude::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -13,7 +13,7 @@ use crate::editor::FormTextEditor;
 use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
-use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
+use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::user::get_matching_username_set;
 use crate::widget::{EnumDropdown, ModalDialog, ModalFormButtons};
@@ -418,7 +418,7 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum description"</div>
                 <SuspenseUnpack resource=forum_state.forum_resource let:forum>
-                    <ForumDescriptionForm forum/>
+                    <ForumDescriptionForm forum=forum.clone()/>
                 </SuspenseUnpack>
             </div>
         </AuthorizedShow>
@@ -427,16 +427,16 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
 
 /// Component to edit a forum's description
 #[component]
-pub fn ForumDescriptionForm<'a>(
-    forum: &'a Forum,
+pub fn ForumDescriptionForm(
+    forum: Forum,
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
-    let description = create_rw_signal(forum.description.clone());
+    let description = RwSignal::new(forum.description.clone());
     let disable_submit = move || description.with(|description| description.is_empty());
     view! {
         <ActionForm
             action=forum_state.update_forum_desc_action
-            class="flex flex-col gap-1"
+            attr:class="flex flex-col gap-1"
         >
             <input
                 name="forum_name"
@@ -464,10 +464,10 @@ pub fn ForumDescriptionForm<'a>(
 pub fn ModeratorPanel() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let forum_name = forum_state.forum_name;
-    let username_input = create_rw_signal(String::default());
-    let select_ref = create_node_ref::<html::Select>();
+    let username_input = RwSignal::new(String::default());
+    let select_ref = NodeRef::<html::Select>::new();
 
-    let set_role_action = create_server_action::<SetUserForumRole>();
+    let set_role_action = ServerAction::<SetUserForumRole>::new();
 
     view! {
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
@@ -485,7 +485,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                             each= move || forum_role_vec.clone().into_iter().enumerate()
                             key=|(_index, role)| (role.user_id, role.permission_level)
                             children=move |(_, role)| {
-                                let username = store_value(role.username);
+                                let username = StoredValue::new(role.username);
                                 view! {
                                     <div
                                         class="flex gap-1 py-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
@@ -525,11 +525,11 @@ pub fn PermissionLevelForm(
     forum_name: Memo<String>,
     username_input: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
-    set_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>
+    set_role_action: ServerAction<SetUserForumRole>
 ) -> impl IntoView {
-    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
-    let matching_user_resource = create_resource(
-        move || username_debounced.get(),
+    //TODO leptos_use: let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    let matching_user_resource = Resource::new(
+        move || username_input.get(),
         move |username| async {
             if username.is_empty() {
                 Ok(BTreeSet::<String>::default())
@@ -574,7 +574,7 @@ pub fn PermissionLevelForm(
                                     >
                                         <li>
                                             <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
-                                                {child.1}
+                                                {child.1.clone()}
                                             </button>
                                         </li>
                                     </For>
@@ -624,8 +624,8 @@ pub fn ForumRulesPanel() -> impl IntoView {
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
                             key=|(_index, rule)| rule.rule_id
                             children=move |(_, rule)| {
-                                let rule = store_value(rule);
-                                let show_edit_form = create_rw_signal(false);
+                                let rule = StoredValue::new(rule);
+                                let show_edit_form = RwSignal::new(false);
                                 view! {
                                     <div class="flex gap-1 justify-between rounded pl-1">
                                         <div class="w-5/6 flex gap-1">
@@ -671,7 +671,7 @@ pub fn DeleteRuleButton(
         <AuthorizedShow permission_level=PermissionLevel::Manage>
             <ActionForm
                 action=forum_state.remove_rule_action
-                class="h-fit flex justify-center"
+                attr:class="h-fit flex justify-center"
             >
                 <input
                     name="forum_name"
@@ -699,10 +699,10 @@ pub fn EditRuleForm(
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let rule = rule.get_value();
-    let priority = create_rw_signal(rule.priority.to_string());
-    let title = create_rw_signal(rule.title);
-    let description = create_rw_signal(rule.description);
-    let invalid_inputs = move || with!(|priority, title, description| priority.is_empty() || title.is_empty() || description.is_empty());
+    let priority = RwSignal::new(rule.priority.to_string());
+    let title = RwSignal::new(rule.title);
+    let description = RwSignal::new(rule.description);
+    let invalid_inputs = move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty();
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
@@ -734,11 +734,11 @@ pub fn EditRuleForm(
 #[component]
 pub fn CreateRuleForm() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
-    let show_dialog = create_rw_signal(false);
-    let priority = create_rw_signal(String::default());
-    let title = create_rw_signal(String::default());
-    let description = create_rw_signal(String::default());
-    let invalid_inputs = move || with!(|priority, title, description| priority.is_empty() || title.is_empty() || description.is_empty());
+    let show_dialog = RwSignal::new(false);
+    let priority = RwSignal::new(String::default());
+    let title = RwSignal::new(String::default());
+    let description = RwSignal::new(String::default());
+    let invalid_inputs = move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty();
 
     view! {
         <button
@@ -814,12 +814,12 @@ pub fn RuleInputs(
 #[component]
 pub fn BanPanel() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
-    let username_input = create_rw_signal(String::default());
-    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    let username_input = RwSignal::new(String::default());
+    //TODO leptos_use: let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
 
-    let unban_action = create_server_action::<RemoveUserBan>();
-    let banned_users_resource = create_resource(
-        move || (forum_name.get(), username_debounced.get(), unban_action.version().get()),
+    let unban_action = ServerAction::<RemoveUserBan>::new();
+    let banned_users_resource = Resource::new(
+        move || (forum_name.get(), username_input.get(), unban_action.version().get()),
         move |(forum_name, username, _)| get_forum_ban_vec(forum_name, username)
     );
 
@@ -889,7 +889,7 @@ pub fn BanInfoButton(
     post_id: i64,
     comment_id: Option<i64>,
 ) -> impl IntoView {
-    let show_dialog = create_rw_signal(false);
+    let show_dialog = RwSignal::new(false);
 
     view! {
         <button
@@ -903,7 +903,7 @@ pub fn BanInfoButton(
             show_dialog
         >
             {
-                let ban_detail_resource = create_resource(
+                let ban_detail_resource = Resource::new(
                     move || (),
                     move |_| get_moderation_info(post_id, comment_id)
                 );
@@ -911,8 +911,8 @@ pub fn BanInfoButton(
                     <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
                         <SuspenseUnpack resource=ban_detail_resource let:moderation_info>
                             <ModerationInfoDialog
-                                content=&moderation_info.content
-                                rule=&moderation_info.rule
+                                content=moderation_info.content.clone()
+                                rule=moderation_info.rule.clone()
                             />
                             <button
                                 type="button"

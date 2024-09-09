@@ -1,4 +1,5 @@
-use leptos::*;
+use leptos::html;
+use leptos::prelude::*;
 use leptos_use::{on_click_outside, signal_debounced};
 
 use crate::constants::SPOILER_TAG;
@@ -197,7 +198,7 @@ pub fn FormMarkdownEditor(
 ) -> impl IntoView {
     let num_lines = move || content.with(|content| content.lines().count());
 
-    let is_markdown_mode = create_rw_signal(is_markdown);
+    let is_markdown_mode = RwSignal::new(is_markdown);
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
     let markdown_button_class = move || match is_markdown_mode.get() {
         true => "h-full content-center p-2 rounded-md bg-success",
@@ -206,11 +207,11 @@ pub fn FormMarkdownEditor(
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
     // we wait for the debounced
-    let content_debounced: Signal<String> = signal_debounced(content, 500.0);
-    let is_md_mode_debounced: Signal<bool> = signal_debounced(is_markdown_mode, 500.0);
+    //TODO leptos_use:let content_debounced: Signal<String> = signal_debounced(content, 500.0);
+    //TODO leptos_use:let is_md_mode_debounced: Signal<bool> = signal_debounced(is_markdown_mode, 500.0);
 
-    let render_markdown_resource = create_resource(
-        move || (is_md_mode_debounced.get(), content_debounced.get()),
+    let render_markdown_resource = Resource::new(
+        move || (is_markdown_mode.get(), content.get()),
         move |(is_markdown_mode, markdown_content)| async move {
             if is_markdown_mode {
                 get_styled_html_from_markdown(markdown_content).await
@@ -220,7 +221,7 @@ pub fn FormMarkdownEditor(
         },
     );
 
-    let textarea_ref = create_node_ref::<html::Textarea>();
+    let textarea_ref = NodeRef::<html::Textarea>::new();
 
     view! {
         <div class="flex flex-col gap-2">
@@ -277,7 +278,7 @@ pub fn FormMarkdownEditor(
             <Show when=is_markdown_mode>
                 <TransitionUnpack resource=render_markdown_resource let:markdown_as_html>
                     <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-sm bg-base-100 break-words"
-                        inner_html={markdown_as_html}
+                        inner_html={markdown_as_html.clone()}
                     />
                 </TransitionUnpack>
             </Show>
@@ -329,18 +330,18 @@ pub fn FormatButton(
         >
         {
             match format_type {
-                FormatType::Bold => view!{ <BoldIcon/> },
-                FormatType::Italic => view!{ <ItalicIcon/> },
-                FormatType::Strikethrough => view!{ <StrikethroughIcon/> },
-                FormatType::Header1 => view!{ <Header1Icon/> },
-                FormatType::Header2 => view!{ <Header2Icon/> },
-                FormatType::List => view!{ <ListBulletIcon/> },
-                FormatType::NumberedList => view!{ <ListNumberIcon/> },
-                FormatType::CodeBlock => view!{ <CodeBlockIcon/> },
-                FormatType::Spoiler => view!{ <SpoilerIcon/> },
-                FormatType::BlockQuote => view!{ <QuoteIcon/> },
-                FormatType::Link => view!{ <LinkIcon/> },
-                FormatType::Image => view!{ <ImageIcon/> },
+                FormatType::Bold => view!{ <BoldIcon/> }.into_any(),
+                FormatType::Italic => view!{ <ItalicIcon/> }.into_any(),
+                FormatType::Strikethrough => view!{ <StrikethroughIcon/> }.into_any(),
+                FormatType::Header1 => view!{ <Header1Icon/> }.into_any(),
+                FormatType::Header2 => view!{ <Header2Icon/> }.into_any(),
+                FormatType::List => view!{ <ListBulletIcon/> }.into_any(),
+                FormatType::NumberedList => view!{ <ListNumberIcon/> }.into_any(),
+                FormatType::CodeBlock => view!{ <CodeBlockIcon/> }.into_any(),
+                FormatType::Spoiler => view!{ <SpoilerIcon/> }.into_any(),
+                FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
+                FormatType::Link => view!{ <LinkIcon/> }.into_any(),
+                FormatType::Image => view!{ <ImageIcon/> }.into_any(),
             }
         }
         </button>
@@ -350,9 +351,9 @@ pub fn FormatButton(
 /// Component to render editor's help button
 #[component]
 pub fn HelpButton() -> impl IntoView {
-    let show_help = create_rw_signal(false);
-    let modal_ref = create_node_ref::<html::Div>();
-    let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
+    let show_help = RwSignal::new(false);
+    let modal_ref = NodeRef::<html::Div>::new();
+    //TODO leptos_use: let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
 
     view! {
         <div class="relative inline-block z-20">

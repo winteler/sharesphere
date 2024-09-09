@@ -3,7 +3,7 @@ use crate::comment::{Comment, CommentSortType};
 use crate::icons::{FlameIcon, GraphIcon, HourglassIcon, PodiumIcon};
 use crate::post::{Post, PostSortType};
 use crate::ranking::SortType;
-use leptos::*;
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -99,7 +99,7 @@ pub fn SortWidgetOption(
                     }
                 }
             >
-                {children().into_view()}
+                {children().into_any()}
             </button>
         </div>
     }

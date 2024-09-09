@@ -1,6 +1,9 @@
-use leptos::*;
-use leptos_meta::*;
-use leptos_router::*;
+use leptos::either::Either;
+use leptos::html;
+use leptos::prelude::*;
+use leptos::spawn::spawn_local;
+use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
+use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 
 use crate::auth::*;
 use crate::comment::CommentSortType;
@@ -22,32 +25,32 @@ pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {
-    pub login_action: Action<Login, Result<User, ServerFnError>>,
-    pub logout_action: Action<EndSession, Result<(), ServerFnError>>,
-    pub subscribe_action: Action<Subscribe, Result<(), ServerFnError>>,
-    pub unsubscribe_action: Action<Unsubscribe, Result<(), ServerFnError>>,
-    pub edit_post_action: Action<EditPost, Result<Post, ServerFnError>>,
-    pub create_forum_action: Action<CreateForum, Result<(), ServerFnError>>,
+    pub login_action: ServerAction<Login>,
+    pub logout_action: ServerAction<EndSession>,
+    pub subscribe_action: ServerAction<Subscribe>,
+    pub unsubscribe_action: ServerAction<Unsubscribe>,
+    pub edit_post_action: ServerAction<EditPost>,
+    pub create_forum_action: ServerAction<CreateForum>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
-    pub user: Resource<(usize, usize, usize), Result<Option<User>, ServerFnError>>,
+    pub user: Resource<Result<Option<User>, ServerFnError>>,
 }
 
 impl GlobalState {
     pub fn default() -> Self {
-        let login_action = create_server_action::<Login>();
-        let logout_action = create_server_action::<EndSession>();
-        let create_forum_action = create_server_action::<CreateForum>();
+        let login_action = ServerAction::<Login>::new();
+        let logout_action = ServerAction::<EndSession>::new();
+        let create_forum_action = ServerAction::<CreateForum>::new();
         Self {
             login_action,
             logout_action,
-            subscribe_action: create_server_action::<Subscribe>(),
-            unsubscribe_action: create_server_action::<Unsubscribe>(),
-            edit_post_action: create_server_action::<EditPost>(),
+            subscribe_action: ServerAction::<Subscribe>::new(),
+            unsubscribe_action: ServerAction::<Unsubscribe>::new(),
+            edit_post_action: ServerAction::<EditPost>::new(),
             create_forum_action,
-            post_sort_type: create_rw_signal(SortType::Post(PostSortType::Hot)),
-            comment_sort_type: create_rw_signal(SortType::Comment(CommentSortType::Best)),
-            user: create_local_resource(
+            post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
+            comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
+            user: Resource::new(
                 move || {
                     (
                         login_action.version().get(),
@@ -118,6 +121,24 @@ pub mod ssr {
     }
 }
 
+pub fn shell(options: LeptosOptions) -> impl IntoView {
+    view! {
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <AutoReload options=options.clone() />
+                <HydrationScripts options/>
+                <MetaTags/>
+            </head>
+            <body>
+                <App/>
+            </body>
+        </html>
+    }
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
@@ -133,15 +154,7 @@ pub fn App() -> impl IntoView {
 
         // sets the document title
         <Title text="Welcome to ShareSphere"/>
-
-        // content for this welcome page
-        <Router fallback=|| {
-            let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(AppError::NotFound);
-            view! {
-                <ErrorTemplate outside_errors/>
-            }
-        }>
+        <Router>
             <main class="h-screen text-white">
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
                 <div class="drawer-content h-full flex flex-col max-2xl:items-center">
@@ -150,20 +163,20 @@ pub fn App() -> impl IntoView {
                         <div class="max-2xl:hidden">
                             <LeftSidebar/>
                         </div>
-                        <Routes>
-                            <Route path="/" view=HomePage/>
-                            <Route path=FORUM_ROUTE view=ForumBanner>
-                                <Route path=POST_ROUTE view=Post/>
-                                <Route path=MANAGE_FORUM_ROUTE view=ModeratorGuard>
-                                    <Route path="/" view=ForumCockpit/>
-                                </Route>
-                                <Route path="/" view=ForumContents/>
-                            </Route>
-                            <Route path=AUTH_CALLBACK_ROUTE view=AuthCallback/>
-                            <Route path=PUBLISH_ROUTE view=LoginGuard>
-                                <Route path=CREATE_FORUM_SUFFIX view=CreateForum/>
-                                <Route path=CREATE_POST_SUFFIX view=CreatePost/>
-                            </Route>
+                        <Routes fallback=|| "Page not found.".into_view()>
+                            <Route path=StaticSegment("/") view=HomePage/>
+                            //<ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
+                            //    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                            //    <ParentRoute path=StaticSegment(MANAGE_FORUM_ROUTE) view=ModeratorGuard>
+                            //        <Route path="/" view=ForumCockpit/>
+                            //    </ParentRoute>
+                            //    <Route path=StaticSegment("/") view=ForumContents/>
+                            //</ParentRoute>
+                            //<Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
+                            //<ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
+                            //    <Route path=StaticSegment(CREATE_FORUM_SUFFIX) view=CreateForum/>
+                            //    <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
+                            //</ParentRoute>
                         </Routes>
                     </div>
                 </div>
@@ -188,14 +201,14 @@ fn LoginGuard() -> impl IntoView {
                      state.user.with(|user| match user {
                         Some(Ok(Some(user))) => {
                             log::debug!("Login guard, current user: {user:?}");
-                            view! { <Outlet/> }.into_view()
+                            view! { <Outlet/> }.into_any()
                         },
                         Some(_) => {
-                            view! { <LoginWindow/> }.into_view()
+                            view! { <LoginWindow/> }.into_any()
                         },
                         None => {
                             log::trace!("Resource not loaded yet.");
-                            view! { <Outlet/> }.into_view()
+                            view! { <Outlet/> }.into_any()
                         }
                     })
                 }
@@ -219,16 +232,16 @@ fn ModeratorGuard() -> impl IntoView {
                      state.user.with(|user| match user {
                         Some(Ok(Some(user))) => {
                             match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
-                                Ok(_) => view! { <Outlet/> }.into_view(),
-                                Err(error) => view! { <ErrorDisplay error/> }.into_view(),
+                                Ok(_) => view! { <Outlet/> }.into_any(),
+                                Err(error) => view! { <ErrorDisplay error/> }.into_any(),
                             }
                         },
                         Some(_) => {
-                            view! { <LoginWindow/> }.into_view()
+                            view! { <LoginWindow/> }.into_any()
                         },
                         None => {
                             log::trace!("Resource not loaded yet.");
-                            view! { <Outlet/> }.into_view()
+                            view! { <Outlet/> }.into_any()
                         }
                     })
                 }
@@ -241,7 +254,7 @@ fn ModeratorGuard() -> impl IntoView {
 #[component]
 fn LoginWindow() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let current_path = create_rw_signal(String::default());
+    let current_path = RwSignal::new(String::default());
 
     view! {
         <div class="hero">
@@ -251,12 +264,12 @@ fn LoginWindow() -> impl IntoView {
                     <h1 class="text-5xl font-bold">"Not authenticated"</h1>
                     <p class="pt-4">"Sorry, we had some trouble identifying you."</p>
                     <p class="pb-4">"Please login to access this page."</p>
-                    <form action=state.login_action.url() method="post" rel="external">
+                    <ActionForm action=state.login_action>
                         <input type="text" name="redirect_url" class="hidden" value=current_path/>
                         <button type="submit" class="btn btn-primary btn-wide rounded" on:click=move |_| get_current_path(current_path)>
                             "Login"
                         </button>
-                    </form>
+                    </ActionForm>
                 </div>
             </div>
         </div>
@@ -280,18 +293,14 @@ fn HomePage() -> impl IntoView {
             </div>
             <PostSortWidget/>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
-                { move || {
-                     state.user.map(|user| match user {
-                        Ok(Some(user)) => {
-                            log::trace!("Authenticated, current user: {user:?}");
-                            view! { <UserHomePage user=user/> }.into_view()
-                        },
-                        _ => {
-                            view! { <DefaultHomePage/> }.into_view()
+                { 
+                    move || Suspend::new(async move { 
+                        match state.user.await {
+                            Ok(Some(user)) => view! { <UserHomePage user/> }.into_any(),
+                            _ => view! { <DefaultHomePage/> }.into_any(),
                         }
                     })
-
-                }}
+                }
             </Transition>
         </div>
         <div class="max-2xl:hidden">
@@ -304,14 +313,14 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post_vec = create_rw_signal(Vec::<Post>::new());
-    let additional_load_count = create_rw_signal(0);
-    let is_loading = create_rw_signal(false);
-    let load_error = create_rw_signal(None);
-    let list_ref = create_node_ref::<html::Ul>();
+    let post_vec = RwSignal::new(Vec::<Post>::new());
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
 
     // Effect for initial load and sort changes
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let sort_type = state.post_sort_type.get();
         is_loading.set(true);
         load_error.set(None);
@@ -333,7 +342,7 @@ fn DefaultHomePage() -> impl IntoView {
     });
 
     // Effect for additional load upon reaching end of scroll
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if additional_load_count.get() > 0 {
             is_loading.set(true);
             let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
@@ -362,17 +371,17 @@ fn DefaultHomePage() -> impl IntoView {
 
 /// Renders the home page of a given user.
 #[component]
-fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
+fn UserHomePage(user: User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
-    let post_vec = create_rw_signal(Vec::<Post>::new());
-    let additional_load_count = create_rw_signal(0);
-    let is_loading = create_rw_signal(false);
-    let load_error = create_rw_signal(None);
-    let list_ref = create_node_ref::<html::Ul>();
+    let post_vec = RwSignal::new(Vec::<Post>::new());
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
 
     // Effect for initial load and sort changes
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let sort_type = state.post_sort_type.get();
         is_loading.set(true);
         load_error.set(None);
@@ -394,7 +403,7 @@ fn UserHomePage<'a>(user: &'a User) -> impl IntoView {
     });
 
     // Effect for additional load upon reaching end of scroll
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if additional_load_count.get() > 0 {
             is_loading.set(true);
             load_error.set(None);

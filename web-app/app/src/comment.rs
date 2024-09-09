@@ -1,8 +1,7 @@
-use std::fmt;
-
-use leptos::*;
-use leptos_router::*;
+use leptos::either::Either;
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
@@ -15,6 +14,7 @@ use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
 use crate::icons::{CommentIcon, EditIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
+use crate::navigation_bar::get_current_path;
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -524,11 +524,11 @@ pub fn CommentBox(
     depth: usize,
     ranking: usize,
 ) -> impl IntoView {
-    let comment = create_rw_signal(comment_with_children.comment);
-    let child_comments = create_rw_signal(comment_with_children.child_comments);
-    let maximize = create_rw_signal(true);
+    let comment = RwSignal::new(comment_with_children.comment);
+    let child_comments = RwSignal::new(comment_with_children.child_comments);
+    let maximize = RwSignal::new(true);
     let sidebar_css = move || {
-        if maximize() {
+        if *maximize.read() {
             "p-0.5 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
         } else {
             "p-0.5 rounded hover:bg-base-content/20 flex flex-col justify-center items-center"
@@ -563,7 +563,7 @@ pub fn CommentBox(
                 />
                 <div
                     class="flex flex-col"
-                    class:hidden=move || !maximize()
+                    class:hidden=move || !*maximize.read()
                 >
                     <For
                         // a function that returns the items we're iterating over; a signal is fine
@@ -584,7 +584,7 @@ pub fn CommentBox(
                 </div>
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// Displays the body of a comment
@@ -596,20 +596,20 @@ pub fn CommentBody(
     view! {
         {
             move || comment.with(|comment| match (&comment.moderator_message, &comment.infringed_rule_title) {
-                (Some(moderator_message), Some(infringed_rule_title)) => view! {
+                (Some(moderator_message), Some(infringed_rule_title)) => Either::Left(view! {
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
                     />
-                },
-                _ => view! {
+                }),
+                _ => Either::Right(view! {
                     <div class="pl-2">
                         <ContentBody 
                             body=comment.body.clone()
                             is_markdown=comment.markdown_body.is_some()
                         />
                     </div>
-                }.into_view(),
+                }),
             })
         }
     }
@@ -642,7 +642,7 @@ fn CommentWidgetBar(
                 post_id
                 comment_id=Some(comment_id)
                 score
-                vote=&vote
+                vote
             />
             <CommentButton
                 post_id
@@ -674,7 +674,8 @@ pub fn CommentButton(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
     #[prop(default = None)] parent_comment_id: Option<i64>,
 ) -> impl IntoView {
-    let show_dialog = create_rw_signal(false);
+    let show_dialog = RwSignal::new(false);
+    let redirect_path = ArcRwSignal::new(String::new());
     let comment_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
@@ -682,20 +683,22 @@ pub fn CommentButton(
 
     view! {
         <div>
-            <LoginGuardButton
-                login_button_class="btn btn-circle btn-ghost btn-sm"
-                login_button_content=move || view! { <CommentIcon/> }
-                let:_user
-            >
-                <button
-                    class=comment_button_class
-                    aria-expanded=move || show_dialog.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                >
-                    <CommentIcon/>
-                </button>
-            </LoginGuardButton>
+            //<LoginGuardButton
+            //    login_button_class="btn btn-circle btn-ghost btn-sm"
+            //    login_button_content=move || view! { <CommentIcon/> }
+            //    redirect_path
+            //    on:click=move |_| get_current_path(redirect_path)
+            //    let:_user
+            //>
+            //    <button
+            //        class=comment_button_class
+            //        aria-expanded=move || show_dialog.get().to_string()
+            //        aria-haspopup="dialog"
+            //        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+            //    >
+            //        <CommentIcon/>
+            //    </button>
+            //</LoginGuardButton>
             <CommentDialog
                 post_id
                 parent_comment_id
@@ -737,15 +740,15 @@ pub fn CommentForm(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let comment = create_rw_signal(String::new());
+    let comment = RwSignal::new(String::new());
     let is_comment_empty = move || comment.with(|comment: &String| comment.is_empty());
 
-    let create_comment_action = create_server_action::<CreateComment>();
+    let create_comment_action = ServerAction::<CreateComment>::new();
 
     let create_comment_result = create_comment_action.value();
     let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(Ok(comment)) = create_comment_action.value().get() {
             comment_vec.update(|comment_vec| comment_vec.insert(0, comment));
             show_form.set(false);
@@ -794,7 +797,7 @@ pub fn EditCommentButton(
     comment: RwSignal<Comment>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let show_dialog = create_rw_signal(false);
+    let show_dialog = RwSignal::new(false);
     let show_button = move || state.user.with(|result| match result {
         Some(Ok(Some(user))) => user.user_id == author_id,
         _ => false,
@@ -858,16 +861,16 @@ pub fn EditCommentForm(
             Some(body) => (body.clone(), true),
             None => (comment.body.clone(), false),
         });
-    let comment_body = create_rw_signal(current_body);
+    let comment_body = RwSignal::new(current_body);
     let is_comment_empty =
         move || comment_body.with(|comment_body: &String| comment_body.is_empty());
 
-    let edit_comment_action = create_server_action::<EditComment>();
+    let edit_comment_action = ServerAction::<EditComment>::new();
 
     let edit_comment_result = edit_comment_action.value();
     let has_error = move || edit_comment_result.with(|val| matches!(val, Some(Err(_))));
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(Ok(edited_comment)) = edit_comment_result.get() {
             comment.set(edited_comment);
             show_form.set(false);

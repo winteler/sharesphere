@@ -2,7 +2,8 @@ use std::env;
 
 #[cfg(feature = "ssr")]
 use axum_session_auth::Authentication;
-use leptos::*;
+use leptos::prelude::*;
+use leptos_router::hooks::use_query_map;
 use leptos_router::*;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
@@ -287,26 +288,33 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
 /// children will be rendered. Otherwise, it will be replaced by a form/button with the same appearance redirecting to a
 /// login screen.
 #[component]
-pub fn LoginGuardButton<F: Fn(&User) -> IV + 'static, IV: IntoView>(
-    #[prop(default = "")] login_button_class: &'static str,
-    #[prop(into)] login_button_content: ViewFn,
-    #[prop(default = &get_current_path)] redirect_path_fn: &'static dyn Fn(RwSignal<String>),
+pub fn LoginGuardButton<
+    F: Fn(&User) -> IV + Send + Sync + 'static,
+    IV: IntoView + Send + Sync + 'static,
+>(
+    #[prop(default = "")]
+    login_button_class: &'static str,
+    #[prop(into)]
+    login_button_content: ViewFn,
+    #[prop(into)]
+    redirect_path: ArcSignal<String>,
     children: F,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let children = store_value(children);
-    let login_button_content = store_value(login_button_content);
+    let children = StoredValue::new(children);
+    let login_button_content = StoredValue::new(login_button_content);
+    let redirect_path = StoredValue::new(redirect_path);
 
     view! {
         {
             move || state.user.with(|result| match result {
-                Some(Ok(Some(user))) => children.with_value(|children| children(user)).into_view(),
+                Some(Ok(Some(user))) => children.with_value(|children| children(user)).into_any(),
                 Some(_) => {
                     let login_button_view = login_button_content.get_value().run();
-                    view! { <LoginButton class=login_button_class redirect_path_fn=redirect_path_fn>{login_button_view}</LoginButton> }.into_view()
+                    view! { <LoginButton class=login_button_class redirect_path=redirect_path.get_value()>{login_button_view}</LoginButton> }.into_any()
                 }
                 _ => {
-                    view! { <div class=login_button_class>{login_button_content.get_value().run()}</div> }.into_view()
+                    view! { <div class=login_button_class>{login_button_content.get_value().run()}</div> }.into_any()
                 }
             })
         }
@@ -316,19 +324,19 @@ pub fn LoginGuardButton<F: Fn(&User) -> IV + 'static, IV: IntoView>(
 #[component]
 pub fn LoginButton(
     class: &'static str,
-    #[prop(default = &get_current_path)] redirect_path_fn: &'static dyn Fn(RwSignal<String>),
+    redirect_path: ArcSignal<String>,
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let redirect_path = create_rw_signal(String::default());
+    let redirect_path = RwSignal::new(String::default());
 
     view! {
-        <form action=state.login_action.url() method="post" rel="external" class="flex items-center">
+        <ActionForm action=state.login_action attr:class="flex items-center">
             <input type="text" name="redirect_url" class="hidden" value=redirect_path/>
-            <button type="submit" class=class on:click=move |_| redirect_path_fn(redirect_path)>
+            <button type="submit" class=class>
                 {children()}
             </button>
-        </form>
+        </ActionForm>
     }
 }
 
@@ -337,7 +345,7 @@ pub fn LoginButton(
 pub fn AuthCallback() -> impl IntoView {
     let query = use_query_map();
     let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
-    let auth_resource = create_blocking_resource(|| (), move |_| authenticate_user(code()));
+    let auth_resource = Resource::new_blocking(|| (), move |_| authenticate_user(code()));
 
     view! {
         <SuspenseUnpack
@@ -346,7 +354,7 @@ pub fn AuthCallback() -> impl IntoView {
         >
             {
                 log::debug!("Authenticated successfully");
-                View::default()
+                view! {}
             }
         </SuspenseUnpack>
     }

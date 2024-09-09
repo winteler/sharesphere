@@ -1,6 +1,6 @@
 use crate::icons::{HammerIcon, MagnifierIcon};
-use leptos::*;
-use leptos_router::ActionForm;
+use leptos::either::Either;
+use leptos::prelude::*;
 
 use crate::app::GlobalState;
 use crate::comment::Comment;
@@ -368,7 +368,7 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
 /// Component to access a post's moderation dialog
 #[component]
 pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
-    let show_dialog = create_rw_signal(false);
+    let show_dialog = RwSignal::new(false);
     view! {
         <AuthorizedShow permission_level=PermissionLevel::Moderate>
             <div>
@@ -385,7 +385,7 @@ pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
 /// Component to access a comment's moderation dialog
 #[component]
 pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> impl IntoView {
-    let show_dialog = create_rw_signal(false);
+    let show_dialog = RwSignal::new(false);
     view! {
         <AuthorizedShow permission_level=PermissionLevel::Moderate>
             <div>
@@ -408,7 +408,7 @@ pub fn ModeratePostDialog(
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
 
-    let moderate_text = create_rw_signal(String::new());
+    let moderate_text = RwSignal::new(String::new());
     let is_text_empty = move || moderate_text.with(|moderate_text: &String| moderate_text.is_empty());
 
     let moderate_result = forum_state.moderate_post_action.value();
@@ -455,15 +455,15 @@ pub fn ModerateCommentDialog(
     comment: RwSignal<Comment>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
-    let moderate_text = create_rw_signal(String::new());
+    let moderate_text = RwSignal::new(String::new());
     let is_text_empty = move || moderate_text.with(|comment: &String| comment.is_empty());
 
-    let moderate_comment_action = create_server_action::<ModerateComment>();
+    let moderate_comment_action = ServerAction::<ModerateComment>::new();
 
     let moderate_result = moderate_comment_action.value();
     let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(Ok(moderated_comment)) = moderate_result.get() {
             comment.set(moderated_comment);
             show_dialog.set(false);
@@ -535,8 +535,8 @@ pub fn RuleSelect(
 /// Dialog to input number of banned days
 #[component]
 pub fn BanMenu() -> impl IntoView {
-    let ban_value = create_rw_signal(0);
-    let is_permanent_ban = create_rw_signal(false);
+    let ban_value = RwSignal::new(0);
+    let is_permanent_ban = RwSignal::new(false);
 
     view! {
         <input
@@ -583,7 +583,7 @@ pub fn ModerationInfoButton(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_state = expect_context::<ForumState>();
-    let content = store_value(content);
+    let content = StoredValue::new(content);
     let show_button = move || {
         let (is_moderated, creator_id) = content.get_value().with(|content| match &content {
             Content::Post(post) => (post.infringed_rule_id.is_some(), post.creator_id),
@@ -596,7 +596,7 @@ pub fn ModerationInfoButton(
         let is_moderator = forum_state.permission_level.with(|value| *value >= PermissionLevel::Moderate);
         is_moderated && (is_author || is_moderator)
     };
-    let show_dialog = create_rw_signal(false);
+    let show_dialog = RwSignal::new(false);
     let button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
@@ -627,7 +627,7 @@ pub fn ModerationInfoButton(
                 </div>
             </ModalDialog>
         </Show>
-    }.into_view()
+    }.into_any()
 }
 
 /// Component to display a button opening a modal dialog with a ban's details
@@ -636,7 +636,7 @@ pub fn ContentModerationInfo(
     #[prop(into)]
     content: MaybeSignal<Content>,
 ) -> impl IntoView {
-    let mod_info_resource = create_resource(
+    let mod_info_resource = Resource::new(
         move || content.get(),
         move |content| async move {
             let rule_id = match &content {
@@ -659,8 +659,8 @@ pub fn ContentModerationInfo(
     view! {
         <SuspenseUnpack resource=mod_info_resource let:moderation_info>
             <ModerationInfoDialog
-                content=&moderation_info.content
-                rule=&moderation_info.rule
+                content=moderation_info.content.clone()
+                rule=moderation_info.rule.clone()
             />
         </SuspenseUnpack>
     }
@@ -668,16 +668,16 @@ pub fn ContentModerationInfo(
 
 /// Component to display the details of a moderation instance
 #[component]
-pub fn ModerationInfoDialog<'a>(
-    content: &'a Content,
-    rule: &'a Rule,
+pub fn ModerationInfoDialog(
+    content: Content,
+    rule: Rule,
 ) -> impl IntoView {
     view! {
         <div class="flex flex-col gap-3">
             <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
             {
                 match &content {
-                    Content::Post(post) => view! {
+                    Content::Post(post) => Either::Left(view! {
                         <div class="flex flex-col gap-1 p-2 border-b">
                             <h1 class="font-bold text-2xl pl-6">"Content"</h1>
                             <div>{post.title.clone()}</div>
@@ -690,9 +690,9 @@ pub fn ModerationInfoDialog<'a>(
                             <h1 class="font-bold text-2xl pl-6">"Moderator message"</h1>
                             <div>{post.moderator_message.clone()}</div>
                         </div>
-                    },
+                    }),
                     Content::Comment(comment) => {
-                        view! {
+                        Either::Right(view! {
                             <div class="flex flex-col gap-1 p-2 border-b">
                                 <div class="font-bold text-2xl pl-6">"Content"</div>
                                 <ContentBody
@@ -704,7 +704,7 @@ pub fn ModerationInfoDialog<'a>(
                                 <div class="font-bold text-2xl pl-6">"Moderator message"</div>
                                 <div>{comment.moderator_message.clone()}</div>
                             </div>
-                        }
+                        })
                     }
                 }
             }

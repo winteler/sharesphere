@@ -1,11 +1,15 @@
-use leptos::*;
-
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::icons::LoadingIcon;
+use leptos::prelude::*;
+use leptos::server_fn::error::ServerFnErrorErr;
 
 #[component]
-pub fn Unpack<T, V: IntoView + 'static, F: FnOnce(T) -> V + 'static>(
+pub fn Unpack<
+    T, 
+    V: IntoView + 'static, 
+    F: FnOnce(T) -> V + Send + Sync + 'static
+>(
     what: Option<Result<T, ServerFnError>>,
     children: F,
 ) -> impl IntoView {
@@ -18,19 +22,19 @@ pub fn Unpack<T, V: IntoView + 'static, F: FnOnce(T) -> V + 'static>(
 
 #[component]
 pub fn UnpackAction<
-    T: Clone + 'static,
-    A: 'static,
+    T: Clone + Send + Sync + 'static,
+    A: Send + Sync + 'static,
     V: IntoView + 'static,
-    F: Fn(T) -> V + 'static,
-    FB: Fn() -> FV + 'static,
+    F: Fn(T) -> V + Send + Sync +  'static,
+    FB: Fn() -> FV + Send + Sync +  'static,
     FV: IntoView + 'static,
 >(
     action: Action<A, Result<T, ServerFnError>>,
     children: F,
     fallback: FB,
 ) -> impl IntoView {
-    let fallback = store_value(fallback);
-    let children = store_value(children);
+    let fallback = StoredValue::new(fallback);
+    let children = StoredValue::new(children);
 
     view! {
         <Suspense fallback=move || {
@@ -49,40 +53,38 @@ pub fn UnpackAction<
     }
 }
 
-fn unpack_resource<
-    T: Clone + 'static,
-    A: Clone + 'static,
+async fn unpack_resource<
+    T: Clone + Send + Sync + 'static,
     V: IntoView + 'static,
-    F: Fn(&T) -> V + 'static,
+    F: Fn(&T) -> V + Send + Sync + 'static,
 >(
-    resource: Resource<A, Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError>>,
     children: StoredValue<F>,
 ) -> impl IntoView {
-    resource.map(|result| match result {
+    match &resource.await {
         Ok(value) => Ok(children.with_value(|children| children(value))),
-        Err(e) => {
-            Err(AppError::from(e))
-        },
-    })
+        Err(e) => Err(AppError::from(e)),
+    }
 }
 
 #[component]
 pub fn SuspenseUnpack<
-    T: Clone + 'static,
-    A: Clone + 'static,
+    T: Clone + Send + Sync + 'static,
     V: IntoView + 'static,
-    F: Fn(&T) -> V + 'static,
+    F: Fn(&T) -> V + Send + Sync + 'static,
 >(
-    resource: Resource<A, Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError>>,
     children: F,
 ) -> impl IntoView {
-    let children = store_value(children);
+    let children = StoredValue::new(children);
 
     view! {
         <Suspense fallback=move || view! { <LoadingIcon/> }>
             <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
                 {
-                    move || unpack_resource(resource, children)
+                    move || Suspend::new(async move { 
+                        unpack_resource(resource, children).await
+                    })
                 }
             </ErrorBoundary>
         </Suspense>
@@ -91,21 +93,22 @@ pub fn SuspenseUnpack<
 
 #[component]
 pub fn TransitionUnpack<
-    T: Clone + 'static,
-    A: Clone + 'static,
+    T: Clone + Send + Sync + 'static,
     V: IntoView + 'static,
-    F: Fn(&T) -> V + 'static,
+    F: Fn(&T) -> V + Send + Sync + 'static,
 >(
-    resource: Resource<A, Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError>>,
     children: F,
 ) -> impl IntoView {
-    let children = store_value(children);
+    let children = StoredValue::new(children);
 
     view! {
         <Transition fallback=move || view! { <LoadingIcon/> }>
             <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
                 {
-                    move || unpack_resource(resource, children)
+                    move || Suspend::new(async move { 
+                        unpack_resource(resource, children).await
+                    })
                 }
             </ErrorBoundary>
         </Transition>

@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 use crate::app::GlobalState;
 use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, ForumState, FORUM_ROUTE_PREFIX};
@@ -9,7 +9,7 @@ use crate::widget::MinimizeMaximizeWidget;
 #[component]
 pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl IntoView {
     if forum_name_vec.is_empty() {
-        return View::default()
+        return view! {}.into_any()
     }
 
     view! {
@@ -39,14 +39,14 @@ pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl I
                 </details>
             </li>
         </ul>
-    }.into_view()
+    }.into_any()
 }
 
 /// Left sidebar component
 #[component]
 pub fn LeftSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let subscribed_forum_vec_resource = create_resource(
+    let subscribed_forum_vec_resource = Resource::new(
         move || {
             (
                 state.subscribe_action.version().get(),
@@ -55,7 +55,7 @@ pub fn LeftSidebar() -> impl IntoView {
         },
         |_| get_subscribed_forum_names(),
     );
-    let popular_forum_vec_resource = create_resource(
+    let popular_forum_vec_resource = Resource::new(
         move || (),
         |_| get_popular_forum_names(),
     );
@@ -132,8 +132,8 @@ pub fn ForumRuleList() -> impl IntoView {
                             each= move || forum_rule_vec.clone().into_iter().enumerate()
                             key=|(_index, rule)| (rule.rule_id)
                             children=move |(_, rule)| {
-                                let show_description = create_rw_signal(false);
-                                let description = store_value(rule.description);
+                                let show_description = RwSignal::new(false);
+                                let description = StoredValue::new(rule.description);
                                 let class = move || match show_description.get() {
                                     true => "transition duration-500 opacity-100 visible",
                                     false => "transition duration-500 opacity-0 invisible h-0",
@@ -182,7 +182,7 @@ pub fn ModeratorList() -> impl IntoView {
                             each= move || forum_role_vec.clone().into_iter().enumerate()
                             key=|(_index, role)| (role.user_id, role.permission_level)
                             children=move |(_, role)| {
-                                let username = store_value(role.username);
+                                let username = StoredValue::new(role.username);
                                 view! {
                                     <div class="flex py-1 rounded hover:bg-base-content/20 pl-4">
                                         <div class="w-1/2 select-none">{username.get_value()}</div>

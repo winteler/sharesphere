@@ -1,8 +1,8 @@
-use leptos::*;
-use leptos_router::Form;
+use leptos::prelude::*;
+use leptos_router::components::Form;
 
 use crate::app::GlobalState;
-use crate::auth::*;
+use crate::auth::LoginGuardButton;
 use crate::forum::*;
 use crate::icons::*;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
@@ -43,7 +43,7 @@ pub fn get_forum_name(forum_name: RwSignal<String>) {
     forum_name.update(|name| *name = get_forum_from_path(&path).unwrap_or_default());
 }
 
-pub fn get_create_post_path(create_post_route: RwSignal<String>) {
+pub fn get_create_post_path(create_post_route: ArcRwSignal<String>) {
     let path = window().location().pathname().unwrap_or(String::default());
     log::debug!("Current path: {path}");
 
@@ -93,14 +93,17 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
+    let redirect_path = ArcRwSignal::new(String::default());
     view! {
-        <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle rounded-full"
-                login_button_content=move || view! { <UserIcon/> }
-                let:user
-        >
-            <LoggedInMenu user=user/>
-        </LoginGuardButton>
+        //<LoginGuardButton
+        //        login_button_class="btn btn-ghost btn-circle rounded-full"
+        //        login_button_content=move || view! { <UserIcon/> }
+        //        redirect_path=redirect_path.clone()
+        //        on:click=move |_| get_current_path(redirect_path.clone())
+        //        let:user
+        //>
+        //    <LoggedInMenu user=user/>
+        //</LoginGuardButton>
     }
 }
 
@@ -109,7 +112,7 @@ pub fn LoggedInMenu<'a>(
     user: &'a User,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let current_url = create_rw_signal(String::default());
+    let current_url = RwSignal::new(String::default());
 
     view! {
         <div class="dropdown dropdown-end">
@@ -119,12 +122,12 @@ pub fn LoggedInMenu<'a>(
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-200 rounded-sm w-52">
                 <li><a href="#">"Settings"</a></li>
                 <li>
-                    <form action=state.logout_action.url() method="post" rel="external" class="flex">
+                    <ActionForm action=state.logout_action attr:class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>
                         <button type="submit" class="w-full text-left" on:click=move |_| get_current_url(current_url)>
                             "Logout"
                         </button>
-                    </form>
+                    </ActionForm>
                 </li>
                 <li><span>{format!("Logged in as: {}", user.username)}</span></li>
             </ul>
@@ -134,9 +137,11 @@ pub fn LoggedInMenu<'a>(
 
 #[component]
 pub fn PlusMenu() -> impl IntoView {
-    let current_forum = create_rw_signal(String::default());
+    let current_forum = RwSignal::new(String::default());
     let create_sphere_str = "Settle a Sphere!";
     let create_post_str = "Share a Post!";
+    let create_forum_path = ArcRwSignal::new(String::from(CREATE_FORUM_ROUTE));
+    let create_post_path = ArcRwSignal::new(String::default());
     view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
@@ -144,29 +149,30 @@ pub fn PlusMenu() -> impl IntoView {
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded">
                 <li>
-                    <LoginGuardButton
-                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
-                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.update(|value: &mut String| *value = String::from(CREATE_FORUM_ROUTE)))
-                        let:_user
-                    >
-                        <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
-                    </LoginGuardButton>
+                    //<LoginGuardButton
+                    //    login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
+                    //    redirect_path=create_forum_path
+                    //    let:_user
+                    //>
+                    //    <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
+                    //</LoginGuardButton>
                 </li>
                 <li>
-                    <LoginGuardButton
-                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
-                        redirect_path_fn=&get_create_post_path
-                        let:_user
-                    >
-                        <Form action=CREATE_POST_ROUTE class="flex">
-                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                            <button type="submit" class="whitespace-nowrap" on:click=move |_| get_forum_name(current_forum)>
-                                {create_post_str}
-                            </button>
-                        </Form>
-                    </LoginGuardButton>
+                    //<LoginGuardButton
+                    //    login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
+                    //    redirect_path=create_post_path.clone()
+                    //    on:click=move |_| get_create_post_path(create_post_path.clone())
+                    //    let:_user
+                    //>
+                    //    <Form action=CREATE_POST_ROUTE attr:class="flex">
+                    //        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
+                    //        <button type="submit" class="whitespace-nowrap" on:click=move |_| get_forum_name(current_forum)>
+                    //            {create_post_str}
+                    //        </button>
+                    //    </Form>
+                    //</LoginGuardButton>
                 </li>
             </ul>
         </div>
-    }
+    }.into_any()
 }

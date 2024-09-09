@@ -1,6 +1,6 @@
 #[cfg(feature = "ssr")]
 use http::StatusCode;
-use leptos::*;
+use leptos::prelude::*;
 
 use crate::errors::{AppError, AppErrorIcon};
 
@@ -9,10 +9,10 @@ use crate::errors::{AppError, AppErrorIcon};
 #[component]
 pub fn ErrorTemplate(
     #[prop(optional)] outside_errors: Option<Errors>,
-    #[prop(optional)] errors: Option<RwSignal<Errors>>,
+    #[prop(optional)] errors: Option<ArcRwSignal<Errors>>,
 ) -> impl IntoView {
     let errors = match outside_errors {
-        Some(e) => create_rw_signal(e),
+        Some(e) => ArcRwSignal::new(e),
         None => match errors {
             Some(e) => e,
             None => panic!("No Errors found and we expected errors!"),

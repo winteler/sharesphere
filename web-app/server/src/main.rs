@@ -11,10 +11,9 @@ use axum::{
 use axum_session::{Key, SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer};
 use axum_session_sqlx::SessionPgPool;
-use leptos::*;
+use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
-use wasm_bindgen::UnwrapThrowExt;
 
 use app::user::User;
 use app::{
@@ -77,18 +76,18 @@ async fn server_fn_handler(
 
  async fn leptos_routes_handler(
      auth_session: AuthSession,
-     State(app_state): State<AppState>,
+     app_state: State<AppState>,
      req: Request<AxumBody>,
  ) -> Response {
+     let leptos_options = app_state.leptos_options.clone();
      let handler = leptos_axum::render_route_with_context(
-         app_state.leptos_options.clone(),
          app_state.routes.clone(),
          move || {
              provide_context(auth_session.clone());
          },
-         App,
+         move || shell(leptos_options.clone()),
      );
-     handler(req).await.into_response()
+     handler(app_state, req).await.into_response()
  }
 
 #[tokio::main]
@@ -96,7 +95,7 @@ async fn main() {
     simple_logger::init_with_level(log::Level::Info).expect("Should be able to initialize logging.");
 
     let subscriber = tracing_subscriber::fmt().with_max_level(tracing::Level::ERROR).finish();
-    tracing::subscriber::set_global_default(subscriber).unwrap_throw();
+    tracing::subscriber::set_global_default(subscriber).expect("setting tracing default failed");
 
     let pool = get_db_pool().unwrap();
 
@@ -130,13 +129,13 @@ async fn main() {
     // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
     // Alternately a file can be specified such as Some("Cargo.toml")
     // The file would need to be included with the executable when moved to deployment
-    let conf = get_configuration(None).await.unwrap();
+    let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
     let app_state = AppState {
-        leptos_options,
+        leptos_options: leptos_options.clone(),
         routes: routes.clone(),
     };
 

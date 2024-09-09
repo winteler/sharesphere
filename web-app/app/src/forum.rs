@@ -1,8 +1,12 @@
 use std::collections::BTreeSet;
 
 use const_format::concatcp;
-use leptos::*;
-use leptos_router::*;
+use leptos::html;
+use leptos::prelude::*;
+use leptos::spawn::spawn_local;
+use leptos_router::components::{Form, Outlet, A};
+use leptos_router::hooks::use_params_map;
+use leptos_router::params::ParamsMap;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +21,7 @@ use crate::errors::AppError;
 use crate::forum_management::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_SUFFIX};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
-use crate::navigation_bar::get_create_post_path;
+use crate::navigation_bar::{get_create_post_path, get_current_path};
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
 use crate::post::{
     Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
@@ -80,15 +84,15 @@ pub struct ForumWithUserInfo {
 pub struct ForumState {
     pub forum_name: Memo<String>,
     pub permission_level: Signal<PermissionLevel>,
-    pub forum_resource: Resource<(String, usize), Result<Forum, ServerFnError>>,
-    pub forum_roles_resource: Resource<(String, usize), Result<Vec<UserForumRole>, ServerFnError>>,
-    pub forum_rules_resource: Resource<(String, usize, usize, usize), Result<Vec<Rule>, ServerFnError>>,
-    pub moderate_post_action: Action<ModeratePost, Result<Post, ServerFnError>>,
-    pub update_forum_desc_action: Action<UpdateForumDescription, Result<(), ServerFnError>>,
-    pub set_forum_role_action: Action<SetUserForumRole, Result<UserForumRole, ServerFnError>>,
-    pub add_rule_action: Action<AddRule, Result<Rule, ServerFnError>>,
-    pub update_rule_action: Action<UpdateRule, Result<Rule, ServerFnError>>,
-    pub remove_rule_action: Action<RemoveRule, Result<(), ServerFnError>>,
+    pub forum_resource: Resource<Result<Forum, ServerFnError>>,
+    pub forum_roles_resource: Resource<Result<Vec<UserForumRole>, ServerFnError>>,
+    pub forum_rules_resource: Resource<Result<Vec<Rule>, ServerFnError>>,
+    pub moderate_post_action: ServerAction<ModeratePost>,
+    pub update_forum_desc_action: ServerAction<UpdateForumDescription>,
+    pub set_forum_role_action: ServerAction<SetUserForumRole>,
+    pub add_rule_action: ServerAction<AddRule>,
+    pub update_rule_action: ServerAction<UpdateRule>,
+    pub remove_rule_action: ServerAction<RemoveRule>,
 }
 
 #[cfg(feature = "ssr")]
@@ -440,15 +444,17 @@ pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
 
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page
 fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
-    create_memo(move |current_forum_name: Option<&String>| {
-        if let Some(new_forum_name) = params.with(|params| params.get(FORUM_ROUTE_PARAM_NAME).cloned())
-        {
-            log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
-            new_forum_name
-        } else {
-            log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
-            current_forum_name.cloned().unwrap_or_default()
-        }
+    Memo::new(move |current_forum_name: Option<&String>| {
+        params.with(|params| 
+            if let Some(new_forum_name) = params.get_str(FORUM_ROUTE_PARAM_NAME) {
+                log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
+                // TODO check if can avoid clone
+                new_forum_name.to_string()
+            } else {
+                log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
+                current_forum_name.unwrap_or(&String::default()).clone()
+            }
+        )
     })
 }
 
@@ -457,11 +463,11 @@ fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
 pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = get_forum_name_memo(use_params_map());
-    let update_forum_desc_action = create_server_action::<UpdateForumDescription>();
-    let set_forum_role_action = create_server_action::<SetUserForumRole>();
-    let add_rule_action = create_server_action::<AddRule>();
-    let update_rule_action = create_server_action::<UpdateRule>();
-    let remove_rule_action = create_server_action::<RemoveRule>();
+    let update_forum_desc_action = ServerAction::<UpdateForumDescription>::new();
+    let set_forum_role_action = ServerAction::<SetUserForumRole>::new();
+    let add_rule_action = ServerAction::<AddRule>::new();
+    let update_rule_action = ServerAction::<UpdateRule>::new();
+    let remove_rule_action = ServerAction::<RemoveRule>::new();
     let forum_state = ForumState {
         forum_name,
         permission_level: Signal::derive(
@@ -470,15 +476,15 @@ pub fn ForumBanner() -> impl IntoView {
                 _ => PermissionLevel::None,
             })
         ),
-        forum_resource: create_resource(
+        forum_resource: Resource::new(
             move || (forum_name.get(), update_forum_desc_action.version().get(),),
             move |(forum_name, _)| get_forum_by_name(forum_name)
         ),
-        forum_roles_resource: create_resource(
+        forum_roles_resource: Resource::new(
             move || (forum_name.get(), set_forum_role_action.version().get()),
             move |(forum_name, _)| get_forum_role_vec(forum_name),
         ),
-        forum_rules_resource: create_resource(
+        forum_rules_resource: Resource::new(
             move || (
                 forum_name.get(),
                 add_rule_action.version().get(),
@@ -487,7 +493,7 @@ pub fn ForumBanner() -> impl IntoView {
             ),
             move |(forum_name, _, _, _)| get_forum_rule_vec(forum_name),
         ),
-        moderate_post_action: create_server_action::<ModeratePost>(),
+        moderate_post_action: ServerAction::<ModeratePost>::new(),
         update_forum_desc_action,
         set_forum_role_action,
         add_rule_action,
@@ -530,18 +536,18 @@ pub fn ForumBanner() -> impl IntoView {
 pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = expect_context::<ForumState>().forum_name;
-    let post_vec = create_rw_signal(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
-    let additional_load_count = create_rw_signal(0);
-    let is_loading = create_rw_signal(false);
-    let load_error = create_rw_signal(None);
-    let list_ref = create_node_ref::<html::Ul>();
-    let forum_with_sub_resource = create_resource(
+    let post_vec = RwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
+    let forum_with_sub_resource = Resource::new(
         move || (forum_name(),),
         move |(forum_name,)| get_forum_with_user_info(forum_name),
     );
 
     // Effect for initial load, forum and sort changes
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let forum_name = forum_name.get();
         let sort_type = state.post_sort_type.get();
         is_loading.set(true);
@@ -564,7 +570,7 @@ pub fn ForumContents() -> impl IntoView {
     });
 
     // Effect for additional load upon reaching end of scroll
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if additional_load_count.get() > 0 {
             is_loading.set(true);
             load_error.set(None);
@@ -580,10 +586,8 @@ pub fn ForumContents() -> impl IntoView {
     });
 
     view! {
-        <SuspenseUnpack
-            resource=forum_with_sub_resource let:forum_with_sub
-        >
-            <ForumToolbar forum=&forum_with_sub/>
+        <SuspenseUnpack resource=forum_with_sub_resource let:forum_with_sub>
+            <ForumToolbar forum=forum_with_sub.clone()/>
         </SuspenseUnpack>
         <ForumPostMiniatures
             post_vec=post_vec
@@ -597,77 +601,84 @@ pub fn ForumContents() -> impl IntoView {
 
 /// Component to display the forum toolbar
 #[component]
-pub fn ForumToolbar<'a>(forum: &'a ForumWithUserInfo) -> impl IntoView {
+pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
-    let forum_name = create_rw_signal(forum.forum.forum_name.clone());
-    let is_subscribed = create_rw_signal(forum.subscription_id.is_some());
+    let forum_name = RwSignal::new(forum.forum.forum_name.clone());
+    let is_subscribed = RwSignal::new(forum.subscription_id.is_some());
+    let current_path = ArcRwSignal::new(String::default());
+    let new_post_path = ArcRwSignal::new(String::default());
 
     view! {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
                 <AuthorizedShow permission_level=PermissionLevel::Moderate>
-                    <A href=MANAGE_FORUM_SUFFIX class="btn btn-circle btn-ghost">
+                    <A href=MANAGE_FORUM_SUFFIX attr:class="btn btn-circle btn-ghost">
                         <SettingsIcon class="h-5 w-5"/>
                     </A>
                 </AuthorizedShow>
                 <div class="tooltip" data-tip="Join">
-                    <LoginGuardButton
-                        login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
-                        let:_user
-                    >
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
-                                is_subscribed.update(|value| {
-                                    *value = !*value;
-                                    if *value {
-                                        state.subscribe_action.dispatch(Subscribe { forum_id });
-                                    } else {
-                                        state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
-                                    }
-                                })
-                            }
-                        >
-                            <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
-                        </button>
-                    </LoginGuardButton>
+                    //<LoginGuardButton
+                    //    login_button_class="btn btn-circle btn-ghost"
+                    //    login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                    //    redirect_path=current_path.clone()
+                    //    on:click=move |_| get_current_path(current_path.clone())
+                    //    let:_user
+                    //>
+                    //    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
+                    //            is_subscribed.update(|value| {
+                    //                *value = !*value;
+                    //                if *value {
+                    //                    state.subscribe_action.dispatch(Subscribe { forum_id });
+                    //                } else {
+                    //                    state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
+                    //                }
+                    //            })
+                    //        }
+                    //    >
+                    //        <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
+                    //    </button>
+                    //</LoginGuardButton>
                 </div>
                 <div class="tooltip" data-tip="Join">
-                    <LoginGuardButton
-                        login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }
-                        let:_user
-                    >
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
-                                is_subscribed.update(|value| {
-                                    *value = !*value;
-                                    if *value {
-                                        state.subscribe_action.dispatch(Subscribe { forum_id });
-                                    } else {
-                                        state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
-                                    }
-                                })
-                            }
-                        >
-                            <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/>
-                        </button>
-                    </LoginGuardButton>
+                    //<LoginGuardButton
+                    //    login_button_class="btn btn-circle btn-ghost"
+                    //    login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                    //    current_path
+                    //    on:click=move |_| get_current_path(current_path.clone())
+                    //    let:_user
+                    //>
+                    //    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
+                    //            is_subscribed.update(|value| {
+                    //                *value = !*value;
+                    //                if *value {
+                    //                    state.subscribe_action.dispatch(Subscribe { forum_id });
+                    //                } else {
+                    //                    state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
+                    //                }
+                    //            })
+                    //        }
+                    //    >
+                    //        <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/>
+                    //    </button>
+                    //</LoginGuardButton>
                 </div>
                 <div class="tooltip" data-tip="New">
-                    <LoginGuardButton
-                        login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
-                        redirect_path_fn=&get_create_post_path
-                        let:_user
-                    >
-                        <Form action=CREATE_POST_ROUTE class="flex">
-                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=forum_name/>
-                            <button type="submit" class="btn btn-circle btn-ghost">
-                                <PlusIcon class="h-6 w-6"/>
-                            </button>
-                        </Form>
-                    </LoginGuardButton>
+                    //<LoginGuardButton
+                    //    login_button_class="btn btn-circle btn-ghost"
+                    //    login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
+                    //    redirect_path=new_post_path.clone()
+                    //    on:click=move |_| get_create_post_path(new_post_path.clone())
+                    //    let:_user
+                    //>
+                    //    <Form action=CREATE_POST_ROUTE attr:class="flex">
+                    //        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=forum_name/>
+                    //        <button type="submit" class="btn btn-circle btn-ghost">
+                    //            <PlusIcon class="h-6 w-6"/>
+                    //        </button>
+                    //    </Form>
+                    //</LoginGuardButton>
                 </div>
             </div>
         </div>
@@ -748,10 +759,10 @@ pub fn CreateForum() -> impl IntoView {
     // check if the server has returned an error
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
-    let forum_name = create_rw_signal(String::new());
-    let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
-    let is_forum_available = create_resource(
-        move || forum_name_debounced.get(),
+    let forum_name = RwSignal::new(String::new());
+    //TODO leptos_use: let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
+    let is_forum_available = Resource::new(
+        move || forum_name.get(),
         move |forum_name| async {
             if forum_name.is_empty() {
                 None
@@ -761,15 +772,15 @@ pub fn CreateForum() -> impl IntoView {
         },
     );
 
-    let is_name_taken = create_rw_signal(false);
-    let description = create_rw_signal(String::new());
-    let is_nsfw = create_rw_signal(false);
+    let is_name_taken = RwSignal::new(false);
+    let description = RwSignal::new(String::new());
+    let is_nsfw = RwSignal::new(false);
     let is_name_empty = move || forum_name.with(|forum_name| forum_name.is_empty());
     let is_name_alphanumeric =
         move || forum_name.with(|forum_name| forum_name.chars().all(char::is_alphanumeric));
-    let are_inputs_invalid = create_memo(move |_| {
+    let are_inputs_invalid = Memo::new(move |_| {
         is_name_empty()
-            || is_name_taken()
+            || is_name_taken.get()
             || !is_name_alphanumeric()
             || description.with(|description| description.is_empty())
     });
@@ -798,7 +809,7 @@ pub fn CreateForum() -> impl IntoView {
                             move || is_forum_available.map(|result| match result {
                                 None | Some(Ok(true)) => {
                                     is_name_taken.set(false);
-                                    View::default()
+                                    view! {}.into_any()
                                 },
                                 Some(Ok(false)) => {
                                     is_name_taken.set(true);
@@ -806,7 +817,7 @@ pub fn CreateForum() -> impl IntoView {
                                         <div class="alert alert-error h-input_l flex items-center justify-center">
                                             <span class="font-semibold">"Unavailable"</span>
                                         </div>
-                                    }.into_view()
+                                    }.into_any()
                                 },
                                 Some(Err(e)) => {
                                     log::error!("Error while checking forum existence: {e}");
@@ -816,7 +827,7 @@ pub fn CreateForum() -> impl IntoView {
                                             <InternalErrorIcon class="h-16 w-16"/>
                                             <span class="font-semibold">"Server error"</span>
                                         </div>
-                                    }.into_view()
+                                    }.into_any()
                                 },
                             })
 

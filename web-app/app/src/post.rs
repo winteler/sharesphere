@@ -1,8 +1,12 @@
 use std::fmt;
 
 use const_format::concatcp;
-use leptos::*;
-use leptos_router::*;
+use leptos::either::Either;
+use leptos::html;
+use leptos::prelude::*;
+use leptos::spawn::spawn_local;
+use leptos_router::hooks::{use_params_map, use_query_map};
+use leptos_router::params::ParamsMap;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
@@ -624,21 +628,21 @@ pub async fn edit_post(
 
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
 pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
-    create_memo(move |current_post_id: Option<&i64>| {
-        if let Some(new_post_id_string) =
-            params.with(|params| params.get(POST_ROUTE_PARAM_NAME).cloned())
-        {
-            if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
-                log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
-                new_post_id
+    Memo::new(move |current_post_id: Option<&i64>| {
+        params.with(|params| 
+            if let Some(new_post_id_string) = params.get_str(POST_ROUTE_PARAM_NAME) {
+                if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
+                    log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
+                    new_post_id
+                } else {
+                    log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
+                    current_post_id.cloned().unwrap_or_default()
+                }
             } else {
-                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
+                log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
                 current_post_id.cloned().unwrap_or_default()
             }
-        } else {
-            log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
-            current_post_id.cloned().unwrap_or_default()
-        }
+        )
     })
 }
 
@@ -650,7 +654,7 @@ pub fn Post() -> impl IntoView {
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
 
-    let post_resource = create_resource(
+    let post_resource = Resource::new(
         move || (post_id.get(), state.edit_post_action.version().get(), forum_state.moderate_post_action.version().get()),
         move |(post_id, _, _)| {
             log::debug!("Load data for post: {post_id}");
@@ -658,16 +662,16 @@ pub fn Post() -> impl IntoView {
         },
     );
 
-    let comment_vec = create_rw_signal(Vec::<CommentWithChildren>::with_capacity(
+    let comment_vec = RwSignal::new(Vec::<CommentWithChildren>::with_capacity(
         COMMENT_BATCH_SIZE as usize,
     ));
-    let additional_load_count = create_rw_signal(0);
-    let is_loading = create_rw_signal(false);
-    let load_error = create_rw_signal(None);
-    let container_ref = create_node_ref::<html::Div>();
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let container_ref = NodeRef::<html::Div>::new();
 
     // Effect for initial load, forum and sort changes,
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let post_id = post_id.get();
         let sort_type = state.comment_sort_type.get();
         is_loading.set(true);
@@ -690,7 +694,7 @@ pub fn Post() -> impl IntoView {
     });
 
     // Effect for additional load upon reaching end of scroll
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if additional_load_count.get() > 0 {
             is_loading.set(true);
             load_error.set(None);
@@ -733,8 +737,8 @@ pub fn Post() -> impl IntoView {
                         <div class="card-body">
                             <div class="flex flex-col gap-4">
                                 <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
-                                <PostBody post=&post_with_info.post/>
-                                <PostWidgetBar post=post_with_info comment_vec/>
+                                <PostBody post=post_with_info.post.clone()/>
+                                <PostWidgetBar post=post_with_info.clone() comment_vec/>
                             </div>
                         </div>
                     </div>
@@ -761,23 +765,23 @@ pub fn Post() -> impl IntoView {
 
 /// Displays the body of a post
 #[component]
-pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
+pub fn PostBody(post: Post) -> impl IntoView {
 
     view! {
         {
             match (&post.moderator_message, &post.infringed_rule_title) {
-                (Some(moderator_message), Some(infringed_rule_title)) => view! { 
+                (Some(moderator_message), Some(infringed_rule_title)) => Either::Left(view! { 
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
                     />
-                },
-                _ => view! {
+                }),
+                _ => Either::Right(view! {
                     <ContentBody
                         body=post.body.clone()
                         is_markdown=post.markdown_body.is_some()
                     />
-                }.into_view(),
+                }),
             }
         }
     }
@@ -785,8 +789,8 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
-fn PostWidgetBar<'a>(
-    post: &'a PostWithUserInfo,
+fn PostWidgetBar(
+    post: PostWithUserInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     view! {
@@ -795,7 +799,7 @@ fn PostWidgetBar<'a>(
                 post_id=post.post.post_id
                 comment_id=None
                 score=post.post.score
-                vote=&post.vote
+                vote=post.vote.clone()
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
             
@@ -817,8 +821,8 @@ pub fn EditPostButton(
     author_id: i64
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post = store_value(post);
-    let show_dialog = create_rw_signal(false);
+    let post = StoredValue::new(post);
+    let show_dialog = RwSignal::new(false);
     let show_button = move || state.user.with(|result| match result {
         Some(Ok(Some(user))) => user.user_id == author_id,
         _ => false,
@@ -850,7 +854,7 @@ pub fn EditPostButton(
 /// Component to create a new post
 #[component]
 pub fn CreatePost() -> impl IntoView {
-    let create_post_action = create_server_action::<CreatePost>();
+    let create_post_action = ServerAction::<CreatePost>::new();
     let create_post_result = create_post_action.value();
     // check if the server has returned an error
     let has_error = move || create_post_result.with(|val| matches!(val, Some(Err(_))));
@@ -860,22 +864,21 @@ pub fn CreatePost() -> impl IntoView {
         query.with_untracked(|query| {
             query
                 .get(CREATE_POST_FORUM_QUERY_PARAM)
-                .unwrap_or(&String::default())
-                .to_string()
+                .unwrap_or(String::default())
         })
     };
 
-    let forum_name_input = create_rw_signal(forum_query());
-    let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
-    let post_body = create_rw_signal(String::new());
-    let is_title_empty = create_rw_signal(true);
-    let is_nsfw = create_rw_signal(false);
+    let forum_name_input = RwSignal::new(forum_query());
+    //TODO leptos_use: let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
+    let post_body = RwSignal::new(String::new());
+    let is_title_empty = RwSignal::new(true);
+    let is_nsfw = RwSignal::new(false);
     let is_content_invalid =
-        create_memo(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
+        Memo::new(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
     let is_nsfw_string = move || is_nsfw.get().to_string();
 
-    let matching_forums_resource = create_resource(
-        move || forum_name_debounced.get(),
+    let matching_forums_resource = Resource::new(
+        move || forum_name_input.get(),
         move |forum_prefix| get_matching_forum_name_set(forum_prefix),
     );
 
@@ -900,11 +903,14 @@ pub fn CreatePost() -> impl IntoView {
                         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
                             <TransitionUnpack resource=matching_forums_resource let:forum_set>
                             {
-                                forum_set.iter().map(|forum_name| {
+                                forum_set.into_iter().map(|forum_name| {
                                     view! {
                                         <li>
-                                            <button type="button" value=forum_name on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))>
-                                                {forum_name}
+                                            <button 
+                                                value=forum_name.clone()
+                                                on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))
+                                            >
+                                                {forum_name.clone()}
                                             </button>
                                         </li>
                                     }
@@ -994,8 +1000,8 @@ pub fn EditPostForm(
         Some(body) => (body, true),
         None => (post_body, false),
     };
-    let is_title_empty = create_rw_signal(false);
-    let post = create_rw_signal(current_body);
+    let is_title_empty = RwSignal::new(false);
+    let post = RwSignal::new(current_body);
     let is_post_empty = move || post.with(|post: &String| post.is_empty());
 
     let edit_post_result = state.edit_post_action.value();

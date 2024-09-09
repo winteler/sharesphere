@@ -1,15 +1,16 @@
 use std::fmt;
 
-use leptos::*;
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
-use crate::auth::LoginGuardButton;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
+use crate::auth::LoginGuardButton;
 use crate::comment::CommentSortType;
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
+use crate::navigation_bar::get_current_path;
 use crate::post::PostSortType;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -338,11 +339,11 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
 
 /// Component to display and modify a content's score
 #[component]
-pub fn VotePanel<'a>(
+pub fn VotePanel(
     post_id: i64,
     comment_id: Option<i64>,
     score: i32,
-    vote: &'a Option<Vote>,
+    vote: Option<Vote>,
 ) -> impl IntoView {
 
     let (vote_id, vote_value, initial_score) = match vote {
@@ -354,15 +355,15 @@ pub fn VotePanel<'a>(
         None => (None, None, score),
     };
 
-    let score = create_rw_signal(score);
-    let vote = create_rw_signal(vote_value.unwrap_or(VoteValue::None));
+    let score = RwSignal::new(score);
+    let vote = RwSignal::new(vote_value.unwrap_or(VoteValue::None));
 
-    let vote_action = create_server_action::<VoteOnContent>();
+    let vote_action = ServerAction::<VoteOnContent>::new();
 
     let upvote_button_css = get_vote_button_css(vote, true);
     let downvote_button_css = get_vote_button_css(vote, false);
 
-    let vote_id = create_memo(move |current_vote_id| {
+    let vote_id = Memo::new(move |current_vote_id| {
         vote_action.value().with(|action_value| match action_value {
             Some(Ok(Some(vote))) => Some(vote.vote_id),
             Some(Ok(None)) => None,
@@ -371,55 +372,61 @@ pub fn VotePanel<'a>(
         })
     });
 
+    let current_path = ArcRwSignal::new(String::default());
+
     view! {
         <div class="flex items-center gap-1">
-            <LoginGuardButton
-                login_button_class="p-1 rounded-full hover:bg-success"
-                login_button_content=move || view! { <PlusIcon/> }
-                let:_user
-            >
-                <button
-                    class=upvote_button_css()
-                    on:click=move |_| {
-                        on_content_vote(
-                            vote,
-                            vote_id,
-                            score,
-                            post_id,
-                            comment_id,
-                            initial_score,
-                            vote_action,
-                            true
-                        );
-                    }
-                >
-                    <PlusIcon/>
-                </button>
-            </LoginGuardButton>
+            //<LoginGuardButton
+            //    login_button_class="p-1 rounded-full hover:bg-success"
+            //    login_button_content=move || view! { <PlusIcon/> }
+            //    redirect_path=current_path.clone()
+            //    on:click=move |_| get_current_path(current_path.clone())
+            //    let:_user
+            //>
+            //    <button
+            //        class=upvote_button_css()
+            //        on:click=move |_| {
+            //            on_content_vote(
+            //                vote,
+            //                vote_id,
+            //                score,
+            //                post_id,
+            //                comment_id,
+            //                initial_score,
+            //                vote_action,
+            //                true
+            //            );
+            //        }
+            //    >
+            //        <PlusIcon/>
+            //    </button>
+            //</LoginGuardButton>
             <DynScoreIndicator score=score/>
-            <LoginGuardButton
-                login_button_class="p-1 rounded-full hover:bg-error"
-                login_button_content=move || view! { <MinusIcon/> }
-                let:_user
-            >
-                <button
-                    class=downvote_button_css()
-                    on:click=move |_| {
-                        on_content_vote(
-                            vote,
-                            vote_id,
-                            score,
-                            post_id,
-                            comment_id,
-                            initial_score,
-                            vote_action,
-                            false
-                        );
-                    }
-                >
-                    <MinusIcon/>
-                </button>
-            </LoginGuardButton>
+            //<LoginGuardButton
+            //    login_button_class="p-1 rounded-full hover:bg-error"
+            //    login_button_content=move || view! { <MinusIcon/> }
+            //    redirect_path=current_path.clone()
+            //    on:click=move |_| get_current_path(current_path.clone())
+            //    let:_user
+            //>
+            //    <button
+            //        class=downvote_button_css()
+            //        on:click=move |_| {
+            //            on_content_vote(
+            //                vote,
+            //                vote_id,
+            //                score,
+            //                post_id,
+            //                comment_id,
+            //                initial_score,
+            //                vote_action,
+            //                false
+            //            );
+            //        }
+            //    >
+            //        <MinusIcon/>
+            //    </button>
+            //</LoginGuardButton>
         </div>
     }
 }
@@ -432,7 +439,7 @@ pub fn on_content_vote(
     post_id: i64,
     comment_id: Option<i64>,
     initial_score: i32,
-    vote_action: Action<VoteOnContent, Result<Option<Vote>, ServerFnError>>,
+    vote_action: ServerAction<VoteOnContent>,
     is_upvote: bool,
 ) {
     vote.update(|vote| update_vote_value(vote, is_upvote));
@@ -492,7 +499,7 @@ pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {
 
 #[cfg(test)]
 mod tests {
-    use leptos::{create_rw_signal, SignalSet};
+    use leptos::{RwSignal::new, SignalSet};
 
     use crate::ranking::{get_vote_button_css, update_vote_value, VoteValue};
 
@@ -507,7 +514,7 @@ mod tests {
 
     #[test]
     fn test_get_vote_button_css() {
-        let vote_signal = create_rw_signal(VoteValue::None);
+        let vote_signal = RwSignal::new(VoteValue::None);
         let upvote_css = get_vote_button_css(vote_signal, true);
         let downvote_css = get_vote_button_css(vote_signal, false);
 

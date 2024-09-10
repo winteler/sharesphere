@@ -555,9 +555,9 @@ pub fn PermissionLevelForm(
     select_ref: NodeRef<html::Select>,
     set_role_action: ServerAction<SetUserForumRole>
 ) -> impl IntoView {
-    //TODO leptos_use: let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
     let matching_user_resource = Resource::new(
-        move || username_input.get(),
+        move || username_debounced.get(),
         move |username| async {
             if username.is_empty() {
                 Ok(BTreeSet::<String>::default())
@@ -843,11 +843,11 @@ pub fn RuleInputs(
 pub fn BanPanel() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     let username_input = RwSignal::new(String::default());
-    //TODO leptos_use: let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
 
     let unban_action = ServerAction::<RemoveUserBan>::new();
     let banned_users_resource = Resource::new(
-        move || (forum_name.get(), username_input.get(), unban_action.version().get()),
+        move || (forum_name.get(), username_debounced.get(), unban_action.version().get()),
         move |(forum_name, username, _)| get_forum_ban_vec(forum_name, username)
     );
 

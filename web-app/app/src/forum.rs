@@ -606,8 +606,8 @@ pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
     let forum_id = forum.forum.forum_id;
     let forum_name = RwSignal::new(forum.forum.forum_name.clone());
     let is_subscribed = RwSignal::new(forum.subscription_id.is_some());
-    let current_path = ArcRwSignal::new(String::default());
-    let new_post_path = ArcRwSignal::new(String::default());
+    let current_path = RwSignal::new(String::default());
+    let new_post_path = RwSignal::new(String::default());
 
     view! {
         <div class="flex w-full justify-between content-center">
@@ -760,9 +760,9 @@ pub fn CreateForum() -> impl IntoView {
     let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
 
     let forum_name = RwSignal::new(String::new());
-    //TODO leptos_use: let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
+    let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
     let is_forum_available = Resource::new(
-        move || forum_name.get(),
+        move || forum_name_debounced.get(),
         move |forum_name| async {
             if forum_name.is_empty() {
                 None

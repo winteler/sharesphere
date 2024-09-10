@@ -869,7 +869,7 @@ pub fn CreatePost() -> impl IntoView {
     };
 
     let forum_name_input = RwSignal::new(forum_query());
-    //TODO leptos_use: let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
+    let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
     let post_body = RwSignal::new(String::new());
     let is_title_empty = RwSignal::new(true);
     let is_nsfw = RwSignal::new(false);
@@ -878,7 +878,7 @@ pub fn CreatePost() -> impl IntoView {
     let is_nsfw_string = move || is_nsfw.get().to_string();
 
     let matching_forums_resource = Resource::new(
-        move || forum_name_input.get(),
+        move || forum_name_debounced.get(),
         move |forum_prefix| get_matching_forum_name_set(forum_prefix),
     );
 

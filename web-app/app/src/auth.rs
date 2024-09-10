@@ -297,7 +297,7 @@ pub fn LoginGuardButton<
     #[prop(into)]
     login_button_content: ViewFn,
     #[prop(into)]
-    redirect_path: ArcSignal<String>,
+    redirect_path: Signal<String>,
     children: F,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -324,7 +324,7 @@ pub fn LoginGuardButton<
 #[component]
 pub fn LoginButton(
     class: &'static str,
-    redirect_path: ArcSignal<String>,
+    redirect_path: Signal<String>,
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();

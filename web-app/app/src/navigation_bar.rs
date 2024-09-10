@@ -43,7 +43,7 @@ pub fn get_forum_name(forum_name: RwSignal<String>) {
     forum_name.update(|name| *name = get_forum_from_path(&path).unwrap_or_default());
 }
 
-pub fn get_create_post_path(create_post_route: ArcRwSignal<String>) {
+pub fn get_create_post_path(create_post_route: RwSignal<String>) {
     let path = window().location().pathname().unwrap_or(String::default());
     log::debug!("Current path: {path}");
 
@@ -93,23 +93,24 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
-    let redirect_path = ArcRwSignal::new(String::default());
+    let redirect_path = RwSignal::new(String::default());
     view! {
-        //<LoginGuardButton
-        //        login_button_class="btn btn-ghost btn-circle rounded-full"
-        //        login_button_content=move || view! { <UserIcon/> }
-        //        redirect_path=redirect_path.clone()
-        //        on:click=move |_| get_current_path(redirect_path.clone())
-        //        let:user
-        //>
-        //    <LoggedInMenu user=user/>
-        //</LoginGuardButton>
+        <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle rounded-full"
+                login_button_content=move || view! { <UserIcon/> }
+                redirect_path=redirect_path.clone()
+                on:click=move |_| get_current_path(redirect_path.clone())
+                let:_user
+        >
+            <UserIcon/>
+            //<LoggedInMenu user=user.clone()/>
+        </LoginGuardButton>
     }
 }
 
 #[component]
-pub fn LoggedInMenu<'a>(
-    user: &'a User,
+pub fn LoggedInMenu(
+    user: User,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let current_url = RwSignal::new(String::default());
@@ -140,8 +141,8 @@ pub fn PlusMenu() -> impl IntoView {
     let current_forum = RwSignal::new(String::default());
     let create_sphere_str = "Settle a Sphere!";
     let create_post_str = "Share a Post!";
-    let create_forum_path = ArcRwSignal::new(String::from(CREATE_FORUM_ROUTE));
-    let create_post_path = ArcRwSignal::new(String::default());
+    let create_forum_path = RwSignal::new(String::from(CREATE_FORUM_ROUTE));
+    let create_post_path = RwSignal::new(String::default());
     view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
@@ -149,30 +150,30 @@ pub fn PlusMenu() -> impl IntoView {
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded">
                 <li>
-                    //<LoginGuardButton
-                    //    login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
-                    //    redirect_path=create_forum_path
-                    //    let:_user
-                    //>
-                    //    <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
-                    //</LoginGuardButton>
+                    <LoginGuardButton
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
+                        redirect_path=create_forum_path
+                        let:_user
+                    >
+                        <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
+                    </LoginGuardButton>
                 </li>
                 <li>
-                    //<LoginGuardButton
-                    //    login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
-                    //    redirect_path=create_post_path.clone()
-                    //    on:click=move |_| get_create_post_path(create_post_path.clone())
-                    //    let:_user
-                    //>
-                    //    <Form action=CREATE_POST_ROUTE attr:class="flex">
-                    //        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                    //        <button type="submit" class="whitespace-nowrap" on:click=move |_| get_forum_name(current_forum)>
-                    //            {create_post_str}
-                    //        </button>
-                    //    </Form>
-                    //</LoginGuardButton>
+                    <LoginGuardButton
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
+                        redirect_path=create_post_path.clone()
+                        on:click=move |_| get_create_post_path(create_post_path.clone())
+                        let:_user
+                    >
+                        <form action=CREATE_POST_ROUTE class="flex">
+                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
+                            <button type="submit" class="whitespace-nowrap" on:click=move |_| get_forum_name(current_forum)>
+                                {create_post_str}
+                            </button>
+                        </form>
+                    </LoginGuardButton>
                 </li>
             </ul>
         </div>
-    }.into_any()
+    }
 }

@@ -165,11 +165,11 @@ pub fn App() -> impl IntoView {
                         </div>
                         <Routes fallback=|| "Page not found.".into_view()>
                             <Route path=StaticSegment("/") view=HomePage/>
-                            <ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
-                                <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
-                                <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
-                                <Route path=StaticSegment("/") view=ForumContents/>
-                            </ParentRoute>
+                            //<ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
+                            //    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                            //    <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
+                            //    <Route path=StaticSegment("/") view=ForumContents/>
+                            //</ParentRoute>
                             <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
                             <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
                                 <Route path=StaticSegment(CREATE_FORUM_SUFFIX) view=CreateForum/>

@@ -372,7 +372,7 @@ pub fn VotePanel(
         })
     });
 
-    let current_path = ArcRwSignal::new(String::default());
+    let current_path = RwSignal::new(String::default());
 
     view! {
         <div class="flex items-center gap-1">

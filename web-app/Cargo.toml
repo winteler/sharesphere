@@ -14,7 +14,7 @@ leptos_meta = { version = "0.7.0-beta5" }
 leptos_router = { version = "0.7.0-beta5", features = ["nightly"] }
 leptos_axum = { version = "0.7.0-beta5" }
 
-leptos-use = "0.12.0"
+leptos-use = "0.14.0-beta2"
 
 anyhow = "*"
 axum = {  version = "0.7", features = [ "macros" ] }

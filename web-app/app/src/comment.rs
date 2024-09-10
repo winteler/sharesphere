@@ -675,7 +675,7 @@ pub fn CommentButton(
     #[prop(default = None)] parent_comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
-    let redirect_path = ArcRwSignal::new(String::new());
+    let redirect_path = RwSignal::new(String::new());
     let comment_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",

@@ -3,7 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
-use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
+use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, MatchNestedRoutes, ParamSegment, StaticSegment};
 
 use crate::auth::*;
 use crate::comment::CommentSortType;
@@ -11,7 +11,7 @@ use crate::content::PostSortWidget;
 use crate::error_template::{ErrorDisplay, ErrorTemplate};
 use crate::errors::AppError;
 use crate::forum::*;
-use crate::forum_management::{ForumCockpit, MANAGE_FORUM_ROUTE};
+use crate::forum_management::{ForumCockpit, ForumCockpitGuard, MANAGE_FORUM_ROUTE};
 use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
@@ -165,18 +165,16 @@ pub fn App() -> impl IntoView {
                         </div>
                         <Routes fallback=|| "Page not found.".into_view()>
                             <Route path=StaticSegment("/") view=HomePage/>
-                            //<ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
-                            //    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
-                            //    <ParentRoute path=StaticSegment(MANAGE_FORUM_ROUTE) view=ModeratorGuard>
-                            //        <Route path="/" view=ForumCockpit/>
-                            //    </ParentRoute>
-                            //    <Route path=StaticSegment("/") view=ForumContents/>
-                            //</ParentRoute>
-                            //<Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
-                            //<ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
-                            //    <Route path=StaticSegment(CREATE_FORUM_SUFFIX) view=CreateForum/>
-                            //    <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
-                            //</ParentRoute>
+                            <ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
+                                <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                                <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
+                                <Route path=StaticSegment("/") view=ForumContents/>
+                            </ParentRoute>
+                            <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
+                            <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
+                                <Route path=StaticSegment(CREATE_FORUM_SUFFIX) view=CreateForum/>
+                                <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
+                            </ParentRoute>
                         </Routes>
                     </div>
                 </div>
@@ -220,39 +218,9 @@ fn LoginGuard() -> impl IntoView {
     }
 }
 
-/// Component to guard pages requiring a moderator permissions
-#[component]
-fn ModeratorGuard() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let forum_name = expect_context::<ForumState>().forum_name;
-    view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || {
-                     state.user.with(|user| match user {
-                        Some(Ok(Some(user))) => {
-                            match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
-                                Ok(_) => view! { <Outlet/> }.into_any(),
-                                Err(error) => view! { <ErrorDisplay error/> }.into_any(),
-                            }
-                        },
-                        Some(_) => {
-                            view! { <LoginWindow/> }.into_any()
-                        },
-                        None => {
-                            log::trace!("Resource not loaded yet.");
-                            view! { <Outlet/> }.into_any()
-                        }
-                    })
-                }
-            }
-        </Transition>
-    }
-}
-
 /// Renders a page requesting a login
 #[component]
-fn LoginWindow() -> impl IntoView {
+pub fn LoginWindow() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let current_path = RwSignal::new(String::default());
 

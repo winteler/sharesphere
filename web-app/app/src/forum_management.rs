@@ -8,10 +8,12 @@ use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
+use crate::app::{GlobalState, LoginWindow};
 use crate::content::Content;
 use crate::editor::FormTextEditor;
+use crate::error_template::ErrorDisplay;
 use crate::forum::{Forum, ForumState};
-use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
+use crate::icons::{DeleteIcon, EditIcon, LoadingIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
@@ -393,6 +395,32 @@ pub async fn remove_user_ban(
     let deleted_user_ban = ssr::remove_user_ban(ban_id, &user, &db_pool).await?;
     reload_user(deleted_user_ban.user_id)?;
     Ok(())
+}
+
+/// Component to guard the forum cockpit
+#[component]
+pub fn ForumCockpitGuard() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let forum_name = expect_context::<ForumState>().forum_name;
+    view! {
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || {
+                     state.user.with(|user| match user {
+                        Some(Ok(Some(user))) => {
+                            match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
+                                Ok(_) => view! { <ForumCockpit/> }.into_any(),
+                                Err(error) => view! { <ErrorDisplay error/> }.into_any(),
+                            }
+                        },
+                        _ => {
+                            view! { <LoginWindow/> }.into_any()
+                        },
+                    })
+                }
+            }
+        </Transition>
+    }
 }
 
 /// Component to manage a forum

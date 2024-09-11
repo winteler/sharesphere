@@ -1,7 +1,6 @@
 use std::cmp::max;
 use std::collections::{BTreeSet, HashMap};
 
-use leptos::prelude::Signal;
 use leptos::{prelude::ServerFnError, server};
 use serde::{Deserialize, Serialize};
 
@@ -31,11 +30,6 @@ pub struct User {
     pub ban_status_by_forum_map: HashMap<String, BanStatus>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub is_deleted: bool,
-}
-
-#[derive(Copy, Clone)]
-pub struct  UserState {
-    pub user: Signal<Option<User>>,
 }
 
 impl BanStatus {

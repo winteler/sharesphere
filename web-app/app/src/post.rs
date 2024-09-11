@@ -12,11 +12,11 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
-use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::app::{GlobalState, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::{get_user, ssr::check_user};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
-use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
+use crate::constants::{BEST_STR, HOT_STR, PATH_SERPARATOR, RECENT_STR, TRENDING_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
@@ -34,13 +34,11 @@ use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
-pub const CREATE_POST_SUFFIX: &str = "/content";
-pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
+pub const CREATE_POST_SUFFIX: &str = "content";
+pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, PATH_SERPARATOR, CREATE_POST_SUFFIX);
 pub const CREATE_POST_FORUM_QUERY_PARAM: &str = "forum";
-pub const POST_ROUTE_PREFIX: &str = "/posts";
+pub const POST_ROUTE_PREFIX: &str = "posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
-pub const POST_ROUTE: &str =
-    concatcp!(POST_ROUTE_PREFIX, PARAM_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME);
 pub const POST_BATCH_SIZE: i64 = 50;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -580,10 +578,11 @@ pub async fn create_post(
 
     log::trace!("Created post with id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()
-        + "/"
+        + PATH_SERPARATOR
         + forum.as_str()
+        + PATH_SERPARATOR
         + POST_ROUTE_PREFIX
-        + "/"
+        + PATH_SERPARATOR
         + post.post_id.to_string().as_ref());
     leptos_axum::redirect(new_post_path);
     Ok(())
@@ -906,7 +905,8 @@ pub fn CreatePost() -> impl IntoView {
                                 forum_set.into_iter().map(|forum_name| {
                                     view! {
                                         <li>
-                                            <button 
+                                            <button
+                                                type="button"
                                                 value=forum_name.clone()
                                                 on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))
                                             >

@@ -675,7 +675,6 @@ pub fn CommentButton(
     #[prop(default = None)] parent_comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
-    let redirect_path = RwSignal::new(String::new());
     let comment_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
@@ -683,22 +682,21 @@ pub fn CommentButton(
 
     view! {
         <div>
-            //<LoginGuardButton
-            //    login_button_class="btn btn-circle btn-ghost btn-sm"
-            //    login_button_content=move || view! { <CommentIcon/> }
-            //    redirect_path
-            //    on:click=move |_| get_current_path(redirect_path)
-            //    let:_user
-            //>
-            //    <button
-            //        class=comment_button_class
-            //        aria-expanded=move || show_dialog.get().to_string()
-            //        aria-haspopup="dialog"
-            //        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-            //    >
-            //        <CommentIcon/>
-            //    </button>
-            //</LoginGuardButton>
+            <LoginGuardButton
+                login_button_class="btn btn-circle btn-ghost btn-sm"
+                login_button_content=move || view! { <CommentIcon/> }
+                redirect_path_fn=&get_current_path
+                let:_user
+            >
+                <button
+                    class=comment_button_class
+                    aria-expanded=move || show_dialog.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                >
+                    <CommentIcon/>
+                </button>
+            </LoginGuardButton>
             <CommentDialog
                 post_id
                 parent_comment_id

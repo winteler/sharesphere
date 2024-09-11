@@ -1,27 +1,24 @@
-use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
-use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, MatchNestedRoutes, ParamSegment, StaticSegment};
+use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 
 use crate::auth::*;
 use crate::comment::CommentSortType;
 use crate::content::PostSortWidget;
-use crate::error_template::{ErrorDisplay, ErrorTemplate};
+use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::forum::*;
-use crate::forum_management::{ForumCockpit, ForumCockpitGuard, MANAGE_FORUM_ROUTE};
+use crate::forum_management::{ForumCockpitGuard, MANAGE_FORUM_ROUTE};
 use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
-use crate::role::PermissionLevel;
 use crate::sidebar::*;
 use crate::user::User;
 
-pub const PARAM_ROUTE_PREFIX: &str = "/:";
-pub const PUBLISH_ROUTE: &str = "/publish";
+pub const PUBLISH_ROUTE: &str = "publish";
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {
@@ -157,31 +154,37 @@ pub fn App() -> impl IntoView {
         <Router>
             <main class="h-screen text-white">
                 <input id="my-drawer" type="checkbox" class="drawer-toggle"/>
-                <div class="drawer-content h-full flex flex-col max-2xl:items-center">
-                    <NavigationBar/>
-                    <div class="grow flex w-full overflow-hidden">
-                        <div class="max-2xl:hidden">
-                            <LeftSidebar/>
+                    <div class="drawer-content h-full flex flex-col max-2xl:items-center">
+                        <NavigationBar/>
+                        <div class="grow flex w-full overflow-hidden">
+                            <div class="max-2xl:hidden">
+                                <LeftSidebar/>
+                            </div>
+                            <Routes fallback=|| {
+                                let mut outside_errors = Errors::default();
+                                outside_errors.insert_with_default_key(AppError::NotFound);
+                                view! {
+                                    <ErrorTemplate outside_errors/>
+                                }
+                            }>
+                                <Route path=StaticSegment("") view=HomePage/>
+                                <ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
+                                    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                                    <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
+                                    <Route path=StaticSegment("") view=ForumContents/>
+                                </ParentRoute>
+                                <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
+                                <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
+                                    <Route path=StaticSegment(CREATE_FORUM_SUFFIX) view=CreateForum/>
+                                    <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
+                                </ParentRoute>
+                            </Routes>
                         </div>
-                        <Routes fallback=|| "Page not found.".into_view()>
-                            <Route path=StaticSegment("/") view=HomePage/>
-                            //<ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
-                            //    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
-                            //    <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
-                            //    <Route path=StaticSegment("/") view=ForumContents/>
-                            //</ParentRoute>
-                            <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
-                            <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
-                                <Route path=StaticSegment(CREATE_FORUM_SUFFIX) view=CreateForum/>
-                                <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
-                            </ParentRoute>
-                        </Routes>
                     </div>
-                </div>
-                <div class="drawer-side">
-                    <label for="my-drawer" class="drawer-overlay"></label>
-                    <LeftSidebar/>
-                </div>
+                    <div class="drawer-side">
+                        <label for="my-drawer" class="drawer-overlay"></label>
+                        <LeftSidebar/>
+                    </div>
             </main>
         </Router>
     }

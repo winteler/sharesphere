@@ -1,6 +1,8 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
+use crate::constants::PATH_SERPARATOR;
 use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, ForumState, FORUM_ROUTE_PREFIX};
 use crate::unpack::TransitionUnpack;
 use crate::widget::MinimizeMaximizeWidget;
@@ -9,10 +11,10 @@ use crate::widget::MinimizeMaximizeWidget;
 #[component]
 pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl IntoView {
     if forum_name_vec.is_empty() {
-        return view! {}.into_any()
+        return Either::Left(view! {})
     }
 
-    view! {
+    Either::Right(view! {
         <ul class="menu h-full">
             <li>
                 <details open>
@@ -25,7 +27,7 @@ pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl I
                             key=|(_, forum_name)| forum_name.clone()
                             // renders each item to a view
                             children=move |(_, forum_name)| {
-                                let forum_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name;
+                                let forum_path = PATH_SERPARATOR.to_owned() + FORUM_ROUTE_PREFIX + PATH_SERPARATOR + &forum_name;
                                 view! {
                                     <li>
                                         <a href=forum_path>
@@ -39,7 +41,7 @@ pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl I
                 </details>
             </li>
         </ul>
-    }.into_any()
+    })
 }
 
 /// Left sidebar component

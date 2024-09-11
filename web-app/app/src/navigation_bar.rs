@@ -1,8 +1,8 @@
+use leptos::either::Either;
 use leptos::prelude::*;
-use leptos_router::components::Form;
 
 use crate::app::GlobalState;
-use crate::auth::LoginGuardButton;
+use crate::auth::{LoginButton, LoginGuardButton};
 use crate::forum::*;
 use crate::icons::*;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
@@ -93,18 +93,16 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
-    let redirect_path = RwSignal::new(String::default());
+    let state = expect_context::<GlobalState>();
     view! {
-        <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle rounded-full"
-                login_button_content=move || view! { <UserIcon/> }
-                redirect_path=redirect_path.clone()
-                on:click=move |_| get_current_path(redirect_path.clone())
-                let:_user
-        >
-            <UserIcon/>
-            //<LoggedInMenu user=user.clone()/>
-        </LoginGuardButton>
+        {
+            move || Suspend::new(async move {
+                match state.user.await {
+                    Ok(Some(user)) => Either::Left(view! { <LoggedInMenu user/> }),
+                    _ => Either::Right(view! { <LoginButton class="btn btn-ghost btn-circle rounded-full" redirect_path_fn=&get_current_path><UserIcon/></LoginButton> }),
+                }
+            })
+        }
     }
 }
 
@@ -141,8 +139,6 @@ pub fn PlusMenu() -> impl IntoView {
     let current_forum = RwSignal::new(String::default());
     let create_sphere_str = "Settle a Sphere!";
     let create_post_str = "Share a Post!";
-    let create_forum_path = RwSignal::new(String::from(CREATE_FORUM_ROUTE));
-    let create_post_path = RwSignal::new(String::default());
     view! {
         <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
@@ -152,7 +148,7 @@ pub fn PlusMenu() -> impl IntoView {
                 <li>
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
-                        redirect_path=create_forum_path
+                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.update(|value: &mut String| *value = String::from(CREATE_FORUM_ROUTE)))
                         let:_user
                     >
                         <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
@@ -161,8 +157,7 @@ pub fn PlusMenu() -> impl IntoView {
                 <li>
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
-                        redirect_path=create_post_path.clone()
-                        on:click=move |_| get_create_post_path(create_post_path.clone())
+                        redirect_path_fn=&get_create_post_path
                         let:_user
                     >
                         <form action=CREATE_POST_ROUTE class="flex">

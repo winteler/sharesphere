@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use chrono::SecondsFormat;
-use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::signal_debounced;
@@ -25,8 +24,7 @@ use crate::{
     auth::ssr::{check_user, reload_user},
 };
 
-pub const MANAGE_FORUM_SUFFIX: &str = "manage";
-pub const MANAGE_FORUM_ROUTE: &str = concatcp!("/", MANAGE_FORUM_SUFFIX);
+pub const MANAGE_FORUM_ROUTE: &str = "manage";
 pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";

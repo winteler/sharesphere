@@ -2,9 +2,9 @@ use std::env;
 
 #[cfg(feature = "ssr")]
 use axum_session_auth::Authentication;
+use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
-use leptos_router::*;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
@@ -13,7 +13,6 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 use crate::app::GlobalState;
-use crate::navigation_bar::get_current_path;
 use crate::unpack::SuspenseUnpack;
 use crate::user::User;
 #[cfg(feature = "ssr")]
@@ -27,7 +26,7 @@ pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_ADDR";
 pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
-pub const AUTH_CALLBACK_ROUTE: &str = "/authback";
+pub const AUTH_CALLBACK_ROUTE: &str = "authback";
 pub const PKCE_KEY: &str = "pkce";
 pub const NONCE_KEY: &str = "nonce";
 pub const OIDC_TOKENS_KEY: &str = "oidc_token";
@@ -291,30 +290,28 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
 pub fn LoginGuardButton<
     F: Fn(&User) -> IV + Send + Sync + 'static,
     IV: IntoView + Send + Sync + 'static,
+    G: Fn(RwSignal<String>) + Send + Sync + 'static
 >(
     #[prop(default = "")]
     login_button_class: &'static str,
     #[prop(into)]
     login_button_content: ViewFn,
-    #[prop(into)]
-    redirect_path: Signal<String>,
+    redirect_path_fn: &'static G,
     children: F,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let children = StoredValue::new(children);
     let login_button_content = StoredValue::new(login_button_content);
-    let redirect_path = StoredValue::new(redirect_path);
 
     view! {
         {
-            move || state.user.with(|result| match result {
-                Some(Ok(Some(user))) => children.with_value(|children| children(user)).into_any(),
-                Some(_) => {
-                    let login_button_view = login_button_content.get_value().run();
-                    view! { <LoginButton class=login_button_class redirect_path=redirect_path.get_value()>{login_button_view}</LoginButton> }.into_any()
-                }
-                _ => {
-                    view! { <div class=login_button_class>{login_button_content.get_value().run()}</div> }.into_any()
+            move || Suspend::new(async move {
+                match &state.user.await {
+                    Ok(Some(user)) => Either::Left(children.with_value(|children| children(user))),
+                    _ => {
+                        let login_button_view = login_button_content.get_value().run();
+                        Either::Right(view! { <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton> })
+                    },
                 }
             })
         }
@@ -322,9 +319,11 @@ pub fn LoginGuardButton<
 }
 
 #[component]
-pub fn LoginButton(
+pub fn LoginButton<
+    F: Fn(RwSignal<String>) + Send + Sync + 'static
+>(
     class: &'static str,
-    redirect_path: Signal<String>,
+    redirect_path_fn: &'static F,
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -333,7 +332,7 @@ pub fn LoginButton(
     view! {
         <ActionForm action=state.login_action attr:class="flex items-center">
             <input type="text" name="redirect_url" class="hidden" value=redirect_path/>
-            <button type="submit" class=class>
+            <button type="submit" class=class on:click=move |_| redirect_path_fn(redirect_path)>
                 {children()}
             </button>
         </ActionForm>
@@ -345,7 +344,13 @@ pub fn LoginButton(
 pub fn AuthCallback() -> impl IntoView {
     let query = use_query_map();
     let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
-    let auth_resource = Resource::new_blocking(|| (), move |_| authenticate_user(code()));
+    let auth_resource = Resource::new_blocking(
+        || (),
+        move |_| {
+            log::info!("Authenticate user.");
+            authenticate_user(code())
+        }
+    );
 
     view! {
         <SuspenseUnpack
@@ -353,7 +358,7 @@ pub fn AuthCallback() -> impl IntoView {
             let:_auth_result
         >
             {
-                log::debug!("Authenticated successfully");
+                log::info!("Authenticated successfully");
                 view! {}
             }
         </SuspenseUnpack>

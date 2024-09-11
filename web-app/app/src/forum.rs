@@ -4,22 +4,23 @@ use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
-use leptos_router::components::{Form, Outlet, A};
+use leptos_router::components::{Outlet, A};
 use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-use crate::app::{GlobalState, PARAM_ROUTE_PREFIX, PUBLISH_ROUTE};
+use crate::app::{GlobalState, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
+use crate::constants::PATH_SERPARATOR;
 use crate::content::PostSortWidget;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum_management::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_SUFFIX};
-use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, StarIcon, SubscribedIcon};
+use crate::forum_management::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
+use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
@@ -29,20 +30,19 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
-use crate::unpack::{SuspenseUnpack, TransitionUnpack};
+use crate::unpack::TransitionUnpack;
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user, auth::ssr::reload_user};
+use crate::{
+    app::ssr::get_db_pool,
+    auth::get_user,
+    auth::ssr::reload_user,
+};
 
-pub const CREATE_FORUM_SUFFIX: &str = "/forum";
+pub const CREATE_FORUM_SUFFIX: &str = "forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
-pub const FORUM_ROUTE_PREFIX: &str = "/forums";
+pub const FORUM_ROUTE_PREFIX: &str = "forums";
 pub const FORUM_ROUTE_PARAM_NAME: &str = "forum_name";
-pub const FORUM_ROUTE: &str = concatcp!(
-    FORUM_ROUTE_PREFIX,
-    PARAM_ROUTE_PREFIX,
-    FORUM_ROUTE_PARAM_NAME
-);
 
 pub const FORUM_FETCH_LIMIT: i64 = 20;
 
@@ -391,7 +391,7 @@ pub async fn create_forum(
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
-    let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + "/" + forum_name.as_str());
+    let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + PATH_SERPARATOR + forum_name.as_str());
 
     let forum = ssr::create_forum(
         forum_name.as_str(),
@@ -586,9 +586,18 @@ pub fn ForumContents() -> impl IntoView {
     });
 
     view! {
-        <SuspenseUnpack resource=forum_with_sub_resource let:forum_with_sub>
-            <ForumToolbar forum=forum_with_sub.clone()/>
-        </SuspenseUnpack>
+        <Suspense>
+            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
+            {
+                move || Suspend::new(async move {
+                    match &forum_with_sub_resource.await {
+                        Ok(value) => Ok(view! { <ForumToolbar forum=value.clone()/> }),
+                        Err(e) => Err(AppError::from(e)),
+                    }
+                })
+            }
+            </ErrorBoundary>
+        </Suspense>
         <ForumPostMiniatures
             post_vec=post_vec
             is_loading=is_loading
@@ -606,79 +615,53 @@ pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
     let forum_id = forum.forum.forum_id;
     let forum_name = RwSignal::new(forum.forum.forum_name.clone());
     let is_subscribed = RwSignal::new(forum.subscription_id.is_some());
-    let current_path = RwSignal::new(String::default());
-    let new_post_path = RwSignal::new(String::default());
+    let manage_path = move || PATH_SERPARATOR.to_owned() + FORUM_ROUTE_PREFIX + PATH_SERPARATOR + forum_name.get().as_str() + PATH_SERPARATOR + MANAGE_FORUM_ROUTE;
 
     view! {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
                 <AuthorizedShow permission_level=PermissionLevel::Moderate>
-                    <A href=MANAGE_FORUM_SUFFIX attr:class="btn btn-circle btn-ghost">
+                    <A href=manage_path.clone() attr:class="btn btn-circle btn-ghost">
                         <SettingsIcon class="h-5 w-5"/>
                     </A>
                 </AuthorizedShow>
                 <div class="tooltip" data-tip="Join">
-                    //<LoginGuardButton
-                    //    login_button_class="btn btn-circle btn-ghost"
-                    //    login_button_content=move || view! { <StarIcon class="h-6 w-6" show_colour=is_subscribed/> }
-                    //    redirect_path=current_path.clone()
-                    //    on:click=move |_| get_current_path(current_path.clone())
-                    //    let:_user
-                    //>
-                    //    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
-                    //            is_subscribed.update(|value| {
-                    //                *value = !*value;
-                    //                if *value {
-                    //                    state.subscribe_action.dispatch(Subscribe { forum_id });
-                    //                } else {
-                    //                    state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
-                    //                }
-                    //            })
-                    //        }
-                    //    >
-                    //        <StarIcon class="h-6 w-6" show_colour=is_subscribed/>
-                    //    </button>
-                    //</LoginGuardButton>
-                </div>
-                <div class="tooltip" data-tip="Join">
-                    //<LoginGuardButton
-                    //    login_button_class="btn btn-circle btn-ghost"
-                    //    login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }
-                    //    current_path
-                    //    on:click=move |_| get_current_path(current_path.clone())
-                    //    let:_user
-                    //>
-                    //    <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
-                    //            is_subscribed.update(|value| {
-                    //                *value = !*value;
-                    //                if *value {
-                    //                    state.subscribe_action.dispatch(Subscribe { forum_id });
-                    //                } else {
-                    //                    state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
-                    //                }
-                    //            })
-                    //        }
-                    //    >
-                    //        <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/>
-                    //    </button>
-                    //</LoginGuardButton>
+                    <LoginGuardButton
+                        login_button_class="btn btn-circle btn-ghost"
+                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                        redirect_path_fn=&get_current_path
+                        let:_user
+                    >
+                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
+                                is_subscribed.update(|value| {
+                                    *value = !*value;
+                                    if *value {
+                                        state.subscribe_action.dispatch(Subscribe { forum_id });
+                                    } else {
+                                        state.unsubscribe_action.dispatch(Unsubscribe { forum_id });
+                                    }
+                                })
+                            }
+                        >
+                            <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/>
+                        </button>
+                    </LoginGuardButton>
                 </div>
                 <div class="tooltip" data-tip="New">
-                    //<LoginGuardButton
-                    //    login_button_class="btn btn-circle btn-ghost"
-                    //    login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
-                    //    redirect_path=new_post_path.clone()
-                    //    on:click=move |_| get_create_post_path(new_post_path.clone())
-                    //    let:_user
-                    //>
-                    //    <Form action=CREATE_POST_ROUTE attr:class="flex">
-                    //        <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=forum_name/>
-                    //        <button type="submit" class="btn btn-circle btn-ghost">
-                    //            <PlusIcon class="h-6 w-6"/>
-                    //        </button>
-                    //    </Form>
-                    //</LoginGuardButton>
+                    <LoginGuardButton
+                        login_button_class="btn btn-circle btn-ghost"
+                        login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
+                        redirect_path_fn=&get_create_post_path
+                        let:_user
+                    >
+                        <form action=CREATE_POST_ROUTE class="flex">
+                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=forum_name/>
+                            <button type="submit" class="btn btn-circle btn-ghost">
+                                <PlusIcon class="h-6 w-6"/>
+                            </button>
+                        </form>
+                    </LoginGuardButton>
                 </div>
             </div>
         </div>

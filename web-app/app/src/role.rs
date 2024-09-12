@@ -269,11 +269,12 @@ pub async fn set_user_forum_role(
 
 /// Component to show children when the user has at least the input permission level
 #[component]
-pub fn AuthorizedShow(
+pub fn AuthorizedShow<C: IntoView + 'static>(
     permission_level: PermissionLevel,
-    children: ChildrenFn,
+    children: TypedChildrenFn<C>,
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
+    let children = children.into_inner();
     view! {
         <Show when=move || forum_state.permission_level.with(|value| *value >= permission_level)>
             {children()}

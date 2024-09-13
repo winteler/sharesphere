@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use const_format::concatcp;
+use leptos::either::EitherOf3;
 use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
@@ -30,7 +31,7 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
-use crate::unpack::TransitionUnpack;
+use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -586,18 +587,9 @@ pub fn ForumContents() -> impl IntoView {
     });
 
     view! {
-        <Suspense>
-            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
-            {
-                move || Suspend::new(async move {
-                    match &forum_with_sub_resource.await {
-                        Ok(value) => Ok(view! { <ForumToolbar forum=value.clone()/> }),
-                        Err(e) => Err(AppError::from(e)),
-                    }
-                })
-            }
-            </ErrorBoundary>
-        </Suspense>
+        <SuspenseUnpack resource=forum_with_sub_resource let:forum_with_sub>
+            <ForumToolbar forum=forum_with_sub.clone()/>
+        </SuspenseUnpack>
         <ForumPostMiniatures
             post_vec=post_vec
             is_loading=is_loading
@@ -792,25 +784,25 @@ pub fn CreateForum() -> impl IntoView {
                             move || is_forum_available.map(|result| match result {
                                 None | Some(Ok(true)) => {
                                     is_name_taken.set(false);
-                                    view! {}.into_any()
+                                    EitherOf3::A(view! {})
                                 },
                                 Some(Ok(false)) => {
                                     is_name_taken.set(true);
-                                    view! {
+                                    EitherOf3::B(view! {
                                         <div class="alert alert-error h-input_l flex items-center justify-center">
                                             <span class="font-semibold">"Unavailable"</span>
                                         </div>
-                                    }.into_any()
+                                    })
                                 },
                                 Some(Err(e)) => {
                                     log::error!("Error while checking forum existence: {e}");
                                     is_name_taken.set(true);
-                                    view! {
+                                    EitherOf3::C(view! {
                                         <div class="alert alert-error h-input_l flex items-center justify-center">
                                             <InternalErrorIcon class="h-16 w-16"/>
                                             <span class="font-semibold">"Server error"</span>
                                         </div>
-                                    }.into_any()
+                                    })
                                 },
                             })
 

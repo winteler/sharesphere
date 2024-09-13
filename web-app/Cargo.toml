@@ -9,6 +9,7 @@ lto = true
 opt-level = 'z'
 
 [workspace.dependencies]
+#leptos = { git = 'https://github.com/leptos-rs/leptos.git', branch = 'component-erasure', features = ["nightly"] }
 leptos = { version = "0.7.0-beta5", features = ["nightly"] }
 leptos_meta = { version = "0.7.0-beta5" }
 leptos_router = { version = "0.7.0-beta5", features = ["nightly"] }

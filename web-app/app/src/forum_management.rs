@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use chrono::SecondsFormat;
+use leptos::either::EitherOf3;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::signal_debounced;
@@ -12,7 +13,7 @@ use crate::content::Content;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorDisplay;
 use crate::forum::{Forum, ForumState};
-use crate::icons::{DeleteIcon, EditIcon, LoadingIcon, MagnifierIcon, PlusIcon, SaveIcon};
+use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
 use crate::unpack::{SuspenseUnpack, TransitionUnpack};
@@ -401,23 +402,19 @@ pub fn ForumCockpitGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = expect_context::<ForumState>().forum_name;
     view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || {
-                     state.user.with(|user| match user {
-                        Some(Ok(Some(user))) => {
-                            match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
-                                Ok(_) => view! { <ForumCockpit/> }.into_any(),
-                                Err(error) => view! { <ErrorDisplay error/> }.into_any(),
-                            }
-                        },
-                        _ => {
-                            view! { <LoginWindow/> }.into_any()
-                        },
-                    })
-                }
+        <SuspenseUnpack resource=state.user let:user>
+        {
+            match user {
+                Some(user) => {
+                    match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
+                        Ok(_) => EitherOf3::A(view! { <ForumCockpit/> }),
+                        Err(error) => EitherOf3::B(view! { <ErrorDisplay error/> }),
+                    }
+                },
+                None => EitherOf3::C(view! { <LoginWindow/> }),
             }
-        </Transition>
+        }
+        </SuspenseUnpack>
     }
 }
 

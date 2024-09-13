@@ -1,8 +1,7 @@
-use leptos::either::Either;
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
-use crate::auth::{LoginButton, LoginGuardButton};
+use crate::auth::LoginGuardButton;
 use crate::forum::*;
 use crate::icons::*;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
@@ -93,16 +92,15 @@ pub fn NavigationBar(
 
 #[component]
 pub fn UserProfile() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     view! {
-        {
-            move || Suspend::new(async move {
-                match state.user.await {
-                    Ok(Some(user)) => Either::Left(view! { <LoggedInMenu user/> }),
-                    _ => Either::Right(view! { <LoginButton class="btn btn-ghost btn-circle rounded-full" redirect_path_fn=&get_current_path><UserIcon/></LoginButton> }),
-                }
-            })
-        }
+        <LoginGuardButton
+                login_button_class="btn btn-ghost btn-circle rounded-full"
+                login_button_content=move || view! { <UserIcon/> }
+                redirect_path_fn=&get_current_path
+                let:user
+        >
+            <LoggedInMenu user=user.clone()/>
+        </LoginGuardButton>
     }
 }
 

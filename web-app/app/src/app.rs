@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
@@ -16,6 +17,7 @@ use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
 use crate::sidebar::*;
+use crate::unpack::SuspenseUnpack;
 use crate::user::User;
 
 pub const PUBLISH_ROUTE: &str = "publish";
@@ -169,7 +171,7 @@ pub fn App() -> impl IntoView {
                             }>
                                 <Route path=StaticSegment("") view=HomePage/>
                                 <ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
-                                    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                                    //<Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
                                     <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
                                     <Route path=StaticSegment("") view=ForumContents/>
                                 </ParentRoute>
@@ -196,25 +198,17 @@ fn LoginGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <Transition fallback=move || view! {  <LoadingIcon/> }>
-            {
-                move || {
-                     state.user.with(|user| match user {
-                        Some(Ok(Some(user))) => {
-                            log::debug!("Login guard, current user: {user:?}");
-                            view! { <Outlet/> }.into_any()
-                        },
-                        Some(_) => {
-                            view! { <LoginWindow/> }.into_any()
-                        },
-                        None => {
-                            log::trace!("Resource not loaded yet.");
-                            view! { <Outlet/> }.into_any()
-                        }
-                    })
-                }
+        <SuspenseUnpack resource=state.user let:user>
+        {
+            match user {
+                Some(user) => {
+                    log::debug!("Login guard, current user: {user:?}");
+                    Either::Left(view! { <Outlet/> })
+                },
+                None => Either::Right(view! { <LoginWindow/> }),
             }
-        </Transition>
+        }
+        </SuspenseUnpack>
         <div class="max-2xl:hidden">
             <HomeSidebar/>
         </div>
@@ -267,8 +261,8 @@ fn HomePage() -> impl IntoView {
                 { 
                     move || Suspend::new(async move { 
                         match state.user.await {
-                            Ok(Some(user)) => view! { <UserHomePage user/> }.into_any(),
-                            _ => view! { <DefaultHomePage/> }.into_any(),
+                            Ok(Some(user)) => Either::Left(view! { <UserHomePage user/> }),
+                            _ => Either::Right(view! { <DefaultHomePage/> }),
                         }
                     })
                 }

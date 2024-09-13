@@ -627,7 +627,7 @@ pub fn ModerationInfoButton(
                 </div>
             </ModalDialog>
         </Show>
-    }.into_any()
+    }
 }
 
 /// Component to display a button opening a modal dialog with a ban's details

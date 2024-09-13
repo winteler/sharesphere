@@ -1,14 +1,12 @@
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
-use crate::app::GlobalState;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::auth::LoginButton;
+use crate::auth::LoginGuardButton;
 use crate::comment::CommentSortType;
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 use crate::navigation_bar::get_current_path;
 use crate::post::PostSortType;
-use leptos::either::Either;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -345,7 +343,6 @@ pub fn VotePanel(
     score: i32,
     vote: Option<Vote>,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let (vote_id, vote_value, initial_score) = match vote {
         Some(vote) => (
             Some(vote.vote_id),
@@ -371,61 +368,55 @@ pub fn VotePanel(
 
     view! {
         <div class="flex items-center gap-1">
-            {
-                move || Suspend::new(async move {
-                    let upvote_button_css = get_vote_button_css(vote, true);
-                    match state.user.clone().await {
-                        Ok(Some(_)) => Either::Left(view! {
-                            <button
-                                class=upvote_button_css()
-                                on:click=move |_| {
-                                    on_content_vote(
-                                        vote,
-                                        vote_id,
-                                        score,
-                                        post_id,
-                                        comment_id,
-                                        initial_score,
-                                        vote_action,
-                                        true
-                                    );
-                                }
-                            >
-                                <PlusIcon/>
-                            </button>
-                        }),
-                        _ => Either::Right(view! { <LoginButton class="btn btn-ghost btn-circle rounded-full" redirect_path_fn=&get_current_path><PlusIcon/></LoginButton> }),
+            <LoginGuardButton
+                login_button_class="p-1 rounded-full hover:bg-success"
+                login_button_content=move || view! { <PlusIcon/> }
+                redirect_path_fn=&get_current_path
+                let:_user
+            >
+                <button
+                    class=""
+                    on:click=move |_| {
+                        on_content_vote(
+                            vote,
+                            vote_id,
+                            score,
+                            post_id,
+                            comment_id,
+                            initial_score,
+                            vote_action,
+                            true
+                        );
                     }
-                })
-            }
+                >
+                    <PlusIcon/>
+                </button>
+            </LoginGuardButton>
             <DynScoreIndicator score=score/>
-            {
-                move || Suspend::new(async move {
-                    let downvote_button_css = get_vote_button_css(vote, false);
-                    match state.user.await {
-                        Ok(Some(_)) => Either::Left(view! {
-                            <button
-                                class=downvote_button_css()
-                                on:click=move |_| {
-                                    on_content_vote(
-                                        vote,
-                                        vote_id,
-                                        score,
-                                        post_id,
-                                        comment_id,
-                                        initial_score,
-                                        vote_action,
-                                        false
-                                    );
-                                }
-                            >
-                                <MinusIcon/>
-                            </button>
-                        }),
-                        _ => Either::Right(view! { <LoginButton class="btn btn-ghost btn-circle rounded-full" redirect_path_fn=&get_current_path><MinusIcon/></LoginButton> }),
+            <LoginGuardButton
+                login_button_class="p-1 rounded-full hover:bg-error"
+                login_button_content=move || view! { <MinusIcon/> }
+                redirect_path_fn=&get_current_path
+                let:_user
+            >
+                <button
+                    class=""
+                    on:click=move |_| {
+                        on_content_vote(
+                            vote,
+                            vote_id,
+                            score,
+                            post_id,
+                            comment_id,
+                            initial_score,
+                            vote_action,
+                            false
+                        );
                     }
-                })
-            }
+                >
+                    <MinusIcon/>
+                </button>
+            </LoginGuardButton>
         </div>
     }
 }
@@ -498,9 +489,8 @@ pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {
 
 #[cfg(test)]
 mod tests {
-    use leptos::{RwSignal::new, SignalSet};
-
     use crate::ranking::{get_vote_button_css, update_vote_value, VoteValue};
+    use leptos::prelude::*;
 
     #[test]
     fn test_vote_value_from_i64() {

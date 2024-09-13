@@ -287,8 +287,8 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
 /// login screen.
 #[component]
 pub fn LoginGuardButton<
-    F: Fn(&User) -> IV + Send + Sync + 'static,
-    IV: IntoView + Send + Sync + 'static,
+    F: Fn(&User) -> IV + Clone + Send + Sync + 'static,
+    IV: IntoView + 'static,
     G: Fn(RwSignal<String>) + Send + Sync + 'static
 >(
     #[prop(default = "")]
@@ -306,7 +306,7 @@ pub fn LoginGuardButton<
         {
             move || Suspend::new(async move {
                 match &state.user.await {
-                    Ok(Some(user)) => Either::Left(children.with_value(|children| children(user))),
+                    Ok(Some(user)) => Either::Left(children.get_value()(user)),
                     _ => {
                         let login_button_view = login_button_content.get_value().run();
                         Either::Right(view! { <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton> })
@@ -318,7 +318,7 @@ pub fn LoginGuardButton<
 }
 
 #[component]
-pub fn LoginButton<
+fn LoginButton<
     F: Fn(RwSignal<String>) + Send + Sync + 'static
 >(
     class: &'static str,
@@ -357,7 +357,7 @@ pub fn AuthCallback() -> impl IntoView {
             let:_auth_result
         >
             {
-                log::info!("Authenticated successfully");
+                log::debug!("Authenticated successfully");
                 view! {}
             }
         </SuspenseUnpack>

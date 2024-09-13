@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use http::status::StatusCode;
-use leptos::prelude::IntoAny;
+use leptos::either::EitherOf8;
 use leptos::{component, prelude::ServerFnError, view, IntoView};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -153,17 +153,17 @@ pub fn AppErrorIcon(
     app_error: AppError,
 ) -> impl IntoView {
     match app_error {
-        AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> }.into_any(),
+        AppError::AuthenticationError(_) => EitherOf8::A(view! { <AuthErrorIcon/> }),
         AppError::NotAuthenticated | AppError::InsufficientPrivileges |AppError::ForumBanUntil(_) |
-        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <NotAuthorizedIcon/> }.into_any(), // TODO better icon for bans (judge, hammer?)
+        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => EitherOf8::B(view! { <NotAuthorizedIcon/> }), // TODO better icon for bans (judge, hammer?)
         AppError::CommunicationError(error) => match error {
-            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
-            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),
-            _ => view! { <InternalErrorIcon/> }.into_any(),
+            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => EitherOf8::C(view! { <InvalidRequestIcon/> }),
+            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => EitherOf8::D(view! { <NetworkErrorIcon/> }),
+            _ => EitherOf8::E(view! { <InternalErrorIcon/> }),
         },
-        AppError::DatabaseError(_) => view! { <InternalErrorIcon/> }.into_any(),
-        AppError::InternalServerError(_) => view! { <InternalErrorIcon/> }.into_any(),
-        AppError::NotFound => view! { <NotFoundIcon/> }.into_any(),
+        AppError::DatabaseError(_) => EitherOf8::F(view! { <InternalErrorIcon/> }),
+        AppError::InternalServerError(_) => EitherOf8::G(view! { <InternalErrorIcon/> }),
+        AppError::NotFound => EitherOf8::H(view! { <NotFoundIcon/> }),
     }
 }
 

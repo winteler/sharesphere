@@ -99,7 +99,7 @@ pub fn SortWidgetOption(
                     }
                 }
             >
-                {children().into_any()}
+                {children()}
             </button>
         </div>
     }

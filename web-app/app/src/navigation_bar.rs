@@ -87,7 +87,7 @@ pub fn NavigationBar(
                 <UserProfile/>
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -95,13 +95,13 @@ pub fn UserProfile() -> impl IntoView {
     view! {
         <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle rounded-full"
-                login_button_content=move || view! { <UserIcon/> }
+                login_button_content=move || view! { <UserIcon/> }.into_any()
                 redirect_path_fn=&get_current_path
                 let:user
         >
             <LoggedInMenu user=user.clone()/>
         </LoginGuardButton>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -129,7 +129,7 @@ pub fn LoggedInMenu(
                 <li><span>{format!("Logged in as: {}", user.username)}</span></li>
             </ul>
         </div>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -145,7 +145,7 @@ pub fn PlusMenu() -> impl IntoView {
             <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded">
                 <li>
                     <LoginGuardButton
-                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }.into_any()
                         redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.update(|value: &mut String| *value = String::from(CREATE_FORUM_ROUTE)))
                         let:_user
                     >
@@ -154,7 +154,7 @@ pub fn PlusMenu() -> impl IntoView {
                 </li>
                 <li>
                     <LoginGuardButton
-                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }.into_any()
                         redirect_path_fn=&get_create_post_path
                         let:_user
                     >
@@ -168,5 +168,5 @@ pub fn PlusMenu() -> impl IntoView {
                 </li>
             </ul>
         </div>
-    }
+    }.into_any()
 }

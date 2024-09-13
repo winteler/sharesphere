@@ -53,11 +53,11 @@ pub fn ErrorTemplate(
                 key=|(index, _error)| *index
                 // renders each item to a view
                 children=move |(_, error)| {
-                    view! { <ErrorDisplay error/> }
+                    view! { <ErrorDisplay error/> }.into_any()
                 }
             />
         </div>
-    }
+    }.into_any()
 }
 
 // Displays an error
@@ -78,5 +78,5 @@ pub fn ErrorDisplay(
                 <h3 class="text-xl">{user_message}</h3>
             </div>
         </div>
-    }
+    }.into_any()
 }

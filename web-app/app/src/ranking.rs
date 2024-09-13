@@ -319,7 +319,7 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
                 {score}
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// Dynamic score indicator, that can be updated through the given signal
@@ -332,7 +332,7 @@ pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
                 {move || score.get()}
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to display and modify a content's score
@@ -370,7 +370,7 @@ pub fn VotePanel(
         <div class="flex items-center gap-1">
             <LoginGuardButton
                 login_button_class="p-1 rounded-full hover:bg-success"
-                login_button_content=move || view! { <PlusIcon/> }
+                login_button_content=move || view! { <PlusIcon/> }.into_any()
                 redirect_path_fn=&get_current_path
                 let:_user
             >
@@ -395,7 +395,7 @@ pub fn VotePanel(
             <DynScoreIndicator score=score/>
             <LoginGuardButton
                 login_button_class="p-1 rounded-full hover:bg-error"
-                login_button_content=move || view! { <MinusIcon/> }
+                login_button_content=move || view! { <MinusIcon/> }.into_any()
                 redirect_path_fn=&get_current_path
                 let:_user
             >
@@ -418,7 +418,7 @@ pub fn VotePanel(
                 </button>
             </LoginGuardButton>
         </div>
-    }
+    }.into_any()
 }
 
 // Function to react to an post's upvote or downvote button being clicked.

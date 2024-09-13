@@ -509,11 +509,11 @@ pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl I
                             depth=0
                             ranking=index
                         />
-                    }
+                    }.into_any()
                 }
             />
         </div>
-    }
+    }.into_any()
 }
 
 /// Comment box component
@@ -577,7 +577,7 @@ pub fn CommentBox(
                                     depth=depth+1
                                     ranking=ranking+index
                                 />
-                            }
+                            }.into_any()
                         }
                     />
                 </div>
@@ -608,10 +608,10 @@ pub fn CommentBody(
                             is_markdown=comment.markdown_body.is_some()
                         />
                     </div>
-                }.into_any()),
+                }.into_any(),
             })
         }
-    }
+    }.into_any()
 }
 
 /// Component to encapsulate the widgets associated with each comment
@@ -663,7 +663,7 @@ fn CommentWidgetBar(
             <TimeSinceWidget timestamp/>
             <TimeSinceEditWidget edit_timestamp/>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to open the comment form
@@ -683,7 +683,7 @@ pub fn CommentButton(
         <div>
             <LoginGuardButton
                 login_button_class="btn btn-circle btn-ghost btn-sm"
-                login_button_content=move || view! { <CommentIcon/> }
+                login_button_content=move || view! { <CommentIcon/> }.into_any()
                 redirect_path_fn=&get_current_path
                 let:_user
             >
@@ -703,7 +703,7 @@ pub fn CommentButton(
                 show_dialog
             />
         </div>
-    }
+    }.into_any()
 }
 
 /// Dialog to publish a comment

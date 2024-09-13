@@ -34,7 +34,7 @@ pub fn ModalDialog(
                 </div>
             </div>
         </Show>
-    }
+    }.into_any()
 }
 
 /// Component to create a dropdown based on a given strum::EnumIter
@@ -55,10 +55,10 @@ where
             node_ref=_select_ref
         >
         {
-            enum_iter.into_iter().map(|enum_val| view! {<option>{enum_val.into()}</option>}).collect_view()
+            enum_iter.into_iter().map(|enum_val| view! {<option>{enum_val.into()}</option>}.into_any()).collect_view()
         }
         </select>
-    }
+    }.into_any()
 }
 
 /// Component to display the author of a post or comment
@@ -69,7 +69,7 @@ pub fn AuthorWidget(author: String) -> impl IntoView {
             <AuthorIcon/>
             {author}
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to display the moderator of a post or comment
@@ -88,7 +88,7 @@ pub fn ModeratorWidget(
                 }
             </div>
         </Show>
-    }
+    }.into_any()
 }
 
 /// Component to display the creation time of a post
@@ -104,7 +104,7 @@ pub fn TimeSinceWidget(
                 move || get_elapsed_time_string(timestamp.get())
             }
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to display the edit time of a post or comment

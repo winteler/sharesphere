@@ -50,7 +50,7 @@ pub fn UnpackAction<
                 None => None,
             }}
         </Suspense>
-    }
+    }.into_any()
 }
 
 async fn unpack_resource<
@@ -79,8 +79,8 @@ pub fn SuspenseUnpack<
     let children = StoredValue::new(children);
 
     view! {
-        <Suspense fallback=move || view! { <LoadingIcon/> }>
-            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
+        <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
                 {
                     move || Suspend::new(async move { 
                         unpack_resource(resource, children).await
@@ -88,7 +88,7 @@ pub fn SuspenseUnpack<
                 }
             </ErrorBoundary>
         </Suspense>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -103,8 +103,8 @@ pub fn TransitionUnpack<
     let children = StoredValue::new(children);
 
     view! {
-        <Transition fallback=move || view! { <LoadingIcon/> }>
-            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> } }>
+        <Transition fallback=move || view! { <LoadingIcon/> }.into_any()>
+            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
                 {
                     move || Suspend::new(async move { 
                         unpack_resource(resource, children).await
@@ -112,5 +112,5 @@ pub fn TransitionUnpack<
                 }
             </ErrorBoundary>
         </Transition>
-    }
+    }.into_any()
 }

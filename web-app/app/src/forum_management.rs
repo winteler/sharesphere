@@ -414,7 +414,7 @@ pub fn ForumCockpitGuard() -> impl IntoView {
             }
         }
         </SuspenseUnpack>
-    }
+    }.into_any()
 }
 
 /// Component to manage a forum
@@ -428,7 +428,7 @@ pub fn ForumCockpit() -> impl IntoView {
             <ForumRulesPanel/>
             <BanPanel/>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to edit a forum's description

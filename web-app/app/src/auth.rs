@@ -313,7 +313,7 @@ pub fn LoginGuardButton<
                 }
             })
         }
-    }
+    }.into_any()
 }
 
 #[component]
@@ -334,7 +334,7 @@ fn LoginButton<
                 {children()}
             </button>
         </ActionForm>
-    }
+    }.into_any()
 }
 
 /// Auth callback component
@@ -360,5 +360,5 @@ pub fn AuthCallback() -> impl IntoView {
                 view! {}
             }
         </SuspenseUnpack>
-    }
+    }.into_any()
 }

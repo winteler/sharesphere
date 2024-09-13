@@ -740,7 +740,7 @@ pub fn Post() -> impl IntoView {
                             </div>
                         </div>
                     </div>
-                }
+                }.into_any()
             }
             </TransitionUnpack>
             <CommentSortWidget/>
@@ -751,14 +751,14 @@ pub fn Post() -> impl IntoView {
                 outside_errors.insert_with_default_key(load_error.get().unwrap());
                 view! {
                     <div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div>
-                }
+                }.into_any()
             }
             </Show>
             <Show when=is_loading>
                 <LoadingIcon/>
             </Show>
         </div>
-    }
+    }.into_any()
 }
 
 /// Displays the body of a post
@@ -782,7 +782,7 @@ pub fn PostBody(post: Post) -> impl IntoView {
                 }.into_any(),
             }
         }
-    }
+    }.into_any()
 }
 
 /// Component to encapsulate the widgets associated with each post

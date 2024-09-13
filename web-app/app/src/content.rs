@@ -28,7 +28,7 @@ pub fn ContentBody(
             class=class
             inner_html=body
         />
-    }
+    }.into_any()
 }
 
 /// Component to indicate how to sort posts
@@ -49,7 +49,7 @@ pub fn PostSortWidget() -> impl IntoView {
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to indicate how to sort comments
@@ -64,7 +64,7 @@ pub fn CommentSortWidget() -> impl IntoView {
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to show a sorting option
@@ -102,5 +102,5 @@ pub fn SortWidgetOption(
                 {children()}
             </button>
         </div>
-    }
+    }.into_any()
 }

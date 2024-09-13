@@ -279,7 +279,7 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
         <Show when=move || forum_state.permission_level.with(|value| *value >= permission_level)>
             {children()}
         </Show>
-    }
+    }.into_any()
 }
 
 #[cfg(test)]

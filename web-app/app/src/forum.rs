@@ -520,7 +520,7 @@ pub fn ForumBanner() -> impl IntoView {
                             <span class="text-4xl">{forum_state.forum_name.get()}</span>
                         </div>
                     </a>
-                }
+                }.into_any()
             }
             </TransitionUnpack>
             <Outlet/>
@@ -528,7 +528,7 @@ pub fn ForumBanner() -> impl IntoView {
         <div class="max-2xl:hidden">
             <ForumSidebar/>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to display a forum's contents
@@ -596,7 +596,7 @@ pub fn ForumContents() -> impl IntoView {
             additional_load_count=additional_load_count
             list_ref=list_ref
         />
-    }
+    }.into_any()
 }
 
 /// Component to display the forum toolbar
@@ -620,7 +620,7 @@ pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
                 <div class="tooltip" data-tip="Join">
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }
+                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }.into_any()
                         redirect_path_fn=&get_current_path
                         let:_user
                     >
@@ -642,7 +642,7 @@ pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
                 <div class="tooltip" data-tip="New">
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }
+                        login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }.into_any()
                         redirect_path_fn=&get_create_post_path
                         let:_user
                     >
@@ -656,7 +656,7 @@ pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
                 </div>
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to display a vector of forum posts and indicate when more need to be loaded

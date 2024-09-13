@@ -178,7 +178,7 @@ pub fn FormTextEditor(
                 </textarea>
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component for a textarea that can render markdown
@@ -283,7 +283,7 @@ pub fn FormMarkdownEditor(
                 </TransitionUnpack>
             </Show>
         </div>
-    }
+    }.into_any()
 }
 
 /// Component to format the selected text in the given textarea
@@ -345,7 +345,7 @@ pub fn FormatButton(
             }
         }
         </button>
-    }
+    }.into_any()
 }
 
 /// Component to render editor's help button

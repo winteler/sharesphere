@@ -56,13 +56,13 @@ pub fn UnpackAction<
 async fn unpack_resource<
     T: Clone + Send + Sync + 'static,
     V: IntoView + 'static,
-    F: Fn(&T) -> V + Send + Sync + 'static,
+    F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
     resource: Resource<Result<T, ServerFnError>>,
     children: StoredValue<F>,
 ) -> impl IntoView {
     match &resource.await {
-        Ok(value) => Ok(children.with_value(|children| children(value))),
+        Ok(value) => Ok(children.get_value()(value)),
         Err(e) => Err(AppError::from(e)),
     }
 }
@@ -71,7 +71,7 @@ async fn unpack_resource<
 pub fn SuspenseUnpack<
     T: Clone + Send + Sync + 'static,
     V: IntoView + 'static,
-    F: Fn(&T) -> V + Send + Sync + 'static,
+    F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
     resource: Resource<Result<T, ServerFnError>>,
     children: F,
@@ -95,7 +95,7 @@ pub fn SuspenseUnpack<
 pub fn TransitionUnpack<
     T: Clone + Send + Sync + 'static,
     V: IntoView + 'static,
-    F: Fn(&T) -> V + Send + Sync + 'static,
+    F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
     resource: Resource<Result<T, ServerFnError>>,
     children: F,

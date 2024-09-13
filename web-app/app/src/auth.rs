@@ -35,11 +35,11 @@ pub const REDIRECT_URL_KEY: &str = "redirect";
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use axum_session_sqlx::SessionPgPool;
-    use sqlx::PgPool;
-
+    use crate::constants::PATH_SERPARATOR;
     use crate::errors::AppError;
     use crate::user::User;
+    use axum_session_sqlx::SessionPgPool;
+    use sqlx::PgPool;
 
     use super::*;
 
@@ -65,7 +65,7 @@ pub mod ssr {
     }
 
     pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
-        Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE)?)
+        Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + PATH_SERPARATOR + AUTH_CALLBACK_ROUTE)?)
     }
 
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
@@ -113,14 +113,12 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
         .as_ref()
         .is_ok_and(|user| user.is_authenticated())
     {
-        log::info!(
+        log::debug!(
             "Already logged in, current user is: {:?}",
             current_user.clone().unwrap()
         );
         return Ok(current_user.unwrap());
     }
-
-    log::debug!("User not connected, redirect_url: {}", redirect_url);
 
     let client = ssr::get_auth_client().await?;
 
@@ -137,6 +135,7 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
         .url();
 
     let auth_session = get_session()?;
+
     auth_session.session.set(NONCE_KEY, nonce);
     auth_session.session.set(REDIRECT_URL_KEY, redirect_url);
 

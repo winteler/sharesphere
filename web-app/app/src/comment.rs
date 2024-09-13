@@ -1,4 +1,3 @@
-use leptos::either::Either;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -596,20 +595,20 @@ pub fn CommentBody(
     view! {
         {
             move || comment.with(|comment| match (&comment.moderator_message, &comment.infringed_rule_title) {
-                (Some(moderator_message), Some(infringed_rule_title)) => Either::Left(view! {
+                (Some(moderator_message), Some(infringed_rule_title)) => view! {
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
                     />
-                }),
-                _ => Either::Right(view! {
+                }.into_any(),
+                _ => view! {
                     <div class="pl-2">
                         <ContentBody 
                             body=comment.body.clone()
                             is_markdown=comment.markdown_body.is_some()
                         />
                     </div>
-                }),
+                }.into_any()),
             })
         }
     }

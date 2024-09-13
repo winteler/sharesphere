@@ -1,5 +1,4 @@
 use crate::icons::{HammerIcon, MagnifierIcon};
-use leptos::either::Either;
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
@@ -677,7 +676,7 @@ pub fn ModerationInfoDialog(
             <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
             {
                 match &content {
-                    Content::Post(post) => Either::Left(view! {
+                    Content::Post(post) => view! {
                         <div class="flex flex-col gap-1 p-2 border-b">
                             <h1 class="font-bold text-2xl pl-6">"Content"</h1>
                             <div>{post.title.clone()}</div>
@@ -690,9 +689,9 @@ pub fn ModerationInfoDialog(
                             <h1 class="font-bold text-2xl pl-6">"Moderator message"</h1>
                             <div>{post.moderator_message.clone()}</div>
                         </div>
-                    }),
+                    }.into_any(),
                     Content::Comment(comment) => {
-                        Either::Right(view! {
+                        view! {
                             <div class="flex flex-col gap-1 p-2 border-b">
                                 <div class="font-bold text-2xl pl-6">"Content"</div>
                                 <ContentBody
@@ -704,7 +703,7 @@ pub fn ModerationInfoDialog(
                                 <div class="font-bold text-2xl pl-6">"Moderator message"</div>
                                 <div>{comment.moderator_message.clone()}</div>
                             </div>
-                        })
+                        }.into_any()
                     }
                 }
             }

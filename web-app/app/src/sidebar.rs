@@ -1,4 +1,3 @@
-use leptos::either::Either;
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
@@ -11,10 +10,10 @@ use crate::widget::MinimizeMaximizeWidget;
 #[component]
 pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl IntoView {
     if forum_name_vec.is_empty() {
-        return Either::Left(view! {})
+        return view! {}.into_any()
     }
 
-    Either::Right(view! {
+    view! {
         <ul class="menu h-full">
             <li>
                 <details open>
@@ -41,7 +40,7 @@ pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl I
                 </details>
             </li>
         </ul>
-    })
+    }.into_any()
 }
 
 /// Left sidebar component

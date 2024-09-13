@@ -2,7 +2,6 @@ use std::env;
 
 #[cfg(feature = "ssr")]
 use axum_session_auth::Authentication;
-use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 #[cfg(feature = "ssr")]
@@ -306,10 +305,10 @@ pub fn LoginGuardButton<
         {
             move || Suspend::new(async move {
                 match &state.user.await {
-                    Ok(Some(user)) => Either::Left(children.get_value()(user)),
+                    Ok(Some(user)) => children.get_value()(user).into_any(),
                     _ => {
                         let login_button_view = login_button_content.get_value().run();
-                        Either::Right(view! { <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton> })
+                        view! { <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton> }.into_any()
                     },
                 }
             })

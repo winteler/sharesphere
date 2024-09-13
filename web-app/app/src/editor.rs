@@ -1,4 +1,3 @@
-use leptos::either::EitherOf12;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::{on_click_outside, signal_debounced};
@@ -331,18 +330,18 @@ pub fn FormatButton(
         >
         {
             match format_type {
-                FormatType::Bold => EitherOf12::A(view!{ <BoldIcon/> }),
-                FormatType::Italic => EitherOf12::B(view!{ <ItalicIcon/> }),
-                FormatType::Strikethrough => EitherOf12::C(view!{ <StrikethroughIcon/> }),
-                FormatType::Header1 => EitherOf12::D(view!{ <Header1Icon/> }),
-                FormatType::Header2 => EitherOf12::E(view!{ <Header2Icon/> }),
-                FormatType::List => EitherOf12::F(view!{ <ListBulletIcon/> }),
-                FormatType::NumberedList => EitherOf12::G(view!{ <ListNumberIcon/> }),
-                FormatType::CodeBlock => EitherOf12::H(view!{ <CodeBlockIcon/> }),
-                FormatType::Spoiler => EitherOf12::I(view!{ <SpoilerIcon/> }),
-                FormatType::BlockQuote => EitherOf12::J(view!{ <QuoteIcon/> }),
-                FormatType::Link => EitherOf12::K(view!{ <LinkIcon/> }),
-                FormatType::Image => EitherOf12::L(view!{ <ImageIcon/> }),
+                FormatType::Bold => view!{ <BoldIcon/> }.into_any(),
+                FormatType::Italic => view!{ <ItalicIcon/> }.into_any(),
+                FormatType::Strikethrough => view!{ <StrikethroughIcon/> }.into_any(),
+                FormatType::Header1 => view!{ <Header1Icon/> }.into_any(),
+                FormatType::Header2 => view!{ <Header2Icon/> }.into_any(),
+                FormatType::List => view!{ <ListBulletIcon/> }.into_any(),
+                FormatType::NumberedList => view!{ <ListNumberIcon/> }.into_any(),
+                FormatType::CodeBlock => view!{ <CodeBlockIcon/> }.into_any(),
+                FormatType::Spoiler => view!{ <SpoilerIcon/> }.into_any(),
+                FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
+                FormatType::Link => view!{ <LinkIcon/> }.into_any(),
+                FormatType::Image => view!{ <ImageIcon/> }.into_any(),
             }
         }
         </button>

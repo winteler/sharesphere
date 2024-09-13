@@ -1,4 +1,3 @@
-use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
@@ -171,7 +170,7 @@ pub fn App() -> impl IntoView {
                             }>
                                 <Route path=StaticSegment("") view=HomePage/>
                                 <ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
-                                    //<Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                                    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
                                     <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
                                     <Route path=StaticSegment("") view=ForumContents/>
                                 </ParentRoute>
@@ -203,9 +202,9 @@ fn LoginGuard() -> impl IntoView {
             match user {
                 Some(user) => {
                     log::debug!("Login guard, current user: {user:?}");
-                    Either::Left(view! { <Outlet/> })
+                    view! { <Outlet/> }.into_any()
                 },
-                None => Either::Right(view! { <LoginWindow/> }),
+                None => view! { <LoginWindow/> }.into_any(),
             }
         }
         </SuspenseUnpack>
@@ -261,8 +260,8 @@ fn HomePage() -> impl IntoView {
                 { 
                     move || Suspend::new(async move { 
                         match state.user.await {
-                            Ok(Some(user)) => Either::Left(view! { <UserHomePage user/> }),
-                            _ => Either::Right(view! { <DefaultHomePage/> }),
+                            Ok(Some(user)) => view! { <UserHomePage user/> }.into_any(),
+                            _ => view! { <DefaultHomePage/> }.into_any(),
                         }
                     })
                 }

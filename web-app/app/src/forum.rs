@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use const_format::concatcp;
-use leptos::either::EitherOf3;
 use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
@@ -784,25 +783,25 @@ pub fn CreateForum() -> impl IntoView {
                             move || is_forum_available.map(|result| match result {
                                 None | Some(Ok(true)) => {
                                     is_name_taken.set(false);
-                                    EitherOf3::A(view! {})
+                                    view! {}.into_any()
                                 },
                                 Some(Ok(false)) => {
                                     is_name_taken.set(true);
-                                    EitherOf3::B(view! {
+                                    view! {
                                         <div class="alert alert-error h-input_l flex items-center justify-center">
                                             <span class="font-semibold">"Unavailable"</span>
                                         </div>
-                                    })
+                                    }.into_any()
                                 },
                                 Some(Err(e)) => {
                                     log::error!("Error while checking forum existence: {e}");
                                     is_name_taken.set(true);
-                                    EitherOf3::C(view! {
+                                    view! {
                                         <div class="alert alert-error h-input_l flex items-center justify-center">
                                             <InternalErrorIcon class="h-16 w-16"/>
                                             <span class="font-semibold">"Server error"</span>
                                         </div>
-                                    })
+                                    }.into_any()
                                 },
                             })
 

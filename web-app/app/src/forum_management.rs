@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use chrono::SecondsFormat;
-use leptos::either::EitherOf3;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::signal_debounced;
@@ -407,11 +406,11 @@ pub fn ForumCockpitGuard() -> impl IntoView {
             match user {
                 Some(user) => {
                     match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
-                        Ok(_) => EitherOf3::A(view! { <ForumCockpit/> }),
-                        Err(error) => EitherOf3::B(view! { <ErrorDisplay error/> }),
+                        Ok(_) => view! { <ForumCockpit/> }.into_any(),
+                        Err(error) => view! { <ErrorDisplay error/> }.into_any(),
                     }
                 },
-                None => EitherOf3::C(view! { <LoginWindow/> }),
+                None => view! { <LoginWindow/> }.into_any(),
             }
         }
         </SuspenseUnpack>

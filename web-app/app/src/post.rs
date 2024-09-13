@@ -1,7 +1,6 @@
 use std::fmt;
 
 use const_format::concatcp;
-use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos::spawn::spawn_local;
@@ -769,18 +768,18 @@ pub fn PostBody(post: Post) -> impl IntoView {
     view! {
         {
             match (&post.moderator_message, &post.infringed_rule_title) {
-                (Some(moderator_message), Some(infringed_rule_title)) => Either::Left(view! { 
+                (Some(moderator_message), Some(infringed_rule_title)) => view! { 
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
                     />
-                }),
-                _ => Either::Right(view! {
+                }.into_any(),
+                _ => view! {
                     <ContentBody
                         body=post.body.clone()
                         is_markdown=post.markdown_body.is_some()
                     />
-                }),
+                }.into_any(),
             }
         }
     }

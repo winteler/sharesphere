@@ -24,7 +24,7 @@ use crate::{
     auth::ssr::{check_user, reload_user},
 };
 
-pub const MANAGE_FORUM_ROUTE: &str = "manage";
+pub const MANAGE_FORUM_ROUTE: &str = "/manage";
 pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";

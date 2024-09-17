@@ -19,7 +19,7 @@ use crate::sidebar::*;
 use crate::unpack::SuspenseUnpack;
 use crate::user::User;
 
-pub const PUBLISH_ROUTE: &str = "publish";
+pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {

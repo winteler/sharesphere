@@ -473,7 +473,7 @@ fn get_line_start_for_position(string: &String, position: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use leptos::ServerFnError;
+    use leptos::prelude::ServerFnError;
 
     use crate::editor::{get_styled_html_from_markdown, ssr::style_html_user_content};
 

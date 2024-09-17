@@ -2,6 +2,7 @@ use leptos::prelude::*;
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
+use crate::constants::PATH_SEPARATOR;
 use crate::forum::*;
 use crate::icons::*;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
@@ -28,8 +29,9 @@ pub fn get_current_path(path: RwSignal<String>) {
 /// assert_eq!(get_forum_from_path(&String::from("/forums/test")), Some(String::from("test")));
 /// ```
 pub fn get_forum_from_path(path: &String) -> Option<String> {
+    log::info!("Path: {path}");
     if path.starts_with(FORUM_ROUTE_PREFIX) {
-        let mut path_part_it = path.split("/");
+        let mut path_part_it = path.split(PATH_SEPARATOR);
         Some(String::from(path_part_it.nth(2).unwrap_or("")))
     }
     else {

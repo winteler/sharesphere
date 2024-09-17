@@ -14,7 +14,7 @@ use crate::app::{GlobalState, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
-use crate::constants::PATH_SERPARATOR;
+use crate::constants::PATH_SEPARATOR;
 use crate::content::PostSortWidget;
 use crate::editor::FormTextEditor;
 use crate::error_template::ErrorTemplate;
@@ -39,9 +39,9 @@ use crate::{
     auth::ssr::reload_user,
 };
 
-pub const CREATE_FORUM_SUFFIX: &str = "forum";
+pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
-pub const FORUM_ROUTE_PREFIX: &str = "forums";
+pub const FORUM_ROUTE_PREFIX: &str = "/forums";
 pub const FORUM_ROUTE_PARAM_NAME: &str = "forum_name";
 
 pub const FORUM_FETCH_LIMIT: i64 = 20;
@@ -391,7 +391,7 @@ pub async fn create_forum(
     let user = check_user()?;
     let db_pool = get_db_pool()?;
 
-    let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + PATH_SERPARATOR + forum_name.as_str());
+    let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + forum_name.as_str());
 
     let forum = ssr::create_forum(
         forum_name.as_str(),
@@ -502,7 +502,7 @@ pub fn ForumBanner() -> impl IntoView {
     };
     provide_context(forum_state);
 
-    let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + "/" + &forum_name.get();
+    let forum_path = move || FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_name.get();
 
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
@@ -606,7 +606,7 @@ pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
     let forum_id = forum.forum.forum_id;
     let forum_name = RwSignal::new(forum.forum.forum_name.clone());
     let is_subscribed = RwSignal::new(forum.subscription_id.is_some());
-    let manage_path = move || PATH_SERPARATOR.to_owned() + FORUM_ROUTE_PREFIX + PATH_SERPARATOR + forum_name.get().as_str() + PATH_SERPARATOR + MANAGE_FORUM_ROUTE;
+    let manage_path = move || FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + forum_name.get().as_str() + MANAGE_FORUM_ROUTE;
 
     view! {
         <div class="flex w-full justify-between content-center">
@@ -692,7 +692,7 @@ pub fn ForumPostMiniatures(
                 key=|(_index, post)| post.post_id
                 // renders each item to a view
                 children=move |(_key, post)| {
-                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + "/" + post.forum_name.as_str() + POST_ROUTE_PREFIX + "/" + &post.post_id.to_string();
+                    let post_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + post.forum_name.as_str() + POST_ROUTE_PREFIX + PATH_SEPARATOR + &post.post_id.to_string();
                     view! {
                         <li>
                             <a href=post_path>

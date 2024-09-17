@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
-use crate::constants::PATH_SERPARATOR;
+use crate::constants::PATH_SEPARATOR;
 use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, ForumState, FORUM_ROUTE_PREFIX};
 use crate::unpack::TransitionUnpack;
 use crate::widget::MinimizeMaximizeWidget;
@@ -26,7 +26,7 @@ pub fn ForumLinkList(title: &'static str, forum_name_vec: Vec<String>) -> impl I
                             key=|(_, forum_name)| forum_name.clone()
                             // renders each item to a view
                             children=move |(_, forum_name)| {
-                                let forum_path = PATH_SERPARATOR.to_owned() + FORUM_ROUTE_PREFIX + PATH_SERPARATOR + &forum_name;
+                                let forum_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_name;
                                 view! {
                                     <li>
                                         <a href=forum_path>

@@ -25,7 +25,7 @@ pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_ADDR";
 pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
-pub const AUTH_CALLBACK_ROUTE: &str = "authback";
+pub const AUTH_CALLBACK_ROUTE: &str = "/authback";
 pub const PKCE_KEY: &str = "pkce";
 pub const NONCE_KEY: &str = "nonce";
 pub const OIDC_TOKENS_KEY: &str = "oidc_token";
@@ -34,7 +34,6 @@ pub const REDIRECT_URL_KEY: &str = "redirect";
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::constants::PATH_SERPARATOR;
     use crate::errors::AppError;
     use crate::user::User;
     use axum_session_sqlx::SessionPgPool;
@@ -64,7 +63,7 @@ pub mod ssr {
     }
 
     pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
-        Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + PATH_SERPARATOR + AUTH_CALLBACK_ROUTE)?)
+        Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE)?)
     }
 
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
@@ -345,7 +344,7 @@ pub fn AuthCallback() -> impl IntoView {
     let auth_resource = Resource::new_blocking(
         || (),
         move |_| {
-            log::info!("Authenticate user.");
+            log::trace!("Authenticate user.");
             authenticate_user(code())
         }
     );

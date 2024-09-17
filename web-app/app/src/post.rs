@@ -9,34 +9,34 @@ use leptos_router::params::ParamsMap;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ssr")]
-use crate::app::ssr::get_db_pool;
 use crate::app::{GlobalState, PUBLISH_ROUTE};
-#[cfg(feature = "ssr")]
-use crate::auth::{get_user, ssr::check_user};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
-use crate::constants::{BEST_STR, HOT_STR, PATH_SERPARATOR, RECENT_STR, TRENDING_STR};
+use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
-#[cfg(feature = "ssr")]
-use crate::editor::get_styled_html_from_markdown;
 use crate::editor::FormMarkdownEditor;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-#[cfg(feature = "ssr")]
-use crate::forum::FORUM_ROUTE_PREFIX;
 use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
-#[cfg(feature = "ssr")]
-use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
-pub const CREATE_POST_SUFFIX: &str = "content";
-pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, PATH_SERPARATOR, CREATE_POST_SUFFIX);
+#[cfg(feature = "ssr")]
+use crate::{
+    app::ssr::get_db_pool,
+    auth::{get_user, ssr::check_user},
+    constants::PATH_SEPARATOR,
+    editor::get_styled_html_from_markdown,
+    forum::FORUM_ROUTE_PREFIX,
+    ranking::{ssr::vote_on_content, VoteValue},
+};
+
+pub const CREATE_POST_SUFFIX: &str = "/post";
+pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
 pub const CREATE_POST_FORUM_QUERY_PARAM: &str = "forum";
-pub const POST_ROUTE_PREFIX: &str = "posts";
+pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const POST_BATCH_SIZE: i64 = 50;
 
@@ -577,12 +577,12 @@ pub async fn create_post(
 
     log::trace!("Created post with id: {}", post.post_id);
     let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()
-        + PATH_SERPARATOR
+        + PATH_SEPARATOR
         + forum.as_str()
-        + PATH_SERPARATOR
         + POST_ROUTE_PREFIX
-        + PATH_SERPARATOR
+        + PATH_SEPARATOR
         + post.post_id.to_string().as_ref());
+
     leptos_axum::redirect(new_post_path);
     Ok(())
 }

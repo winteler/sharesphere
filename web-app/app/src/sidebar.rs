@@ -2,7 +2,10 @@ use leptos::prelude::*;
 
 use crate::app::GlobalState;
 use crate::constants::PATH_SEPARATOR;
+use crate::error_template::ErrorTemplate;
+use crate::errors::AppError;
 use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, ForumState, FORUM_ROUTE_PREFIX};
+use crate::icons::LoadingIcon;
 use crate::unpack::TransitionUnpack;
 use crate::widget::MinimizeMaximizeWidget;
 
@@ -64,20 +67,42 @@ pub fn LeftSidebar() -> impl IntoView {
     view! {
         <div class="flex flex-col justify-start w-60 h-full max-2xl:bg-base-300">
             <div>
-                <TransitionUnpack resource=subscribed_forum_vec_resource let:forum_vec>
-                    <ForumLinkList
-                        title="Subscribed"
-                        forum_name_vec=forum_vec.clone()
-                    />
-                </TransitionUnpack>
+                <Transition fallback=move || view! { <LoadingIcon/> }.into_any()>
+                    <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
+                        {
+                            move || Suspend::new(async move {
+                                match &subscribed_forum_vec_resource.await {
+                                    Ok(forum_vec) => Ok(view! {
+                                        <ForumLinkList
+                                            title="Subscribed"
+                                            forum_name_vec=forum_vec.clone()
+                                        />
+                                    }),
+                                    Err(e) => Err(AppError::from(e)),
+                                }
+                            })
+                        }
+                    </ErrorBoundary>
+                </Transition>
             </div>
             <div>
-                <TransitionUnpack resource=popular_forum_vec_resource let:forum_vec>
-                    <ForumLinkList
-                        title="Popular"
-                        forum_name_vec=forum_vec.clone()
-                    />
-                </TransitionUnpack>
+                <Transition fallback=move || view! { <LoadingIcon/> }.into_any()>
+                    <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
+                        {
+                            move || Suspend::new(async move {
+                                match &popular_forum_vec_resource.await {
+                                    Ok(forum_vec) => Ok(view! {
+                                        <ForumLinkList
+                                            title="Subscribed"
+                                            forum_name_vec=forum_vec.clone()
+                                        />
+                                    }),
+                                    Err(e) => Err(AppError::from(e)),
+                                }
+                            })
+                        }
+                    </ErrorBoundary>
+                </Transition>
             </div>
         </div>
     }

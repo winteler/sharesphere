@@ -12,6 +12,9 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 use crate::app::GlobalState;
+use crate::error_template::ErrorTemplate;
+use crate::errors::AppError;
+use crate::icons::LoadingIcon;
 use crate::unpack::SuspenseUnpack;
 use crate::user::User;
 #[cfg(feature = "ssr")]
@@ -144,11 +147,12 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
 }
 
 #[server]
-pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
+pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
 
+    log::info!("Start auth");
     let auth_session = get_session()?;
 
     let nonce = oidc::Nonce::new(
@@ -189,7 +193,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
 
     // The authenticated user's identity is now available. See the IdTokenClaims struct for a
     // complete listing of the available claims.
-    log::debug!(
+    log::info!(
         "User {} with e-mail address {} has authenticated successfully",
         claims.subject().as_str(),
         claims
@@ -231,7 +235,9 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
 
     leptos_axum::redirect(redirect_url.as_ref());
 
-    Ok(())
+    log::info!("Auth successful");
+
+    Ok(redirect_url)
 }
 
 #[server]
@@ -341,7 +347,7 @@ fn LoginButton<
 pub fn AuthCallback() -> impl IntoView {
     let query = use_query_map();
     let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
-    let auth_resource = Resource::new_blocking(
+    let auth_resource = Resource::new(
         || (),
         move |_| {
             log::trace!("Authenticate user.");
@@ -350,14 +356,21 @@ pub fn AuthCallback() -> impl IntoView {
     );
 
     view! {
-        <SuspenseUnpack
-            resource=auth_resource
-            let:_auth_result
-        >
-            {
-                log::debug!("Authenticated successfully");
-                view! {}
-            }
-        </SuspenseUnpack>
+        <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+        {
+            move || Suspend::new(async move {
+                match &auth_resource.await {
+                    Ok(value) => view! {}.into_any(),
+                    Err(e) => {
+                        let mut outside_errors = Errors::default();
+                        outside_errors.insert_with_default_key(AppError::AuthenticationError(e.to_string()));
+                        view! {
+                            <ErrorTemplate outside_errors/>
+                        }.into_any()
+                    },
+                }
+            })
+        }
+        </Suspense>
     }.into_any()
 }

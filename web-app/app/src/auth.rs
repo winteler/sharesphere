@@ -3,7 +3,8 @@ use std::env;
 #[cfg(feature = "ssr")]
 use axum_session_auth::Authentication;
 use leptos::prelude::*;
-use leptos_router::hooks::use_query_map;
+use leptos_router::NavigateOptions;
+use leptos_router::{hooks::{use_navigate, use_query, use_query_map}, params::Params};
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
@@ -31,6 +32,12 @@ pub const NONCE_KEY: &str = "nonce";
 pub const OIDC_TOKENS_KEY: &str = "oidc_token";
 pub const OIDC_USERNAME_KEY: &str = "oidc_username";
 pub const REDIRECT_URL_KEY: &str = "redirect";
+
+#[derive(Params, Debug, PartialEq, Clone)]
+pub struct OAuthParams {
+    pub code: Option<String>,
+    pub state: Option<String>,
+}
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
@@ -144,7 +151,7 @@ pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
 }
 
 #[server]
-pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
+pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -229,9 +236,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError> {
 
     auth_session.login_user(user.user_id);
 
-    leptos_axum::redirect(redirect_url.as_ref());
-
-    Ok(())
+    Ok(redirect_url)
 }
 
 #[server]
@@ -339,25 +344,26 @@ fn LoginButton<
 /// Auth callback component
 #[component]
 pub fn AuthCallback() -> impl IntoView {
-    let query = use_query_map();
-    let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
-    let auth_resource = Resource::new_blocking(
-        || (),
-        move |_| {
-            log::trace!("Authenticate user.");
-            authenticate_user(code())
-        }
-    );
+    let query = use_query::<OAuthParams>();
+    let navigate = use_navigate();
+    let handle_auth_redirect = ServerAction::<AuthenticateUser>::new();
 
-    view! {
-        <SuspenseUnpack
-            resource=auth_resource
-            let:_auth_result
-        >
-            {
-                log::debug!("Authenticated successfully");
-                view! {}
-            }
-        </SuspenseUnpack>
-    }.into_any()
+    Effect::new(move |_| {
+        if let Some(Ok(redirect_path)) = handle_auth_redirect.value().get()
+        {
+            navigate(redirect_path.as_str(), NavigateOptions::default());
+        }
+    });
+
+
+    Effect::new(move |_| {
+        if let Ok(OAuthParams { code, state }) = query.get_untracked() {
+            handle_auth_redirect.dispatch(AuthenticateUser {
+                auth_code: code.unwrap_or_default(),
+            });
+        } else {
+            log::error!("error parsing oauth params");
+        }
+    });
+    view! {}
 }

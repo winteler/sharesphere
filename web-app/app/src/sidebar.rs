@@ -50,6 +50,8 @@ pub fn LeftSidebar() -> impl IntoView {
     let subscribed_forum_vec_resource = Resource::new(
         move || {
             (
+                state.handle_auth_redirect_action.version().get(),
+                state.logout_action.version().get(),
                 state.subscribe_action.version().get(),
                 state.unsubscribe_action.version().get(),
             )

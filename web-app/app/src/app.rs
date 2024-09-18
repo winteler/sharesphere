@@ -24,6 +24,7 @@ pub const PUBLISH_ROUTE: &str = "/publish";
 #[derive(Copy, Clone)]
 pub struct GlobalState {
     pub login_action: ServerAction<Login>,
+    pub handle_auth_redirect_action: ServerAction<AuthenticateUser>,
     pub logout_action: ServerAction<EndSession>,
     pub subscribe_action: ServerAction<Subscribe>,
     pub unsubscribe_action: ServerAction<Unsubscribe>,
@@ -36,11 +37,12 @@ pub struct GlobalState {
 
 impl GlobalState {
     pub fn default() -> Self {
-        let login_action = ServerAction::<Login>::new();
+        let handle_auth_redirect_action = ServerAction::<AuthenticateUser>::new();
         let logout_action = ServerAction::<EndSession>::new();
         let create_forum_action = ServerAction::<CreateForum>::new();
         Self {
-            login_action,
+            login_action: ServerAction::<Login>::new(),
+            handle_auth_redirect_action,
             logout_action,
             subscribe_action: ServerAction::<Subscribe>::new(),
             unsubscribe_action: ServerAction::<Unsubscribe>::new(),
@@ -51,7 +53,7 @@ impl GlobalState {
             user: Resource::new(
                 move || {
                     (
-                        login_action.version().get(),
+                        handle_auth_redirect_action.version().get(),
                         logout_action.version().get(),
                         create_forum_action.version().get(),
                     )

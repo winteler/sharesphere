@@ -4,7 +4,7 @@ use std::env;
 use axum_session_auth::Authentication;
 use leptos::prelude::*;
 use leptos_router::NavigateOptions;
-use leptos_router::{hooks::{use_navigate, use_query, use_query_map}, params::Params};
+use leptos_router::{hooks::{use_navigate, use_query}, params::Params};
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
@@ -13,7 +13,6 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 use crate::app::GlobalState;
-use crate::unpack::SuspenseUnpack;
 use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
@@ -344,12 +343,12 @@ fn LoginButton<
 /// Auth callback component
 #[component]
 pub fn AuthCallback() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let query = use_query::<OAuthParams>();
     let navigate = use_navigate();
-    let handle_auth_redirect = ServerAction::<AuthenticateUser>::new();
 
     Effect::new(move |_| {
-        if let Some(Ok(redirect_path)) = handle_auth_redirect.value().get()
+        if let Some(Ok(redirect_path)) = state.handle_auth_redirect_action.value().get()
         {
             navigate(redirect_path.as_str(), NavigateOptions::default());
         }
@@ -357,8 +356,8 @@ pub fn AuthCallback() -> impl IntoView {
 
 
     Effect::new(move |_| {
-        if let Ok(OAuthParams { code, state }) = query.get_untracked() {
-            handle_auth_redirect.dispatch(AuthenticateUser {
+        if let Ok(OAuthParams { code, state: _auth_state }) = query.get_untracked() {
+            state.handle_auth_redirect_action.dispatch(AuthenticateUser {
                 auth_code: code.unwrap_or_default(),
             });
         } else {

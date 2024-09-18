@@ -405,7 +405,7 @@ pub fn ForumCockpitGuard() -> impl IntoView {
         {
             match user {
                 Some(user) => {
-                    match forum_name.with(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
+                    match forum_name.with_untracked(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
                         Ok(_) => view! { <ForumCockpit/> }.into_any(),
                         Err(error) => view! { <ErrorDisplay error/> }.into_any(),
                     }

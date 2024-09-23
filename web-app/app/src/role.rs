@@ -277,7 +277,10 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
     let children = children.into_inner();
     view! {
         <Show when=move || forum_state.permission_level.with(|value| *value >= permission_level)>
-            {children()}
+            {
+                provide_context(forum_state);
+                children()
+            }
         </Show>
     }.into_any()
 }

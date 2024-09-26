@@ -67,11 +67,9 @@ impl GlobalState {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::env;
-    use std::sync::OnceLock;
 
     use anyhow::Context;
     use sqlx::{postgres::PgPoolOptions, PgPool};
-    use tokio::runtime::Handle;
 
     use crate::auth::ssr::AuthSession;
 
@@ -83,41 +81,16 @@ pub mod ssr {
         use_context::<AuthSession>().ok_or_else(|| AppError::new("Auth session missing."))
     }
 
+    pub fn get_db_pool() -> Result<PgPool, AppError> {
+        use_context::<PgPool>().ok_or_else(|| AppError::new("DB pool missing."))
+    }
+
     pub async fn create_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
         PgPoolOptions::new()
             .max_connections(5)
             .connect(&env::var(DB_URL_ENV)?)
             .await
             .with_context(|| format!("Failed to connect to DB"))
-    }
-
-    struct DbPoolGetter {
-        pool: Result<PgPool, AppError>,
-    }
-
-    impl DbPoolGetter {
-        fn new() -> Self {
-            // Create the runtime
-            let handle = Handle::current();
-            let pool = std::thread::spawn(move || {
-                // Using Handle::block_on to run async code in the new thread.
-                handle.block_on(async {
-                    create_db_pool()
-                        .await
-                        .or_else(|_| Err(AppError::new("Pool missing.")))
-                })
-            })
-            .join()
-            .unwrap_or(Err(AppError::new("Failed to create DB pool.")));
-
-            Self { pool }
-        }
-    }
-
-    static POOL: OnceLock<DbPoolGetter> = OnceLock::new();
-
-    pub fn get_db_pool() -> Result<PgPool, AppError> {
-        POOL.get_or_init(|| DbPoolGetter::new()).pool.clone()
     }
 }
 

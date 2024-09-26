@@ -15,15 +15,14 @@ use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
 
+use crate::fallback::file_and_error_handler;
+use crate::state::AppState;
 use app::user::User;
 use app::{
     app::ssr::get_db_pool,
     app::*,
     auth::ssr::*,
 };
-
-use crate::fallback::file_and_error_handler;
-use crate::state::AppState;
 
 mod fallback;
 mod state;
@@ -58,7 +57,7 @@ pub fn get_session_db_key() -> Key {
 }
 
 async fn server_fn_handler(
-    State(_app_state): State<AppState>,
+    State(app_state): State<AppState>,
     auth_session: AuthSession,
     path: Path<String>,
     request: Request<AxumBody>,
@@ -68,6 +67,7 @@ async fn server_fn_handler(
     handle_server_fns_with_context(
         move || {
             provide_context(auth_session.clone());
+            provide_context(app_state.db_pool.clone());
         },
         request,
     )
@@ -80,10 +80,12 @@ async fn server_fn_handler(
      req: Request<AxumBody>,
  ) -> Response {
      let leptos_options = app_state.leptos_options.clone();
+     let db_pool = app_state.db_pool.clone();
      let handler = leptos_axum::render_route_with_context(
          app_state.routes.clone(),
          move || {
              provide_context(auth_session.clone());
+             provide_context(db_pool.clone());
          },
          move || shell(leptos_options.clone()),
      );
@@ -136,6 +138,7 @@ async fn main() {
 
     let app_state = AppState {
         leptos_options: leptos_options.clone(),
+        db_pool: pool.clone(),
         routes: routes.clone(),
     };
 

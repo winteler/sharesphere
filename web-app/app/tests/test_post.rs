@@ -74,12 +74,12 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1, expected_post_1);
@@ -98,12 +98,12 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
@@ -153,7 +153,7 @@ async fn test_get_post_forum() -> Result<(), AppError> {
     let test_user = create_test_user(&db_pool).await;
 
     let forum = forum::ssr::create_forum("a", "forum", false, &test_user, &db_pool).await?;
-    let post = create_post(&forum.forum_name, "1", "test", None, false, None, &test_user, &db_pool).await.expect("Should be able to create post.");
+    let post = create_post(&forum.forum_name, "1", "test", None, false, false, None, &test_user, &db_pool).await.expect("Should be able to create post.");
 
     let result_forum = get_post_forum(post.post_id, &db_pool).await.expect("Post forum should be available.");
     assert_eq!(result_forum, forum);
@@ -392,13 +392,13 @@ async fn test_create_post() -> Result<(), AppError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, &test_user, &db_pool).await.expect("Should be able to create post 1.");
 
     assert_eq!(post_1.title, post_1_title);
     assert_eq!(post_1.body, post_1_body);
     assert_eq!(post_1.markdown_body, None);
     assert_eq!(post_1.is_nsfw, false);
-    assert_eq!(post_1.spoiler_level, 0);
+    assert_eq!(post_1.is_spoiler, false);
     assert_eq!(post_1.tags, None);
     assert_eq!(post_1.is_edited, false);
     assert_eq!(post_1.meta_post_id, None);
@@ -417,13 +417,13 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, &test_user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
     assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
     assert_eq!(post_2.is_nsfw, false);
-    assert_eq!(post_2.spoiler_level, 0);
+    assert_eq!(post_2.is_spoiler, false);
     assert_eq!(post_2.tags, None);
     assert_eq!(post_2.is_edited, false);
     assert_eq!(post_2.meta_post_id, None);
@@ -471,6 +471,7 @@ async fn test_update_post() -> Result<(), AppError> {
         "post",
         "body",
         None,
+        false,
         false,
         None,
         &test_user,

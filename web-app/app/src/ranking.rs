@@ -375,7 +375,7 @@ pub fn VotePanel(
                 let:_user
             >
                 <button
-                    class=""
+                    class=get_vote_button_css(vote, true)
                     on:click=move |_| {
                         on_content_vote(
                             vote,
@@ -400,7 +400,7 @@ pub fn VotePanel(
                 let:_user
             >
                 <button
-                    class=""
+                    class=get_vote_button_css(vote, false)
                     on:click=move |_| {
                         on_content_vote(
                             vote,

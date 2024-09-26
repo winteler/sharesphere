@@ -48,7 +48,7 @@ pub struct Post {
     pub body: String,
     pub markdown_body: Option<String>,
     pub is_nsfw: bool,
-    pub spoiler_level: i32,
+    pub is_spoiler: bool,
     pub tags: Option<String>,
     pub is_edited: bool,
     pub meta_post_id: Option<i64>,
@@ -314,6 +314,7 @@ pub mod ssr {
         post_body: &str,
         post_markdown_body: Option<&str>,
         is_nsfw: bool,
+        is_spoiler: bool,
         tag: Option<String>,
         user: &User,
         db_pool: &PgPool,
@@ -326,16 +327,17 @@ pub mod ssr {
         }
         let post = sqlx::query_as!(
             Post,
-            "INSERT INTO posts (title, body, markdown_body, is_nsfw, tags, forum_id, forum_name, creator_id, creator_name)
+            "INSERT INTO posts (title, body, markdown_body, is_nsfw, is_spoiler, tags, forum_id, forum_name, creator_id, creator_name)
              VALUES (
-                $1, $2, $3, $4, $5,
-                (SELECT forum_id FROM forums WHERE forum_name = $6),
-                $6, $7, $8
+                $1, $2, $3, $4, $5, $6,
+                (SELECT forum_id FROM forums WHERE forum_name = $7),
+                $7, $8, $9
             ) RETURNING *",
             post_title,
             post_body,
             post_markdown_body,
             is_nsfw,
+            is_spoiler,
             tag,
             forum_name,
             user.user_id,
@@ -547,6 +549,7 @@ pub async fn create_post(
     body: String,
     is_markdown: bool,
     is_nsfw: bool,
+    is_spoiler: bool,
     tag: Option<String>,
 ) -> Result<(), ServerFnError> {
     let user = check_user()?;
@@ -566,6 +569,7 @@ pub async fn create_post(
         body.as_str(),
         markdown_body,
         is_nsfw,
+        is_spoiler,
         tag,
         &user,
         &db_pool,
@@ -871,9 +875,10 @@ pub fn CreatePost() -> impl IntoView {
     let post_body = RwSignal::new(String::new());
     let is_title_empty = RwSignal::new(true);
     let is_nsfw = RwSignal::new(false);
-    let is_content_invalid =
-        Memo::new(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
+    let is_spoiler = RwSignal::new(false);
+    let is_content_invalid = Memo::new(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
     let is_nsfw_string = move || is_nsfw.get().to_string();
+    let is_spoiler_string = move || is_spoiler.get().to_string();
 
     let matching_forums_resource = Resource::new(
         move || forum_name_debounced.get(),
@@ -940,6 +945,13 @@ pub fn CreatePost() -> impl IntoView {
                         <label class="cursor-pointer label p-0">
                             <span class="label-text">"NSFW content"</span>
                             <input type="checkbox" class="checkbox checkbox-primary" checked=is_nsfw on:click=move |_| is_nsfw.update(|value| *value = !*value)/>
+                        </label>
+                    </div>
+                    <div class="form-control">
+                        <input type="text" name="is_spoiler" value=is_spoiler_string class="hidden"/>
+                        <label class="cursor-pointer label p-0">
+                            <span class="label-text">"Spoiler"</span>
+                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_spoiler on:click=move |_| is_spoiler.update(|value| *value = !*value)/>
                         </label>
                     </div>
                     <select name="tag" class="select select-bordered w-full max-w-xs">

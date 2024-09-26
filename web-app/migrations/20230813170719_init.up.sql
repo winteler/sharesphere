@@ -79,7 +79,7 @@ CREATE TABLE posts (
     body TEXT NOT NULL,
     markdown_body TEXT,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
-    spoiler_level INT NOT NULL DEFAULT 0,
+    is_spoiler BOOLEAN NOT NULL DEFAULT FALSE,
     tags TEXT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     meta_post_id BIGINT,

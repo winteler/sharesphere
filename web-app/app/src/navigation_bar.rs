@@ -2,20 +2,20 @@ use leptos::prelude::*;
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
-use crate::constants::PATH_SEPARATOR;
+use crate::constants::{PATH_SEPARATOR, SITE_ROOT};
 use crate::forum::*;
 use crate::icons::*;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
 use crate::user::User;
 
 pub fn get_current_url(url: RwSignal<String>) {
-    let url_str = window().location().href().unwrap_or(String::from("/"));
+    let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));
     log::debug!("Current url: {url_str}");
     url.update(|value| *value = url_str);
 }
 
 pub fn get_current_path(path: RwSignal<String>) {
-    let path_str = window().location().pathname().unwrap_or(String::from("/"));
+    let path_str = window().location().pathname().unwrap_or(String::from(SITE_ROOT));
     log::debug!("Current path: {path_str}");
     path.update(|value | *value = path_str);
 }

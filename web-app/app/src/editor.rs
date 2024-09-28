@@ -216,7 +216,7 @@ pub fn FormMarkdownEditor(
             if is_markdown_mode {
                 get_styled_html_from_markdown(markdown_content).await
             } else {
-                Ok(String::from(""))
+                Ok(String::default())
             }
         },
     );

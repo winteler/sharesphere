@@ -13,6 +13,7 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 use crate::app::GlobalState;
+use crate::constants::SITE_ROOT;
 use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
@@ -166,7 +167,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnErro
     let redirect_url = auth_session
         .session
         .get(REDIRECT_URL_KEY)
-        .unwrap_or(String::from("/"));
+        .unwrap_or(String::from(SITE_ROOT));
 
     let client = ssr::get_auth_client().await?;
 

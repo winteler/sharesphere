@@ -493,7 +493,10 @@ pub async fn edit_comment(
 
 /// Comment section component
 #[component]
-pub fn CommentSection(comment_vec: RwSignal<Vec<CommentWithChildren>>) -> impl IntoView {
+pub fn CommentSection(
+    #[prop(into)]
+    comment_vec: Signal<Vec<CommentWithChildren>>
+) -> impl IntoView {
     view! {
         <div class="flex flex-col h-fit">
             <For
@@ -738,7 +741,7 @@ pub fn CommentForm(
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let comment = RwSignal::new(String::new());
-    let is_comment_empty = move || comment.with(|comment: &String| comment.is_empty());
+    let is_comment_empty = Signal::derive(move || comment.with(|comment: &String| comment.is_empty()));
 
     let create_comment_action = ServerAction::<CreateComment>::new();
 
@@ -859,9 +862,9 @@ pub fn EditCommentForm(
             None => (comment.body.clone(), false),
         });
     let comment_body = RwSignal::new(current_body);
-    let is_comment_empty =
-        move || comment_body.with(|comment_body: &String| comment_body.is_empty());
-
+    let is_comment_empty = Signal::derive(
+        move || comment_body.with(|comment_body: &String| comment_body.is_empty())
+    );
     let edit_comment_action = ServerAction::<EditComment>::new();
 
     let edit_comment_result = edit_comment_action.value();

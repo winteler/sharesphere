@@ -724,7 +724,7 @@ pub fn EditRuleForm(
     let priority = RwSignal::new(rule.priority.to_string());
     let title = RwSignal::new(rule.title);
     let description = RwSignal::new(rule.description);
-    let invalid_inputs = move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty();
+    let invalid_inputs = Signal::derive(move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty());
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
@@ -760,7 +760,7 @@ pub fn CreateRuleForm() -> impl IntoView {
     let priority = RwSignal::new(String::default());
     let title = RwSignal::new(String::default());
     let description = RwSignal::new(String::default());
-    let invalid_inputs = move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty();
+    let invalid_inputs = Signal::derive(move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty());
 
     view! {
         <button

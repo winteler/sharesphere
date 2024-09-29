@@ -13,12 +13,12 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 use crate::app::GlobalState;
-use crate::constants::SITE_ROOT;
 use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::{get_db_pool, get_session},
     auth::ssr::check_user,
+    constants::SITE_ROOT,
     user::ssr::{create_user, SqlUser}
 };
 
@@ -43,6 +43,7 @@ pub struct OAuthParams {
 pub mod ssr {
     use crate::errors::AppError;
     use crate::user::User;
+
     use axum_session_sqlx::SessionPgPool;
     use sqlx::PgPool;
 

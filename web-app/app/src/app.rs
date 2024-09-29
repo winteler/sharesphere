@@ -352,9 +352,7 @@ fn UserHomePage(user: User) -> impl IntoView {
                     user_id,
                     state.post_sort_type.get_untracked(),
                     post_count,
-                )
-                .await
-                {
+                ).await {
                     Ok(mut new_post_vec) => {
                         post_vec.update(|post_vec| post_vec.append(&mut new_post_vec))
                     }
@@ -367,11 +365,11 @@ fn UserHomePage(user: User) -> impl IntoView {
 
     view! {
         <ForumPostMiniatures
-            post_vec=post_vec
-            is_loading=is_loading
-            load_error=load_error
-            additional_load_count=additional_load_count
-            list_ref=list_ref
+            post_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
         />
     }
 }

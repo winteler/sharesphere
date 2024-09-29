@@ -408,7 +408,7 @@ pub fn ModeratePostDialog(
     let forum_state = expect_context::<ForumState>();
 
     let moderate_text = RwSignal::new(String::new());
-    let is_text_empty = move || moderate_text.with(|moderate_text: &String| moderate_text.is_empty());
+    let is_text_empty = Signal::derive(move || moderate_text.with(|moderate_text: &String| moderate_text.is_empty()));
 
     let moderate_result = forum_state.moderate_post_action.value();
     let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
@@ -455,7 +455,7 @@ pub fn ModerateCommentDialog(
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     let moderate_text = RwSignal::new(String::new());
-    let is_text_empty = move || moderate_text.with(|comment: &String| comment.is_empty());
+    let is_text_empty = Signal::derive(move || moderate_text.with(|comment: &String| comment.is_empty()));
 
     let moderate_comment_action = ServerAction::<ModerateComment>::new();
 

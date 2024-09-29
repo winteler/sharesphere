@@ -706,9 +706,7 @@ pub fn Post() -> impl IntoView {
                     post_id.get_untracked(),
                     state.comment_sort_type.get_untracked(),
                     root_comment_count,
-                )
-                .await
-                {
+                ).await {
                     Ok(mut new_comment_vec) => {
                         comment_vec.update(|comment_vec| comment_vec.append(&mut new_comment_vec))
                     }
@@ -804,7 +802,6 @@ fn PostWidgetBar(
                 vote=post.vote.clone()
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
-            
             <EditPostButton author_id=post.post.creator_id post=post.post.clone()/>
             <ModeratePostButton post_id=post.post.post_id/>
             <AuthorWidget author=post.post.creator_name.clone()/>
@@ -1013,7 +1010,7 @@ pub fn EditPostForm(
     };
     let is_title_empty = RwSignal::new(false);
     let post = RwSignal::new(current_body);
-    let is_post_empty = move || post.with(|post: &String| post.is_empty());
+    let is_post_empty = Signal::derive(move || post.with(|post: &String| post.is_empty()));
 
     let edit_post_result = state.edit_post_action.value();
     let has_error = move || edit_post_result.with(|val| matches!(val, Some(Err(_))));

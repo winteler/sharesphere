@@ -324,7 +324,10 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
 
 /// Dynamic score indicator, that can be updated through the given signal
 #[component]
-pub fn DynScoreIndicator(score: RwSignal<i32>) -> impl IntoView {
+pub fn DynScoreIndicator(
+    #[prop(into)]
+    score: Signal<i32>
+) -> impl IntoView {
     view! {
         <div class="flex rounded-btn gap-1 items-center">
             <ScoreIcon/>

@@ -590,11 +590,11 @@ pub fn ForumContents() -> impl IntoView {
             <ForumToolbar forum=forum_with_sub.clone()/>
         </SuspenseUnpack>
         <ForumPostMiniatures
-            post_vec=post_vec
-            is_loading=is_loading
-            load_error=load_error
-            additional_load_count=additional_load_count
-            list_ref=list_ref
+            post_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
         />
     }.into_any()
 }
@@ -663,11 +663,14 @@ pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
 #[component]
 pub fn ForumPostMiniatures(
     /// signal containing the posts to display
-    post_vec: RwSignal<Vec<Post>>,
+    #[prop(into)]
+    post_vec: Signal<Vec<Post>>,
     /// signal indicating new posts are being loaded
-    is_loading: RwSignal<bool>,
+    #[prop(into)]
+    is_loading: Signal<bool>,
     /// signal containing an eventual loading error in order to display it
-    load_error: RwSignal<Option<AppError>>,
+    #[prop(into)]
+    load_error: Signal<Option<AppError>>,
     /// signal to request loading additional posts
     additional_load_count: RwSignal<i64>,
     /// reference to the container of the posts in order to reset scroll position when context changes

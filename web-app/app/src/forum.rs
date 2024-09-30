@@ -448,11 +448,10 @@ fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
         params.with(|params| 
             if let Some(new_forum_name) = params.get_str(FORUM_ROUTE_PARAM_NAME) {
                 log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
-                // TODO check if can avoid clone
                 new_forum_name.to_string()
             } else {
                 log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
-                current_forum_name.unwrap_or(&String::default()).clone()
+                current_forum_name.cloned().unwrap_or_default()
             }
         )
     })

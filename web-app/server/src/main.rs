@@ -109,14 +109,7 @@ async fn main() {
         .with_key(get_session_key())
         // This is how we would Set a Database Key to encrypt as store our per session keys.
         // This MUST be set in order to use SecurityMode::PerSession.
-        .with_database_key(get_session_db_key())
-        // This is How you will enable PerSession SessionID Private Cookie Encryption. When enabled it will
-        // Encrypt the SessionID and Storage with an Encryption key generated and stored per session.
-        // This allows for Key renewing without needing to force the entire Session from being destroyed.
-        // This Also helps prevent impersonation attempts.
-        // TODO: security mode disappeared?
-        //.with_security_mode(SecurityMode::PerSession)
-    ;
+        .with_database_key(get_session_db_key());
 
     let auth_config = AuthConfig::<i64>::default();
     let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();

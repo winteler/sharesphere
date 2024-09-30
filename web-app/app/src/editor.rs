@@ -473,6 +473,7 @@ fn get_line_start_for_position(string: &String, position: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
     use leptos::prelude::ServerFnError;
 
     use crate::editor::{get_styled_html_from_markdown, ssr::style_html_user_content};
@@ -523,94 +524,172 @@ mod tests {
         Ok(())
     }
 
-    // TODO split in smaller chunks
     #[tokio::test]
     async fn test_get_styled_html_from_markdown() -> Result<(), ServerFnError> {
-        let markdown = String::from(
-            r#"# Here is a comment with markdown
-## header 2
-### header 3
-#### header 4
----
-We can do lots of stuff, like `code blocks`, || Spoilers ||, **bold**, *italic*, combined emphasis with **asterisks and _underscores_**.
-
-Strikethrough uses two tildes. ~~Scratch this.~~
-
-> We can also do blockquotes
-
-1. lists
-2. with numbers
-
-* lists
-* without numbers
-* and as many elements as we want
-
-\
-Also, a bit more work is need to add an empty line.
-
-Finally, we can add links [link text](https://www.example.com), images ![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1") and even tables!
-
-| Tables        | Are           | Cool  |
-| ------------- |:-------------:| -----:|
-| col 3 is      | right-aligned | $1600 |
-| col 2 is      | centered      |   $12 |
-| zebra stripes | are neat      |    $1 |"#,
-        );
-
-        let expected_html = String::from(
-            r#"<h1 class="text-4xl my-2">Here is a comment with markdown</h1>
-<h2 class="text-2xl my-2">header 2</h2>
-<h3 class="text-xl my-2">header 3</h3>
-<h4>header 4</h4>
-<hr  class="my-2"/>
-<p>We can do lots of stuff, like <code class="rounded-md bg-black p-0.5 px-1 mx-0.5">code blocks</code>, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">Spoilers</span></label>, <strong>bold</strong>, <em>italic</em>, combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p>
-<p>Strikethrough uses two tildes. <del>Scratch this.</del></p>
-<blockquote class="w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600">
-<p>We can also do blockquotes</p>
-</blockquote>
-<ol class="list-inside list-decimal">
-<li>lists</li>
-<li>with numbers</li>
-</ol>
-<ul class="list-inside list-disc">
-<li>lists</li>
-<li>without numbers</li>
-<li>and as many elements as we want</li>
-</ul>
-<p><br />
-Also, a bit more work is need to add an empty line.</p>
-<p>Finally, we can add links <a href="https://www.example.com" class="link text-primary">link text</a>, images <img src="https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png" alt="alt text" title="Logo Title Text 1" /> and even tables!</p>
-<table class="table">
-<thead>
-<tr>
-<th>Tables</th>
-<th align="center">Are</th>
-<th align="right">Cool</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>col 3 is</td>
-<td align="center">right-aligned</td>
-<td align="right">$1600</td>
-</tr>
-<tr>
-<td>col 2 is</td>
-<td align="center">centered</td>
-<td align="right">$12</td>
-</tr>
-<tr>
-<td>zebra stripes</td>
-<td align="center">are neat</td>
-<td align="right">$1</td>
-</tr>
-</tbody>
-</table>"#);
-
+        let markdown = indoc! {r#"
+            # Here is a comment with markdown
+            ## header 2
+            ### header 3
+            #### header 4
+            ---
+        "#};
+        let expected_html = indoc! {r#"
+            <h1 class="text-4xl my-2">Here is a comment with markdown</h1>
+            <h2 class="text-2xl my-2">header 2</h2>
+            <h3 class="text-xl my-2">header 3</h3>
+            <h4>header 4</h4>
+            <hr  class="my-2"/>
+        "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown).await?,
+            get_styled_html_from_markdown(markdown.to_string()).await?,
             expected_html
         );
+
+        let markdown = indoc! {r#"
+            `code blocks`
+        "#};
+        let expected_html = indoc! {r#"
+            <p><code class="rounded-md bg-black p-0.5 px-1 mx-0.5">code blocks</code></p>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            || Spoilers ||
+        "#};
+        let expected_html = indoc! {r#"
+            <p><label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">Spoilers</span></label></p>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            **bold**, *italic*, combined emphasis with **asterisks and _underscores_**.
+        "#};
+        let expected_html = indoc! {r#"
+            <p><strong>bold</strong>, <em>italic</em>, combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            Strikethrough uses two tildes. ~~Scratch this.~~
+        "#};
+        let expected_html = indoc! {r#"
+            <p>Strikethrough uses two tildes. <del>Scratch this.</del></p>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            > We can also do blockquotes
+        "#};
+        let expected_html = indoc! {r#"
+            <blockquote class="w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600">
+            <p>We can also do blockquotes</p>
+            </blockquote>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            1. lists
+            2. with numbers
+
+            * lists
+            * without numbers
+            * and as many elements as we want
+        "#};
+        let expected_html = indoc! {r#"
+            <ol class="list-inside list-decimal">
+            <li>lists</li>
+            <li>with numbers</li>
+            </ol>
+            <ul class="list-inside list-disc">
+            <li>lists</li>
+            <li>without numbers</li>
+            <li>and as many elements as we want</li>
+            </ul>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            \
+            Also, a bit more work is needed to add an empty line.
+        "#};
+        let expected_html = indoc! {r#"
+            <p><br />
+            Also, a bit more work is needed to add an empty line.</p>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            Finally, we can add links [link text](https://www.example.com), images ![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1")
+        "#};
+        let expected_html = indoc! {r#"
+            <p>Finally, we can add links <a href="https://www.example.com" class="link text-primary">link text</a>, images <img src="https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png" alt="alt text" title="Logo Title Text 1" /></p>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
+        let markdown = indoc! {r#"
+            | Tables        | Are           | Cool  |
+            | ------------- |:-------------:| -----:|
+            | col 3 is      | right-aligned | $1600 |
+            | col 2 is      | centered      |   $12 |
+            | zebra stripes | are neat      |    $1 |
+        "#};
+        let expected_html = indoc! {r#"
+            <table class="table">
+            <thead>
+            <tr>
+            <th>Tables</th>
+            <th align="center">Are</th>
+            <th align="right">Cool</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+            <td>col 3 is</td>
+            <td align="center">right-aligned</td>
+            <td align="right">$1600</td>
+            </tr>
+            <tr>
+            <td>col 2 is</td>
+            <td align="center">centered</td>
+            <td align="right">$12</td>
+            </tr>
+            <tr>
+            <td>zebra stripes</td>
+            <td align="center">are neat</td>
+            <td align="right">$1</td>
+            </tr>
+            </tbody>
+            </table>
+        "#};
+        assert_eq!(
+            get_styled_html_from_markdown(markdown.to_string()).await?,
+            expected_html
+        );
+
         Ok(())
     }
 }

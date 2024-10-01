@@ -17,9 +17,9 @@ use sqlx::PgPool;
 
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
+use app::app::ssr::create_db_pool;
 use app::user::User;
 use app::{
-    app::ssr::get_db_pool,
     app::*,
     auth::ssr::*,
 };
@@ -99,7 +99,7 @@ async fn main() {
     let subscriber = tracing_subscriber::fmt().with_max_level(tracing::Level::ERROR).finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting tracing default failed");
 
-    let pool = get_db_pool().unwrap();
+    let pool = create_db_pool().await.expect("Failed to create db pool");
 
     let session_config = SessionConfig::default()
         .with_table_name("sessions")

@@ -1,10 +1,10 @@
-use std::collections::BTreeSet;
-
 use chrono::SecondsFormat;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+use std::sync::Arc;
 use strum::IntoEnumIterator;
 
 use crate::app::{GlobalState, LoginWindow};
@@ -15,7 +15,7 @@ use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
-use crate::unpack::{SuspenseUnpack, TransitionUnpack};
+use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
 use crate::user::get_matching_username_set;
 use crate::widget::{EnumDropdown, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
@@ -439,9 +439,9 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
         <AuthorizedShow permission_level=PermissionLevel::Manage>
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum description"</div>
-                <SuspenseUnpack resource=forum_state.forum_resource let:forum>
-                    <ForumDescriptionForm forum=forum.clone()/>
-                </SuspenseUnpack>
+                <ArcSuspenseUnpack resource=forum_state.forum_resource let:forum>
+                    <ForumDescriptionForm forum=forum/>
+                </ArcSuspenseUnpack>
             </div>
         </AuthorizedShow>
     }
@@ -450,7 +450,7 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
 /// Component to edit a forum's description
 #[component]
 pub fn ForumDescriptionForm(
-    forum: Forum,
+    forum: Arc<Forum>,
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let description = RwSignal::new(forum.description.clone());
@@ -494,41 +494,36 @@ pub fn ModeratorPanel() -> impl IntoView {
     view! {
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
-            <TransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
-            {
-                let forum_role_vec = forum_role_vec.clone();
-                view! {
-                    <div class="flex flex-col gap-1">
-                        <div class="flex gap-1 border-b border-base-content/20">
-                            <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
-                            <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
-                        </div>
-                        <For
-                            each= move || forum_role_vec.clone().into_iter().enumerate()
-                            key=|(_index, role)| (role.user_id, role.permission_level)
-                            children=move |(_, role)| {
-                                let username = StoredValue::new(role.username);
-                                view! {
-                                    <div
-                                        class="flex gap-1 py-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
-                                        on:click=move |_| {
-                                            username_input.set(username.get_value());
-                                            match select_ref.get_untracked() {
-                                                Some(select_ref) => select_ref.set_selected_index(role.permission_level as i32),
-                                                None => log::error!("Form permission level select failed to load."),
-                                            };
-                                        }
-                                    >
-                                        <div class="w-2/5 px-4 select-none">{username.get_value()}</div>
-                                        <div class="w-2/5 px-4 select-none">{role.permission_level.to_string()}</div>
-                                    </div>
-                                }
-                            }
-                        />
+            <ArcTransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
+                <div class="flex flex-col gap-1">
+                    <div class="flex gap-1 border-b border-base-content/20">
+                        <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
+                        <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
                     </div>
-                }
-            }
-            </TransitionUnpack>
+                    <For
+                        each= move || (*forum_role_vec).clone().into_iter().enumerate()
+                        key=|(_index, role)| (role.user_id, role.permission_level)
+                        children=move |(_, role)| {
+                            let username = StoredValue::new(role.username);
+                            view! {
+                                <div
+                                    class="flex gap-1 py-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                    on:click=move |_| {
+                                        username_input.set(username.get_value());
+                                        match select_ref.get_untracked() {
+                                            Some(select_ref) => select_ref.set_selected_index(role.permission_level as i32),
+                                            None => log::error!("Form permission level select failed to load."),
+                                        };
+                                    }
+                                >
+                                    <div class="w-2/5 px-4 select-none">{username.get_value()}</div>
+                                    <div class="w-2/5 px-4 select-none">{role.permission_level.to_string()}</div>
+                                </div>
+                            }
+                        }
+                    />
+                </div>
+            </ArcTransitionUnpack>
             <AuthorizedShow permission_level=PermissionLevel::Manage>
                 <PermissionLevelForm
                     forum_name
@@ -584,26 +579,21 @@ pub fn PermissionLevelForm(
                         prop:value=username_input
                     />
                     <Show when=move || username_input.with(|username| !username.is_empty())>
-                        <TransitionUnpack resource=matching_user_resource let:username_set>
-                        {
-                            let username_set = username_set.clone();
-                            view! {
-                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
-                                    <For
-                                        each= move || username_set.clone().into_iter().enumerate()
-                                        key=|(_index, username)| username.clone()
-                                        let:child
-                                    >
-                                        <li>
-                                            <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
-                                                {child.1.clone()}
-                                            </button>
-                                        </li>
-                                    </For>
-                                </ul>
-                            }
-                        }
-                        </TransitionUnpack>
+                        <ArcTransitionUnpack resource=matching_user_resource let:username_set>
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
+                                <For
+                                    each= move || (*username_set).clone().into_iter().enumerate()
+                                    key=|(_index, username)| username.clone()
+                                    let:child
+                                >
+                                    <li>
+                                        <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
+                                            {child.1.clone()}
+                                        </button>
+                                    </li>
+                                </For>
+                            </ul>
+                        </ArcTransitionUnpack>
                     </Show>
                 </div>
                 <EnumDropdown
@@ -630,54 +620,49 @@ pub fn ForumRulesPanel() -> impl IntoView {
     view! {
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
-            <TransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
-            {
-                let forum_rule_vec = forum_rule_vec.clone();
-                view! {
-                    <div class="flex flex-col gap-1">
-                        <div class="border-b border-base-content/20 pl-1">
-                            <div class="w-5/6 flex gap-1">
-                                <div class="w-1/12 py-2 font-bold">"N°"</div>
-                                <div class="w-5/12 py-2 font-bold">"Title"</div>
-                                <div class="w-6/12 py-2 font-bold">"Description"</div>
-                            </div>
+            <ArcTransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
+                <div class="flex flex-col gap-1">
+                    <div class="border-b border-base-content/20 pl-1">
+                        <div class="w-5/6 flex gap-1">
+                            <div class="w-1/12 py-2 font-bold">"N°"</div>
+                            <div class="w-5/12 py-2 font-bold">"Title"</div>
+                            <div class="w-6/12 py-2 font-bold">"Description"</div>
                         </div>
-                        <For
-                            each= move || forum_rule_vec.clone().into_iter().enumerate()
-                            key=|(_index, rule)| rule.rule_id
-                            children=move |(_, rule)| {
-                                let rule = StoredValue::new(rule);
-                                let show_edit_form = RwSignal::new(false);
-                                view! {
-                                    <div class="flex gap-1 justify-between rounded pl-1">
-                                        <div class="w-5/6 flex gap-1">
-                                            <div class="w-1/12 select-none">{rule.get_value().priority}</div>
-                                            <div class="w-5/12 select-none">{rule.get_value().title}</div>
-                                            <div class="w-6/12 select-none">{rule.get_value().description}</div>
-                                        </div>
-                                        <div class="flex gap-1 justify-end">
-                                            <button
-                                                class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
-                                                on:click=move |_| show_edit_form.update(|value| *value = !*value)
-                                            >
-                                                <EditIcon/>
-                                            </button>
-                                            <DeleteRuleButton rule/>
-                                        </div>
-                                    </div>
-                                    <ModalDialog
-                                        class="w-full max-w-xl"
-                                        show_dialog=show_edit_form
-                                    >
-                                        <EditRuleForm rule show_form=show_edit_form/>
-                                    </ModalDialog>
-                                }
-                            }
-                        />
                     </div>
-                }
-            }
-            </TransitionUnpack>
+                    <For
+                        each= move || (*forum_rule_vec).clone().into_iter().enumerate()
+                        key=|(_index, rule)| rule.rule_id
+                        children=move |(_, rule)| {
+                            let rule = StoredValue::new(rule);
+                            let show_edit_form = RwSignal::new(false);
+                            view! {
+                                <div class="flex gap-1 justify-between rounded pl-1">
+                                    <div class="w-5/6 flex gap-1">
+                                        <div class="w-1/12 select-none">{rule.get_value().priority}</div>
+                                        <div class="w-5/12 select-none">{rule.get_value().title}</div>
+                                        <div class="w-6/12 select-none">{rule.get_value().description}</div>
+                                    </div>
+                                    <div class="flex gap-1 justify-end">
+                                        <button
+                                            class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+                                            on:click=move |_| show_edit_form.update(|value| *value = !*value)
+                                        >
+                                            <EditIcon/>
+                                        </button>
+                                        <DeleteRuleButton rule/>
+                                    </div>
+                                </div>
+                                <ModalDialog
+                                    class="w-full max-w-xl"
+                                    show_dialog=show_edit_form
+                                >
+                                    <EditRuleForm rule show_form=show_edit_form/>
+                                </ModalDialog>
+                            }
+                        }
+                    />
+                </div>
+            </ArcTransitionUnpack>
             <CreateRuleForm/>
         </div>
     }
@@ -860,46 +845,41 @@ pub fn BanPanel() -> impl IntoView {
                         <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
                     </div>
                 </div>
-                <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
-                {
-                    let banned_user_vec = banned_user_vec.clone();
-                    view! {
-                        <For
-                            each= move || banned_user_vec.clone().into_iter().enumerate()
-                            key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
-                            let:child
-                        >
-                            <div class="flex">
-                                <div class="w-2/5 px-6">{child.1.username}</div>
-                                <div class="w-2/5 px-6">{
-                                    match child.1.until_timestamp {
-                                        Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
-                                        None => String::from("Permanent"),
-                                    }
-                                }</div>
-                                <div class="w-1/5 flex justify-end gap-1">
-                                    <BanInfoButton
-                                        post_id=child.1.post_id
-                                        comment_id=child.1.comment_id
-                                    />
-                                    <AuthorizedShow permission_level=PermissionLevel::Ban>
-                                        <ActionForm action=unban_action>
-                                            <input
-                                                name="ban_id"
-                                                class="hidden"
-                                                value=child.1.ban_id
-                                            />
-                                            <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
-                                                <DeleteIcon/>
-                                            </button>
-                                        </ActionForm>
-                                    </AuthorizedShow>
-                                </div>
+                <ArcTransitionUnpack resource=banned_users_resource let:banned_user_vec>
+                    <For
+                        each= move || (*banned_user_vec).clone().into_iter().enumerate()
+                        key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
+                        let:child
+                    >
+                        <div class="flex">
+                            <div class="w-2/5 px-6">{child.1.username}</div>
+                            <div class="w-2/5 px-6">{
+                                match child.1.until_timestamp {
+                                    Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
+                                    None => String::from("Permanent"),
+                                }
+                            }</div>
+                            <div class="w-1/5 flex justify-end gap-1">
+                                <BanInfoButton
+                                    post_id=child.1.post_id
+                                    comment_id=child.1.comment_id
+                                />
+                                <AuthorizedShow permission_level=PermissionLevel::Ban>
+                                    <ActionForm action=unban_action>
+                                        <input
+                                            name="ban_id"
+                                            class="hidden"
+                                            value=child.1.ban_id
+                                        />
+                                        <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                                            <DeleteIcon/>
+                                        </button>
+                                    </ActionForm>
+                                </AuthorizedShow>
                             </div>
-                        </For>
-                    }
-                }
-                </TransitionUnpack>
+                        </div>
+                    </For>
+                </ArcTransitionUnpack>
             </div>
         </div>
     }
@@ -931,11 +911,8 @@ pub fn BanInfoButton(
                 );
                 view! {
                     <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-                        <SuspenseUnpack resource=ban_detail_resource let:moderation_info>
-                            <ModerationInfoDialog
-                                content=moderation_info.content.clone()
-                                rule=moderation_info.rule.clone()
-                            />
+                        <ArcSuspenseUnpack resource=ban_detail_resource let:moderation_info>
+                            <ModerationInfoDialog moderation_info/>
                             <button
                                 type="button"
                                 class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
@@ -943,7 +920,7 @@ pub fn BanInfoButton(
                             >
                                 "Close"
                             </button>
-                        </SuspenseUnpack>
+                        </ArcSuspenseUnpack>
                     </div>
                 }
             }

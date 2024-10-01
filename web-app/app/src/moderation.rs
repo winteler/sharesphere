@@ -1,15 +1,16 @@
 use crate::icons::{HammerIcon, MagnifierIcon};
 use leptos::prelude::*;
+use std::sync::Arc;
 
 use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
 use crate::editor::FormTextEditor;
 use crate::forum::ForumState;
-use crate::forum_management::{get_rule_by_id, ModerationInfo, Rule};
+use crate::forum_management::{get_rule_by_id, ModerationInfo};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::unpack::{SuspenseUnpack, TransitionUnpack};
+use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack};
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -515,7 +516,7 @@ pub fn RuleSelect(
                 class="select select-bordered"
                 name=name
             >
-                <TransitionUnpack resource=forum_state.forum_rules_resource let:rules_vec>
+                <ArcTransitionUnpack resource=forum_state.forum_rules_resource let:rules_vec>
                 {
                     rules_vec.iter().map(|rule| {
                         view! {
@@ -525,7 +526,7 @@ pub fn RuleSelect(
                         }
                     }).collect_view()
                 }
-                </TransitionUnpack>
+                </ArcTransitionUnpack>
             </select>
         </div>
     }.into_any()
@@ -656,26 +657,22 @@ pub fn ContentModerationInfo(
     );
 
     view! {
-        <SuspenseUnpack resource=mod_info_resource let:moderation_info>
-            <ModerationInfoDialog
-                content=moderation_info.content.clone()
-                rule=moderation_info.rule.clone()
-            />
-        </SuspenseUnpack>
+        <ArcSuspenseUnpack resource=mod_info_resource let:moderation_info>
+            <ModerationInfoDialog moderation_info/>
+        </ArcSuspenseUnpack>
     }
 }
 
 /// Component to display the details of a moderation instance
 #[component]
 pub fn ModerationInfoDialog(
-    content: Content,
-    rule: Rule,
+    moderation_info: Arc<ModerationInfo>,
 ) -> impl IntoView {
     view! {
         <div class="flex flex-col gap-3">
             <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
             {
-                match &content {
+                match &moderation_info.content {
                     Content::Post(post) => view! {
                         <div class="flex flex-col gap-1 p-2 border-b">
                             <h1 class="font-bold text-2xl pl-6">"Content"</h1>
@@ -709,8 +706,8 @@ pub fn ModerationInfoDialog(
             }
             <div class="flex flex-col gap-1 p-2">
                 <h1 class="font-bold text-2xl pl-6">"Infringed rule"</h1>
-                <div class="text-lg font-semibold">{rule.title.clone()}</div>
-                <div>{rule.description.clone()}</div>
+                <div class="text-lg font-semibold">{moderation_info.rule.title.clone()}</div>
+                <div>{moderation_info.rule.description.clone()}</div>
             </div>
         </div>
     }

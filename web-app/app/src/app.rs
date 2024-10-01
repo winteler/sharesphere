@@ -16,7 +16,7 @@ use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
 use crate::sidebar::*;
-use crate::unpack::SuspenseUnpack;
+use crate::unpack::ArcSuspenseUnpack;
 use crate::user::User;
 
 pub const PUBLISH_ROUTE: &str = "/publish";
@@ -172,17 +172,17 @@ fn LoginGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <SuspenseUnpack resource=state.user let:user>
+        <ArcSuspenseUnpack resource=state.user let:user>
         {
-            match user {
-                Some(user) => {
+            match *user {
+                Some(ref user) => {
                     log::debug!("Login guard, current user: {user:?}");
                     view! { <Outlet/> }.into_any()
                 },
                 None => view! { <LoginWindow/> }.into_any(),
             }
         }
-        </SuspenseUnpack>
+        </ArcSuspenseUnpack>
         <div class="max-2xl:hidden">
             <HomeSidebar/>
         </div>

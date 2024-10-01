@@ -3,6 +3,7 @@ use crate::errors::AppError;
 use crate::icons::LoadingIcon;
 use leptos::prelude::*;
 use leptos::server_fn::error::ServerFnErrorErr;
+use std::sync::Arc;
 
 #[component]
 pub fn Unpack<
@@ -108,6 +109,68 @@ pub fn TransitionUnpack<
                 {
                     move || Suspend::new(async move { 
                         unpack_resource(resource, children).await
+                    })
+                }
+            </ErrorBoundary>
+        </Transition>
+    }.into_any()
+}
+
+async fn arc_unpack_resource<
+    T: Clone + Send + Sync + 'static,
+    V: IntoView + 'static,
+    F: Fn(Arc<T>) -> V + Clone + Send + Sync + 'static,
+>(
+    resource: Resource<Result<T, ServerFnError>>,
+    children: StoredValue<F>,
+) -> impl IntoView {
+    match &resource.await {
+        Ok(value) => Ok(children.get_value()(Arc::new(value.clone()))),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+#[component]
+pub fn ArcSuspenseUnpack<
+    T: Clone + Send + Sync + 'static,
+    V: IntoView + 'static,
+    F: Fn(Arc<T>) -> V + Clone + Send + Sync + 'static,
+>(
+    resource: Resource<Result<T, ServerFnError>>,
+    children: F,
+) -> impl IntoView {
+    let children = StoredValue::new(children);
+
+    view! {
+        <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
+                {
+                    move || Suspend::new(async move {
+                        arc_unpack_resource(resource, children).await
+                    })
+                }
+            </ErrorBoundary>
+        </Suspense>
+    }.into_any()
+}
+
+#[component]
+pub fn ArcTransitionUnpack<
+    T: Clone + Send + Sync + 'static,
+    V: IntoView + 'static,
+    F: Fn(Arc<T>) -> V + Clone + Send + Sync + 'static,
+>(
+    resource: Resource<Result<T, ServerFnError>>,
+    children: F,
+) -> impl IntoView {
+    let children = StoredValue::new(children);
+
+    view! {
+        <Transition fallback=move || view! { <LoadingIcon/> }.into_any()>
+            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
+                {
+                    move || Suspend::new(async move {
+                        arc_unpack_resource(resource, children).await
                     })
                 }
             </ErrorBoundary>

@@ -1,5 +1,3 @@
-use std::fmt;
-
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
@@ -8,6 +6,8 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::sync::Arc;
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
@@ -20,7 +20,7 @@ use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::unpack::TransitionUnpack;
+use crate::unpack::{ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -728,21 +728,17 @@ pub fn Post() -> impl IntoView {
             }
             node_ref=container_ref
         >
-            <TransitionUnpack resource=post_resource let:post_with_info>
-            {
-                view! {
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="flex flex-col gap-4">
-                                <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
-                                <PostBody post=post_with_info.post.clone()/>
-                                <PostWidgetBar post=post_with_info.clone() comment_vec/>
-                            </div>
+            <ArcTransitionUnpack resource=post_resource let:post_with_info>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="flex flex-col gap-4">
+                            <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
+                            <PostBody post=post_with_info.post.clone()/>
+                            <PostWidgetBar post=post_with_info comment_vec/>
                         </div>
                     </div>
-                }.into_any()
-            }
-            </TransitionUnpack>
+                </div>
+            </ArcTransitionUnpack>
             <CommentSortWidget/>
             <CommentSection comment_vec/>
             <Show when=move || load_error.with(|error| error.is_some())>
@@ -788,7 +784,7 @@ pub fn PostBody(post: Post) -> impl IntoView {
 /// Component to encapsulate the widgets associated with each post
 #[component]
 fn PostWidgetBar(
-    post: PostWithUserInfo,
+    post: Arc<PostWithUserInfo>,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     view! {
@@ -800,7 +796,7 @@ fn PostWidgetBar(
                 vote=post.vote.clone()
             />
             <CommentButton post_id=post.post.post_id comment_vec/>
-            <EditPostButton author_id=post.post.creator_id post=post.post.clone()/>
+            <EditPostButton author_id=post.post.creator_id post=StoredValue::new(post.post.clone())/>
             <ModeratePostButton post_id=post.post.post_id/>
             <AuthorWidget author=post.post.creator_name.clone()/>
             <ModeratorWidget moderator=post.post.moderator_name.clone()/>
@@ -814,11 +810,10 @@ fn PostWidgetBar(
 /// Component to edit a post
 #[component]
 pub fn EditPostButton(
-    post: Post,
+    post: StoredValue<Post>,
     author_id: i64
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post = StoredValue::new(post);
     let show_dialog = RwSignal::new(false);
     let show_button = move || state.user.with(|result| match result {
         Some(Ok(Some(user))) => user.user_id == author_id,

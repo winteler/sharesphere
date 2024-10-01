@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
@@ -9,6 +7,8 @@ use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
@@ -30,7 +30,7 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
-use crate::unpack::{SuspenseUnpack, TransitionUnpack};
+use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack};
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -505,7 +505,7 @@ pub fn ForumBanner() -> impl IntoView {
 
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
-            <TransitionUnpack resource=forum_state.forum_resource let:forum>
+            <ArcTransitionUnpack resource=forum_state.forum_resource let:forum>
             {
                 let forum_banner_image = format!("url({})", forum.banner_url.clone().unwrap_or(String::from("/banner.jpg")));
                 view! {
@@ -521,7 +521,7 @@ pub fn ForumBanner() -> impl IntoView {
                     </a>
                 }.into_any()
             }
-            </TransitionUnpack>
+            </ArcTransitionUnpack>
             <Outlet/>
         </div>
         <div class="max-2xl:hidden">
@@ -585,9 +585,9 @@ pub fn ForumContents() -> impl IntoView {
     });
 
     view! {
-        <SuspenseUnpack resource=forum_with_sub_resource let:forum_with_sub>
-            <ForumToolbar forum=forum_with_sub.clone()/>
-        </SuspenseUnpack>
+        <ArcSuspenseUnpack resource=forum_with_sub_resource let:forum>
+            <ForumToolbar forum/>
+        </ArcSuspenseUnpack>
         <ForumPostMiniatures
             post_vec
             is_loading
@@ -600,7 +600,7 @@ pub fn ForumContents() -> impl IntoView {
 
 /// Component to display the forum toolbar
 #[component]
-pub fn ForumToolbar(forum: ForumWithUserInfo) -> impl IntoView {
+pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_id = forum.forum.forum_id;
     let forum_name = RwSignal::new(forum.forum.forum_name.clone());

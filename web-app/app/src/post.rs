@@ -573,10 +573,8 @@ pub async fn create_post(
         tag,
         &user,
         &db_pool,
-    )
-        .await?;
+    ).await?;
 
-    // TODO: move in ssr::create_post?
     let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
 
     log::trace!("Created post with id: {}", post.post_id);

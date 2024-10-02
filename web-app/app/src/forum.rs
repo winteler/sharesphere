@@ -445,15 +445,13 @@ pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
 /// Get the current forum name from the path. When the current path does not contain a forum, returns the last valid forum. Used to avoid sending a request when leaving a page
 fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     Memo::new(move |current_forum_name: Option<&String>| {
-        params.with(|params| 
-            if let Some(new_forum_name) = params.get_str(FORUM_ROUTE_PARAM_NAME) {
-                log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
-                new_forum_name.to_string()
-            } else {
-                log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
-                current_forum_name.cloned().unwrap_or_default()
-            }
-        )
+        if let Some(new_forum_name) = params.read().get_str(FORUM_ROUTE_PARAM_NAME) {
+            log::trace!("Current forum name {current_forum_name:?}, new forum name: {new_forum_name}");
+            new_forum_name.to_string()
+        } else {
+            log::trace!("No valid forum name, keep current value: {current_forum_name:?}");
+            current_forum_name.cloned().unwrap_or_default()
+        }
     })
 }
 
@@ -470,10 +468,10 @@ pub fn ForumBanner() -> impl IntoView {
     let forum_state = ForumState {
         forum_name,
         permission_level: Signal::derive(
-            move || state.user.with(|user| match user {
-                Some(Ok(Some(user))) => forum_name.with( | forum_name| user.get_forum_permission_level(forum_name)),
+            move || match &(*state.user.read()) {
+                Some(Ok(Some(user))) => user.get_forum_permission_level(&*forum_name.read()),
                 _ => PermissionLevel::None,
-            })
+            }
         ),
         forum_resource: Resource::new(
             move || (forum_name.get(), update_forum_desc_action.version().get(),),
@@ -733,7 +731,7 @@ pub fn CreateForum() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let create_forum_result = state.create_forum_action.value();
     // check if the server has returned an error
-    let has_error = move || create_forum_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || matches!(*create_forum_result.read(), Some(Err(_)));
 
     let forum_name = RwSignal::new(String::new());
     let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
@@ -751,14 +749,14 @@ pub fn CreateForum() -> impl IntoView {
     let is_name_taken = RwSignal::new(false);
     let description = RwSignal::new(String::new());
     let is_nsfw = RwSignal::new(false);
-    let is_name_empty = move || forum_name.with(|forum_name| forum_name.is_empty());
+    let is_name_empty = move || forum_name.read().is_empty();
     let is_name_alphanumeric =
-        move || forum_name.with(|forum_name| forum_name.chars().all(char::is_alphanumeric));
+        move || forum_name.read().chars().all(char::is_alphanumeric);
     let are_inputs_invalid = Memo::new(move |_| {
         is_name_empty()
             || is_name_taken.get()
             || !is_name_alphanumeric()
-            || description.with(|description| description.is_empty())
+            || description.read().is_empty()
     });
     let is_nsfw_string = move || is_nsfw.get().to_string();
 

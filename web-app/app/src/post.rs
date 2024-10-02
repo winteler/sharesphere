@@ -629,20 +629,18 @@ pub async fn edit_post(
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
 pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     Memo::new(move |current_post_id: Option<&i64>| {
-        params.with(|params| 
-            if let Some(new_post_id_string) = params.get_str(POST_ROUTE_PARAM_NAME) {
-                if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
-                    log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
-                    new_post_id
-                } else {
-                    log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
-                    current_post_id.cloned().unwrap_or_default()
-                }
+        if let Some(new_post_id_string) = params.read().get_str(POST_ROUTE_PARAM_NAME) {
+            if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
+                log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
+                new_post_id
             } else {
-                log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
+                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
                 current_post_id.cloned().unwrap_or_default()
             }
-        )
+        } else {
+            log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
+            current_post_id.cloned().unwrap_or_default()
+        }
     })
 }
 
@@ -741,7 +739,7 @@ pub fn Post() -> impl IntoView {
             </ArcTransitionUnpack>
             <CommentSortWidget/>
             <CommentSection comment_vec/>
-            <Show when=move || load_error.with(|error| error.is_some())>
+            <Show when=move || load_error.read().is_some()>
             {
                 let mut outside_errors = Errors::default();
                 outside_errors.insert_with_default_key(load_error.get().unwrap());
@@ -815,10 +813,10 @@ pub fn EditPostButton(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let show_dialog = RwSignal::new(false);
-    let show_button = move || state.user.with(|result| match result {
+    let show_button = move || match &(*state.user.read()) {
         Some(Ok(Some(user))) => user.user_id == author_id,
         _ => false,
-    });
+    };
     let edit_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
@@ -849,7 +847,7 @@ pub fn CreatePost() -> impl IntoView {
     let create_post_action = ServerAction::<CreatePost>::new();
     let create_post_result = create_post_action.value();
     // check if the server has returned an error
-    let has_error = move || create_post_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || matches!(*create_post_result.read(), Some(Err(_)));
 
     let query = use_query_map();
     let forum_query = move || {
@@ -866,7 +864,7 @@ pub fn CreatePost() -> impl IntoView {
     let is_title_empty = RwSignal::new(true);
     let is_nsfw = RwSignal::new(false);
     let is_spoiler = RwSignal::new(false);
-    let is_content_invalid = Memo::new(move |_| is_title_empty.get() || post_body.with(|body| body.is_empty()));
+    let is_content_invalid = Memo::new(move |_| is_title_empty.get() || post_body.read().is_empty());
     let is_nsfw_string = move || is_nsfw.get().to_string();
     let is_spoiler_string = move || is_spoiler.get().to_string();
 
@@ -1003,10 +1001,10 @@ pub fn EditPostForm(
     };
     let is_title_empty = RwSignal::new(false);
     let post = RwSignal::new(current_body);
-    let is_post_empty = Signal::derive(move || post.with(|post: &String| post.is_empty()));
+    let is_post_empty = Signal::derive(move || post.read().is_empty());
 
     let edit_post_result = state.edit_post_action.value();
-    let has_error = move || edit_post_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || matches!(*edit_post_result.read(), Some(Err(_)));
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">

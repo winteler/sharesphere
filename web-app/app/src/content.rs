@@ -79,7 +79,7 @@ pub fn SortWidgetOption(
         SortType::Post(_) => state.post_sort_type,
         SortType::Comment(_) => state.comment_sort_type,
     };
-    let is_selected = move || sort_signal.with(|sort| *sort == sort_type);
+    let is_selected = move || sort_signal.read() == sort_type;
     let class = move || {
         let mut class =
             String::from("btn btn-ghost join-item hover:border hover:border-1 hover:border-white ");

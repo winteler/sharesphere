@@ -633,9 +633,9 @@ fn CommentWidgetBar(
                 comment.creator_name.clone(),
             )
         });
-    let timestamp = Signal::derive(move || comment.with(|comment| comment.create_timestamp));
-    let edit_timestamp = Signal::derive(move || comment.with(|comment| comment.edit_timestamp));
-    let moderator = Signal::derive(move || comment.with(|comment| comment.moderator_name.clone()));
+    let timestamp = Signal::derive(move || comment.read().create_timestamp);
+    let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
+    let moderator = Signal::derive(move || comment.read().moderator_name.clone());
     let content = Signal::derive(move || Content::Comment(comment.get()));
     view! {
         <div class="flex gap-1">
@@ -740,12 +740,12 @@ pub fn CommentForm(
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let comment = RwSignal::new(String::new());
-    let is_comment_empty = Signal::derive(move || comment.with(|comment: &String| comment.is_empty()));
+    let is_comment_empty = Signal::derive(move || comment.read().is_empty());
 
     let create_comment_action = ServerAction::<CreateComment>::new();
 
     let create_comment_result = create_comment_action.value();
-    let has_error = move || create_comment_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || matches!(*create_comment_result.read(), Some(Err(_)));
 
     Effect::new(move |_| {
         if let Some(Ok(comment)) = create_comment_action.value().get() {
@@ -797,10 +797,10 @@ pub fn EditCommentButton(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let show_dialog = RwSignal::new(false);
-    let show_button = move || state.user.with(|result| match result {
+    let show_button = move || match &(*state.user.read()) {
         Some(Ok(Some(user))) => user.user_id == author_id,
         _ => false,
-    });
+    };
     let comment_button_class = move || match show_dialog.get() {
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
@@ -862,12 +862,12 @@ pub fn EditCommentForm(
         });
     let comment_body = RwSignal::new(current_body);
     let is_comment_empty = Signal::derive(
-        move || comment_body.with(|comment_body: &String| comment_body.is_empty())
+        move || comment_body.read().is_empty()
     );
     let edit_comment_action = ServerAction::<EditComment>::new();
 
     let edit_comment_result = edit_comment_action.value();
-    let has_error = move || edit_comment_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || matches!(*edit_comment_result.read(), Some(Err(_)));
 
     Effect::new(move |_| {
         if let Some(Ok(edited_comment)) = edit_comment_result.get() {

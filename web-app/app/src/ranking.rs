@@ -361,12 +361,12 @@ pub fn VotePanel(
     let vote_action = ServerAction::<VoteOnContent>::new();
 
     let vote_id = Memo::new(move |current_vote_id| {
-        vote_action.value().with(|action_value| match action_value {
+        match &(*vote_action.value().read()) {
             Some(Ok(Some(vote))) => Some(vote.vote_id),
             Some(Ok(None)) => None,
             Some(Err(_)) if current_vote_id.is_some() => *current_vote_id.unwrap(),
             _ => vote_id,
-        })
+        }
     });
 
     view! {

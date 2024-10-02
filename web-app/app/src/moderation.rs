@@ -409,10 +409,10 @@ pub fn ModeratePostDialog(
     let forum_state = expect_context::<ForumState>();
 
     let moderate_text = RwSignal::new(String::new());
-    let is_text_empty = Signal::derive(move || moderate_text.with(|moderate_text: &String| moderate_text.is_empty()));
+    let is_text_empty = Signal::derive(move || moderate_text.read().is_empty());
 
     let moderate_result = forum_state.moderate_post_action.value();
-    let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || matches!(*moderate_result.read(), Some(Err(_)));
 
     view! {
         <ModalDialog
@@ -456,12 +456,12 @@ pub fn ModerateCommentDialog(
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     let moderate_text = RwSignal::new(String::new());
-    let is_text_empty = Signal::derive(move || moderate_text.with(|comment: &String| comment.is_empty()));
+    let is_text_empty = Signal::derive(move || moderate_text.read().is_empty());
 
     let moderate_comment_action = ServerAction::<ModerateComment>::new();
 
     let moderate_result = moderate_comment_action.value();
-    let has_error = move || moderate_result.with(|val| matches!(val, Some(Err(_))));
+    let has_error = move || matches!(*moderate_result.read(), Some(Err(_)));
 
     Effect::new(move |_| {
         if let Some(Ok(moderated_comment)) = moderate_result.get() {
@@ -589,10 +589,10 @@ pub fn ModerationInfoButton(
             Content::Post(post) => (post.infringed_rule_id.is_some(), post.creator_id),
             Content::Comment(comment) => (comment.infringed_rule_id.is_some(), comment.creator_id),
         });
-        let is_author = state.user.with(|user| match user {
+        let is_author = match &(*state.user.read()) {
             Some(Ok(Some(user))) => user.user_id == creator_id,
             _ => false
-        });
+        };
         let is_moderator = forum_state.permission_level.with(|value| *value >= PermissionLevel::Moderate);
         is_moderated && (is_author || is_moderator)
     };

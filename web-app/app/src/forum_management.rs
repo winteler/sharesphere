@@ -454,7 +454,7 @@ pub fn ForumDescriptionForm(
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let description = RwSignal::new(forum.description.clone());
-    let disable_submit = move || description.with(|description| description.is_empty());
+    let disable_submit = move || description.read().is_empty();
     view! {
         <ActionForm
             action=forum_state.update_forum_desc_action
@@ -555,7 +555,7 @@ pub fn PermissionLevelForm(
             }
         },
     );
-    let disable_submit = move || username_input.with(|username| username.is_empty());
+    let disable_submit = move || username_input.read().is_empty();
 
     view! {
         <ActionForm action=set_role_action>
@@ -578,7 +578,7 @@ pub fn PermissionLevelForm(
                         }
                         prop:value=username_input
                     />
-                    <Show when=move || username_input.with(|username| !username.is_empty())>
+                    <Show when=move || !username_input.read().is_empty()>
                         <ArcTransitionUnpack resource=matching_user_resource let:username_set>
                             <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
                                 <For

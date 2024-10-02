@@ -155,7 +155,7 @@ pub fn FormTextEditor(
     #[prop(default = "w-full")]
     class: &'static str,
 ) -> impl IntoView {
-    let num_lines = move || content.with(|content| content.lines().count());
+    let num_lines = move || content.read().lines().count();
     let class = format!("group max-w-full p-2 border border-primary rounded-sm bg-base-100 {class}");
 
     view! {
@@ -196,7 +196,7 @@ pub fn FormMarkdownEditor(
     #[prop(default = false)]
     is_markdown: bool,
 ) -> impl IntoView {
-    let num_lines = move || content.with(|content| content.lines().count());
+    let num_lines = move || content.read().lines().count();
 
     let is_markdown_mode = RwSignal::new(is_markdown);
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();

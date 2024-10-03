@@ -10,7 +10,7 @@ use crate::forum::ForumState;
 use crate::forum_management::{get_rule_by_id, ModerationInfo};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack};
+use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack};
 use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -411,8 +411,7 @@ pub fn ModeratePostDialog(
     let moderate_text = RwSignal::new(String::new());
     let is_text_empty = Signal::derive(move || moderate_text.read().is_empty());
 
-    let moderate_result = forum_state.moderate_post_action.value();
-    let has_error = move || matches!(*moderate_result.read(), Some(Err(_)));
+    let has_error = action_has_error(forum_state.moderate_post_action.into());
 
     view! {
         <ModalDialog
@@ -461,7 +460,7 @@ pub fn ModerateCommentDialog(
     let moderate_comment_action = ServerAction::<ModerateComment>::new();
 
     let moderate_result = moderate_comment_action.value();
-    let has_error = move || matches!(*moderate_result.read(), Some(Err(_)));
+    let has_error = action_has_error(moderate_comment_action.into());
 
     Effect::new(move |_| {
         if let Some(Ok(moderated_comment)) = moderate_result.get() {

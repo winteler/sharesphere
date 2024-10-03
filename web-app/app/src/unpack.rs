@@ -21,6 +21,15 @@ pub fn Unpack<
     }
 }
 
+pub fn action_has_error<
+    T: Clone + Send + Sync + 'static,
+    A: Send + Sync + 'static,
+>(
+    action: Action<A, Result<T, ServerFnError>>
+) -> Signal<bool> {
+    Signal::derive(move || matches!(*action.value().read(), Some(Err(_))))
+}
+
 #[component]
 pub fn UnpackAction<
     T: Clone + Send + Sync + 'static,

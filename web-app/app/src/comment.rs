@@ -17,6 +17,7 @@ use crate::navigation_bar::get_current_path;
 #[cfg(feature = "ssr")]
 use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
+use crate::unpack::action_has_error;
 use crate::widget::{ActionError, AuthorWidget, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::get_user};
@@ -744,8 +745,7 @@ pub fn CommentForm(
 
     let create_comment_action = ServerAction::<CreateComment>::new();
 
-    let create_comment_result = create_comment_action.value();
-    let has_error = move || matches!(*create_comment_result.read(), Some(Err(_)));
+    let has_error = action_has_error(create_comment_action.into());
 
     Effect::new(move |_| {
         if let Some(Ok(comment)) = create_comment_action.value().get() {
@@ -867,7 +867,7 @@ pub fn EditCommentForm(
     let edit_comment_action = ServerAction::<EditComment>::new();
 
     let edit_comment_result = edit_comment_action.value();
-    let has_error = move || matches!(*edit_comment_result.read(), Some(Err(_)));
+    let has_error = action_has_error(edit_comment_action.into());
 
     Effect::new(move |_| {
         if let Some(Ok(edited_comment)) = edit_comment_result.get() {

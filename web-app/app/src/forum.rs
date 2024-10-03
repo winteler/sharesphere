@@ -30,7 +30,7 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
-use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack};
+use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack};
 use crate::widget::{AuthorWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -729,9 +729,8 @@ pub fn ForumPostMiniatures(
 #[component]
 pub fn CreateForum() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let create_forum_result = state.create_forum_action.value();
     // check if the server has returned an error
-    let has_error = move || matches!(*create_forum_result.read(), Some(Err(_)));
+    let has_error = action_has_error(state.create_forum_action.into());
 
     let forum_name = RwSignal::new(String::new());
     let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);

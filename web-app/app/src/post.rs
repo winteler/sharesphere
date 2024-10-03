@@ -20,7 +20,7 @@ use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::unpack::{ArcTransitionUnpack, TransitionUnpack};
+use crate::unpack::{action_has_error, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -845,9 +845,7 @@ pub fn EditPostButton(
 #[component]
 pub fn CreatePost() -> impl IntoView {
     let create_post_action = ServerAction::<CreatePost>::new();
-    let create_post_result = create_post_action.value();
-    // check if the server has returned an error
-    let has_error = move || matches!(*create_post_result.read(), Some(Err(_)));
+    let has_error = action_has_error(create_post_action.into());
 
     let query = use_query_map();
     let forum_query = move || {
@@ -1003,8 +1001,7 @@ pub fn EditPostForm(
     let post = RwSignal::new(current_body);
     let is_post_empty = Signal::derive(move || post.read().is_empty());
 
-    let edit_post_result = state.edit_post_action.value();
-    let has_error = move || matches!(*edit_post_result.read(), Some(Err(_)));
+    let has_error = action_has_error(state.edit_post_action.into());
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">

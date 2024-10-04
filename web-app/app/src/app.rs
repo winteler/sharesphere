@@ -10,7 +10,7 @@ use crate::content::PostSortWidget;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::forum::*;
-use crate::forum_management::{ForumCockpitGuard, MANAGE_FORUM_ROUTE};
+use crate::forum_management::{ForumCockpit, ForumCockpitGuard, MANAGE_FORUM_ROUTE};
 use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
@@ -146,7 +146,9 @@ pub fn App() -> impl IntoView {
                                 <Route path=StaticSegment("") view=HomePage/>
                                 <ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
                                     <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
-                                    <Route path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard/>
+                                    <ParentRoute path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard>
+                                        <Route path=StaticSegment("") view=ForumCockpit/>
+                                    </ParentRoute>
                                     <Route path=StaticSegment("") view=ForumContents/>
                                 </ParentRoute>
                                 <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>

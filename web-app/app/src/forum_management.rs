@@ -1,6 +1,7 @@
 use chrono::SecondsFormat;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_router::components::Outlet;
 use leptos_use::signal_debounced;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -405,8 +406,8 @@ pub fn ForumCockpitGuard() -> impl IntoView {
         {
             match user {
                 Some(user) => {
-                    match forum_name.with_untracked(|forum_name| user.check_permissions(forum_name, PermissionLevel::Moderate)) {
-                        Ok(_) => view! { <ForumCockpit/> }.into_any(),
+                    match user.check_permissions(&forum_name.read_untracked(), PermissionLevel::Moderate) {
+                        Ok(_) => view! { <Outlet/> }.into_any(),
                         Err(error) => view! { <ErrorDisplay error/> }.into_any(),
                     }
                 },

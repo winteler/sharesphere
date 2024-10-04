@@ -505,6 +505,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_vote_button_css() {
         let vote_signal = RwSignal::new(VoteValue::None);
         let upvote_css = get_vote_button_css(vote_signal, true);

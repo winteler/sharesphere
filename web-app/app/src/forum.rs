@@ -1,7 +1,6 @@
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
-use leptos::spawn::spawn_local;
 use leptos_router::components::{Outlet, A};
 use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
@@ -535,52 +534,51 @@ pub fn ForumContents() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     let post_vec = RwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
     let additional_load_count = RwSignal::new(0);
-    let is_loading = RwSignal::new(false);
-    let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
     let forum_with_sub_resource = Resource::new(
         move || (forum_name(),),
         move |(forum_name,)| get_forum_with_user_info(forum_name),
     );
 
-    // Effect for initial load, forum and sort changes
-    Effect::new(move |_| {
-        let forum_name = forum_name.get();
-        let sort_type = state.post_sort_type.get();
-        is_loading.set(true);
-        load_error.set(None);
-        spawn_local(async move {
-            match get_post_vec_by_forum_name(forum_name, sort_type, 0).await {
-                Ok(ref mut new_post_vec) => {
-                    post_vec.update(|post_vec| {
-                        if let Some(list_ref) = list_ref.get_untracked() {
-                            list_ref.set_scroll_top(0);
-                        }
-                        std::mem::swap(post_vec, new_post_vec);
-                    });
-                },
-                Err(e) => {
-                    post_vec.update(|post_vec| post_vec.clear());
-                    load_error.set(Some(AppError::from(&e)));
-                },
-            }
-            is_loading.set(false);
-        });
-    });
-
-    // Effect for additional load upon reaching end of scroll
-    Effect::new(move |_| {
-        if additional_load_count.get() > 0 {
-            is_loading.set(true);
-            load_error.set(None);
-            let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
-            spawn_local(async move {
-                match get_post_vec_by_forum_name(forum_name.get_untracked(), state.post_sort_type.get_untracked(), post_count).await {
-                    Ok(mut new_post_vec) => post_vec.update(|post_vec| post_vec.append(&mut new_post_vec)),
-                    Err(e) => load_error.set(Some(AppError::from(&e)))
+    let initial_post_resource = Resource::new(
+        move || (
+            forum_name(),
+            state.post_sort_type.get(),
+        ),
+        move |(forum_name, sort_type)| async move {
+            post_vec.update(|post_vec| post_vec.clear());
+            let init_post_vec = get_post_vec_by_forum_name(forum_name, sort_type, 0).await?;
+            post_vec.update(|post_vec| {
+                if let Some(list_ref) = list_ref.get_untracked() {
+                    list_ref.set_scroll_top(0);
                 }
-                is_loading.set(false);
+                *post_vec = init_post_vec;
             });
+            Ok(())
+        }
+    );
+
+    let additional_post_resource = Resource::new(
+        move || additional_load_count.get(),
+        move |load_count| async move {
+            if load_count > 0 {
+                let post_count = post_vec.read_untracked().len();
+                let mut additional_post_vec = get_post_vec_by_forum_name(
+                    forum_name.get_untracked(),
+                    state.post_sort_type.get_untracked(),
+                    post_count
+                ).await?;
+                post_vec.update(|post_vec| post_vec.append(&mut additional_post_vec));
+            }
+            Ok(())
+        }
+    );
+    let is_loading = Signal::derive(move || initial_post_resource.read().is_none() || additional_post_resource.read().is_none());
+    let load_error = Signal::derive(move || {
+        match (&*initial_post_resource.read(), &*additional_post_resource.read()) {
+            (Some(Err(e)), _) => Some(AppError::from(e)),
+            (_, Some(Err(e))) => Some(AppError::from(e)),
+            _ => None,
         }
     });
 

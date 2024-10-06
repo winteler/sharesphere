@@ -532,7 +532,7 @@ pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = expect_context::<ForumState>().forum_name;
     let additional_load_count = RwSignal::new(0);
-    let post_vec = ArcRwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
+    let post_vec = RwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
     let forum_with_sub_resource = Resource::new(
@@ -564,18 +564,16 @@ pub fn ForumContents() -> impl IntoView {
     );
 
     let additional_post_resource = LocalResource::new(
-        move || {
-            let num_post = (&*post_vec).read_untracked().len();
-            async move {
-                if additional_load_count.get() > 0 {
-                    match get_post_vec_by_forum_name(
-                        forum_name.get_untracked(),
-                        state.post_sort_type.get_untracked(),
-                        num_post
-                    ).await {
-                        Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
-                        Err(ref e) => load_error.set(Some(AppError::from(e))),
-                    }
+        move || async move {
+            if additional_load_count.get() > 0 {
+                let num_post = post_vec.read_untracked().len();
+                match get_post_vec_by_forum_name(
+                    forum_name.get_untracked(),
+                    state.post_sort_type.get_untracked(),
+                    num_post
+                ).await {
+                    Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
+                    Err(ref e) => load_error.set(Some(AppError::from(e))),
                 }
             }
         }
@@ -661,7 +659,7 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
 pub fn ForumPostMiniatures(
     /// signal containing the posts to display
     #[prop(into)]
-    post_vec: ArcSignal<Vec<Post>>,
+    post_vec: Signal<Vec<Post>>,
     /// signal indicating new posts are being loaded
     #[prop(into)]
     is_loading: Signal<bool>,

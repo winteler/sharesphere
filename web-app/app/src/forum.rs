@@ -1,14 +1,3 @@
-use const_format::concatcp;
-use leptos::html;
-use leptos::prelude::*;
-use leptos_router::components::{Outlet, A};
-use leptos_router::hooks::use_params_map;
-use leptos_router::params::ParamsMap;
-use leptos_use::signal_debounced;
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
-use std::sync::Arc;
-
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
@@ -37,6 +26,16 @@ use crate::{
     auth::get_user,
     auth::ssr::reload_user,
 };
+use const_format::concatcp;
+use leptos::html;
+use leptos::prelude::*;
+use leptos_router::components::{Outlet, A};
+use leptos_router::hooks::use_params_map;
+use leptos_router::params::ParamsMap;
+use leptos_use::signal_debounced;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+use std::sync::Arc;
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);
@@ -532,55 +531,56 @@ pub fn ForumBanner() -> impl IntoView {
 pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = expect_context::<ForumState>().forum_name;
-    let post_vec = RwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
     let additional_load_count = RwSignal::new(0);
+    let post_vec = ArcRwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
+    let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
     let forum_with_sub_resource = Resource::new(
         move || (forum_name(),),
         move |(forum_name,)| get_forum_with_user_info(forum_name),
     );
 
-    let initial_post_resource = Resource::new(
-        move || (
-            forum_name(),
-            state.post_sort_type.get(),
-        ),
-        move |(forum_name, sort_type)| async move {
-            post_vec.update(|post_vec| post_vec.clear());
-            let init_post_vec = get_post_vec_by_forum_name(forum_name, sort_type, 0).await?;
-            post_vec.update(|post_vec| {
-                if let Some(list_ref) = list_ref.get_untracked() {
-                    list_ref.set_scroll_top(0);
-                }
-                *post_vec = init_post_vec;
-            });
-            Ok(())
+    let initial_post_resource = LocalResource::new(
+        move || async move {
+            match get_post_vec_by_forum_name(
+                forum_name.get(),
+                state.post_sort_type.get(),
+                0
+            ).await {
+                Ok(ref mut init_post_vec) => {
+                    post_vec.update(|post_vec| {
+                        std::mem::swap(post_vec, init_post_vec);
+                    });
+                    if let Some(list_ref) = list_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
+                    }
+                },
+                Err(ref e) => {
+                    post_vec.update(|post_vec| post_vec.clear());
+                    load_error.set(Some(AppError::from(e)))
+                },
+            };
         }
     );
 
-    let additional_post_resource = Resource::new(
-        move || additional_load_count.get(),
-        move |load_count| async move {
-            if load_count > 0 {
-                let post_count = post_vec.read_untracked().len();
-                let mut additional_post_vec = get_post_vec_by_forum_name(
-                    forum_name.get_untracked(),
-                    state.post_sort_type.get_untracked(),
-                    post_count
-                ).await?;
-                post_vec.update(|post_vec| post_vec.append(&mut additional_post_vec));
+    let additional_post_resource = LocalResource::new(
+        move || {
+            let num_post = (&*post_vec).read_untracked().len();
+            async move {
+                if additional_load_count.get() > 0 {
+                    match get_post_vec_by_forum_name(
+                        forum_name.get_untracked(),
+                        state.post_sort_type.get_untracked(),
+                        num_post
+                    ).await {
+                        Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
+                        Err(ref e) => load_error.set(Some(AppError::from(e))),
+                    }
+                }
             }
-            Ok(())
         }
     );
     let is_loading = Signal::derive(move || initial_post_resource.read().is_none() || additional_post_resource.read().is_none());
-    let load_error = Signal::derive(move || {
-        match (&*initial_post_resource.read(), &*additional_post_resource.read()) {
-            (Some(Err(e)), _) => Some(AppError::from(e)),
-            (_, Some(Err(e))) => Some(AppError::from(e)),
-            _ => None,
-        }
-    });
 
     view! {
         <ArcSuspenseUnpack resource=forum_with_sub_resource let:forum>
@@ -661,7 +661,7 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
 pub fn ForumPostMiniatures(
     /// signal containing the posts to display
     #[prop(into)]
-    post_vec: Signal<Vec<Post>>,
+    post_vec: ArcSignal<Vec<Post>>,
     /// signal indicating new posts are being loaded
     #[prop(into)]
     is_loading: Signal<bool>,

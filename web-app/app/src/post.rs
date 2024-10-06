@@ -674,18 +674,20 @@ pub fn Post() -> impl IntoView {
         let sort_type = state.comment_sort_type.get();
         is_loading.set(true);
         load_error.set(None);
-        comment_vec.update(|post_vec| post_vec.clear());
         spawn_local(async move {
             match get_post_comment_tree(post_id, sort_type, 0).await {
-                Ok(new_comment_vec) => {
+                Ok(ref mut new_comment_vec) => {
                     comment_vec.update(|comment_vec| {
                         if let Some(list_ref) = container_ref.get_untracked() {
                             list_ref.set_scroll_top(0);
                         }
-                        *comment_vec = new_comment_vec;
+                        std::mem::swap(comment_vec, new_comment_vec);
                     });
                 }
-                Err(e) => load_error.set(Some(AppError::from(&e))),
+                Err(e) => {
+                    comment_vec.update(|post_vec| post_vec.clear());
+                    load_error.set(Some(AppError::from(&e)));
+                },
             }
             is_loading.set(false);
         });

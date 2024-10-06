@@ -549,18 +549,20 @@ pub fn ForumContents() -> impl IntoView {
         let sort_type = state.post_sort_type.get();
         is_loading.set(true);
         load_error.set(None);
-        post_vec.update(|post_vec| post_vec.clear());
         spawn_local(async move {
             match get_post_vec_by_forum_name(forum_name, sort_type, 0).await {
-                Ok(new_post_vec) => {
+                Ok(ref mut new_post_vec) => {
                     post_vec.update(|post_vec| {
                         if let Some(list_ref) = list_ref.get_untracked() {
                             list_ref.set_scroll_top(0);
                         }
-                        *post_vec = new_post_vec;
+                        std::mem::swap(post_vec, new_post_vec);
                     });
                 },
-                Err(e) => load_error.set(Some(AppError::from(&e))),
+                Err(e) => {
+                    post_vec.update(|post_vec| post_vec.clear());
+                    load_error.set(Some(AppError::from(&e)));
+                },
             }
             is_loading.set(false);
         });

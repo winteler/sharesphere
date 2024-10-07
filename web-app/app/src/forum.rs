@@ -533,6 +533,7 @@ pub fn ForumContents() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     let additional_load_count = RwSignal::new(0);
     let post_vec = RwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
+    let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
     let forum_with_sub_resource = Resource::new(
@@ -540,8 +541,9 @@ pub fn ForumContents() -> impl IntoView {
         move |(forum_name,)| get_forum_with_user_info(forum_name),
     );
 
-    let initial_post_resource = LocalResource::new(
+    let _initial_post_resource = LocalResource::new(
         move || async move {
+            is_loading.set(true);
             match get_post_vec_by_forum_name(
                 forum_name.get(),
                 state.post_sort_type.get(),
@@ -560,12 +562,14 @@ pub fn ForumContents() -> impl IntoView {
                     load_error.set(Some(AppError::from(e)))
                 },
             };
+            is_loading.set(false);
         }
     );
 
-    let additional_post_resource = LocalResource::new(
+    let _additional_post_resource = LocalResource::new(
         move || async move {
             if additional_load_count.get() > 0 {
+                is_loading.set(true);
                 let num_post = post_vec.read_untracked().len();
                 match get_post_vec_by_forum_name(
                     forum_name.get_untracked(),
@@ -575,10 +579,10 @@ pub fn ForumContents() -> impl IntoView {
                     Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
                     Err(ref e) => load_error.set(Some(AppError::from(e))),
                 }
+                is_loading.set(false);
             }
         }
     );
-    let is_loading = Signal::derive(move || initial_post_resource.read().is_none() || additional_post_resource.read().is_none());
 
     view! {
         <ArcSuspenseUnpack resource=forum_with_sub_resource let:forum>

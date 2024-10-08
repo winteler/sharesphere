@@ -1,7 +1,6 @@
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
-use leptos::spawn::spawn_local;
 use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::signal_debounced;
@@ -668,52 +667,50 @@ pub fn Post() -> impl IntoView {
     let load_error = RwSignal::new(None);
     let container_ref = NodeRef::<html::Div>::new();
 
-    // Effect for initial load, forum and sort changes,
-    Effect::new(move |_| {
-        let post_id = post_id.get();
-        let sort_type = state.comment_sort_type.get();
-        is_loading.set(true);
-        load_error.set(None);
-        spawn_local(async move {
-            match get_post_comment_tree(post_id, sort_type, 0).await {
-                Ok(ref mut new_comment_vec) => {
-                    comment_vec.update(|comment_vec| {
-                        if let Some(list_ref) = container_ref.get_untracked() {
-                            list_ref.set_scroll_top(0);
-                        }
-                        std::mem::swap(comment_vec, new_comment_vec);
-                    });
-                }
-                Err(e) => {
-                    comment_vec.update(|post_vec| post_vec.clear());
-                    load_error.set(Some(AppError::from(&e)));
-                },
-            }
-            is_loading.set(false);
-        });
-    });
-
-    // Effect for additional load upon reaching end of scroll
-    Effect::new(move |_| {
-        if additional_load_count.get() > 0 {
+    let _initial_comments_resource = LocalResource::new(
+        move || async move {
             is_loading.set(true);
-            load_error.set(None);
-            let root_comment_count = comment_vec.with_untracked(|post_vec| post_vec.len());
-            spawn_local(async move {
-                match get_post_comment_tree(
-                    post_id.get_untracked(),
-                    state.comment_sort_type.get_untracked(),
-                    root_comment_count,
-                ).await {
-                    Ok(mut new_comment_vec) => {
-                        comment_vec.update(|comment_vec| comment_vec.append(&mut new_comment_vec))
+            match get_post_comment_tree(
+                post_id.get(),
+                state.comment_sort_type.get(),
+                0,
+            ).await {
+                Ok(ref mut init_comment_vec) => {
+                    comment_vec.update(|comment_vec| {
+                        std::mem::swap(comment_vec, init_comment_vec);
+                    });
+                    if let Some(list_ref) = container_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
                     }
-                    Err(e) => load_error.set(Some(AppError::from(&e))),
+                },
+                Err(ref e) => {
+                    comment_vec.update(|comment_vec| comment_vec.clear());
+                    load_error.set(Some(AppError::from(e)))
+                },
+            };
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_comments_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let num_post = comment_vec.read_untracked().len();
+                match get_post_comment_tree(
+                    post_id.get(),
+                    state.comment_sort_type.get_untracked(),
+                    num_post,
+                ).await {
+                    Ok(ref mut additional_comment_vec) => {
+                        comment_vec.update(|comment_vec| comment_vec.append(additional_comment_vec))
+                    },
+                    Err(ref e) => load_error.set(Some(AppError::from(e))),
                 }
                 is_loading.set(false);
-            });
+            }
         }
-    });
+    );
 
     view! {
         <div

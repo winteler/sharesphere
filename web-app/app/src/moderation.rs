@@ -468,6 +468,7 @@ pub fn ModerateCommentDialog(
             show_dialog.set(false);
         }
     });
+
     view! {
         <ModalDialog
             class="w-full max-w-xl"

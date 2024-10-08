@@ -1,6 +1,5 @@
 use leptos::html;
 use leptos::prelude::*;
-use leptos::spawn::spawn_local;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 
@@ -260,46 +259,46 @@ fn DefaultHomePage() -> impl IntoView {
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
-    // Effect for initial load and sort changes
-    Effect::new(move |_| {
-        let sort_type = state.post_sort_type.get();
-        is_loading.set(true);
-        load_error.set(None);
-        spawn_local(async move {
-            match get_sorted_post_vec(sort_type, 0).await {
-                Ok(ref mut new_post_vec) => {
-                    post_vec.update(|post_vec| {
-                        if let Some(list_ref) = list_ref.get_untracked() {
-                            list_ref.set_scroll_top(0);
-                        }
-                        std::mem::swap(post_vec, new_post_vec);
-                    });
-                }
-                Err(e) => {
-                    post_vec.update(|post_vec| post_vec.clear());
-                    load_error.set(Some(AppError::from(&e)));
-                },
-            }
-            is_loading.set(false);
-        });
-    });
-
-    // Effect for additional load upon reaching end of scroll
-    Effect::new(move |_| {
-        if additional_load_count.get() > 0 {
+    let _initial_post_resource = LocalResource::new(
+        move || async move {
             is_loading.set(true);
-            let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
-            spawn_local(async move {
-                match get_sorted_post_vec(state.post_sort_type.get_untracked(), post_count).await {
-                    Ok(mut new_post_vec) => {
-                        post_vec.update(|post_vec| post_vec.append(&mut new_post_vec))
+            match get_sorted_post_vec(
+                state.post_sort_type.get(),
+                0
+            ).await {
+                Ok(ref mut init_post_vec) => {
+                    post_vec.update(|post_vec| {
+                        std::mem::swap(post_vec, init_post_vec);
+                    });
+                    if let Some(list_ref) = list_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
                     }
-                    Err(e) => load_error.set(Some(AppError::from(&e))),
+                },
+                Err(ref e) => {
+                    post_vec.update(|post_vec| post_vec.clear());
+                    load_error.set(Some(AppError::from(e)))
+                },
+            };
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let num_post = post_vec.read_untracked().len();
+                match get_sorted_post_vec(
+                    state.post_sort_type.get_untracked(),
+                    num_post
+                ).await {
+                    Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
+                    Err(ref e) => load_error.set(Some(AppError::from(e))),
                 }
                 is_loading.set(false);
-            });
+            }
         }
-    });
+    );
 
     view! {
         <ForumPostMiniatures
@@ -323,51 +322,48 @@ fn UserHomePage(user: User) -> impl IntoView {
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
-    // Effect for initial load and sort changes
-    Effect::new(move |_| {
-        let sort_type = state.post_sort_type.get();
-        is_loading.set(true);
-        load_error.set(None);
-        spawn_local(async move {
-            match get_subscribed_post_vec(user_id, sort_type, 0).await {
-                Ok(ref mut new_post_vec) => {
-                    post_vec.update(|post_vec| {
-                        if let Some(list_ref) = list_ref.get_untracked() {
-                            list_ref.set_scroll_top(0);
-                        }
-                        std::mem::swap(post_vec, new_post_vec);
-                    });
-                }
-                Err(e) => {
-                    post_vec.update(|post_vec| post_vec.clear());
-                    load_error.set(Some(AppError::from(&e)));
-                },
-            }
-            is_loading.set(false);
-        });
-    });
-
-    // Effect for additional load upon reaching end of scroll
-    Effect::new(move |_| {
-        if additional_load_count.get() > 0 {
+    let _initial_post_resource = LocalResource::new(
+        move || async move {
             is_loading.set(true);
-            load_error.set(None);
-            let post_count = post_vec.with_untracked(|post_vec| post_vec.len());
-            spawn_local(async move {
+            match get_subscribed_post_vec(
+                user_id,
+                state.post_sort_type.get(),
+                0,
+            ).await {
+                Ok(ref mut init_post_vec) => {
+                    post_vec.update(|post_vec| {
+                        std::mem::swap(post_vec, init_post_vec);
+                    });
+                    if let Some(list_ref) = list_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
+                    }
+                },
+                Err(ref e) => {
+                    post_vec.update(|post_vec| post_vec.clear());
+                    load_error.set(Some(AppError::from(e)))
+                },
+            };
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let num_post = post_vec.read_untracked().len();
                 match get_subscribed_post_vec(
                     user_id,
                     state.post_sort_type.get_untracked(),
-                    post_count,
+                    num_post,
                 ).await {
-                    Ok(mut new_post_vec) => {
-                        post_vec.update(|post_vec| post_vec.append(&mut new_post_vec))
-                    }
-                    Err(e) => load_error.set(Some(AppError::from(&e))),
+                    Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
+                    Err(ref e) => load_error.set(Some(AppError::from(e))),
                 }
                 is_loading.set(false);
-            });
+            }
         }
-    });
+    );
 
     view! {
         <ForumPostMiniatures

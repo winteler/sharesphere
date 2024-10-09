@@ -827,8 +827,8 @@ pub fn BanPanel() -> impl IntoView {
 
     let unban_action = ServerAction::<RemoveUserBan>::new();
     let banned_users_resource = Resource::new(
-        move || (forum_name.get(), username_debounced.get(), unban_action.version().get()),
-        move |(forum_name, username, _)| get_forum_ban_vec(forum_name, username)
+        move || (username_debounced.get(), unban_action.version().get()),
+        move |(username, _)| get_forum_ban_vec(forum_name.get_untracked(), username)
     );
 
     view! {

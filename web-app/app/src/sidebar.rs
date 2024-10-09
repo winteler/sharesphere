@@ -55,6 +55,7 @@ pub fn LeftSidebar() -> impl IntoView {
             (
                 state.handle_auth_redirect_action.version().get(),
                 state.logout_action.version().get(),
+                state.create_forum_action.version().get(),
                 state.subscribe_action.version().get(),
                 state.unsubscribe_action.version().get(),
             )

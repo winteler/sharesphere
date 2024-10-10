@@ -49,6 +49,7 @@ pub const FORUM_FETCH_LIMIT: i64 = 20;
 pub struct Forum {
     pub forum_id: i64,
     pub forum_name: String,
+    pub normalized_forum_name: String,
     pub description: String,
     pub is_nsfw: bool,
     pub is_banned: bool,
@@ -93,6 +94,31 @@ pub struct ForumState {
     pub remove_rule_action: ServerAction<RemoveRule>,
 }
 
+/// # Normalizes a forum's name by making it lowercase and replacing '-' by '_'.
+/// # Normalization is used to ensure forum names are sufficiently different.
+///
+/// ```
+/// use app::forum::normalize_forum_name;
+///
+/// assert_eq!(normalize_forum_name("Test 123-"), "test 123_");
+/// ```
+pub fn normalize_forum_name(name: &str) -> String {
+    name.to_lowercase().replace("-", "_")
+}
+
+/// # Returns whether a forum name is valid. Valid characters are ascii alphanumeric, '-' and '_'
+///
+/// ```
+/// use app::forum::is_valid_forum_name;
+///
+/// assert_eq!(is_valid_forum_name("-Abc123_"), true);
+/// assert_eq!(is_valid_forum_name(" name"), false);
+/// assert_eq!(is_valid_forum_name("name%"), false);
+/// ```
+pub fn is_valid_forum_name(name: &str) -> bool {
+    name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::collections::BTreeSet;
@@ -101,7 +127,7 @@ pub mod ssr {
 
     use crate::errors::AppError;
     use crate::errors::AppError::InternalServerError;
-    use crate::forum::{Forum, ForumWithUserInfo};
+    use crate::forum::{is_valid_forum_name, normalize_forum_name, Forum, ForumWithUserInfo};
     use crate::role::ssr::set_user_forum_role;
     use crate::role::PermissionLevel;
     use crate::user::User;
@@ -141,8 +167,8 @@ pub mod ssr {
 
     pub async fn is_forum_available(forum_name: &str, db_pool: &PgPool) -> Result<bool, AppError> {
         let forum_exist = sqlx::query!(
-            "SELECT forum_id FROM forums WHERE forum_name = $1",
-            forum_name
+            "SELECT forum_id FROM forums WHERE normalized_forum_name = $1",
+            normalize_forum_name(forum_name),
         )
         .fetch_one(db_pool)
         .await;
@@ -232,9 +258,7 @@ pub mod ssr {
             return Err(AppError::new("Cannot create Sphere with empty name."));
         }
 
-        if !name
-            .chars()
-            .all(|c| c.is_alphanumeric() && (c.is_lowercase() || c.is_numeric()))
+        if !is_valid_forum_name(&name)
         {
             return Err(AppError::new(
                 "Sphere name can only contain alphanumeric lowercase characters.",
@@ -752,7 +776,7 @@ pub fn CreateForum() -> impl IntoView {
     let is_nsfw = RwSignal::new(false);
     let is_name_empty = move || forum_name.read().is_empty();
     let is_name_alphanumeric =
-        move || forum_name.read().chars().all(char::is_alphanumeric);
+        move || is_valid_forum_name(&forum_name.read());
     let are_inputs_invalid = Memo::new(move |_| {
         is_name_empty()
             || is_name_taken.get()
@@ -775,7 +799,7 @@ pub fn CreateForum() -> impl IntoView {
                             class="input input-bordered input-primary h-input_l flex-none w-3/5"
                             autofocus
                             on:input=move |ev| {
-                                forum_name.update(|value| *value = event_target_value(&ev).to_lowercase());
+                                forum_name.update(|value| *value = event_target_value(&ev));
                             }
                             prop:value=forum_name
                         />
@@ -809,7 +833,7 @@ pub fn CreateForum() -> impl IntoView {
                         }
                         </Suspense>
                         <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
-                            <InternalErrorIcon/>
+                            <InternalErrorIcon class="h-16 w-16"/>
                             <span>"Only alphanumeric characters."</span>
                         </div>
                     </div>

@@ -8,7 +8,7 @@ use app::errors::AppError;
 use app::errors::AppError::InsufficientPrivileges;
 use app::forum;
 use app::forum::ssr::{subscribe, unsubscribe};
-use app::forum::Forum;
+use app::forum::{normalize_forum_name, Forum};
 use app::role::PermissionLevel;
 use app::user::User;
 
@@ -43,7 +43,7 @@ async fn test_is_forum_available() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
+    let forum_name = "forum-";
     forum::ssr::create_forum(
         forum_name,
         "forum",
@@ -53,14 +53,20 @@ async fn test_is_forum_available() -> Result<(), AppError> {
     )
     .await?;
 
-    forum::ssr::is_forum_available(forum_name, &db_pool).await?;
-
     assert_eq!(
         forum::ssr::is_forum_available(forum_name, &db_pool).await?,
         false
     );
     assert_eq!(
-        forum::ssr::is_forum_available("AvailableForum", &db_pool).await?,
+        forum::ssr::is_forum_available("Forum-", &db_pool).await?,
+        false
+    );
+    assert_eq!(
+        forum::ssr::is_forum_available("forum_", &db_pool).await?,
+        false
+    );
+    assert_eq!(
+        forum::ssr::is_forum_available("aForum-", &db_pool).await?,
         true
     );
 
@@ -290,7 +296,7 @@ async fn test_create_forum() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
-    let forum_name = "a";
+    let forum_name = "A1-";
     let forum_description = "a";
     let forum = forum::ssr::create_forum(
         forum_name,
@@ -301,6 +307,7 @@ async fn test_create_forum() -> Result<(), AppError> {
     ).await.expect("Should be possible to create forum.");
 
     assert_eq!(forum.forum_name, forum_name);
+    assert_eq!(forum.normalized_forum_name, normalize_forum_name(forum_name));
     assert_eq!(forum.creator_id, test_user.user_id);
     assert_eq!(forum.description, forum_description);
     assert_eq!(forum.is_nsfw, false);
@@ -313,7 +320,12 @@ async fn test_create_forum() -> Result<(), AppError> {
     assert_eq!(*forum_permission, PermissionLevel::Lead);
 
     assert!(
-        forum::ssr::create_forum("A", "a", false, &test_user, &db_pool)
+        forum::ssr::create_forum(&forum_name, "a", false, &test_user, &db_pool)
+            .await
+            .is_err()
+    );
+    assert!(
+        forum::ssr::create_forum("a1_", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
@@ -323,7 +335,7 @@ async fn test_create_forum() -> Result<(), AppError> {
             .is_err()
     );
     assert!(
-        forum::ssr::create_forum("-", "a", false, &test_user, &db_pool)
+        forum::ssr::create_forum(" ", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );

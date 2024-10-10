@@ -12,6 +12,9 @@ CREATE TABLE users (
 CREATE TABLE forums (
     forum_id BIGSERIAL PRIMARY KEY,
     forum_name TEXT UNIQUE NOT NULL,
+    normalized_forum_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
+            REPLACE(LOWER(forum_name), '-', '_')
+        ) STORED,
     description TEXT NOT NULL,
     is_nsfw BOOLEAN NOT NULL,
     is_banned BOOLEAN NOT NULL DEFAULT FALSE,

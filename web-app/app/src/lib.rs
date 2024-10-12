@@ -1,4 +1,6 @@
 #![recursion_limit = "256"]
+extern crate core;
+
 pub mod app;
 pub mod auth;
 pub mod comment;

@@ -3,7 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
-use leptos_use::signal_debounced;
+use leptos_use::{signal_debounced, use_textarea_autosize, UseTextareaAutosizeReturn};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::sync::Arc;
@@ -857,11 +857,16 @@ pub fn CreatePost() -> impl IntoView {
 
     let forum_name_input = RwSignal::new(forum_query());
     let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
-    let post_body = RwSignal::new(String::new());
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let UseTextareaAutosizeReturn {
+        content,
+        set_content,
+        ..
+    } = use_textarea_autosize(textarea_ref);
     let is_title_empty = RwSignal::new(true);
     let is_nsfw = RwSignal::new(false);
     let is_spoiler = RwSignal::new(false);
-    let is_content_invalid = Memo::new(move |_| is_title_empty.get() || post_body.read().is_empty());
+    let is_content_invalid = Memo::new(move |_| is_title_empty.get() || content.read().is_empty());
     let is_nsfw_string = move || is_nsfw.get().to_string();
     let is_spoiler_string = move || is_spoiler.get().to_string();
 
@@ -923,7 +928,9 @@ pub fn CreatePost() -> impl IntoView {
                         name="body"
                         is_markdown_name="is_markdown"
                         placeholder="Content"
-                        content=post_body
+                        content
+                        set_content
+                        textarea_ref
                     />
                     <div class="form-control">
                         <input type="text" name="is_nsfw" value=is_nsfw_string class="hidden"/>
@@ -997,8 +1004,14 @@ pub fn EditPostForm(
         None => (post_body, false),
     };
     let is_title_empty = RwSignal::new(false);
-    let post = RwSignal::new(current_body);
-    let is_post_empty = Signal::derive(move || post.read().is_empty());
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let UseTextareaAutosizeReturn {
+        content,
+        set_content,
+        ..
+    } = use_textarea_autosize(textarea_ref);
+    set_content(current_body);
+    let is_post_empty = Signal::derive(move || content.read().is_empty());
 
     let has_error = action_has_error(state.edit_post_action.into());
 
@@ -1029,7 +1042,9 @@ pub fn EditPostForm(
                         name="body"
                         is_markdown_name="is_markdown"
                         placeholder="Content"
-                        content=post
+                        content
+                        set_content
+                        textarea_ref
                         is_markdown
                     />
                     <ModalFormButtons

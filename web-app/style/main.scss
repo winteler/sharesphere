@@ -3136,10 +3136,6 @@ html {
   height: 3rem;
 }
 
-.h-14 {
-  height: 3.5rem;
-}
-
 .h-16 {
   height: 4rem;
 }
@@ -3227,10 +3223,6 @@ html {
 
 .w-12 {
   width: 3rem;
-}
-
-.w-14 {
-  width: 3.5rem;
 }
 
 .w-16 {
@@ -3375,6 +3367,10 @@ html {
   -webkit-user-select: none;
      -moz-user-select: none;
           user-select: none;
+}
+
+.resize-none {
+  resize: none;
 }
 
 .list-inside {
@@ -4026,6 +4022,17 @@ input[type="number"].no-spinner {
 
 .spoiler-checkbox:checked + .spoiler-text {
   background-color: black;
+}
+
+/* remove textarea scrollbar as we autoscale them */
+
+textarea {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+textarea::-webkit-scrollbar {
+  display: none;
 }
 
 .hover\:border:hover {

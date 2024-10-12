@@ -68,3 +68,13 @@ input[type="number"].no-spinner {
 .spoiler-checkbox:checked + .spoiler-text {
     background-color: black;
 }
+
+/* remove textarea scrollbar as we autoscale them */
+textarea {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+textarea::-webkit-scrollbar {
+    display: none;
+}

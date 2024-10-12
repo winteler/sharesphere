@@ -190,14 +190,16 @@ pub fn FormMarkdownEditor(
     is_markdown_name: &'static str,
     /// Placeholder for the textarea
     placeholder: &'static str,
+    /// Signal to read content in parent
+    content: Signal<String>,
     /// Signal to synchronize content between this component and its parent
-    content: RwSignal<String>,
+    set_content: WriteSignal<String>,
+    /// Reference to textarea, must be declared in parent to use leptos-use's textarea autoresize
+    textarea_ref: NodeRef::<html::Textarea>,
     /// Initial state for markdown rendering
     #[prop(default = false)]
     is_markdown: bool,
 ) -> impl IntoView {
-    let num_lines = move || content.read().lines().count();
-
     let is_markdown_mode = RwSignal::new(is_markdown);
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
     let markdown_button_class = move || match is_markdown_mode.get() {
@@ -221,8 +223,6 @@ pub fn FormMarkdownEditor(
         },
     );
 
-    let textarea_ref = NodeRef::<html::Textarea>::new();
-
     view! {
         <div class="flex flex-col gap-2">
             <div class="group w-full max-w-full p-2 border border-primary rounded-sm bg-base-100">
@@ -234,11 +234,10 @@ pub fn FormMarkdownEditor(
                         id="comment"
                         name=name
                         placeholder=placeholder
-                        rows=num_lines
-                        class="w-full min-h-24 max-h-96 bg-base-100 outline-none border-none"
+                        class="w-full resize-none bg-base-100 outline-none border-none"
                         autofocus
                         on:input=move |ev| {
-                            content.update(|content: &mut String| *content = event_target_value(&ev));
+                            set_content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
                         node_ref=textarea_ref
                     >
@@ -259,18 +258,18 @@ pub fn FormMarkdownEditor(
                                 <MarkdownIcon/>
                             </div>
                         </label>
-                        <FormatButton format_type=FormatType::Bold content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Italic content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Strikethrough content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Header1 content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Header2 content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::List content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::NumberedList content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::CodeBlock content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Spoiler content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::BlockQuote content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Link content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Image content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Bold content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Italic content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Strikethrough content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Header1 content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Header2 content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::List content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::NumberedList content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::CodeBlock content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Spoiler content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::BlockQuote content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Link content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Image content set_content textarea_ref is_markdown_mode/>
                     </div>
                     <HelpButton/>
                 </div>
@@ -289,8 +288,10 @@ pub fn FormMarkdownEditor(
 /// Component to format the selected text in the given textarea
 #[component]
 pub fn FormatButton(
-    /// name of the textarea in the form that contains this component, must correspond to the parameter of the associated server function
-    content: RwSignal<String>,
+    /// Setter signal for formatted content
+    set_content: WriteSignal<String>,
+    /// Getter signal for content
+    content: Signal<String>,
     /// reference to the textarea
     textarea_ref: NodeRef<html::Textarea>,
     /// signal indicating whether markdown rendering is activated
@@ -310,7 +311,7 @@ pub fn FormatButton(
                         (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
                             let selection_start = selection_start as usize;
                             let selection_end = selection_end as usize;
-                            content.update(|content| {
+                            set_content.update(|content| {
                                 format_textarea_content(
                                     content,
                                     selection_start,

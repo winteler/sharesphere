@@ -1,13 +1,10 @@
-use crate::icons::{HammerIcon, MagnifierIcon};
-use leptos::prelude::*;
-use std::sync::Arc;
-
 use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
-use crate::editor::FormTextEditor;
+use crate::editor::{FormTextEditor, TextareaData};
 use crate::forum::ForumState;
 use crate::forum_management::{get_rule_by_id, ModerationInfo};
+use crate::icons::{HammerIcon, MagnifierIcon};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack};
@@ -21,6 +18,10 @@ use crate::{
     forum_management::ssr::load_rule_by_id,
     post::ssr::get_post_by_id
 };
+use leptos::html;
+use leptos::prelude::*;
+use leptos_use::use_textarea_autosize;
+use std::sync::Arc;
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
@@ -408,8 +409,14 @@ pub fn ModeratePostDialog(
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
 
-    let moderate_text = RwSignal::new(String::new());
-    let is_text_empty = Signal::derive(move || moderate_text.read().is_empty());
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let body_autosize = use_textarea_autosize(textarea_ref);
+    let body_data = TextareaData {
+        content: body_autosize.content,
+        set_content: body_autosize.set_content,
+        textarea_ref,
+    };
+    let is_text_empty = Signal::derive(move || body_data.content.read().is_empty());
 
     let has_error = action_has_error(forum_state.moderate_post_action.into());
 
@@ -432,7 +439,7 @@ pub fn ModeratePostDialog(
                         <FormTextEditor
                             name="moderator_message"
                             placeholder="Message"
-                            content=moderate_text
+                            data=body_data
                         />
                         <BanMenu/>
                         <ModalFormButtons
@@ -454,8 +461,14 @@ pub fn ModerateCommentDialog(
     comment: RwSignal<Comment>,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
-    let moderate_text = RwSignal::new(String::new());
-    let is_text_empty = Signal::derive(move || moderate_text.read().is_empty());
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let comment_autosize = use_textarea_autosize(textarea_ref);
+    let comment_data = TextareaData{
+        content: comment_autosize.content,
+        set_content: comment_autosize.set_content,
+        textarea_ref,
+    };
+    let is_text_empty = Signal::derive(move || comment_data.content.read().is_empty());
 
     let moderate_comment_action = ServerAction::<ModerateComment>::new();
 
@@ -488,7 +501,7 @@ pub fn ModerateCommentDialog(
                         <FormTextEditor
                             name="moderator_message"
                             placeholder="Message"
-                            content=moderate_text
+                            data=comment_data
                         />
                         <BanMenu/>
                         <ModalFormButtons

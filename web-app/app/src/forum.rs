@@ -4,7 +4,7 @@ use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
 use crate::constants::PATH_SEPARATOR;
 use crate::content::PostSortWidget;
-use crate::editor::FormTextEditor;
+use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::forum_management::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
@@ -32,7 +32,7 @@ use leptos::prelude::*;
 use leptos_router::components::{Outlet, A};
 use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
-use leptos_use::signal_debounced;
+use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -772,7 +772,13 @@ pub fn CreateForum() -> impl IntoView {
     );
 
     let is_name_taken = RwSignal::new(false);
-    let description = RwSignal::new(String::new());
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let textarea_autosize = use_textarea_autosize(textarea_ref);
+    let description_data = TextareaData {
+        content: textarea_autosize.content,
+        set_content: textarea_autosize.set_content,
+        textarea_ref,
+    };
     let is_nsfw = RwSignal::new(false);
     let is_name_empty = move || forum_name.read().is_empty();
     let is_name_alphanumeric =
@@ -781,7 +787,7 @@ pub fn CreateForum() -> impl IntoView {
         is_name_empty()
             || is_name_taken.get()
             || !is_name_alphanumeric()
-            || description.read().is_empty()
+            || description_data.content.read().is_empty()
     });
     let is_nsfw_string = move || is_nsfw.get().to_string();
 
@@ -840,7 +846,7 @@ pub fn CreateForum() -> impl IntoView {
                     <FormTextEditor
                         name="description"
                         placeholder="Description"
-                        content=description
+                        data=description_data
                     />
                     <div class="form-control">
                         <input type="text" name="is_nsfw" value=is_nsfw_string class="hidden"/>

@@ -22,6 +22,13 @@ pub enum FormatType {
     Image,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct TextareaData {
+    pub content: Signal<String>,
+    pub set_content: WriteSignal<String>,
+    pub textarea_ref: NodeRef<html::Textarea>
+}
+
 #[cfg(feature = "ssr")]
 mod ssr {
     use std::io::Cursor;
@@ -149,32 +156,31 @@ pub fn FormTextEditor(
     name: &'static str,
     /// name of the hidden checkbox indicating whether markdown mode is enabled, must correspond to the parameter of the associated server function
     placeholder: &'static str,
-    /// Signal to synchronize content between this component and its parent
-    content: RwSignal<String>,
+    /// Signals and node ref to control textarea content
+    data: TextareaData,
     /// Additional css classes
     #[prop(default = "w-full")]
     class: &'static str,
 ) -> impl IntoView {
-    let num_lines = move || content.read().lines().count();
     let class = format!("group max-w-full p-2 border border-primary rounded-sm bg-base-100 {class}");
 
     view! {
         <div class=class>
             <div class="w-full rounded-t-lg">
-                <label for="text" class="sr-only">
-                    "Your text"
+                <label for=name class="sr-only">
+                    {placeholder}
                 </label>
                 <textarea
-                    id="comment"
+                    id=name
                     name=name
                     placeholder=placeholder
-                    rows=num_lines
-                    class="w-full min-h-24 max-h-96 bg-base-100 outline-none border-none"
+                    class="w-full bg-base-100 resize-none outline-none border-none"
                     on:input=move |ev| {
-                        content.update(|content: &mut String| *content = event_target_value(&ev));
+                        data.set_content.update(|content: &mut String| *content = event_target_value(&ev));
                     }
+                    node_ref=data.textarea_ref
                 >
-                    {content}
+                    {data.content}
                 </textarea>
             </div>
         </div>
@@ -190,12 +196,8 @@ pub fn FormMarkdownEditor(
     is_markdown_name: &'static str,
     /// Placeholder for the textarea
     placeholder: &'static str,
-    /// Signal to read content in parent
-    content: Signal<String>,
-    /// Signal to synchronize content between this component and its parent
-    set_content: WriteSignal<String>,
-    /// Reference to textarea, must be declared in parent to use leptos-use's textarea autoresize
-    textarea_ref: NodeRef::<html::Textarea>,
+    /// Signals and node ref to control textarea content
+    data: TextareaData,
     /// Initial state for markdown rendering
     #[prop(default = false)]
     is_markdown: bool,
@@ -209,7 +211,7 @@ pub fn FormMarkdownEditor(
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
     // we wait for the debounced
-    let content_debounced: Signal<String> = signal_debounced(content, 500.0);
+    let content_debounced: Signal<String> = signal_debounced(data.content, 500.0);
     let is_md_mode_debounced: Signal<bool> = signal_debounced(is_markdown_mode, 500.0);
 
     let render_markdown_resource = Resource::new(
@@ -227,21 +229,21 @@ pub fn FormMarkdownEditor(
         <div class="flex flex-col gap-2">
             <div class="group w-full max-w-full p-2 border border-primary rounded-sm bg-base-100">
                 <div class="w-full mb-1 rounded-t-lg">
-                    <label for="comment" class="sr-only">
+                    <label for=name class="sr-only">
                         {placeholder}
                     </label>
                     <textarea
-                        id="comment"
+                        id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full resize-none bg-base-100 outline-none border-none"
+                        class="w-full resize-none bg-base-200 p-1 rounded-sm outline-none border-none"
                         autofocus
                         on:input=move |ev| {
-                            set_content.update(|content: &mut String| *content = event_target_value(&ev));
+                            data.set_content.update(|content: &mut String| *content = event_target_value(&ev));
                         }
-                        node_ref=textarea_ref
+                        node_ref=data.textarea_ref
                     >
-                        {content}
+                        {data.content}
                     </textarea>
                 </div>
                 <div class="flex justify-between">
@@ -258,18 +260,18 @@ pub fn FormMarkdownEditor(
                                 <MarkdownIcon/>
                             </div>
                         </label>
-                        <FormatButton format_type=FormatType::Bold content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Italic content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Strikethrough content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Header1 content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Header2 content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::List content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::NumberedList content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::CodeBlock content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Spoiler content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::BlockQuote content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Link content set_content textarea_ref is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Image content set_content textarea_ref is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Bold data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Italic data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Strikethrough data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Header1 data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Header2 data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::List data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::NumberedList data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::CodeBlock data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Spoiler data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::BlockQuote data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Link data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Image data is_markdown_mode/>
                     </div>
                     <HelpButton/>
                 </div>
@@ -288,12 +290,8 @@ pub fn FormMarkdownEditor(
 /// Component to format the selected text in the given textarea
 #[component]
 pub fn FormatButton(
-    /// Setter signal for formatted content
-    set_content: WriteSignal<String>,
-    /// Getter signal for content
-    content: Signal<String>,
-    /// reference to the textarea
-    textarea_ref: NodeRef<html::Textarea>,
+    /// Signals and node ref to control textarea content
+    data: TextareaData,
     /// signal indicating whether markdown rendering is activated
     is_markdown_mode: RwSignal<bool>,
     /// format operation of the button
@@ -304,14 +302,14 @@ pub fn FormatButton(
             type="button"
             class="p-2 rounded-md hover:bg-base-content/20"
             on:click=move |_| {
-                if let Some(textarea_ref) = textarea_ref.get_untracked() {
+                if let Some(textarea_ref) = data.textarea_ref.get_untracked() {
                     let selection_start = textarea_ref.selection_start();
                     let selection_end = textarea_ref.selection_end();
                     match (selection_start, selection_end) {
                         (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
                             let selection_start = selection_start as usize;
                             let selection_end = selection_end as usize;
-                            set_content.update(|content| {
+                            data.set_content.update(|content| {
                                 format_textarea_content(
                                     content,
                                     selection_start,
@@ -319,7 +317,7 @@ pub fn FormatButton(
                                     format_type,
                                 );
                             });
-                            content.with_untracked(|content| textarea_ref.set_value(content));
+                            data.content.with_untracked(|content| textarea_ref.set_value(content));
                             if !is_markdown_mode.get_untracked() {
                                 is_markdown_mode.set(true);
                             }

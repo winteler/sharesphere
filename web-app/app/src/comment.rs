@@ -6,7 +6,7 @@ use crate::constants::{BEST_STR, RECENT_STR};
 use crate::content::{Content, ContentBody};
 #[cfg(feature = "ssr")]
 use crate::editor::get_styled_html_from_markdown;
-use crate::editor::FormMarkdownEditor;
+use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::icons::{CommentIcon, EditIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::navigation_bar::get_current_path;
@@ -19,7 +19,7 @@ use crate::widget::{ActionError, AuthorWidget, MinimizeMaximizeWidget, ModalDial
 use crate::{app::ssr::get_db_pool, auth::get_user};
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::{use_textarea_autosize, UseTextareaAutosizeReturn};
+use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -742,13 +742,14 @@ pub fn CommentForm(
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let UseTextareaAutosizeReturn {
-        content,
-        set_content,
-        ..
-    } = use_textarea_autosize(textarea_ref);
+    let comment_autosize = use_textarea_autosize(textarea_ref);
+    let comment_data = TextareaData {
+        content: comment_autosize.content,
+        set_content: comment_autosize.set_content,
+        textarea_ref,
+    };
 
-    let is_comment_empty = Signal::derive(move || content.read().is_empty());
+    let is_comment_empty = Signal::derive(move || comment_data.content.read().is_empty());
 
     let create_comment_action = ServerAction::<CreateComment>::new();
 
@@ -782,9 +783,7 @@ pub fn CommentForm(
                         name="comment"
                         is_markdown_name="is_markdown"
                         placeholder="Your comment..."
-                        content
-                        set_content
-                        textarea_ref
+                        data=comment_data
                     />
                     <ModalFormButtons
                         disable_publish=is_comment_empty
@@ -870,14 +869,15 @@ pub fn EditCommentForm(
             None => (comment.body.clone(), false),
         });
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let UseTextareaAutosizeReturn {
-        content,
-        set_content,
-        ..
-    } = use_textarea_autosize(textarea_ref);
-    set_content(current_body);
+    let comment_autosize = use_textarea_autosize(textarea_ref);
+    let comment_data = TextareaData {
+        content: comment_autosize.content,
+        set_content: comment_autosize.set_content,
+        textarea_ref,
+    };
+    comment_data.set_content.update(|content| *content = current_body);
     let is_comment_empty = Signal::derive(
-        move || content.read().is_empty()
+        move || comment_data.content.read().is_empty()
     );
     let edit_comment_action = ServerAction::<EditComment>::new();
 
@@ -906,9 +906,7 @@ pub fn EditCommentForm(
                         name="comment"
                         is_markdown_name="is_markdown"
                         placeholder="Your comment..."
-                        content
-                        set_content
-                        textarea_ref
+                        data=comment_data
                         is_markdown
                     />
                     <ModalFormButtons

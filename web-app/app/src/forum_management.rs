@@ -2,7 +2,7 @@ use chrono::SecondsFormat;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
-use leptos_use::signal_debounced;
+use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 
 use crate::app::{GlobalState, LoginWindow};
 use crate::content::Content;
-use crate::editor::FormTextEditor;
+use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorDisplay;
 use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
@@ -454,8 +454,15 @@ pub fn ForumDescriptionForm(
     forum: Arc<Forum>,
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
-    let description = RwSignal::new(forum.description.clone());
-    let disable_submit = move || description.read().is_empty();
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let description_autosize = use_textarea_autosize(textarea_ref);
+    let description_data = TextareaData {
+        content: description_autosize.content,
+        set_content: description_autosize.set_content,
+        textarea_ref
+    };
+    description_data.set_content.update(move |content| *content = forum.description.clone());
+    let disable_submit = move || description_data.content.read().is_empty();
     view! {
         <ActionForm
             action=forum_state.update_forum_desc_action
@@ -469,7 +476,7 @@ pub fn ForumDescriptionForm(
             <FormTextEditor
                 name="description"
                 placeholder="Description"
-                content=description
+                data=description_data
             />
             <button
                 type="submit"
@@ -708,9 +715,23 @@ pub fn EditRuleForm(
     let forum_state = expect_context::<ForumState>();
     let rule = rule.get_value();
     let priority = RwSignal::new(rule.priority.to_string());
-    let title = RwSignal::new(rule.title);
-    let description = RwSignal::new(rule.description);
-    let invalid_inputs = Signal::derive(move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty());
+    let title_ref = NodeRef::<html::Textarea>::new();
+    let title_autosize = use_textarea_autosize(title_ref);
+    let title_data = TextareaData {
+        content: title_autosize.content,
+        set_content: title_autosize.set_content,
+        textarea_ref: title_ref,
+    };
+    let description_ref = NodeRef::<html::Textarea>::new();
+    let desc_autosize = use_textarea_autosize(title_ref);
+    let description_data = TextareaData {
+        content: desc_autosize.content,
+        set_content: desc_autosize.set_content,
+        textarea_ref: description_ref,
+    };
+    let invalid_inputs = Signal::derive(move || {
+        priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+    });
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
@@ -727,7 +748,7 @@ pub fn EditRuleForm(
                     value=rule.priority
                 />
                 <div class="flex flex-col gap-3 w-full">
-                    <RuleInputs priority title description/>
+                    <RuleInputs priority title_data description_data/>
                     <ModalFormButtons
                         disable_publish=invalid_inputs
                         show_form
@@ -744,9 +765,23 @@ pub fn CreateRuleForm() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let show_dialog = RwSignal::new(false);
     let priority = RwSignal::new(String::default());
-    let title = RwSignal::new(String::default());
-    let description = RwSignal::new(String::default());
-    let invalid_inputs = Signal::derive(move || priority.read().is_empty() || title.read().is_empty() || description.read().is_empty());
+    let title_ref = NodeRef::<html::Textarea>::new();
+    let title_autosize = use_textarea_autosize(title_ref);
+    let title_data = TextareaData {
+        content: title_autosize.content,
+        set_content: title_autosize.set_content,
+        textarea_ref: title_ref,
+    };
+    let description_ref = NodeRef::<html::Textarea>::new();
+    let desc_autosize = use_textarea_autosize(title_ref);
+    let description_data = TextareaData {
+        content: desc_autosize.content,
+        set_content: desc_autosize.set_content,
+        textarea_ref: description_ref,
+    };
+    let invalid_inputs = Signal::derive(move || {
+        priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+    });
 
     view! {
         <button
@@ -771,7 +806,7 @@ pub fn CreateRuleForm() -> impl IntoView {
                         value=forum_state.forum_name
                     />
                     <div class="flex flex-col gap-3 w-full">
-                        <RuleInputs priority title description/>
+                        <RuleInputs priority title_data description_data/>
                         <ModalFormButtons
                             disable_publish=invalid_inputs
                             show_form=show_dialog
@@ -787,8 +822,8 @@ pub fn CreateRuleForm() -> impl IntoView {
 #[component]
 pub fn RuleInputs(
     priority: RwSignal<String>,
-    title: RwSignal<String>,
-    description: RwSignal<String>,
+    title_data: TextareaData,
+    description_data: TextareaData,
 ) -> impl IntoView {
     view! {
         <div class="flex gap-1 content-center">
@@ -805,13 +840,13 @@ pub fn RuleInputs(
             <FormTextEditor
                 name="title"
                 placeholder="Title"
-                content=title
+                data=title_data
                 class="w-5/12"
             />
             <FormTextEditor
                 name="description"
                 placeholder="Description"
-                content=description
+                data=description_data
                 class="w-6/12"
             />
         </div>

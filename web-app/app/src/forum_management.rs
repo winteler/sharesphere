@@ -773,7 +773,7 @@ pub fn CreateRuleForm() -> impl IntoView {
         textarea_ref: title_ref,
     };
     let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(title_ref);
+    let desc_autosize = use_textarea_autosize(description_ref);
     let description_data = TextareaData {
         content: desc_autosize.content,
         set_content: desc_autosize.set_content,

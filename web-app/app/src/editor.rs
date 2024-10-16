@@ -174,7 +174,7 @@ pub fn FormTextEditor(
                     id=name
                     name=name
                     placeholder=placeholder
-                    class="w-full bg-base-100 resize-none outline-none border-none"
+                    class="w-full bg-base-100 resize-none box-border outline-none border-none"
                     on:input=move |ev| {
                         data.set_content.update(|content: &mut String| *content = event_target_value(&ev));
                     }
@@ -236,7 +236,7 @@ pub fn FormMarkdownEditor(
                         id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full resize-none bg-base-200 p-1 rounded-sm outline-none border-none"
+                        class="w-full resize-none box-border bg-base-200 p-1 rounded-sm outline-none"
                         autofocus
                         on:input=move |ev| {
                             data.set_content.update(|content: &mut String| *content = event_target_value(&ev));

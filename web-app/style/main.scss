@@ -3100,6 +3100,10 @@ html {
   margin-top: 0.75rem;
 }
 
+.box-border {
+  box-sizing: border-box;
+}
+
 .inline-block {
   display: inline-block;
 }
@@ -3906,6 +3910,10 @@ html {
 .outline-none {
   outline: 2px solid transparent;
   outline-offset: 2px;
+}
+
+.outline-primary {
+  outline-color: hsl(var(--p) / 1);
 }
 
 .backdrop-blur {

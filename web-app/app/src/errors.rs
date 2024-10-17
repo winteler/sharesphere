@@ -3,12 +3,12 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use http::status::StatusCode;
-use leptos::prelude::IntoAny;
+use leptos::prelude::*;
 use leptos::{component, prelude::ServerFnError, view, IntoView};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::icons::{AuthErrorIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthorizedIcon, NotFoundIcon};
+use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotFoundIcon};
 
 const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you";
 const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong";
@@ -155,7 +155,7 @@ pub fn AppErrorIcon(
     match app_error {
         AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> }.into_any(),
         AppError::NotAuthenticated | AppError::InsufficientPrivileges |AppError::ForumBanUntil(_) |
-        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <NotAuthorizedIcon/> }.into_any(), // TODO better icon for bans (judge, hammer?)
+        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <BannedIcon/> }.into_any(),
         AppError::CommunicationError(error) => match error {
             ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
             ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),
@@ -165,6 +165,27 @@ pub fn AppErrorIcon(
         AppError::InternalServerError(_) => view! { <InternalErrorIcon/> }.into_any(),
         AppError::NotFound => view! { <NotFoundIcon/> }.into_any(),
     }
+}
+
+/// Displays an error
+#[component]
+pub fn ErrorDisplay(
+    error: AppError
+) -> impl IntoView {
+    let error_string = error.to_string();
+    let status_code =  error.status_code().as_u16();
+    let user_message = error.user_message();
+
+    log::error!("Caught error, status_code: {status_code}, error message: {error_string}");
+    view! {
+        <div class="w-full flex items-center gap-2 justify-center">
+            <AppErrorIcon app_error=error/>
+            <div class="flex flex-col">
+                <h2 class="text-2xl">{status_code}</h2>
+                <h3 class="text-xl">{user_message}</h3>
+            </div>
+        </div>
+    }.into_any()
 }
 
 #[cfg(test)]

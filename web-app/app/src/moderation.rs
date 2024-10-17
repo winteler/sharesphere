@@ -7,8 +7,8 @@ use crate::forum_management::{get_rule_by_id, ModerationInfo};
 use crate::icons::{HammerIcon, MagnifierIcon};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack};
-use crate::widget::{ActionError, ModalDialog, ModalFormButtons};
+use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack};
+use crate::widget::{ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -418,8 +418,6 @@ pub fn ModeratePostDialog(
     };
     let is_text_empty = Signal::derive(move || body_data.content.read().is_empty());
 
-    let has_error = action_has_error(forum_state.moderate_post_action.into());
-
     view! {
         <ModalDialog
             class="w-full max-w-xl"
@@ -448,7 +446,7 @@ pub fn ModeratePostDialog(
                         />
                     </div>
                 </ActionForm>
-                <ActionError has_error/>
+                <ActionError action=forum_state.moderate_post_action.into()/>
             </div>
         </ModalDialog>
     }.into_any()
@@ -473,7 +471,6 @@ pub fn ModerateCommentDialog(
     let moderate_comment_action = ServerAction::<ModerateComment>::new();
 
     let moderate_result = moderate_comment_action.value();
-    let has_error = action_has_error(moderate_comment_action.into());
 
     Effect::new(move |_| {
         if let Some(Ok(moderated_comment)) = moderate_result.get() {
@@ -510,7 +507,7 @@ pub fn ModerateCommentDialog(
                         />
                     </div>
                 </ActionForm>
-                <ActionError has_error/>
+                <ActionError action=moderate_comment_action.into()/>
             </div>
         </ModalDialog>
     }.into_any()

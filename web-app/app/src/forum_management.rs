@@ -11,7 +11,7 @@ use strum::IntoEnumIterator;
 use crate::app::{GlobalState, LoginWindow};
 use crate::content::Content;
 use crate::editor::{FormTextEditor, TextareaData};
-use crate::error_template::ErrorDisplay;
+use crate::errors::ErrorDisplay;
 use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};

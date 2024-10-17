@@ -16,11 +16,11 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::forum::{get_matching_forum_name_set, ForumState};
-use crate::icons::{EditIcon, InternalErrorIcon, LoadingIcon};
+use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::unpack::{action_has_error, ArcTransitionUnpack, TransitionUnpack};
-use crate::widget::{ActionError, AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
+use crate::widget::{AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -844,7 +844,6 @@ pub fn EditPostButton(
 #[component]
 pub fn CreatePost() -> impl IntoView {
     let create_post_action = ServerAction::<CreatePost>::new();
-    let has_error = action_has_error(create_post_action.into());
 
     let query = use_query_map();
     let forum_query = move || {
@@ -953,15 +952,7 @@ pub fn CreatePost() -> impl IntoView {
                     <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
                 </div>
             </ActionForm>
-            <Show
-                when=has_error
-                fallback=move || ()
-            >
-                <div class="alert alert-error flex justify-center">
-                    <InternalErrorIcon/>
-                    <span>"Server error. Please reload the page and retry."</span>
-                </div>
-            </Show>
+            <ActionError action=create_post_action.into()/>
         </div>
     }
 }
@@ -1013,8 +1004,6 @@ pub fn EditPostForm(
     body_data.set_content.update(|content| *content = current_body);
     let is_post_empty = Signal::derive(move || body_data.content.read().is_empty());
 
-    let has_error = action_has_error(state.edit_post_action.into());
-
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Edit your post"</div>
@@ -1051,7 +1040,7 @@ pub fn EditPostForm(
                     />
                 </div>
             </ActionForm>
-            <ActionError has_error/>
+            <ActionError action=state.edit_post_action.into()/>
         </div>
     }
 }

@@ -2,7 +2,7 @@
 use http::StatusCode;
 use leptos::prelude::*;
 
-use crate::errors::{AppError, AppErrorIcon};
+use crate::errors::{AppError, ErrorDisplay};
 
 // A basic function to display errors served by the error boundaries. Feel free to do more complicated things
 // here than just displaying them
@@ -56,27 +56,6 @@ pub fn ErrorTemplate(
                     view! { <ErrorDisplay error/> }.into_any()
                 }
             />
-        </div>
-    }.into_any()
-}
-
-// Displays an error
-#[component]
-pub fn ErrorDisplay(
-    error: AppError
-) -> impl IntoView {
-    let error_string = error.to_string();
-    let status_code =  error.status_code().as_u16();
-    let user_message = error.user_message();
-
-    log::error!("Caught error in ErrorTemplate, status_code: {status_code}, error message: {error_string}");
-    view! {
-        <div class="w-full flex items-center gap-2 justify-center">
-            <AppErrorIcon app_error=error/>
-            <div class="flex flex-col">
-                <h2 class="text-2xl">{status_code}</h2>
-                <h3 class="text-xl">{user_message}</h3>
-            </div>
         </div>
     }.into_any()
 }

@@ -1,5 +1,5 @@
 use crate::error_template::ErrorTemplate;
-use crate::errors::AppError;
+use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LoadingIcon;
 use leptos::prelude::*;
 use leptos::server_fn::error::ServerFnErrorErr;
@@ -28,6 +28,26 @@ pub fn action_has_error<
     action: Action<A, Result<T, ServerFnError>>
 ) -> Signal<bool> {
     Signal::derive(move || matches!(*action.value().read(), Some(Err(_))))
+}
+
+/// Component to render a server action's error
+#[component]
+pub fn ActionError<
+    T: Clone + Send + Sync + 'static,
+    A: Send + Sync + 'static,
+>(
+    action: Action<A, Result<T, ServerFnError>>
+) -> impl IntoView {
+    view! {
+        <Show when=action_has_error(action)>
+        {
+            match &*action.value().read() {
+                Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
+                _ => ().into_any(),
+            }
+        }
+        </Show>
+    }
 }
 
 #[component]

@@ -15,6 +15,13 @@ pub fn AuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Into
 }
 
 #[component]
+pub fn BannedIcon(#[prop(default = "h-20 w-20")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/banned.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn BoldIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/bold.svg" class=class/>

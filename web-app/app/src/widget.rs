@@ -5,7 +5,7 @@ use strum::IntoEnumIterator;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, InternalErrorIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, };
+use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, };
 
 /// Component that displays its children in a modal dialog
 #[component]
@@ -178,22 +178,6 @@ pub fn ModalFormButtons(
                 "Publish"
             </button>
         </div>
-    }
-}
-
-/// Component to render a server action's error
-#[component]
-pub fn ActionError<F: Fn() -> bool + Send + Sync + 'static>(
-    /// functions returning whether the publish buttons should be disabled
-    has_error: F,
-) -> impl IntoView {
-    view! {
-        <Show when=has_error>
-            <div class="alert alert-error flex justify-center">
-                <InternalErrorIcon/>
-                <span>"Server error. Please reload the page and retry."</span>
-            </div>
-        </Show>
     }
 }
 

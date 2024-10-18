@@ -168,7 +168,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     let (_forum, post) = create_forum_with_post("forum", &user, &db_pool).await;
 
     let comment_body = "a";
-    let comment = create_comment(post.post_id, None, comment_body, None, &user, &db_pool).await.expect("Comment should be created.");
+    let comment = create_comment(post.post_id, None, comment_body, None, false, &user, &db_pool).await.expect("Comment should be created.");
 
     assert_eq!(comment.body, comment_body);
     assert_eq!(comment.markdown_body, None);
@@ -187,7 +187,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.edit_timestamp, None);
 
     let markdown_body = "# markdown";
-    let child_comment = create_comment(post.post_id, Some(comment.comment_id), comment_body, Some(markdown_body), &user, &db_pool).await.expect("Comment should be created.");
+    let child_comment = create_comment(post.post_id, Some(comment.comment_id), comment_body, Some(markdown_body), false, &user, &db_pool).await.expect("Comment should be created.");
 
     assert_eq!(child_comment.body, comment_body);
     assert_eq!(child_comment.markdown_body, Some(String::from(markdown_body)));

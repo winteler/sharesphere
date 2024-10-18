@@ -55,12 +55,14 @@ pub struct Post {
     pub forum_name: String,
     pub creator_id: i64,
     pub creator_name: String,
+    pub is_creator_moderator: bool,
     pub moderator_message: Option<String>,
     pub infringed_rule_id: Option<i64>,
     pub infringed_rule_title: Option<String>,
     pub moderator_id: Option<i64>,
     pub moderator_name: Option<String>,
     pub num_comments: i32,
+    pub is_pinned: bool,
     pub score: i32,
     pub score_minus: i32,
     pub recommended_score: f32,
@@ -98,14 +100,14 @@ impl fmt::Display for PostSortType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use super::*;
     use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
     use crate::errors::AppError;
     use crate::forum::Forum;
     use crate::ranking::VoteValue;
+    use crate::role::PermissionLevel;
     use crate::user::User;
     use sqlx::PgPool;
-
-    use super::*;
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
     pub struct PostJoinVote {
@@ -194,10 +196,10 @@ pub mod ssr {
                v.user_id = $1
             WHERE p.post_id = $2",
         )
-        .bind(user_id)
-        .bind(post_id)
-        .fetch_one(db_pool)
-        .await?;
+            .bind(user_id)
+            .bind(post_id)
+            .fetch_one(db_pool)
+            .await?;
 
         Ok(post_join_vote.into_post_with_info())
     }
@@ -315,6 +317,7 @@ pub mod ssr {
         is_nsfw: bool,
         is_spoiler: bool,
         tag: Option<String>,
+        is_pinned: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
@@ -326,11 +329,14 @@ pub mod ssr {
         }
         let post = sqlx::query_as!(
             Post,
-            "INSERT INTO posts (title, body, markdown_body, is_nsfw, is_spoiler, tags, forum_id, forum_name, creator_id, creator_name)
+            "INSERT INTO posts (
+                title, body, markdown_body, is_nsfw, is_spoiler, tags, forum_id,
+                forum_name, is_pinned, creator_id, creator_name, is_creator_moderator
+            )
              VALUES (
                 $1, $2, $3, $4, $5, $6,
                 (SELECT forum_id FROM forums WHERE forum_name = $7),
-                $7, $8, $9
+                $7, $8, $9, $10, $11
             ) RETURNING *",
             post_title,
             post_body,
@@ -339,8 +345,10 @@ pub mod ssr {
             is_spoiler,
             tag,
             forum_name,
+            is_pinned,
             user.user_id,
             user.username,
+            user.check_permissions(forum_name, PermissionLevel::Moderate).is_ok(),
         )
             .fetch_one(db_pool)
             .await?;
@@ -550,6 +558,7 @@ pub async fn create_post(
     is_nsfw: bool,
     is_spoiler: bool,
     tag: Option<String>,
+    is_pinned: bool,
 ) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -570,6 +579,7 @@ pub async fn create_post(
         is_nsfw,
         is_spoiler,
         tag,
+        is_pinned,
         &user,
         &db_pool,
     ).await?;
@@ -866,9 +876,11 @@ pub fn CreatePost() -> impl IntoView {
     let is_title_empty = RwSignal::new(true);
     let is_nsfw = RwSignal::new(false);
     let is_spoiler = RwSignal::new(false);
+    let is_pinned = RwSignal::new(false);
     let is_content_invalid = Memo::new(move |_| is_title_empty.get() || body_data.content.read().is_empty());
     let is_nsfw_string = move || is_nsfw.get().to_string();
     let is_spoiler_string = move || is_spoiler.get().to_string();
+    let is_pinned_string = move || is_pinned.get().to_string();
 
     let matching_forums_resource = Resource::new(
         move || forum_name_debounced.get(),
@@ -942,6 +954,13 @@ pub fn CreatePost() -> impl IntoView {
                         <label class="cursor-pointer label p-0">
                             <span class="label-text">"Spoiler"</span>
                             <input type="checkbox" class="checkbox checkbox-primary" checked=is_spoiler on:click=move |_| is_spoiler.update(|value| *value = !*value)/>
+                        </label>
+                    </div>
+                    <div class="form-control">
+                        <input type="text" name="is_pinned" value=is_pinned_string class="hidden"/>
+                        <label class="cursor-pointer label p-0">
+                            <span class="label-text">"Pinned"</span>
+                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_pinned on:click=move |_| is_pinned.update(|value| *value = !*value)/>
                         </label>
                     </div>
                     <select name="tag" class="select select-bordered w-full max-w-xs">

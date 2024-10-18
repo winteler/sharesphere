@@ -15,9 +15,16 @@ pub fn AuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Into
 }
 
 #[component]
+pub fn SelfAuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/author_filled.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn BannedIcon(#[prop(default = "h-20 w-20")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/banned.svg" class=class/>
+        <img src="/svg/errors/banned.svg" class=class/>
     }
 }
 
@@ -231,6 +238,13 @@ pub fn MinusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoV
 pub fn ModeratorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/moderator.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn ModeratorAuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/moderator_filled.svg" class=class/>
     }
 }
 

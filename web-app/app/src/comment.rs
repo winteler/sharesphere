@@ -48,8 +48,10 @@ pub struct Comment {
     pub post_id: i64,
     pub creator_id: i64,
     pub creator_name: String,
+    pub is_creator_moderator: bool,
     pub moderator_id: Option<i64>,
     pub moderator_name: Option<String>,
+    pub is_pinned: bool,
     pub score: i32,
     pub score_minus: i32,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
@@ -88,6 +90,7 @@ pub mod ssr {
     use crate::forum::Forum;
     use crate::post::ssr::get_post_forum;
     use crate::ranking::VoteValue;
+    use crate::role::PermissionLevel;
     use crate::user::User;
 
     use super::*;
@@ -281,6 +284,7 @@ pub mod ssr {
         parent_comment_id: Option<i64>,
         comment: &str,
         markdown_comment: Option<&str>,
+        is_pinned: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
@@ -292,13 +296,17 @@ pub mod ssr {
 
         let comment = sqlx::query_as!(
             Comment,
-            "INSERT INTO comments (body, markdown_body, parent_id, post_id, creator_id, creator_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+            "INSERT INTO comments (
+                body, markdown_body, parent_id, post_id, is_pinned, creator_id, creator_name, is_creator_moderator
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
             comment,
             markdown_comment,
             parent_comment_id,
             post_id,
+            is_pinned,
             user.user_id,
             user.username,
+            user.check_permissions(&forum.forum_name, PermissionLevel::Moderate).is_ok(),
         )
             .fetch_one(db_pool)
             .await?;
@@ -421,6 +429,7 @@ pub async fn create_comment(
     parent_comment_id: Option<i64>,
     comment: String,
     is_markdown: bool,
+    is_pinned: bool,
 ) -> Result<CommentWithChildren, ServerFnError> {
     log::trace!("Create comment for post {post_id}");
     let user = check_user()?;
@@ -439,6 +448,7 @@ pub async fn create_comment(
         parent_comment_id,
         comment.as_str(),
         markdown_comment,
+        is_pinned,
         &user,
         &db_pool,
     )
@@ -749,6 +759,8 @@ pub fn CommentForm(
         textarea_ref,
     };
 
+    let is_pinned = RwSignal::new(false);
+    let is_pinned_string = move || is_pinned.get().to_string();
     let is_comment_empty = Signal::derive(move || comment_data.content.read().is_empty());
 
     let create_comment_action = ServerAction::<CreateComment>::new();
@@ -783,6 +795,13 @@ pub fn CommentForm(
                         placeholder="Your comment..."
                         data=comment_data
                     />
+                    <div class="form-control">
+                        <input type="text" name="is_pinned" value=is_pinned_string class="hidden"/>
+                        <label class="cursor-pointer label p-0">
+                            <span class="label-text">"Pinned"</span>
+                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_pinned on:click=move |_| is_pinned.update(|value| *value = !*value)/>
+                        </label>
+                    </div>
                     <ModalFormButtons
                         disable_publish=is_comment_empty
                         show_form

@@ -31,6 +31,7 @@ pub async fn create_forum_with_post(
         false,
         false,
         None,
+        false,
         &user,
         db_pool,
     ).await.expect("Should be able to create post.");
@@ -45,7 +46,7 @@ pub async fn create_forum_with_post_and_comment(
 ) -> (Forum, Post, Comment) {
     let (forum, post) = create_forum_with_post(forum_name, user, db_pool).await;
 
-    let comment = create_comment(post.post_id, None, "comment", None, user, db_pool).await.expect("Comment should be created.");
+    let comment = create_comment(post.post_id, None, "comment", None, false, user, db_pool).await.expect("Comment should be created.");
 
     (forum, post, comment)
 }
@@ -75,6 +76,7 @@ pub async fn create_forum_with_posts(
             false,
             false,
             None,
+            false,
             user,
             db_pool,
         ).await?;
@@ -109,6 +111,7 @@ pub async fn create_post_with_comments(
         false,
         false,
         None,
+        false,
         user,
         db_pool,
     ).await?;
@@ -123,6 +126,7 @@ pub async fn create_post_with_comments(
             parent_id,
             i.to_string().as_str(),
             None,
+            false,
             user,
             db_pool,
         ).await?;

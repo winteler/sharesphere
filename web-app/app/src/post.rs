@@ -15,6 +15,7 @@ use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
+use crate::form::FormCheckbox;
 use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
@@ -231,13 +232,13 @@ pub mod ssr {
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.* FROM posts p \
-                JOIN forums f on f.forum_id = p.forum_id \
-                WHERE \
-                    f.forum_name = $1 AND \
-                    p.moderator_id IS NULL \
-                ORDER BY {} DESC \
-                LIMIT $2 \
+                "SELECT p.* FROM posts p
+                JOIN forums f on f.forum_id = p.forum_id
+                WHERE
+                    f.forum_name = $1 AND
+                    p.moderator_id IS NULL
+                ORDER BY p.is_pinned DESC, {} DESC
+                LIMIT $2
                 OFFSET $3",
                 sort_type.to_order_by_code()
             )
@@ -260,10 +261,10 @@ pub mod ssr {
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT * FROM posts \
-                WHERE moderator_id IS NULL \
-                ORDER BY {} DESC \
-                LIMIT $1 \
+                "SELECT * FROM posts
+                WHERE moderator_id IS NULL
+                ORDER BY {} DESC
+                LIMIT $1
                 OFFSET $2",
                 sort_type.to_order_by_code()
             )
@@ -874,13 +875,7 @@ pub fn CreatePost() -> impl IntoView {
         textarea_ref,
     };
     let is_title_empty = RwSignal::new(true);
-    let is_nsfw = RwSignal::new(false);
-    let is_spoiler = RwSignal::new(false);
-    let is_pinned = RwSignal::new(false);
     let is_content_invalid = Memo::new(move |_| is_title_empty.get() || body_data.content.read().is_empty());
-    let is_nsfw_string = move || is_nsfw.get().to_string();
-    let is_spoiler_string = move || is_spoiler.get().to_string();
-    let is_pinned_string = move || is_pinned.get().to_string();
 
     let matching_forums_resource = Resource::new(
         move || forum_name_debounced.get(),
@@ -942,27 +937,9 @@ pub fn CreatePost() -> impl IntoView {
                         placeholder="Content"
                         data=body_data
                     />
-                    <div class="form-control">
-                        <input type="text" name="is_nsfw" value=is_nsfw_string class="hidden"/>
-                        <label class="cursor-pointer label p-0">
-                            <span class="label-text">"NSFW content"</span>
-                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_nsfw on:click=move |_| is_nsfw.update(|value| *value = !*value)/>
-                        </label>
-                    </div>
-                    <div class="form-control">
-                        <input type="text" name="is_spoiler" value=is_spoiler_string class="hidden"/>
-                        <label class="cursor-pointer label p-0">
-                            <span class="label-text">"Spoiler"</span>
-                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_spoiler on:click=move |_| is_spoiler.update(|value| *value = !*value)/>
-                        </label>
-                    </div>
-                    <div class="form-control">
-                        <input type="text" name="is_pinned" value=is_pinned_string class="hidden"/>
-                        <label class="cursor-pointer label p-0">
-                            <span class="label-text">"Pinned"</span>
-                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_pinned on:click=move |_| is_pinned.update(|value| *value = !*value)/>
-                        </label>
-                    </div>
+                    <FormCheckbox name="is_spoiler" label="Spoiler"/>
+                    <FormCheckbox name="is_nsfw" label="NSFW content"/>
+                    <FormCheckbox name="is_pinned" label="Pinned"/>
                     <select name="tag" class="select select-bordered w-full max-w-xs">
                         <option disabled selected>"Tag"</option>
                         <option>"This should be"</option>

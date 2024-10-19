@@ -202,7 +202,7 @@ pub mod ssr {
                            v.value,
                            v.timestamp as vote_timestamp,
                            1 AS depth,
-                           ARRAY[(c.{sort_column}, c.comment_id)] AS path
+                           ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
                     FROM comments c
                     LEFT JOIN votes v
                     ON v.comment_id = c.comment_id AND
@@ -210,7 +210,7 @@ pub mod ssr {
                     WHERE
                         c.post_id = $2 AND
                         c.parent_id IS NULL
-                    ORDER BY c.{sort_column} DESC
+                    ORDER BY c.is_pinned DESC, c.{sort_column} DESC
                     LIMIT $3
                     OFFSET $4
                 )
@@ -224,7 +224,7 @@ pub mod ssr {
                            vr.value,
                            vr.timestamp as vote_timestamp,
                            r.depth + 1,
-                           r.path || (n.{sort_column}, n.comment_id)
+                           r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
                     FROM comment_tree r
                     JOIN comments n ON n.parent_id = r.comment_id
                     LEFT JOIN votes vr

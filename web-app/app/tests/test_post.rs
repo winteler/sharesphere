@@ -349,6 +349,18 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     }
 
     let partial_load_num_post = num_posts / 2;
+    let pinned_post = create_post(
+        forum_name,
+        "pinned",
+        "a",
+        None,
+        false,
+        false,
+        None,
+        true,
+        &test_user,
+        &db_pool
+    ).await.expect("Pinned post should be created.");
 
     let post_vec = ssr::get_post_vec_by_forum_name(
         forum_name,
@@ -359,6 +371,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     ).await?;
 
     assert_eq!(post_vec.len(), partial_load_num_post);
+    assert_eq!(post_vec[0], pinned_post);
 
     test_user.admin_role = AdminRole::Admin;
     let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &test_user, &db_pool).await.expect("Rule should be added.");
@@ -412,12 +425,13 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.moderator_id, None);
     assert_eq!(post_1.moderator_name, None);
     assert_eq!(post_1.num_comments, 0);
+    assert_eq!(post_1.is_pinned, false);
     assert_eq!(post_1.score, 0);
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, false, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, true, &test_user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
@@ -437,6 +451,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.moderator_id, None);
     assert_eq!(post_2.moderator_name, None);
     assert_eq!(post_2.num_comments, 0);
+    assert_eq!(post_2.is_pinned, true);
     assert_eq!(post_2.score, 0);
 
     let post_1_with_info = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");

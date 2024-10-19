@@ -7,6 +7,7 @@ use crate::content::PostSortWidget;
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
+use crate::form::FormCheckbox;
 use crate::forum_management::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
 use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
@@ -779,7 +780,6 @@ pub fn CreateForum() -> impl IntoView {
         set_content: textarea_autosize.set_content,
         textarea_ref,
     };
-    let is_nsfw = RwSignal::new(false);
     let is_name_empty = move || forum_name.read().is_empty();
     let is_name_alphanumeric =
         move || is_valid_forum_name(&forum_name.read());
@@ -789,7 +789,6 @@ pub fn CreateForum() -> impl IntoView {
             || !is_name_alphanumeric()
             || description_data.content.read().is_empty()
     });
-    let is_nsfw_string = move || is_nsfw.get().to_string();
 
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
@@ -848,13 +847,7 @@ pub fn CreateForum() -> impl IntoView {
                         placeholder="Description"
                         data=description_data
                     />
-                    <div class="form-control">
-                        <input type="text" name="is_nsfw" value=is_nsfw_string class="hidden"/>
-                        <label class="cursor-pointer label p-0">
-                            <span class="label-text">"NSFW content"</span>
-                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_nsfw on:click=move |_| is_nsfw.update(|value| *value = !*value)/>
-                        </label>
-                    </div>
+                    <FormCheckbox name="is_nsfw" label="NSFW content"/>
                     <Suspense fallback=move || view! { <LoadingIcon/> }>
                         <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
                     </Suspense>

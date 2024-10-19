@@ -21,9 +21,8 @@ fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
     }
 }
 
-fn test_comment_with_children(
+fn test_comment_and_vote(
     comment_with_children: &CommentWithChildren,
-    sort_type: CommentSortType,
     expected_user_id: i64,
     expected_post_id: i64,
 ) {
@@ -50,32 +49,53 @@ fn test_comment_with_children(
     } else {
         assert!(comment_with_children.vote.is_none());
     }
+}
 
-    // Test child comments
+fn test_comment_vec(
+    comment_vec: &Vec<CommentWithChildren>,
+    sort_type: CommentSortType,
+    expected_parent_id: Option<i64>,
+    expected_user_id: i64,
+    expected_post_id: i64,
+) {
     let mut index = 0usize;
-    for child_comment in &comment_with_children.child_comments {
+    for child_comment in comment_vec {
         // Test that parent id is correct
-        assert!(child_comment.comment.parent_id.is_some());
         assert_eq!(
-            child_comment.comment.parent_id.unwrap(),
-            comment_with_children.comment.comment_id
+            child_comment.comment.parent_id,
+            expected_parent_id,
         );
         // Test that the child comments are correctly sorted
         if index > 0 {
-            let previous_child_comment = &comment_with_children.child_comments.get(index - 1);
+            let previous_child_comment = comment_vec.get(index - 1);
             assert!(previous_child_comment.is_some());
             let previous_child_comment = previous_child_comment.unwrap();
-            assert!(match sort_type {
-                CommentSortType::Best =>
-                    child_comment.comment.score <= previous_child_comment.comment.score,
-                CommentSortType::Recent =>
-                    child_comment.comment.create_timestamp
-                        <= previous_child_comment.comment.create_timestamp,
-            });
+            assert!(previous_child_comment.comment.is_pinned || !child_comment.comment.is_pinned);
+            assert!(
+                (
+                    previous_child_comment.comment.is_pinned && !child_comment.comment.is_pinned
+                ) || match sort_type {
+                    CommentSortType::Best =>
+                        child_comment.comment.score <= previous_child_comment.comment.score,
+                    CommentSortType::Recent =>
+                        child_comment.comment.create_timestamp
+                            <= previous_child_comment.comment.create_timestamp,
+                });
         }
         index += 1;
         test_comment_with_children(child_comment, sort_type, expected_user_id, expected_post_id);
     }
+}
+
+fn test_comment_with_children(
+    comment_with_children: &CommentWithChildren,
+    sort_type: CommentSortType,
+    expected_user_id: i64,
+    expected_post_id: i64,
+) {
+    test_comment_and_vote(comment_with_children, expected_user_id, expected_post_id);
+    // Test child comments
+    test_comment_vec(&comment_with_children.child_comments, sort_type, Some(comment_with_children.comment.comment_id), expected_user_id, expected_post_id);
 }
 
 #[tokio::test]
@@ -137,6 +157,8 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         &db_pool
     ).await?;
 
+    let pinned_comment = create_comment(post.post_id, None, "1", None, true, &test_user, &db_pool).await?;
+
     let comment_sort_type_array = [CommentSortType::Best, CommentSortType::Recent];
 
     for sort_type in comment_sort_type_array {
@@ -149,12 +171,10 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
             &db_pool,
         ).await?;
 
-        for comment in comment_tree {
-            // Check that root comments don't have a parent id
-            assert!(comment.comment.parent_id.is_none());
-            // Call recursive function to check the rest of the tree
-            test_comment_with_children(&comment, sort_type, test_user.user_id, post.post_id);
-        }
+        assert_eq!(comment_tree.is_empty(), false);
+        assert_eq!(comment_tree[0].comment, pinned_comment);
+
+        test_comment_vec(&comment_tree, sort_type, None, test_user.user_id, post.post_id);
     }
 
     Ok(())
@@ -182,12 +202,13 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.creator_name, user.username);
     assert_eq!(comment.moderator_id, None);
     assert_eq!(comment.moderator_name, None);
+    assert_eq!(comment.is_pinned, false);
     assert_eq!(comment.score, 0);
     assert_eq!(comment.score_minus, 0);
     assert_eq!(comment.edit_timestamp, None);
 
     let markdown_body = "# markdown";
-    let child_comment = create_comment(post.post_id, Some(comment.comment_id), comment_body, Some(markdown_body), false, &user, &db_pool).await.expect("Comment should be created.");
+    let child_comment = create_comment(post.post_id, Some(comment.comment_id), comment_body, Some(markdown_body), true, &user, &db_pool).await.expect("Comment should be created.");
 
     assert_eq!(child_comment.body, comment_body);
     assert_eq!(child_comment.markdown_body, Some(String::from(markdown_body)));
@@ -201,6 +222,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(child_comment.creator_name, user.username);
     assert_eq!(child_comment.moderator_id, None);
     assert_eq!(child_comment.moderator_name, None);
+    assert_eq!(child_comment.is_pinned, true);
     assert_eq!(child_comment.score, 0);
     assert_eq!(child_comment.score_minus, 0);
     assert_eq!(child_comment.edit_timestamp, None);

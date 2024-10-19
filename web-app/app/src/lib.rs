@@ -1,6 +1,4 @@
 #![recursion_limit = "256"]
-extern crate core;
-
 pub mod app;
 pub mod auth;
 pub mod comment;
@@ -10,6 +8,7 @@ pub mod editor;
 pub mod errors;
 pub mod error_template;
 pub mod footer;
+pub mod form;
 pub mod forum;
 pub mod icons;
 pub mod forum_management;

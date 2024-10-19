@@ -69,18 +69,18 @@ pub fn test_post_score(post: &Post) {
 #[tokio::test]
 async fn test_get_post_by_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
-    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, &db_pool).await?;
+    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, false, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1, expected_post_1);
@@ -93,24 +93,24 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
-    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, &db_pool).await?;
+    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, false, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
     assert_eq!(post_1_without_vote.vote, None);
 
-    let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 1.");
+    let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
     assert_eq!(post_1_without_vote.vote, None);
 
@@ -118,27 +118,27 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     assert_eq!(post_2_without_vote.post, post_2);
     assert_eq!(post_2_without_vote.vote, None);
 
-    let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 2.");
+    let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 2.");
     assert_eq!(post_2_without_vote.post, post_2);
     assert_eq!(post_2_without_vote.vote, None);
 
-    let post_1_vote = vote_on_content(VoteValue::Up, post_1.post_id, None, None, &test_user, &db_pool).await.expect("Should be possible to vote on post_1.");
-    let post_2_vote = vote_on_content(VoteValue::Down, post_2.post_id, None, None, &test_user, &db_pool).await.expect("Should be possible to vote on post_2.");
+    let post_1_vote = vote_on_content(VoteValue::Up, post_1.post_id, None, None, &user, &db_pool).await.expect("Should be possible to vote on post_1.");
+    let post_2_vote = vote_on_content(VoteValue::Down, post_2.post_id, None, None, &user, &db_pool).await.expect("Should be possible to vote on post_2.");
 
-    let post_1_with_vote = get_post_with_info_by_id(post_1.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 1.");
+    let post_1_with_vote = get_post_with_info_by_id(post_1.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_with_vote.post.post_id, post_1.post_id);
-    assert_eq!(post_1_with_vote.post.creator_id, test_user.user_id);
-    assert_eq!(post_1_with_vote.post.creator_name, test_user.username);
+    assert_eq!(post_1_with_vote.post.creator_id, user.user_id);
+    assert_eq!(post_1_with_vote.post.creator_name, user.username);
     assert_eq!(post_1_with_vote.post.title, post_1_title);
     assert_eq!(post_1_with_vote.post.body, post_1_body);
     assert_eq!(post_1_with_vote.post.markdown_body, None);
     assert_eq!(post_1_with_vote.post.score, 1);
     assert_eq!(post_1_with_vote.vote, post_1_vote);
 
-    let post_2_with_vote = get_post_with_info_by_id(post_2.post_id, Some(&test_user), &db_pool).await.expect("Should be able to load post 2.");
+    let post_2_with_vote = get_post_with_info_by_id(post_2.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 2.");
     assert_eq!(post_2_with_vote.post.post_id, post_2.post_id);
-    assert_eq!(post_2_with_vote.post.creator_id, test_user.user_id);
-    assert_eq!(post_2_with_vote.post.creator_name, test_user.username);
+    assert_eq!(post_2_with_vote.post.creator_id, user.user_id);
+    assert_eq!(post_2_with_vote.post.creator_name, user.username);
     assert_eq!(post_2_with_vote.post.title, post_2_title);
     assert_eq!(post_2_with_vote.post.body, post_2_body);
     assert_eq!(post_2_with_vote.post.markdown_body, Some(String::from(post_2_markdown_body)));
@@ -151,10 +151,10 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_post_forum() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
-    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, &db_pool).await?;
-    let post = create_post(&forum.forum_name, "1", "test", None, false, false, None, false, &test_user, &db_pool).await.expect("Should be able to create post.");
+    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
+    let post = create_post(&forum.forum_name, "1", "test", None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post.");
 
     let result_forum = get_post_forum(post.post_id, &db_pool).await.expect("Post forum should be available.");
     assert_eq!(result_forum, forum);
@@ -165,7 +165,7 @@ async fn test_get_post_forum() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let mut test_user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
     let forum1_name = "1";
     let forum2_name = "2";
@@ -176,7 +176,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         forum1_name,
         10,
         Some((0..10).map(|i| i).collect()),
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_forum1_post_vec);
@@ -185,12 +185,12 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         forum2_name,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
 
     let post_vec = ssr::get_subscribed_post_vec(
-        test_user.user_id,
+        user.user_id,
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
@@ -198,7 +198,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     ).await?;
     assert!(post_vec.is_empty());
 
-    forum::ssr::subscribe(forum1.forum_id, test_user.user_id, &db_pool).await?;
+    forum::ssr::subscribe(forum1.forum_id, user.user_id, &db_pool).await?;
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -209,28 +209,28 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     for sort_type in post_sort_type_array {
         let post_vec = ssr::get_subscribed_post_vec(
-            test_user.user_id,
+            user.user_id,
             SortType::Post(sort_type),
             num_post as i64,
             0,
             &db_pool,
         ).await?;
-        test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
+        test_post_vec(&post_vec, &expected_post_vec, sort_type, user.user_id);
     }
 
     // test banned post are not returned
-    test_user.admin_role = AdminRole::Admin;
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &test_user, &db_pool).await.expect("Rule should be added.");
+    user.admin_role = AdminRole::Admin;
+    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         expected_post_vec.first().expect("First post should be accessible.").post_id,
         rule.rule_id,
         "test",
-        &test_user,
+        &user,
         &db_pool,
     ).await.expect("Post should be moderated.");
 
     let post_vec = ssr::get_subscribed_post_vec(
-        test_user.user_id,
+        user.user_id,
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
@@ -240,9 +240,9 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     assert!(!post_vec.contains(&moderated_post));
 
     // test no posts are returned after unsubscribing
-    forum::ssr::unsubscribe(forum1.forum_id, test_user.user_id, &db_pool).await?;
+    forum::ssr::unsubscribe(forum1.forum_id, user.user_id, &db_pool).await?;
     let post_vec = ssr::get_subscribed_post_vec(
-        test_user.user_id,
+        user.user_id,
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
@@ -256,7 +256,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let mut test_user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
     let forum1_name = "1";
     let forum2_name = "2";
@@ -267,7 +267,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         forum1_name,
         10,
         Some((0..10).map(|i| i).collect()),
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_forum1_post_vec);
@@ -276,7 +276,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         forum2_name,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_forum2_post_vec);
@@ -290,17 +290,17 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 
     for sort_type in post_sort_type_array {
         let post_vec = ssr::get_sorted_post_vec(SortType::Post(sort_type), num_post as i64, 0, &db_pool).await?;
-        test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
+        test_post_vec(&post_vec, &expected_post_vec, sort_type, user.user_id);
     }
 
     // Moderate post, test that it is no longer in the result
-    test_user.admin_role = AdminRole::Admin;
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &test_user, &db_pool).await.expect("Rule should be added.");
+    user.admin_role = AdminRole::Admin;
+    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         expected_post_vec.first().expect("First post should be accessible.").post_id,
         rule.rule_id,
         "test",
-        &test_user,
+        &user,
         &db_pool,
     ).await.expect("Post should be moderated.");
 
@@ -314,7 +314,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let mut test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
     let forum_name = "forum";
     let num_posts = 20usize;
@@ -324,7 +324,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
         forum_name,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
 
@@ -346,10 +346,12 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
             &db_pool,
         ).await?;
 
-        test_post_vec(&post_vec, &expected_post_vec, sort_type, test_user.user_id);
+        test_post_vec(&post_vec, &expected_post_vec, sort_type, user.user_id);
     }
 
     let partial_load_num_post = num_posts / 2;
+    // Reload user to refresh moderator permission to create pinned post
+    let mut user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
     let pinned_post = create_post(
         forum_name,
         "pinned",
@@ -359,7 +361,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
         false,
         None,
         true,
-        &test_user,
+        &user,
         &db_pool
     ).await.expect("Pinned post should be created.");
 
@@ -374,13 +376,13 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     assert_eq!(post_vec.len(), partial_load_num_post);
     assert_eq!(post_vec[0], pinned_post);
 
-    test_user.admin_role = AdminRole::Admin;
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &test_user, &db_pool).await.expect("Rule should be added.");
+    user.admin_role = AdminRole::Admin;
+    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         post_vec.first().expect("First post should be accessible.").post_id,
         rule.rule_id,
         "test",
-        &test_user,
+        &user,
         &db_pool,
     ).await.expect("Post should be moderated.");
 
@@ -430,6 +432,12 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.is_pinned, false);
     assert_eq!(post_1.score, 0);
 
+    // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
+    assert_eq!(
+        create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, true, &user, &db_pool).await,
+        Err(AppError::InsufficientPrivileges),
+    );
+
     let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
     let post_2_title = "1";
     let post_2_body = "test";
@@ -474,14 +482,14 @@ async fn test_create_post() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_update_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
     let forum_name = "forum";
     forum::ssr::create_forum(
         forum_name,
         "forum",
         false,
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
 
@@ -494,7 +502,7 @@ async fn test_update_post() -> Result<(), AppError> {
         false,
         None,
         false,
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
 
@@ -507,7 +515,7 @@ async fn test_update_post() -> Result<(), AppError> {
         &updated_html_body,
         Some(updated_markdown_body),
         false,
-        None,&test_user,
+        None,&user,
         &db_pool
     ).await?;
 
@@ -526,9 +534,9 @@ async fn test_update_post() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_update_post_scores() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_forum_with_post("forum", &test_user, &db_pool).await;
+    let (_, post) = create_forum_with_post("forum", &user, &db_pool).await;
     let post = set_post_score(post.post_id, 10, &db_pool).await.expect("Post score should be set.");
 
     // wait to have a meaningful difference in scores after update
@@ -552,9 +560,9 @@ async fn test_update_post_scores() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_post_scores() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_forum_with_post("forum", &test_user, &db_pool).await;
+    let (_, post) = create_forum_with_post("forum", &user, &db_pool).await;
 
     let mut rng = rand::thread_rng();
 
@@ -563,7 +571,7 @@ async fn test_post_scores() -> Result<(), AppError> {
 
     set_post_score(post.post_id, rng.gen_range(-100..101), &db_pool).await?;
 
-    let post_with_vote = post::ssr::get_post_with_info_by_id(post.post_id, Some(&test_user), &db_pool).await?;
+    let post_with_vote = post::ssr::get_post_with_info_by_id(post.post_id, Some(&user), &db_pool).await?;
 
     test_post_score(&post_with_vote.post);
     Ok(())

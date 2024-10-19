@@ -1,22 +1,24 @@
 use crate::app::GlobalState;
-#[cfg(feature = "ssr")]
-use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
 use crate::content::{Content, ContentBody};
-#[cfg(feature = "ssr")]
-use crate::editor::get_styled_html_from_markdown;
 use crate::editor::{FormMarkdownEditor, TextareaData};
+use crate::form::FormCheckbox;
+use crate::forum::ForumState;
 use crate::icons::{CommentIcon, EditIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::navigation_bar::get_current_path;
-#[cfg(feature = "ssr")]
-use crate::ranking::{ssr::vote_on_content, VoteValue};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::unpack::ActionError;
+use crate::role::PermissionLevel;
+use crate::unpack::{ActionError, ArcSuspenseUnpack};
 use crate::widget::{AuthorWidget, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::get_user};
+use crate::{
+    app::ssr::get_db_pool,
+    auth::{get_user, ssr::check_user},
+    editor::get_styled_html_from_markdown,
+    ranking::{ssr::vote_on_content, VoteValue},
+};
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
@@ -293,7 +295,9 @@ pub mod ssr {
         if comment.is_empty() {
             return Err(AppError::new("Cannot create empty comment."));
         }
-
+        if is_pinned {
+            user.check_permissions(&forum.forum_name, PermissionLevel::Moderate)?;
+        }
         let comment = sqlx::query_as!(
             Comment,
             "INSERT INTO comments (
@@ -429,7 +433,7 @@ pub async fn create_comment(
     parent_comment_id: Option<i64>,
     comment: String,
     is_markdown: bool,
-    is_pinned: bool,
+    is_pinned: Option<bool>,
 ) -> Result<CommentWithChildren, ServerFnError> {
     log::trace!("Create comment for post {post_id}");
     let user = check_user()?;
@@ -448,7 +452,7 @@ pub async fn create_comment(
         parent_comment_id,
         comment.as_str(),
         markdown_comment,
-        is_pinned,
+        is_pinned.unwrap_or(false),
         &user,
         &db_pool,
     )
@@ -751,6 +755,8 @@ pub fn CommentForm(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let forum_name = expect_context::<ForumState>().forum_name;
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let comment_autosize = use_textarea_autosize(textarea_ref);
     let comment_data = TextareaData {
@@ -759,8 +765,6 @@ pub fn CommentForm(
         textarea_ref,
     };
 
-    let is_pinned = RwSignal::new(false);
-    let is_pinned_string = move || is_pinned.get().to_string();
     let is_comment_empty = Signal::derive(move || comment_data.content.read().is_empty());
 
     let create_comment_action = ServerAction::<CreateComment>::new();
@@ -795,13 +799,14 @@ pub fn CommentForm(
                         placeholder="Your comment..."
                         data=comment_data
                     />
-                    <div class="form-control">
-                        <input type="text" name="is_pinned" value=is_pinned_string class="hidden"/>
-                        <label class="cursor-pointer label p-0">
-                            <span class="label-text">"Pinned"</span>
-                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_pinned on:click=move |_| is_pinned.update(|value| *value = !*value)/>
-                        </label>
-                    </div>
+                    <ArcSuspenseUnpack resource=state.user let:user>
+                        <Show when=move || match &*user {
+                            Some(user) => user.check_permissions(&*forum_name.read(), PermissionLevel::Moderate).is_ok(),
+                            None => false,
+                        }>
+                            <FormCheckbox name="is_pinned" label="Pinned"/>
+                        </Show>
+                    </ArcSuspenseUnpack>
                     <ModalFormButtons
                         disable_publish=is_comment_empty
                         show_form

@@ -129,14 +129,14 @@ async fn test_get_comment_forum() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_post_comment_tree() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
     let forum_name = "forum";
     app::forum::ssr::create_forum(
         forum_name,
         "forum",
         false,
-        &test_user,
+        &user,
         &db_pool,
     ).await?;
 
@@ -153,11 +153,13 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         }).collect(),
         (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),
         (0..num_comments).map(|i| get_vote_from_comment_num(i)).collect(),
-        &test_user,
+        &user,
         &db_pool
     ).await?;
 
-    let pinned_comment = create_comment(post.post_id, None, "1", None, true, &test_user, &db_pool).await?;
+    // reload user to refresh moderator permissions
+    let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
+    let pinned_comment = create_comment(post.post_id, None, "1", None, true, &user, &db_pool).await?;
 
     let comment_sort_type_array = [CommentSortType::Best, CommentSortType::Recent];
 
@@ -165,7 +167,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         let comment_tree = comment::ssr::get_post_comment_tree(
             post.post_id,
             SortType::Comment(sort_type),
-            Some(test_user.user_id),
+            Some(user.user_id),
             COMMENT_BATCH_SIZE,
             0,
             &db_pool,
@@ -174,7 +176,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         assert_eq!(comment_tree.is_empty(), false);
         assert_eq!(comment_tree[0].comment, pinned_comment);
 
-        test_comment_vec(&comment_tree, sort_type, None, test_user.user_id, post.post_id);
+        test_comment_vec(&comment_tree, sort_type, None, user.user_id, post.post_id);
     }
 
     Ok(())
@@ -207,6 +209,12 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.score, 0);
     assert_eq!(comment.score_minus, 0);
     assert_eq!(comment.edit_timestamp, None);
+
+    // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
+    assert_eq!(
+        create_comment(post.post_id, Some(comment.comment_id), comment_body, None, true, &user, &db_pool).await,
+        Err(AppError::InsufficientPrivileges),
+    );
 
     let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
     let markdown_body = "# markdown";

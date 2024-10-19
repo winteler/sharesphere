@@ -20,7 +20,8 @@ use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
+use crate::role::PermissionLevel;
+use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -328,6 +329,9 @@ pub mod ssr {
                 "Cannot create content without a valid forum and title.",
             ));
         }
+        if is_pinned {
+            user.check_permissions(forum_name, PermissionLevel::Moderate)?;
+        }
         let post = sqlx::query_as!(
             Post,
             "INSERT INTO posts (
@@ -559,7 +563,7 @@ pub async fn create_post(
     is_nsfw: bool,
     is_spoiler: bool,
     tag: Option<String>,
-    is_pinned: bool,
+    is_pinned: Option<bool>,
 ) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -580,7 +584,7 @@ pub async fn create_post(
         is_nsfw,
         is_spoiler,
         tag,
-        is_pinned,
+        is_pinned.unwrap_or(false),
         &user,
         &db_pool,
     ).await?;
@@ -854,6 +858,7 @@ pub fn EditPostButton(
 /// Component to create a new post
 #[component]
 pub fn CreatePost() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let create_post_action = ServerAction::<CreatePost>::new();
 
     let query = use_query_map();
@@ -939,7 +944,14 @@ pub fn CreatePost() -> impl IntoView {
                     />
                     <FormCheckbox name="is_spoiler" label="Spoiler"/>
                     <FormCheckbox name="is_nsfw" label="NSFW content"/>
-                    <FormCheckbox name="is_pinned" label="Pinned"/>
+                    <ArcSuspenseUnpack resource=state.user let:user>
+                        <Show when=move || match &*user {
+                            Some(user) => user.check_permissions(&*forum_name_input.read(), PermissionLevel::Moderate).is_ok(),
+                            None => false,
+                        }>
+                            <FormCheckbox name="is_pinned" label="Pinned"/>
+                        </Show>
+                    </ArcSuspenseUnpack>
                     <select name="tag" class="select select-bordered w-full max-w-xs">
                         <option disabled selected>"Tag"</option>
                         <option>"This should be"</option>

@@ -13,6 +13,7 @@ use app::post::{ssr, Post, PostSortType};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
+use app::user::User;
 use app::{forum, forum_management, post};
 
 mod common;
@@ -399,13 +400,13 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_create_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
-    let forum = forum::ssr::create_forum("a", "forum", false, &test_user, &db_pool).await?;
+    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &test_user, &db_pool).await.expect("Should be able to create post 1.");
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     assert_eq!(post_1.title, post_1_title);
     assert_eq!(post_1.body, post_1_body);
@@ -417,8 +418,9 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.meta_post_id, None);
     assert_eq!(post_1.forum_id, forum.forum_id);
     assert_eq!(post_1.forum_name, forum.forum_name);
-    assert_eq!(post_1.creator_id, test_user.user_id);
-    assert_eq!(post_1.creator_name, test_user.username);
+    assert_eq!(post_1.creator_id, user.user_id);
+    assert_eq!(post_1.creator_name, user.username);
+    assert_eq!(post_1.is_creator_moderator, false); // user not refreshed yet
     assert_eq!(post_1.moderator_message, None);
     assert_eq!(post_1.infringed_rule_id, None);
     assert_eq!(post_1.infringed_rule_title, None);
@@ -428,10 +430,11 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.is_pinned, false);
     assert_eq!(post_1.score, 0);
 
+    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, true, &test_user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, true, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
@@ -443,8 +446,9 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.meta_post_id, None);
     assert_eq!(post_2.forum_id, forum.forum_id);
     assert_eq!(post_2.forum_name, forum.forum_name);
-    assert_eq!(post_2.creator_id, test_user.user_id);
-    assert_eq!(post_2.creator_name, test_user.username);
+    assert_eq!(post_2.creator_id, user.user_id);
+    assert_eq!(post_2.creator_name, user.username);
+    assert_eq!(post_2.is_creator_moderator, true);
     assert_eq!(post_2.moderator_message, None);
     assert_eq!(post_2.infringed_rule_id, None);
     assert_eq!(post_2.infringed_rule_title, None);

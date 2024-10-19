@@ -1,14 +1,14 @@
 use rand::Rng;
 
+pub use crate::common::*;
+pub use crate::data_factory::*;
 use app::comment;
 use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_forum};
 use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::ranking::{SortType, Vote, VoteValue};
-
-pub use crate::common::*;
-pub use crate::data_factory::*;
+use app::user::User;
 
 mod common;
 mod data_factory;
@@ -200,6 +200,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.post_id, post.post_id);
     assert_eq!(comment.creator_id, user.user_id);
     assert_eq!(comment.creator_name, user.username);
+    assert_eq!(comment.is_creator_moderator, false); // user not refreshed yet
     assert_eq!(comment.moderator_id, None);
     assert_eq!(comment.moderator_name, None);
     assert_eq!(comment.is_pinned, false);
@@ -207,6 +208,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.score_minus, 0);
     assert_eq!(comment.edit_timestamp, None);
 
+    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
     let markdown_body = "# markdown";
     let child_comment = create_comment(post.post_id, Some(comment.comment_id), comment_body, Some(markdown_body), true, &user, &db_pool).await.expect("Comment should be created.");
 
@@ -220,6 +222,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(child_comment.post_id, post.post_id);
     assert_eq!(child_comment.creator_id, user.user_id);
     assert_eq!(child_comment.creator_name, user.username);
+    assert_eq!(child_comment.is_creator_moderator, true);
     assert_eq!(child_comment.moderator_id, None);
     assert_eq!(child_comment.moderator_name, None);
     assert_eq!(child_comment.is_pinned, true);

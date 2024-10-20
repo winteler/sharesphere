@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
+use crate::app::GlobalState;
 use crate::forum::ForumState;
+use crate::unpack::ArcSuspenseUnpack;
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, user::ssr::SqlUser};
 
@@ -270,18 +272,27 @@ pub async fn set_user_forum_role(
 /// Component to show children when the user has at least the input permission level
 #[component]
 pub fn AuthorizedShow<C: IntoView + 'static>(
+    #[prop(into)]
+    forum_name: Signal<String>,
     permission_level: PermissionLevel,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let children = children.into_inner();
+    let state = expect_context::<GlobalState>();
+    let children = StoredValue::new(children.into_inner());
     view! {
-        <Show when=move || forum_state.permission_level.with(|value| *value >= permission_level)>
+        <ArcSuspenseUnpack resource=state.user let:user>
+            <Show when=move || match &*user {
+                Some(user) => user.check_permissions(&*forum_name.read(), permission_level).is_ok(),
+                None => false,
+            }>
             {
-                provide_context(forum_state);
-                children()
+                if let Some(forum_state) = use_context::<ForumState>() {
+                    provide_context(forum_state);
+                }
+                children.with_value(|children| children())
             }
-        </Show>
+            </Show>
+        </ArcSuspenseUnpack>
     }.into_any()
 }
 

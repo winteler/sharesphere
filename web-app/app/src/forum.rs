@@ -636,7 +636,7 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
         <div class="flex w-full justify-between content-center">
             <PostSortWidget/>
             <div class="flex gap-1">
-                <AuthorizedShow permission_level=PermissionLevel::Moderate>
+                <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
                     <A href=manage_path.clone() attr:class="btn btn-circle btn-ghost">
                         <SettingsIcon class="h-5 w-5"/>
                     </A>

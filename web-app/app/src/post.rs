@@ -15,13 +15,12 @@ use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::form::FormCheckbox;
+use crate::form::{FormCheckbox, IsPinnedCheckbox};
 use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::role::PermissionLevel;
-use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
+use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -316,10 +315,10 @@ pub mod ssr {
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
-        is_nsfw: bool,
         is_spoiler: bool,
-        tag: Option<String>,
+        is_nsfw: bool,
         is_pinned: bool,
+        tag: Option<String>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
@@ -332,6 +331,7 @@ pub mod ssr {
         if is_pinned {
             user.check_permissions(forum_name, PermissionLevel::Moderate)?;
         }
+
         let post = sqlx::query_as!(
             Post,
             "INSERT INTO posts (
@@ -366,7 +366,9 @@ pub mod ssr {
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
+        is_spoiler: bool,
         is_nsfw: bool,
+        is_pinned: bool,
         tag: Option<String>,
         user: &User,
         db_pool: &PgPool,
@@ -376,6 +378,10 @@ pub mod ssr {
                 "Cannot create content without a valid forum and title.",
             ));
         }
+        if is_pinned {
+            let post = get_post_by_id(post_id, db_pool).await?;
+            user.check_permissions(&post.forum_name, PermissionLevel::Moderate)?;
+        }
 
         let post = sqlx::query_as!(
             Post,
@@ -383,17 +389,21 @@ pub mod ssr {
                 title = $1,
                 body = $2,
                 markdown_body = $3,
-                is_nsfw = $4,
-                tags = $5,
+                is_spoiler = $4,
+                is_nsfw = $5,
+                is_pinned = $6,
+                tags = $7,
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
-                post_id = $6 AND
-                creator_id = $7
+                post_id = $8 AND
+                creator_id = $9
             RETURNING *",
             post_title,
             post_body,
             post_markdown_body,
+            is_spoiler,
             is_nsfw,
+            is_pinned,
             tag.unwrap_or_default(),
             post_id,
             user.user_id,
@@ -560,10 +570,10 @@ pub async fn create_post(
     title: String,
     body: String,
     is_markdown: bool,
-    is_nsfw: bool,
     is_spoiler: bool,
-    tag: Option<String>,
+    is_nsfw: bool,
     is_pinned: Option<bool>,
+    tag: Option<String>,
 ) -> Result<(), ServerFnError> {
     let user = check_user()?;
     let db_pool = get_db_pool()?;
@@ -581,10 +591,10 @@ pub async fn create_post(
         title.as_str(),
         body.as_str(),
         markdown_body,
-        is_nsfw,
         is_spoiler,
-        tag,
+        is_nsfw,
         is_pinned.unwrap_or(false),
+        tag,
         &user,
         &db_pool,
     ).await?;
@@ -609,7 +619,9 @@ pub async fn edit_post(
     title: String,
     body: String,
     is_markdown: bool,
+    is_spoiler: bool,
     is_nsfw: bool,
+    is_pinned: Option<bool>,
     tag: Option<String>,
 ) -> Result<Post, ServerFnError> {
     log::trace!("Edit post {post_id}, title = {title}, body = {body}");
@@ -629,7 +641,9 @@ pub async fn edit_post(
         title.as_str(),
         body.as_str(),
         markdown_body,
+        is_spoiler,
         is_nsfw,
+        is_pinned.unwrap_or(false),
         tag,
         &user,
         &db_pool,
@@ -858,7 +872,6 @@ pub fn EditPostButton(
 /// Component to create a new post
 #[component]
 pub fn CreatePost() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let create_post_action = ServerAction::<CreatePost>::new();
 
     let query = use_query_map();
@@ -944,14 +957,7 @@ pub fn CreatePost() -> impl IntoView {
                     />
                     <FormCheckbox name="is_spoiler" label="Spoiler"/>
                     <FormCheckbox name="is_nsfw" label="NSFW content"/>
-                    <ArcSuspenseUnpack resource=state.user let:user>
-                        <Show when=move || match &*user {
-                            Some(user) => user.check_permissions(&*forum_name_input.read(), PermissionLevel::Moderate).is_ok(),
-                            None => false,
-                        }>
-                            <FormCheckbox name="is_pinned" label="Pinned"/>
-                        </Show>
-                    </ArcSuspenseUnpack>
+                    <IsPinnedCheckbox forum_name=forum_name_input/>
                     <select name="tag" class="select select-bordered w-full max-w-xs">
                         <option disabled selected>"Tag"</option>
                         <option>"This should be"</option>
@@ -971,16 +977,14 @@ pub fn EditPostDialog(
     post: Post,
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
+    let post = StoredValue::new(post);
     view! {
         <ModalDialog
             class="w-full max-w-xl"
             show_dialog
         >
             <EditPostForm
-                post_id=post.post_id
-                post_title=post.title.clone()
-                post_body=post.body.clone()
-                markdown_body=post.markdown_body.clone()
+                post
                 show_form=show_dialog
             />
         </ModalDialog>
@@ -990,17 +994,22 @@ pub fn EditPostDialog(
 /// Form to edit a post
 #[component]
 pub fn EditPostForm(
-    post_id: i64,
-    post_title: String,
-    post_body: String,
-    markdown_body: Option<String>,
+    post: StoredValue<Post>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let (current_body, is_markdown) = match markdown_body {
-        Some(body) => (body, true),
-        None => (post_body, false),
-    };
+    let forum_state = expect_context::<ForumState>();
+    let (current_body, is_markdown) = post.with_value(|post| match &post.markdown_body {
+        Some(body) => (body.clone(), true),
+        None => (post.body.clone(), false),
+    });
+    let (post_id, title, is_spoiler, is_nsfw, is_pinned) = post.with_value(|post| (
+        post.post_id,
+        post.title.clone(),
+        post.is_spoiler,
+        post.is_nsfw,
+        post.is_pinned,
+    ));
     let is_title_empty = RwSignal::new(false);
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
@@ -1027,7 +1036,7 @@ pub fn EditPostForm(
                         type="text"
                         name="title"
                         placeholder="Title"
-                        value=post_title
+                        value=title
                         class="input input-bordered input-primary h-input_m"
                         autofocus
                         autocomplete="off"
@@ -1042,6 +1051,9 @@ pub fn EditPostForm(
                         data=body_data
                         is_markdown
                     />
+                    <FormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
+                    <FormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
+                    <IsPinnedCheckbox forum_name=forum_state.forum_name value=is_pinned/>
                     <ModalFormButtons
                         disable_publish=is_post_empty
                         show_form

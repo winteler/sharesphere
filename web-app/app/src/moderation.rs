@@ -370,8 +370,9 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
 #[component]
 pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
+    let forum_name = expect_context::<ForumState>().forum_name;
     view! {
-        <AuthorizedShow permission_level=PermissionLevel::Moderate>
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
             <div>
                 <ModerateButton show_dialog/>
                 <ModeratePostDialog
@@ -387,8 +388,9 @@ pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
 #[component]
 pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
+    let forum_name = expect_context::<ForumState>().forum_name;
     view! {
-        <AuthorizedShow permission_level=PermissionLevel::Moderate>
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
             <div>
                 <ModerateButton show_dialog/>
                 <ModerateCommentDialog
@@ -547,7 +549,7 @@ pub fn RuleSelect(
 pub fn BanMenu() -> impl IntoView {
     let ban_value = RwSignal::new(0);
     let is_permanent_ban = RwSignal::new(false);
-
+    let forum_name = expect_context::<ForumState>().forum_name;
     view! {
         <input
             type="number"
@@ -556,7 +558,7 @@ pub fn BanMenu() -> impl IntoView {
             value=ban_value
             disabled=is_permanent_ban
         />
-        <AuthorizedShow permission_level=PermissionLevel::Ban>
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Ban>
             <div class="flex items-center justify-between w-full">
                 <span class="text-xl font-semibold">"Ban duration (days):"</span>
                 <select

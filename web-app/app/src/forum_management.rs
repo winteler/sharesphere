@@ -436,8 +436,9 @@ pub fn ForumCockpit() -> impl IntoView {
 #[component]
 pub fn ForumDescriptionDialog() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
+    let forum_name = expect_context::<ForumState>().forum_name;
     view! {
-        <AuthorizedShow permission_level=PermissionLevel::Manage>
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum description"</div>
                 <ArcSuspenseUnpack resource=forum_state.forum_resource let:forum>
@@ -532,7 +533,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                     />
                 </div>
             </ArcTransitionUnpack>
-            <AuthorizedShow permission_level=PermissionLevel::Manage>
+            <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
                 <PermissionLevelForm
                     forum_name
                     username_input
@@ -682,8 +683,9 @@ pub fn DeleteRuleButton(
     rule: StoredValue<Rule>
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
+    let forum_name = forum_state.forum_name;
     view! {
-        <AuthorizedShow permission_level=PermissionLevel::Manage>
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             <ActionForm
                 action=forum_state.remove_rule_action
                 attr:class="h-fit flex justify-center"
@@ -900,7 +902,7 @@ pub fn BanPanel() -> impl IntoView {
                                     post_id=child.1.post_id
                                     comment_id=child.1.comment_id
                                 />
-                                <AuthorizedShow permission_level=PermissionLevel::Ban>
+                                <AuthorizedShow forum_name permission_level=PermissionLevel::Ban>
                                     <ActionForm action=unban_action>
                                         <input
                                             name="ban_id"

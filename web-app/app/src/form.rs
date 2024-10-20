@@ -1,5 +1,7 @@
 use leptos::prelude::*;
 
+use crate::role::{AuthorizedShow, PermissionLevel};
+
 /// Component for a boolean checkbox in a form
 #[component]
 pub fn FormCheckbox(
@@ -7,8 +9,10 @@ pub fn FormCheckbox(
     name: &'static str,
     /// Label of the checkbox
     label: &'static str,
+    #[prop(default = false)]
+    value: bool,
 ) -> impl IntoView {
-    let is_checked = RwSignal::new(false);
+    let is_checked = RwSignal::new(value);
     let is_checked_string = move || is_checked.get().to_string();
     view! {
         <div class="form-control">
@@ -18,5 +22,19 @@ pub fn FormCheckbox(
                 <input type="checkbox" class="checkbox checkbox-primary" checked=is_checked on:click=move |_| is_checked.update(|value| *value = !*value)/>
             </label>
         </div>
+    }
+}
+
+#[component]
+pub fn IsPinnedCheckbox(
+    #[prop(into)]
+    forum_name: Signal<String>,
+    #[prop(default = false)]
+    value: bool,
+) -> impl IntoView {
+    view! {
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
+            <FormCheckbox name="is_pinned" label="Pinned" value/>
+        </AuthorizedShow>
     }
 }

@@ -3,14 +3,13 @@ use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
 use crate::content::{Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
-use crate::form::FormCheckbox;
+use crate::form::IsPinnedCheckbox;
 use crate::forum::ForumState;
 use crate::icons::{CommentIcon, EditIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::navigation_bar::get_current_path;
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::role::PermissionLevel;
-use crate::unpack::{ActionError, ArcSuspenseUnpack};
+use crate::unpack::ActionError;
 use crate::widget::{AuthorWidget, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -324,21 +323,28 @@ pub mod ssr {
         comment_id: i64,
         comment_body: &str,
         comment_markdown_body: Option<&str>,
+        is_pinned: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
+        if is_pinned {
+            let forum = get_comment_forum(comment_id, &db_pool).await?;
+            user.check_permissions(&forum.forum_name, PermissionLevel::Moderate)?;
+        }
         let comment = sqlx::query_as!(
             Comment,
             "UPDATE comments SET
                 body = $1,
                 markdown_body = $2,
+                is_pinned = $3,
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
-                comment_id = $3 AND
-                creator_id = $4
+                comment_id = $4 AND
+                creator_id = $5
             RETURNING *",
             comment_body,
             comment_markdown_body,
+            is_pinned,
             comment_id,
             user.user_id,
         )
@@ -481,6 +487,7 @@ pub async fn edit_comment(
     comment_id: i64,
     comment: String,
     is_markdown: bool,
+    is_pinned: Option<bool>,
 ) -> Result<Comment, ServerFnError> {
     log::trace!("Edit comment {comment_id}");
     let user = check_user()?;
@@ -498,6 +505,7 @@ pub async fn edit_comment(
         comment_id,
         comment.as_str(),
         markdown_comment,
+        is_pinned.unwrap_or(false),
         &user,
         &db_pool,
     )
@@ -755,7 +763,6 @@ pub fn CommentForm(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let forum_name = expect_context::<ForumState>().forum_name;
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let comment_autosize = use_textarea_autosize(textarea_ref);
@@ -799,14 +806,7 @@ pub fn CommentForm(
                         placeholder="Your comment..."
                         data=comment_data
                     />
-                    <ArcSuspenseUnpack resource=state.user let:user>
-                        <Show when=move || match &*user {
-                            Some(user) => user.check_permissions(&*forum_name.read(), PermissionLevel::Moderate).is_ok(),
-                            None => false,
-                        }>
-                            <FormCheckbox name="is_pinned" label="Pinned"/>
-                        </Show>
-                    </ArcSuspenseUnpack>
+                    <IsPinnedCheckbox forum_name=forum_name/>
                     <ModalFormButtons
                         disable_publish=is_comment_empty
                         show_form
@@ -885,6 +885,7 @@ pub fn EditCommentForm(
     comment: RwSignal<Comment>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
+    let forum_name = expect_context::<ForumState>().forum_name;
     let (current_body, is_markdown) =
         comment.with_untracked(|comment| match &comment.markdown_body {
             Some(body) => (body.clone(), true),
@@ -930,6 +931,7 @@ pub fn EditCommentForm(
                         data=comment_data
                         is_markdown
                     />
+                    <IsPinnedCheckbox forum_name value=comment.with_untracked(|comment| comment.is_pinned)/>
                     <ModalFormButtons
                         disable_publish=is_comment_empty
                         show_form

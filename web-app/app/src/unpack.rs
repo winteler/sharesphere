@@ -92,7 +92,7 @@ async fn unpack_resource<
     children: StoredValue<F>,
 ) -> impl IntoView {
     match &resource.await {
-        Ok(value) => Ok(children.get_value()(value)),
+        Ok(value) => Ok(children.with_value(|children| children(value))),
         Err(e) => Err(AppError::from(e)),
     }
 }
@@ -154,7 +154,7 @@ async fn arc_unpack_resource<
     children: StoredValue<F>,
 ) -> impl IntoView {
     match &resource.await {
-        Ok(value) => Ok(children.get_value()(Arc::new(value.clone()))),
+        Ok(value) => Ok(children.with_value(|children| children(Arc::new(value.clone())))),
         Err(e) => Err(AppError::from(e)),
     }
 }

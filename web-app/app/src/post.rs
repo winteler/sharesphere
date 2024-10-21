@@ -824,7 +824,7 @@ fn PostWidgetBar(
             <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton author_id=post.post.creator_id post=StoredValue::new(post.post.clone())/>
             <ModeratePostButton post_id=post.post.post_id/>
-            <AuthorWidget author=post.post.creator_name.clone()/>
+            <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
             <ModeratorWidget moderator=post.post.moderator_name.clone()/>
             <ModerationInfoButton content=Content::Post(post.post.clone())/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>

@@ -2,10 +2,12 @@ use leptos::html;
 use leptos::prelude::*;
 use strum::IntoEnumIterator;
 
+use crate::app::GlobalState;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, };
+use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SelfAuthorIcon};
+use crate::unpack::SuspenseUnpack;
 
 /// Component that displays its children in a modal dialog
 #[component]
@@ -63,11 +65,31 @@ where
 
 /// Component to display the author of a post or comment
 #[component]
-pub fn AuthorWidget(author: String) -> impl IntoView {
+pub fn AuthorWidget(
+    author: String,
+    is_moderator: bool,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let author = StoredValue::new(author);
+
     view! {
         <div class="flex px-1 gap-1.5 items-center text-sm">
-            <AuthorIcon/>
-            {author}
+            { move || if is_moderator {
+                    view! { <ModeratorAuthorIcon/> }.into_any()
+                } else {
+                    view! {
+                        <SuspenseUnpack resource=state.user let:user>
+                        {
+                            match user {
+                                Some(user) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
+                                _ => view! { <AuthorIcon/> }.into_any(),
+                            }
+                        }
+                        </SuspenseUnpack>
+                    }.into_any()
+                }
+            }
+            {author.get_value()}
         </div>
     }.into_any()
 }

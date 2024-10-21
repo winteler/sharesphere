@@ -661,6 +661,7 @@ fn CommentWidgetBar(
     let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
     let moderator = Signal::derive(move || comment.read().moderator_name.clone());
     let content = Signal::derive(move || Content::Comment(comment.get()));
+    let is_moderator_comment = comment.read_untracked().is_creator_moderator;
     view! {
         <div class="flex gap-1">
             <VotePanel
@@ -684,7 +685,7 @@ fn CommentWidgetBar(
                 comment
             />
             <ModerationInfoButton content/>
-            <AuthorWidget author/>
+            <AuthorWidget author is_moderator=is_moderator_comment/>
             <ModeratorWidget moderator/>
             <TimeSinceWidget timestamp/>
             <TimeSinceEditWidget edit_timestamp/>

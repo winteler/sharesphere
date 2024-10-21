@@ -5,6 +5,7 @@ use rand::Rng;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
+use app::comment::ssr::create_comment;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
@@ -75,12 +76,12 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 1.");
+    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1, expected_post_1);
@@ -99,12 +100,12 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 1.");
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
@@ -154,7 +155,7 @@ async fn test_get_post_forum() -> Result<(), AppError> {
     let user = create_test_user(&db_pool).await;
 
     let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
-    let post = create_post(&forum.forum_name, "1", "test", None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post.");
+    let post = create_post(&forum.forum_name, "1", "test", None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post.");
 
     let result_forum = get_post_forum(post.post_id, &db_pool).await.expect("Post forum should be available.");
     assert_eq!(result_forum, forum);
@@ -359,8 +360,8 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
         None,
         false,
         false,
-        None,
         true,
+        None,
         &user,
         &db_pool
     ).await.expect("Pinned post should be created.");
@@ -408,7 +409,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, false, &user, &db_pool).await.expect("Should be able to create post 1.");
+    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     assert_eq!(post_1.title, post_1_title);
     assert_eq!(post_1.body, post_1_body);
@@ -434,7 +435,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, None, true, &user, &db_pool).await,
+        create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, true, None, &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -442,7 +443,7 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, None, true, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, true, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
@@ -500,8 +501,8 @@ async fn test_update_post() -> Result<(), AppError> {
         None,
         false,
         false,
-        None,
         false,
+        None,
         &user,
         &db_pool,
     ).await?;
@@ -515,7 +516,10 @@ async fn test_update_post() -> Result<(), AppError> {
         &updated_html_body,
         Some(updated_markdown_body),
         false,
-        None,&user,
+        false,
+        false,
+        None,
+        &user,
         &db_pool
     ).await?;
 
@@ -527,6 +531,22 @@ async fn test_update_post() -> Result<(), AppError> {
         updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
         updated_post.create_timestamp == post.create_timestamp
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn increment_post_comment_count() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+
+    let (_, post) = create_forum_with_post("forum", &user, &db_pool).await;
+    assert_eq!(post.num_comments, 0);
+
+    let _comment = create_comment(post.post_id, None, "a", None, false, &user, &db_pool).await.expect("Should create comment.");
+
+    let post = get_post_by_id(post.post_id, &db_pool).await.expect("Should get post.");
+    assert_eq!(post.num_comments, 1);
 
     Ok(())
 }

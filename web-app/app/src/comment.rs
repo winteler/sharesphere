@@ -16,6 +16,7 @@ use crate::{
     app::ssr::get_db_pool,
     auth::{get_user, ssr::check_user},
     editor::get_styled_html_from_markdown,
+    post::ssr::increment_post_comment_count,
     ranking::{ssr::vote_on_content, VoteValue},
 };
 use leptos::html;
@@ -314,7 +315,7 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
-        // TODO increase post comment count
+        increment_post_comment_count(post_id, &db_pool).await?;
 
         Ok(comment)
     }

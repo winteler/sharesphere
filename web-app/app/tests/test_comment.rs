@@ -7,6 +7,7 @@ use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_forum};
 use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
+use app::post::ssr::get_post_by_id;
 use app::ranking::{SortType, Vote, VoteValue};
 use app::user::User;
 
@@ -216,6 +217,9 @@ async fn test_create_comment() -> Result<(), AppError> {
         Err(AppError::InsufficientPrivileges),
     );
 
+    let post = get_post_by_id(post.post_id, &db_pool).await.expect("Should get post.");
+    assert_eq!(post.num_comments, 1);
+
     let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
     let markdown_body = "# markdown";
     let child_comment = create_comment(post.post_id, Some(comment.comment_id), comment_body, Some(markdown_body), true, &user, &db_pool).await.expect("Comment should be created.");
@@ -238,6 +242,9 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(child_comment.score_minus, 0);
     assert_eq!(child_comment.edit_timestamp, None);
 
+    let post = get_post_by_id(post.post_id, &db_pool).await.expect("Should get post.");
+    assert_eq!(post.num_comments, 2);
+
     Ok(())
 }
 
@@ -254,6 +261,7 @@ async fn test_update_comment() -> Result<(), AppError> {
         comment.comment_id,
         &updated_html_body,
         Some(updated_markdown_body),
+        false,
         &user,
         &db_pool
     ).await?;

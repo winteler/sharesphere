@@ -30,8 +30,8 @@ pub async fn create_forum_with_post(
         None,
         false,
         false,
-        None,
         false,
+        None,
         &user,
         db_pool,
     ).await.expect("Should be able to create post.");
@@ -75,8 +75,8 @@ pub async fn create_forum_with_posts(
             None,
             false,
             false,
-            None,
             false,
+            None,
             user,
             db_pool,
         ).await?;
@@ -110,8 +110,8 @@ pub async fn create_post_with_comments(
         None,
         false,
         false,
-        None,
         false,
+        None,
         user,
         db_pool,
     ).await?;

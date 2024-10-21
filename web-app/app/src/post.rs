@@ -414,10 +414,28 @@ pub mod ssr {
         Ok(post)
     }
 
+    pub async fn increment_post_comment_count(
+        post_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Post, AppError> {
+        let post = sqlx::query_as!(
+            Post,
+            "UPDATE posts
+            SET num_comments = num_comments + 1
+            WHERE post_id = $1
+            RETURNING *",
+            post_id,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(post)
+    }
+
     pub async fn update_post_scores(db_pool: &PgPool) -> Result<(), AppError> {
         sqlx::query!(
-            "UPDATE posts \
-            SET scoring_timestamp = CURRENT_TIMESTAMP \
+            "UPDATE posts
+            SET scoring_timestamp = CURRENT_TIMESTAMP
             WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
         )
             .execute(db_pool)

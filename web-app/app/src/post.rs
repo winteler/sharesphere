@@ -21,7 +21,7 @@ use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
-use crate::widget::{AuthorWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -839,6 +839,7 @@ fn PostWidgetBar(
                 score=post.post.score
                 vote=post.vote.clone()
             />
+            <CommentCountWidget count=post.post.num_comments/>
             <CommentButton post_id=post.post.post_id comment_vec/>
             <EditPostButton author_id=post.post.creator_id post=StoredValue::new(post.post.clone())/>
             <ModeratePostButton post_id=post.post.post_id/>

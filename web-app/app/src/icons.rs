@@ -1,6 +1,13 @@
 use leptos::prelude::*;
 
 #[component]
+pub fn AddCommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/add_comment.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/errors/alien.svg" class=class/>

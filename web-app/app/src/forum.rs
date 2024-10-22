@@ -20,7 +20,7 @@ use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
 use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack};
-use crate::widget::{AuthorWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentCountWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -727,6 +727,7 @@ pub fn ForumPostMiniatures(
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
                                     <div class="flex gap-1">
                                         <ScoreIndicator score=post.score/>
+                                        <CommentCountWidget count=post.num_comments/>
                                         <AuthorWidget author=post.creator_name.clone() is_moderator=post.is_creator_moderator/>
                                         <TimeSinceWidget timestamp=post.create_timestamp/>
                                     </div>

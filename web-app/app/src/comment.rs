@@ -5,7 +5,7 @@ use crate::content::{Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::form::IsPinnedCheckbox;
 use crate::forum::ForumState;
-use crate::icons::{CommentIcon, EditIcon};
+use crate::icons::{AddCommentIcon, EditIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::navigation_bar::get_current_path;
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -711,7 +711,7 @@ pub fn CommentButton(
         <div>
             <LoginGuardButton
                 login_button_class="btn btn-circle btn-ghost btn-sm"
-                login_button_content=move || view! { <CommentIcon/> }.into_any()
+                login_button_content=move || view! { <AddCommentIcon/> }.into_any()
                 redirect_path_fn=&get_current_path
                 let:_user
             >
@@ -721,7 +721,7 @@ pub fn CommentButton(
                     aria-haspopup="dialog"
                     on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
                 >
-                    <CommentIcon/>
+                    <AddCommentIcon/>
                 </button>
             </LoginGuardButton>
             <CommentDialog

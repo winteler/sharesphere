@@ -6,7 +6,7 @@ use crate::app::GlobalState;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, EditTimeIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SelfAuthorIcon};
+use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SelfAuthorIcon};
 use crate::unpack::SuspenseUnpack;
 
 /// Component that displays its children in a modal dialog
@@ -90,6 +90,19 @@ pub fn AuthorWidget(
                 }
             }
             {author.get_value()}
+        </div>
+    }.into_any()
+}
+
+/// Component to display the number of comments in a post
+#[component]
+pub fn CommentCountWidget(
+    count: i32,
+) -> impl IntoView {
+    view! {
+        <div class="flex gap-1.5 items-center text-sm px-1">
+            <CommentIcon/>
+            {count}
         </div>
     }.into_any()
 }

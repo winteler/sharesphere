@@ -130,17 +130,24 @@ pub mod ssr {
             );
 
             let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
-            if id_token.claims(&client.id_token_verifier(), &nonce)?.expiration() < chrono::offset::Utc::now() {
+            let claims = id_token.claims(&client.id_token_verifier(), &nonce);
+            if let Err(openidconnect::ClaimsVerificationError::Expired(_)) = claims {
                 log::info!("Id token expired, refresh tokens.");
                 auth_session.session.remove(OIDC_TOKEN_KEY);
                 auth_session.logout_user();
                 let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
-                let refresh_token_response = client
+                let token_response = client
                     .exchange_refresh_token(&refresh_token)
                     .request_async(async_http_client)
-                    .await?;
+                    .await;
 
-                process_token_response(refresh_token_response, auth_session, client).await?;
+                if let Ok(token_response) = token_response {
+                    process_token_response(token_response, auth_session.clone(), client).await?;
+                } else {
+                    log::error!("Failed to refresh token: {}.", token_response.unwrap_err());
+                }
+            } else {
+                log::info!("Id token valid until {}", claims?.expiration());
             }
         }
         Ok(())

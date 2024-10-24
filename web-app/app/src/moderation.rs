@@ -258,7 +258,7 @@ pub async fn moderate_post(
     ban_duration_days: Option<usize>,
 ) -> Result<Post, ServerFnError> {
     log::info!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let post = ssr::moderate_post(
@@ -297,7 +297,7 @@ pub async fn moderate_comment(
     ban_duration_days: Option<usize>,
 ) -> Result<Comment, ServerFnError> {
     log::trace!("Moderate comment {comment_id}");
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let comment = ssr::moderate_comment(

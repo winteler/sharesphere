@@ -345,7 +345,7 @@ pub async fn add_rule(
     description: String,
 ) -> Result<Rule, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let user = check_user()?;
+    let user = check_user().await?;
     let rule = ssr::add_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
     Ok(rule)
 }
@@ -359,7 +359,7 @@ pub async fn update_rule(
     description: String,
 ) -> Result<Rule, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let user = check_user()?;
+    let user = check_user().await?;
     let rule = ssr::update_rule(forum_name.as_ref().map(String::as_str), current_priority, priority, &title, &description, &user, &db_pool).await?;
     Ok(rule)
 }
@@ -370,7 +370,7 @@ pub async fn remove_rule(
     priority: i16,
 ) -> Result<(), ServerFnError> {
     let db_pool = get_db_pool()?;
-    let user = check_user()?;
+    let user = check_user().await?;
     ssr::remove_rule(forum_name.as_ref().map(String::as_str), priority, &user, &db_pool).await?;
     Ok(())
 }
@@ -389,7 +389,7 @@ pub async fn get_forum_ban_vec(
 pub async fn remove_user_ban(
     ban_id: i64
 ) -> Result<(), ServerFnError> {
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
     let deleted_user_ban = ssr::remove_user_ban(ban_id, &user, &db_pool).await?;
     reload_user(deleted_user_ban.user_id)?;

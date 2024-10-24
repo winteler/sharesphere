@@ -251,7 +251,7 @@ pub async fn set_user_forum_role(
     forum_name: String,
     permission_level: PermissionLevel,
 ) -> Result<UserForumRole, ServerFnError> {
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let assigned_user = SqlUser::get_by_username(&username, &db_pool).await?;

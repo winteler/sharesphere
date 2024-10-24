@@ -293,7 +293,7 @@ pub async fn vote_on_content(
     comment_id: Option<i64>,
     vote_id: Option<i64>,
 ) -> Result<Option<Vote>, ServerFnError> {
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let vote = ssr::vote_on_content(

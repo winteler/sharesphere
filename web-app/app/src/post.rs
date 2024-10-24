@@ -593,7 +593,7 @@ pub async fn create_post(
     is_pinned: Option<bool>,
     tag: Option<String>,
 ) -> Result<(), ServerFnError> {
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let (body, markdown_body) = match is_markdown {
@@ -643,7 +643,7 @@ pub async fn edit_post(
     tag: Option<String>,
 ) -> Result<Post, ServerFnError> {
     log::trace!("Edit post {post_id}, title = {title}, body = {body}");
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let (body, markdown_body) = match is_markdown {

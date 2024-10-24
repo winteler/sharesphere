@@ -411,7 +411,7 @@ pub async fn create_forum(
     is_nsfw: bool,
 ) -> Result<(), ServerFnError> {
     log::trace!("Create Sphere '{forum_name}', {description}, {is_nsfw}");
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let new_forum_path: &str = &(FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + forum_name.as_str());
@@ -438,7 +438,7 @@ pub async fn update_forum_description(
     forum_name: String,
     description: String,
 ) -> Result<(), ServerFnError> {
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     ssr::update_forum_description(&forum_name, &description, &user, &db_pool).await?;
@@ -448,7 +448,7 @@ pub async fn update_forum_description(
 
 #[server]
 pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     ssr::subscribe(forum_id, user.user_id, &db_pool).await?;
@@ -458,7 +458,7 @@ pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
 
 #[server]
 pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     ssr::unsubscribe(forum_id, user.user_id, &db_pool).await?;

@@ -17,7 +17,7 @@ use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::{get_db_pool, get_session},
-    auth::ssr::check_user,
+    auth::ssr::{check_refresh_token, check_user},
     constants::SITE_ROOT,
     user::ssr::{create_user, SqlUser}
 };
@@ -29,7 +29,7 @@ pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
 pub const AUTH_CALLBACK_ROUTE: &str = "/authback";
 pub const PKCE_KEY: &str = "pkce";
 pub const NONCE_KEY: &str = "nonce";
-pub const OIDC_TOKENS_KEY: &str = "oidc_token";
+pub const OIDC_TOKEN_KEY: &str = "oidc_token";
 pub const OIDC_USERNAME_KEY: &str = "oidc_username";
 pub const REDIRECT_URL_KEY: &str = "redirect";
 
@@ -41,11 +41,12 @@ pub struct OAuthParams {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use axum_session_sqlx::SessionPgPool;
+    use openidconnect::core::CoreTokenResponse;
+    use sqlx::PgPool;
+
     use crate::errors::AppError;
     use crate::user::User;
-
-    use axum_session_sqlx::SessionPgPool;
-    use sqlx::PgPool;
 
     use super::*;
 
@@ -99,7 +100,8 @@ pub mod ssr {
         Ok(client)
     }
 
-    pub fn check_user() -> Result<User, AppError> {
+    pub async fn check_user() -> Result<User, AppError> {
+        check_refresh_token().await?;
         let auth_session = get_session()?;
         auth_session.current_user.ok_or(AppError::NotAuthenticated)
     }
@@ -109,11 +111,105 @@ pub mod ssr {
         auth_session.cache_clear_user(user_id);
         Ok(())
     }
+
+    pub async fn check_refresh_token() -> Result<(), AppError> {
+        let auth_session = get_session()?;
+        if auth_session.current_user.is_some() {
+            let client = ssr::get_auth_client().await?;
+            let token_response: oidc::core::CoreTokenResponse =
+                auth_session
+                    .session
+                    .get(OIDC_TOKEN_KEY)
+                    .ok_or(AppError::new("Not authenticated."))?;
+
+            let nonce = oidc::Nonce::new(
+                auth_session
+                    .session
+                    .get(NONCE_KEY)
+                    .unwrap_or(String::from("")),
+            );
+
+            let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
+            if id_token.claims(&client.id_token_verifier(), &nonce)?.expiration() < chrono::offset::Utc::now() {
+                log::info!("Id token expired, refresh tokens.");
+                auth_session.session.remove(OIDC_TOKEN_KEY);
+                auth_session.logout_user();
+                let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
+                let refresh_token_response = client
+                    .exchange_refresh_token(&refresh_token)
+                    .request_async(async_http_client)
+                    .await?;
+
+                process_token_response(refresh_token_response, auth_session, client).await?;
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn process_token_response(
+        token_response: CoreTokenResponse,
+        auth_session: AuthSession,
+        client: oidc::core::CoreClient,
+    ) -> Result<SqlUser, AppError> {
+        let nonce = oidc::Nonce::new(
+            auth_session
+                .session
+                .get(NONCE_KEY)
+                .unwrap_or(String::from("")),
+        );
+        // Extract the ID token claims after verifying its authenticity and nonce.
+        let id_token = token_response
+            .id_token()
+            .ok_or(AppError::new("Id token missing."))?;
+        let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
+
+        // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.
+        if let Some(expected_access_token_hash) = claims.access_token_hash() {
+            let actual_access_token_hash = oidc::AccessTokenHash::from_token(
+                token_response.access_token(),
+                &id_token.signing_alg()?,
+            )?;
+            if actual_access_token_hash != *expected_access_token_hash {
+                return Err(AppError::new("Invalid access token"));
+            }
+        }
+
+        // The authenticated user's identity is now available. See the IdTokenClaims struct for a
+        // complete listing of the available claims.
+        log::info!(
+        "User {} with e-mail address {} has authenticated successfully",
+        claims.subject().as_str(),
+        claims
+            .email()
+            .map(|email| email.as_str())
+            .unwrap_or("<not provided>"),
+    );
+
+        auth_session
+            .session
+            .set(OIDC_TOKEN_KEY, token_response.clone());
+
+        let oidc_id = claims.subject().to_string();
+        let db_pool = get_db_pool()?;
+
+        let user = if let Ok(user) = SqlUser::get_from_oidc_id(&oidc_id, &db_pool).await {
+            // TODO update user info?
+            user
+        } else {
+            let username: String = claims.preferred_username().unwrap().to_string();
+            let email: String = claims.email().unwrap().to_string();
+            create_user(&oidc_id, &username, &email, &db_pool).await?
+        };
+
+        auth_session.login_user(user.user_id);
+
+        Ok(user)
+    }
 }
 
 #[server]
 pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
-    let current_user = check_user();
+    let current_user = check_user().await;
 
     if current_user
         .as_ref()
@@ -159,12 +255,6 @@ pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnErro
 
     let auth_session = get_session()?;
 
-    let nonce = oidc::Nonce::new(
-        auth_session
-            .session
-            .get(NONCE_KEY)
-            .unwrap_or(String::from("")),
-    );
     let redirect_url = auth_session
         .session
         .get(REDIRECT_URL_KEY)
@@ -178,70 +268,14 @@ pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnErro
         .request_async(async_http_client)
         .await?;
 
-    // Extract the ID token claims after verifying its authenticity and nonce.
-    let id_token = token_response
-        .id_token()
-        .ok_or(ServerFnError::new("Error getting id token."))?;
-    let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
-
-    // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.
-    if let Some(expected_access_token_hash) = claims.access_token_hash() {
-        let actual_access_token_hash = oidc::AccessTokenHash::from_token(
-            token_response.access_token(),
-            &id_token.signing_alg()?,
-        )?;
-        if actual_access_token_hash != *expected_access_token_hash {
-            return Err(ServerFnError::new("Invalid access token"));
-        }
-    }
-
-    // The authenticated user's identity is now available. See the IdTokenClaims struct for a
-    // complete listing of the available claims.
-    log::debug!(
-        "User {} with e-mail address {} has authenticated successfully",
-        claims.subject().as_str(),
-        claims
-            .email()
-            .map(|email| email.as_str())
-            .unwrap_or("<not provided>"),
-    );
-
-    // If available, we can use the UserInfo endpoint to request additional information.
-
-    // The user_info request uses the AccessToken returned in the token response. To parse custom
-    // claims, use UserInfoClaims directly (with the desired type parameters) rather than using the
-    // CoreUserInfoClaims type alias.
-    let _userinfo: oidc::core::CoreUserInfoClaims = client
-        .user_info(token_response.access_token().to_owned(), None)
-        .map_err(|err| ServerFnError::new("No user info endpoint: ".to_owned() + &err.to_string()))?
-        .request_async(async_http_client)
-        .await
-        .map_err(|err| {
-            ServerFnError::new("Failed requesting user info: ".to_owned() + &err.to_string())
-        })?;
-
-    auth_session
-        .session
-        .set(OIDC_TOKENS_KEY, token_response.clone());
-
-    let oidc_id = claims.subject().to_string();
-    let db_pool = get_db_pool()?;
-
-    let user = if let Ok(user) = SqlUser::get_from_oidc_id(&oidc_id, &db_pool).await {
-        user
-    } else {
-        let username: String = claims.preferred_username().unwrap().to_string();
-        let email: String = claims.email().unwrap().to_string();
-        create_user(&oidc_id, &username, &email, &db_pool).await?
-    };
-
-    auth_session.login_user(user.user_id);
+    ssr::process_token_response(token_response, auth_session, client).await?;
 
     Ok(redirect_url)
 }
 
 #[server]
 pub async fn get_user() -> Result<Option<User>, ServerFnError> {
+    check_refresh_token().await?;
     let auth_session = get_session()?;
     Ok(auth_session.current_user)
 }
@@ -251,14 +285,13 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
     log::debug!("Logout, redirect_url: {redirect_url}");
 
     let auth_session = get_session()?;
-    log::debug!("Got session.");
     let token_response: oidc::core::CoreTokenResponse =
         auth_session
             .session
-            .get(OIDC_TOKENS_KEY)
+            .get(OIDC_TOKEN_KEY)
             .ok_or(ServerFnError::new("Not authenticated."))?;
 
-    log::debug!("Got id token: {token_response:?}");
+    let id_token = token_response.id_token().ok_or(ServerFnError::new("Id token missing."))?;
 
     let logout_provider_metadata =
         oidc::ProviderMetadataWithLogout::discover_async(ssr::get_issuer_url()?, async_http_client)
@@ -275,12 +308,12 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
 
     let logout_request = oidc::LogoutRequest::from(logout_endpoint_url)
         .set_client_id(ssr::get_client_id()?)
-        .set_id_token_hint(token_response.id_token().unwrap())
+        .set_id_token_hint(id_token)
         .set_post_logout_redirect_uri(oidc::PostLogoutRedirectUrl::new(redirect_url)?);
 
     leptos_axum::redirect(logout_request.http_get_url().to_string().as_str());
 
-    auth_session.session.remove(OIDC_TOKENS_KEY);
+    auth_session.session.remove(OIDC_TOKEN_KEY);
     auth_session.logout_user();
 
     Ok(())

@@ -443,7 +443,7 @@ pub async fn create_comment(
     is_pinned: Option<bool>,
 ) -> Result<CommentWithChildren, ServerFnError> {
     log::trace!("Create comment for post {post_id}");
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let (comment, markdown_comment) = match is_markdown {
@@ -491,7 +491,7 @@ pub async fn edit_comment(
     is_pinned: Option<bool>,
 ) -> Result<Comment, ServerFnError> {
     log::trace!("Edit comment {comment_id}");
-    let user = check_user()?;
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let (comment, markdown_comment) = match is_markdown {

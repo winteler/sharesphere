@@ -135,11 +135,30 @@ mod ssr {
         }
     }
 
+    impl From<openidconnect::ClaimsVerificationError> for AppError {
+        fn from(error: openidconnect::ClaimsVerificationError) -> Self {
+            AppError::AuthenticationError(error.to_string())
+        }
+    }
+
+    impl From<openidconnect::SigningError> for AppError {
+        fn from(error: openidconnect::SigningError) -> Self {
+            AppError::AuthenticationError(error.to_string())
+        }
+    }
+
     impl<T: std::error::Error> From<openidconnect::DiscoveryError<T>> for AppError {
         fn from(error: openidconnect::DiscoveryError<T>) -> Self {
             AppError::AuthenticationError(error.to_string())
         }
     }
+
+    impl<A: std::error::Error, B: openidconnect::ErrorResponse> From<openidconnect::RequestTokenError<A, B>> for AppError {
+        fn from(error: openidconnect::RequestTokenError<A, B>) -> Self {
+            AppError::AuthenticationError(error.to_string())
+        }
+    }
+
 
     impl From<quick_xml::Error> for AppError {
         fn from(error: quick_xml::Error) -> Self {

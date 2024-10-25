@@ -30,7 +30,7 @@ use crate::{
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
-use leptos_router::components::{Outlet, A};
+use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
@@ -670,12 +670,12 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
                         redirect_path_fn=&get_create_post_path
                         let:_user
                     >
-                        <form action=CREATE_POST_ROUTE class="flex">
+                        <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
                             <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=forum_name/>
                             <button type="submit" class="btn btn-circle btn-ghost">
                                 <PlusIcon class="h-6 w-6"/>
                             </button>
-                        </form>
+                        </Form>
                     </LoginGuardButton>
                 </div>
             </div>

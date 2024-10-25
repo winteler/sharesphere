@@ -1,5 +1,3 @@
-use leptos::prelude::*;
-
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::constants::{PATH_SEPARATOR, SITE_ROOT};
@@ -7,6 +5,8 @@ use crate::forum::*;
 use crate::icons::*;
 use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
 use crate::user::User;
+use leptos::prelude::*;
+use leptos_router::components::Form;
 
 pub fn get_current_url(url: RwSignal<String>) {
     let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));
@@ -159,12 +159,12 @@ pub fn PlusMenu() -> impl IntoView {
                         redirect_path_fn=&get_create_post_path
                         let:_user
                     >
-                        <form action=CREATE_POST_ROUTE class="flex">
+                        <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
                             <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
                             <button type="submit" class="whitespace-nowrap" on:click=move |_| get_forum_name(current_forum)>
                                 {create_post_str}
                             </button>
-                        </form>
+                        </Form>
                     </LoginGuardButton>
                 </li>
             </ul>

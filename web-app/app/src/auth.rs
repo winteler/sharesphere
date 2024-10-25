@@ -132,7 +132,7 @@ pub mod ssr {
             let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
             let claims = id_token.claims(&client.id_token_verifier(), &nonce);
             if let Err(openidconnect::ClaimsVerificationError::Expired(_)) = claims {
-                log::info!("Id token expired, refresh tokens.");
+                log::debug!("Id token expired, refresh tokens.");
                 auth_session.session.remove(OIDC_TOKEN_KEY);
                 auth_session.logout_user();
                 let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
@@ -141,7 +141,6 @@ pub mod ssr {
                     .request_async(async_http_client)
                     .await;
 
-                log::info!("Got token response");
                 if let Ok(token_response) = token_response {
                     let sql_user = process_token_response(token_response, auth_session.clone(), client).await?;
                     let db_pool = get_db_pool()?;
@@ -152,7 +151,7 @@ pub mod ssr {
                     Ok(None)
                 }
             } else {
-                log::info!("Id token valid until {}", claims?.expiration());
+                log::debug!("Id token valid until {}", claims?.expiration());
                 Ok(auth_session.current_user)
             }
         } else {
@@ -190,7 +189,7 @@ pub mod ssr {
 
         // The authenticated user's identity is now available. See the IdTokenClaims struct for a
         // complete listing of the available claims.
-        log::info!(
+        log::debug!(
         "User {} with e-mail address {} has authenticated successfully",
         claims.subject().as_str(),
         claims
@@ -216,6 +215,10 @@ pub mod ssr {
         };
 
         auth_session.login_user(user.user_id);
+
+        auth_session
+            .session
+            .remove(NONCE_KEY);
 
         Ok(user)
     }

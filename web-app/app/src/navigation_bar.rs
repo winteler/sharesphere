@@ -59,8 +59,7 @@ pub fn get_create_post_path(create_post_route: RwSignal<String>) {
 
 /// Navigation bar component
 #[component]
-pub fn NavigationBar(
-    ) -> impl IntoView
+pub fn NavigationBar() -> impl IntoView
 {
     view! {
         <div class="flex-none navbar bg-blue-500">

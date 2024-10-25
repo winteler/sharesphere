@@ -13,11 +13,12 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 use crate::app::GlobalState;
+use crate::icons::LoadingIcon;
 use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::{get_db_pool, get_session},
-    auth::ssr::{check_refresh_token, check_user},
+    auth::ssr::check_user,
     constants::SITE_ROOT,
     user::ssr::{create_user, SqlUser}
 };
@@ -101,9 +102,8 @@ pub mod ssr {
     }
 
     pub async fn check_user() -> Result<User, AppError> {
-        check_refresh_token().await?;
-        let auth_session = get_session()?;
-        auth_session.current_user.ok_or(AppError::NotAuthenticated)
+        let user = check_refresh_token().await?;
+        user.ok_or(AppError::NotAuthenticated)
     }
 
     pub fn reload_user(user_id: i64) -> Result<(), AppError> {
@@ -112,7 +112,7 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn check_refresh_token() -> Result<(), AppError> {
+    pub async fn check_refresh_token() -> Result<Option<User>, AppError> {
         let auth_session = get_session()?;
         if auth_session.current_user.is_some() {
             let client = ssr::get_auth_client().await?;
@@ -141,16 +141,23 @@ pub mod ssr {
                     .request_async(async_http_client)
                     .await;
 
+                log::info!("Got token response");
                 if let Ok(token_response) = token_response {
-                    process_token_response(token_response, auth_session.clone(), client).await?;
+                    let sql_user = process_token_response(token_response, auth_session.clone(), client).await?;
+                    let db_pool = get_db_pool()?;
+                    let user = User::get(sql_user.user_id, &db_pool).await;
+                    Ok(user)
                 } else {
                     log::error!("Failed to refresh token: {}.", token_response.unwrap_err());
+                    Ok(None)
                 }
             } else {
                 log::info!("Id token valid until {}", claims?.expiration());
+                Ok(auth_session.current_user)
             }
+        } else {
+            Ok(None)
         }
-        Ok(())
     }
 
     pub async fn process_token_response(
@@ -282,9 +289,8 @@ pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnErro
 
 #[server]
 pub async fn get_user() -> Result<Option<User>, ServerFnError> {
-    check_refresh_token().await?;
-    let auth_session = get_session()?;
-    Ok(auth_session.current_user)
+    let user = ssr::check_refresh_token().await?;
+    Ok(user)
 }
 
 #[server]
@@ -347,6 +353,7 @@ pub fn LoginGuardButton<
     let login_button_content = StoredValue::new(login_button_content);
 
     view! {
+        <Transition fallback=move || view! { <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
                 match &state.user.await {
@@ -358,6 +365,7 @@ pub fn LoginGuardButton<
                 }
             })
         }
+        </Transition>
     }.into_any()
 }
 

@@ -156,17 +156,7 @@ pub mod ssr {
 
             Ok(sql_user)
         }
-        pub async fn get_from_oidc_id(oidc_id: &String, db_pool: &PgPool) -> Result<SqlUser, AppError> {
-            let sql_user = sqlx::query_as!(
-                SqlUser,
-                "SELECT * FROM users WHERE oidc_id = $1",
-                oidc_id
-            )
-                .fetch_one(db_pool)
-                .await?;
 
-            Ok(sql_user)
-        }
         pub fn into_user(
             self,
             user_role_vec: Vec<UserForumRole>,
@@ -314,16 +304,21 @@ pub mod ssr {
         Ok(username_set)
     }
 
-    pub async fn create_user(
+    pub async fn create_or_update_user(
         oidc_id: &str,
         username: &str,
         email: &str,
         db_pool: &PgPool,
     ) -> Result<SqlUser, AppError> {
-        log::debug!("Create new user {username}");
+        log::debug!("Create or update user {username} with oidc id = {oidc_id}");
         let sql_user = sqlx::query_as!(
             SqlUser,
-            "INSERT INTO users (oidc_id, username, email) VALUES ($1, $2, $3) RETURNING *",
+            "INSERT INTO users (oidc_id, username, email)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (oidc_id) DO UPDATE
+                SET username = EXCLUDED.username,
+                    email = EXCLUDED.email
+            RETURNING *",
             oidc_id,
             username,
             email,

@@ -3,8 +3,8 @@
 use std::env;
 use std::sync::Mutex;
 
-use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 
 use app::user::User;
 
@@ -63,7 +63,7 @@ pub async fn create_user(
     test_id: &str,
     db_pool: &PgPool
 ) -> User {
-    let sql_user = app::user::ssr::create_user(test_id, test_id, test_id, db_pool)
+    let sql_user = app::user::ssr::create_or_update_user(test_id, test_id, test_id, db_pool)
         .await
         .expect("Should be possible to create user.");
     User::get(sql_user.user_id, db_pool).await.expect("New user should be available in DB.")

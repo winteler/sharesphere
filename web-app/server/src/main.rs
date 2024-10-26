@@ -1,5 +1,3 @@
-use std::env;
-
 use axum::{
     body::Body as AxumBody,
     extract::{Path, State},
@@ -14,6 +12,8 @@ use axum_session_sqlx::SessionPgPool;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
+use std::env;
+use std::sync::Arc;
 
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
@@ -128,6 +128,10 @@ async fn main() {
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
+
+    let user_lock_map = Arc::new(UserLockMap {
+        locks: Mutex::new(HashMap::new()),
+    });
 
     let app_state = AppState {
         leptos_options: leptos_options.clone(),

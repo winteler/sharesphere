@@ -33,24 +33,6 @@ async fn test_sql_user_get_by_username() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_sql_user_get_from_oidc_id() -> Result<(), AppError> {
-    let db_pool = get_db_pool().await;
-    let oidc_id = "id";
-    let username = "username";
-    let email = "user@user.com";
-    let user = app::user::ssr::create_user(oidc_id, username, email, &db_pool).await.expect("Sql user should be created");
-    let sql_user = SqlUser::get_from_oidc_id(&user.oidc_id, &db_pool).await?;
-
-    assert_eq!(sql_user.user_id, user.user_id);
-    assert_eq!(sql_user.oidc_id, oidc_id);
-    assert_eq!(sql_user.username, username);
-    assert_eq!(sql_user.email, email);
-    assert_eq!(sql_user.admin_role, AdminRole::None);
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn test_user_get() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let creator_user = create_user("creator", &db_pool).await;

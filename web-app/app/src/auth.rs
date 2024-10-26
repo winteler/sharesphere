@@ -20,7 +20,7 @@ use crate::{
     app::ssr::{get_db_pool, get_session},
     auth::ssr::check_user,
     constants::SITE_ROOT,
-    user::ssr::{create_user, SqlUser}
+    user::ssr::{create_or_update_user, SqlUser}
 };
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
@@ -148,7 +148,7 @@ pub mod ssr {
                     Ok(user)
                 } else {
                     log::error!("Failed to refresh token: {}.", token_response.unwrap_err());
-                    Ok(None)
+                    Err(AppError::NotAuthenticated)
                 }
             } else {
                 log::debug!("Id token valid until {}", claims?.expiration());
@@ -205,14 +205,9 @@ pub mod ssr {
         let oidc_id = claims.subject().to_string();
         let db_pool = get_db_pool()?;
 
-        let user = if let Ok(user) = SqlUser::get_from_oidc_id(&oidc_id, &db_pool).await {
-            // TODO update user info?
-            user
-        } else {
-            let username: String = claims.preferred_username().unwrap().to_string();
-            let email: String = claims.email().unwrap().to_string();
-            create_user(&oidc_id, &username, &email, &db_pool).await?
-        };
+        let username: String = claims.preferred_username().ok_or(AppError::new("Username missing from token"))?.to_string();
+        let email: String = claims.email().ok_or(AppError::new("Email missing from token"))?.to_string();
+        let user = create_or_update_user(&oidc_id, &username, &email, &db_pool).await?;
 
         auth_session.login_user(user.user_id);
 

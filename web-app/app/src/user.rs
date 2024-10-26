@@ -1,8 +1,8 @@
-use std::cmp::max;
-use std::collections::{BTreeSet, HashMap};
-
 use leptos::{prelude::ServerFnError, server};
 use serde::{Deserialize, Serialize};
+use std::cmp::max;
+use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
@@ -119,14 +119,14 @@ impl User {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use async_trait::async_trait;
-    use axum_session_auth::Authentication;
-    use sqlx::PgPool;
-
     use crate::errors::AppError;
     use crate::forum_management::UserBan;
     use crate::role::ssr::get_user_forum_role;
     use crate::role::UserForumRole;
+    use async_trait::async_trait;
+    use axum_session_auth::Authentication;
+    use sqlx::PgPool;
+    use tokio::sync::Mutex;
 
     use super::*;
 
@@ -139,6 +139,11 @@ pub mod ssr {
         pub admin_role: AdminRole,
         pub timestamp: chrono::DateTime<chrono::Utc>,
         pub is_deleted: bool,
+    }
+
+    // Map of (user_id, lock) to guarantee thread-safety when performing some operations, such as refreshing tokens
+    pub struct UserLockMap {
+        pub lock_map: Mutex<HashMap<i64, Arc<Mutex<()>>>>,
     }
 
     impl SqlUser {

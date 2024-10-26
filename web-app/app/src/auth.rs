@@ -42,12 +42,12 @@ pub struct OAuthParams {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use crate::app::ssr::get_user_lock_cache;
+    use crate::errors::AppError;
+    use crate::user::User;
     use axum_session_sqlx::SessionPgPool;
     use openidconnect::core::CoreTokenResponse;
     use sqlx::PgPool;
-
-    use crate::errors::AppError;
-    use crate::user::User;
 
     use super::*;
 
@@ -114,7 +114,12 @@ pub mod ssr {
 
     pub async fn check_refresh_token() -> Result<Option<User>, AppError> {
         let auth_session = get_session()?;
-        if auth_session.current_user.is_some() {
+        if let Some(user) = &auth_session.current_user {
+            let user_lock = get_user_lock_cache()?.get_user_lock(user.user_id).await;
+
+            // Lock the mutex for this user
+            let _lock = user_lock.lock().await;
+
             let client = ssr::get_auth_client().await?;
             let token_response: oidc::core::CoreTokenResponse =
                 auth_session
@@ -132,7 +137,7 @@ pub mod ssr {
             let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
             let claims = id_token.claims(&client.id_token_verifier(), &nonce);
             if let Err(openidconnect::ClaimsVerificationError::Expired(_)) = claims {
-                log::debug!("Id token expired, refresh tokens.");
+                log::info!("Id token expired, refresh tokens.");
                 auth_session.session.remove(OIDC_TOKEN_KEY);
                 auth_session.logout_user();
                 let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
@@ -151,7 +156,7 @@ pub mod ssr {
                     Err(AppError::NotAuthenticated)
                 }
             } else {
-                log::debug!("Id token valid until {}", claims?.expiration());
+                log::info!("Id token valid until {}", claims?.expiration());
                 Ok(auth_session.current_user)
             }
         } else {
@@ -210,10 +215,6 @@ pub mod ssr {
         let user = create_or_update_user(&oidc_id, &username, &email, &db_pool).await?;
 
         auth_session.login_user(user.user_id);
-
-        auth_session
-            .session
-            .remove(NONCE_KEY);
 
         Ok(user)
     }

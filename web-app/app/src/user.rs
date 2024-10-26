@@ -2,7 +2,6 @@ use leptos::{prelude::ServerFnError, server};
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::collections::{BTreeSet, HashMap};
-use std::sync::Arc;
 
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
@@ -125,7 +124,10 @@ pub mod ssr {
     use crate::role::UserForumRole;
     use async_trait::async_trait;
     use axum_session_auth::Authentication;
+    use lru::LruCache;
     use sqlx::PgPool;
+    use std::num::NonZeroUsize;
+    use std::sync::Arc;
     use tokio::sync::Mutex;
 
     use super::*;
@@ -139,11 +141,6 @@ pub mod ssr {
         pub admin_role: AdminRole,
         pub timestamp: chrono::DateTime<chrono::Utc>,
         pub is_deleted: bool,
-    }
-
-    // Map of (user_id, lock) to guarantee thread-safety when performing some operations, such as refreshing tokens
-    pub struct UserLockMap {
-        pub lock_map: Mutex<HashMap<i64, Arc<Mutex<()>>>>,
     }
 
     impl SqlUser {
@@ -218,6 +215,37 @@ pub mod ssr {
                 timestamp: self.timestamp,
                 is_deleted: self.is_deleted,
             }
+        }
+    }
+
+    // Map of (user_id, lock) to guarantee thread-safety when performing some operations, such as refreshing tokens
+    #[derive(Debug)]
+
+    pub struct UserLockCache {
+        lock_cache: Mutex<LruCache<i64, Arc<Mutex<()>>>>,
+    }
+
+    impl UserLockCache {
+        pub fn new(max_size: NonZeroUsize) -> Self {
+
+            Self {
+                lock_cache: Mutex::new(LruCache::new(max_size)),
+            }
+        }
+
+        // Get or insert a lock for the user, updating the LRU cache
+        pub async fn get_user_lock(&self, user_id: i64) -> Arc<Mutex<()>> {
+            let mut lock_cache = self.lock_cache.lock().await;
+
+            // If the user ID exists, update access and return the lock
+            if let Some(lock) = lock_cache.get(&user_id) {
+                return Arc::clone(lock);
+            }
+
+            // If the user ID does not exist, insert a new entry
+            let new_lock = Arc::new(Mutex::new(()));
+            lock_cache.put(user_id, Arc::clone(&new_lock));
+            new_lock
         }
     }
 

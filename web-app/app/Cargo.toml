@@ -20,6 +20,7 @@ axum_session_sqlx = { workspace = true, optional = true }
 chrono.workspace = true
 http.workspace = true
 log.workspace = true
+lru = { workspace = true, optional = true }
 serde.workspace = true
 sqlx = { workspace = true, optional = true }
 thiserror.workspace = true
@@ -58,6 +59,7 @@ ssr = [
     "dep:markdown",
     "dep:quick-xml",
     "dep:leptos_axum",
+    "dep:lru",
     "dep:openidconnect",
     "dep:sqlx",
     "dep:tokio",

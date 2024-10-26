@@ -1,7 +1,7 @@
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
 use app::app::ssr::create_db_pool;
-use app::user::ssr::UserLockMap;
+use app::user::ssr::UserLockCache;
 use app::user::User;
 use app::{
     app::*,
@@ -21,16 +21,17 @@ use axum_session_sqlx::SessionPgPool;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
-use std::collections::HashMap;
 use std::env;
+use std::num::NonZeroUsize;
+use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 mod fallback;
 mod state;
 
 pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
 pub const SESSION_DB_KEY_ENV : &str = "SESSION_DB_KEY";
+pub const USER_LOCK_CACHE_SIZE_ENV : &str = "USER_LOCK_CACHE_SIZE";
 
 pub fn get_session_key() -> Key {
     match env::var(SESSION_KEY_ENV) {
@@ -58,6 +59,26 @@ pub fn get_session_db_key() -> Key {
     }
 }
 
+pub fn get_user_lock_cache_size() -> NonZeroUsize {
+    let default_size = NonZeroUsize::new(1000000).expect("Should initialize NonZeroUsize");
+    match env::var(USER_LOCK_CACHE_SIZE_ENV) {
+        Ok(value) => {
+            log::debug!("Got session db key from env variable.");
+            match NonZeroUsize::from_str(&value) {
+                Ok(value) => value,
+                Err(_) => {
+                    log::error!("Could not parse user lock cache size as NonZeroUsize.");
+                    default_size
+                }
+            }
+        },
+        Err(_) => {
+            log::debug!("Could not find user lock cache size in env variable, take default value.");
+            default_size
+        }
+    }
+}
+
 async fn server_fn_handler(
     State(app_state): State<AppState>,
     auth_session: AuthSession,
@@ -70,6 +91,7 @@ async fn server_fn_handler(
         move || {
             provide_context(auth_session.clone());
             provide_context(app_state.db_pool.clone());
+            provide_context(app_state.user_lock_cache.clone());
         },
         request,
     )
@@ -83,11 +105,13 @@ async fn server_fn_handler(
  ) -> Response {
      let leptos_options = app_state.leptos_options.clone();
      let db_pool = app_state.db_pool.clone();
+     let user_lock_cache = app_state.user_lock_cache.clone();
      let handler = leptos_axum::render_route_with_context(
          app_state.routes.clone(),
          move || {
              provide_context(auth_session.clone());
              provide_context(db_pool.clone());
+             provide_context(user_lock_cache.clone());
          },
          move || shell(leptos_options.clone()),
      );
@@ -131,13 +155,10 @@ async fn main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
-    let user_lock_map = Arc::new(UserLockMap {
-        lock_map: Mutex::new(HashMap::new()),
-    });
-
     let app_state = AppState {
         leptos_options: leptos_options.clone(),
         db_pool: pool.clone(),
+        user_lock_cache: Arc::new(UserLockCache::new(get_user_lock_cache_size())),
         routes: routes.clone(),
     };
 

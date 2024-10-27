@@ -29,12 +29,10 @@ pub fn get_current_path(path: RwSignal<String>) {
 /// assert_eq!(get_forum_from_path("/forums/test"), Some(String::from("test")));
 /// ```
 pub fn get_forum_from_path(path: &str) -> Option<String> {
-    log::info!("Path: {path}");
     if path.starts_with(FORUM_ROUTE_PREFIX) {
         let mut path_part_it = path.split(PATH_SEPARATOR);
         Some(String::from(path_part_it.nth(2).unwrap_or("")))
-    }
-    else {
+    } else {
         None
     }
 }

@@ -1,7 +1,5 @@
 use std::env;
 
-#[cfg(feature = "ssr")]
-use axum_session_auth::Authentication;
 use leptos::prelude::*;
 use leptos_router::NavigateOptions;
 use leptos_router::{hooks::{use_navigate, use_query}, params::Params};
@@ -18,7 +16,6 @@ use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::{get_db_pool, get_session},
-    auth::ssr::check_user,
     constants::SITE_ROOT,
     user::ssr::{create_or_update_user, SqlUser}
 };

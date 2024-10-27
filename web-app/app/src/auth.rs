@@ -159,7 +159,7 @@ pub mod ssr {
                             Some(source) => log::error!("Failed to refresh token: {e}, source: {source}"),
                             None => log::error!("Failed to refresh token: {e}"),
                         }
-                        // TODO redirect?
+                        redirect_to_auth_provider(get_base_url()?).await?;
                         Err(AppError::AuthenticationError(String::from("Error while authenticating, please refresh the page and retry to login.")))
                     }
                 }
@@ -227,46 +227,46 @@ pub mod ssr {
 
         Ok(user)
     }
+
+    pub async fn redirect_to_auth_provider(redirect_url: String) -> Result<(), AppError> {
+        let client = get_auth_client().await?;
+
+        // Generate the full authorization URL.
+        let (auth_url, _csrf_token, nonce) = client
+            .authorize_url(
+                oidc::core::CoreAuthenticationFlow::AuthorizationCode,
+                oidc::CsrfToken::new_random,
+                oidc::Nonce::new_random,
+            )
+            // TODO remove scopes?
+            // Set the desired scopes.
+            //.add_scope(oidc::Scope::new("read".to_string()))
+            //.add_scope(oidc::Scope::new("write".to_string()))
+            .url();
+
+        let auth_session = get_session()?;
+
+        auth_session.session.set(NONCE_KEY, nonce);
+        auth_session.session.set(REDIRECT_URL_KEY, redirect_url);
+
+        // Redirect to the auth page
+        leptos_axum::redirect(auth_url.as_ref());
+        Ok(())
+    }
 }
 
 #[server]
-pub async fn login(redirect_url: String) -> Result<User, ServerFnError> {
-    let current_user = check_user().await;
+pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError> {
+    let current_user = get_user().await;
 
-    if current_user
-        .as_ref()
-        .is_ok_and(|user| user.is_authenticated())
+    if let Ok(Some(current_user)) = current_user
     {
-        log::debug!(
-            "Already logged in, current user is: {:?}",
-            current_user.clone().unwrap()
-        );
-        return Ok(current_user.unwrap());
+        return Ok(Some(current_user));
     }
 
-    let client = ssr::get_auth_client().await?;
+    ssr::redirect_to_auth_provider(redirect_url).await?;
 
-    // Generate the full authorization URL.
-    let (auth_url, _csrf_token, nonce) = client
-        .authorize_url(
-            oidc::core::CoreAuthenticationFlow::AuthorizationCode,
-            oidc::CsrfToken::new_random,
-            oidc::Nonce::new_random,
-        )
-        // Set the desired scopes.
-        //.add_scope(oidc::Scope::new("read".to_string()))
-        //.add_scope(oidc::Scope::new("write".to_string()))
-        .url();
-
-    let auth_session = get_session()?;
-
-    auth_session.session.set(NONCE_KEY, nonce);
-    auth_session.session.set(REDIRECT_URL_KEY, redirect_url);
-
-    // Redirect to the auth page
-    leptos_axum::redirect(auth_url.as_ref());
-
-    Ok(User::default())
+    Ok(None)
 }
 
 #[server]

@@ -48,6 +48,7 @@ pub mod ssr {
     use axum_session_sqlx::SessionPgPool;
     use openidconnect::core::CoreTokenResponse;
     use sqlx::PgPool;
+    use std::error::Error;
 
     use super::*;
 
@@ -146,14 +147,21 @@ pub mod ssr {
                     .request_async(async_http_client)
                     .await;
 
-                if let Ok(token_response) = token_response {
-                    let sql_user = process_token_response(token_response, auth_session.clone(), client).await?;
-                    let db_pool = get_db_pool()?;
-                    let user = User::get(sql_user.user_id, &db_pool).await;
-                    Ok(user)
-                } else {
-                    log::error!("Failed to refresh token: {}.", token_response.unwrap_err());
-                    Err(AppError::NotAuthenticated)
+                match token_response {
+                    Ok(token_response) => {
+                        let sql_user = process_token_response(token_response, auth_session.clone(), client).await?;
+                        let db_pool = get_db_pool()?;
+                        let user = User::get(sql_user.user_id, &db_pool).await;
+                        Ok(user)
+                    }
+                    Err(e) => {
+                        match e.source() {
+                            Some(source) => log::error!("Failed to refresh token: {e}, source: {source}"),
+                            None => log::error!("Failed to refresh token: {e}"),
+                        }
+                        // TODO redirect?
+                        Err(AppError::AuthenticationError(String::from("Error while authenticating, please refresh the page and retry to login.")))
+                    }
                 }
             } else {
                 log::info!("Id token valid until {}", claims?.expiration());
@@ -215,6 +223,7 @@ pub mod ssr {
         let user = create_or_update_user(&oidc_id, &username, &email, &db_pool).await?;
 
         auth_session.login_user(user.user_id);
+        auth_session.remember_user(true);
 
         Ok(user)
     }

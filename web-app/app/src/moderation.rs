@@ -257,7 +257,7 @@ pub async fn moderate_post(
     moderator_message: String,
     ban_duration_days: Option<usize>,
 ) -> Result<Post, ServerFnError> {
-    log::info!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
+    log::debug!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

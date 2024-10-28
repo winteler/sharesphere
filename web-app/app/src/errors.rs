@@ -8,16 +8,17 @@ use leptos::{component, prelude::ServerFnError, view, IntoView};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotFoundIcon};
+use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthorizedIcon, NotFoundIcon};
 
-const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble identifying you";
-const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong";
-const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not resist";
+const NOT_AUTHENTICATED_MESSAGE: &str = "Please authenticate yourself.";
+const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble authenticating you.";
+const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong.";
+const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not resist.";
 const FORUM_BAN_UNTIL_MESSAGE: &str = "You are banned from this forum until";
 const PERMANENT_FORUM_BAN_MESSAGE: &str = "You are permanently banned from this website.";
 const GLOBAL_BAN_UNTIL_MESSAGE: &str = "You are globally banned until";
 const PERMANENT_GLOBAL_BAN_MESSAGE: &str = "You are permanently banned from this website.";
-const BAD_REQUEST_MESSAGE: &str = "Sorry, we didn't understand your request";
+const BAD_REQUEST_MESSAGE: &str = "Sorry, we didn't understand your request.";
 const UNAVAILABLE_MESSAGE: &str = "Sorry, we've got noise on the line.";
 const NOT_FOUND_MESSAGE: &str = "There's nothing here";
 
@@ -56,7 +57,8 @@ impl AppError {
     pub fn user_message(&self) -> String {
         match self {
             AppError::AuthenticationError(_) => String::from(AUTH_FAILED_MESSAGE),
-            AppError::NotAuthenticated | AppError::InsufficientPrivileges => String::from(NOT_AUTHORIZED_MESSAGE),
+            AppError::NotAuthenticated => String::from(NOT_AUTHENTICATED_MESSAGE),
+            AppError::InsufficientPrivileges => String::from(NOT_AUTHORIZED_MESSAGE),
             AppError::ForumBanUntil(timestamp) => format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, timestamp.to_string()),
             AppError::PermanentForumBan => String::from(PERMANENT_FORUM_BAN_MESSAGE),
             AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp.to_string()),
@@ -173,8 +175,9 @@ pub fn AppErrorIcon(
 ) -> impl IntoView {
     match app_error {
         AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> }.into_any(),
-        AppError::NotAuthenticated | AppError::InsufficientPrivileges |AppError::ForumBanUntil(_) |
-        AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <BannedIcon/> }.into_any(),
+        AppError::NotAuthenticated => view! { <AuthErrorIcon/> }.into_any(),
+        AppError::InsufficientPrivileges => view! { <NotAuthorizedIcon/> }.into_any(),
+        AppError::ForumBanUntil(_) | AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <BannedIcon/> }.into_any(),
         AppError::CommunicationError(error) => match error {
             ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
             ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),

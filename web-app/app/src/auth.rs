@@ -156,8 +156,7 @@ pub mod ssr {
                             Some(source) => log::error!("Failed to refresh token: {e}, source: {source}"),
                             None => log::error!("Failed to refresh token: {e}"),
                         }
-                        redirect_to_auth_provider(get_base_url()?).await?;
-                        Err(AppError::AuthenticationError(String::from("Error while authenticating, please refresh the page and retry to login.")))
+                        Ok(None)
                     }
                 }
             } else {

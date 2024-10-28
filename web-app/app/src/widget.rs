@@ -6,8 +6,7 @@ use crate::app::GlobalState;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SelfAuthorIcon};
-use crate::unpack::SuspenseUnpack;
+use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SelfAuthorIcon};
 
 /// Component that displays its children in a modal dialog
 #[component]
@@ -78,14 +77,16 @@ pub fn AuthorWidget(
                     view! { <ModeratorAuthorIcon/> }.into_any()
                 } else {
                     view! {
-                        <SuspenseUnpack resource=state.user let:user>
+                        <Transition fallback=move || view! { <LoadingIcon/> }>
                         {
-                            match user {
-                                Some(user) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
-                                _ => view! { <AuthorIcon/> }.into_any(),
-                            }
+                            move || Suspend::new(async move {
+                                match &state.user.await {
+                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
+                                    _ => view! { <AuthorIcon/> }.into_any(),
+                                }
+                            })
                         }
-                        </SuspenseUnpack>
+                        </Transition>
                     }.into_any()
                 }
             }

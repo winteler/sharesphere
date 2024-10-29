@@ -218,7 +218,7 @@ mod tests {
     use leptos::prelude::ServerFnError;
     use leptos::server_fn::error::NoCustomError;
 
-    use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, FORUM_BAN_UNTIL_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_FORUM_BAN_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, UNAVAILABLE_MESSAGE};
+    use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, FORUM_BAN_UNTIL_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_FORUM_BAN_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, UNAVAILABLE_MESSAGE};
 
     #[test]
     fn test_app_error_status_code() {
@@ -268,7 +268,7 @@ mod tests {
         let deserialization_error = ServerFnError::Deserialization(String::from("test"));
         let wrapper_error = ServerFnError::WrappedServerError(NoCustomError);
         assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), String::from(AUTH_FAILED_MESSAGE));
-        assert_eq!(AppError::NotAuthenticated.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
+        assert_eq!(AppError::NotAuthenticated.user_message(), String::from(NOT_AUTHENTICATED_MESSAGE));
         assert_eq!(AppError::InsufficientPrivileges.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
         assert_eq!(AppError::ForumBanUntil(test_timestamp.clone()).user_message(), format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, test_timestamp.clone().to_string()));
         assert_eq!(AppError::PermanentForumBan.user_message(), String::from(PERMANENT_FORUM_BAN_MESSAGE));

@@ -1,9 +1,11 @@
 use chrono::SecondsFormat;
+use leptos::ev::SubmitEvent;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
+use server_fn::codec::{MultipartData, MultipartFormData};
 use std::collections::BTreeSet;
 use std::sync::Arc;
 use strum::IntoEnumIterator;
@@ -317,6 +319,27 @@ pub mod ssr {
 
         Ok(user_ban)
     }
+
+    pub async fn set_banner_url(
+        forum_name: &str,
+        banner_url: Option<&str>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+        sqlx::query!(
+            "UPDATE forums
+             SET banner_url = $1,
+                 timestamp = CURRENT_TIMESTAMP
+             WHERE forum_name = $2",
+            banner_url,
+            forum_name,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[server]
@@ -396,6 +419,30 @@ pub async fn remove_user_ban(
     Ok(())
 }
 
+#[server(input = MultipartFormData)]
+pub async fn set_forum_banner(
+    data: MultipartData,
+) -> Result<(), ServerFnError> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    // `.into_inner()` returns the inner `multer` stream
+    // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
+    // unwrap
+    let mut data = data.into_inner().unwrap();
+    let mut forum_name = Err(ServerFnError::new("Missing forum name."));
+    while let Ok(Some(field)) = data.next_field().await {
+        let name = field.name().unwrap_or_default().to_string();
+        log::info!("  [NAME] {name}");
+        if name == "forum_name" {
+            forum_name = Ok(field.text().await?)
+        }
+    }
+
+    ssr::set_banner_url(&forum_name?, None, &user, &db_pool).await?;
+    Ok(())
+}
+
 /// Component to guard the forum cockpit
 #[component]
 pub fn ForumCockpitGuard() -> impl IntoView {
@@ -449,7 +496,7 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
     }
 }
 
-/// Component to edit a forum's description
+/// Form to edit a forum's description
 #[component]
 pub fn ForumDescriptionForm(
     forum: Arc<Forum>,
@@ -487,6 +534,44 @@ pub fn ForumDescriptionForm(
                 <SaveIcon/>
             </button>
         </ActionForm>
+    }
+}
+
+/// Component to edit a forum's banner
+#[component]
+pub fn ForumBannerDialog() -> impl IntoView {
+    let forum_name = expect_context::<ForumState>().forum_name;
+    view! {
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+                <div class="text-xl text-center">"Forum description"</div>
+                <ForumBannerForm/>
+            </div>
+        </AuthorizedShow>
+    }
+}
+
+/// Form to edit a forum's banner
+#[component]
+pub fn ForumBannerForm() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    let on_submit = move |ev: SubmitEvent| {
+        ev.prevent_default();
+    };
+    view! {
+        <form on:submit=on_submit class="flex flex-col gap-1">
+            <input
+                name="forum_name"
+                class="hidden"
+                value=forum_state.forum_name
+            />
+            <button
+                type="submit"
+                class="btn btn-secondary btn-sm p-1 self-end"
+            >
+                <SaveIcon/>
+            </button>
+        </form>
     }
 }
 

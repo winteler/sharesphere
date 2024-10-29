@@ -4,8 +4,8 @@ use chrono::Days;
 
 use app::comment::ssr::create_comment;
 use app::errors::AppError;
-use app::forum::ssr::create_forum;
-use app::forum_management::ssr::{add_rule, get_forum_ban_vec, get_forum_rule_vec, is_user_forum_moderator, load_rule_by_id, remove_rule, remove_user_ban, update_rule};
+use app::forum::ssr::{create_forum, get_forum_by_name};
+use app::forum_management::ssr::{add_rule, get_forum_ban_vec, get_forum_rule_vec, is_user_forum_moderator, load_rule_by_id, remove_rule, remove_user_ban, set_banner_url, update_rule};
 use app::moderation::ssr::{ban_user_from_forum, moderate_comment, moderate_post};
 use app::post::ssr::create_post;
 use app::role::ssr::set_user_admin_role;
@@ -484,5 +484,20 @@ async fn test_is_user_forum_moderator() -> Result<(), AppError> {
     assert_eq!(is_user_forum_moderator(ordinary_user.user_id, &forum.forum_name, &db_pool).await, Ok(false));
     assert!(is_user_forum_moderator(ordinary_user.user_id + 1, &forum.forum_name, &db_pool).await.is_err());
 
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_set_banner_url() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+    let forum = create_forum("forum", "a", false, &user, &db_pool).await?;
+    // reload user to have updated permissions
+    let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
+    let banner_url = "a";
+    assert_eq!(forum.banner_url, None);
+    set_banner_url(&forum.forum_name, Some(banner_url), &user, &db_pool).await?;
+    let forum = get_forum_by_name(&forum.forum_name, &db_pool).await?;
+    assert_eq!(forum.banner_url, Some(String::from(banner_url)));
     Ok(())
 }

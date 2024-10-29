@@ -13,6 +13,7 @@ leptos = { version = "0.7.0-gamma3", features = ["nightly"] }
 leptos_meta = { version = "0.7.0-gamma3" }
 leptos_router = { version = "0.7.0-gamma3", features = ["nightly"] }
 leptos_axum = { version = "0.7.0-gamma3" }
+server_fn = { version = "0.7.0-gamma3", features = [ "multipart"] }
 
 leptos-use = { version = "0.14.0-gamma2", features = ["use_textarea_autosize"] }
 

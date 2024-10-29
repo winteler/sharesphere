@@ -20,7 +20,7 @@ async fn test_sql_user_get_by_username() -> Result<(), AppError> {
     let oidc_id = "id";
     let username = "username";
     let email = "user@user.com";
-    let user = app::user::ssr::create_user(oidc_id, username, email, &db_pool).await.expect("Sql user should be created");
+    let user = app::user::ssr::create_or_update_user(oidc_id, username, email, &db_pool).await.expect("Sql user should be created");
     let sql_user = SqlUser::get_by_username(&user.username, &db_pool).await?;
 
     assert_eq!(sql_user.user_id, user.user_id);
@@ -205,20 +205,19 @@ async fn test_user_check_can_set_user_forum_role() -> Result<(), AppError> {
 async fn test_create_user() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user_1_value = "1";
-    let sql_user_1 = app::user::ssr::create_user(user_1_value, user_1_value, user_1_value, &db_pool).await.expect("Sql user 1 should be created");
+    let sql_user_1 = app::user::ssr::create_or_update_user(user_1_value, user_1_value, user_1_value, &db_pool).await.expect("Sql user 1 should be created");
     assert_eq!(sql_user_1.oidc_id, user_1_value);
     assert_eq!(sql_user_1.username, user_1_value);
     assert_eq!(sql_user_1.email, user_1_value);
     assert_eq!(sql_user_1.admin_role, AdminRole::None);
     assert_eq!(sql_user_1.is_deleted, false);
 
-    // test cannot create user with duplicate oidc_id, username or email
+    // test cannot create user with duplicate username or email
     let user_2_value = "2";
-    assert!(app::user::ssr::create_user(user_1_value, user_2_value, user_2_value, &db_pool).await.is_err());
-    assert!(app::user::ssr::create_user(user_2_value, user_1_value, user_2_value, &db_pool).await.is_err());
-    assert!(app::user::ssr::create_user(user_2_value, user_2_value, user_1_value, &db_pool).await.is_err());
+    assert!(app::user::ssr::create_or_update_user(user_2_value, user_1_value, user_2_value, &db_pool).await.is_err());
+    assert!(app::user::ssr::create_or_update_user(user_2_value, user_2_value, user_1_value, &db_pool).await.is_err());
 
-    let sql_user_2 = app::user::ssr::create_user(user_2_value, user_2_value, user_2_value, &db_pool).await.expect("Sql user 2 should be created");
+    let sql_user_2 = app::user::ssr::create_or_update_user(user_2_value, user_2_value, user_2_value, &db_pool).await.expect("Sql user 2 should be created");
     assert_eq!(sql_user_2.oidc_id, user_2_value);
     assert_eq!(sql_user_2.username, user_2_value);
     assert_eq!(sql_user_2.email, user_2_value);
@@ -232,6 +231,19 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(user_1.email, sql_user_1.email);
     assert_eq!(user_1.admin_role, sql_user_1.admin_role);
     assert_eq!(user_1.is_deleted, sql_user_1.is_deleted);
+
+    let user_1_updated_value = "3";
+    let sql_user_1_updated = app::user::ssr::create_or_update_user(
+        user_1_value,
+        user_1_updated_value,
+        user_1_updated_value,
+        &db_pool
+    ).await.expect("user 1 should be updated");
+    assert_eq!(sql_user_1_updated.oidc_id, user_1_value);
+    assert_eq!(sql_user_1_updated.username, user_1_updated_value);
+    assert_eq!(sql_user_1_updated.email, user_1_updated_value);
+    assert_eq!(sql_user_1_updated.admin_role, AdminRole::None);
+    assert_eq!(sql_user_1_updated.is_deleted, false);
 
     Ok(())
 }

@@ -176,7 +176,7 @@ pub fn FormTextEditor(
                     placeholder=placeholder
                     class="w-full bg-base-100 resize-none box-border outline-none border-none"
                     on:input=move |ev| {
-                        data.set_content.update(|content: &mut String| *content = event_target_value(&ev));
+                        data.set_content.set(event_target_value(&ev));
                     }
                     node_ref=data.textarea_ref
                 >

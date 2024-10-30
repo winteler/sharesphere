@@ -2,6 +2,8 @@ use chrono::SecondsFormat;
 use leptos::ev::SubmitEvent;
 use leptos::html;
 use leptos::prelude::*;
+use leptos::wasm_bindgen::JsCast;
+use leptos::web_sys::{FormData, HtmlFormElement};
 use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
@@ -434,6 +436,9 @@ pub async fn set_forum_banner(
     while let Ok(Some(field)) = data.next_field().await {
         let name = field.name().unwrap_or_default().to_string();
         log::info!("  [NAME] {name}");
+        if let Some(file_name) = field.file_name() {
+            log::info!("  [FILE] {file_name}");
+        }
         if name == "forum_name" {
             forum_name = Ok(field.text().await?)
         }
@@ -472,6 +477,7 @@ pub fn ForumCockpit() -> impl IntoView {
         <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-1/2 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ForumDescriptionDialog/>
+            <ForumBannerDialog/>
             <ModeratorPanel/>
             <ForumRulesPanel/>
             <BanPanel/>
@@ -557,13 +563,23 @@ pub fn ForumBannerForm() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let on_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
+        let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
+        let form_data = FormData::new_with_form(&target).unwrap();
+        forum_state.set_banner_action.dispatch_local(form_data);
     };
+
     view! {
         <form on:submit=on_submit class="flex flex-col gap-1">
             <input
                 name="forum_name"
                 class="hidden"
                 value=forum_state.forum_name
+            />
+            <input
+                type="file"
+                name="banner"
+                accept="image/*"
+                class="file-input file-input-bordered file-input-primary w-full rounded-sm"
             />
             <button
                 type="submit"

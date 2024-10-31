@@ -488,7 +488,7 @@ async fn test_is_user_forum_moderator() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_set_banner_url() -> Result<(), AppError> {
+async fn test_set_bannerl() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
     let forum = create_forum("forum", "a", false, &user, &db_pool).await?;

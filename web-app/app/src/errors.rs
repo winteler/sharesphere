@@ -107,6 +107,7 @@ impl From<&ServerFnError> for AppError {
 #[cfg(feature = "ssr")]
 mod ssr {
     use sqlx;
+    use std::io::Error;
 
     use crate::errors::AppError;
 
@@ -161,10 +162,15 @@ mod ssr {
         }
     }
 
-
     impl From<quick_xml::Error> for AppError {
         fn from(error: quick_xml::Error) -> Self {
             AppError::InternalServerError(error.to_string())
+        }
+    }
+
+    impl From<std::io::Error> for AppError {
+        fn from(value: Error) -> Self {
+            AppError::InternalServerError(value.to_string())
         }
     }
 }

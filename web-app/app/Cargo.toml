@@ -31,6 +31,7 @@ async-trait = { version = "*", optional = true }
 
 cfg-if = "1"
 const_format = "0.2.33"
+infer = { version = "0.16.0", optional = true }
 markdown = { version = "1.0.0-alpha.20", optional = true }
 quick-xml = { version = "0.36.1", optional = true }
 openidconnect = { version = "3.5.0", optional = true }
@@ -57,6 +58,7 @@ ssr = [
     "dep:axum_session",
     "dep:axum_session_auth",
     "dep:axum_session_sqlx",
+    "dep:infer",
     "dep:markdown",
     "dep:quick-xml",
     "dep:leptos_axum",

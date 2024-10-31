@@ -74,12 +74,17 @@ pub struct ModerationInfo {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use sqlx::PgPool;
-
+    use crate::constants::IMAGE_TYPE;
     use crate::errors::AppError;
     use crate::forum_management::{Rule, UserBan};
     use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
+    use server_fn::codec::MultipartData;
+    use sqlx::types::Uuid;
+    use sqlx::PgPool;
+    use std::path::Path;
+    use tokio::fs::{rename, File};
+    use tokio::io::AsyncWriteExt;
 
     pub async fn is_user_forum_moderator(
         user_id: i64,
@@ -322,7 +327,52 @@ pub mod ssr {
         Ok(user_ban)
     }
 
-    pub async fn set_banner_url(
+    pub async fn set_forum_banner(
+        data: MultipartData,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        // `.into_inner()` returns the inner `multer` stream
+        // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
+        // unwrap
+        let mut data = data.into_inner().unwrap();
+        let mut forum_name = Err(AppError::new("Missing forum name."));
+        let mut file_extension = Err(AppError::new("Could not get file extension."));
+        let temp_file_path = format!("/tmp/temp_banner_{}", Uuid::new_v4());
+        while let Ok(Some(mut field)) = data.next_field().await {
+            let name = field.name().unwrap_or_default().to_string();
+            log::info!("  [NAME] {name}");
+            if let Some(file_name) = field.file_name() {
+                if let Some(ext) = Path::new(file_name).extension().and_then(|e| e.to_str()) {
+                    file_extension = Ok(ext.to_string());
+                }
+                log::info!("  [FILE] {file_name}");
+                let mut file = File::create(&temp_file_path).await?;
+                while let Ok(Some(chunk)) = field.chunk().await {
+                    // in a real server function, you'd do something like saving the file here
+                    file.write_all(&chunk).await?;
+                }
+            }
+            if name == "forum_name" {
+                forum_name = Ok(field.text().await.map_err(|e| AppError::new(&e.to_string()))?);
+            }
+        }
+
+        let forum_name = forum_name?;
+        let file_extension = file_extension?;
+        let banner_path = format!("./public/banners/{}.{}", forum_name.clone(), file_extension.clone());
+
+        match infer::get_from_path(&banner_path) {
+            Ok(Some(file_type)) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(()),
+            Ok(Some(_)) => Err(AppError::new("Banner file must be an image.")),
+            _ => Err(AppError::new("Could not infer file extension.")),
+        }?;
+
+        rename(&temp_file_path, &banner_path).await?;
+        set_banner_url(&forum_name.clone(), Some(&format!("/banners/{}.{}", forum_name, file_extension)), &user, &db_pool).await
+    }
+
+    async fn set_banner_url(
         forum_name: &str,
         banner_url: Option<&str>,
         user: &User,
@@ -428,23 +478,7 @@ pub async fn set_forum_banner(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    // `.into_inner()` returns the inner `multer` stream
-    // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
-    // unwrap
-    let mut data = data.into_inner().unwrap();
-    let mut forum_name = Err(ServerFnError::new("Missing forum name."));
-    while let Ok(Some(field)) = data.next_field().await {
-        let name = field.name().unwrap_or_default().to_string();
-        log::info!("  [NAME] {name}");
-        if let Some(file_name) = field.file_name() {
-            log::info!("  [FILE] {file_name}");
-        }
-        if name == "forum_name" {
-            forum_name = Ok(field.text().await?)
-        }
-    }
-
-    ssr::set_banner_url(&forum_name?, None, &user, &db_pool).await?;
+    ssr::set_forum_banner(data, &user, &db_pool).await?;
     Ok(())
 }
 

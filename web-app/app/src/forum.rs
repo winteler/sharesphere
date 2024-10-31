@@ -543,7 +543,7 @@ pub fn ForumBanner() -> impl IntoView {
                 view! {
                     <a
                         href=forum_path()
-                        class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-28 flex items-center justify-center"
+                        class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-40 flex items-center justify-center"
                         style:background-image=forum_banner_image
                     >
                         <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">

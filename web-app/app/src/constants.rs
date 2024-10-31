@@ -19,3 +19,4 @@ pub const BEST_ORDER_BY_COLUMN: &str = "score";
 pub const RECENT_ORDER_BY_COLUMN: &str = "create_timestamp";
 pub const PATH_SEPARATOR: &str = "/";
 pub const SITE_ROOT: &str = "/";
+pub const IMAGE_TYPE: &str = "image/";

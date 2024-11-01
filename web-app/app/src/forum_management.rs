@@ -34,6 +34,8 @@ pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";
 pub const PERMANENT_STR: &str = "Permanent";
+const BANNER_FORUM_NAME_PARAM: &str = "forum_name";
+const BANNER_FILE_PARAM: &str = "banner";
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -76,13 +78,12 @@ pub struct ModerationInfo {
 pub mod ssr {
     use crate::constants::IMAGE_TYPE;
     use crate::errors::AppError;
-    use crate::forum_management::{Rule, UserBan};
+    use crate::forum_management::{Rule, UserBan, BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM};
     use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
     use server_fn::codec::MultipartData;
     use sqlx::types::Uuid;
     use sqlx::PgPool;
-    use std::path::Path;
     use tokio::fs::{rename, File};
     use tokio::io::AsyncWriteExt;
 
@@ -337,36 +338,37 @@ pub mod ssr {
         // unwrap
         let mut data = data.into_inner().unwrap();
         let mut forum_name = Err(AppError::new("Missing forum name."));
-        let mut file_extension = Err(AppError::new("Could not get file extension."));
-        let temp_file_path = format!("/tmp/temp_banner_{}", Uuid::new_v4());
-        while let Ok(Some(mut field)) = data.next_field().await {
+        let mut file_field = Err(AppError::new("Missing file field."));
+
+        while let Ok(Some(field)) = data.next_field().await {
             let name = field.name().unwrap_or_default().to_string();
-            log::info!("  [NAME] {name}");
-            if let Some(file_name) = field.file_name() {
-                if let Some(ext) = Path::new(file_name).extension().and_then(|e| e.to_str()) {
-                    file_extension = Ok(ext.to_string());
-                }
-                log::info!("  [FILE] {file_name}");
-                let mut file = File::create(&temp_file_path).await?;
-                while let Ok(Some(chunk)) = field.chunk().await {
-                    // in a real server function, you'd do something like saving the file here
-                    file.write_all(&chunk).await?;
-                }
-            }
-            if name == "forum_name" {
+            if name == BANNER_FORUM_NAME_PARAM {
                 forum_name = Ok(field.text().await.map_err(|e| AppError::new(&e.to_string()))?);
+            } else if name == BANNER_FILE_PARAM {
+                file_field = Ok(field);
             }
         }
 
         let forum_name = forum_name?;
-        let file_extension = file_extension?;
-        let banner_path = format!("./public/banners/{}.{}", forum_name.clone(), file_extension.clone());
+        let mut file_field = file_field?;
 
-        match infer::get_from_path(&banner_path) {
-            Ok(Some(file_type)) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(()),
+        user.check_permissions(&forum_name, PermissionLevel::Manage)?;
+
+        let temp_file_path = format!("/tmp/banner_{}", Uuid::new_v4());
+
+        let mut file = File::create(&temp_file_path).await?;
+        while let Ok(Some(chunk)) = file_field.chunk().await {
+            file.write_all(&chunk).await?;
+        }
+
+        log::info!("Temp file path: {temp_file_path}");
+        let file_extension = match infer::get_from_path(temp_file_path.clone()) {
+            Ok(Some(file_type)) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(file_type.extension()),
             Ok(Some(_)) => Err(AppError::new("Banner file must be an image.")),
             _ => Err(AppError::new("Could not infer file extension.")),
         }?;
+
+        let banner_path = format!("./public/banners/{}.{}", forum_name.clone(), file_extension);
 
         rename(&temp_file_path, &banner_path).await?;
         set_banner_url(&forum_name.clone(), Some(&format!("/banners/{}.{}", forum_name, file_extension)), &user, &db_pool).await
@@ -605,13 +607,13 @@ pub fn ForumBannerForm() -> impl IntoView {
     view! {
         <form on:submit=on_submit class="flex flex-col gap-1">
             <input
-                name="forum_name"
+                name=BANNER_FORUM_NAME_PARAM
                 class="hidden"
                 value=forum_state.forum_name
             />
             <input
                 type="file"
-                name="banner"
+                name=BANNER_FILE_PARAM
                 accept="image/*"
                 class="file-input file-input-bordered file-input-primary w-full rounded-sm"
             />

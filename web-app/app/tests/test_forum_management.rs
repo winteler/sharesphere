@@ -5,7 +5,7 @@ use app::comment::ssr::create_comment;
 use app::errors::AppError;
 use app::forum::ssr::{create_forum, get_forum_by_name};
 use app::forum_management::ssr::{add_rule, get_forum_ban_vec, get_forum_rule_vec, is_user_forum_moderator, load_rule_by_id, remove_rule, remove_user_ban, set_forum_banner_url, store_forum_banner, update_rule};
-use app::forum_management::{BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM};
+use app::forum_management::{BANNER_FILE_INFER_ERROR_STR, BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
 use app::moderation::ssr::{ban_user_from_forum, moderate_comment, moderate_post};
 use app::post::ssr::create_post;
 use app::role::ssr::set_user_admin_role;
@@ -504,6 +504,38 @@ async fn test_store_forum_banner() -> Result<(), AppError> {
     ).await?;
     assert_eq!(forum_name, forum.forum_name);
     assert_eq!(file_extension, "png");
+    assert_eq!(
+        store_forum_banner(
+            "/tmp/",
+            get_multipart_image(BANNER_FILE_PARAM).await,
+            &user,
+        ).await,
+        Err(AppError::new(MISSING_FORUM_STR))
+    );
+    assert_eq!(
+        store_forum_banner(
+            "/tmp/",
+            get_multipart_string(BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+            &user,
+        ).await,
+        Err(AppError::new(MISSING_BANNER_FILE_STR))
+    );
+    assert_eq!(
+        store_forum_banner(
+            "/tmp/",
+            get_multipart_pdf_with_string(BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+            &user,
+        ).await,
+        Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR))
+    );
+    assert_eq!(
+        store_forum_banner(
+            "/tmp/",
+            get_invalid_multipart_image_with_string(BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+            &user,
+        ).await,
+        Err(AppError::new(BANNER_FILE_INFER_ERROR_STR))
+    );
     Ok(())
 }
 

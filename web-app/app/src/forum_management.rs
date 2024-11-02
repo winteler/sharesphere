@@ -37,6 +37,10 @@ pub const PERMANENT_STR: &str = "Permanent";
 pub const BANNER_FORUM_NAME_PARAM: &str = "forum_name";
 pub const BANNER_FILE_PARAM: &str = "banner";
 pub const BANNER_FOLDER: &str = "./public/banners/";
+pub const MISSING_FORUM_STR: &str = "Missing forum name.";
+pub const MISSING_BANNER_FILE_STR: &str = "Missing banner file.";
+pub const INCORRECT_BANNER_FILE_TYPE_STR: &str = "Banner file must be an image.";
+pub const BANNER_FILE_INFER_ERROR_STR: &str = "Could not infer file extension.";
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -79,7 +83,7 @@ pub struct ModerationInfo {
 pub mod ssr {
     use crate::constants::IMAGE_TYPE;
     use crate::errors::AppError;
-    use crate::forum_management::{Rule, UserBan, BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM};
+    use crate::forum_management::{Rule, UserBan, BANNER_FILE_INFER_ERROR_STR, BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
     use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
     use server_fn::codec::MultipartData;
@@ -338,8 +342,8 @@ pub mod ssr {
         // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
         // unwrap
         let mut data = data.into_inner().unwrap();
-        let mut forum_name = Err(AppError::new("Missing forum name."));
-        let mut file_field = Err(AppError::new("Missing file field."));
+        let mut forum_name = Err(AppError::new(MISSING_FORUM_STR));
+        let mut file_field = Err(AppError::new(MISSING_BANNER_FILE_STR));
 
         while let Ok(Some(field)) = data.next_field().await {
             let name = field.name().unwrap_or_default().to_string();
@@ -365,8 +369,8 @@ pub mod ssr {
 
         let file_extension = match infer::get_from_path(temp_file_path.clone()) {
             Ok(Some(file_type)) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(file_type.extension()),
-            Ok(Some(_)) => Err(AppError::new("Banner file must be an image.")),
-            Ok(None) => Err(AppError::new("Could not infer file extension.")),
+            Ok(Some(_)) => Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR)),
+            Ok(None) => Err(AppError::new(BANNER_FILE_INFER_ERROR_STR)),
             Err(e) => Err(AppError::from(e)),
         }?;
 

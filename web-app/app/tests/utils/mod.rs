@@ -75,6 +75,67 @@ pub fn get_png_data() -> &'static[u8] {
     ]
 }
 
+pub async fn get_multipart_string(
+    string_field_name: &str,
+    string_value: &str,
+) -> MultipartData {
+    let boundary = "boundary-test";
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"{string_field_name}\"\r\n\r\n\
+         {string_value}\r\n\
+         --{boundary}--\r\n"
+    );
+
+    let stream = once(async move { Result::<Bytes, Infallible>::Ok(Bytes::from(body)) });
+    let multipart = Multipart::new(stream, boundary);
+    MultipartData::Server(multipart)
+}
+
+pub async fn get_multipart_image(
+    image_field_name: &str,
+) -> MultipartData {
+    let mut body = Vec::new();
+    let boundary = "boundary-test";
+
+    body.extend_from_slice(format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"{image_field_name}\"; filename=\"test.png\"\r\n\
+         Content-Type: image/png\r\n\r\n"
+    ).as_bytes());
+    body.extend_from_slice(get_png_data()); // PNG magic bytes
+    body.extend_from_slice(
+        format!("\r\n--{boundary}--\r\n").as_bytes(),
+    );
+
+    let stream = once(async move { Result::<Bytes, Infallible>::Ok(Bytes::from(body)) });
+    let multipart = Multipart::new(stream, boundary);
+    MultipartData::Server(multipart)
+}
+
+pub async fn get_multipart_pdf_with_string(
+    pdf_field_name: &str,
+    string_field_name: &str,
+    string_value: &str,
+) -> MultipartData {
+    let boundary = "boundary-test";
+
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"{string_field_name}\"\r\n\r\n\
+         {string_value}\r\n\
+         --{boundary}\r\n\
+         Content-Disposition: form-data; name=\"{pdf_field_name}\"; filename=\"test.pdf\"\r\n\
+         Content-Type: application/pdf\r\n\r\n\
+         %PDF-1.4\r\n\
+         --{boundary}--\r\n"
+    );
+
+    let stream = once(async move { Result::<Bytes, Infallible>::Ok(Bytes::from(body)) });
+    let multipart = Multipart::new(stream, boundary);
+    MultipartData::Server(multipart)
+}
+
 pub async fn get_multipart_image_with_string(
     image_field_name: &str,
     string_field_name: &str,
@@ -82,7 +143,6 @@ pub async fn get_multipart_image_with_string(
 ) -> MultipartData {
     let mut body = Vec::new();
     let boundary = "boundary-test";
-
 
     body.extend_from_slice(format!(
         "--{boundary}\r\n\
@@ -96,17 +156,33 @@ pub async fn get_multipart_image_with_string(
     body.extend_from_slice(
         format!("\r\n--{boundary}--\r\n").as_bytes(),
     );
-    //let body = format!(
-    //    "--{boundary}\r\n
-    //     Content-Disposition: form-data; name=\"{string_field_name}\"\r\n\r\n
-    //     {string_value}\r\n
-    //     --{boundary}\r\n
-    //     Content-Disposition: form-data; name=\"{image_field_name}\"; filename=\"test.png\"\r\n
-    //     Content-Type: image/png\r\n\r\n
-    //     {png_data}\r\n
-    //     --{boundary}--\r\n",
-    //);
     
+    let stream = once(async move { Result::<Bytes, Infallible>::Ok(Bytes::from(body)) });
+    let multipart = Multipart::new(stream, boundary);
+    MultipartData::Server(multipart)
+}
+
+pub async fn get_invalid_multipart_image_with_string(
+    image_field_name: &str,
+    string_field_name: &str,
+    string_value: &str,
+) -> MultipartData {
+    let mut body = Vec::new();
+    let boundary = "boundary-test";
+
+    body.extend_from_slice(format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"{string_field_name}\"\r\n\r\n\
+         {string_value}\r\n\
+         --{boundary}\r\n\
+         Content-Disposition: form-data; name=\"{image_field_name}\"; filename=\"test.png\"\r\n\
+         Content-Type: image/png\r\n\r\n"
+    ).as_bytes());
+    body.extend_from_slice(b"invalid png data."); // PNG magic bytes
+    body.extend_from_slice(
+        format!("\r\n--{boundary}--\r\n").as_bytes(),
+    );
+
     let stream = once(async move { Result::<Bytes, Infallible>::Ok(Bytes::from(body)) });
     let multipart = Multipart::new(stream, boundary);
     MultipartData::Server(multipart)

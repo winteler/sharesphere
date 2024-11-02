@@ -1,11 +1,11 @@
-use std::ops::Add;
-
 use chrono::Days;
+use std::ops::Add;
 
 use app::comment::ssr::create_comment;
 use app::errors::AppError;
 use app::forum::ssr::{create_forum, get_forum_by_name};
-use app::forum_management::ssr::{add_rule, get_forum_ban_vec, get_forum_rule_vec, is_user_forum_moderator, load_rule_by_id, remove_rule, remove_user_ban, set_banner_url, update_rule};
+use app::forum_management::ssr::{add_rule, get_forum_ban_vec, get_forum_rule_vec, is_user_forum_moderator, load_rule_by_id, remove_rule, remove_user_ban, set_forum_banner_url, store_forum_banner, update_rule};
+use app::forum_management::{BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM};
 use app::moderation::ssr::{ban_user_from_forum, moderate_comment, moderate_post};
 use app::post::ssr::create_post;
 use app::role::ssr::set_user_admin_role;
@@ -14,9 +14,11 @@ use app::user::User;
 
 use crate::common::*;
 use crate::data_factory::{create_forum_with_post, create_forum_with_post_and_comment};
+use crate::utils::*;
 
 mod common;
 mod data_factory;
+mod utils;
 
 #[tokio::test]
 async fn test_get_rule_by_id() -> Result<(), AppError> {
@@ -488,7 +490,25 @@ async fn test_is_user_forum_moderator() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_set_bannerl() -> Result<(), AppError> {
+async fn test_store_forum_banner() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+    let forum = create_forum("forum", "a", false, &user, &db_pool).await?;
+    // reload user to have updated permissions
+    let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
+    
+    let (forum_name, file_extension) = store_forum_banner(
+        "/tmp/",
+        get_multipart_image_with_string(BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+        &user,
+    ).await?;
+    assert_eq!(forum_name, forum.forum_name);
+    assert_eq!(file_extension, "png");
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_set_forum_banner_url() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
     let forum = create_forum("forum", "a", false, &user, &db_pool).await?;
@@ -496,7 +516,8 @@ async fn test_set_bannerl() -> Result<(), AppError> {
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
     let banner_url = "a";
     assert_eq!(forum.banner_url, None);
-    set_banner_url(&forum.forum_name, Some(banner_url), &user, &db_pool).await?;
+
+    set_forum_banner_url(&forum.forum_name, Some(banner_url), &user, &db_pool).await?;
     let forum = get_forum_by_name(&forum.forum_name, &db_pool).await?;
     assert_eq!(forum.banner_url, Some(String::from(banner_url)));
     Ok(())

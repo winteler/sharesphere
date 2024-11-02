@@ -34,8 +34,9 @@ pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";
 pub const PERMANENT_STR: &str = "Permanent";
-const BANNER_FORUM_NAME_PARAM: &str = "forum_name";
-const BANNER_FILE_PARAM: &str = "banner";
+pub const BANNER_FORUM_NAME_PARAM: &str = "forum_name";
+pub const BANNER_FILE_PARAM: &str = "banner";
+pub const BANNER_FOLDER: &str = "./public/banners/";
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -328,11 +329,11 @@ pub mod ssr {
         Ok(user_ban)
     }
 
-    pub async fn set_forum_banner(
+    pub async fn store_forum_banner(
+        store_path: &str,
         data: MultipartData,
         user: &User,
-        db_pool: &PgPool,
-    ) -> Result<(), AppError> {
+    ) -> Result<(String, String), AppError> {
         // `.into_inner()` returns the inner `multer` stream
         // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
         // unwrap
@@ -343,7 +344,7 @@ pub mod ssr {
         while let Ok(Some(field)) = data.next_field().await {
             let name = field.name().unwrap_or_default().to_string();
             if name == BANNER_FORUM_NAME_PARAM {
-                forum_name = Ok(field.text().await.map_err(|e| AppError::new(&e.to_string()))?);
+                forum_name = Ok(field.text().await.map_err(|e| AppError::new(e.to_string()))?);
             } else if name == BANNER_FILE_PARAM {
                 file_field = Ok(field);
             }
@@ -360,21 +361,22 @@ pub mod ssr {
         while let Ok(Some(chunk)) = file_field.chunk().await {
             file.write_all(&chunk).await?;
         }
+        file.flush().await?;
 
-        log::info!("Temp file path: {temp_file_path}");
         let file_extension = match infer::get_from_path(temp_file_path.clone()) {
             Ok(Some(file_type)) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(file_type.extension()),
             Ok(Some(_)) => Err(AppError::new("Banner file must be an image.")),
-            _ => Err(AppError::new("Could not infer file extension.")),
+            Ok(None) => Err(AppError::new("Could not infer file extension.")),
+            Err(e) => Err(AppError::from(e)),
         }?;
 
-        let banner_path = format!("./public/banners/{}.{}", forum_name.clone(), file_extension);
+        let banner_path = format!("{}{}.{}", store_path, forum_name.clone(), file_extension);
 
         rename(&temp_file_path, &banner_path).await?;
-        set_banner_url(&forum_name.clone(), Some(&format!("/banners/{}.{}", forum_name, file_extension)), &user, &db_pool).await
+        Ok((forum_name, file_extension.to_string()))
     }
 
-    async fn set_banner_url(
+    pub async fn set_forum_banner_url(
         forum_name: &str,
         banner_url: Option<&str>,
         user: &User,
@@ -480,7 +482,8 @@ pub async fn set_forum_banner(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    ssr::set_forum_banner(data, &user, &db_pool).await?;
+    let (forum_name, file_extension) = ssr::store_forum_banner(BANNER_FOLDER, data, &user).await?;
+    ssr::set_forum_banner_url(&forum_name.clone(), Some(&format!("/banners/{}.{}", forum_name, file_extension)), &user, &db_pool).await?;
     Ok(())
 }
 

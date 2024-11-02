@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 use sqlx::PgPool;
 
 use app::comment::ssr::create_comment;

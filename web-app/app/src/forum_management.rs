@@ -537,8 +537,8 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
-            // TODO add overflow-y-auto?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
+            // TODO add overflow-y-auto max-h-full?
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum description"</div>
                 <ArcSuspenseUnpack resource=forum_state.forum_resource let:forum>
                     <ForumDescriptionForm forum=forum/>
@@ -595,8 +595,8 @@ pub fn ForumBannerDialog() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
-            // TODO add overflow-y-auto?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
+            // TODO add overflow-y-auto max-h-full?
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum banner"</div>
                 <ForumBannerForm/>
             </div>
@@ -679,8 +679,8 @@ pub fn ModeratorPanel() -> impl IntoView {
     let set_role_action = ServerAction::<SetUserForumRole>::new();
 
     view! {
-        // TODO add overflow-y-auto?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
+        // TODO add overflow-y-auto max-h-full?
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
             <ArcTransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
                 <div class="flex flex-col gap-1">
@@ -806,8 +806,8 @@ pub fn PermissionLevelForm(
 pub fn ForumRulesPanel() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        // TODO add overflow-y-auto?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
+        // TODO add overflow-y-auto max-h-full?
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
             <ArcTransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
                 <div class="flex flex-col gap-1">
@@ -1049,8 +1049,8 @@ pub fn BanPanel() -> impl IntoView {
     );
 
     view! {
-        // TODO add overflow-y-auto?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full max-h-full bg-base-200 p-2 rounded">
+        // TODO add overflow-y-auto max-h-full?
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">

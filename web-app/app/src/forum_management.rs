@@ -2,8 +2,9 @@ use chrono::SecondsFormat;
 use leptos::ev::SubmitEvent;
 use leptos::html;
 use leptos::prelude::*;
+use leptos::wasm_bindgen::prelude::Closure;
 use leptos::wasm_bindgen::JsCast;
-use leptos::web_sys::{FormData, HtmlFormElement};
+use leptos::web_sys::{Event, FileReader, FormData, HtmlFormElement, HtmlInputElement};
 use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
@@ -376,6 +377,7 @@ pub mod ssr {
 
         let banner_path = format!("{}{}.{}", store_path, forum_name.clone(), file_extension);
 
+        // TODO create folder?
         rename(&temp_file_path, &banner_path).await?;
         Ok((forum_name, file_extension.to_string()))
     }
@@ -535,7 +537,8 @@ pub fn ForumDescriptionDialog() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+            // TODO add overflow-y-auto?
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum description"</div>
                 <ArcSuspenseUnpack resource=forum_state.forum_resource let:forum>
                     <ForumDescriptionForm forum=forum/>
@@ -592,8 +595,9 @@ pub fn ForumBannerDialog() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
-                <div class="text-xl text-center">"Forum description"</div>
+            // TODO add overflow-y-auto?
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
+                <div class="text-xl text-center">"Forum banner"</div>
                 <ForumBannerForm/>
             </div>
         </AuthorizedShow>
@@ -611,6 +615,32 @@ pub fn ForumBannerForm() -> impl IntoView {
         forum_state.set_banner_action.dispatch_local(form_data);
     };
 
+    let image_url = RwSignal::new(String::new());
+    let on_file_change = move |ev| {
+        let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
+        if let Some(files) = input.files() {
+            if let Some(file) = files.get(0) {
+                let reader = FileReader::new().expect("Failed to create FileReader");
+
+                // Setup the FileReader onload callback
+                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
+                    let target = e.target().unwrap();
+                    let reader: FileReader = target.dyn_into().unwrap();
+                    let result = reader.result().unwrap();
+
+                    // Update the preview URL
+                    image_url.set(result.as_string().unwrap());
+                }) as Box<dyn FnMut(_)>);
+
+                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
+                onload_callback.forget(); // Prevent the closure from being deallocated
+
+                // Read the file as a Data URL
+                reader.read_as_data_url(&file).expect("Failed to read file as data URL");
+            }
+        }
+    };
+
     view! {
         <form on:submit=on_submit class="flex flex-col gap-1">
             <input
@@ -623,7 +653,11 @@ pub fn ForumBannerForm() -> impl IntoView {
                 name=BANNER_FILE_PARAM
                 accept="image/*"
                 class="file-input file-input-bordered file-input-primary w-full rounded-sm"
+                on:change=on_file_change
             />
+            <Show when=move || !image_url.read().is_empty()>
+                <img src=image_url alt="Image Preview" class="w-full"/>
+            </Show>
             <button
                 type="submit"
                 class="btn btn-secondary btn-sm p-1 self-end"
@@ -645,7 +679,8 @@ pub fn ModeratorPanel() -> impl IntoView {
     let set_role_action = ServerAction::<SetUserForumRole>::new();
 
     view! {
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+        // TODO add overflow-y-auto?
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
             <ArcTransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
                 <div class="flex flex-col gap-1">
@@ -771,7 +806,8 @@ pub fn PermissionLevelForm(
 pub fn ForumRulesPanel() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+        // TODO add overflow-y-auto?
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit max-h-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
             <ArcTransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
                 <div class="flex flex-col gap-1">
@@ -1013,7 +1049,8 @@ pub fn BanPanel() -> impl IntoView {
     );
 
     view! {
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full max-h-full overflow-y-auto bg-base-200 p-2 rounded">
+        // TODO add overflow-y-auto?
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full max-h-full bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Banned users"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">

@@ -615,28 +615,38 @@ pub fn ForumBannerForm() -> impl IntoView {
         forum_state.set_banner_action.dispatch_local(form_data);
     };
 
-    let image_url = RwSignal::new(String::new());
+    let preview_url = RwSignal::new(String::new());
     let on_file_change = move |ev| {
         let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
         if let Some(files) = input.files() {
             if let Some(file) = files.get(0) {
-                let reader = FileReader::new().expect("Failed to create FileReader");
+                // Try to create a FileReader, returning early if it fails
+                let reader = match FileReader::new() {
+                    Ok(reader) => reader,
+                    Err(_) => {
+                        log::error!("Failed to create file reader.");
+                        return
+                    }, // Return early if FileReader creation fails
+                };
 
-                // Setup the FileReader onload callback
+                // Set up the onload callback for FileReader
+                let preview_url_clone = preview_url.clone();
                 let onload_callback = Closure::wrap(Box::new(move |e: Event| {
-                    let target = e.target().unwrap();
-                    let reader: FileReader = target.dyn_into().unwrap();
-                    let result = reader.result().unwrap();
-
-                    // Update the preview URL
-                    image_url.set(result.as_string().unwrap());
+                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
+                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
+                            preview_url_clone.set(result); // Update the preview URL
+                        }
+                    }
                 }) as Box<dyn FnMut(_)>);
 
                 reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
-                onload_callback.forget(); // Prevent the closure from being deallocated
+                onload_callback.forget(); // Prevent the closure from being dropped
 
-                // Read the file as a Data URL
-                reader.read_as_data_url(&file).expect("Failed to read file as data URL");
+                // Start reading the file as a Data URL, returning early if it fails
+                if let Err(e) = reader.read_as_data_url(&file) {
+                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
+                    log::error!("Error while getting preview of local image: {error_message}");
+                };
             }
         }
     };
@@ -655,8 +665,8 @@ pub fn ForumBannerForm() -> impl IntoView {
                 class="file-input file-input-bordered file-input-primary w-full rounded-sm"
                 on:change=on_file_change
             />
-            <Show when=move || !image_url.read().is_empty()>
-                <img src=image_url alt="Image Preview" class="w-full"/>
+            <Show when=move || !preview_url.read().is_empty()>
+                <img src=preview_url alt="Image Preview" class="w-full"/>
             </Show>
             <button
                 type="submit"

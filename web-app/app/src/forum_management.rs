@@ -338,7 +338,7 @@ pub mod ssr {
         store_path: &str,
         data: MultipartData,
         user: &User,
-    ) -> Result<(String, String), AppError> {
+    ) -> Result<(String, Option<String>), AppError> {
         // `.into_inner()` returns the inner `multer` stream
         // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
         // unwrap
@@ -360,6 +360,10 @@ pub mod ssr {
 
         user.check_permissions(&forum_name, PermissionLevel::Manage)?;
 
+        if file_field.file_name().unwrap_or_default().is_empty() {
+            return Ok((forum_name, None))
+        }
+
         let temp_file_path = format!("/tmp/banner_{}", Uuid::new_v4());
 
         let mut file = File::create(&temp_file_path).await?;
@@ -379,7 +383,8 @@ pub mod ssr {
 
         // TODO create folder?
         rename(&temp_file_path, &banner_path).await?;
-        Ok((forum_name, file_extension.to_string()))
+        let banner_url = format!("/banners/{}.{}", forum_name, file_extension);
+        Ok((forum_name, Some(banner_url)))
     }
 
     pub async fn set_forum_banner_url(
@@ -488,8 +493,8 @@ pub async fn set_forum_banner(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (forum_name, file_extension) = ssr::store_forum_banner(BANNER_FOLDER, data, &user).await?;
-    ssr::set_forum_banner_url(&forum_name.clone(), Some(&format!("/banners/{}.{}", forum_name, file_extension)), &user, &db_pool).await?;
+    let (forum_name, banner_url) = ssr::store_forum_banner(BANNER_FOLDER, data, &user).await?;
+    ssr::set_forum_banner_url(&forum_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
 

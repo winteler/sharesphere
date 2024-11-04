@@ -1,10 +1,6 @@
 use chrono::SecondsFormat;
-use leptos::ev::SubmitEvent;
 use leptos::html;
 use leptos::prelude::*;
-use leptos::wasm_bindgen::prelude::Closure;
-use leptos::wasm_bindgen::JsCast;
-use leptos::web_sys::{Event, FileReader, FormData, HtmlFormElement, HtmlInputElement};
 use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
@@ -23,7 +19,7 @@ use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
 use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
 use crate::user::get_matching_username_set;
-use crate::widget::{EnumDropdown, ModalDialog, ModalFormButtons};
+use crate::widget::{EnumDropdown, ForumImageForm, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -35,8 +31,6 @@ pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";
 pub const PERMANENT_STR: &str = "Permanent";
-pub const BANNER_FORUM_NAME_PARAM: &str = "forum_name";
-pub const BANNER_FILE_PARAM: &str = "banner";
 pub const BANNER_FOLDER: &str = "./public/banners/";
 pub const MISSING_FORUM_STR: &str = "Missing forum name.";
 pub const MISSING_BANNER_FILE_STR: &str = "Missing banner file.";
@@ -84,9 +78,10 @@ pub struct ModerationInfo {
 pub mod ssr {
     use crate::constants::IMAGE_TYPE;
     use crate::errors::AppError;
-    use crate::forum_management::{Rule, UserBan, BANNER_FILE_INFER_ERROR_STR, BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
+    use crate::forum_management::{Rule, UserBan, BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
     use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
+    use crate::widget::{FORUM_NAME_PARAM, IMAGE_FILE_PARAM};
     use server_fn::codec::MultipartData;
     use sqlx::types::Uuid;
     use sqlx::PgPool;
@@ -348,9 +343,9 @@ pub mod ssr {
 
         while let Ok(Some(field)) = data.next_field().await {
             let name = field.name().unwrap_or_default().to_string();
-            if name == BANNER_FORUM_NAME_PARAM {
+            if name == FORUM_NAME_PARAM {
                 forum_name = Ok(field.text().await.map_err(|e| AppError::new(e.to_string()))?);
-            } else if name == BANNER_FILE_PARAM {
+            } else if name == IMAGE_FILE_PARAM {
                 file_field = Ok(field);
             }
         }
@@ -597,89 +592,19 @@ pub fn ForumDescriptionForm(
 /// Component to edit a forum's banner
 #[component]
 pub fn ForumBannerDialog() -> impl IntoView {
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let forum_state = expect_context::<ForumState>();
+    let forum_name = forum_state.forum_name;
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum banner"</div>
-                <ForumBannerForm/>
+                <ForumImageForm
+                    forum_name=forum_state.forum_name
+                    action=forum_state.set_banner_action
+                />
             </div>
         </AuthorizedShow>
-    }
-}
-
-/// Form to edit a forum's banner
-#[component]
-pub fn ForumBannerForm() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let on_submit = move |ev: SubmitEvent| {
-        ev.prevent_default();
-        let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
-        let form_data = FormData::new_with_form(&target).unwrap();
-        forum_state.set_banner_action.dispatch_local(form_data);
-    };
-
-    let preview_url = RwSignal::new(String::new());
-    let on_file_change = move |ev| {
-        let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
-        if let Some(files) = input.files() {
-            if let Some(file) = files.get(0) {
-                // Try to create a FileReader, returning early if it fails
-                let reader = match FileReader::new() {
-                    Ok(reader) => reader,
-                    Err(_) => {
-                        log::error!("Failed to create file reader.");
-                        return
-                    }, // Return early if FileReader creation fails
-                };
-
-                // Set up the onload callback for FileReader
-                let preview_url_clone = preview_url.clone();
-                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
-                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
-                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
-                            preview_url_clone.set(result); // Update the preview URL
-                        }
-                    }
-                }) as Box<dyn FnMut(_)>);
-
-                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
-                onload_callback.forget(); // Prevent the closure from being dropped
-
-                // Start reading the file as a Data URL, returning early if it fails
-                if let Err(e) = reader.read_as_data_url(&file) {
-                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
-                    log::error!("Error while getting preview of local image: {error_message}");
-                };
-            }
-        }
-    };
-
-    view! {
-        <form on:submit=on_submit class="flex flex-col gap-1">
-            <input
-                name=BANNER_FORUM_NAME_PARAM
-                class="hidden"
-                value=forum_state.forum_name
-            />
-            <input
-                type="file"
-                name=BANNER_FILE_PARAM
-                accept="image/*"
-                class="file-input file-input-bordered file-input-primary w-full rounded-sm"
-                on:change=on_file_change
-            />
-            <Show when=move || !preview_url.read().is_empty()>
-                <img src=preview_url alt="Image Preview" class="w-full"/>
-            </Show>
-            <button
-                type="submit"
-                class="btn btn-secondary btn-sm p-1 self-end"
-            >
-                <SaveIcon/>
-            </button>
-        </form>
     }
 }
 

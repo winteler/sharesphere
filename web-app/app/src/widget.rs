@@ -1,12 +1,19 @@
+use leptos::ev::{Event, SubmitEvent};
 use leptos::html;
 use leptos::prelude::*;
+use leptos::wasm_bindgen::closure::Closure;
+use leptos::wasm_bindgen::JsCast;
+use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
 use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SelfAuthorIcon};
+use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
+
+pub const FORUM_NAME_PARAM: &str = "forum_name";
+pub const IMAGE_FILE_PARAM: &str = "image";
 
 /// Component that displays its children in a modal dialog
 #[component]
@@ -185,6 +192,84 @@ pub fn MinimizeMaximizeWidget(
                 <MaximizeIcon/>
             </div>
         </div>
+    }
+}
+
+/// Form to upload an image to the server
+/// The form contains two inputs: a hidden forum name and an image form
+#[component]
+pub fn ForumImageForm(
+    #[prop(into)]
+    forum_name: MaybeSignal<String>,
+    action: Action<FormData, Result<(), ServerFnError>, LocalStorage>
+) -> impl IntoView {
+    let on_submit = move |ev: SubmitEvent| {
+        ev.prevent_default();
+        let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
+        let form_data = FormData::new_with_form(&target).unwrap();
+        action.dispatch_local(form_data);
+    };
+
+    let preview_url = RwSignal::new(String::new());
+    let on_file_change = move |ev| {
+        let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
+        if let Some(files) = input.files() {
+            if let Some(file) = files.get(0) {
+                // Try to create a FileReader, returning early if it fails
+                let reader = match FileReader::new() {
+                    Ok(reader) => reader,
+                    Err(_) => {
+                        log::error!("Failed to create file reader.");
+                        return
+                    }, // Return early if FileReader creation fails
+                };
+
+                // Set up the onload callback for FileReader
+                let preview_url_clone = preview_url.clone();
+                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
+                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
+                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
+                            preview_url_clone.set(result); // Update the preview URL
+                        }
+                    }
+                }) as Box<dyn FnMut(_)>);
+
+                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
+                onload_callback.forget(); // Prevent the closure from being dropped
+
+                // Start reading the file as a Data URL, returning early if it fails
+                if let Err(e) = reader.read_as_data_url(&file) {
+                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
+                    log::error!("Error while getting preview of local image: {error_message}");
+                };
+            }
+        }
+    };
+
+    view! {
+        <form on:submit=on_submit class="flex flex-col gap-1">
+            <input
+                name=FORUM_NAME_PARAM
+                class="hidden"
+                value=forum_name
+            />
+            <input
+                type="file"
+                name=IMAGE_FILE_PARAM
+                accept="image/*"
+                class="file-input file-input-bordered file-input-primary w-full rounded-sm"
+                on:change=on_file_change
+            />
+            <Show when=move || !preview_url.read().is_empty()>
+                <img src=preview_url alt="Image Preview" class="w-full"/>
+            </Show>
+            <button
+                type="submit"
+                class="btn btn-secondary btn-sm p-1 self-end"
+            >
+                <SaveIcon/>
+            </button>
+        </form>
     }
 }
 

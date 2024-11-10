@@ -85,6 +85,18 @@ pub fn EditTimeIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl In
 }
 
 #[component]
+pub fn ForumIcon(
+    icon_url: Option<String>,
+    #[prop(default = "h-7 w-7")]
+    class: &'static str
+) -> impl IntoView {
+    match icon_url {
+        Some(icon_url) => view! { <img src=icon_url class=class/> }.into_any(),
+        None => view! { <LogoIcon class/> }.into_any(),
+    }
+}
+
+#[component]
 pub fn FlameIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/flame.svg" class=class/>

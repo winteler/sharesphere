@@ -31,7 +31,9 @@ pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";
 pub const PERMANENT_STR: &str = "Permanent";
-pub const BANNER_FOLDER: &str = "./public/banners/";
+pub const ASSET_FOLDER: &str = "./public/";
+pub const ICON_FOLDER: &str = "icons/";
+pub const BANNER_FOLDER: &str = "banners/";
 pub const MISSING_FORUM_STR: &str = "Missing forum name.";
 pub const MISSING_BANNER_FILE_STR: &str = "Missing banner file.";
 pub const INCORRECT_BANNER_FILE_TYPE_STR: &str = "Banner file must be an image.";
@@ -329,8 +331,14 @@ pub mod ssr {
         Ok(user_ban)
     }
 
-    pub async fn store_forum_banner(
+    /// Extracts and stores a forum associated image from `data` and returns the forum name and file name for the image.
+    ///
+    /// The image will be stored locally on the server with the following path: <store_path><image_category><file_name>.
+    /// Returns an error if the forum name or file cannot be found, if the file does not contain a valid image file or
+    /// if directories in the path <store_path><image_category> do not exist.
+    pub async fn store_forum_image(
         store_path: &str,
+        image_category: &str,
         data: MultipartData,
         user: &User,
     ) -> Result<(String, Option<String>), AppError> {
@@ -369,17 +377,43 @@ pub mod ssr {
 
         let file_extension = match infer::get_from_path(temp_file_path.clone()) {
             Ok(Some(file_type)) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(file_type.extension()),
-            Ok(Some(_)) => Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR)),
+            Ok(Some(file_type)) => {
+                log::info!("Invalid file type: {}, extension: {}", file_type.mime_type(), file_type.extension());
+                Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR))
+            },
             Ok(None) => Err(AppError::new(BANNER_FILE_INFER_ERROR_STR)),
             Err(e) => Err(AppError::from(e)),
         }?;
 
-        let banner_path = format!("{}{}.{}", store_path, forum_name.clone(), file_extension);
+        let image_path = format!("{}{}{}.{}", store_path, image_category, forum_name.clone(), file_extension);
+        println!("Image path: {}", image_path);
 
         // TODO create folder?
-        rename(&temp_file_path, &banner_path).await?;
-        let banner_url = format!("/banners/{}.{}", forum_name, file_extension);
-        Ok((forum_name, Some(banner_url)))
+        // TODO delete previous file? Here or somewhere else?
+        rename(&temp_file_path, &image_path).await?;
+        let file_name = format!("{}.{}", forum_name, file_extension);
+        Ok((forum_name, Some(file_name)))
+    }
+
+    pub async fn set_forum_icon_url(
+        forum_name: &str,
+        icon_url: Option<&str>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+        sqlx::query!(
+            "UPDATE forums
+             SET icon_url = $1,
+                 timestamp = CURRENT_TIMESTAMP
+             WHERE forum_name = $2",
+            icon_url,
+            forum_name,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn set_forum_banner_url(
@@ -482,13 +516,33 @@ pub async fn remove_user_ban(
 }
 
 #[server(input = MultipartFormData)]
+pub async fn set_forum_icon(
+    data: MultipartData,
+) -> Result<(), ServerFnError> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    let (forum_name, icon_file_name) = ssr::store_forum_image(ASSET_FOLDER, ICON_FOLDER, data, &user).await?;
+    let icon_url = match icon_file_name {
+        Some(icon_file_name) => Some(format!("/{ICON_FOLDER}{icon_file_name}")),
+        None => None,
+    };
+    ssr::set_forum_icon_url(&forum_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
+    Ok(())
+}
+
+#[server(input = MultipartFormData)]
 pub async fn set_forum_banner(
     data: MultipartData,
 ) -> Result<(), ServerFnError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (forum_name, banner_url) = ssr::store_forum_banner(BANNER_FOLDER, data, &user).await?;
+    let (forum_name, banner_file_name) = ssr::store_forum_image(ASSET_FOLDER, BANNER_FOLDER, data, &user).await?;
+    let banner_url = match banner_file_name {
+        Some(banner_file_name) => Some(format!("/{BANNER_FOLDER}{banner_file_name}")),
+        None => None,
+    };
     ssr::set_forum_banner_url(&forum_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
@@ -522,6 +576,7 @@ pub fn ForumCockpit() -> impl IntoView {
         <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-1/2 mx-auto">
             <div class="text-2xl text-center">"Forum Cockpit"</div>
             <ForumDescriptionDialog/>
+            <ForumIconDialog/>
             <ForumBannerDialog/>
             <ModeratorPanel/>
             <ForumRulesPanel/>
@@ -586,6 +641,25 @@ pub fn ForumDescriptionForm(
                 <SaveIcon/>
             </button>
         </ActionForm>
+    }
+}
+
+/// Component to edit a forum's icon
+#[component]
+pub fn ForumIconDialog() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    let forum_name = forum_state.forum_name;
+    view! {
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+            // TODO add overflow-y-auto max-h-full?
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+                <div class="text-xl text-center">"Forum icon"</div>
+                <ForumImageForm
+                    forum_name=forum_state.forum_name
+                    action=forum_state.set_icon_action
+                />
+            </div>
+        </AuthorizedShow>
     }
 }
 

@@ -1,20 +1,32 @@
 use chrono::Days;
 use std::ops::Add;
 
+use crate::common::*;
+use crate::data_factory::{create_forum_with_post, create_forum_with_post_and_comment};
+use crate::utils::*;
 use app::comment::ssr::create_comment;
 use app::errors::AppError;
 use app::forum::ssr::{create_forum, get_forum_by_name};
-use app::forum_management::ssr::{add_rule, get_forum_ban_vec, get_forum_rule_vec, is_user_forum_moderator, load_rule_by_id, remove_rule, remove_user_ban, set_forum_banner_url, store_forum_banner, update_rule};
-use app::forum_management::{BANNER_FILE_INFER_ERROR_STR, BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
+use app::forum_management::ssr::{
+    add_rule,
+    get_forum_ban_vec,
+    get_forum_rule_vec,
+    is_user_forum_moderator,
+    load_rule_by_id,
+    remove_rule,
+    remove_user_ban,
+    set_forum_banner_url,
+    set_forum_icon_url,
+    store_forum_image,
+    update_rule
+};
+use app::forum_management::{BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
 use app::moderation::ssr::{ban_user_from_forum, moderate_comment, moderate_post};
 use app::post::ssr::create_post;
 use app::role::ssr::set_user_admin_role;
 use app::role::AdminRole;
 use app::user::User;
-
-use crate::common::*;
-use crate::data_factory::{create_forum_with_post, create_forum_with_post_and_comment};
-use crate::utils::*;
+use app::widget::{FORUM_NAME_PARAM, IMAGE_FILE_PARAM};
 
 mod common;
 mod data_factory;
@@ -490,52 +502,75 @@ async fn test_is_user_forum_moderator() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_store_forum_banner() -> Result<(), AppError> {
+async fn test_store_forum_image() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
     let forum = create_forum("forum", "a", false, &user, &db_pool).await?;
+    let store_path = "/tmp/";
+    let image_category = "test_";
     // reload user to have updated permissions
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
     
-    let (forum_name, file_extension) = store_forum_banner(
-        "/tmp/",
-        get_multipart_image_with_string(BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+    let (forum_name, image_file_name) = store_forum_image(
+        store_path,
+        image_category,
+        get_multipart_image_with_string(IMAGE_FILE_PARAM, FORUM_NAME_PARAM, &forum.forum_name).await,
         &user,
     ).await?;
     assert_eq!(forum_name, forum.forum_name);
-    assert_eq!(file_extension, "png");
+    assert_eq!(image_file_name, Some(format!("{forum_name}.png")));
     assert_eq!(
-        store_forum_banner(
-            "/tmp/",
-            get_multipart_image(BANNER_FILE_PARAM).await,
+        store_forum_image(
+            store_path,
+            image_category,
+            get_multipart_image(IMAGE_FILE_PARAM).await,
             &user,
         ).await,
         Err(AppError::new(MISSING_FORUM_STR))
     );
     assert_eq!(
-        store_forum_banner(
-            "/tmp/",
-            get_multipart_string(BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+        store_forum_image(
+            store_path,
+            image_category,
+            get_multipart_string(FORUM_NAME_PARAM, &forum.forum_name).await,
             &user,
         ).await,
         Err(AppError::new(MISSING_BANNER_FILE_STR))
     );
     assert_eq!(
-        store_forum_banner(
-            "/tmp/",
-            get_multipart_pdf_with_string(BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+        store_forum_image(
+            store_path,
+            image_category,
+            get_multipart_pdf_with_string(IMAGE_FILE_PARAM, FORUM_NAME_PARAM, &forum.forum_name).await,
             &user,
         ).await,
         Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR))
     );
     assert_eq!(
-        store_forum_banner(
-            "/tmp/",
-            get_invalid_multipart_image_with_string(BANNER_FILE_PARAM, BANNER_FORUM_NAME_PARAM, &forum.forum_name).await,
+        store_forum_image(
+            store_path,
+            image_category,
+            get_invalid_multipart_image_with_string(IMAGE_FILE_PARAM, FORUM_NAME_PARAM, &forum.forum_name).await,
             &user,
         ).await,
         Err(AppError::new(BANNER_FILE_INFER_ERROR_STR))
     );
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_set_forum_icon_url() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+    let forum = create_forum("forum", "a", false, &user, &db_pool).await?;
+    // reload user to have updated permissions
+    let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
+    let icon_url = "a";
+    assert_eq!(forum.icon_url, None);
+
+    set_forum_icon_url(&forum.forum_name, Some(icon_url), &user, &db_pool).await?;
+    let forum = get_forum_by_name(&forum.forum_name, &db_pool).await?;
+    assert_eq!(forum.icon_url, Some(String::from(icon_url)));
     Ok(())
 }
 

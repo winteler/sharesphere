@@ -8,8 +8,8 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
-use crate::forum_management::{get_forum_rule_vec, set_forum_banner, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
-use crate::icons::{InternalErrorIcon, LoadingIcon, LogoIcon, PlusIcon, SettingsIcon, SubscribedIcon};
+use crate::forum_management::{get_forum_rule_vec, set_forum_banner, set_forum_icon, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
+use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
 use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
@@ -90,6 +90,7 @@ pub struct ForumState {
     pub forum_rules_resource: Resource<Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: ServerAction<ModeratePost>,
     pub update_forum_desc_action: ServerAction<UpdateForumDescription>,
+    pub set_icon_action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
     pub set_banner_action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
     pub set_forum_role_action: ServerAction<SetUserForumRole>,
     pub add_rule_action: ServerAction<AddRule>,
@@ -486,8 +487,10 @@ pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = get_forum_name_memo(use_params_map());
     let update_forum_desc_action = ServerAction::<UpdateForumDescription>::new();
+    let set_icon_action = Action::new_local(|data: &FormData| {
+        set_forum_icon(data.clone().into())
+    });
     let set_banner_action = Action::new_local(|data: &FormData| {
-        // `MultipartData` implements `From<FormData>`
         set_forum_banner(data.clone().into())
     });
     let set_forum_role_action = ServerAction::<SetUserForumRole>::new();
@@ -506,9 +509,10 @@ pub fn ForumBanner() -> impl IntoView {
             move || (
                 forum_name.get(),
                 update_forum_desc_action.version().get(),
+                set_icon_action.version().get(),
                 set_banner_action.version().get(),
             ),
-            move |(forum_name, _, _)| get_forum_by_name(forum_name)
+            move |(forum_name, _, _, _)| get_forum_by_name(forum_name)
         ),
         forum_roles_resource: Resource::new(
             move || (forum_name.get(), set_forum_role_action.version().get()),
@@ -525,6 +529,7 @@ pub fn ForumBanner() -> impl IntoView {
         ),
         moderate_post_action: ServerAction::<ModeratePost>::new(),
         update_forum_desc_action,
+        set_icon_action,
         set_banner_action,
         set_forum_role_action,
         add_rule_action,
@@ -547,7 +552,7 @@ pub fn ForumBanner() -> impl IntoView {
                         style:background-image=forum_banner_image
                     >
                         <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
-                            <LogoIcon class="h-12 w-12"/>
+                            <ForumIcon icon_url=forum.icon_url.clone() class="h-12 w-12"/>
                             <span class="text-4xl">{forum_state.forum_name.get()}</span>
                         </div>
                     </a>

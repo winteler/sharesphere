@@ -232,6 +232,7 @@ fn HomePage() -> impl IntoView {
                 style="background-image: url(/banner.jpg)"
             >
                 <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
+                    <LogoIcon class="h-12 w-12"/>
                     <span class="text-4xl select-none">"ShareSphere"</span>
                 </div>
             </div>

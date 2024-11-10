@@ -523,10 +523,7 @@ pub async fn set_forum_icon(
     let db_pool = get_db_pool()?;
 
     let (forum_name, icon_file_name) = ssr::store_forum_image(ASSET_FOLDER, ICON_FOLDER, data, &user).await?;
-    let icon_url = match icon_file_name {
-        Some(icon_file_name) => Some(format!("/{ICON_FOLDER}{icon_file_name}")),
-        None => None,
-    };
+    let icon_url = icon_file_name.map(|icon_file_name| format!("/{ICON_FOLDER}{icon_file_name}"));
     ssr::set_forum_icon_url(&forum_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
@@ -539,10 +536,7 @@ pub async fn set_forum_banner(
     let db_pool = get_db_pool()?;
 
     let (forum_name, banner_file_name) = ssr::store_forum_image(ASSET_FOLDER, BANNER_FOLDER, data, &user).await?;
-    let banner_url = match banner_file_name {
-        Some(banner_file_name) => Some(format!("/{BANNER_FOLDER}{banner_file_name}")),
-        None => None,
-    };
+    let banner_url = banner_file_name.map(|banner_file_name| format!("/{BANNER_FOLDER}{banner_file_name}"));
     ssr::set_forum_banner_url(&forum_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
@@ -657,6 +651,7 @@ pub fn ForumIconDialog() -> impl IntoView {
                 <ForumImageForm
                     forum_name=forum_state.forum_name
                     action=forum_state.set_icon_action
+                    preview_class="max-h-12 max-w-full object-contain"
                 />
             </div>
         </AuthorizedShow>

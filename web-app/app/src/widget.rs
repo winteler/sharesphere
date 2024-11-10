@@ -201,7 +201,9 @@ pub fn MinimizeMaximizeWidget(
 pub fn ForumImageForm(
     #[prop(into)]
     forum_name: MaybeSignal<String>,
-    action: Action<FormData, Result<(), ServerFnError>, LocalStorage>
+    action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
+    #[prop(default = "max-h-80 max-w-full object-contain")]
+    preview_class: &'static str,
 ) -> impl IntoView {
     let on_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
@@ -261,7 +263,7 @@ pub fn ForumImageForm(
                 on:change=on_file_change
             />
             <Show when=move || !preview_url.read().is_empty()>
-                <img src=preview_url alt="Image Preview" class="w-full"/>
+                <img src=preview_url alt="Image Preview" class=preview_class/>
             </Show>
             <button
                 type="submit"

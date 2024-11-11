@@ -90,6 +90,8 @@ pub mod ssr {
     use tokio::fs::{rename, File};
     use tokio::io::AsyncWriteExt;
 
+    pub const MAX_IMAGE_SIZE: usize = 5 * 1024 * 1024; // 5 MB in bytes
+
     pub async fn is_user_forum_moderator(
         user_id: i64,
         forum: &str,
@@ -367,10 +369,17 @@ pub mod ssr {
             return Ok((forum_name, None))
         }
 
-        let temp_file_path = format!("/tmp/banner_{}", Uuid::new_v4());
+        let temp_file_path = format!("/tmp/image_{}", Uuid::new_v4());
 
         let mut file = File::create(&temp_file_path).await?;
+        let mut total_size = 0;
         while let Ok(Some(chunk)) = file_field.chunk().await {
+            total_size += chunk.len();
+
+            // Check if the total size exceeds the limit
+            if total_size > MAX_IMAGE_SIZE {
+                return Err(AppError::new(format!("Image file is too large. Max allowed size is {} bytes", MAX_IMAGE_SIZE)));
+            }
             file.write_all(&chunk).await?;
         }
         file.flush().await?;

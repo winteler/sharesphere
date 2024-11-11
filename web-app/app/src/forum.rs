@@ -550,6 +550,9 @@ pub fn ForumBanner() -> impl IntoView {
                         href=forum_path()
                         class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-40 flex items-center justify-center"
                         style:background-image=forum_banner_image
+                        style:background-position="top left"
+                        style:background-repeat="no-repeat"
+                        style:background-size="cover"
                     >
                         <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
                             <ForumIcon icon_url=forum.icon_url.clone() class="h-12 w-12"/>

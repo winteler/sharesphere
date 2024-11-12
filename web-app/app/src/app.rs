@@ -33,8 +33,8 @@ pub struct GlobalState {
     pub user: Resource<Result<Option<User>, ServerFnError>>,
 }
 
-impl GlobalState {
-    pub fn default() -> Self {
+impl Default for GlobalState {
+    fn default() -> Self {
         let handle_auth_redirect_action = ServerAction::<AuthenticateUser>::new();
         let logout_action = ServerAction::<EndSession>::new();
         let create_forum_action = ServerAction::<CreateForum>::new();
@@ -92,7 +92,7 @@ pub mod ssr {
             .max_connections(5)
             .connect(&env::var(DB_URL_ENV)?)
             .await
-            .with_context(|| format!("Failed to connect to DB"))
+            .with_context(|| "Failed to connect to DB")
     }
 }
 

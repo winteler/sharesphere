@@ -416,7 +416,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.markdown_body, None);
     assert_eq!(post_1.is_nsfw, false);
     assert_eq!(post_1.is_spoiler, false);
-    assert_eq!(post_1.tags, None);
+    assert_eq!(post_1.category_id, None);
     assert_eq!(post_1.is_edited, false);
     assert_eq!(post_1.meta_post_id, None);
     assert_eq!(post_1.forum_id, forum.forum_id);
@@ -450,7 +450,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
     assert_eq!(post_2.is_nsfw, false);
     assert_eq!(post_2.is_spoiler, false);
-    assert_eq!(post_2.tags, None);
+    assert_eq!(post_2.category_id, None);
     assert_eq!(post_2.is_edited, false);
     assert_eq!(post_2.meta_post_id, None);
     assert_eq!(post_2.forum_id, forum.forum_id);

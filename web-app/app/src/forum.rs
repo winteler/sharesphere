@@ -55,7 +55,6 @@ pub struct Forum {
     pub description: String,
     pub is_nsfw: bool,
     pub is_banned: bool,
-    pub tags: Option<String>,
     pub icon_url: Option<String>,
     pub banner_url: Option<String>,
     pub num_members: i32,

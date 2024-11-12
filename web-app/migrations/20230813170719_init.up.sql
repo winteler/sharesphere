@@ -18,7 +18,6 @@ CREATE TABLE forums (
     description TEXT NOT NULL,
     is_nsfw BOOLEAN NOT NULL,
     is_banned BOOLEAN NOT NULL DEFAULT FALSE,
-    tags TEXT,
     icon_url TEXT,
     banner_url TEXT,
     num_members INT NOT NULL DEFAULT 0,
@@ -57,8 +56,7 @@ CREATE TABLE rules (
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL,
-    CONSTRAINT unique_forum UNIQUE (rule_id, forum_id)
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
 );
 
 -- index to guarantee numbering of rules is unique
@@ -67,6 +65,21 @@ CREATE UNIQUE INDEX unique_rule ON rules (forum_id, priority)
 -- index to guarantee there is only one active rule for a given rule_key
 CREATE UNIQUE INDEX unique_rule_key ON rules (rule_key)
     WHERE rules.delete_timestamp IS NULL;
+
+CREATE TABLE forum_categories (
+    category_id BIGSERIAL PRIMARY KEY,
+    forum_id BIGINT NOT NULL,
+    forum_name TEXT NOT NULL,
+    category_name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    is_activated BOOLEAN NOT NULL DEFAULT TRUE,
+    creator_id BIGINT NOT NULL REFERENCES users (user_id),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delete_timestamp TIMESTAMPTZ,
+    CONSTRAINT forum_category UNIQUE (category_id, forum_id),
+    CONSTRAINT unique_category UNIQUE (forum_id, category_name),
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
+);
 
 CREATE TABLE forum_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,
@@ -83,7 +96,7 @@ CREATE TABLE posts (
     markdown_body TEXT,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     is_spoiler BOOLEAN NOT NULL DEFAULT FALSE,
-    tags TEXT,
+    category_id BIGINT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     meta_post_id BIGINT,
     forum_id BIGINT NOT NULL,
@@ -109,7 +122,8 @@ CREATE TABLE posts (
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,
     scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
+    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL,
+    CONSTRAINT valid_forum_category FOREIGN KEY (category_id, forum_id) REFERENCES forum_categories (category_id, forum_id) MATCH SIMPLE
 );
 
 CREATE TABLE comments (

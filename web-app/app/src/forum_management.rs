@@ -70,6 +70,20 @@ pub struct Rule {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct ForumCategory {
+    pub category_id: i64,
+    pub forum_id: i64,
+    pub forum_name: String,
+    pub category_name: String,
+    pub description: String,
+    pub is_activated: bool,
+    pub creator_id: i64,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct ModerationInfo {
     pub rule: Rule,
@@ -80,7 +94,7 @@ pub struct ModerationInfo {
 pub mod ssr {
     use crate::constants::IMAGE_TYPE;
     use crate::errors::AppError;
-    use crate::forum_management::{Rule, UserBan, BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
+    use crate::forum_management::{ForumCategory, Rule, UserBan, BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
     use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
     use crate::widget::{FORUM_NAME_PARAM, IMAGE_FILE_PARAM};
@@ -278,6 +292,104 @@ pub mod ssr {
              WHERE forum_name IS NOT DISTINCT FROM $1 AND priority > $2 AND delete_timestamp IS NULL",
             forum_name,
             priority,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn add_forum_category(
+        forum_name: &str,
+        category_name: &str,
+        description: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<ForumCategory, AppError> {
+        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+
+        let category = sqlx::query_as!(
+            ForumCategory,
+            "INSERT INTO forum_categories
+            (forum_id, forum_name, category_name, description, creator_id)
+            VALUES (
+                (SELECT forum_id FROM forums WHERE forum_name = $1),
+                $1, $2, $3, $4
+            ) RETURNING *",
+            forum_name,
+            category_name,
+            description,
+            user.user_id,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(category)
+    }
+
+    pub async fn update_forum_category(
+        forum_name: &str,
+        category_name: &str,
+        description: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<ForumCategory, AppError> {
+        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+
+        let forum_category = sqlx::query_as!(
+            ForumCategory,
+            "UPDATE forum_categories
+             SET description = $1, timestamp = CURRENT_TIMESTAMP
+             WHERE forum_name = $2 AND category_name = $3
+             RETURNING *",
+            description,
+            forum_name,
+            category_name,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(forum_category)
+    }
+
+    pub async fn toggle_forum_category(
+        forum_name: &str,
+        category_name: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<ForumCategory, AppError> {
+        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+
+        let forum_category = sqlx::query_as!(
+            ForumCategory,
+            "UPDATE forum_categories
+             SET is_activated = NOT is_activated, timestamp = CURRENT_TIMESTAMP
+             WHERE forum_name = $1 AND category_name = $2
+             RETURNING *",
+            forum_name,
+            category_name,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(forum_category)
+    }
+
+    pub async fn delete_forum_category(
+        forum_name: &str,
+        category_name: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+
+        sqlx::query!(
+            "DELETE FROM forum_categories c
+             WHERE forum_name = $1 AND category_name = $2 AND NOT EXISTS (
+                SELECT 1 FROM posts p WHERE p.category_id = c.category_id
+             )",
+            forum_name,
+            category_name,
         )
             .execute(db_pool)
             .await?;

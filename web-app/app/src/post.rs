@@ -49,7 +49,7 @@ pub struct Post {
     pub markdown_body: Option<String>,
     pub is_nsfw: bool,
     pub is_spoiler: bool,
-    pub tags: Option<String>,
+    pub category_id: Option<i64>,
     pub is_edited: bool,
     pub meta_post_id: Option<i64>,
     pub forum_id: i64,
@@ -318,14 +318,14 @@ pub mod ssr {
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
-        tag: Option<String>,
+        category_id: Option<i64>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         user.check_can_publish_on_forum(forum_name)?;
         if forum_name.is_empty() || post_title.is_empty() {
             return Err(AppError::new(
-                "Cannot create content without a valid forum and title.",
+                "Cannot create post without a valid forum and title.",
             ));
         }
         if is_pinned {
@@ -335,7 +335,7 @@ pub mod ssr {
         let post = sqlx::query_as!(
             Post,
             "INSERT INTO posts (
-                title, body, markdown_body, is_nsfw, is_spoiler, tags, forum_id,
+                title, body, markdown_body, is_nsfw, is_spoiler, category_id, forum_id,
                 forum_name, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
@@ -348,7 +348,7 @@ pub mod ssr {
             post_markdown_body,
             is_nsfw,
             is_spoiler,
-            tag,
+            category_id,
             forum_name,
             is_pinned,
             user.user_id,
@@ -369,13 +369,13 @@ pub mod ssr {
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
-        tag: Option<String>,
+        category_id: Option<i64>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         if post_title.is_empty() {
             return Err(AppError::new(
-                "Cannot create content without a valid forum and title.",
+                "Cannot update post without a valid title.",
             ));
         }
         if is_pinned {
@@ -392,7 +392,7 @@ pub mod ssr {
                 is_spoiler = $4,
                 is_nsfw = $5,
                 is_pinned = $6,
-                tags = $7,
+                category_id = $7,
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
                 post_id = $8 AND
@@ -404,7 +404,7 @@ pub mod ssr {
             is_spoiler,
             is_nsfw,
             is_pinned,
-            tag.unwrap_or_default(),
+            category_id,
             post_id,
             user.user_id,
         )
@@ -591,7 +591,7 @@ pub async fn create_post(
     is_spoiler: bool,
     is_nsfw: bool,
     is_pinned: Option<bool>,
-    tag: Option<String>,
+    category_id: Option<i64>,
 ) -> Result<(), ServerFnError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -612,7 +612,7 @@ pub async fn create_post(
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
-        tag,
+        category_id,
         &user,
         &db_pool,
     ).await?;
@@ -640,7 +640,7 @@ pub async fn edit_post(
     is_spoiler: bool,
     is_nsfw: bool,
     is_pinned: Option<bool>,
-    tag: Option<String>,
+    category_id: Option<i64>,
 ) -> Result<Post, ServerFnError> {
     log::trace!("Edit post {post_id}, title = {title}, body = {body}");
     let user = check_user().await?;
@@ -662,7 +662,7 @@ pub async fn edit_post(
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
-        tag,
+        category_id,
         &user,
         &db_pool,
     )

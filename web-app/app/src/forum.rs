@@ -8,7 +8,7 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
-use crate::forum_management::{get_forum_rule_vec, set_forum_banner, set_forum_icon, AddRule, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
+use crate::forum_management::{get_forum_category_vec, get_forum_rule_vec, set_forum_banner, set_forum_icon, AddRule, ForumCategory, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
 use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
@@ -85,6 +85,7 @@ pub struct ForumState {
     pub forum_name: Memo<String>,
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<Result<Forum, ServerFnError>>,
+    pub forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError>>,
     pub forum_roles_resource: Resource<Result<Vec<UserForumRole>, ServerFnError>>,
     pub forum_rules_resource: Resource<Result<Vec<Rule>, ServerFnError>>,
     pub moderate_post_action: ServerAction<ModeratePost>,
@@ -400,8 +401,7 @@ pub async fn get_forum_with_user_info(
         _ => None,
     };
 
-    let forum_content =
-        ssr::get_forum_with_user_info(forum_name.as_str(), user_id, &db_pool).await?;
+    let forum_content = ssr::get_forum_with_user_info(forum_name.as_str(), user_id, &db_pool).await?;
 
     Ok(forum_content)
 }
@@ -512,6 +512,10 @@ pub fn ForumBanner() -> impl IntoView {
                 set_banner_action.version().get(),
             ),
             move |(forum_name, _, _, _)| get_forum_by_name(forum_name)
+        ),
+        forum_categories_resource: Resource::new(
+            move || forum_name.get(),
+            move |forum_name| get_forum_category_vec(forum_name)
         ),
         forum_roles_resource: Resource::new(
             move || (forum_name.get(), set_forum_role_action.version().get()),

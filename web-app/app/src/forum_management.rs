@@ -299,6 +299,23 @@ pub mod ssr {
         Ok(())
     }
 
+    pub async fn get_forum_category_vec(
+        forum_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<Vec<ForumCategory>, AppError> {
+        let forum_category_vec = sqlx::query_as!(
+            ForumCategory,
+            "SELECT * FROM forum_categories
+            WHERE forum_name = $1
+            ORDER BY is_activated DESC, category_name",
+            forum_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(forum_category_vec)
+    }
+    
     pub async fn add_forum_category(
         forum_name: &str,
         category_name: &str,
@@ -611,8 +628,17 @@ pub async fn remove_rule(
 ) -> Result<(), ServerFnError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    ssr::remove_rule(forum_name.as_ref().map(String::as_str), priority, &user, &db_pool).await?;
+    ssr::remove_rule(forum_name.as_deref(), priority, &user, &db_pool).await?;
     Ok(())
+}
+
+#[server]
+pub async fn get_forum_category_vec(
+    forum_name: String,
+) -> Result<Vec<ForumCategory>, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let forum_category_vec = ssr::get_forum_category_vec(&forum_name, &db_pool).await?;
+    Ok(forum_category_vec)
 }
 
 #[server]
@@ -793,6 +819,21 @@ pub fn ForumBannerDialog() -> impl IntoView {
                     forum_name=forum_state.forum_name
                     action=forum_state.set_banner_action
                 />
+            </div>
+        </AuthorizedShow>
+    }
+}
+
+/// Component to edit forum categories
+#[component]
+pub fn ForumCategoriesDialog() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    let forum_name = forum_state.forum_name;
+    view! {
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+            // TODO add overflow-y-auto max-h-full?
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+                <div class="text-xl text-center">"Forum categories"</div>
             </div>
         </AuthorizedShow>
     }

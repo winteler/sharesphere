@@ -8,7 +8,7 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
-use crate::forum_management::{get_forum_category_vec, get_forum_rule_vec, set_forum_banner, set_forum_icon, AddRule, ForumCategory, RemoveRule, Rule, UpdateRule, MANAGE_FORUM_ROUTE};
+use crate::forum_management::{get_forum_category_vec, get_forum_rule_vec, set_forum_banner, set_forum_icon, AddRule, DeleteForumCategory, ForumCategory, RemoveRule, Rule, SetForumCategory, UpdateRule, MANAGE_FORUM_ROUTE};
 use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
@@ -92,6 +92,8 @@ pub struct ForumState {
     pub update_forum_desc_action: ServerAction<UpdateForumDescription>,
     pub set_icon_action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
     pub set_banner_action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
+    pub set_forum_category_action: ServerAction<SetForumCategory>,
+    pub delete_forum_category_action: ServerAction<DeleteForumCategory>,
     pub set_forum_role_action: ServerAction<SetUserForumRole>,
     pub add_rule_action: ServerAction<AddRule>,
     pub update_rule_action: ServerAction<UpdateRule>,
@@ -492,6 +494,8 @@ pub fn ForumBanner() -> impl IntoView {
     let set_banner_action = Action::new_local(|data: &FormData| {
         set_forum_banner(data.clone().into())
     });
+    let set_forum_category_action = ServerAction::<SetForumCategory>::new();
+    let delete_forum_category_action = ServerAction::<DeleteForumCategory>::new();
     let set_forum_role_action = ServerAction::<SetUserForumRole>::new();
     let add_rule_action = ServerAction::<AddRule>::new();
     let update_rule_action = ServerAction::<UpdateRule>::new();
@@ -514,8 +518,12 @@ pub fn ForumBanner() -> impl IntoView {
             move |(forum_name, _, _, _)| get_forum_by_name(forum_name)
         ),
         forum_categories_resource: Resource::new(
-            move || forum_name.get(),
-            move |forum_name| get_forum_category_vec(forum_name)
+            move || (
+                forum_name.get(), 
+                set_forum_category_action.version().get(), 
+                delete_forum_category_action.version().get()
+            ),
+            move |(forum_name, _, _)| get_forum_category_vec(forum_name)
         ),
         forum_roles_resource: Resource::new(
             move || (forum_name.get(), set_forum_role_action.version().get()),
@@ -534,6 +542,8 @@ pub fn ForumBanner() -> impl IntoView {
         update_forum_desc_action,
         set_icon_action,
         set_banner_action,
+        set_forum_category_action,
+        delete_forum_category_action,
         set_forum_role_action,
         add_rule_action,
         update_rule_action,

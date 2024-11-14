@@ -17,7 +17,7 @@ use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
-use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
+use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
 use crate::user::get_matching_username_set;
 use crate::widget::{EnumDropdown, ForumImageForm, ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
@@ -315,11 +315,12 @@ pub mod ssr {
 
         Ok(forum_category_vec)
     }
-    
-    pub async fn add_forum_category(
+
+    pub async fn set_forum_category(
         forum_name: &str,
         category_name: &str,
         description: &str,
+        is_activated: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<ForumCategory, AppError> {
@@ -328,68 +329,25 @@ pub mod ssr {
         let category = sqlx::query_as!(
             ForumCategory,
             "INSERT INTO forum_categories
-            (forum_id, forum_name, category_name, description, creator_id)
+            (forum_id, forum_name, category_name, description, is_activated, creator_id)
             VALUES (
                 (SELECT forum_id FROM forums WHERE forum_name = $1),
-                $1, $2, $3, $4
-            ) RETURNING *",
+                $1, $2, $3, $4, $5
+            ) ON CONFLICT (forum_id, category_name) DO UPDATE
+                SET description = EXCLUDED.description,
+                    is_activated = EXCLUDED.is_activated,
+                    timestamp = CURRENT_TIMESTAMP
+            RETURNING *",
             forum_name,
             category_name,
             description,
+            is_activated,
             user.user_id,
         )
             .fetch_one(db_pool)
             .await?;
 
         Ok(category)
-    }
-
-    pub async fn update_forum_category(
-        forum_name: &str,
-        category_name: &str,
-        description: &str,
-        user: &User,
-        db_pool: &PgPool,
-    ) -> Result<ForumCategory, AppError> {
-        user.check_permissions(forum_name, PermissionLevel::Manage)?;
-
-        let forum_category = sqlx::query_as!(
-            ForumCategory,
-            "UPDATE forum_categories
-             SET description = $1, timestamp = CURRENT_TIMESTAMP
-             WHERE forum_name = $2 AND category_name = $3
-             RETURNING *",
-            description,
-            forum_name,
-            category_name,
-        )
-            .fetch_one(db_pool)
-            .await?;
-
-        Ok(forum_category)
-    }
-
-    pub async fn toggle_forum_category(
-        forum_name: &str,
-        category_name: &str,
-        user: &User,
-        db_pool: &PgPool,
-    ) -> Result<ForumCategory, AppError> {
-        user.check_permissions(forum_name, PermissionLevel::Manage)?;
-
-        let forum_category = sqlx::query_as!(
-            ForumCategory,
-            "UPDATE forum_categories
-             SET is_activated = NOT is_activated, timestamp = CURRENT_TIMESTAMP
-             WHERE forum_name = $1 AND category_name = $2
-             RETURNING *",
-            forum_name,
-            category_name,
-        )
-            .fetch_one(db_pool)
-            .await?;
-
-        Ok(forum_category)
     }
 
     pub async fn delete_forum_category(
@@ -642,6 +600,30 @@ pub async fn get_forum_category_vec(
 }
 
 #[server]
+pub async fn set_forum_category(
+    forum_name: String,
+    category_name: String,
+    description: String,
+    is_activated: bool,
+) -> Result<ForumCategory, ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let user = check_user().await?;
+    let forum_category = ssr::set_forum_category(&forum_name, &category_name, &description, is_activated, &user, &db_pool).await?;
+    Ok(forum_category)
+}
+
+#[server]
+pub async fn delete_forum_category(
+    forum_name: String,
+    category_name: String,
+) -> Result<(), ServerFnError> {
+    let db_pool = get_db_pool()?;
+    let user = check_user().await?;
+    ssr::delete_forum_category(&forum_name, &category_name, &user, &db_pool).await?;
+    Ok(())
+}
+
+#[server]
 pub async fn get_forum_ban_vec(
     forum_name: String,
     username_prefix: String,
@@ -824,7 +806,7 @@ pub fn ForumBannerDialog() -> impl IntoView {
     }
 }
 
-/// Component to edit forum categories
+/// Component to manage forum categories
 #[component]
 pub fn ForumCategoriesDialog() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
@@ -834,7 +816,74 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
             // TODO add overflow-y-auto max-h-full?
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum categories"</div>
+                <div class="flex flex-col gap-1">
+                    <div class="border-b border-base-content/20 pl-1">
+                        <div class="w-5/6 flex gap-1">
+                            <div class="w-5/12 py-2 font-bold">"Category"</div>
+                            <div class="w-6/12 py-2 font-bold">"Description"</div>
+                            <div class="w-1/12 py-2 font-bold">"Activated"</div>
+                        </div>
+                    </div>
+                    <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
+                        <ForumCategoriesList forum_category_vec=forum_category_vec.clone()/>
+                    </TransitionUnpack>
+                    <CreateRuleForm/>
+                </div>
             </div>
+        </AuthorizedShow>
+    }
+}
+
+/// Component to manage forum categories
+#[component]
+pub fn ForumCategoriesList(
+    forum_category_vec: Vec<ForumCategory>,
+) -> impl IntoView {
+    forum_category_vec.into_iter().map(|forum_category| {
+        let category_name = forum_category.category_name.clone();
+        let description = forum_category.description.clone();
+        let forum_category = StoredValue::new(forum_category);
+        view! {
+            <div class="flex gap-1 justify-between rounded pl-1">
+                <div class="w-5/6 flex gap-1">
+                    <div class="w-5/12 select-none">{category_name}</div>
+                    <div class="w-6/12 select-none">{description}</div>
+                </div>
+                <div class="flex gap-1 justify-end">
+                    <DeleteCategoryButton forum_category/>
+                </div>
+            </div>
+        }
+    }).collect_view()
+}
+
+/// Component to delete a forum category
+#[component]
+pub fn DeleteCategoryButton(
+    forum_category: StoredValue<ForumCategory>,
+) -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    let forum_name = forum_state.forum_name;
+    view! {
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+            <ActionForm
+                action=forum_state.delete_forum_category_action
+                attr:class="h-fit flex justify-center"
+            >
+                <input
+                    name="forum_name"
+                    class="hidden"
+                    value=forum_state.forum_name
+                />
+                <input
+                    name="category_name"
+                    class="hidden"
+                    value=forum_category.with_value(|forum_category| forum_category.category_name.clone())
+                />
+                <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                    <DeleteIcon/>
+                </button>
+            </ActionForm>
         </AuthorizedShow>
     }
 }
@@ -1076,7 +1125,7 @@ pub fn EditRuleForm(
         textarea_ref: title_ref,
     };
     let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(title_ref);
+    let desc_autosize = use_textarea_autosize(description_ref);
     let description_data = TextareaData {
         content: desc_autosize.content,
         set_content: desc_autosize.set_content,

@@ -72,7 +72,7 @@ CREATE TABLE forum_categories (
     forum_name TEXT NOT NULL,
     category_name TEXT NOT NULL,
     description TEXT NOT NULL,
-    is_activated BOOLEAN NOT NULL DEFAULT TRUE,
+    is_activated BOOLEAN NOT NULL,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,

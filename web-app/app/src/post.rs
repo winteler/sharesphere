@@ -15,7 +15,7 @@ use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::form::{FormCheckbox, IsPinnedCheckbox};
+use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::forum::{get_matching_forum_name_set, ForumState};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
@@ -974,8 +974,8 @@ pub fn CreatePost() -> impl IntoView {
                         placeholder="Content"
                         data=body_data
                     />
-                    <FormCheckbox name="is_spoiler" label="Spoiler"/>
-                    <FormCheckbox name="is_nsfw" label="NSFW content"/>
+                    <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
+                    <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                     <IsPinnedCheckbox forum_name=forum_name_input/>
                     <select name="tag" class="select select-bordered w-full max-w-xs">
                         <option disabled selected>"Tag"</option>
@@ -1070,8 +1070,8 @@ pub fn EditPostForm(
                         data=body_data
                         is_markdown
                     />
-                    <FormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
-                    <FormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
+                    <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
+                    <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
                     <IsPinnedCheckbox forum_name=forum_state.forum_name value=is_pinned/>
                     <ModalFormButtons
                         disable_publish=is_post_empty

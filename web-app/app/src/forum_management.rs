@@ -13,6 +13,7 @@ use crate::app::{GlobalState, LoginWindow};
 use crate::content::Content;
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::ErrorDisplay;
+use crate::form::FormCheckbox;
 use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
@@ -701,6 +702,7 @@ pub fn ForumCockpit() -> impl IntoView {
             <ForumDescriptionDialog/>
             <ForumIconDialog/>
             <ForumBannerDialog/>
+            <ForumCategoriesDialog/>
             <ModeratorPanel/>
             <ForumRulesPanel/>
             <BanPanel/>
@@ -811,6 +813,15 @@ pub fn ForumBannerDialog() -> impl IntoView {
 pub fn ForumCategoriesDialog() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let forum_name = forum_state.forum_name;
+
+    let category_input = RwSignal::new(String::new());
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let description_autosize = use_textarea_autosize(textarea_ref);
+    let description_data = TextareaData {
+        content: description_autosize.content,
+        set_content: description_autosize.set_content,
+        textarea_ref
+    };
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
@@ -819,51 +830,97 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                 <div class="flex flex-col gap-1">
                     <div class="border-b border-base-content/20 pl-1">
                         <div class="w-5/6 flex gap-1">
-                            <div class="w-5/12 py-2 font-bold">"Category"</div>
-                            <div class="w-6/12 py-2 font-bold">"Description"</div>
-                            <div class="w-1/12 py-2 font-bold">"Activated"</div>
+                            <div class="w-2/6 py-2 font-bold">"Category"</div>
+                            <div class="w-3/6 py-2 font-bold">"Description"</div>
+                            <div class="w-1/6 py-2 font-bold text-center">"Activated"</div>
                         </div>
                     </div>
                     <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
-                        <ForumCategoriesList forum_category_vec=forum_category_vec.clone()/>
+                    {
+                        forum_category_vec.iter().map(|forum_category| {
+                            view! {
+                                <div class="flex gap-1 justify-between rounded pl-1">
+                                    <div class="w-5/6 flex gap-1">
+                                        <div class="w-2/6 select-none">{forum_category.category_name.clone()}</div>
+                                        <div class="w-3/6 select-none">{forum_category.description.clone()}</div>
+                                        // TODO add activated icon
+                                    </div>
+                                    <div class="flex gap-1 justify-end">
+                                        <DeleteCategoryButton category_name=forum_category.category_name.clone()/>
+                                    </div>
+                                </div>
+                            }
+                        }).collect_view()
+                    }
                     </TransitionUnpack>
-                    <CreateRuleForm/>
+                    <SetCategoryForm category_input description_data/>
                 </div>
             </div>
         </AuthorizedShow>
     }
 }
 
-/// Component to manage forum categories
+/// Component to set permission levels for a forum
 #[component]
-pub fn ForumCategoriesList(
-    forum_category_vec: Vec<ForumCategory>,
+pub fn SetCategoryForm(
+    category_input: RwSignal<String>,
+    description_data: TextareaData,
 ) -> impl IntoView {
-    forum_category_vec.into_iter().map(|forum_category| {
-        let category_name = forum_category.category_name.clone();
-        let description = forum_category.description.clone();
-        let forum_category = StoredValue::new(forum_category);
-        view! {
-            <div class="flex gap-1 justify-between rounded pl-1">
-                <div class="w-5/6 flex gap-1">
-                    <div class="w-5/12 select-none">{category_name}</div>
-                    <div class="w-6/12 select-none">{description}</div>
+    let forum_state = expect_context::<ForumState>();
+    let forum_name = forum_state.forum_name;
+    let disable_submit = move || category_input.read().is_empty() && description_data.content.read().is_empty();
+
+    view! {
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+            <ActionForm action=forum_state.set_forum_category_action>
+                <input
+                    name="forum_name"
+                    class="hidden"
+                    value=forum_name
+                />
+                <div class="w-full flex gap-1 justify-between">
+                    <div class="flex gap-1 content-center w-5/6">
+                        <input
+                            tabindex="0"
+                            type="text"
+                            name="category_name"
+                            placeholder="Category"
+                            autocomplete="off"
+                            class="input input-bordered input-primary w-2/6"
+                            on:input=move |ev| {
+                                category_input.update(|name: &mut String| *name = event_target_value(&ev));
+                            }
+                            prop:value=category_input
+                        />
+                        <FormTextEditor
+                            name="description"
+                            placeholder="Description"
+                            data=description_data
+                            class="w-3/6"
+                        />
+                        <FormCheckbox name="is_activated" class="w-1/6 self-center flex justify-center"/>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled=disable_submit
+                        class="btn btn-secondary btn-sm p-1 self-center"
+                    >
+                        <SaveIcon/>
+                    </button>
                 </div>
-                <div class="flex gap-1 justify-end">
-                    <DeleteCategoryButton forum_category/>
-                </div>
-            </div>
-        }
-    }).collect_view()
+            </ActionForm>
+        </AuthorizedShow>
+    }
 }
 
 /// Component to delete a forum category
 #[component]
 pub fn DeleteCategoryButton(
-    forum_category: StoredValue<ForumCategory>,
+    category_name: String,
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let forum_name = forum_state.forum_name;
+    let category_name = StoredValue::new(category_name);
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             <ActionForm
@@ -878,7 +935,7 @@ pub fn DeleteCategoryButton(
                 <input
                     name="category_name"
                     class="hidden"
-                    value=forum_category.with_value(|forum_category| forum_category.category_name.clone())
+                    value=category_name.get_value()
                 />
                 <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                     <DeleteIcon/>
@@ -932,14 +989,12 @@ pub fn ModeratorPanel() -> impl IntoView {
                     />
                 </div>
             </ArcTransitionUnpack>
-            <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
-                <PermissionLevelForm
-                    forum_name
-                    username_input
-                    select_ref
-                    set_role_action
-                />
-            </AuthorizedShow>
+            <PermissionLevelForm
+                forum_name
+                username_input
+                select_ref
+                set_role_action
+            />
         </div>
     }
 }
@@ -966,58 +1021,60 @@ pub fn PermissionLevelForm(
     let disable_submit = move || username_input.read().is_empty();
 
     view! {
-        <ActionForm action=set_role_action>
-            <input
-                name="forum_name"
-                class="hidden"
-                value=forum_name
-            />
-            <div class="flex gap-1 content-center">
-                <div class="dropdown dropdown-end w-2/5">
-                    <input
-                        tabindex="0"
-                        type="text"
-                        name="username"
-                        placeholder="Username"
-                        autocomplete="off"
-                        class="input input-bordered input-primary w-full"
-                        on:input=move |ev| {
-                            username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
-                        }
-                        prop:value=username_input
-                    />
-                    <Show when=move || !username_input.read().is_empty()>
-                        <ArcTransitionUnpack resource=matching_user_resource let:username_set>
-                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
-                                <For
-                                    each= move || (*username_set).clone().into_iter().enumerate()
-                                    key=|(_index, username)| username.clone()
-                                    let:child
-                                >
-                                    <li>
-                                        <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
-                                            {child.1.clone()}
-                                        </button>
-                                    </li>
-                                </For>
-                            </ul>
-                        </ArcTransitionUnpack>
-                    </Show>
-                </div>
-                <EnumDropdown
-                    name="permission_level"
-                    enum_iter=PermissionLevel::iter()
-                    _select_ref=select_ref
+        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+            <ActionForm action=set_role_action>
+                <input
+                    name="forum_name"
+                    class="hidden"
+                    value=forum_name
                 />
-                <button
-                    type="submit"
-                    class="btn btn-secondary"
-                    disabled=disable_submit
-                >
-                    "Assign"
-                </button>
-            </div>
-        </ActionForm>
+                <div class="flex gap-1 content-center">
+                    <div class="dropdown dropdown-end w-2/5">
+                        <input
+                            tabindex="0"
+                            type="text"
+                            name="username"
+                            placeholder="Username"
+                            autocomplete="off"
+                            class="input input-bordered input-primary w-full"
+                            on:input=move |ev| {
+                                username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                            }
+                            prop:value=username_input
+                        />
+                        <Show when=move || !username_input.read().is_empty()>
+                            <ArcTransitionUnpack resource=matching_user_resource let:username_set>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
+                                    <For
+                                        each= move || (*username_set).clone().into_iter().enumerate()
+                                        key=|(_index, username)| username.clone()
+                                        let:child
+                                    >
+                                        <li>
+                                            <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
+                                                {child.1.clone()}
+                                            </button>
+                                        </li>
+                                    </For>
+                                </ul>
+                            </ArcTransitionUnpack>
+                        </Show>
+                    </div>
+                    <EnumDropdown
+                        name="permission_level"
+                        enum_iter=PermissionLevel::iter()
+                        _select_ref=select_ref
+                    />
+                    <button
+                        type="submit"
+                        class="btn btn-secondary"
+                        disabled=disable_submit
+                    >
+                        "Assign"
+                    </button>
+                </div>
+            </ActionForm>
+        </AuthorizedShow>
     }
 }
 

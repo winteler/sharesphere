@@ -7,7 +7,7 @@ use crate::content::PostSortWidget;
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::form::FormCheckbox;
+use crate::form::LabeledFormCheckbox;
 use crate::forum_management::{get_forum_category_vec, get_forum_rule_vec, set_forum_banner, set_forum_icon, AddRule, DeleteForumCategory, ForumCategory, RemoveRule, Rule, SetForumCategory, UpdateRule, MANAGE_FORUM_ROUTE};
 use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
@@ -880,7 +880,7 @@ pub fn CreateForum() -> impl IntoView {
                         placeholder="Description"
                         data=description_data
                     />
-                    <FormCheckbox name="is_nsfw" label="NSFW content"/>
+                    <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                     <Suspense fallback=move || view! { <LoadingIcon/> }>
                         <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
                     </Suspense>

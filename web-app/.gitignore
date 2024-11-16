@@ -15,5 +15,6 @@ playwright/.cache/
 
 .env
 
-# ignore banner files
+# ignore icon and banner files
 public/banners/
+public/icons/

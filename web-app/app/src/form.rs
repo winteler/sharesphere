@@ -7,12 +7,10 @@ use crate::role::{AuthorizedShow, PermissionLevel};
 pub fn FormCheckbox(
     /// Name of the input in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
-    #[prop(default = false)]
-    value: bool,
+    is_checked: RwSignal<bool>,
     #[prop(default = "")]
     class: &'static str,
 ) -> impl IntoView {
-    let is_checked = RwSignal::new(value);
     let is_checked_string = move || is_checked.get().to_string();
     view! {
         <div class=class>

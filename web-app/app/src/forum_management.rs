@@ -15,7 +15,7 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::ErrorDisplay;
 use crate::form::FormCheckbox;
 use crate::forum::{Forum, ForumState};
-use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PlusIcon, SaveIcon};
+use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PauseIcon, PlayIcon, PlusIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
 use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
@@ -829,11 +829,11 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Forum categories"</div>
                 <div class="flex flex-col">
-                    <div class="border-b border-base-content/20 pl-1">
+                    <div class="border-b border-base-content/20 pl-2">
                         <div class="w-5/6 flex gap-1">
                             <div class="w-2/6 py-2 font-bold">"Category"</div>
                             <div class="w-3/6 py-2 font-bold">"Description"</div>
-                            <div class="w-1/6 py-2 font-bold">"Activated"</div>
+                            <div class="w-20 py-2 font-bold text-center">"Activated"</div>
                         </div>
                     </div>
                     <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
@@ -844,10 +844,10 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                             let is_activated = forum_category.is_activated;
                             view! {
                                 <div
-                                    class="flex justify-between gap-1"
+                                    class="flex justify-between align-center pl-2"
                                 >
                                     <div
-                                        class="w-5/6 flex gap-1 pl-1 pt-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                        class="w-5/6 flex gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
                                         on:click=move |_| {
                                             category_input.set(category_name.clone());
                                             //description_data.set_content.set(description.clone());
@@ -859,14 +859,17 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                                     >
                                         <div class="w-2/6 select-none">{category_name.clone()}</div>
                                         <div class="w-3/6 select-none">{description.clone()}</div>
-                                        <div class="w-1/6 select-none">
-                                            <input type="checkbox" class="checkbox checkbox-primary" checked=is_activated disabled=true/>
+                                        <div class="w-20 flex justify-center">
+                                            {
+                                                match is_activated {
+                                                    true => view! { <PlayIcon/> }.into_any(),
+                                                    false => view! { <PauseIcon/> }.into_any(),
+                                                }
+                                            }
                                         </div>
                                         // TODO add activated icon
                                     </div>
-                                    <div class="flex gap-1 justify-end align-center">
-                                        <DeleteCategoryButton category_name=forum_category.category_name.clone()/>
-                                    </div>
+                                    <DeleteCategoryButton category_name=forum_category.category_name.clone()/>
                                 </div>
                             }
                         }).collect_view()
@@ -898,8 +901,8 @@ pub fn SetCategoryForm(
                     class="hidden"
                     value=forum_name
                 />
-                <div class="w-full flex gap-1 justify-between pt-1">
-                    <div class="flex gap-1 content-center w-5/6">
+                <div class="w-full flex gap-1 justify-between">
+                    <div class="flex gap-1 p-1 content-center w-5/6">
                         <input
                             tabindex="0"
                             type="text"
@@ -918,7 +921,7 @@ pub fn SetCategoryForm(
                             data=description_data
                             class="w-3/6"
                         />
-                        <FormCheckbox name="is_activated" is_checked=activated_input class="w-1/6 self-center"/>
+                        <FormCheckbox name="is_activated" is_checked=activated_input class="pl-1 w-20 self-center flex justify-center"/>
                     </div>
                     <button
                         type="submit"

@@ -289,6 +289,20 @@ pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl 
 }
 
 #[component]
+pub fn PauseIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/pause.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn PlayIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/play.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn PlusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/plus.svg" class=class/>

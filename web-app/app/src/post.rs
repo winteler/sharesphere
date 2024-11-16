@@ -16,14 +16,14 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::forum::{get_matching_forum_name_set, ForumState};
-use crate::forum_management::get_forum_category_vec;
+use crate::forum::{get_matching_forum_name_set, ForumCategoryDropdown, ForumState};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
+use crate::forum_management::get_forum_category_vec;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -920,6 +920,11 @@ pub fn CreatePost() -> impl IntoView {
         move |forum_prefix| get_matching_forum_name_set(forum_prefix),
     );
 
+    let forum_categories_resource = Resource::new(
+        move || forum_name_debounced.get(),
+        move |forum_name| get_forum_category_vec(forum_name)
+    );
+
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
@@ -978,38 +983,12 @@ pub fn CreatePost() -> impl IntoView {
                     <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                     <IsPinnedCheckbox forum_name=forum_name_input/>
-                    <ForumCategoryDropdown forum_name=forum_name_debounced/>
+                    <ForumCategoryDropdown forum_categories_resource name="category_id"/>
                     <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
                 </div>
             </ActionForm>
             <ActionError action=create_post_action.into()/>
         </div>
-    }
-}
-
-/// Dialog to edit a post
-#[component]
-pub fn ForumCategoryDropdown(
-    #[prop(into)]
-    forum_name: Signal<String>,
-) -> impl IntoView {
-    let forum_categories_resource = Resource::new(
-        move || forum_name.get(),
-        move |forum_name| get_forum_category_vec(forum_name)
-    );
-    view! {
-        <select name="category_id" class="select select-bordered w-full max-w-xs">
-            <option disabled selected>"Category"</option>
-            <TransitionUnpack resource=forum_categories_resource let:forum_category_vec>
-            {
-                forum_category_vec.iter().map(|forum_category| {
-                    view! {
-                        <option value=forum_category.category_id>{forum_category.category_name.clone()}</option>
-                    }
-                }).collect_view()
-            }
-            </TransitionUnpack>
-        </select>
     }
 }
 

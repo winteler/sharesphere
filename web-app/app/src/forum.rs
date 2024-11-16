@@ -19,7 +19,7 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
-use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack};
+use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -83,6 +83,7 @@ pub struct ForumWithUserInfo {
 #[derive(Copy, Clone)]
 pub struct ForumState {
     pub forum_name: Memo<String>,
+    pub category_id_filter: RwSignal<Option<i64>>,
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<Result<Forum, ServerFnError>>,
     pub forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError>>,
@@ -502,6 +503,7 @@ pub fn ForumBanner() -> impl IntoView {
     let remove_rule_action = ServerAction::<RemoveRule>::new();
     let forum_state = ForumState {
         forum_name,
+        category_id_filter: RwSignal::new(None),
         permission_level: Signal::derive(
             move || match &(*state.user.read()) {
                 Some(Ok(Some(user))) => user.get_forum_permission_level(&*forum_name.read()),
@@ -659,6 +661,8 @@ pub fn ForumContents() -> impl IntoView {
 #[component]
 pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let forum_state = expect_context::<ForumState>();
+    let forum_categories_resource = forum_state.forum_categories_resource;
     let forum_id = forum.forum.forum_id;
     let forum_name = RwSignal::new(forum.forum.forum_name.clone());
     let is_subscribed = RwSignal::new(forum.subscription_id.is_some());
@@ -666,7 +670,17 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
 
     view! {
         <div class="flex w-full justify-between content-center">
-            <PostSortWidget/>
+            <div class="flex w-full gap-2">
+                <PostSortWidget/>
+                <ForumCategoryDropdown forum_categories_resource on:click=move |ev| {
+                    log::info!("Category value: {}", event_target_value(&ev));
+                    let selected_category = event_target_value(&ev);
+                    match selected_category.parse::<i64>() {
+                        Ok(category_id) => forum_state.category_id_filter.set(Some(category_id)),
+                        _ => forum_state.category_id_filter.set(None),
+                    };
+                }/>
+            </div>
             <div class="flex gap-1">
                 <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
                     <A href=manage_path.clone() attr:class="btn btn-circle btn-ghost">
@@ -713,6 +727,46 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
             </div>
         </div>
     }.into_any()
+}
+
+/// Dialog to select a forum category
+#[component]
+pub fn ForumCategoryDropdown(
+    forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError>>,
+    #[prop(default = "")]
+    name: &'static str,
+) -> impl IntoView {
+    let is_selected = RwSignal::new(false);
+    let select_class = move || match is_selected.get() {
+        true => "select select-bordered w-fit",
+        false => "select select-bordered w-fit text-gray-400",
+    };
+    
+    view! {
+        <TransitionUnpack resource=forum_categories_resource let:forum_category_vec>
+        {
+            if forum_category_vec.is_empty() {
+                return ().into_any()
+            }
+            view! {
+                <select 
+                    name=name 
+                    class=select_class
+                    on:click=move |ev| is_selected.set(!event_target_value(&ev).is_empty())
+                >
+                    <option selected value="" class="text-gray-400">"Category"</option>
+                    {
+                        forum_category_vec.iter().map(|forum_category| {
+                            view! {
+                                <option class="text-white" value=forum_category.category_id>{forum_category.category_name.clone()}</option>
+                            }
+                        }).collect_view()
+                    }
+                </select>
+            }.into_any()
+        }
+        </TransitionUnpack>
+    }
 }
 
 /// Component to display a vector of forum posts and indicate when more need to be loaded

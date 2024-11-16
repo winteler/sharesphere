@@ -17,6 +17,7 @@ use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::forum::{get_matching_forum_name_set, ForumState};
+use crate::forum_management::get_forum_category_vec;
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -977,16 +978,38 @@ pub fn CreatePost() -> impl IntoView {
                     <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                     <IsPinnedCheckbox forum_name=forum_name_input/>
-                    <select name="tag" class="select select-bordered w-full max-w-xs">
-                        <option disabled selected>"Tag"</option>
-                        <option>"This should be"</option>
-                        <option>"Customized"</option>
-                    </select>
+                    <ForumCategoryDropdown forum_name=forum_name_debounced/>
                     <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
                 </div>
             </ActionForm>
             <ActionError action=create_post_action.into()/>
         </div>
+    }
+}
+
+/// Dialog to edit a post
+#[component]
+pub fn ForumCategoryDropdown(
+    #[prop(into)]
+    forum_name: Signal<String>,
+) -> impl IntoView {
+    let forum_categories_resource = Resource::new(
+        move || forum_name.get(),
+        move |forum_name| get_forum_category_vec(forum_name)
+    );
+    view! {
+        <select name="category_id" class="select select-bordered w-full max-w-xs">
+            <option disabled selected>"Category"</option>
+            <TransitionUnpack resource=forum_categories_resource let:forum_category_vec>
+            {
+                forum_category_vec.iter().map(|forum_category| {
+                    view! {
+                        <option value=forum_category.category_id>{forum_category.category_name.clone()}</option>
+                    }
+                }).collect_view()
+            }
+            </TransitionUnpack>
+        </select>
     }
 }
 

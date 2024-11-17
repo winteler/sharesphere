@@ -341,6 +341,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     for sort_type in post_sort_type_array {
         let post_vec = ssr::get_post_vec_by_forum_name(
             forum_name,
+            None,
             SortType::Post(sort_type),
             num_posts as i64,
             0,
@@ -368,6 +369,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 
     let post_vec = ssr::get_post_vec_by_forum_name(
         forum_name,
+        None,
         SortType::Post(PostSortType::Hot),
         partial_load_num_post as i64,
         0,
@@ -389,6 +391,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 
     let post_vec = ssr::get_post_vec_by_forum_name(
         forum_name,
+        None,
         SortType::Post(PostSortType::Hot),
         num_posts as i64,
         0,

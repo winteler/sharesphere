@@ -226,6 +226,7 @@ pub mod ssr {
 
     pub async fn get_post_vec_by_forum_name(
         forum_name: &str,
+        forum_category_id: Option<i64>,
         sort_type: SortType,
         limit: i64,
         offset: i64,
@@ -237,15 +238,17 @@ pub mod ssr {
                 JOIN forums f on f.forum_id = p.forum_id
                 WHERE
                     f.forum_name = $1 AND
+                    p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
                     p.moderator_id IS NULL
                 ORDER BY p.is_pinned DESC, {} DESC
-                LIMIT $2
-                OFFSET $3",
-                sort_type.to_order_by_code()
+                LIMIT $3
+                OFFSET $4",
+                sort_type.to_order_by_code(),
             )
             .as_str(),
         )
         .bind(forum_name)
+        .bind(forum_category_id)
         .bind(limit)
         .bind(offset)
         .fetch_all(db_pool)
@@ -288,15 +291,15 @@ pub mod ssr {
     ) -> Result<Vec<Post>, AppError> {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.* FROM posts p \
-                JOIN forums f on f.forum_id = p.forum_id \
-                WHERE \
-                    f.forum_id IN (\
-                        SELECT forum_id FROM forum_subscriptions WHERE user_id = $1\
-                    ) AND \
-                    p.moderator_id IS NULL \
-                ORDER BY {} DESC \
-                LIMIT $2 \
+                "SELECT p.* FROM posts p
+                JOIN forums f on f.forum_id = p.forum_id
+                WHERE
+                    f.forum_id IN (
+                        SELECT forum_id FROM forum_subscriptions WHERE user_id = $1
+                    ) AND
+                    p.moderator_id IS NULL
+                ORDER BY {} DESC
+                LIMIT $2
                 OFFSET $3",
                 sort_type.to_order_by_code(),
             )
@@ -568,12 +571,14 @@ pub async fn get_subscribed_post_vec(
 #[server]
 pub async fn get_post_vec_by_forum_name(
     forum_name: String,
+    forum_category_id: Option<i64>,
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<Post>, ServerFnError> {
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_forum_name(
         forum_name.as_str(),
+        forum_category_id,
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,

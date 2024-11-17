@@ -589,6 +589,7 @@ pub fn ForumBanner() -> impl IntoView {
 #[component]
 pub fn ForumContents() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let forum_state = expect_context::<ForumState>();
     let forum_name = expect_context::<ForumState>().forum_name;
     let additional_load_count = RwSignal::new(0);
     let post_vec = RwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
@@ -605,6 +606,7 @@ pub fn ForumContents() -> impl IntoView {
             is_loading.set(true);
             match get_post_vec_by_forum_name(
                 forum_name.get(),
+                forum_state.category_id_filter.get(),
                 state.post_sort_type.get(),
                 0
             ).await {
@@ -632,6 +634,7 @@ pub fn ForumContents() -> impl IntoView {
                 let num_post = post_vec.read_untracked().len();
                 match get_post_vec_by_forum_name(
                     forum_name.get_untracked(),
+                    forum_state.category_id_filter.get_untracked(),
                     state.post_sort_type.get_untracked(),
                     num_post
                 ).await {
@@ -672,14 +675,7 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
         <div class="flex w-full justify-between content-center">
             <div class="flex w-full gap-2">
                 <PostSortWidget/>
-                <ForumCategoryDropdown forum_categories_resource on:click=move |ev| {
-                    log::info!("Category value: {}", event_target_value(&ev));
-                    let selected_category = event_target_value(&ev);
-                    match selected_category.parse::<i64>() {
-                        Ok(category_id) => forum_state.category_id_filter.set(Some(category_id)),
-                        _ => forum_state.category_id_filter.set(None),
-                    };
-                }/>
+                <ForumCategoryDropdown forum_categories_resource/>
             </div>
             <div class="flex gap-1">
                 <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
@@ -736,6 +732,7 @@ pub fn ForumCategoryDropdown(
     #[prop(default = "")]
     name: &'static str,
 ) -> impl IntoView {
+    let forum_state = use_context::<ForumState>();
     let is_selected = RwSignal::new(false);
     let select_class = move || match is_selected.get() {
         true => "select select-bordered w-fit",
@@ -752,7 +749,16 @@ pub fn ForumCategoryDropdown(
                 <select 
                     name=name 
                     class=select_class
-                    on:click=move |ev| is_selected.set(!event_target_value(&ev).is_empty())
+                    on:click=move |ev| {
+                        let selected = event_target_value(&ev);
+                        is_selected.set(!selected.is_empty());
+                        if let Some(forum_state) = forum_state {
+                            match selected.parse::<i64>() {
+                                Ok(category_id) => forum_state.category_id_filter.set(Some(category_id)),
+                                _ => forum_state.category_id_filter.set(None),
+                            };
+                        };
+                    }
                 >
                     <option selected value="" class="text-gray-400">"Category"</option>
                     {

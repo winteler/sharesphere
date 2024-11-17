@@ -8,7 +8,7 @@ use app::errors::AppError;
 use app::errors::AppError::InsufficientPrivileges;
 use app::forum;
 use app::forum::ssr::{subscribe, unsubscribe};
-use app::forum::{normalize_forum_name, Forum};
+use app::forum::{normalize_forum_name, Forum, ForumHeader};
 use app::role::PermissionLevel;
 use app::user::User;
 
@@ -154,7 +154,7 @@ async fn test_get_matching_forum_name_set() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_popular_forum_names() -> Result<(), AppError> {
+async fn test_get_popular_forum_headers() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
@@ -173,13 +173,14 @@ async fn test_get_popular_forum_names() -> Result<(), AppError> {
         set_forum_num_members(forum.forum_id, i, &db_pool).await?;
     }
 
-    let popular_forum_name_vec =
-        forum::ssr::get_popular_forum_names(num_forum_fetch as i64, &db_pool).await?;
+    let popular_forum_header_vec =
+        forum::ssr::get_popular_forum_headers(num_forum_fetch as i64, &db_pool).await?;
 
-    assert_eq!(popular_forum_name_vec.len(), num_forum_fetch);
+    assert_eq!(popular_forum_header_vec.len(), num_forum_fetch);
     let mut expected_forum_num = num_forum - 1;
-    for forum_name in popular_forum_name_vec {
-        assert_eq!(forum_name, expected_forum_num.to_string());
+    for forum_header in popular_forum_header_vec {
+        assert_eq!(forum_header.forum_name, expected_forum_num.to_string());
+        assert_eq!(forum_header.icon_url, None);
         expected_forum_num -= 1;
     }
 
@@ -187,15 +188,15 @@ async fn test_get_popular_forum_names() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_subscribed_forum_names() -> Result<(), AppError> {
+async fn test_get_subscribed_forum_headers() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     // use two users to make sure behaviour is correct both for forum creator and other users
     let creator_user = create_user("creator", &db_pool).await;
     let member_user = create_user("user", &db_pool).await;
 
     let num_forum = 30usize;
-    let mut expected_create_sub_forum_vec = Vec::<String>::new();
-    let mut expected_member_sub_forum_vec = Vec::<String>::new();
+    let mut expected_create_sub_forum_vec = Vec::<ForumHeader>::new();
+    let mut expected_member_sub_forum_vec = Vec::<ForumHeader>::new();
     for i in 0..num_forum {
         let forum = forum::ssr::create_forum(
             i.to_string().as_str(),
@@ -207,16 +208,22 @@ async fn test_get_subscribed_forum_names() -> Result<(), AppError> {
         .await?;
 
         if i % 2 == 1 {
-            forum::ssr::subscribe(forum.forum_id, creator_user.user_id, &db_pool).await?;
-            expected_create_sub_forum_vec.push(forum.forum_name);
+            subscribe(forum.forum_id, creator_user.user_id, &db_pool).await?;
+            expected_create_sub_forum_vec.push(ForumHeader {
+                forum_name: forum.forum_name,
+                icon_url: None,
+            });
         } else {
-            forum::ssr::subscribe(forum.forum_id, member_user.user_id, &db_pool).await?;
-            expected_member_sub_forum_vec.push(forum.forum_name);
+            subscribe(forum.forum_id, member_user.user_id, &db_pool).await?;
+            expected_member_sub_forum_vec.push(ForumHeader {
+                forum_name: forum.forum_name,
+                icon_url: None,
+            });
         }
     }
 
-    let create_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(creator_user.user_id, &db_pool).await?;
-    let member_sub_forum_name_vec = forum::ssr::get_subscribed_forum_names(member_user.user_id, &db_pool).await?;
+    let create_sub_forum_name_vec = forum::ssr::get_subscribed_forum_headers(creator_user.user_id, &db_pool).await?;
+    let member_sub_forum_name_vec = forum::ssr::get_subscribed_forum_headers(member_user.user_id, &db_pool).await?;
 
     assert_eq!(
         create_sub_forum_name_vec.len(),
@@ -227,8 +234,8 @@ async fn test_get_subscribed_forum_names() -> Result<(), AppError> {
         expected_member_sub_forum_vec.len()
     );
 
-    expected_create_sub_forum_vec.sort();
-    expected_member_sub_forum_vec.sort();
+    expected_create_sub_forum_vec.sort_by(|l, r| l.forum_name.cmp(&r.forum_name));
+    expected_member_sub_forum_vec.sort_by(|l, r| l.forum_name.cmp(&r.forum_name));
 
     assert_eq!(create_sub_forum_name_vec, expected_create_sub_forum_vec);
     assert_eq!(member_sub_forum_name_vec, expected_member_sub_forum_vec);

@@ -80,6 +80,13 @@ pub struct ForumWithUserInfo {
     pub subscription_id: Option<i64>,
 }
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ForumHeader {
+    pub forum_name: String,
+    pub icon_url: Option<String>,
+}
+
 #[derive(Copy, Clone)]
 pub struct ForumState {
     pub forum_name: Memo<String>,
@@ -134,7 +141,7 @@ pub mod ssr {
 
     use crate::errors::AppError;
     use crate::errors::AppError::InternalServerError;
-    use crate::forum::{is_valid_forum_name, normalize_forum_name, Forum, ForumWithUserInfo};
+    use crate::forum::{is_valid_forum_name, normalize_forum_name, Forum, ForumHeader, ForumWithUserInfo};
     use crate::role::ssr::set_user_forum_role;
     use crate::role::PermissionLevel;
     use crate::user::User;
@@ -164,10 +171,10 @@ pub mod ssr {
                 s.user_id = $1 \
             WHERE f.forum_name = $2",
         )
-        .bind(user_id)
-        .bind(forum_name)
-        .fetch_one(db_pool)
-        .await?;
+            .bind(user_id)
+            .bind(forum_name)
+            .fetch_one(db_pool)
+            .await?;
 
         Ok(forum)
     }
@@ -209,48 +216,38 @@ pub mod ssr {
         Ok(forum_name_set)
     }
 
-    pub async fn get_popular_forum_names(
+    pub async fn get_popular_forum_headers(
         limit: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<String>, AppError> {
-        let forum_record_vec = sqlx::query!(
-            "SELECT * FROM forums ORDER BY num_members DESC, forum_name LIMIT $1",
+    ) -> Result<Vec<ForumHeader>, AppError> {
+        let forum_header_vec = sqlx::query_as!(
+            ForumHeader,
+            "SELECT forum_name, icon_url FROM forums ORDER BY num_members DESC, forum_name LIMIT $1",
             limit
         )
-        .fetch_all(db_pool)
-        .await?;
+            .fetch_all(db_pool)
+            .await?;
 
-        let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
-
-        for forum in forum_record_vec {
-            forum_name_vec.push(forum.forum_name);
-        }
-
-        Ok(forum_name_vec)
+        Ok(forum_header_vec)
     }
 
-    pub async fn get_subscribed_forum_names(
+    pub async fn get_subscribed_forum_headers(
         user_id: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<String>, AppError> {
-        let forum_record_vec = sqlx::query!(
-            "SELECT f.forum_name FROM forums f \
-            JOIN forum_subscriptions s ON \
-                f.forum_id = s.forum_id AND \
-                s.user_id = $1 \
+    ) -> Result<Vec<ForumHeader>, AppError> {
+        let forum_header_vec = sqlx::query_as!(
+            ForumHeader,
+            "SELECT f.forum_name, f.icon_url FROM forums f
+            JOIN forum_subscriptions s ON
+                f.forum_id = s.forum_id AND
+                s.user_id = $1
             ORDER BY forum_name",
             user_id,
         )
         .fetch_all(db_pool)
         .await?;
 
-        let mut forum_name_vec = Vec::<String>::with_capacity(forum_record_vec.len());
-
-        for forum in forum_record_vec {
-            forum_name_vec.push(forum.forum_name);
-        }
-
-        Ok(forum_name_vec)
+        Ok(forum_header_vec)
     }
 
     pub async fn create_forum(
@@ -376,22 +373,22 @@ pub async fn get_matching_forum_name_set(
 }
 
 #[server]
-pub async fn get_subscribed_forum_names() -> Result<Vec<String>, ServerFnError> {
+pub async fn get_subscribed_forum_headers() -> Result<Vec<ForumHeader>, ServerFnError> {
     let db_pool = get_db_pool()?;
     match get_user().await {
         Ok(Some(user)) => {
-            let forum_name_vec = ssr::get_subscribed_forum_names(user.user_id, &db_pool).await?;
+            let forum_name_vec = ssr::get_subscribed_forum_headers(user.user_id, &db_pool).await?;
             Ok(forum_name_vec)
         }
-        _ => Ok(Vec::<String>::new()),
+        _ => Ok(Vec::new()),
     }
 }
 
 #[server]
-pub async fn get_popular_forum_names() -> Result<Vec<String>, ServerFnError> {
+pub async fn get_popular_forum_headers() -> Result<Vec<ForumHeader>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_vec = ssr::get_popular_forum_names(FORUM_FETCH_LIMIT, &db_pool).await?;
-    Ok(forum_name_vec)
+    let forum_header_vec = ssr::get_popular_forum_headers(FORUM_FETCH_LIMIT, &db_pool).await?;
+    Ok(forum_header_vec)
 }
 
 #[server]
@@ -481,6 +478,19 @@ fn get_forum_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
             current_forum_name.cloned().unwrap_or_default()
         }
     })
+}
+
+/// Component to display a forum's banner
+#[component]
+pub fn ForumHeader(
+    forum_header: ForumHeader
+) -> impl IntoView {
+    view! {
+        <div class="flex gap-2">
+            <ForumIcon icon_url=forum_header.icon_url class="h-5 w-5"/>
+            <span>{forum_header.forum_name}</span>
+        </div>
+    }
 }
 
 /// Component to display a forum's banner

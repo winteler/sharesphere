@@ -91,7 +91,10 @@ pub fn ForumIcon(
     class: &'static str
 ) -> impl IntoView {
     match icon_url {
-        Some(icon_url) => view! { <img src=icon_url class=class/> }.into_any(),
+        Some(icon_url) => {
+            let class = format!("rounded-full overflow-hidden {class}");
+            view! { <img src=icon_url class=class/> }.into_any()
+        },
         None => view! { <LogoIcon class/> }.into_any(),
     }
 }

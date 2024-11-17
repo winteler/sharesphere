@@ -1,20 +1,19 @@
 use leptos::prelude::*;
-use std::sync::Arc;
 
 use crate::app::GlobalState;
 use crate::constants::PATH_SEPARATOR;
-use crate::forum::{get_popular_forum_names, get_subscribed_forum_names, ForumState, FORUM_ROUTE_PREFIX};
-use crate::unpack::ArcTransitionUnpack;
+use crate::forum::{get_popular_forum_headers, get_subscribed_forum_headers, ForumHeader, ForumState, FORUM_ROUTE_PREFIX};
+use crate::unpack::{ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::MinimizeMaximizeWidget;
 
 /// Component to display a list of forum links
 #[component]
 pub fn ForumLinkList(
     title: &'static str,
-    forum_name_vec: Arc<Vec<String>>
+    forum_header_vec: Vec<ForumHeader>
 ) -> impl IntoView {
-    if forum_name_vec.is_empty() {
-        return view! {}.into_any()
+    if forum_header_vec.is_empty() {
+        return ().into_any()
     }
     view! {
         <ul class="menu h-full">
@@ -22,23 +21,18 @@ pub fn ForumLinkList(
                 <details open>
                     <summary class="text-xl font-medium">{title}</summary>
                     <ul class="menu-dropdown">
-                        <For
-                            // a function that returns the items we're iterating over; a signal is fine
-                            each=move || (*forum_name_vec).clone().into_iter().enumerate()
-                            // a unique key for each item as a reference
-                            key=|(_, forum_name)| forum_name.clone()
-                            // renders each item to a view
-                            children=move |(_, forum_name)| {
-                                let forum_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_name;
-                                view! {
-                                    <li>
-                                        <a href=forum_path>
-                                            {forum_name}
-                                        </a>
-                                    </li>
-                                }
+                    {
+                        forum_header_vec.into_iter().map(|forum_header| {
+                            let forum_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_header.forum_name;
+                            view! {
+                                <li>
+                                    <a href=forum_path>
+                                        <ForumHeader forum_header/>
+                                    </a>
+                                </li>
                             }
-                        />
+                        }).collect_view()
+                    }
                     </ul>
                 </details>
             </li>
@@ -60,30 +54,30 @@ pub fn LeftSidebar() -> impl IntoView {
                 state.unsubscribe_action.version().get(),
             )
         },
-        |_| get_subscribed_forum_names(),
+        |_| get_subscribed_forum_headers(),
     );
     let popular_forum_vec_resource = Resource::new(
         move || (),
-        |_| get_popular_forum_names(),
+        |_| get_popular_forum_headers(),
     );
 
     view! {
         <div class="flex flex-col justify-start w-60 h-full max-2xl:bg-base-300">
             <div>
-                <ArcTransitionUnpack resource=subscribed_forum_vec_resource let:forum_vec>
+                <TransitionUnpack resource=subscribed_forum_vec_resource let:forum_header_vec>
                     <ForumLinkList
                         title="Subscribed"
-                        forum_name_vec=forum_vec
+                        forum_header_vec=forum_header_vec.clone()
                     />
-                </ArcTransitionUnpack>
+                </TransitionUnpack>
             </div>
             <div>
-                <ArcTransitionUnpack resource=popular_forum_vec_resource let:forum_vec>
+                <TransitionUnpack resource=popular_forum_vec_resource let:forum_header_vec>
                     <ForumLinkList
                         title="Popular"
-                        forum_name_vec=forum_vec
+                        forum_header_vec=forum_header_vec.clone()
                     />
-                </ArcTransitionUnpack>
+                </TransitionUnpack>
             </div>
         </div>
     }

@@ -72,7 +72,7 @@ CREATE TABLE forum_categories (
     forum_name TEXT NOT NULL,
     category_name TEXT NOT NULL,
     description TEXT NOT NULL,
-    is_activated BOOLEAN NOT NULL,
+    is_active BOOLEAN NOT NULL,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
@@ -81,7 +81,7 @@ CREATE TABLE forum_categories (
     CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
 );
 
-CREATE INDEX category_order ON forum_categories (forum_name, is_activated, category_name);
+CREATE INDEX category_order ON forum_categories (forum_name, is_active, category_name);
 
 CREATE TABLE forum_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,

@@ -729,6 +729,8 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
 #[component]
 pub fn ForumCategoryDropdown(
     forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError>>,
+    #[prop(default = true)]
+    show_inactive: bool,
     #[prop(default = "")]
     name: &'static str,
 ) -> impl IntoView {
@@ -742,7 +744,8 @@ pub fn ForumCategoryDropdown(
     view! {
         <TransitionUnpack resource=forum_categories_resource let:forum_category_vec>
         {
-            if forum_category_vec.is_empty() {
+            if forum_category_vec.is_empty() || (!show_inactive && !forum_category_vec.iter().any(|forum_category| forum_category.is_active)) {
+                log::debug!("No category to display.");
                 return ().into_any()
             }
             view! {
@@ -763,8 +766,11 @@ pub fn ForumCategoryDropdown(
                     <option selected value="" class="text-gray-400">"Category"</option>
                     {
                         forum_category_vec.iter().map(|forum_category| {
-                            view! {
-                                <option class="text-white" value=forum_category.category_id>{forum_category.category_name.clone()}</option>
+                            match show_inactive || forum_category.is_active {
+                                true => view! {
+                                    <option class="text-white" value=forum_category.category_id>{forum_category.category_name.clone()}</option>
+                                }.into_any(),
+                                false => ().into_any(),
                             }
                         }).collect_view()
                     }

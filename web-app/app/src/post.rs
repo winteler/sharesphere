@@ -988,7 +988,7 @@ pub fn CreatePost() -> impl IntoView {
                     <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                     <IsPinnedCheckbox forum_name=forum_name_input/>
-                    <ForumCategoryDropdown forum_categories_resource name="category_id"/>
+                    <ForumCategoryDropdown forum_categories_resource name="category_id" show_inactive=false/>
                     <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
                 </div>
             </ActionForm>

@@ -447,7 +447,7 @@ async fn test_set_forum_category() -> Result<(), AppError> {
     assert_eq!(forum_category.category_name, category_name);
     assert_eq!(forum_category.description, description);
     assert_eq!(forum_category.creator_id, user.user_id);
-    assert!(forum_category.is_activated);
+    assert!(forum_category.is_active);
     assert_eq!(forum_category.delete_timestamp, None);
 
     let updated_description = "c";
@@ -465,7 +465,7 @@ async fn test_set_forum_category() -> Result<(), AppError> {
     assert_eq!(updated_category.category_name, category_name);
     assert_eq!(updated_category.description, updated_description);
     assert_eq!(updated_category.creator_id, user.user_id);
-    assert!(!updated_category.is_activated);
+    assert!(!updated_category.is_active);
     assert_eq!(updated_category.delete_timestamp, None);
 
     // Can create a category with the same name for a different forum
@@ -483,7 +483,7 @@ async fn test_set_forum_category() -> Result<(), AppError> {
     assert_eq!(forum_2_category.category_name, category_name);
     assert_eq!(forum_2_category.description, description);
     assert_eq!(forum_2_category.creator_id, user.user_id);
-    assert!(!forum_2_category.is_activated);
+    assert!(!forum_2_category.is_active);
     assert_eq!(forum_2_category.delete_timestamp, None);
 
     Ok(())

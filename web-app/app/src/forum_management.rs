@@ -79,7 +79,7 @@ pub struct ForumCategory {
     pub forum_name: String,
     pub category_name: String,
     pub description: String,
-    pub is_activated: bool,
+    pub is_active: bool,
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
@@ -308,7 +308,7 @@ pub mod ssr {
             ForumCategory,
             "SELECT * FROM forum_categories
             WHERE forum_name = $1
-            ORDER BY is_activated DESC, category_name",
+            ORDER BY is_active DESC, category_name",
             forum_name
         )
             .fetch_all(db_pool)
@@ -321,7 +321,7 @@ pub mod ssr {
         forum_name: &str,
         category_name: &str,
         description: &str,
-        is_activated: bool,
+        is_active: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<ForumCategory, AppError> {
@@ -330,19 +330,19 @@ pub mod ssr {
         let category = sqlx::query_as!(
             ForumCategory,
             "INSERT INTO forum_categories
-            (forum_id, forum_name, category_name, description, is_activated, creator_id)
+            (forum_id, forum_name, category_name, description, is_active, creator_id)
             VALUES (
                 (SELECT forum_id FROM forums WHERE forum_name = $1),
                 $1, $2, $3, $4, $5
             ) ON CONFLICT (forum_id, category_name) DO UPDATE
                 SET description = EXCLUDED.description,
-                    is_activated = EXCLUDED.is_activated,
+                    is_active = EXCLUDED.is_active,
                     timestamp = CURRENT_TIMESTAMP
             RETURNING *",
             forum_name,
             category_name,
             description,
-            is_activated,
+            is_active,
             user.user_id,
         )
             .fetch_one(db_pool)
@@ -605,11 +605,11 @@ pub async fn set_forum_category(
     forum_name: String,
     category_name: String,
     description: String,
-    is_activated: bool,
+    is_active: bool,
 ) -> Result<ForumCategory, ServerFnError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    let forum_category = ssr::set_forum_category(&forum_name, &category_name, &description, is_activated, &user, &db_pool).await?;
+    let forum_category = ssr::set_forum_category(&forum_name, &category_name, &description, is_active, &user, &db_pool).await?;
     Ok(forum_category)
 }
 
@@ -836,45 +836,47 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                             <div class="w-20 py-2 font-bold text-center">"Activated"</div>
                         </div>
                     </div>
-                    <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
-                    {
-                        forum_category_vec.iter().map(|forum_category| {
-                            let category_name = forum_category.category_name.clone();
-                            let description = forum_category.description.clone();
-                            let is_activated = forum_category.is_activated;
-                            view! {
-                                <div
-                                    class="flex justify-between align-center pl-2"
-                                >
+                    <div class="flex flex-col gap-1 pl-2 py-1">
+                        <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
+                        {
+                            forum_category_vec.iter().map(|forum_category| {
+                                let category_name = forum_category.category_name.clone();
+                                let description = forum_category.description.clone();
+                                let is_active = forum_category.is_active;
+                                view! {
                                     <div
-                                        class="w-5/6 flex gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
-                                        on:click=move |_| {
-                                            category_input.set(category_name.clone());
-                                            //description_data.set_content.set(description.clone());
-                                            if let Some(textarea_ref) = textarea_ref.get() {
-                                                textarea_ref.set_value(&description);
-                                            }
-                                            activated_input.set(is_activated);
-                                        }
+                                        class="flex justify-between align-center"
                                     >
-                                        <div class="w-2/6 select-none">{category_name.clone()}</div>
-                                        <div class="w-3/6 select-none">{description.clone()}</div>
-                                        <div class="w-20 flex justify-center">
-                                            {
-                                                match is_activated {
-                                                    true => view! { <PlayIcon/> }.into_any(),
-                                                    false => view! { <PauseIcon/> }.into_any(),
+                                        <div
+                                            class="w-5/6 flex gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                            on:click=move |_| {
+                                                category_input.set(category_name.clone());
+                                                description_data.set_content.set(description.clone());
+                                                if let Some(textarea_ref) = textarea_ref.get() {
+                                                    textarea_ref.set_value(&description);
                                                 }
+                                                activated_input.set(is_active);
                                             }
+                                        >
+                                            <div class="w-2/6 select-none">{category_name.clone()}</div>
+                                            <div class="w-3/6 select-none whitespace-pre-wrap">{description.clone()}</div>
+                                            <div class="w-20 flex justify-center">
+                                                {
+                                                    match is_active {
+                                                        true => view! { <PlayIcon/> }.into_any(),
+                                                        false => view! { <PauseIcon/> }.into_any(),
+                                                    }
+                                                }
+                                            </div>
+                                            // TODO add activated icon
                                         </div>
-                                        // TODO add activated icon
+                                        <DeleteCategoryButton category_name=forum_category.category_name.clone()/>
                                     </div>
-                                    <DeleteCategoryButton category_name=forum_category.category_name.clone()/>
-                                </div>
-                            }
-                        }).collect_view()
-                    }
-                    </TransitionUnpack>
+                                }
+                            }).collect_view()
+                        }
+                        </TransitionUnpack>
+                    </div>
                     <SetCategoryForm category_input activated_input description_data/>
                 </div>
             </div>
@@ -902,7 +904,7 @@ pub fn SetCategoryForm(
                     value=forum_name
                 />
                 <div class="w-full flex gap-1 justify-between">
-                    <div class="flex gap-1 p-1 content-center w-5/6">
+                    <div class="flex gap-1 content-center w-5/6">
                         <input
                             tabindex="0"
                             type="text"
@@ -921,7 +923,7 @@ pub fn SetCategoryForm(
                             data=description_data
                             class="w-3/6"
                         />
-                        <FormCheckbox name="is_activated" is_checked=activated_input class="pl-1 w-20 self-center flex justify-center"/>
+                        <FormCheckbox name="is_active" is_checked=activated_input class="w-20 self-center flex justify-center"/>
                     </div>
                     <button
                         type="submit"

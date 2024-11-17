@@ -330,7 +330,6 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     ).await.expect("Post should be moderated.");
 
     let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Hot), num_post as i64, 0, &db_pool).await?;
-
     assert!(!post_vec.contains(&moderated_post));
 
     Ok(())

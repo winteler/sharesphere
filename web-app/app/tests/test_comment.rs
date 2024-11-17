@@ -53,14 +53,13 @@ fn test_comment_and_vote(
 }
 
 fn test_comment_vec(
-    comment_vec: &Vec<CommentWithChildren>,
+    comment_vec: &[CommentWithChildren],
     sort_type: CommentSortType,
     expected_parent_id: Option<i64>,
     expected_user_id: i64,
     expected_post_id: i64,
 ) {
-    let mut index = 0usize;
-    for child_comment in comment_vec {
+    for (index, child_comment) in comment_vec.iter().enumerate() {
         // Test that parent id is correct
         assert_eq!(
             child_comment.comment.parent_id,
@@ -81,9 +80,9 @@ fn test_comment_vec(
                     CommentSortType::Recent =>
                         child_comment.comment.create_timestamp
                             <= previous_child_comment.comment.create_timestamp,
-                });
+                }
+            );
         }
-        index += 1;
         test_comment_with_children(child_comment, sort_type, expected_user_id, expected_post_id);
     }
 }
@@ -153,7 +152,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
             _ => None,
         }).collect(),
         (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),
-        (0..num_comments).map(|i| get_vote_from_comment_num(i)).collect(),
+        (0..num_comments).map(get_vote_from_comment_num).collect(),
         &user,
         &db_pool
     ).await?;
@@ -178,6 +177,31 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         assert_eq!(comment_tree[0].comment, pinned_comment);
 
         test_comment_vec(&comment_tree, sort_type, None, user.user_id, post.post_id);
+        
+        let offset_comment_tree = comment::ssr::get_post_comment_tree(
+            post.post_id,
+            SortType::Comment(sort_type),
+            Some(user.user_id),
+            COMMENT_BATCH_SIZE,
+            COMMENT_BATCH_SIZE,
+            &db_pool,
+        ).await?;
+        
+        assert_eq!(offset_comment_tree.is_empty(), false);
+        
+        let init_load_last_comment = comment_tree.last().expect("Initial comment tree should have at least one comment.");
+        let offset_load_first_comment = offset_comment_tree.first().expect("Offset comment tree should have at least one comment.");
+        assert!(
+            (
+                init_load_last_comment.comment.is_pinned && !offset_load_first_comment.comment.is_pinned
+            ) || match sort_type {
+                CommentSortType::Best =>
+                    init_load_last_comment.comment.score >= offset_load_first_comment.comment.score,
+                CommentSortType::Recent =>
+                    init_load_last_comment.comment.create_timestamp >= offset_load_first_comment.comment.create_timestamp,
+            }
+        );
+        test_comment_vec(&offset_comment_tree, sort_type, None, user.user_id, post.post_id);
     }
 
     Ok(())

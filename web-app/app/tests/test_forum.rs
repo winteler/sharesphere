@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use rand::Rng;
 use sqlx::PgPool;
 
@@ -9,6 +7,7 @@ use app::errors::AppError::InsufficientPrivileges;
 use app::forum;
 use app::forum::ssr::{subscribe, unsubscribe};
 use app::forum::{normalize_forum_name, Forum, ForumHeader};
+use app::forum_management::ssr::set_forum_icon_url;
 use app::role::PermissionLevel;
 use app::user::User;
 
@@ -100,44 +99,48 @@ async fn test_get_forum_by_name() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_matching_forum_name_set() -> Result<(), AppError> {
+async fn test_get_matching_forum_header_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let test_user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
     let num_forums = 20usize;
-    let mut expected_forum_name_set = BTreeSet::<String>::new();
+    let mut expected_forum_name_vec = Vec::new();
     for i in 0..num_forums {
-        expected_forum_name_set.insert(
+        expected_forum_name_vec.push(
             forum::ssr::create_forum(
                 i.to_string().as_str(),
                 "forum",
                 false,
-                &test_user,
+                &user,
                 &db_pool,
-            )
-            .await?
-            .forum_name,
+            ).await?.forum_name,
         );
     }
+    
+    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
+    
+    let first_forum_icon_url = Some("a");
+    set_forum_icon_url(expected_forum_name_vec.first().unwrap(), first_forum_icon_url, &user, &db_pool).await.expect("Forum icon should be set.");
 
-    let forum_name_set = forum::ssr::get_matching_forum_name_set("1", num_forums as i64, &db_pool).await?;
+    let forum_header_vec = forum::ssr::get_matching_forum_header_vec("1", num_forums as i64, &db_pool).await?;
 
     let mut previous_forum_name = None;
-    for forum_name in forum_name_set {
-        assert_eq!(forum_name.chars().next().unwrap(), '1');
+    for forum_header in forum_header_vec {
+        assert_eq!(forum_header.icon_url, None);
+        assert_eq!(forum_header.forum_name.chars().next().unwrap(), '1');
         if let Some(previous_forum_name) = previous_forum_name {
-            assert!(previous_forum_name < forum_name)
+            assert!(previous_forum_name < forum_header.forum_name)
         }
-        previous_forum_name = Some(forum_name);
+        previous_forum_name = Some(forum_header.forum_name.clone());
     }
 
     for i in num_forums..2 * num_forums {
-        expected_forum_name_set.insert(
+        expected_forum_name_vec.push(
             forum::ssr::create_forum(
                 i.to_string().as_str(),
                 "forum",
                 false,
-                &test_user,
+                &user,
                 &db_pool,
             )
             .await?
@@ -145,10 +148,11 @@ async fn test_get_matching_forum_name_set() -> Result<(), AppError> {
         );
     }
 
-    let forum_name_set =
-        forum::ssr::get_matching_forum_name_set("", num_forums as i64, &db_pool).await?;
+    let forum_header_vec =
+        forum::ssr::get_matching_forum_header_vec("", num_forums as i64, &db_pool).await?;
 
-    assert_eq!(forum_name_set.len(), num_forums);
+    assert_eq!(forum_header_vec.len(), num_forums);
+    assert_eq!(forum_header_vec.first().unwrap().icon_url.as_deref(), first_forum_icon_url);
 
     Ok(())
 }

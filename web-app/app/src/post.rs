@@ -16,7 +16,7 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::forum::{get_matching_forum_name_set, ForumCategoryDropdown, ForumState};
+use crate::forum::{get_matching_forum_header_vec, ForumCategoryDropdown, ForumHeader, ForumState};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -918,11 +918,10 @@ pub fn CreatePost() -> impl IntoView {
         textarea_ref,
     };
     let is_title_empty = RwSignal::new(true);
-    let is_content_invalid = Memo::new(move |_| is_title_empty.get() || body_data.content.read().is_empty());
 
     let matching_forums_resource = Resource::new(
         move || forum_name_debounced.get(),
-        move |forum_prefix| get_matching_forum_name_set(forum_prefix),
+        move |forum_prefix| get_matching_forum_header_vec(forum_prefix),
     );
 
     let forum_categories_resource = Resource::new(
@@ -933,64 +932,75 @@ pub fn CreatePost() -> impl IntoView {
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
-                <div class="flex flex-col gap-2 w-full">
-                    <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
-                    <div class="dropdown dropdown-end">
-                        <input
-                            tabindex="0"
-                            type="text"
-                            name="forum"
-                            placeholder="Sphere"
-                            autocomplete="off"
-                            class="input input-bordered input-primary w-full h-input_m"
-                            on:input=move |ev| {
-                                forum_name_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
-                            }
-                            prop:value=forum_name_input
-                        />
-                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full">
-                            <TransitionUnpack resource=matching_forums_resource let:forum_set>
+
+                    <div class="flex flex-col gap-2 w-full">
+                        <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
+                        <div class="dropdown dropdown-end">
+                            <input
+                                tabindex="0"
+                                type="text"
+                                name="forum"
+                                placeholder="Sphere"
+                                autocomplete="off"
+                                class="input input-bordered input-primary w-full h-input_m"
+                                on:input=move |ev| {
+                                    forum_name_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                                }
+                                prop:value=forum_name_input
+                            />
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-sm w-full">
+                            <TransitionUnpack resource=matching_forums_resource let:forum_header_vec>
                             {
-                                forum_set.into_iter().map(|forum_name| {
+                                forum_header_vec.clone().into_iter().map(|forum_header| {
                                     view! {
                                         <li>
                                             <button
                                                 type="button"
-                                                value=forum_name.clone()
-                                                on:click=move |ev| forum_name_input.update(|name| *name = event_target_value(&ev))
+                                                on:click=move |_| forum_name_input.update(|name| *name = forum_header.forum_name.clone())
                                             >
-                                                {forum_name.clone()}
+                                                <ForumHeader forum_header=forum_header.clone()/>
                                             </button>
                                         </li>
                                     }
                                 }).collect_view()
                             }
                             </TransitionUnpack>
-                        </ul>
+                            </ul>
+                        </div>
+                        <input
+                            type="text"
+                            name="title"
+                            placeholder="Title"
+                            class="input input-bordered input-primary h-input_m"
+                            autofocus
+                            autocomplete="off"
+                            on:input=move |ev| {
+                                is_title_empty.set(event_target_value(&ev).is_empty());
+                            }
+                        />
+                        <FormMarkdownEditor
+                            name="body"
+                            is_markdown_name="is_markdown"
+                            placeholder="Content"
+                            data=body_data
+                        />
+                        <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
+                        <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
+                        <IsPinnedCheckbox forum_name=forum_name_input/>
+                        <ForumCategoryDropdown forum_categories_resource name="category_id" show_inactive=false/>
+                        <Transition>
+                            <button type="submit" class="btn btn-active btn-secondary" disabled=move || match &*matching_forums_resource.read() {
+                                Some(Ok(forum_header_vec)) => {
+                                    is_title_empty.get() ||
+                                    body_data.content.read().is_empty() ||
+                                    !forum_header_vec.iter().any(|forum_header| forum_header.forum_name == *forum_name_input.read())
+                                },
+                                _ => true,
+                            }>
+                                "Create"
+                            </button>
+                        </Transition>
                     </div>
-                    <input
-                        type="text"
-                        name="title"
-                        placeholder="Title"
-                        class="input input-bordered input-primary h-input_m"
-                        autofocus
-                        autocomplete="off"
-                        on:input=move |ev| {
-                            is_title_empty.set(event_target_value(&ev).is_empty());
-                        }
-                    />
-                    <FormMarkdownEditor
-                        name="body"
-                        is_markdown_name="is_markdown"
-                        placeholder="Content"
-                        data=body_data
-                    />
-                    <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
-                    <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
-                    <IsPinnedCheckbox forum_name=forum_name_input/>
-                    <ForumCategoryDropdown forum_categories_resource name="category_id" show_inactive=false/>
-                    <button type="submit" class="btn btn-active btn-secondary" disabled=is_content_invalid>"Create"</button>
-                </div>
             </ActionForm>
             <ActionError action=create_post_action.into()/>
         </div>

@@ -36,7 +36,6 @@ use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
@@ -81,7 +80,7 @@ pub struct ForumWithUserInfo {
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct ForumHeader {
     pub forum_name: String,
     pub icon_url: Option<String>,
@@ -135,8 +134,6 @@ pub fn is_valid_forum_name(name: &str) -> bool {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::collections::BTreeSet;
-
     use sqlx::PgPool;
 
     use crate::errors::AppError;
@@ -164,11 +161,11 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<ForumWithUserInfo, AppError> {
         let forum = sqlx::query_as::<_, ForumWithUserInfo>(
-            "SELECT f.*, s.subscription_id \
-            FROM forums f \
-            LEFT JOIN forum_subscriptions s ON \
-                s.forum_id = f.forum_id AND \
-                s.user_id = $1 \
+            "SELECT f.*, s.subscription_id
+            FROM forums f
+            LEFT JOIN forum_subscriptions s ON
+                s.forum_id = f.forum_id AND
+                s.user_id = $1
             WHERE f.forum_name = $2",
         )
             .bind(user_id)
@@ -194,26 +191,21 @@ pub mod ssr {
         }
     }
 
-    pub async fn get_matching_forum_name_set(
+    pub async fn get_matching_forum_header_vec(
         forum_prefix: &str,
         limit: i64,
         db_pool: &PgPool,
-    ) -> Result<BTreeSet<String>, AppError> {
-        let forum_name_vec = sqlx::query!(
-            "SELECT forum_name FROM forums WHERE forum_name LIKE $1 ORDER BY forum_name LIMIT $2",
+    ) -> Result<Vec<ForumHeader>, AppError> {
+        let forum_header_vec = sqlx::query_as!(
+            ForumHeader,
+            "SELECT forum_name, icon_url FROM forums WHERE forum_name LIKE $1 ORDER BY forum_name LIMIT $2",
             format!("{forum_prefix}%"),
             limit,
         )
-        .fetch_all(db_pool)
-        .await?;
+            .fetch_all(db_pool)
+            .await?;
 
-        let mut forum_name_set = BTreeSet::<String>::new();
-
-        for row in forum_name_vec {
-            forum_name_set.insert(row.forum_name);
-        }
-
-        Ok(forum_name_set)
+        Ok(forum_header_vec)
     }
 
     pub async fn get_popular_forum_headers(
@@ -244,8 +236,8 @@ pub mod ssr {
             ORDER BY forum_name",
             user_id,
         )
-        .fetch_all(db_pool)
-        .await?;
+            .fetch_all(db_pool)
+            .await?;
 
         Ok(forum_header_vec)
     }
@@ -317,8 +309,8 @@ pub mod ssr {
             "UPDATE forums SET num_members = num_members + 1 WHERE forum_id = $1",
             forum_id
         )
-        .execute(db_pool)
-        .await?;
+            .execute(db_pool)
+            .await?;
 
         Ok(())
     }
@@ -341,8 +333,8 @@ pub mod ssr {
             "UPDATE forums SET num_members = num_members - 1 WHERE forum_id = $1",
             forum_id
         )
-        .execute(db_pool)
-        .await?;
+            .execute(db_pool)
+            .await?;
 
         Ok(())
     }
@@ -363,13 +355,16 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
 }
 
 #[server]
-pub async fn get_matching_forum_name_set(
+pub async fn get_matching_forum_header_vec(
     forum_prefix: String,
-) -> Result<BTreeSet<String>, ServerFnError> {
+) -> Result<Vec<ForumHeader>, ServerFnError> {
     let db_pool = get_db_pool()?;
-    let forum_name_set =
-        ssr::get_matching_forum_name_set(&forum_prefix, FORUM_FETCH_LIMIT, &db_pool).await?;
-    Ok(forum_name_set)
+    let forum_header_vec = ssr::get_matching_forum_header_vec(
+        &forum_prefix, 
+        FORUM_FETCH_LIMIT, 
+        &db_pool
+    ).await?;
+    Ok(forum_header_vec)
 }
 
 #[server]

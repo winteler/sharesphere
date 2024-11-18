@@ -227,7 +227,7 @@ pub fn FormMarkdownEditor(
 
     view! {
         <div class="flex flex-col gap-2">
-            <div class="group w-full max-w-full p-2 border border-primary rounded-sm bg-base-100">
+            <div class="group w-full max-w-full p-2 border border-primary rounded-sm">
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for=name class="sr-only">
                         {placeholder}
@@ -236,7 +236,7 @@ pub fn FormMarkdownEditor(
                         id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full resize-none box-border bg-base-200 p-1 rounded-sm outline-none"
+                        class="w-full resize-none box-border bg-base-100 p-1 rounded-sm outline-none"
                         autofocus
                         on:input=move |ev| {
                             data.set_content.update(|content: &mut String| *content = event_target_value(&ev));
@@ -247,7 +247,7 @@ pub fn FormMarkdownEditor(
                     </textarea>
                 </div>
                 <div class="flex justify-between">
-                    <div class="flex">
+                    <div class="flex bg-base-300 rounded-md">
                         <label>
                             <input
                                 type="text"
@@ -273,7 +273,9 @@ pub fn FormMarkdownEditor(
                         <FormatButton format_type=FormatType::Link data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Image data is_markdown_mode/>
                     </div>
-                    <HelpButton/>
+                    <div class="bg-base-300 rounded-full">
+                        <HelpButton/>
+                    </div>
                 </div>
             </div>
             <Show when=is_markdown_mode>

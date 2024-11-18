@@ -3704,10 +3704,6 @@ html {
   border-style: none;
 }
 
-.border-base-content\/10 {
-  border-color: hsl(var(--bc) / 0.1);
-}
-
 .border-base-content\/20 {
   border-color: hsl(var(--bc) / 0.2);
 }
@@ -3725,10 +3721,6 @@ html {
 .border-white {
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity));
-}
-
-.border-base-content\/50 {
-  border-color: hsl(var(--bc) / 0.5);
 }
 
 .bg-base-100 {

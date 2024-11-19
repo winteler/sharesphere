@@ -8,7 +8,7 @@ use leptos::{component, prelude::ServerFnError, view, IntoView};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthorizedIcon, NotFoundIcon};
+use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthorizedIcon, NotFoundIcon, TooHeavyIcon};
 
 const NOT_AUTHENTICATED_MESSAGE: &str = "Please authenticate yourself.";
 const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble authenticating you.";
@@ -95,6 +95,12 @@ impl FromStr for AppError {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         serde_json::from_str(s)
+    }
+}
+
+impl From<ServerFnError<AppError>> for AppError {
+    fn from(error: ServerFnError<AppError>) -> Self {
+        Self::from(&error)
     }
 }
 
@@ -196,8 +202,7 @@ pub fn AppErrorIcon(
         AppError::DatabaseError(_) => view! { <InternalErrorIcon/> }.into_any(),
         AppError::InternalServerError(_) => view! { <InternalErrorIcon/> }.into_any(),
         AppError::NotFound => view! { <NotFoundIcon/> }.into_any(),
-        // TODO custom icon for payload too large
-        AppError::PayloadTooLarge(_) => view! { <InternalErrorIcon/> }.into_any(),
+        AppError::PayloadTooLarge(_) => view! { <TooHeavyIcon/> }.into_any(),
     }
 }
 

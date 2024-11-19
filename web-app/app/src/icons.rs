@@ -357,9 +357,9 @@ pub fn SpoilerIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl Int
 #[component]
 pub fn StarIcon(
     #[prop(default = "h-7 w-7")] class: &'static str,
-    show_colour: RwSignal<bool>,
+    show_color: RwSignal<bool>,
 ) -> impl IntoView {
-    let svg_path = move || match show_colour() {
+    let svg_path = move || match show_color() {
         true => "/svg/stars.svg",
         false => "/svg/stars_disabled.svg",
     };
@@ -385,14 +385,21 @@ pub fn StrikethroughIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> im
 #[component]
 pub fn SubscribedIcon(
     #[prop(default = "h-7 w-7")] class: &'static str,
-    show_colour: RwSignal<bool>,
+    show_color: RwSignal<bool>,
 ) -> impl IntoView {
-    let svg_path = move || match show_colour() {
+    let svg_path = move || match show_color() {
         true => "/svg/planet.svg",
         false => "/svg/planet_disabled.svg",
     };
     view! {
         <img src=svg_path class=class/>
+    }
+}
+
+#[component]
+pub fn TooHeavyIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/errors/weight.svg" class=class/>
     }
 }
 

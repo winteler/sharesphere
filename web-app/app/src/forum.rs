@@ -8,7 +8,7 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::forum_management::{get_forum_category_vec, get_forum_rule_vec, set_forum_banner, set_forum_icon, AddRule, DeleteForumCategory, ForumCategory, RemoveRule, Rule, SetForumCategory, UpdateRule, MANAGE_FORUM_ROUTE};
+use crate::forum_management::{get_forum_category_vec, get_forum_rule_vec, AddRule, DeleteForumCategory, ForumCategory, RemoveRule, Rule, SetForumCategory, UpdateRule, MANAGE_FORUM_ROUTE};
 use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
@@ -19,7 +19,7 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
 use crate::sidebar::ForumSidebar;
-use crate::unpack::{action_has_error, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
+use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -30,7 +30,6 @@ use crate::{
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
-use leptos::web_sys::FormData;
 use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
@@ -89,6 +88,7 @@ pub struct ForumHeader {
 #[derive(Copy, Clone)]
 pub struct ForumState {
     pub forum_name: Memo<String>,
+    pub forum_reload_signal: RwSignal<usize>,
     pub category_id_filter: RwSignal<Option<i64>>,
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<Result<Forum, ServerFnError<AppError>>>,
@@ -97,8 +97,6 @@ pub struct ForumState {
     pub forum_rules_resource: Resource<Result<Vec<Rule>, ServerFnError<AppError>>>,
     pub moderate_post_action: ServerAction<ModeratePost>,
     pub update_forum_desc_action: ServerAction<UpdateForumDescription>,
-    pub set_icon_action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
-    pub set_banner_action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
     pub set_forum_category_action: ServerAction<SetForumCategory>,
     pub delete_forum_category_action: ServerAction<DeleteForumCategory>,
     pub set_forum_role_action: ServerAction<SetUserForumRole>,
@@ -493,13 +491,8 @@ pub fn ForumHeader(
 pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = get_forum_name_memo(use_params_map());
+    let forum_reload_signal = RwSignal::new(0);
     let update_forum_desc_action = ServerAction::<UpdateForumDescription>::new();
-    let set_icon_action = Action::new_local(|data: &FormData| {
-        set_forum_icon(data.clone().into())
-    });
-    let set_banner_action = Action::new_local(|data: &FormData| {
-        set_forum_banner(data.clone().into())
-    });
     let set_forum_category_action = ServerAction::<SetForumCategory>::new();
     let delete_forum_category_action = ServerAction::<DeleteForumCategory>::new();
     let set_forum_role_action = ServerAction::<SetUserForumRole>::new();
@@ -508,6 +501,7 @@ pub fn ForumBanner() -> impl IntoView {
     let remove_rule_action = ServerAction::<RemoveRule>::new();
     let forum_state = ForumState {
         forum_name,
+        forum_reload_signal,
         category_id_filter: RwSignal::new(None),
         permission_level: Signal::derive(
             move || match &(*state.user.read()) {
@@ -519,10 +513,9 @@ pub fn ForumBanner() -> impl IntoView {
             move || (
                 forum_name.get(),
                 update_forum_desc_action.version().get(),
-                set_icon_action.version().get(),
-                set_banner_action.version().get(),
+                forum_reload_signal.get(),
             ),
-            move |(forum_name, _, _, _)| get_forum_by_name(forum_name)
+            move |(forum_name, _, _)| get_forum_by_name(forum_name)
         ),
         forum_categories_resource: Resource::new(
             move || (
@@ -547,8 +540,6 @@ pub fn ForumBanner() -> impl IntoView {
         ),
         moderate_post_action: ServerAction::<ModeratePost>::new(),
         update_forum_desc_action,
-        set_icon_action,
-        set_banner_action,
         set_forum_category_action,
         delete_forum_category_action,
         set_forum_role_action,
@@ -691,7 +682,7 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
                 <div class="tooltip" data-tip="Join">
                     <LoginGuardButton
                         login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/> }.into_any()
+                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_color=is_subscribed/> }.into_any()
                         redirect_path_fn=&get_current_path
                         let:_user
                     >
@@ -706,7 +697,7 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
                                 })
                             }
                         >
-                            <SubscribedIcon class="h-6 w-6" show_colour=is_subscribed/>
+                            <SubscribedIcon class="h-6 w-6" show_color=is_subscribed/>
                         </button>
                     </LoginGuardButton>
                 </div>
@@ -860,8 +851,6 @@ pub fn ForumPostMiniatures(
 #[component]
 pub fn CreateForum() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    // check if the server has returned an error
-    let has_error = action_has_error(state.create_forum_action.into());
 
     let forum_name = RwSignal::new(String::new());
     let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
@@ -957,15 +946,7 @@ pub fn CreateForum() -> impl IntoView {
                     </Suspense>
                 </div>
             </ActionForm>
-            <Show
-                when=has_error
-                fallback=move || ()
-            >
-                <div class="alert alert-error flex justify-center">
-                    <InternalErrorIcon/>
-                    <span>"Server error. Please reload the page and retry."</span>
-                </div>
-            </Show>
+            <ActionError action=state.create_forum_action.into()/>
         </div>
     }
 }

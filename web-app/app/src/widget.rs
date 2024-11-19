@@ -10,7 +10,8 @@ use crate::app::GlobalState;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::errors::AppError;
+use crate::errors::{AppError, ErrorDisplay};
+use crate::forum::ForumState;
 use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
 
 pub const FORUM_NAME_PARAM: &str = "forum_name";
@@ -248,8 +249,6 @@ pub fn ForumImageForm(
             }
         }
     };
-    
-    // TODO display error
 
     view! {
         <form on:submit=on_submit class="flex flex-col gap-1">
@@ -274,6 +273,24 @@ pub fn ForumImageForm(
             >
                 <SaveIcon/>
             </button>
+            {move || {
+                if action.pending().get()
+                {
+                    view! { <LoadingIcon/> }.into_any()
+                } else {
+                    match action.value().get()
+                    {
+                        Some(Ok(())) => {
+                            if let Some(forum_state) = use_context::<ForumState>() {
+                                forum_state.forum_reload_signal.update(|value| *value += 1);
+                            }
+                            ().into_any()
+                        }
+                        Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
+                        None => ().into_any()
+                    }
+                }
+            }}
         </form>
     }
 }

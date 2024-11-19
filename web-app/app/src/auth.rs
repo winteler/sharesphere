@@ -40,15 +40,14 @@ pub struct OAuthParams {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use super::*;
     use crate::app::ssr::get_user_lock_cache;
     use crate::errors::AppError;
     use crate::user::User;
     use axum_session_sqlx::SessionPgPool;
     use openidconnect::core::CoreTokenResponse;
+    use openidconnect::RequestTokenError;
     use sqlx::PgPool;
-    use std::error::Error;
-
-    use super::*;
 
     pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
@@ -119,6 +118,7 @@ pub mod ssr {
             // Lock the mutex for this user
             let _lock = user_lock.lock().await;
 
+            log::info!("Check refresh token.");
             let client = ssr::get_auth_client().await?;
             let token_response: oidc::core::CoreTokenResponse =
                 auth_session
@@ -133,36 +133,58 @@ pub mod ssr {
                     .unwrap_or(String::from("")),
             );
 
+            // TODO implement NonceVerifier to not check upon refresh?
+
             let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
             let claims = id_token.claims(&client.id_token_verifier(), &nonce);
-            if let Err(openidconnect::ClaimsVerificationError::Expired(_)) = claims {
-                log::debug!("Id token expired, refresh tokens.");
-                auth_session.session.remove(OIDC_TOKEN_KEY);
-                auth_session.logout_user();
-                let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
-                let token_response = client
-                    .exchange_refresh_token(&refresh_token)
-                    .request_async(async_http_client)
-                    .await;
+            match claims {
+                Err(openidconnect::ClaimsVerificationError::Expired(_)) => {
+                    log::info!("Id token expired, refresh tokens.");
+                    auth_session.session.remove(NONCE_KEY);
+                    auth_session.session.remove(OIDC_TOKEN_KEY);
+                    auth_session.logout_user();
+                    let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
+                    let token_response = client
+                        .exchange_refresh_token(&refresh_token)
+                        .request_async(async_http_client)
+                        .await;
 
-                match token_response {
-                    Ok(token_response) => {
-                        let sql_user = process_token_response(token_response, auth_session.clone(), client).await?;
-                        let db_pool = get_db_pool()?;
-                        let user = User::get(sql_user.user_id, &db_pool).await;
-                        Ok(user)
-                    }
-                    Err(e) => {
-                        match e.source() {
-                            Some(source) => log::error!("Failed to refresh token: {e}, source: {source}"),
-                            None => log::error!("Failed to refresh token: {e}"),
+                    match token_response {
+                        Ok(token_response) => {
+                            let sql_user = process_token_response(token_response, auth_session.clone(), client).await?;
+                            let db_pool = get_db_pool()?;
+                            let user = User::get(sql_user.user_id, &db_pool).await;
+                            Ok(user)
                         }
-                        Ok(None)
+                        Err(e) => {
+                            match e {
+                                RequestTokenError::ServerResponse(response) => {
+                                    log::error!("Failed to refresh token: server returned an error: {:?}", response);
+                                }
+                                RequestTokenError::Request(http_err) => {
+                                    log::error!("Failed to refresh token: HTTP request failed: {:?}", http_err);
+                                }
+                                RequestTokenError::Parse(err, body) => {
+                                    log::error!("Failed to refresh token: failed to parse response: {:?}. Response body: {:?}", err, body);
+                                }
+                                RequestTokenError::Other(msg) => {
+                                    log::error!("Failed to refresh token: other error: {:?}", msg);
+                                }
+                            }
+                            Ok(None)
+                        }
                     }
-                }
-            } else {
-                log::debug!("Id token valid until {}", claims?.expiration());
-                Ok(auth_session.current_user)
+                },
+                Err(e) => {
+                    log::error!("Unexpected error while getting claims: {e}");
+                    auth_session.session.remove(NONCE_KEY);
+                    auth_session.session.remove(OIDC_TOKEN_KEY);
+                    Ok(None)
+                },
+                Ok(claims) => {
+                    log::debug!("Id token valid until {}", claims.expiration());
+                    Ok(auth_session.current_user)
+                },
             }
         } else {
             Ok(None)
@@ -184,6 +206,7 @@ pub mod ssr {
         let id_token = token_response
             .id_token()
             .ok_or(AppError::new("Id token missing."))?;
+        log::info!("Get token claims.");
         let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
 
         // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.

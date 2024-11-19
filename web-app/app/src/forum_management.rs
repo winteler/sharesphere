@@ -1,6 +1,7 @@
 use chrono::SecondsFormat;
 use leptos::html;
 use leptos::prelude::*;
+use leptos::web_sys::FormData;
 use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
@@ -108,7 +109,8 @@ pub mod ssr {
     use tokio::fs::{rename, File};
     use tokio::io::AsyncWriteExt;
 
-    pub const MAX_IMAGE_SIZE: usize = 5 * 1024 * 1024; // 5 MB in bytes
+    pub const MAX_IMAGE_MB_SIZE: usize = 5; // 5 MB
+    pub const MAX_IMAGE_SIZE: usize = MAX_IMAGE_MB_SIZE * 1024 * 1024; // 5 MB in bytes
 
     pub async fn is_user_forum_moderator(
         user_id: i64,
@@ -472,7 +474,7 @@ pub mod ssr {
                 if let Some(response) = use_context::<ResponseOptions>() {
                     response.set_status(StatusCode::PAYLOAD_TOO_LARGE);
                 }
-                return Err(AppError::PayloadTooLarge(MAX_IMAGE_SIZE));
+                return Err(AppError::PayloadTooLarge(MAX_IMAGE_MB_SIZE));
             }
             file.write_all(&chunk).await?;
         }
@@ -780,6 +782,9 @@ pub fn ForumDescriptionForm(
 pub fn ForumIconDialog() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let forum_name = forum_state.forum_name;
+    let set_icon_action = Action::new_local(|data: &FormData| {
+        set_forum_icon(data.clone().into())
+    });
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
@@ -787,7 +792,7 @@ pub fn ForumIconDialog() -> impl IntoView {
                 <div class="text-xl text-center">"Forum icon"</div>
                 <ForumImageForm
                     forum_name=forum_state.forum_name
-                    action=forum_state.set_icon_action
+                    action=set_icon_action
                     preview_class="max-h-12 max-w-full object-contain"
                 />
             </div>
@@ -800,6 +805,9 @@ pub fn ForumIconDialog() -> impl IntoView {
 pub fn ForumBannerDialog() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let forum_name = forum_state.forum_name;
+    let set_banner_action = Action::new_local(|data: &FormData| {
+        set_forum_banner(data.clone().into())
+    });
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
@@ -807,7 +815,7 @@ pub fn ForumBannerDialog() -> impl IntoView {
                 <div class="text-xl text-center">"Forum banner"</div>
                 <ForumImageForm
                     forum_name=forum_state.forum_name
-                    action=forum_state.set_banner_action
+                    action=set_banner_action
                 />
             </div>
         </AuthorizedShow>

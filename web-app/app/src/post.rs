@@ -524,7 +524,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, ServerFnError> {
+pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = get_user().await?;
     Ok(ssr::get_post_with_info_by_id(post_id, user.as_ref(), &db_pool).await?)
@@ -534,7 +534,7 @@ pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, 
 pub async fn get_sorted_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Post>, ServerFnError> {
+) -> Result<Vec<Post>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_sorted_post_vec(
@@ -553,7 +553,7 @@ pub async fn get_subscribed_post_vec(
     user_id: i64,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Post>, ServerFnError> {
+) -> Result<Vec<Post>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_subscribed_post_vec(
@@ -574,7 +574,7 @@ pub async fn get_post_vec_by_forum_name(
     forum_category_id: Option<i64>,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Post>, ServerFnError> {
+) -> Result<Vec<Post>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_forum_name(
         forum_name.as_str(),
@@ -598,7 +598,7 @@ pub async fn create_post(
     is_nsfw: bool,
     is_pinned: Option<bool>,
     category_id: Option<i64>,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -647,7 +647,7 @@ pub async fn edit_post(
     is_nsfw: bool,
     is_pinned: Option<bool>,
     category_id: Option<i64>,
-) -> Result<Post, ServerFnError> {
+) -> Result<Post, ServerFnError<AppError>> {
     log::trace!("Edit post {post_id}, title = {title}, body = {body}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;

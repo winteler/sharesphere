@@ -10,6 +10,7 @@ use crate::app::GlobalState;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
+use crate::errors::AppError;
 use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
 
 pub const FORUM_NAME_PARAM: &str = "forum_name";
@@ -201,7 +202,7 @@ pub fn MinimizeMaximizeWidget(
 pub fn ForumImageForm(
     #[prop(into)]
     forum_name: MaybeSignal<String>,
-    action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
+    action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
     #[prop(default = "max-h-80 max-w-full object-contain")]
     preview_class: &'static str,
 ) -> impl IntoView {
@@ -247,6 +248,8 @@ pub fn ForumImageForm(
             }
         }
     };
+    
+    // TODO display error
 
     view! {
         <form on:submit=on_submit class="flex flex-col gap-1">

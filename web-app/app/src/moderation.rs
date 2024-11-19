@@ -2,6 +2,7 @@ use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
 use crate::editor::{FormTextEditor, TextareaData};
+use crate::errors::AppError;
 use crate::forum::ForumState;
 use crate::forum_management::{get_rule_by_id, ModerationInfo};
 use crate::icons::{HammerIcon, MagnifierIcon};
@@ -14,7 +15,6 @@ use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
     comment::ssr::{get_comment_by_id, get_comment_forum},
-    errors::AppError,
     forum_management::ssr::load_rule_by_id,
     post::ssr::get_post_by_id
 };
@@ -223,7 +223,7 @@ pub mod ssr {
 pub async fn get_moderation_info(
     post_id: i64,
     comment_id: Option<i64>,
-) -> Result<ModerationInfo, ServerFnError> {
+) -> Result<ModerationInfo, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let (rule_id, content) = match comment_id {
         Some(comment_id) => {
@@ -256,7 +256,7 @@ pub async fn moderate_post(
     rule_id: i64,
     moderator_message: String,
     ban_duration_days: Option<usize>,
-) -> Result<Post, ServerFnError> {
+) -> Result<Post, ServerFnError<AppError>> {
     log::debug!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -295,7 +295,7 @@ pub async fn moderate_comment(
     rule_id: i64,
     moderator_message: String,
     ban_duration_days: Option<usize>,
-) -> Result<Comment, ServerFnError> {
+) -> Result<Comment, ServerFnError<AppError>> {
     log::trace!("Moderate comment {comment_id}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -663,7 +663,7 @@ pub fn ContentModerationInfo(
                         rule,
                     })
                 },
-                None => Err(ServerFnError::new("Content is not moderated.")),
+                None => Err(ServerFnError::WrappedServerError(AppError::new("Content is not moderated."))),
             }
         }
     );

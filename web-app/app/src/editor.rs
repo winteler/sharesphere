@@ -3,6 +3,7 @@ use leptos::prelude::*;
 use leptos_use::{on_click_outside, signal_debounced};
 
 use crate::constants::SPOILER_TAG;
+use crate::errors::AppError;
 use crate::icons::*;
 use crate::unpack::TransitionUnpack;
 
@@ -137,10 +138,10 @@ mod ssr {
 #[server]
 pub async fn get_styled_html_from_markdown(
     markdown_input: String,
-) -> Result<String, ServerFnError> {
+) -> Result<String, ServerFnError<AppError>> {
     let html_from_markdown =
         markdown::to_html_with_options(markdown_input.as_str(), &markdown::Options::gfm())
-            .or_else(|e| Err(ServerFnError::new(e)))?;
+            .or_else(|e| Err(AppError::new(e)))?;
     log::debug!("Markdown as html: {html_from_markdown}");
 
     // Add styling, will be done by parsing the html which is a bit ugly. Would be better

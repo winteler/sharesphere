@@ -12,7 +12,7 @@ use strum::IntoEnumIterator;
 use crate::app::{GlobalState, LoginWindow};
 use crate::content::Content;
 use crate::editor::{FormTextEditor, TextareaData};
-use crate::errors::ErrorDisplay;
+use crate::errors::{AppError, ErrorDisplay};
 use crate::form::FormCheckbox;
 use crate::forum::{Forum, ForumState};
 use crate::icons::{DeleteIcon, EditIcon, MagnifierIcon, PauseIcon, PlayIcon, PlusIcon, SaveIcon};
@@ -544,7 +544,7 @@ pub mod ssr {
 #[server]
 pub async fn get_rule_by_id(
     rule_id: i64
-) -> Result<Rule, ServerFnError> {
+) -> Result<Rule, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let rule = ssr::load_rule_by_id(rule_id, &db_pool).await?;
     Ok(rule)
@@ -553,7 +553,7 @@ pub async fn get_rule_by_id(
 #[server]
 pub async fn get_forum_rule_vec(
     forum_name: String
-) -> Result<Vec<Rule>, ServerFnError> {
+) -> Result<Vec<Rule>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let rule_vec = ssr::get_forum_rule_vec(&forum_name, &db_pool).await?;
     Ok(rule_vec)
@@ -565,7 +565,7 @@ pub async fn add_rule(
     priority: i16,
     title: String,
     description: String,
-) -> Result<Rule, ServerFnError> {
+) -> Result<Rule, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let rule = ssr::add_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
@@ -579,7 +579,7 @@ pub async fn update_rule(
     priority: i16,
     title: String,
     description: String,
-) -> Result<Rule, ServerFnError> {
+) -> Result<Rule, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let rule = ssr::update_rule(forum_name.as_ref().map(String::as_str), current_priority, priority, &title, &description, &user, &db_pool).await?;
@@ -590,7 +590,7 @@ pub async fn update_rule(
 pub async fn remove_rule(
     forum_name: Option<String>,
     priority: i16,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     ssr::remove_rule(forum_name.as_deref(), priority, &user, &db_pool).await?;
@@ -600,7 +600,7 @@ pub async fn remove_rule(
 #[server]
 pub async fn get_forum_category_vec(
     forum_name: String,
-) -> Result<Vec<ForumCategory>, ServerFnError> {
+) -> Result<Vec<ForumCategory>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let forum_category_vec = ssr::get_forum_category_vec(&forum_name, &db_pool).await?;
     Ok(forum_category_vec)
@@ -612,7 +612,7 @@ pub async fn set_forum_category(
     category_name: String,
     description: String,
     is_active: bool,
-) -> Result<ForumCategory, ServerFnError> {
+) -> Result<ForumCategory, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let forum_category = ssr::set_forum_category(&forum_name, &category_name, &description, is_active, &user, &db_pool).await?;
@@ -623,7 +623,7 @@ pub async fn set_forum_category(
 pub async fn delete_forum_category(
     forum_name: String,
     category_name: String,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     ssr::delete_forum_category(&forum_name, &category_name, &user, &db_pool).await?;
@@ -634,7 +634,7 @@ pub async fn delete_forum_category(
 pub async fn get_forum_ban_vec(
     forum_name: String,
     username_prefix: String,
-) -> Result<Vec<UserBan>, ServerFnError> {
+) -> Result<Vec<UserBan>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let ban_vec = ssr::get_forum_ban_vec(&forum_name, &username_prefix, &db_pool).await?;
     Ok(ban_vec)
@@ -643,7 +643,7 @@ pub async fn get_forum_ban_vec(
 #[server]
 pub async fn remove_user_ban(
     ban_id: i64
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
     let deleted_user_ban = ssr::remove_user_ban(ban_id, &user, &db_pool).await?;
@@ -654,7 +654,7 @@ pub async fn remove_user_ban(
 #[server(input = MultipartFormData)]
 pub async fn set_forum_icon(
     data: MultipartData,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -667,7 +667,7 @@ pub async fn set_forum_icon(
 #[server(input = MultipartFormData)]
 pub async fn set_forum_banner(
     data: MultipartData,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

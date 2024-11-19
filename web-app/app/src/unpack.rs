@@ -11,7 +11,7 @@ pub fn Unpack<
     V: IntoView + 'static, 
     F: FnOnce(T) -> V + Send + Sync + 'static
 >(
-    what: Option<Result<T, ServerFnError>>,
+    what: Option<Result<T, ServerFnError<AppError>>>,
     children: F,
 ) -> impl IntoView {
     match what {
@@ -25,7 +25,7 @@ pub fn action_has_error<
     T: Clone + Send + Sync + 'static,
     A: Send + Sync + 'static,
 >(
-    action: Action<A, Result<T, ServerFnError>>
+    action: Action<A, Result<T, ServerFnError<AppError>>>
 ) -> Signal<bool> {
     Signal::derive(move || matches!(*action.value().read(), Some(Err(_))))
 }
@@ -36,7 +36,7 @@ pub fn ActionError<
     T: Clone + Send + Sync + 'static,
     A: Send + Sync + 'static,
 >(
-    action: Action<A, Result<T, ServerFnError>>
+    action: Action<A, Result<T, ServerFnError<AppError>>>
 ) -> impl IntoView {
     view! {
         <Show when=action_has_error(action)>
@@ -59,7 +59,7 @@ pub fn UnpackAction<
     FB: Fn() -> FV + Send + Sync +  'static,
     FV: IntoView + 'static,
 >(
-    action: Action<A, Result<T, ServerFnError>>,
+    action: Action<A, Result<T, ServerFnError<AppError>>>,
     children: F,
     fallback: FB,
 ) -> impl IntoView {
@@ -88,7 +88,7 @@ async fn unpack_resource<
     V: IntoView + 'static,
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError<AppError>>>,
     children: StoredValue<F>,
 ) -> impl IntoView {
     match &resource.await {
@@ -103,7 +103,7 @@ pub fn SuspenseUnpack<
     V: IntoView + 'static,
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError<AppError>>>,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
@@ -127,7 +127,7 @@ pub fn TransitionUnpack<
     V: IntoView + 'static,
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError<AppError>>>,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
@@ -150,7 +150,7 @@ async fn arc_unpack_resource<
     V: IntoView + 'static,
     F: Fn(Arc<T>) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError<AppError>>>,
     children: StoredValue<F>,
 ) -> impl IntoView {
     match &resource.await {
@@ -165,7 +165,7 @@ pub fn ArcSuspenseUnpack<
     V: IntoView + 'static,
     F: Fn(Arc<T>) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError<AppError>>>,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
@@ -189,7 +189,7 @@ pub fn ArcTransitionUnpack<
     V: IntoView + 'static,
     F: Fn(Arc<T>) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError>>,
+    resource: Resource<Result<T, ServerFnError<AppError>>>,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);

@@ -531,7 +531,7 @@ pub mod ssr {
 #[server]
 pub async fn get_matching_username_set(
     username_prefix: String,
-) -> Result<BTreeSet<String>, ServerFnError> {
+) -> Result<BTreeSet<String>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let username_set = ssr::get_matching_username_set(&username_prefix, USER_FETCH_LIMIT, &db_pool).await?;
     Ok(username_set)

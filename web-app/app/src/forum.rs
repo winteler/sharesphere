@@ -91,14 +91,14 @@ pub struct ForumState {
     pub forum_name: Memo<String>,
     pub category_id_filter: RwSignal<Option<i64>>,
     pub permission_level: Signal<PermissionLevel>,
-    pub forum_resource: Resource<Result<Forum, ServerFnError>>,
-    pub forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError>>,
-    pub forum_roles_resource: Resource<Result<Vec<UserForumRole>, ServerFnError>>,
-    pub forum_rules_resource: Resource<Result<Vec<Rule>, ServerFnError>>,
+    pub forum_resource: Resource<Result<Forum, ServerFnError<AppError>>>,
+    pub forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError<AppError>>>,
+    pub forum_roles_resource: Resource<Result<Vec<UserForumRole>, ServerFnError<AppError>>>,
+    pub forum_rules_resource: Resource<Result<Vec<Rule>, ServerFnError<AppError>>>,
     pub moderate_post_action: ServerAction<ModeratePost>,
     pub update_forum_desc_action: ServerAction<UpdateForumDescription>,
-    pub set_icon_action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
-    pub set_banner_action: Action<FormData, Result<(), ServerFnError>, LocalStorage>,
+    pub set_icon_action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
+    pub set_banner_action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
     pub set_forum_category_action: ServerAction<SetForumCategory>,
     pub delete_forum_category_action: ServerAction<DeleteForumCategory>,
     pub set_forum_role_action: ServerAction<SetUserForumRole>,
@@ -341,14 +341,14 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn is_forum_available(forum_name: String) -> Result<bool, ServerFnError> {
+pub async fn is_forum_available(forum_name: String) -> Result<bool, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let forum_existence = ssr::is_forum_available(&forum_name, &db_pool).await?;
     Ok(forum_existence)
 }
 
 #[server]
-pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError> {
+pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let forum = ssr::get_forum_by_name(&forum_name, &db_pool).await?;
     Ok(forum)
@@ -357,7 +357,7 @@ pub async fn get_forum_by_name(forum_name: String) -> Result<Forum, ServerFnErro
 #[server]
 pub async fn get_matching_forum_header_vec(
     forum_prefix: String,
-) -> Result<Vec<ForumHeader>, ServerFnError> {
+) -> Result<Vec<ForumHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let forum_header_vec = ssr::get_matching_forum_header_vec(
         &forum_prefix, 
@@ -368,7 +368,7 @@ pub async fn get_matching_forum_header_vec(
 }
 
 #[server]
-pub async fn get_subscribed_forum_headers() -> Result<Vec<ForumHeader>, ServerFnError> {
+pub async fn get_subscribed_forum_headers() -> Result<Vec<ForumHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     match get_user().await {
         Ok(Some(user)) => {
@@ -380,7 +380,7 @@ pub async fn get_subscribed_forum_headers() -> Result<Vec<ForumHeader>, ServerFn
 }
 
 #[server]
-pub async fn get_popular_forum_headers() -> Result<Vec<ForumHeader>, ServerFnError> {
+pub async fn get_popular_forum_headers() -> Result<Vec<ForumHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let forum_header_vec = ssr::get_popular_forum_headers(FORUM_FETCH_LIMIT, &db_pool).await?;
     Ok(forum_header_vec)
@@ -389,7 +389,7 @@ pub async fn get_popular_forum_headers() -> Result<Vec<ForumHeader>, ServerFnErr
 #[server]
 pub async fn get_forum_with_user_info(
     forum_name: String,
-) -> Result<ForumWithUserInfo, ServerFnError> {
+) -> Result<ForumWithUserInfo, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
@@ -406,7 +406,7 @@ pub async fn create_forum(
     forum_name: String,
     description: String,
     is_nsfw: bool,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     log::trace!("Create Sphere '{forum_name}', {description}, {is_nsfw}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -434,7 +434,7 @@ pub async fn create_forum(
 pub async fn update_forum_description(
     forum_name: String,
     description: String,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -444,7 +444,7 @@ pub async fn update_forum_description(
 }
 
 #[server]
-pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
+pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -454,7 +454,7 @@ pub async fn subscribe(forum_id: i64) -> Result<(), ServerFnError> {
 }
 
 #[server]
-pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError> {
+pub async fn unsubscribe(forum_id: i64) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -733,7 +733,7 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
 /// Dialog to select a forum category
 #[component]
 pub fn ForumCategoryDropdown(
-    forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError>>,
+    forum_categories_resource: Resource<Result<Vec<ForumCategory>, ServerFnError<AppError>>>,
     #[prop(default = true)]
     show_inactive: bool,
     #[prop(default = "")]

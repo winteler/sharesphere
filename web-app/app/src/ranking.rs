@@ -4,6 +4,7 @@ use crate::app::ssr::get_db_pool;
 use crate::auth::ssr::check_user;
 use crate::auth::LoginGuardButton;
 use crate::comment::CommentSortType;
+use crate::errors::AppError;
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
 use crate::navigation_bar::get_current_path;
 use crate::post::PostSortType;
@@ -292,7 +293,7 @@ pub async fn vote_on_content(
     post_id: i64,
     comment_id: Option<i64>,
     vote_id: Option<i64>,
-) -> Result<Option<Vote>, ServerFnError> {
+) -> Result<Option<Vote>, ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

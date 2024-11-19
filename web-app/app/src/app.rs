@@ -30,7 +30,7 @@ pub struct GlobalState {
     pub create_forum_action: ServerAction<CreateForum>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
-    pub user: Resource<Result<Option<User>, ServerFnError>>,
+    pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
 }
 
 impl Default for GlobalState {

@@ -98,11 +98,12 @@ impl FromStr for AppError {
     }
 }
 
-impl From<&ServerFnError> for AppError {
-    fn from(error: &ServerFnError) -> Self {
+impl From<&ServerFnError<AppError>> for AppError {
+    fn from(error: &ServerFnError<AppError>) -> Self {
         match error {
+            ServerFnError::WrappedServerError(app_error) => app_error.clone(),
             ServerFnError::ServerError(message) => AppError::from_str(message.as_str()).unwrap_or(AppError::InternalServerError(message.clone())),
-            _ => AppError::CommunicationError(error.clone()),
+            _ => AppError::CommunicationError(ServerFnError::from(error)),
         }
     }
 }

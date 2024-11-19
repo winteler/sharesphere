@@ -6,6 +6,7 @@ use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
 use crate::app::GlobalState;
+use crate::errors::AppError;
 use crate::forum::ForumState;
 use crate::unpack::ArcTransitionUnpack;
 #[cfg(feature = "ssr")]
@@ -234,7 +235,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_forum_role_vec(forum_name: String) -> Result<Vec<UserForumRole>, ServerFnError> {
+pub async fn get_forum_role_vec(forum_name: String) -> Result<Vec<UserForumRole>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     let role_vec = ssr::get_forum_role_vec(
@@ -250,7 +251,7 @@ pub async fn set_user_forum_role(
     username: String,
     forum_name: String,
     permission_level: PermissionLevel,
-) -> Result<UserForumRole, ServerFnError> {
+) -> Result<UserForumRole, ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

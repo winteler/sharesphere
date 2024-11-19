@@ -11,6 +11,7 @@ use openidconnect::reqwest::*;
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 
 use crate::app::GlobalState;
+use crate::errors::AppError;
 use crate::icons::LoadingIcon;
 use crate::user::User;
 #[cfg(feature = "ssr")]
@@ -252,7 +253,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError> {
+pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError<AppError>> {
     let current_user = get_user().await;
 
     if let Ok(Some(current_user)) = current_user
@@ -266,7 +267,7 @@ pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError> 
 }
 
 #[server]
-pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnError> {
+pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnError<AppError>> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -284,7 +285,8 @@ pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnErro
     let token_response = client
         .exchange_code(oidc::AuthorizationCode::new(auth_code))
         .request_async(async_http_client)
-        .await?;
+        .await
+        .map_err(AppError::from)?;
 
     ssr::process_token_response(token_response, auth_session, client).await?;
 
@@ -292,13 +294,13 @@ pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnErro
 }
 
 #[server]
-pub async fn get_user() -> Result<Option<User>, ServerFnError> {
+pub async fn get_user() -> Result<Option<User>, ServerFnError<AppError>> {
     let user = ssr::check_refresh_token().await?;
     Ok(user)
 }
 
 #[server]
-pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
+pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError<AppError>> {
     log::debug!("Logout, redirect_url: {redirect_url}");
 
     let auth_session = get_session()?;
@@ -306,27 +308,28 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError> {
         auth_session
             .session
             .get(OIDC_TOKEN_KEY)
-            .ok_or(ServerFnError::new("Not authenticated."))?;
+            .ok_or(AppError::InternalServerError(String::from("Not authenticated.")))?;
 
-    let id_token = token_response.id_token().ok_or(ServerFnError::new("Id token missing."))?;
+    let id_token = token_response.id_token().ok_or(AppError::AuthenticationError(String::from("Id token missing.")))?;
 
     let logout_provider_metadata =
         oidc::ProviderMetadataWithLogout::discover_async(ssr::get_issuer_url()?, async_http_client)
-            .await?;
+            .await
+            .map_err(AppError::from)?;
 
     let logout_endpoint: &Option<oidc::EndSessionUrl> = &logout_provider_metadata
         .additional_metadata()
         .end_session_endpoint;
 
     let logout_endpoint_url = match logout_endpoint {
-        Some(url) => url.clone(),
-        None => return Err(ServerFnError::new("Cannot get logout endpoint.")),
-    };
+        Some(url) => Ok(url.clone()),
+        None => Err(AppError::AuthenticationError(String::from("Cannot get logout endpoint."))),
+    }?;
 
     let logout_request = oidc::LogoutRequest::from(logout_endpoint_url)
         .set_client_id(ssr::get_client_id()?)
         .set_id_token_hint(id_token)
-        .set_post_logout_redirect_uri(oidc::PostLogoutRedirectUrl::new(redirect_url)?);
+        .set_post_logout_redirect_uri(oidc::PostLogoutRedirectUrl::new(redirect_url).map_err(AppError::from)?);
 
     leptos_axum::redirect(logout_request.http_get_url().to_string().as_str());
 

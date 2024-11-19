@@ -99,6 +99,9 @@ pub mod ssr {
     use crate::role::{AdminRole, PermissionLevel};
     use crate::user::User;
     use crate::widget::{FORUM_NAME_PARAM, IMAGE_FILE_PARAM};
+    use http::StatusCode;
+    use leptos::prelude::use_context;
+    use leptos_axum::ResponseOptions;
     use server_fn::codec::MultipartData;
     use sqlx::types::Uuid;
     use sqlx::PgPool;
@@ -466,7 +469,10 @@ pub mod ssr {
 
             // Check if the total size exceeds the limit
             if total_size > MAX_IMAGE_SIZE {
-                return Err(AppError::new(format!("Image file is too large. Max allowed size is {} bytes", MAX_IMAGE_SIZE)));
+                if let Some(response) = use_context::<ResponseOptions>() {
+                    response.set_status(StatusCode::PAYLOAD_TOO_LARGE);
+                }
+                return Err(AppError::PayloadTooLarge(MAX_IMAGE_SIZE));
             }
             file.write_all(&chunk).await?;
         }

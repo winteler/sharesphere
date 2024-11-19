@@ -35,6 +35,7 @@ pub enum AppError {
     DatabaseError(String),
     InternalServerError(String),
     NotFound,
+    PayloadTooLarge(usize),
 }
 
 impl AppError {
@@ -51,6 +52,7 @@ impl AppError {
             AppError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::NotFound => StatusCode::NOT_FOUND,
+            AppError::PayloadTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
         }
     }
 
@@ -59,9 +61,9 @@ impl AppError {
             AppError::AuthenticationError(_) => String::from(AUTH_FAILED_MESSAGE),
             AppError::NotAuthenticated => String::from(NOT_AUTHENTICATED_MESSAGE),
             AppError::InsufficientPrivileges => String::from(NOT_AUTHORIZED_MESSAGE),
-            AppError::ForumBanUntil(timestamp) => format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, timestamp.to_string()),
+            AppError::ForumBanUntil(timestamp) => format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, timestamp),
             AppError::PermanentForumBan => String::from(PERMANENT_FORUM_BAN_MESSAGE),
-            AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp.to_string()),
+            AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp),
             AppError::PermanentGlobalBan => String::from(PERMANENT_GLOBAL_BAN_MESSAGE),
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) |
@@ -72,6 +74,7 @@ impl AppError {
             AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
             AppError::InternalServerError(_) => String::from(INTERNAL_ERROR_MESSAGE),
             AppError::NotFound => String::from(NOT_FOUND_MESSAGE),
+            AppError::PayloadTooLarge(mb_limit) => format!("Payload exceeds the {mb_limit} MB limit.")
         }
     }
 
@@ -192,6 +195,8 @@ pub fn AppErrorIcon(
         AppError::DatabaseError(_) => view! { <InternalErrorIcon/> }.into_any(),
         AppError::InternalServerError(_) => view! { <InternalErrorIcon/> }.into_any(),
         AppError::NotFound => view! { <NotFoundIcon/> }.into_any(),
+        // TODO custom icon for payload too large
+        AppError::PayloadTooLarge(_) => view! { <InternalErrorIcon/> }.into_any(),
     }
 }
 
@@ -242,9 +247,9 @@ mod tests {
         assert_eq!(AppError::AuthenticationError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(AppError::NotAuthenticated.status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::InsufficientPrivileges.status_code(), StatusCode::FORBIDDEN);
-        assert_eq!(AppError::ForumBanUntil(test_timestamp.clone()).status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::ForumBanUntil(test_timestamp).status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::PermanentForumBan.status_code(), StatusCode::FORBIDDEN);
-        assert_eq!(AppError::GlobalBanUntil(test_timestamp.clone()).status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::GlobalBanUntil(test_timestamp).status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::PermanentGlobalBan.status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::CommunicationError(server_fn_error).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(AppError::CommunicationError(args_error).status_code(), StatusCode::BAD_REQUEST);
@@ -276,9 +281,9 @@ mod tests {
         assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), String::from(AUTH_FAILED_MESSAGE));
         assert_eq!(AppError::NotAuthenticated.user_message(), String::from(NOT_AUTHENTICATED_MESSAGE));
         assert_eq!(AppError::InsufficientPrivileges.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
-        assert_eq!(AppError::ForumBanUntil(test_timestamp.clone()).user_message(), format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, test_timestamp.clone().to_string()));
+        assert_eq!(AppError::ForumBanUntil(test_timestamp).user_message(), format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, test_timestamp.clone().to_string()));
         assert_eq!(AppError::PermanentForumBan.user_message(), String::from(PERMANENT_FORUM_BAN_MESSAGE));
-        assert_eq!(AppError::GlobalBanUntil(test_timestamp.clone()).user_message(), format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, test_timestamp.to_string()));
+        assert_eq!(AppError::GlobalBanUntil(test_timestamp).user_message(), format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, test_timestamp.to_string()));
         assert_eq!(AppError::PermanentGlobalBan.user_message(), String::from(PERMANENT_GLOBAL_BAN_MESSAGE));
         assert_eq!(AppError::CommunicationError(server_fn_error).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
         assert_eq!(AppError::CommunicationError(args_error).user_message(), String::from(BAD_REQUEST_MESSAGE));

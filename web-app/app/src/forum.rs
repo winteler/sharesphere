@@ -88,7 +88,6 @@ pub struct ForumHeader {
 #[derive(Copy, Clone)]
 pub struct ForumState {
     pub forum_name: Memo<String>,
-    pub forum_reload_signal: RwSignal<usize>,
     pub category_id_filter: RwSignal<Option<i64>>,
     pub permission_level: Signal<PermissionLevel>,
     pub forum_resource: Resource<Result<Forum, ServerFnError<AppError>>>,
@@ -491,7 +490,6 @@ pub fn ForumHeader(
 pub fn ForumBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_name = get_forum_name_memo(use_params_map());
-    let forum_reload_signal = RwSignal::new(0);
     let update_forum_desc_action = ServerAction::<UpdateForumDescription>::new();
     let set_forum_category_action = ServerAction::<SetForumCategory>::new();
     let delete_forum_category_action = ServerAction::<DeleteForumCategory>::new();
@@ -501,7 +499,6 @@ pub fn ForumBanner() -> impl IntoView {
     let remove_rule_action = ServerAction::<RemoveRule>::new();
     let forum_state = ForumState {
         forum_name,
-        forum_reload_signal,
         category_id_filter: RwSignal::new(None),
         permission_level: Signal::derive(
             move || match &(*state.user.read()) {
@@ -513,7 +510,7 @@ pub fn ForumBanner() -> impl IntoView {
             move || (
                 forum_name.get(),
                 update_forum_desc_action.version().get(),
-                forum_reload_signal.get(),
+                state.forum_reload_signal.get(),
             ),
             move |(forum_name, _, _)| get_forum_by_name(forum_name)
         ),
@@ -561,7 +558,7 @@ pub fn ForumBanner() -> impl IntoView {
                         href=forum_path()
                         class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-40 flex items-center justify-center"
                         style:background-image=forum_banner_image
-                        style:background-position="top left"
+                        style:background-position="center"
                         style:background-repeat="no-repeat"
                         style:background-size="cover"
                     >

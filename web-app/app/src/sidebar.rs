@@ -50,6 +50,7 @@ pub fn LeftSidebar() -> impl IntoView {
                 state.handle_auth_redirect_action.version().get(),
                 state.logout_action.version().get(),
                 state.create_forum_action.version().get(),
+                state.forum_reload_signal.get(),
                 state.subscribe_action.version().get(),
                 state.unsubscribe_action.version().get(),
             )
@@ -57,7 +58,7 @@ pub fn LeftSidebar() -> impl IntoView {
         |_| get_subscribed_forum_headers(),
     );
     let popular_forum_vec_resource = Resource::new(
-        move || (),
+        move || state.forum_reload_signal.get(),
         |_| get_popular_forum_headers(),
     );
 

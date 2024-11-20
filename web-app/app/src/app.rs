@@ -28,6 +28,7 @@ pub struct GlobalState {
     pub unsubscribe_action: ServerAction<Unsubscribe>,
     pub edit_post_action: ServerAction<EditPost>,
     pub create_forum_action: ServerAction<CreateForum>,
+    pub forum_reload_signal: RwSignal<usize>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
     pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
@@ -46,6 +47,7 @@ impl Default for GlobalState {
             unsubscribe_action: ServerAction::<Unsubscribe>::new(),
             edit_post_action: ServerAction::<EditPost>::new(),
             create_forum_action,
+            forum_reload_signal: RwSignal::new(0),
             post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
             user: Resource::new(

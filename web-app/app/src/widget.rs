@@ -11,7 +11,6 @@ use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::errors::{AppError, ErrorDisplay};
-use crate::forum::ForumState;
 use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
 
 pub const FORUM_NAME_PARAM: &str = "forum_name";
@@ -281,8 +280,8 @@ pub fn ForumImageForm(
                     match action.value().get()
                     {
                         Some(Ok(())) => {
-                            if let Some(forum_state) = use_context::<ForumState>() {
-                                forum_state.forum_reload_signal.update(|value| *value += 1);
+                            if let Some(state) = use_context::<GlobalState>() {
+                                state.forum_reload_signal.update(|value| *value += 1);
                             }
                             ().into_any()
                         }

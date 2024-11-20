@@ -240,7 +240,7 @@ pub fn FormMarkdownEditor(
                         class="w-full resize-none box-border bg-base-100 p-1 rounded-sm outline-none"
                         autofocus
                         on:input=move |ev| {
-                            data.set_content.update(|content: &mut String| *content = event_target_value(&ev));
+                            data.set_content.set(event_target_value(&ev));
                         }
                         node_ref=data.textarea_ref
                     >
@@ -312,15 +312,13 @@ pub fn FormatButton(
                         (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
                             let selection_start = selection_start as usize;
                             let selection_end = selection_end as usize;
-                            data.set_content.update(|content| {
-                                format_textarea_content(
-                                    content,
-                                    selection_start,
-                                    selection_end,
-                                    format_type,
-                                );
-                            });
-                            data.content.with_untracked(|content| textarea_ref.set_value(content));
+                            format_textarea_content(
+                                &mut data.set_content.write(),
+                                selection_start,
+                                selection_end,
+                                format_type,
+                            );
+                            textarea_ref.set_value(&*data.content.read_untracked());
                             if !is_markdown_mode.get_untracked() {
                                 is_markdown_mode.set(true);
                             }

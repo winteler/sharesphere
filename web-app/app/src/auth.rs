@@ -425,7 +425,7 @@ fn LoginButton<
 #[component]
 pub fn AuthCallback() -> impl IntoView {
     let query = use_query_map();
-    let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
+    let code = move || query.read_untracked().get("code").unwrap().to_string();
     let auth_resource = Resource::new_blocking(
         || (),
         move |_| {

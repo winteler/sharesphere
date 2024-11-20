@@ -901,11 +901,7 @@ pub fn CreatePost() -> impl IntoView {
 
     let query = use_query_map();
     let forum_query = move || {
-        query.with_untracked(|query| {
-            query
-                .get(CREATE_POST_FORUM_QUERY_PARAM)
-                .unwrap_or(String::default())
-        })
+        query.read_untracked().get(CREATE_POST_FORUM_QUERY_PARAM).unwrap_or_default()
     };
 
     let forum_name_input = RwSignal::new(forum_query());
@@ -944,7 +940,7 @@ pub fn CreatePost() -> impl IntoView {
                                 autocomplete="off"
                                 class="input input-bordered input-primary w-full h-input_m"
                                 on:input=move |ev| {
-                                    forum_name_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                                    forum_name_input.set(event_target_value(&ev).to_lowercase());
                                 }
                                 prop:value=forum_name_input
                             />
@@ -956,7 +952,7 @@ pub fn CreatePost() -> impl IntoView {
                                         <li>
                                             <button
                                                 type="button"
-                                                on:click=move |_| forum_name_input.update(|name| *name = forum_header.forum_name.clone())
+                                                on:click=move |_| forum_name_input.set(forum_header.forum_name.clone())
                                             >
                                                 <ForumHeader forum_header=forum_header.clone()/>
                                             </button>
@@ -1054,7 +1050,7 @@ pub fn EditPostForm(
         set_content: body_autosize.set_content,
         textarea_ref,
     };
-    body_data.set_content.update(|content| *content = current_body);
+    body_data.set_content.set(current_body);
     let is_post_empty = Signal::derive(move || body_data.content.read().is_empty());
 
     view! {

@@ -901,7 +901,7 @@ pub fn EditCommentForm(
         set_content: comment_autosize.set_content,
         textarea_ref,
     };
-    comment_data.set_content.update(|content| *content = current_body);
+    comment_data.set_content.set(current_body);
     let is_comment_empty = Signal::derive(
         move || comment_data.content.read().is_empty()
     );
@@ -934,7 +934,7 @@ pub fn EditCommentForm(
                         data=comment_data
                         is_markdown
                     />
-                    <IsPinnedCheckbox forum_name value=comment.with_untracked(|comment| comment.is_pinned)/>
+                    <IsPinnedCheckbox forum_name value=comment.read_untracked().is_pinned/>
                     <ModalFormButtons
                         disable_publish=is_comment_empty
                         show_form

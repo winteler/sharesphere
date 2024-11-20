@@ -436,7 +436,7 @@ pub fn on_content_vote(
     vote_action: ServerAction<VoteOnContent>,
     is_upvote: bool,
 ) {
-    vote.update(|vote| update_vote_value(vote, is_upvote));
+    update_vote_value(&mut vote.write(), is_upvote);
 
     log::trace!("Content vote value {:?}", vote.get_untracked());
 

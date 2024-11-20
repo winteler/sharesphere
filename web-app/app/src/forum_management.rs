@@ -749,7 +749,7 @@ pub fn ForumDescriptionForm(
         set_content: description_autosize.set_content,
         textarea_ref
     };
-    description_data.set_content.update(move |content| *content = forum.description.clone());
+    description_data.set_content.set(forum.description.clone());
     let disable_submit = move || description_data.content.read().is_empty();
     view! {
         <ActionForm
@@ -927,7 +927,7 @@ pub fn SetCategoryForm(
                             autocomplete="off"
                             class="input input-bordered input-primary w-2/6"
                             on:input=move |ev| {
-                                category_input.update(|name: &mut String| *name = event_target_value(&ev));
+                                category_input.set(event_target_value(&ev));
                             }
                             prop:value=category_input
                         />
@@ -1077,7 +1077,7 @@ pub fn PermissionLevelForm(
                             autocomplete="off"
                             class="input input-bordered input-primary w-full"
                             on:input=move |ev| {
-                                username_input.update(|name: &mut String| *name = event_target_value(&ev).to_lowercase());
+                                username_input.set(event_target_value(&ev).to_lowercase());
                             }
                             prop:value=username_input
                         />
@@ -1090,7 +1090,7 @@ pub fn PermissionLevelForm(
                                         let:child
                                     >
                                         <li>
-                                            <button type="button" value=child.1.clone() on:click=move |ev| username_input.update(|name| *name = event_target_value(&ev))>
+                                            <button type="button" value=child.1.clone() on:click=move |ev| username_input.set(event_target_value(&ev))>
                                                 {child.1.clone()}
                                             </button>
                                         </li>
@@ -1375,7 +1375,7 @@ pub fn BanPanel() -> impl IntoView {
                             class="input input-bordered input-primary px-6 w-2/5"
                             placeholder="Username"
                             value=username_input
-                            on:input=move |ev| username_input.update(|user_prefix: &mut String| *user_prefix = event_target_value(&ev))
+                            on:input=move |ev| username_input.set(event_target_value(&ev))
                         />
                         <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
                     </div>

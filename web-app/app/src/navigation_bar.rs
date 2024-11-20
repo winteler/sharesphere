@@ -38,20 +38,20 @@ pub fn get_forum_from_path(path: &str) -> Option<String> {
 }
 
 pub fn get_forum_name(forum_name: RwSignal<String>) {
-    let path = window().location().pathname().unwrap_or(String::default());
+    let path = window().location().pathname().unwrap_or_default();
     forum_name.update(|name| *name = get_forum_from_path(&path).unwrap_or_default());
 }
 
 pub fn get_create_post_path(create_post_route: RwSignal<String>) {
-    let path = window().location().pathname().unwrap_or(String::default());
+    let path = window().location().pathname().unwrap_or_default();
     log::debug!("Current path: {path}");
 
     let current_forum = get_forum_from_path(&path);
 
     if let Some(forum_name) = current_forum {
-        create_post_route.update(|value| *value = format!("{CREATE_POST_ROUTE}?{CREATE_POST_FORUM_QUERY_PARAM}={forum_name}"));
+        create_post_route.set(format!("{CREATE_POST_ROUTE}?{CREATE_POST_FORUM_QUERY_PARAM}={forum_name}"));
     } else {
-        create_post_route.update(|value| *value = String::from(CREATE_POST_ROUTE));
+        create_post_route.set(String::from(CREATE_POST_ROUTE));
     };
 }
 
@@ -145,7 +145,7 @@ pub fn PlusMenu() -> impl IntoView {
                 <li>
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }.into_any()
-                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.update(|value: &mut String| *value = String::from(CREATE_FORUM_ROUTE)))
+                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.set(String::from(CREATE_FORUM_ROUTE)))
                         let:_user
                     >
                         <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>

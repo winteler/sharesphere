@@ -828,7 +828,7 @@ pub fn ForumPostMiniatures(
                     }
                 }
             />
-            <Show when=move || load_error.with(|error| error.is_some())>
+            <Show when=move || load_error.read().is_some()>
             {
                 let mut outside_errors = Errors::default();
                 outside_errors.insert_with_default_key(load_error.get().unwrap());
@@ -894,7 +894,7 @@ pub fn CreateForum() -> impl IntoView {
                             class="input input-bordered input-primary h-input_l flex-none w-3/5"
                             autofocus
                             on:input=move |ev| {
-                                forum_name.update(|value| *value = event_target_value(&ev));
+                                forum_name.set(event_target_value(&ev));
                             }
                             prop:value=forum_name
                         />

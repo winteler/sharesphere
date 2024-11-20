@@ -596,15 +596,15 @@ pub fn ModerationInfoButton(
     let state = expect_context::<GlobalState>();
     let forum_state = expect_context::<ForumState>();
     let show_button = move || {
-        let (is_moderated, creator_id) = content.with(|content| match &content {
+        let (is_moderated, creator_id) = match &*content.read() {
             Content::Post(post) => (post.infringed_rule_id.is_some(), post.creator_id),
             Content::Comment(comment) => (comment.infringed_rule_id.is_some(), comment.creator_id),
-        });
+        };
         let is_author = match &(*state.user.read()) {
             Some(Ok(Some(user))) => user.user_id == creator_id,
             _ => false
         };
-        let is_moderator = forum_state.permission_level.with(|value| *value >= PermissionLevel::Moderate);
+        let is_moderator = *forum_state.permission_level.read() >= PermissionLevel::Moderate;
         is_moderated && (is_author || is_moderator)
     };
     let show_dialog = RwSignal::new(false);
@@ -612,8 +612,7 @@ pub fn ModerationInfoButton(
         true => "btn btn-circle btn-sm btn-primary",
         false => "btn btn-circle btn-sm btn-ghost",
     };
-
-
+    
     view! {
         <Show when=show_button>
             <button

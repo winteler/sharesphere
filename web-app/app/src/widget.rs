@@ -123,7 +123,7 @@ pub fn ModeratorWidget(
     moderator: Signal<Option<String>>
 ) -> impl IntoView {
     view! {
-        <Show when=move || moderator.with(|moderator| moderator.is_some())>
+        <Show when=move || moderator.read().is_some()>
             <div class="flex px-1 gap-1.5 items-center text-sm">
                 <ModeratorIcon/>
                 {
@@ -157,7 +157,7 @@ pub fn TimeSinceEditWidget(
     edit_timestamp: Signal<Option<chrono::DateTime<chrono::Utc>>>
 ) -> impl IntoView {
     view! {
-        <Show when=move || edit_timestamp.with(|edit_timestamp| edit_timestamp.is_some())>
+        <Show when=move || edit_timestamp.read().is_some()>
             <div class="flex gap-1.5 items-center text-sm px-1">
                 <EditTimeIcon/>
                 {

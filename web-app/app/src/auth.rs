@@ -1,8 +1,8 @@
 use std::env;
 
 use leptos::prelude::*;
-use leptos_router::NavigateOptions;
-use leptos_router::{hooks::{use_navigate, use_query}, params::Params};
+use leptos_router::hooks::use_query_map;
+use leptos_router::params::Params;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
@@ -13,6 +13,7 @@ use openidconnect::{OAuth2TokenResponse, TokenResponse};
 use crate::app::GlobalState;
 use crate::errors::AppError;
 use crate::icons::LoadingIcon;
+use crate::unpack::SuspenseUnpack;
 use crate::user::User;
 #[cfg(feature = "ssr")]
 use crate::{
@@ -290,7 +291,7 @@ pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError<A
 }
 
 #[server]
-pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnError<AppError>> {
+pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError<AppError>> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -312,8 +313,8 @@ pub async fn authenticate_user(auth_code: String) -> Result<String, ServerFnErro
         .map_err(AppError::from)?;
 
     ssr::process_token_response(token_response, auth_session, client).await?;
-
-    Ok(redirect_url)
+    leptos_axum::redirect(redirect_url.as_ref());
+    Ok(())
 }
 
 #[server]
@@ -389,7 +390,7 @@ pub fn LoginGuardButton<
                 match &state.user.await {
                     Ok(Some(user)) => children.with_value(|children| children(user)).into_any(),
                     _ => {
-                        let login_button_view = login_button_content.get_value().run();
+                        let login_button_view = login_button_content.with_value(|content| content.run());
                         view! { <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton> }.into_any()
                     },
                 }
@@ -423,26 +424,24 @@ fn LoginButton<
 /// Auth callback component
 #[component]
 pub fn AuthCallback() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let query = use_query::<OAuthParams>();
-    let navigate = use_navigate();
-
-    Effect::new(move |_| {
-        if let Some(Ok(redirect_path)) = state.handle_auth_redirect_action.value().get()
-        {
-            navigate(redirect_path.as_str(), NavigateOptions::default());
+    let query = use_query_map();
+    let code = move || query.with_untracked(|query| query.get("code").unwrap().to_string());
+    let auth_resource = Resource::new_blocking(
+        || (),
+        move |_| {
+            log::trace!("Authenticate user.");
+            authenticate_user(code())
         }
-    });
+    );
 
-
-    Effect::new(move |_| {
-        if let Ok(OAuthParams { code, state: _auth_state }) = query.get_untracked() {
-            state.handle_auth_redirect_action.dispatch(AuthenticateUser {
-                auth_code: code.unwrap_or_default(),
-            });
-        } else {
-            log::error!("error parsing oauth params");
-        }
-    });
-    view! {}
+    view! {
+        <SuspenseUnpack
+            resource=auth_resource
+            let:_auth_result
+        >
+            {
+                log::debug!("Authenticated successfully");
+            }
+        </SuspenseUnpack>
+    }.into_any()
 }

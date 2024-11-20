@@ -47,7 +47,6 @@ pub fn LeftSidebar() -> impl IntoView {
     let subscribed_forum_vec_resource = Resource::new(
         move || {
             (
-                state.handle_auth_redirect_action.version().get(),
                 state.logout_action.version().get(),
                 state.create_forum_action.version().get(),
                 state.forum_reload_signal.get(),
@@ -188,5 +187,13 @@ pub fn ModeratorList() -> impl IntoView {
                 </div>
             </ArcTransitionUnpack>
         </div>
+    }
+}
+
+/// List of categories for a forum
+#[component]
+pub fn CategoryList() -> impl IntoView {
+    view! {
+        
     }
 }

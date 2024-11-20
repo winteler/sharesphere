@@ -591,13 +591,12 @@ pub fn BanMenu() -> impl IntoView {
 #[component]
 pub fn ModerationInfoButton(
     #[prop(into)]
-    content: MaybeSignal<Content>,
+    content: Signal<Content>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let forum_state = expect_context::<ForumState>();
-    let content = StoredValue::new(content);
     let show_button = move || {
-        let (is_moderated, creator_id) = content.get_value().with(|content| match &content {
+        let (is_moderated, creator_id) = content.with(|content| match &content {
             Content::Post(post) => (post.infringed_rule_id.is_some(), post.creator_id),
             Content::Comment(comment) => (comment.infringed_rule_id.is_some(), comment.creator_id),
         });
@@ -628,7 +627,7 @@ pub fn ModerationInfoButton(
                 show_dialog
             >
                 <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-                    <ContentModerationInfo content=content.get_value()/>
+                    <ContentModerationInfo content=content/>
                     <button
                         type="button"
                         class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
@@ -646,7 +645,7 @@ pub fn ModerationInfoButton(
 #[component]
 pub fn ContentModerationInfo(
     #[prop(into)]
-    content: MaybeSignal<Content>,
+    content: Signal<Content>,
 ) -> impl IntoView {
     let mod_info_resource = Resource::new(
         move || content.get(),

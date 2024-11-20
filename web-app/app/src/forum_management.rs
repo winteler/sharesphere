@@ -1194,7 +1194,7 @@ pub fn DeleteRuleButton(
                 <input
                     name="priority"
                     class="hidden"
-                    value=rule.get_value().priority
+                    value=rule.with_value(|rule| rule.priority)
                 />
                 <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                     <DeleteIcon/>
@@ -1211,8 +1211,8 @@ pub fn EditRuleForm(
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
-    let rule = rule.get_value();
-    let priority = RwSignal::new(rule.priority.to_string());
+    let rule_priority = rule.with_value(|rule| rule.priority);
+    let priority = RwSignal::new(rule_priority.to_string());
     let title_ref = NodeRef::<html::Textarea>::new();
     let title_autosize = use_textarea_autosize(title_ref);
     let title_data = TextareaData {
@@ -1243,7 +1243,7 @@ pub fn EditRuleForm(
                 <input
                     name="current_priority"
                     class="hidden"
-                    value=rule.priority
+                    value=rule_priority
                 />
                 <div class="flex flex-col gap-3 w-full">
                     <RuleInputs priority title_data description_data/>

@@ -120,15 +120,14 @@ pub fn CommentCountWidget(
 #[component]
 pub fn ModeratorWidget(
     #[prop(into)]
-    moderator: MaybeSignal<Option<String>>
+    moderator: Signal<Option<String>>
 ) -> impl IntoView {
-    let moderator = StoredValue::new(moderator);
     view! {
-        <Show when=move || moderator.get_value().with(|moderator| moderator.is_some())>
+        <Show when=move || moderator.with(|moderator| moderator.is_some())>
             <div class="flex px-1 gap-1.5 items-center text-sm">
                 <ModeratorIcon/>
                 {
-                    move || moderator.get_value().get().unwrap_or_default()
+                    move || moderator.get().unwrap_or_default()
                 }
             </div>
         </Show>
@@ -139,7 +138,7 @@ pub fn ModeratorWidget(
 #[component]
 pub fn TimeSinceWidget(
     #[prop(into)]
-    timestamp: MaybeSignal<chrono::DateTime<chrono::Utc>>
+    timestamp: Signal<chrono::DateTime<chrono::Utc>>
 ) -> impl IntoView {
     view! {
         <div class="flex gap-1.5 items-center text-sm px-1">
@@ -155,7 +154,7 @@ pub fn TimeSinceWidget(
 #[component]
 pub fn TimeSinceEditWidget(
     #[prop(into)]
-    edit_timestamp: MaybeSignal<Option<chrono::DateTime<chrono::Utc>>>
+    edit_timestamp: Signal<Option<chrono::DateTime<chrono::Utc>>>
 ) -> impl IntoView {
     view! {
         <Show when=move || edit_timestamp.with(|edit_timestamp| edit_timestamp.is_some())>
@@ -201,7 +200,7 @@ pub fn MinimizeMaximizeWidget(
 #[component]
 pub fn ForumImageForm(
     #[prop(into)]
-    forum_name: MaybeSignal<String>,
+    forum_name: Signal<String>,
     action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
     #[prop(default = "max-h-80 max-w-full object-contain")]
     preview_class: &'static str,

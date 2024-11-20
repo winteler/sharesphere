@@ -7,7 +7,6 @@ use strum_macros::{Display, EnumString, IntoStaticStr};
 
 use crate::app::GlobalState;
 use crate::errors::AppError;
-use crate::forum::ForumState;
 use crate::unpack::ArcTransitionUnpack;
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, user::ssr::SqlUser};
@@ -283,13 +282,10 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
     view! {
         <ArcTransitionUnpack resource=state.user let:user>
             <Show when=move || match &*user {
-                Some(user) => user.check_permissions(&*forum_name.read(), permission_level).is_ok(),
+                Some(user) => user.check_permissions(&forum_name.read(), permission_level).is_ok(),
                 None => false,
             }>
             {
-                if let Some(forum_state) = use_context::<ForumState>() {
-                    provide_context(forum_state);
-                }
                 children.with_value(|children| children())
             }
             </Show>

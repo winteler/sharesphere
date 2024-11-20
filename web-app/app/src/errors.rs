@@ -229,13 +229,12 @@ pub fn ErrorDisplay(
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
+    use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, FORUM_BAN_UNTIL_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_FORUM_BAN_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, UNAVAILABLE_MESSAGE};
     use http::StatusCode;
     use leptos::prelude::ServerFnError;
     use leptos::server_fn::error::NoCustomError;
-
-    use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, FORUM_BAN_UNTIL_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_FORUM_BAN_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, UNAVAILABLE_MESSAGE};
+    use quick_xml::errors::SyntaxError;
+    use std::str::FromStr;
 
     #[test]
     fn test_app_error_status_code() {
@@ -370,25 +369,45 @@ mod tests {
 
     #[test]
     fn test_app_error_from_server_fn_error() {
-        let internal_error_str = "Internal error";
-        let request_error = ServerFnError::Request(String::from("Request error"));
-        let response_error = ServerFnError::Response(String::from("Response error"));
-        let args_error = ServerFnError::Args(String::from("Args error"));
-        let missing_arg_error = ServerFnError::MissingArg(String::from("Missing arg error"));
-        let serialization_error = ServerFnError::Serialization(String::from("Serialization error"));
-        let deserialization_error = ServerFnError::Deserialization(String::from("Deserialization error"));
-        let registration_error = ServerFnError::Registration(String::from("Registration error"));
-        let wrapped_error = ServerFnError::WrappedServerError(NoCustomError);
-
-        assert_eq!(AppError::from(&ServerFnError::new(internal_error_str)), AppError::InternalServerError(String::from(internal_error_str)));
-        assert_eq!(AppError::from(&request_error), AppError::CommunicationError(request_error));
-        assert_eq!(AppError::from(&response_error), AppError::CommunicationError(response_error));
-        assert_eq!(AppError::from(&args_error), AppError::CommunicationError(args_error));
-        assert_eq!(AppError::from(&missing_arg_error), AppError::CommunicationError(missing_arg_error));
-        assert_eq!(AppError::from(&serialization_error), AppError::CommunicationError(serialization_error));
-        assert_eq!(AppError::from(&deserialization_error), AppError::CommunicationError(deserialization_error));
-        assert_eq!(AppError::from(&registration_error), AppError::CommunicationError(registration_error));
-        assert_eq!(AppError::from(&wrapped_error), AppError::CommunicationError(wrapped_error));
+        let error_message = String::from("error");
+        let wrapped_error = ServerFnError::<AppError>::WrappedServerError(AppError::NotAuthenticated);
+        assert_eq!(
+            AppError::from(&ServerFnError::<AppError>::ServerError(error_message.clone())),
+            AppError::InternalServerError(error_message.clone())
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::ServerError(error_message.clone())),
+            AppError::InternalServerError(error_message.clone())
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::Request(error_message.clone())),
+            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Request(error_message.clone())))
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::Response(error_message.clone())),
+            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Response(error_message.clone())))
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::Args(error_message.clone())),
+            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Args(error_message.clone())))
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::MissingArg(error_message.clone())),
+            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::MissingArg(error_message.clone())))
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::Serialization(error_message.clone())),
+            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Serialization(error_message.clone())))
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::Deserialization(error_message.clone())),
+            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Deserialization(error_message.clone())))
+        );
+        assert_eq!(
+            AppError::from(ServerFnError::<AppError>::Registration(error_message.clone())),
+            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Registration(error_message.clone())))
+        );
+        assert_eq!(AppError::from(&wrapped_error), AppError::NotAuthenticated);
     }
 
     #[test]
@@ -434,10 +453,7 @@ mod tests {
 
     #[test]
     fn test_app_error_from_quick_xml_error() {
-        let error = quick_xml::Error::InvalidPrefixBind {
-            prefix: vec![1],
-            namespace: vec![1],
-        };
+        let error = quick_xml::Error::Syntax(SyntaxError::UnclosedComment);
         assert_eq!(AppError::from(error.clone()), AppError::InternalServerError(error.to_string()));
     }
 }

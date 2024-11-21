@@ -16,27 +16,23 @@ pub fn ForumLinkList(
         return ().into_any()
     }
     view! {
-        <ul class="menu h-full">
-            <li>
-                <details open>
-                    <summary class="text-xl font-medium">{title}</summary>
-                    <ul class="menu-dropdown">
-                    {
-                        forum_header_vec.into_iter().map(|forum_header| {
-                            let forum_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_header.forum_name;
-                            view! {
-                                <li>
-                                    <a href=forum_path>
-                                        <ForumHeader forum_header/>
-                                    </a>
-                                </li>
-                            }
-                        }).collect_view()
+        <details class="collapse collapse-arrow menu" open>
+            <summary class="collapse-title text-xl font-medium rounded-md hover:bg-base-content/20">{title}</summary>
+            <ul class="collapse-content menu-dropdown">
+            {
+                forum_header_vec.into_iter().map(|forum_header| {
+                    let forum_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_header.forum_name;
+                    view! {
+                        <li>
+                            <a href=forum_path>
+                                <ForumHeader forum_header/>
+                            </a>
+                        </li>
                     }
-                    </ul>
-                </details>
-            </li>
-        </ul>
+                }).collect_view()
+            }
+            </ul>
+        </details>
     }.into_any()
 }
 
@@ -104,9 +100,9 @@ pub fn HomeSidebar() -> impl IntoView {
 pub fn ForumSidebar() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col gap-4 justify-start w-80 h-full px-4 py-2">
+        <div class="flex flex-col gap-2 justify-start w-80 h-full px-4 py-2">
             <div class="flex flex-col gap-2">
-                <div class="text-2xl text-center">{forum_state.forum_name}</div>
+                <div class="text-2xl font-semibold text-center">{forum_state.forum_name}</div>
                 <ArcTransitionUnpack resource=forum_state.forum_resource let:forum>
                     <div class="pl-4 whitespace-pre-wrap">{forum.description.clone()}</div>
                 </ArcTransitionUnpack>
@@ -122,39 +118,37 @@ pub fn ForumSidebar() -> impl IntoView {
 pub fn ForumRuleList() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col gap-1">
-            <div class="text-xl text-center">"Rules"</div>
-            <ArcTransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
-                <div class="flex flex-col gap-1 pl-4">
-                    <For
-                        each= move || (*forum_rule_vec).clone().into_iter().enumerate()
-                        key=|(_index, rule)| (rule.rule_id)
-                        children=move |(_, rule)| {
-                            let show_description = RwSignal::new(false);
-                            let description = StoredValue::new(rule.description);
-                            let class = move || match show_description.get() {
-                                true => "transition duration-500 opacity-100 visible",
-                                false => "transition duration-500 opacity-0 invisible h-0",
-                            };
-                            view! {
-                                <div class="flex flex-col gap-1">
-                                    <div
-                                        class="flex justify-between"
-                                        on:click=move |_| show_description.update(|value| *value = !*value)
-                                    >
-                                        <div class="text-l font-bold">{rule.title}</div>
-                                        <MinimizeMaximizeWidget is_maximized=show_description/>
-                                    </div>
-                                    <div class=class>
-                                        {description.get_value()}
-                                    </div>
+        <details class="collapse collapse-arrow rounded-md" open>
+            <summary class="collapse-title text-xl font-semibold rounded-md hover:bg-base-content/20">"Rules"</summary>
+            <div class="collapse-content flex flex-col gap-1 pl-4 pt-1">
+                <TransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
+                {
+                    forum_rule_vec.iter().map(|rule| {
+                        let show_description = RwSignal::new(false);
+                        let description = StoredValue::new(rule.description.clone());
+                        let class = move || match show_description.get() {
+                            true => "transition duration-500 opacity-100 visible",
+                            false => "transition duration-500 opacity-0 invisible h-0",
+                        };
+                        view! {
+                            <div class="flex flex-col gap-1">
+                                <div
+                                    class="flex justify-between"
+                                    on:click=move |_| show_description.update(|value| *value = !*value)
+                                >
+                                    <div class="text-l font-semibold">{rule.title.clone()}</div>
+                                    <MinimizeMaximizeWidget is_maximized=show_description/>
                                 </div>
-                            }
+                                <div class=class>
+                                    {description.get_value()}
+                                </div>
+                            </div>
                         }
-                    />
-                </div>
-            </ArcTransitionUnpack>
-        </div>
+                    }).collect_view()
+                }
+                </TransitionUnpack>
+            </div>
+        </details>
     }
 }
 
@@ -163,30 +157,27 @@ pub fn ForumRuleList() -> impl IntoView {
 pub fn ModeratorList() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <div class="flex flex-col gap-1">
-            <div class="text-xl text-center">"Moderators"</div>
-            <ArcTransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
-                <div class="flex flex-col gap-1">
-                    <div class="flex border-b border-base-content/20 pl-4">
-                        <div class="w-1/2 py-2 text-left font-bold">Username</div>
-                        <div class="w-1/2 py-2 text-left font-bold">Role</div>
-                    </div>
-                    <For
-                        each= move || (*forum_role_vec).clone().into_iter().enumerate()
-                        key=|(_index, role)| (role.user_id, role.permission_level)
-                        children=move |(_, role)| {
-                            let username = StoredValue::new(role.username);
-                            view! {
-                                <div class="flex py-1 rounded hover:bg-base-content/20 pl-4">
-                                    <div class="w-1/2 select-none">{username.get_value()}</div>
-                                    <div class="w-1/2 select-none">{role.permission_level.to_string()}</div>
-                                </div>
-                            }
-                        }
-                    />
+        <details class="collapse collapse-arrow rounded-md" open>
+            <summary class="collapse-title text-xl font-semibold rounded-md hover:bg-base-content/20">"Moderators"</summary>
+            <div class="flex flex-col gap-1">
+                <div class="flex border-b border-base-content/20 pl-4">
+                    <div class="w-1/2 py-2 text-left font-semibold">Username</div>
+                    <div class="w-1/2 py-2 text-left font-semibold">Role</div>
                 </div>
-            </ArcTransitionUnpack>
-        </div>
+                <TransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
+                {
+                    forum_role_vec.iter().map(|role| {
+                        view! {
+                            <div class="flex py-1 rounded hover:bg-base-content/20 pl-4">
+                                <div class="w-1/2 select-none">{role.username.clone()}</div>
+                                <div class="w-1/2 select-none">{role.permission_level.to_string()}</div>
+                            </div>
+                        }
+                    }).collect_view()
+                }
+                </TransitionUnpack>
+            </div>
+        </details>
     }
 }
 

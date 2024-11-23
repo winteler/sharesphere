@@ -4,7 +4,7 @@ use crate::app::GlobalState;
 use crate::constants::PATH_SEPARATOR;
 use crate::forum::{get_popular_forum_headers, get_subscribed_forum_headers, ForumHeader, ForumState, FORUM_ROUTE_PREFIX};
 use crate::unpack::{ArcTransitionUnpack, TransitionUnpack};
-use crate::widget::MinimizeMaximizeWidget;
+use crate::widget::{Collapse, TitleCollapse};
 
 /// Component to display a list of forum links
 #[component]
@@ -16,23 +16,22 @@ pub fn ForumLinkList(
         return ().into_any()
     }
     view! {
-        <details class="collapse collapse-arrow menu" open>
-            <summary class="collapse-title text-xl font-medium rounded-md hover:bg-base-content/20">{title}</summary>
-            <ul class="collapse-content menu-dropdown">
+        <TitleCollapse title=title>
+            <ul class="flex flex-col pt-1 pl-1">
             {
-                forum_header_vec.into_iter().map(|forum_header| {
+                forum_header_vec.iter().map(|forum_header| {
                     let forum_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_header.forum_name;
                     view! {
-                        <li>
+                        <li class="rounded hover:bg-base-content/20">
                             <a href=forum_path>
-                                <ForumHeader forum_header/>
+                                <ForumHeader forum_header=forum_header.clone()/>
                             </a>
                         </li>
                     }
                 }).collect_view()
             }
             </ul>
-        </details>
+        </TitleCollapse>
     }.into_any()
 }
 
@@ -58,7 +57,7 @@ pub fn LeftSidebar() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col justify-start w-60 h-full max-2xl:bg-base-300">
+        <div class="flex flex-col justify-start w-60 h-full pl-2 pt-2 max-2xl:bg-base-300">
             <div>
                 <TransitionUnpack resource=subscribed_forum_vec_resource let:forum_header_vec>
                     <ForumLinkList
@@ -118,37 +117,34 @@ pub fn ForumSidebar() -> impl IntoView {
 pub fn ForumRuleList() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <details class="collapse collapse-arrow rounded-md" open>
-            <summary class="collapse-title text-xl font-semibold rounded-md hover:bg-base-content/20">"Rules"</summary>
-            <div class="collapse-content flex flex-col gap-1 pl-4 pt-1">
+        <TitleCollapse title="Rules">
+            <div class="flex flex-col pl-2 pt-1">
                 <TransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
                 {
+                    let mut index = 0usize;
                     forum_rule_vec.iter().map(|rule| {
-                        let show_description = RwSignal::new(false);
                         let description = StoredValue::new(rule.description.clone());
-                        let class = move || match show_description.get() {
-                            true => "transition duration-500 opacity-100 visible",
-                            false => "transition duration-500 opacity-0 invisible h-0",
-                        };
-                        view! {
-                            <div class="flex flex-col gap-1">
-                                <div
-                                    class="flex justify-between"
-                                    on:click=move |_| show_description.update(|value| *value = !*value)
-                                >
-                                    <div class="text-l font-semibold">{rule.title.clone()}</div>
-                                    <MinimizeMaximizeWidget is_maximized=show_description/>
-                                </div>
-                                <div class=class>
-                                    {description.get_value()}
-                                </div>
+                        let title = rule.title.clone();
+                        let title_view = move || view! {
+                            <div class="flex gap-4 text-lg font-medium items-center">
+                                <div>{index}</div>
+                                <div>{title}</div>
                             </div>
+                        };
+                        index += 1;
+                        view! {
+                            <Collapse
+                                title_view
+                                is_open=false
+                            >
+                                <div class="pl-4">{description.get_value()}</div>
+                            </Collapse>
                         }
                     }).collect_view()
                 }
                 </TransitionUnpack>
             </div>
-        </details>
+        </TitleCollapse>
     }
 }
 
@@ -157,8 +153,7 @@ pub fn ForumRuleList() -> impl IntoView {
 pub fn ModeratorList() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     view! {
-        <details class="collapse collapse-arrow rounded-md" open>
-            <summary class="collapse-title text-xl font-semibold rounded-md hover:bg-base-content/20">"Moderators"</summary>
+         <TitleCollapse title="Moderators">
             <div class="flex flex-col gap-1">
                 <div class="flex border-b border-base-content/20 pl-4">
                     <div class="w-1/2 py-2 text-left font-semibold">Username</div>
@@ -177,7 +172,7 @@ pub fn ModeratorList() -> impl IntoView {
                 }
                 </TransitionUnpack>
             </div>
-        </details>
+        </TitleCollapse>
     }
 }
 

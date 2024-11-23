@@ -11,7 +11,7 @@ use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::errors::{AppError, ErrorDisplay};
-use crate::icons::{AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
+use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
 
 pub const FORUM_NAME_PARAM: &str = "forum_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -318,6 +318,90 @@ pub fn ModalFormButtons(
             >
                 "Publish"
             </button>
+        </div>
+    }
+}
+
+/// Component to render cancel and publish buttons for a modal Form
+#[component]
+pub fn Collapse<C>(
+    #[prop(into)]
+    title_view: ViewFnOnce,
+    #[prop(default = true)]
+    is_open: bool,
+    children: TypedChildrenFn<C>,
+) -> impl IntoView
+where
+    C : IntoView + 'static 
+{
+    let children = StoredValue::new(children.into_inner());
+    let show_children = RwSignal::new(is_open);
+    let children_class = move || match show_children.get() {
+        true => "transition duration-500 opacity-100 visible",
+        false => "opacity-0 invisible h-0",
+    };
+    let arrow_class = Signal::derive(move || match show_children.get() {
+        true => "h-3 w-3 transition duration-200",
+        false => "h-3 w-3 transition duration-200 rotate-180",
+    });
+    view! {
+        <div class="flex flex-col">
+            <button
+                class="px-2 py-1 rounded-md hover:bg-base-content/20"
+                on:click=move |_| show_children.update(|value| *value = !*value)
+            >
+                <div class="flex justify-between items-center">
+                    <div>{title_view.run()}</div>
+                    <ArrowUpIcon class=arrow_class/>
+                </div>
+            </button>
+            <div class=children_class>
+            {
+                children.with_value(|children| children())
+            }
+            </div>
+        </div>
+    }
+}
+
+
+/// Component to display a title with collapsable children
+#[component]
+pub fn TitleCollapse<C: IntoView + 'static>(
+    #[prop(into)]
+    title: String,
+    #[prop(default = "text-xl font-semibold")]
+    title_class: &'static str,
+    #[prop(default = true)]
+    is_open: bool,
+    children: TypedChildrenFn<C>,
+) -> impl IntoView {
+    let children = StoredValue::new(children.into_inner());
+    let show_children = RwSignal::new(is_open);
+    let children_class = move || match show_children.get() {
+        true => "transition duration-500 opacity-100 visible",
+        false => "opacity-0 invisible h-0",
+    };
+    let arrow_class = Signal::derive(move || match show_children.get() {
+        true => "h-3 w-3 transition duration-200",
+        false => "h-3 w-3 transition duration-200 rotate-180",
+    });
+    view! {
+        <div class="flex flex-col">
+            <button
+                class="p-2 rounded-md hover:bg-base-content/20"
+                on:click=move |_| show_children.update(|value| *value = !*value)
+            >
+                <div class="flex justify-between items-center">
+                    <div class=title_class>{title}</div>
+                    <ArrowUpIcon class=arrow_class/>
+                </div>
+            </button>
+            <div class=children_class>
+            {
+                children.with_value(|children| children())
+            }
+            </div>
         </div>
     }
 }

@@ -478,7 +478,7 @@ pub fn ForumHeader(
     forum_header: ForumHeader
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center p-2">
             <ForumIcon icon_url=forum_header.icon_url class="h-5 w-5"/>
             <span>{forum_header.forum_name}</span>
         </div>

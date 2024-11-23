@@ -8,6 +8,16 @@ pub fn AddCommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl 
 }
 
 #[component]
+pub fn ArrowUpIcon(
+    #[prop(into)]
+    class: Signal<&'static str>,
+) -> impl IntoView {
+    view! {
+        <img src="/svg/arrow_up.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/errors/alien.svg" class=class/>

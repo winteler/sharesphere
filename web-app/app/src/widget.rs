@@ -389,7 +389,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
     view! {
         <div class="flex flex-col">
             <button
-                class="p-2 rounded-md hover:bg-base-content/20"
+                class="p-1 rounded-md hover:bg-base-content/20"
                 on:click=move |_| show_children.update(|value| *value = !*value)
             >
                 <div class="flex justify-between items-center">

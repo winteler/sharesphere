@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use crate::app::GlobalState;
 use crate::constants::PATH_SEPARATOR;
 use crate::forum::{get_popular_forum_headers, get_subscribed_forum_headers, ForumHeader, ForumState, FORUM_ROUTE_PREFIX};
-use crate::unpack::{ArcTransitionUnpack, TransitionUnpack};
+use crate::unpack::TransitionUnpack;
 use crate::widget::{Collapse, TitleCollapse};
 
 /// Component to display a list of forum links
@@ -102,11 +102,15 @@ pub fn ForumSidebar() -> impl IntoView {
         <div class="flex flex-col gap-2 justify-start w-80 h-full px-4 py-2">
             <div class="flex flex-col gap-2">
                 <div class="text-2xl font-semibold text-center">{forum_state.forum_name}</div>
-                <ArcTransitionUnpack resource=forum_state.forum_resource let:forum>
+                <TransitionUnpack resource=forum_state.forum_resource let:forum>
                     <div class="pl-4 whitespace-pre-wrap">{forum.description.clone()}</div>
-                </ArcTransitionUnpack>
+                </TransitionUnpack>
             </div>
+            <div class="border-b border-base-content/20"/>
             <ForumRuleList/>
+            <div class="border-b border-base-content/20"/>
+            <ForumCategoryList/>
+            <div class="border-b border-base-content/20"/>
             <ModeratorList/>
         </div>
     }
@@ -126,7 +130,7 @@ pub fn ForumRuleList() -> impl IntoView {
                         let description = StoredValue::new(rule.description.clone());
                         let title = rule.title.clone();
                         let title_view = move || view! {
-                            <div class="flex gap-4 text-lg font-medium items-center">
+                            <div class="flex gap-4 items-center">
                                 <div>{index}</div>
                                 <div>{title}</div>
                             </div>
@@ -137,8 +141,36 @@ pub fn ForumRuleList() -> impl IntoView {
                                 title_view
                                 is_open=false
                             >
-                                <div class="pl-4">{description.get_value()}</div>
+                                <div class="pl-2 text-sm">{description.get_value()}</div>
                             </Collapse>
+                        }
+                    }).collect_view()
+                }
+                </TransitionUnpack>
+            </div>
+        </TitleCollapse>
+    }
+}
+
+/// List of categories for a forum
+#[component]
+pub fn ForumCategoryList() -> impl IntoView {
+    let forum_state = expect_context::<ForumState>();
+    view! {
+        <TitleCollapse title="Categories">
+            <div class="flex flex-col pl-2 pt-1">
+                <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
+                {
+                    forum_category_vec.iter().map(|forum_category| {
+                        let description = StoredValue::new(forum_category.description.clone());
+                        view! {
+                            <TitleCollapse
+                                title=forum_category.category_name.clone()
+                                title_class="font-medium"
+                                is_open=false
+                            >
+                                <div class="pl-2 text-sm">{description.get_value()}</div>
+                            </TitleCollapse>
                         }
                     }).collect_view()
                 }
@@ -155,7 +187,7 @@ pub fn ModeratorList() -> impl IntoView {
     view! {
          <TitleCollapse title="Moderators">
             <div class="flex flex-col gap-1">
-                <div class="flex border-b border-base-content/20 pl-4">
+                <div class="flex border-b border-base-content/10 pl-4">
                     <div class="w-1/2 py-2 text-left font-semibold">Username</div>
                     <div class="w-1/2 py-2 text-left font-semibold">Role</div>
                 </div>
@@ -163,7 +195,7 @@ pub fn ModeratorList() -> impl IntoView {
                 {
                     forum_role_vec.iter().map(|role| {
                         view! {
-                            <div class="flex py-1 rounded hover:bg-base-content/20 pl-4">
+                            <div class="flex py-1 pl-4">
                                 <div class="w-1/2 select-none">{role.username.clone()}</div>
                                 <div class="w-1/2 select-none">{role.permission_level.to_string()}</div>
                             </div>
@@ -173,13 +205,5 @@ pub fn ModeratorList() -> impl IntoView {
                 </TransitionUnpack>
             </div>
         </TitleCollapse>
-    }
-}
-
-/// List of categories for a forum
-#[component]
-pub fn CategoryList() -> impl IntoView {
-    view! {
-        
     }
 }

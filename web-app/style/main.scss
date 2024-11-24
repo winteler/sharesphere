@@ -3717,10 +3717,6 @@ html {
   border-style: none;
 }
 
-.border-base-content\/10 {
-  border-color: hsl(var(--bc) / 0.1);
-}
-
 .border-base-content\/20 {
   border-color: hsl(var(--bc) / 0.2);
 }
@@ -3738,6 +3734,14 @@ html {
 .border-white {
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity));
+}
+
+.border-primary\/50 {
+  border-color: hsl(var(--p) / 0.5);
+}
+
+.border-primary\/60 {
+  border-color: hsl(var(--p) / 0.6);
 }
 
 .bg-base-100 {
@@ -4052,6 +4056,14 @@ html {
 
 .opacity-100 {
   opacity: 1;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.opacity-60 {
+  opacity: 0.6;
 }
 
 .shadow {

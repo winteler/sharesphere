@@ -106,11 +106,11 @@ pub fn ForumSidebar() -> impl IntoView {
                     <div class="pl-4 whitespace-pre-wrap">{forum.description.clone()}</div>
                 </TransitionUnpack>
             </div>
-            <div class="border-b border-base-content/20"/>
+            <div class="border-b border-primary/60"/>
             <ForumRuleList/>
-            <div class="border-b border-base-content/20"/>
+            <div class="border-b border-primary/60"/>
             <ForumCategoryList/>
-            <div class="border-b border-base-content/20"/>
+            <div class="border-b border-primary/60"/>
             <ModeratorList/>
         </div>
     }
@@ -187,7 +187,7 @@ pub fn ModeratorList() -> impl IntoView {
     view! {
          <TitleCollapse title="Moderators">
             <div class="flex flex-col gap-1">
-                <div class="flex border-b border-base-content/10 pl-4">
+                <div class="flex border-b border-base-content/20 pl-4">
                     <div class="w-1/2 py-2 text-left font-semibold">Username</div>
                     <div class="w-1/2 py-2 text-left font-semibold">Role</div>
                 </div>

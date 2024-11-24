@@ -642,9 +642,6 @@ pub fn ForumContents() -> impl IntoView {
     view! {
         <ArcSuspenseUnpack resource=forum_with_sub_resource let:forum>
             <ForumToolbar forum/>
-            <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
-                <div>"AuthorizedShow"</div>
-            </AuthorizedShow>
         </ArcSuspenseUnpack>
         <ForumPostMiniatures
             post_vec
@@ -669,9 +666,6 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
 
     view! {
         <div class="flex w-full justify-between content-center">
-            <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
-                <div>"Test"</div>
-            </AuthorizedShow>
             <div class="flex w-full gap-2">
                 <PostSortWidget/>
                 <ForumCategoryDropdown forum_categories_resource/>

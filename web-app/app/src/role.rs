@@ -281,26 +281,14 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
     let children = StoredValue::new(children.into_inner());
     view! {
         <ArcTransitionUnpack resource=state.user let:user>
-        { move || {
-            let show_children = match &*user {
-                Some(user) => {
-                    log::info!("User: {user:?}");
-                    user.check_permissions(&forum_name.read(), permission_level).is_ok()
-                },
-                None => {
-                    log::info!("User not logged in.");
-                    false
-                },
-            };
-            log::info!("Show children: {show_children}");
-
-            match show_children {
-                true => view! { {children.with_value(|children| children())} }.into_any(),
-                //false => view! { <div>"hidden"</div> }.into_any(),
-                false => ().into_any(),
-                //false => view! { <LoadingIcon/> }.into_any(),
+            <Show when=move || match &*user {
+                Some(user) => user.check_permissions(&forum_name.read(), permission_level).is_ok(),
+                None => false,
+            }>
+            {
+                children.with_value(|children| children())
             }
-        }}
+            </Show>
         </ArcTransitionUnpack>
     }.into_any()
 }

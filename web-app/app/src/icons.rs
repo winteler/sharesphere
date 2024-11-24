@@ -3,7 +3,7 @@ use leptos::prelude::*;
 #[component]
 pub fn AddCommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/add_comment.svg" class=class/>
+        <img src="/svg/toolbar/add_comment.svg" class=class/>
     }
 }
 
@@ -27,14 +27,14 @@ pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl
 #[component]
 pub fn AuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/author.svg" class=class/>
+        <img src="/svg/toolbar/author.svg" class=class/>
     }
 }
 
 #[component]
 pub fn SelfAuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/author_filled.svg" class=class/>
+        <img src="/svg/toolbar/author_filled.svg" class=class/>
     }
 }
 
@@ -55,7 +55,7 @@ pub fn BoldIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoVi
 #[component]
 pub fn ClockIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/clock.svg" class=class/>
+        <img src="/svg/toolbar/clock.svg" class=class/>
     }
 }
 
@@ -69,7 +69,7 @@ pub fn CodeBlockIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl I
 #[component]
 pub fn CommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/comment.svg" class=class/>
+        <img src="/svg/toolbar/comment.svg" class=class/>
     }
 }
 
@@ -83,14 +83,14 @@ pub fn DeleteIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Into
 #[component]
 pub fn EditIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/edit.svg" class=class/>
+        <img src="/svg/toolbar/edit.svg" class=class/>
     }
 }
 
 #[component]
 pub fn EditTimeIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/edit_time.svg" class=class/>
+        <img src="/svg/toolbar/edit_time.svg" class=class/>
     }
 }
 
@@ -126,7 +126,7 @@ pub fn GraphIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoV
 #[component]
 pub fn HammerIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/hammer.svg" class=class/>
+        <img src="/svg/toolbar/hammer.svg" class=class/>
     }
 }
 
@@ -269,14 +269,14 @@ pub fn MinusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoV
 #[component]
 pub fn ModeratorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/moderator.svg" class=class/>
+        <img src="/svg/toolbar/moderator.svg" class=class/>
     }
 }
 
 #[component]
 pub fn ModeratorAuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/moderator_filled.svg" class=class/>
+        <img src="/svg/toolbar/moderator_filled.svg" class=class/>
     }
 }
 
@@ -346,7 +346,7 @@ pub fn SaveIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoVi
 #[component]
 pub fn ScoreIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/score.svg" class=class/>
+        <img src="/svg/toolbar/score.svg" class=class/>
     }
 }
 

@@ -18,7 +18,7 @@ pub mod navigation_bar;
 pub mod post;
 pub mod ranking;
 pub mod role;
-pub mod rules;
+pub mod rule;
 pub mod sidebar;
 pub mod unpack;
 pub mod user;

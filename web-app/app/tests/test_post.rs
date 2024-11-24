@@ -8,15 +8,16 @@ pub use crate::data_factory::*;
 use app::comment::ssr::create_comment;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
-use app::forum_management::ssr::set_forum_category;
+use app::forum_category::ssr::set_forum_category;
 use app::moderation::ssr::moderate_post;
 use app::post::ssr::{create_post, get_post_by_id, get_post_forum, get_post_with_info_by_id, update_post_scores};
 use app::post::{ssr, Post, PostSortType};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
+use app::rule::ssr::add_rule;
 use app::user::User;
-use app::{forum, forum_management, post};
+use app::{forum, post};
 
 mod common;
 mod data_factory;
@@ -242,7 +243,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     // test banned post are not returned
     user.admin_role = AdminRole::Admin;
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         expected_post_vec.first().expect("First post should be accessible.").post_id,
         rule.rule_id,
@@ -320,7 +321,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 
     // Moderate post, test that it is no longer in the result
     user.admin_role = AdminRole::Admin;
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         expected_post_vec.first().expect("First post should be accessible.").post_id,
         rule.rule_id,
@@ -413,7 +414,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 
     user.admin_role = AdminRole::Admin;
 
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
         expected_post_vec.first().expect("First post should be accessible.").post_id,
         rule.rule_id,

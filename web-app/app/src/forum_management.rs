@@ -18,7 +18,7 @@ use crate::forum_category::ForumCategoriesDialog;
 use crate::icons::{DeleteIcon, MagnifierIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
-use crate::rules::ForumRulesPanel;
+use crate::rule::ForumRulesPanel;
 use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
 use crate::user::get_matching_username_set;
 use crate::widget::{EnumDropdown, ForumImageForm, ModalDialog};

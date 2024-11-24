@@ -37,7 +37,7 @@ pub struct Rule {
 pub mod ssr {
     use crate::errors::AppError;
     use crate::role::{AdminRole, PermissionLevel};
-    use crate::rules::Rule;
+    use crate::rule::Rule;
     use crate::user::User;
     use sqlx::PgPool;
 

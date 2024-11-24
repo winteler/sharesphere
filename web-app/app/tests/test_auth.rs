@@ -6,7 +6,7 @@ use app::moderation::ssr::ban_user_from_forum;
 use app::role::ssr::set_user_forum_role;
 use app::role::{AdminRole, PermissionLevel};
 use app::user::{ssr::SqlUser, User};
-use app::{forum, forum_management};
+use app::{forum, rule};
 
 use crate::common::{create_user, get_db_pool};
 use crate::data_factory::create_forum_with_post;
@@ -41,7 +41,7 @@ async fn test_user_get() -> Result<(), AppError> {
     admin.admin_role = AdminRole::Admin;
 
     // Create common rule to enable bans
-    let rule = forum_management::ssr::add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
+    let rule = rule::ssr::add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
 
     let (forum_a, _post_a) = create_forum_with_post("a", &creator_user, &db_pool).await;
     let (forum_b, _post_b) = create_forum_with_post("b", &creator_user, &db_pool).await;

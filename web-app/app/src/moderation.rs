@@ -13,8 +13,8 @@ use crate::forum::ForumState;
 use crate::icons::{HammerIcon, MagnifierIcon};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::rules::get_rule_by_id;
-use crate::rules::Rule;
+use crate::rule::get_rule_by_id;
+use crate::rule::Rule;
 use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
@@ -23,7 +23,7 @@ use crate::{
     auth::ssr::{check_user, reload_user},
     comment::ssr::{get_comment_by_id, get_comment_forum},
     post::ssr::get_post_by_id,
-    rules::ssr::load_rule_by_id
+    rule::ssr::load_rule_by_id
 };
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]

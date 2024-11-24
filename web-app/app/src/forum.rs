@@ -28,7 +28,7 @@ use crate::post::{
 };
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
-use crate::rules::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
+use crate::rule::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
 use crate::sidebar::ForumSidebar;
 use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, TimeSinceWidget};

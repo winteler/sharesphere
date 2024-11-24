@@ -38,6 +38,8 @@ pub mod ssr {
     use crate::user::User;
     use sqlx::PgPool;
 
+    pub const CATEGORY_NOT_DELETED_STR: &str = "Category was not deleted, it either doesn't exist or is used.";
+    
     pub async fn get_forum_category_vec(
         forum_name: &str,
         db_pool: &PgPool,
@@ -97,7 +99,7 @@ pub mod ssr {
     ) -> Result<(), AppError> {
         user.check_permissions(forum_name, PermissionLevel::Manage)?;
 
-        sqlx::query!(
+        let result = sqlx::query!(
             "DELETE FROM forum_categories c
              WHERE forum_name = $1 AND category_name = $2 AND NOT EXISTS (
                 SELECT 1 FROM posts p WHERE p.category_id = c.category_id
@@ -107,8 +109,12 @@ pub mod ssr {
         )
             .execute(db_pool)
             .await?;
-
-        Ok(())
+        
+        match result.rows_affected() {
+            0 => Err(AppError::InternalServerError(String::from(CATEGORY_NOT_DELETED_STR))),
+            1 => Ok(()),
+            count => Err(AppError::InternalServerError(format!("Expected 1 category to be deleted, got {count} instead"))),
+        }
     }
 }
 

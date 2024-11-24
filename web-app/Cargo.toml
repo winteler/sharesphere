@@ -9,11 +9,11 @@ lto = true
 opt-level = 'z'
 
 [workspace.dependencies]
-leptos = { version = "0.7.0-rc2", features = ["nightly"] }
-leptos_meta = { version = "0.7.0-rc2" }
-leptos_router = { version = "0.7.0-rc2", features = ["nightly"] }
-leptos_axum = { version = "0.7.0-rc2" }
-server_fn = { version = "0.7.0-rc2", features = [ "multipart"] }
+leptos = { git = "https://github.com/leptos-rs/leptos.git", rev = "adf22c9d983d49ecbddd59acd9c41c6422678406", features = ["nightly"] }
+leptos_meta = { git = "https://github.com/leptos-rs/leptos.git", rev = "adf22c9d983d49ecbddd59acd9c41c6422678406" }
+leptos_router = { git = "https://github.com/leptos-rs/leptos.git", rev = "adf22c9d983d49ecbddd59acd9c41c6422678406", features = ["nightly"] }
+leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", rev = "adf22c9d983d49ecbddd59acd9c41c6422678406" }
+server_fn = { git = "https://github.com/leptos-rs/leptos.git", rev = "adf22c9d983d49ecbddd59acd9c41c6422678406", features = [ "multipart"] }
 
 leptos-use = { version = "0.14.0-rc3", features = ["use_textarea_autosize"] }
 

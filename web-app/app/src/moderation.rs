@@ -412,13 +412,13 @@ pub fn ModeratePostDialog(
     let forum_state = expect_context::<ForumState>();
 
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(textarea_ref);
-    let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
-        textarea_ref,
-    };
-    let is_text_empty = Signal::derive(move || body_data.content.read().is_empty());
+    //let body_autosize = use_textarea_autosize(textarea_ref);
+    //let body_data = TextareaData {
+    //    content: body_autosize.content,
+    //    set_content: body_autosize.set_content,
+    //    textarea_ref,
+    //};
+    //let is_text_empty = Signal::derive(move || body_data.content.read().is_empty());
 
     view! {
         <ModalDialog
@@ -436,16 +436,16 @@ pub fn ModeratePostDialog(
                             value=post_id
                         />
                         <RuleSelect name="rule_id"/>
-                        <FormTextEditor
-                            name="moderator_message"
-                            placeholder="Message"
-                            data=body_data
-                        />
+                        //<FormTextEditor
+                        //    name="moderator_message"
+                        //    placeholder="Message"
+                        //    data=body_data
+                        ///>
                         <BanMenu/>
-                        <ModalFormButtons
-                            disable_publish=is_text_empty
-                            show_form=show_dialog
-                        />
+                        //<ModalFormButtons
+                        //    disable_publish=is_text_empty
+                        //    show_form=show_dialog
+                        ///>
                     </div>
                 </ActionForm>
                 <ActionError action=forum_state.moderate_post_action.into()/>
@@ -462,13 +462,13 @@ pub fn ModerateCommentDialog(
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let comment_autosize = use_textarea_autosize(textarea_ref);
-    let comment_data = TextareaData{
-        content: comment_autosize.content,
-        set_content: comment_autosize.set_content,
-        textarea_ref,
-    };
-    let is_text_empty = Signal::derive(move || comment_data.content.read().is_empty());
+    //let comment_autosize = use_textarea_autosize(textarea_ref);
+    //let comment_data = TextareaData{
+    //    content: comment_autosize.content,
+    //    set_content: comment_autosize.set_content,
+    //    textarea_ref,
+    //};
+    //let is_text_empty = Signal::derive(move || comment_data.content.read().is_empty());
 
     let moderate_comment_action = ServerAction::<ModerateComment>::new();
 
@@ -497,16 +497,16 @@ pub fn ModerateCommentDialog(
                             value=comment_id
                         />
                         <RuleSelect name="rule_id"/>
-                        <FormTextEditor
-                            name="moderator_message"
-                            placeholder="Message"
-                            data=comment_data
-                        />
+                        //<FormTextEditor
+                        //    name="moderator_message"
+                        //    placeholder="Message"
+                        //    data=comment_data
+                        ///>
                         <BanMenu/>
-                        <ModalFormButtons
-                            disable_publish=is_text_empty
-                            show_form=show_dialog
-                        />
+                        //<ModalFormButtons
+                        //    disable_publish=is_text_empty
+                        //    show_form=show_dialog
+                        ///>
                     </div>
                 </ActionForm>
                 <ActionError action=moderate_comment_action.into()/>

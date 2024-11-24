@@ -743,14 +743,14 @@ pub fn ForumDescriptionForm(
 ) -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let description_autosize = use_textarea_autosize(textarea_ref);
-    let description_data = TextareaData {
-        content: description_autosize.content,
-        set_content: description_autosize.set_content,
-        textarea_ref
-    };
-    description_data.set_content.set(forum.description.clone());
-    let disable_submit = move || description_data.content.read().is_empty();
+    //let description_autosize = use_textarea_autosize(textarea_ref);
+    //let description_data = TextareaData {
+    //    content: description_autosize.content,
+    //    set_content: description_autosize.set_content,
+    //    textarea_ref
+    //};
+    //description_data.set_content.set(forum.description.clone());
+    //let disable_submit = move || description_data.content.read().is_empty();
     view! {
         <ActionForm
             action=forum_state.update_forum_desc_action
@@ -761,15 +761,15 @@ pub fn ForumDescriptionForm(
                 class="hidden"
                 value=forum_state.forum_name
             />
-            <FormTextEditor
-                name="description"
-                placeholder="Description"
-                data=description_data
-            />
+            //<FormTextEditor
+            //    name="description"
+            //    placeholder="Description"
+            //    data=description_data
+            ///>
             <button
                 type="submit"
                 class="btn btn-secondary btn-sm p-1 self-end"
-                disabled=disable_submit
+                //disabled=disable_submit
             >
                 <SaveIcon/>
             </button>
@@ -831,12 +831,12 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
     let category_input = RwSignal::new(String::new());
     let activated_input = RwSignal::new(true);
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let description_autosize = use_textarea_autosize(textarea_ref);
-    let description_data = TextareaData {
-        content: description_autosize.content,
-        set_content: description_autosize.set_content,
-        textarea_ref
-    };
+    //let description_autosize = use_textarea_autosize(textarea_ref);
+    //let description_data = TextareaData {
+    //    content: description_autosize.content,
+    //    set_content: description_autosize.set_content,
+    //    textarea_ref
+    //};
     view! {
         <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
@@ -865,7 +865,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                                             class="w-5/6 flex gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
-                                                description_data.set_content.set(description.clone());
+                                                //description_data.set_content.set(description.clone());
                                                 if let Some(textarea_ref) = textarea_ref.get() {
                                                     textarea_ref.set_value(&description);
                                                 }
@@ -891,7 +891,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                         }
                         </TransitionUnpack>
                     </div>
-                    <SetCategoryForm category_input activated_input description_data/>
+                    //<SetCategoryForm category_input activated_input description_data/>
                 </div>
             </div>
         </AuthorizedShow>
@@ -1046,9 +1046,9 @@ pub fn PermissionLevelForm(
     select_ref: NodeRef<html::Select>,
     set_role_action: ServerAction<SetUserForumRole>
 ) -> impl IntoView {
-    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    //let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
     let matching_user_resource = Resource::new(
-        move || username_debounced.get(),
+        move || username_input.get(),
         move |username| async {
             if username.is_empty() {
                 Ok(BTreeSet::<String>::default())
@@ -1214,22 +1214,22 @@ pub fn EditRuleForm(
     let rule_priority = rule.with_value(|rule| rule.priority);
     let priority = RwSignal::new(rule_priority.to_string());
     let title_ref = NodeRef::<html::Textarea>::new();
-    let title_autosize = use_textarea_autosize(title_ref);
-    let title_data = TextareaData {
-        content: title_autosize.content,
-        set_content: title_autosize.set_content,
-        textarea_ref: title_ref,
-    };
+    //let title_autosize = use_textarea_autosize(title_ref);
+    //let title_data = TextareaData {
+    //    content: title_autosize.content,
+    //    set_content: title_autosize.set_content,
+    //    textarea_ref: title_ref,
+    //};
     let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(description_ref);
-    let description_data = TextareaData {
-        content: desc_autosize.content,
-        set_content: desc_autosize.set_content,
-        textarea_ref: description_ref,
-    };
-    let invalid_inputs = Signal::derive(move || {
-        priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
-    });
+    //let desc_autosize = use_textarea_autosize(description_ref);
+    //let description_data = TextareaData {
+    //    content: desc_autosize.content,
+    //    set_content: desc_autosize.set_content,
+    //    textarea_ref: description_ref,
+    //};
+    //let invalid_inputs = Signal::derive(move || {
+    //    priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+    //});
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
@@ -1246,11 +1246,11 @@ pub fn EditRuleForm(
                     value=rule_priority
                 />
                 <div class="flex flex-col gap-3 w-full">
-                    <RuleInputs priority title_data description_data/>
-                    <ModalFormButtons
-                        disable_publish=invalid_inputs
-                        show_form
-                    />
+                    //<RuleInputs priority title_data description_data/>
+                    //<ModalFormButtons
+                    //    disable_publish=invalid_inputs
+                    //    show_form
+                    ///>
                 </div>
             </ActionForm>
         </div>
@@ -1263,23 +1263,23 @@ pub fn CreateRuleForm() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let show_dialog = RwSignal::new(false);
     let priority = RwSignal::new(String::default());
-    let title_ref = NodeRef::<html::Textarea>::new();
-    let title_autosize = use_textarea_autosize(title_ref);
-    let title_data = TextareaData {
-        content: title_autosize.content,
-        set_content: title_autosize.set_content,
-        textarea_ref: title_ref,
-    };
-    let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(description_ref);
-    let description_data = TextareaData {
-        content: desc_autosize.content,
-        set_content: desc_autosize.set_content,
-        textarea_ref: description_ref,
-    };
-    let invalid_inputs = Signal::derive(move || {
-        priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
-    });
+    //let title_ref = NodeRef::<html::Textarea>::new();
+    //let title_autosize = use_textarea_autosize(title_ref);
+    //let title_data = TextareaData {
+    //    content: title_autosize.content,
+    //    set_content: title_autosize.set_content,
+    //    textarea_ref: title_ref,
+    //};
+    //let description_ref = NodeRef::<html::Textarea>::new();
+    //let desc_autosize = use_textarea_autosize(description_ref);
+    //let description_data = TextareaData {
+    //    content: desc_autosize.content,
+    //    set_content: desc_autosize.set_content,
+    //    textarea_ref: description_ref,
+    //};
+    //let invalid_inputs = Signal::derive(move || {
+    //    priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+    //});
 
     view! {
         <button
@@ -1304,11 +1304,11 @@ pub fn CreateRuleForm() -> impl IntoView {
                         value=forum_state.forum_name
                     />
                     <div class="flex flex-col gap-3 w-full">
-                        <RuleInputs priority title_data description_data/>
-                        <ModalFormButtons
-                            disable_publish=invalid_inputs
-                            show_form=show_dialog
-                        />
+                        //<RuleInputs priority title_data description_data/>
+                        //<ModalFormButtons
+                        //    disable_publish=invalid_inputs
+                        //    show_form=show_dialog
+                        ///>
                     </div>
                 </ActionForm>
             </div>
@@ -1356,11 +1356,11 @@ pub fn RuleInputs(
 pub fn BanPanel() -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     let username_input = RwSignal::new(String::default());
-    let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
+    //let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
 
     let unban_action = ServerAction::<RemoveUserBan>::new();
     let banned_users_resource = Resource::new(
-        move || (username_debounced.get(), unban_action.version().get()),
+        move || (username_input.get(), unban_action.version().get()),
         move |(username, _)| get_forum_ban_vec(forum_name.get_untracked(), username)
     );
 

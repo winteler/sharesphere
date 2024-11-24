@@ -642,6 +642,9 @@ pub fn ForumContents() -> impl IntoView {
     view! {
         <ArcSuspenseUnpack resource=forum_with_sub_resource let:forum>
             <ForumToolbar forum/>
+            <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
+                <div>"AuthorizedShow"</div>
+            </AuthorizedShow>
         </ArcSuspenseUnpack>
         <ForumPostMiniatures
             post_vec
@@ -666,6 +669,9 @@ pub fn ForumToolbar(forum: Arc<ForumWithUserInfo>) -> impl IntoView {
 
     view! {
         <div class="flex w-full justify-between content-center">
+            <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
+                <div>"Test"</div>
+            </AuthorizedShow>
             <div class="flex w-full gap-2">
                 <PostSortWidget/>
                 <ForumCategoryDropdown forum_categories_resource/>
@@ -850,9 +856,9 @@ pub fn CreateForum() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     let forum_name = RwSignal::new(String::new());
-    let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
+    //let forum_name_debounced: Signal<String> = signal_debounced(forum_name, 250.0);
     let is_forum_available = Resource::new(
-        move || forum_name_debounced.get(),
+        move || forum_name.get(),
         move |forum_name| async {
             if forum_name.is_empty() {
                 None
@@ -864,21 +870,21 @@ pub fn CreateForum() -> impl IntoView {
 
     let is_name_taken = RwSignal::new(false);
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let textarea_autosize = use_textarea_autosize(textarea_ref);
-    let description_data = TextareaData {
-        content: textarea_autosize.content,
-        set_content: textarea_autosize.set_content,
-        textarea_ref,
-    };
-    let is_name_empty = move || forum_name.read().is_empty();
-    let is_name_alphanumeric =
-        move || is_valid_forum_name(&forum_name.read());
-    let are_inputs_invalid = Memo::new(move |_| {
-        is_name_empty()
-            || is_name_taken.get()
-            || !is_name_alphanumeric()
-            || description_data.content.read().is_empty()
-    });
+    //let textarea_autosize = use_textarea_autosize(textarea_ref);
+    //let description_data = TextareaData {
+    //    content: textarea_autosize.content,
+    //    set_content: textarea_autosize.set_content,
+    //    textarea_ref,
+    //};
+    //let is_name_empty = move || forum_name.read().is_empty();
+    //let is_name_alphanumeric =
+    //    move || is_valid_forum_name(&forum_name.read());
+    //let are_inputs_invalid = Memo::new(move |_| {
+    //    is_name_empty()
+    //        || is_name_taken.get()
+    //        || !is_name_alphanumeric()
+    //        || description_data.content.read().is_empty()
+    //});
 
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
@@ -927,20 +933,20 @@ pub fn CreateForum() -> impl IntoView {
 
                         }
                         </Suspense>
-                        <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
-                            <InternalErrorIcon class="h-16 w-16"/>
-                            <span>"Only alphanumeric characters."</span>
-                        </div>
+                        //<div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
+                        //    <InternalErrorIcon class="h-16 w-16"/>
+                        //    <span>"Only alphanumeric characters."</span>
+                        //</div>
                     </div>
-                    <FormTextEditor
-                        name="description"
-                        placeholder="Description"
-                        data=description_data
-                    />
+                    //<FormTextEditor
+                    //    name="description"
+                    //    placeholder="Description"
+                    //    data=description_data
+                    ///>
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
-                    <Suspense fallback=move || view! { <LoadingIcon/> }>
-                        <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
-                    </Suspense>
+                    //<Suspense fallback=move || view! { <LoadingIcon/> }>
+                    //    <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
+                    //</Suspense>
                 </div>
             </ActionForm>
             <ActionError action=state.create_forum_action.into()/>

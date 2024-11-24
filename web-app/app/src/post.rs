@@ -905,23 +905,23 @@ pub fn CreatePost() -> impl IntoView {
     };
 
     let forum_name_input = RwSignal::new(forum_query());
-    let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
+    //let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(textarea_ref);
-    let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
-        textarea_ref,
-    };
-    let is_title_empty = RwSignal::new(true);
+    //let body_autosize = use_textarea_autosize(textarea_ref);
+    //let body_data = TextareaData {
+    //    content: body_autosize.content,
+    //    set_content: body_autosize.set_content,
+    //    textarea_ref,
+    //};
+    //let is_title_empty = RwSignal::new(true);
 
     let matching_forums_resource = Resource::new(
-        move || forum_name_debounced.get(),
+        move || forum_name_input.get(),
         move |forum_prefix| get_matching_forum_header_vec(forum_prefix),
     );
 
     let forum_categories_resource = Resource::new(
-        move || forum_name_debounced.get(),
+        move || forum_name_input.get(),
         move |forum_name| get_forum_category_vec(forum_name)
     );
 
@@ -971,15 +971,15 @@ pub fn CreatePost() -> impl IntoView {
                             autofocus
                             autocomplete="off"
                             on:input=move |ev| {
-                                is_title_empty.set(event_target_value(&ev).is_empty());
+                                //is_title_empty.set(event_target_value(&ev).is_empty());
                             }
                         />
-                        <FormMarkdownEditor
-                            name="body"
-                            is_markdown_name="is_markdown"
-                            placeholder="Content"
-                            data=body_data
-                        />
+                        //<FormMarkdownEditor
+                        //    name="body"
+                        //    is_markdown_name="is_markdown"
+                        //    placeholder="Content"
+                        //    data=body_data
+                        ///>
                         <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
                         <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                         <IsPinnedCheckbox forum_name=forum_name_input/>
@@ -987,8 +987,8 @@ pub fn CreatePost() -> impl IntoView {
                         <Transition>
                             <button type="submit" class="btn btn-active btn-secondary" disabled=move || match &*matching_forums_resource.read() {
                                 Some(Ok(forum_header_vec)) => {
-                                    is_title_empty.get() ||
-                                    body_data.content.read().is_empty() ||
+                                    //is_title_empty.get() ||
+                                    //body_data.content.read().is_empty() ||
                                     !forum_header_vec.iter().any(|forum_header| forum_header.forum_name == *forum_name_input.read())
                                 },
                                 _ => true,
@@ -1044,14 +1044,14 @@ pub fn EditPostForm(
     ));
     let is_title_empty = RwSignal::new(false);
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(textarea_ref);
-    let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
-        textarea_ref,
-    };
-    body_data.set_content.set(current_body);
-    let is_post_empty = Signal::derive(move || body_data.content.read().is_empty());
+    //let body_autosize = use_textarea_autosize(textarea_ref);
+    //let body_data = TextareaData {
+    //    content: body_autosize.content,
+    //    set_content: body_autosize.set_content,
+    //    textarea_ref,
+    //};
+    //body_data.set_content.set(current_body);
+    //let is_post_empty = Signal::derive(move || body_data.content.read().is_empty());
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
@@ -1076,20 +1076,20 @@ pub fn EditPostForm(
                             is_title_empty.set(event_target_value(&ev).is_empty());
                         }
                     />
-                    <FormMarkdownEditor
-                        name="body"
-                        is_markdown_name="is_markdown"
-                        placeholder="Content"
-                        data=body_data
-                        is_markdown
-                    />
+                    //<FormMarkdownEditor
+                    //    name="body"
+                    //    is_markdown_name="is_markdown"
+                    //    placeholder="Content"
+                    //    data=body_data
+                    //    is_markdown
+                    ///>
                     <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
                     <IsPinnedCheckbox forum_name=forum_state.forum_name value=is_pinned/>
-                    <ModalFormButtons
-                        disable_publish=is_post_empty
-                        show_form
-                    />
+                    //<ModalFormButtons
+                    //    disable_publish=is_post_empty
+                    //    show_form
+                    ///>
                 </div>
             </ActionForm>
             <ActionError action=state.edit_post_action.into()/>

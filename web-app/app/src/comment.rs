@@ -768,14 +768,14 @@ pub fn CommentForm(
 ) -> impl IntoView {
     let forum_name = expect_context::<ForumState>().forum_name;
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let comment_autosize = use_textarea_autosize(textarea_ref);
-    let comment_data = TextareaData {
-        content: comment_autosize.content,
-        set_content: comment_autosize.set_content,
-        textarea_ref,
-    };
+    //let comment_autosize = use_textarea_autosize(textarea_ref);
+    //let comment_data = TextareaData {
+    //    content: comment_autosize.content,
+    //    set_content: comment_autosize.set_content,
+    //    textarea_ref,
+    //};
 
-    let is_comment_empty = Signal::derive(move || comment_data.content.read().is_empty());
+    //let is_comment_empty = Signal::derive(move || comment_data.content.read().is_empty());
 
     let create_comment_action = ServerAction::<CreateComment>::new();
 
@@ -803,17 +803,17 @@ pub fn CommentForm(
                         class="hidden"
                         value=parent_comment_id
                     />
-                    <FormMarkdownEditor
-                        name="comment"
-                        is_markdown_name="is_markdown"
-                        placeholder="Your comment..."
-                        data=comment_data
-                    />
+                    //<FormMarkdownEditor
+                    //    name="comment"
+                    //    is_markdown_name="is_markdown"
+                    //    placeholder="Your comment..."
+                    //    data=comment_data
+                    ///>
                     <IsPinnedCheckbox forum_name=forum_name/>
-                    <ModalFormButtons
-                        disable_publish=is_comment_empty
-                        show_form
-                    />
+                    //<ModalFormButtons
+                    //    disable_publish=is_comment_empty
+                    //    show_form
+                    ///>
                 </div>
             </ActionForm>
             <ActionError action=create_comment_action.into()/>
@@ -895,16 +895,16 @@ pub fn EditCommentForm(
             None => (comment.body.clone(), false),
         });
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let comment_autosize = use_textarea_autosize(textarea_ref);
-    let comment_data = TextareaData {
-        content: comment_autosize.content,
-        set_content: comment_autosize.set_content,
-        textarea_ref,
-    };
-    comment_data.set_content.set(current_body);
-    let is_comment_empty = Signal::derive(
-        move || comment_data.content.read().is_empty()
-    );
+    //let comment_autosize = use_textarea_autosize(textarea_ref);
+    //let comment_data = TextareaData {
+    //    content: comment_autosize.content,
+    //    set_content: comment_autosize.set_content,
+    //    textarea_ref,
+    //};
+    //comment_data.set_content.set(current_body);
+    //let is_comment_empty = Signal::derive(
+    //    move || comment_data.content.read().is_empty()
+    //);
     let edit_comment_action = ServerAction::<EditComment>::new();
 
     let edit_comment_result = edit_comment_action.value();
@@ -927,18 +927,18 @@ pub fn EditCommentForm(
                         class="hidden"
                         value=comment_id
                     />
-                    <FormMarkdownEditor
-                        name="comment"
-                        is_markdown_name="is_markdown"
-                        placeholder="Your comment..."
-                        data=comment_data
-                        is_markdown
-                    />
+                    //<FormMarkdownEditor
+                    //    name="comment"
+                    //    is_markdown_name="is_markdown"
+                    //    placeholder="Your comment..."
+                    //    data=comment_data
+                    //    is_markdown
+                    ///>
                     <IsPinnedCheckbox forum_name value=comment.read_untracked().is_pinned/>
-                    <ModalFormButtons
-                        disable_publish=is_comment_empty
-                        show_form
-                    />
+                    //<ModalFormButtons
+                    //    disable_publish=is_comment_empty
+                    //    show_form
+                    ///>
                 </div>
             </ActionForm>
             <ActionError action=edit_comment_action.into()/>

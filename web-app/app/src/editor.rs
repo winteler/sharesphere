@@ -212,11 +212,11 @@ pub fn FormMarkdownEditor(
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
     // we wait for the debounced
-    let content_debounced: Signal<String> = signal_debounced(data.content, 500.0);
-    let is_md_mode_debounced: Signal<bool> = signal_debounced(is_markdown_mode, 500.0);
+    //let content_debounced: Signal<String> = signal_debounced(data.content, 500.0);
+    //let is_md_mode_debounced: Signal<bool> = signal_debounced(is_markdown_mode, 500.0);
 
     let render_markdown_resource = Resource::new(
-        move || (is_md_mode_debounced.get(), content_debounced.get()),
+        move || (is_markdown_mode.get(), data.content.get()),
         move |(is_markdown_mode, markdown_content)| async move {
             if is_markdown_mode {
                 get_styled_html_from_markdown(markdown_content).await
@@ -353,7 +353,7 @@ pub fn FormatButton(
 pub fn HelpButton() -> impl IntoView {
     let show_help = RwSignal::new(false);
     let modal_ref = NodeRef::<html::Div>::new();
-    let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
+    //let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
 
     view! {
         <div class="relative inline-block z-20">

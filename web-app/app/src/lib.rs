@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 pub mod app;
 pub mod auth;
+pub mod forum_category;
 pub mod comment;
 pub mod constants;
 pub mod content;
@@ -17,7 +18,9 @@ pub mod navigation_bar;
 pub mod post;
 pub mod ranking;
 pub mod role;
+pub mod rules;
 pub mod sidebar;
 pub mod unpack;
 pub mod user;
 pub mod widget;
+

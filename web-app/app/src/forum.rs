@@ -1,32 +1,3 @@
-use crate::app::{GlobalState, PUBLISH_ROUTE};
-#[cfg(feature = "ssr")]
-use crate::auth::ssr::check_user;
-use crate::auth::LoginGuardButton;
-use crate::constants::PATH_SEPARATOR;
-use crate::content::PostSortWidget;
-use crate::editor::{FormTextEditor, TextareaData};
-use crate::error_template::ErrorTemplate;
-use crate::errors::AppError;
-use crate::form::LabeledFormCheckbox;
-use crate::forum_management::{get_forum_category_vec, get_forum_rule_vec, AddRule, DeleteForumCategory, ForumCategory, RemoveRule, Rule, SetForumCategory, UpdateRule, MANAGE_FORUM_ROUTE};
-use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
-use crate::moderation::ModeratePost;
-use crate::navigation_bar::{get_create_post_path, get_current_path};
-use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
-use crate::post::{
-    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
-};
-use crate::ranking::ScoreIndicator;
-use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
-use crate::sidebar::ForumSidebar;
-use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
-use crate::widget::{AuthorWidget, CommentCountWidget, TimeSinceWidget};
-#[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    auth::get_user,
-    auth::ssr::reload_user,
-};
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
@@ -36,6 +7,37 @@ use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+use crate::app::{GlobalState, PUBLISH_ROUTE};
+
+use crate::auth::LoginGuardButton;
+use crate::constants::PATH_SEPARATOR;
+use crate::content::PostSortWidget;
+use crate::editor::{FormTextEditor, TextareaData};
+use crate::error_template::ErrorTemplate;
+use crate::errors::AppError;
+use crate::form::LabeledFormCheckbox;
+use crate::forum_category::{get_forum_category_vec, DeleteForumCategory, ForumCategory, SetForumCategory};
+use crate::forum_management::MANAGE_FORUM_ROUTE;
+use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
+use crate::moderation::ModeratePost;
+use crate::navigation_bar::{get_create_post_path, get_current_path};
+use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
+use crate::post::{
+    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
+};
+use crate::ranking::ScoreIndicator;
+use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
+use crate::rules::{get_forum_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
+use crate::sidebar::ForumSidebar;
+use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
+use crate::widget::{AuthorWidget, CommentCountWidget, TimeSinceWidget};
+#[cfg(feature = "ssr")]
+use crate::{
+    app::ssr::get_db_pool,
+    auth::ssr::reload_user,
+    auth::{get_user, ssr::check_user},
+};
 
 pub const CREATE_FORUM_SUFFIX: &str = "/forum";
 pub const CREATE_FORUM_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_FORUM_SUFFIX);

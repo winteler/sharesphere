@@ -17,13 +17,13 @@ use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::forum::{get_matching_forum_header_vec, ForumCategoryDropdown, ForumHeader, ForumState};
+use crate::forum_category::get_forum_category_vec;
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
-use crate::forum_management::get_forum_category_vec;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,

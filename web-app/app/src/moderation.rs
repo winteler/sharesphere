@@ -1,13 +1,20 @@
+use leptos::html;
+use leptos::prelude::*;
+use leptos_use::use_textarea_autosize;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
 use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::forum::ForumState;
-use crate::forum_management::{get_rule_by_id, ModerationInfo};
 use crate::icons::{HammerIcon, MagnifierIcon};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
+use crate::rules::get_rule_by_id;
+use crate::rules::Rule;
 use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
@@ -15,13 +22,15 @@ use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
     comment::ssr::{get_comment_by_id, get_comment_forum},
-    forum_management::ssr::load_rule_by_id,
-    post::ssr::get_post_by_id
+    post::ssr::get_post_by_id,
+    rules::ssr::load_rule_by_id
 };
-use leptos::html;
-use leptos::prelude::*;
-use leptos_use::use_textarea_autosize;
-use std::sync::Arc;
+
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ModerationInfo {
+    pub rule: Rule,
+    pub content: Content,
+}
 
 #[cfg(feature = "ssr")]
 pub mod ssr {

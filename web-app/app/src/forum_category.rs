@@ -17,6 +17,16 @@ use crate::{
     auth::ssr::check_user,
 };
 
+const CATEGORY_COLOR_MAPPING_SIZE: usize = 6;
+const CATEGORY_COLOR_MAPPING: [&str; CATEGORY_COLOR_MAPPING_SIZE] = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-orange-500",
+    "bg-red-500",
+    "bg-violet-500",
+];
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct ForumCategory {
@@ -150,6 +160,20 @@ pub async fn delete_forum_category(
     let user = check_user().await?;
     ssr::delete_forum_category(&forum_name, &category_name, &user, &db_pool).await?;
     Ok(())
+}
+
+/// Component to display a badge with forum category's name
+#[component]
+pub fn ForumCategoryBadge(
+    forum_category: ForumCategory,
+) -> impl IntoView {
+    let class = format!(
+        "{} px-2 py-1 rounded-full h-full w-fit",
+       CATEGORY_COLOR_MAPPING[(forum_category.category_id as usize) % CATEGORY_COLOR_MAPPING.len()]
+    );
+    view! {
+        <div class=class>{forum_category.category_name}</div>
+    }
 }
 
 /// Component to manage forum categories

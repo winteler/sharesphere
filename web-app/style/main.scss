@@ -3726,6 +3726,15 @@ html {
   border-color: hsl(var(--p) / var(--tw-border-opacity));
 }
 
+.border-primary\/80 {
+  border-color: hsl(var(--p) / 0.8);
+}
+
+.border-secondary {
+  --tw-border-opacity: 1;
+  border-color: hsl(var(--s) / var(--tw-border-opacity));
+}
+
 .border-slate-400 {
   --tw-border-opacity: 1;
   border-color: rgb(148 163 184 / var(--tw-border-opacity));
@@ -3734,14 +3743,6 @@ html {
 .border-white {
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity));
-}
-
-.border-primary\/50 {
-  border-color: hsl(var(--p) / 0.5);
-}
-
-.border-primary\/60 {
-  border-color: hsl(var(--p) / 0.6);
 }
 
 .bg-base-100 {
@@ -4056,14 +4057,6 @@ html {
 
 .opacity-100 {
   opacity: 1;
-}
-
-.opacity-50 {
-  opacity: 0.5;
-}
-
-.opacity-60 {
-  opacity: 0.6;
 }
 
 .shadow {

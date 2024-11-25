@@ -106,11 +106,11 @@ pub fn ForumSidebar() -> impl IntoView {
                     <div class="pl-4 whitespace-pre-wrap">{forum.description.clone()}</div>
                 </TransitionUnpack>
             </div>
-            <div class="border-b border-primary/60"/>
+            <div class="border-b border-primary/80"/>
             <ForumRuleList/>
-            <div class="border-b border-primary/60"/>
+            <div class="border-b border-primary/80"/>
             <ForumCategoryList/>
-            <div class="border-b border-primary/60"/>
+            <div class="border-b border-primary/80"/>
             <ModeratorList/>
         </div>
     }

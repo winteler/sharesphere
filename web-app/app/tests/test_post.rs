@@ -277,6 +277,41 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 }
 
 #[tokio::test]
+async fn test_get_post_with_forum_info_vec() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let forum1_name = "1";
+    let forum2_name = "2";
+    let num_post = 10;
+    let mut expected_post_vec = Vec::<Post>::new();
+
+    let (_, mut expected_forum1_post_vec) = create_forum_with_posts(
+        forum1_name,
+        num_post,
+        Some((0..num_post).map(|i| i as i32).collect()),
+        &user,
+        &db_pool,
+    ).await?;
+    expected_post_vec.append(&mut expected_forum1_post_vec);
+
+    let (_, mut expected_forum2_post_vec) = create_forum_with_posts(
+        forum2_name,
+        num_post,
+        Some((0..num_post).map(|i| i as i32).collect()),
+        &user,
+        &db_pool,
+    ).await?;
+    expected_post_vec.append(&mut expected_forum2_post_vec);
+
+    let post_vec = ssr::get_post_with_forum_info_vec(2*num_post as i64, 0, &db_pool).await?;
+    
+    assert_eq!(post_vec.len(), expected_post_vec.len());
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;

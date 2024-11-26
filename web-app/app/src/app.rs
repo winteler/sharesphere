@@ -259,7 +259,7 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post_vec = RwSignal::new(Vec::<Post>::new());
+    let post_vec = RwSignal::new(Vec::<PostWithForumInfo>::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
@@ -322,7 +322,7 @@ fn DefaultHomePage() -> impl IntoView {
 fn UserHomePage(user: User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
-    let post_vec = RwSignal::new(Vec::<Post>::new());
+    let post_vec = RwSignal::new(Vec::<PostWithForumInfo>::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);

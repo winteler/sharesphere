@@ -6,6 +6,7 @@ use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
@@ -17,14 +18,14 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::forum_category::{get_forum_category_vec, DeleteForumCategory, ForumCategory, SetForumCategory};
+use crate::forum_category::{get_forum_category_vec, DeleteForumCategory, ForumCategory, ForumCategoryBadge, SetForumCategory};
 use crate::forum_management::MANAGE_FORUM_ROUTE;
 use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
-use crate::post::{get_post_vec_by_forum_name, POST_BATCH_SIZE};
+use crate::post::{get_post_vec_by_forum_name, PostWithForumInfo};
 use crate::post::{
-    Post, CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
+    CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
 };
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_forum_role_vec, AuthorizedShow, PermissionLevel, SetUserForumRole, UserForumRole};
@@ -104,6 +105,15 @@ pub struct ForumState {
     pub add_rule_action: ServerAction<AddRule>,
     pub update_rule_action: ServerAction<UpdateRule>,
     pub remove_rule_action: ServerAction<RemoveRule>,
+}
+
+impl ForumHeader {
+    pub fn new(forum_name: String, icon_url: Option<String>) -> Self {
+        Self {
+            forum_name,
+            icon_url,
+        }
+    }
 }
 
 /// # Normalizes a forum's name by making it lowercase and replacing '-' by '_'.
@@ -587,7 +597,7 @@ pub fn ForumContents() -> impl IntoView {
     let forum_state = expect_context::<ForumState>();
     let forum_name = expect_context::<ForumState>().forum_name;
     let additional_load_count = RwSignal::new(0);
-    let post_vec = RwSignal::new(Vec::<Post>::with_capacity(POST_BATCH_SIZE as usize));
+    let post_vec = RwSignal::new(Vec::<PostWithForumInfo>::new());
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
@@ -599,16 +609,24 @@ pub fn ForumContents() -> impl IntoView {
     let _initial_post_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
+            // create map of forum categories
+            let mut forum_category_map = HashMap::<i64, String>::new();
+            if let Ok(forum_category_vec) = forum_state.forum_categories_resource.await {
+                for forum_category in forum_category_vec {
+                    forum_category_map.insert(forum_category.category_id, forum_category.category_name);
+                }
+            }
+
             match get_post_vec_by_forum_name(
                 forum_name.get(),
                 forum_state.category_id_filter.get(),
                 state.post_sort_type.get(),
                 0
             ).await {
-                Ok(ref mut init_post_vec) => {
-                    post_vec.update(|post_vec| {
-                        std::mem::swap(post_vec, init_post_vec);
-                    });
+                Ok(init_post_vec) => {
+                    post_vec.set(
+                        init_post_vec.into_iter().map(|post| PostWithForumInfo::from_post_and_category_map(post, &forum_category_map)).collect(),
+                    );
                     if let Some(list_ref) = list_ref.get_untracked() {
                         list_ref.set_scroll_top(0);
                     }
@@ -626,6 +644,12 @@ pub fn ForumContents() -> impl IntoView {
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
+                let mut forum_category_map = HashMap::<i64, String>::new();
+                if let Ok(forum_category_vec) = forum_state.forum_categories_resource.await {
+                    for forum_category in forum_category_vec {
+                        forum_category_map.insert(forum_category.category_id, forum_category.category_name);
+                    }
+                }
                 let num_post = post_vec.read_untracked().len();
                 match get_post_vec_by_forum_name(
                     forum_name.get_untracked(),
@@ -633,8 +657,12 @@ pub fn ForumContents() -> impl IntoView {
                     state.post_sort_type.get_untracked(),
                     num_post
                 ).await {
-                    Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
-                    Err(ref e) => load_error.set(Some(AppError::from(e))),
+                    Ok(add_post_vec) => post_vec.update(|post_vec| {
+                        post_vec.extend(
+                            add_post_vec.into_iter().map(|post| PostWithForumInfo::from_post_and_category_map(post, &forum_category_map))
+                        )
+                    }),
+                    Err(e) => load_error.set(Some(AppError::from(e))),
                 }
                 is_loading.set(false);
             }
@@ -781,7 +809,7 @@ pub fn ForumCategoryDropdown(
 pub fn ForumPostMiniatures(
     /// signal containing the posts to display
     #[prop(into)]
-    post_vec: Signal<Vec<Post>>,
+    post_vec: Signal<Vec<PostWithForumInfo>>,
     /// signal indicating new posts are being loaded
     #[prop(into)]
     is_loading: Signal<bool>,
@@ -809,15 +837,23 @@ pub fn ForumPostMiniatures(
                 // a function that returns the items we're iterating over; a signal is fine
                 each= move || post_vec.get().into_iter().enumerate()
                 // a unique key for each item as a reference
-                key=|(_index, post)| post.post_id
+                key=|(_index, post)| post.post.post_id
                 // renders each item to a view
-                children=move |(_key, post)| {
+                children=move |(_key, post_info)| {
+                    let post = post_info.post;
+                    let forum_header = ForumHeader::new(post.forum_name.clone(), post_info.forum_icon_url);
                     let post_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + post.forum_name.as_str() + POST_ROUTE_PREFIX + PATH_SEPARATOR + &post.post_id.to_string();
                     view! {
                         <li>
                             <a href=post_path>
                                 <div class="flex flex-col gap-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
+                                    <div class="flex gap-1">
+                                        <ForumHeader forum_header/>
+                                        {
+                                            post_info.forum_category.map(|category_name| view! { <ForumCategoryBadge category_name/> })
+                                        }
+                                    </div>
                                     <div class="flex gap-1">
                                         <ScoreIndicator score=post.score/>
                                         <CommentCountWidget count=post.num_comments/>

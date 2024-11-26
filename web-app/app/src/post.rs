@@ -5,6 +5,7 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
@@ -74,10 +75,20 @@ pub struct Post {
     pub scoring_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+// TODO try with flatten on option
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithUserInfo {
     pub post: Post,
     pub vote: Option<Vote>,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct PostWithForumInfo {
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub post: Post,
+    pub forum_category: Option<String>,
+    pub forum_icon_url: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -86,6 +97,20 @@ pub enum PostSortType {
     Trending,
     Best,
     Recent,
+}
+
+impl PostWithForumInfo {
+    pub fn from_post_and_category_map(post: Post, category_map: &HashMap<i64, String>) -> Self {
+        let forum_category = match &post.category_id {
+            Some(category_id) => category_map.get(category_id).cloned(),
+            None => None,
+        };
+        PostWithForumInfo {
+            post,
+            forum_category,
+            forum_icon_url: None,
+        }
+    }
 }
 
 impl fmt::Display for PostSortType {
@@ -178,10 +203,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<PostWithUserInfo, AppError> {
 
-        let user_id = match &user {
-            Some(user) => Some(user.user_id),
-            None => None,
-        };
+        let user_id = user.map(|user| user.user_id);
 
         let post_join_vote = sqlx::query_as::<_, PostJoinVote>(
             "SELECT p.*,
@@ -244,15 +266,14 @@ pub mod ssr {
                 LIMIT $3
                 OFFSET $4",
                 sort_type.to_order_by_code(),
-            )
-            .as_str(),
+            ).as_str(),
         )
-        .bind(forum_name)
-        .bind(forum_category_id)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(db_pool)
-        .await?;
+            .bind(forum_name)
+            .bind(forum_category_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool)
+            .await?;
 
         Ok(post_vec)
     }
@@ -262,22 +283,24 @@ pub mod ssr {
         limit: i64,
         offset: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<Post>, AppError> {
-        let post_vec = sqlx::query_as::<_, Post>(
+    ) -> Result<Vec<PostWithForumInfo>, AppError> {
+        let post_vec = sqlx::query_as::<_, PostWithForumInfo>(
             format!(
-                "SELECT * FROM posts
-                WHERE moderator_id IS NULL
+                "SELECT p.*, c.category_name as forum_category, f.icon_url as forum_icon_url
+                FROM posts p
+                JOIN forums f on f.forum_id = p.forum_id
+                LEFT JOIN forum_categories c on c.category_id = p.category_id
+                WHERE p.moderator_id IS NULL
                 ORDER BY {} DESC
                 LIMIT $1
                 OFFSET $2",
-                sort_type.to_order_by_code()
-            )
-            .as_str(),
+                sort_type.to_order_by_code(),
+            ).as_str()
         )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(db_pool)
-        .await?;
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool)
+            .await?;
 
         Ok(post_vec)
     }
@@ -288,11 +311,13 @@ pub mod ssr {
         limit: i64,
         offset: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<Post>, AppError> {
-        let post_vec = sqlx::query_as::<_, Post>(
+    ) -> Result<Vec<PostWithForumInfo>, AppError> {
+        let post_vec = sqlx::query_as::<_, PostWithForumInfo>(
             format!(
-                "SELECT p.* FROM posts p
+                "SELECT p.*, c.category_name as forum_category, f.icon_url as forum_icon_url
+                FROM posts p
                 JOIN forums f on f.forum_id = p.forum_id
+                LEFT JOIN forum_categories c on c.category_id = p.category_id
                 WHERE
                     f.forum_id IN (
                         SELECT forum_id FROM forum_subscriptions WHERE user_id = $1
@@ -305,11 +330,11 @@ pub mod ssr {
             )
             .as_str(),
         )
-        .bind(user_id)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(db_pool)
-        .await?;
+            .bind(user_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool)
+            .await?;
 
         Ok(post_vec)
     }
@@ -534,7 +559,7 @@ pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, 
 pub async fn get_sorted_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Post>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithForumInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_sorted_post_vec(
@@ -553,7 +578,7 @@ pub async fn get_subscribed_post_vec(
     user_id: i64,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Post>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithForumInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_subscribed_post_vec(
@@ -1100,8 +1125,76 @@ pub fn EditPostForm(
 #[cfg(test)]
 mod tests {
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-    use crate::post::PostSortType;
+    use crate::post::{Post, PostSortType, PostWithForumInfo};
+    use std::collections::HashMap;
 
+    fn create_post_with_category(forum_name: &str, title: &str, category_id: Option<i64>) -> Post {
+        Post {
+            post_id: 0,
+            title: title.to_string(),
+            body: String::default(),
+            markdown_body: None,
+            is_nsfw: false,
+            is_spoiler: false,
+            category_id,
+            is_edited: false,
+            meta_post_id: None,
+            forum_id: 0,
+            forum_name: forum_name.to_string(),
+            creator_id: 0,
+            creator_name: String::default(),
+            is_creator_moderator: false,
+            moderator_message: None,
+            infringed_rule_id: None,
+            infringed_rule_title: None,
+            moderator_id: None,
+            moderator_name: None,
+            num_comments: 0,
+            is_pinned: false,
+            score: 0,
+            score_minus: 0,
+            recommended_score: 0.0,
+            trending_score: 0.0,
+            create_timestamp: Default::default(),
+            edit_timestamp: None,
+            scoring_timestamp: Default::default(),
+        }
+    }
+
+    #[test]
+    fn test_from_post_and_category_map() {
+        let category_map = HashMap::from([
+            (1, String::from("a")),
+            (2, String::from("b")),
+        ]);
+        
+        let post_1 = create_post_with_category("a", "i", Some(1));
+        let post_2 = create_post_with_category("b", "j", Some(2));
+        let post_3 = create_post_with_category("c", "k", Some(3));
+        let post_4 = create_post_with_category("d", "l", None);
+        
+        let post_with_forum_info_1 = PostWithForumInfo::from_post_and_category_map(post_1.clone(), &category_map);
+        let post_with_forum_info_2 = PostWithForumInfo::from_post_and_category_map(post_2.clone(), &category_map);
+        let post_with_forum_info_3 = PostWithForumInfo::from_post_and_category_map(post_3.clone(), &category_map);
+        let post_with_forum_info_4 = PostWithForumInfo::from_post_and_category_map(post_4.clone(), &category_map);
+        
+        assert_eq!(post_with_forum_info_1.post, post_1);
+        assert_eq!(post_with_forum_info_1.forum_category, Some(String::from("a")));
+        assert_eq!(post_with_forum_info_1.forum_icon_url, None);
+
+        assert_eq!(post_with_forum_info_2.post, post_2);
+        assert_eq!(post_with_forum_info_2.forum_category, Some(String::from("b")));
+        assert_eq!(post_with_forum_info_2.forum_icon_url, None);
+
+        assert_eq!(post_with_forum_info_3.post, post_3);
+        assert_eq!(post_with_forum_info_3.forum_category, None);
+        assert_eq!(post_with_forum_info_3.forum_icon_url, None);
+
+        assert_eq!(post_with_forum_info_4.post, post_4);
+        assert_eq!(post_with_forum_info_4.forum_category, None);
+        assert_eq!(post_with_forum_info_4.forum_icon_url, None);
+    }
+    
     #[test]
     fn test_post_sort_type_display() {
         assert_eq!(PostSortType::Hot.to_string(), HOT_STR);

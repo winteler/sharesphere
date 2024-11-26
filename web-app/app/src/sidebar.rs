@@ -167,7 +167,7 @@ pub fn ForumCategoryList() -> impl IntoView {
                         let description = StoredValue::new(forum_category.description.clone());
                         view! {
                             <Collapse
-                                title_view=move || view! { <ForumCategoryBadge forum_category/> }
+                                title_view=move || view! { <ForumCategoryBadge category_name=forum_category.category_name.clone()/> }
                                 is_open=false
                             >
                                 <div class="pl-2 text-sm">{description.get_value()}</div>

@@ -3713,10 +3713,6 @@ html {
   border-radius: 0.125rem;
 }
 
-.rounded-lg {
-  border-radius: 0.5rem;
-}
-
 .rounded-l {
   border-top-left-radius: 0.25rem;
   border-bottom-left-radius: 0.25rem;
@@ -3759,11 +3755,6 @@ html {
 
 .border-primary\/80 {
   border-color: hsl(var(--p) / 0.8);
-}
-
-.border-secondary {
-  --tw-border-opacity: 1;
-  border-color: hsl(var(--s) / var(--tw-border-opacity));
 }
 
 .border-slate-400 {
@@ -4045,10 +4036,6 @@ html {
 
 .font-bold {
   font-weight: 700;
-}
-
-.font-medium {
-  font-weight: 500;
 }
 
 .font-semibold {

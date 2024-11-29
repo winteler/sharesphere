@@ -18,7 +18,7 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::forum_category::{get_forum_category_vec, DeleteForumCategory, ForumCategory, ForumCategoryBadge, SetForumCategory};
+use crate::forum_category::{get_forum_category_vec, DeleteForumCategory, ForumCategory, ForumCategoryBadge, ForumCategoryHeader, SetForumCategory};
 use crate::forum_management::MANAGE_FORUM_ROUTE;
 use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
@@ -609,11 +609,11 @@ pub fn ForumContents() -> impl IntoView {
     let _initial_post_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            // create map of forum categories
-            let mut forum_category_map = HashMap::<i64, String>::new();
+            // TODO return map in resource directly?
+            let mut forum_category_map = HashMap::<i64, ForumCategoryHeader>::new();
             if let Ok(forum_category_vec) = forum_state.forum_categories_resource.await {
                 for forum_category in forum_category_vec {
-                    forum_category_map.insert(forum_category.category_id, forum_category.category_name);
+                    forum_category_map.insert(forum_category.category_id, ForumCategoryHeader::new(forum_category.category_name, forum_category.category_color));
                 }
             }
 
@@ -644,10 +644,10 @@ pub fn ForumContents() -> impl IntoView {
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
-                let mut forum_category_map = HashMap::<i64, String>::new();
+                let mut forum_category_map = HashMap::<i64, ForumCategoryHeader>::new();
                 if let Ok(forum_category_vec) = forum_state.forum_categories_resource.await {
                     for forum_category in forum_category_vec {
-                        forum_category_map.insert(forum_category.category_id, forum_category.category_name);
+                        forum_category_map.insert(forum_category.category_id, ForumCategoryHeader::new(forum_category.category_name, forum_category.category_color));
                     }
                 }
                 let num_post = post_vec.read_untracked().len();
@@ -851,7 +851,7 @@ pub fn ForumPostMiniatures(
                                     <div class="flex gap-1 items-center">
                                         <ForumHeader forum_header/>
                                         {
-                                            post_info.forum_category.map(|category_name| view! { <ForumCategoryBadge category_name/> })
+                                            post_info.forum_category.map(|category_header| view! { <ForumCategoryBadge category_header/> })
                                         }
                                     </div>
                                     <div class="flex gap-1">

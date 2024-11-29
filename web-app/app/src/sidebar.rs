@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use crate::app::GlobalState;
 use crate::constants::PATH_SEPARATOR;
 use crate::forum::{get_popular_forum_headers, get_subscribed_forum_headers, ForumHeader, ForumState, FORUM_ROUTE_PREFIX};
-use crate::forum_category::ForumCategoryBadge;
+use crate::forum_category::{ForumCategoryBadge, ForumCategoryHeader};
 use crate::unpack::TransitionUnpack;
 use crate::widget::{Collapse, TitleCollapse};
 
@@ -163,11 +163,11 @@ pub fn ForumCategoryList() -> impl IntoView {
                 <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
                 {
                     forum_category_vec.iter().map(|forum_category| {
-                        let forum_category = forum_category.clone();
+                        let category_header = ForumCategoryHeader::new(forum_category.category_name.clone(), forum_category.category_color);
                         let description = StoredValue::new(forum_category.description.clone());
                         view! {
                             <Collapse
-                                title_view=move || view! { <ForumCategoryBadge category_name=forum_category.category_name.clone()/> }
+                                title_view=move || view! { <ForumCategoryBadge category_header/> }
                                 is_open=false
                             >
                                 <div class="pl-2 text-sm">{description.get_value()}</div>

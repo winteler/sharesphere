@@ -3,6 +3,7 @@ pub mod app;
 pub mod auth;
 pub mod forum_category;
 pub mod comment;
+pub mod colors;
 pub mod constants;
 pub mod content;
 pub mod editor;
@@ -23,4 +24,3 @@ pub mod sidebar;
 pub mod unpack;
 pub mod user;
 pub mod widget;
-

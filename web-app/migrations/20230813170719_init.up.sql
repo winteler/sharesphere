@@ -71,6 +71,7 @@ CREATE TABLE forum_categories (
     forum_id BIGINT NOT NULL,
     forum_name TEXT NOT NULL,
     category_name TEXT NOT NULL,
+    category_color SMALLINT NOT NULL,
     description TEXT NOT NULL,
     is_active BOOLEAN NOT NULL,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),

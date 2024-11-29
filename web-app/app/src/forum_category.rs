@@ -3,6 +3,7 @@ use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
+use crate::colors::Color;
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
@@ -10,6 +11,7 @@ use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, PauseIcon, PlayIcon, SaveIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::unpack::TransitionUnpack;
+
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -19,11 +21,19 @@ use crate::{
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct ForumCategoryHeader {
+    pub category_name: String,
+    pub category_color: Color,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct ForumCategory {
     pub category_id: i64,
     pub forum_id: i64,
     pub forum_name: String,
     pub category_name: String,
+    pub category_color: Color,
     pub description: String,
     pub is_active: bool,
     pub creator_id: i64,
@@ -31,10 +41,19 @@ pub struct ForumCategory {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+impl ForumCategoryHeader {
+    pub fn new(category_name: String, category_color: Color) -> Self {
+        Self {
+            category_name,
+            category_color,
+        }
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use crate::errors::AppError;
-    use crate::forum_category::ForumCategory;
+    use crate::forum_category::{Color, ForumCategory};
     use crate::role::PermissionLevel;
     use crate::user::User;
     use sqlx::PgPool;
@@ -61,6 +80,7 @@ pub mod ssr {
     pub async fn set_forum_category(
         forum_name: &str,
         category_name: &str,
+        category_color: Color,
         description: &str,
         is_active: bool,
         user: &User,
@@ -71,17 +91,19 @@ pub mod ssr {
         let category = sqlx::query_as!(
             ForumCategory,
             "INSERT INTO forum_categories
-            (forum_id, forum_name, category_name, description, is_active, creator_id)
+            (forum_id, forum_name, category_name, category_color, description, is_active, creator_id)
             VALUES (
                 (SELECT forum_id FROM forums WHERE forum_name = $1),
-                $1, $2, $3, $4, $5
+                $1, $2, $3, $4, $5, $6
             ) ON CONFLICT (forum_id, category_name) DO UPDATE
                 SET description = EXCLUDED.description,
+                    category_color = EXCLUDED.category_color,
                     is_active = EXCLUDED.is_active,
                     timestamp = CURRENT_TIMESTAMP
             RETURNING *",
             forum_name,
             category_name,
+            category_color as i32,
             description,
             is_active,
             user.user_id,
@@ -132,12 +154,13 @@ pub async fn get_forum_category_vec(
 pub async fn set_forum_category(
     forum_name: String,
     category_name: String,
+    category_color: Color,
     description: String,
     is_active: bool,
 ) -> Result<ForumCategory, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    let forum_category = ssr::set_forum_category(&forum_name, &category_name, &description, is_active, &user, &db_pool).await?;
+    let forum_category = ssr::set_forum_category(&forum_name, &category_name, category_color, &description, is_active, &user, &db_pool).await?;
     Ok(forum_category)
 }
 
@@ -155,10 +178,14 @@ pub async fn delete_forum_category(
 /// Component to display a badge with forum category's name
 #[component]
 pub fn ForumCategoryBadge(
-    category_name: String,
+    category_header: ForumCategoryHeader,
 ) -> impl IntoView {
+    let class = format!(
+        "flex items-center {} px-2 pt-1 pb-1.5 rounded-full text-sm leading-none",
+        category_header.category_color.to_bg_class()
+    );
     view! {
-        <div class="flex items-center bg-blue-500 px-2 pt-1 pb-1.5 rounded-full text-sm leading-none">{category_name}</div>
+        <div class=class>{category_header.category_name}</div>
     }
 }
 
@@ -269,6 +296,11 @@ pub fn SetCategoryForm(
                                 category_input.set(event_target_value(&ev));
                             }
                             prop:value=category_input
+                        />
+                        <input
+                            name="category_color"
+                            class="hidden"
+                            value=move || Color::Blue.to_string()
                         />
                         <FormTextEditor
                             name="description"

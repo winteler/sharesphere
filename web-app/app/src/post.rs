@@ -18,7 +18,7 @@ use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::forum::{get_matching_forum_header_vec, ForumCategoryDropdown, ForumHeader, ForumState};
-use crate::forum_category::get_forum_category_vec;
+use crate::forum_category::{get_forum_category_vec, ForumCategoryHeader};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
@@ -82,12 +82,10 @@ pub struct PostWithUserInfo {
     pub vote: Option<Vote>,
 }
 
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithForumInfo {
-    #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub post: Post,
-    pub forum_category: Option<String>,
+    pub forum_category: Option<ForumCategoryHeader>,
     pub forum_icon_url: Option<String>,
 }
 
@@ -100,7 +98,7 @@ pub enum PostSortType {
 }
 
 impl PostWithForumInfo {
-    pub fn from_post_and_category_map(post: Post, category_map: &HashMap<i64, String>) -> Self {
+    pub fn from_post_and_category_map(post: Post, category_map: &HashMap<i64, ForumCategoryHeader>) -> Self {
         let forum_category = match &post.category_id {
             Some(category_id) => category_map.get(category_id).cloned(),
             None => None,
@@ -128,6 +126,7 @@ impl fmt::Display for PostSortType {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use super::*;
+    use crate::colors::Color;
     use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
     use crate::errors::AppError;
     use crate::forum::Forum;
@@ -135,6 +134,17 @@ pub mod ssr {
     use crate::role::PermissionLevel;
     use crate::user::User;
     use sqlx::PgPool;
+
+
+    #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+    #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+    pub struct PostJoinCategory {
+        #[cfg_attr(feature = "ssr", sqlx(flatten))]
+        pub post: Post,
+        pub category_name: Option<String>,
+        pub category_color: Option<Color>,
+        pub forum_icon_url: Option<String>,
+    }
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
     pub struct PostJoinVote {
@@ -148,12 +158,31 @@ pub mod ssr {
         pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
 
+    impl PostJoinCategory {
+        pub fn into_post_with_forum_info(self) -> PostWithForumInfo {
+            let forum_category = if self.category_name.is_some() {
+                Some(ForumCategoryHeader {
+                    category_name: self.category_name.unwrap(),
+                    category_color: self.category_color.unwrap(),
+                })
+            } else {
+                None
+            };
+
+            PostWithForumInfo {
+                post: self.post,
+                forum_category,
+                forum_icon_url: self.forum_icon_url,
+            }
+        }
+    }
+
     impl PostJoinVote {
         pub fn into_post_with_info(self) -> PostWithUserInfo {
             let post_vote = if self.vote_id.is_some() {
                 Some(Vote {
                     vote_id: self.vote_id.unwrap(),
-                    post_id: self.vote_post_id.unwrap(),
+                    post_id: self.post.post_id,
                     comment_id: None,
                     user_id: self.vote_user_id.unwrap(),
                     value: VoteValue::from(self.value.unwrap()),
@@ -284,9 +313,9 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithForumInfo>, AppError> {
-        let post_vec = sqlx::query_as::<_, PostWithForumInfo>(
+        let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
-                "SELECT p.*, c.category_name as forum_category, f.icon_url as forum_icon_url
+                "SELECT p.*, c.category_name, c.category_color, f.icon_url as forum_icon_url
                 FROM posts p
                 JOIN forums f on f.forum_id = p.forum_id
                 LEFT JOIN forum_categories c on c.category_id = p.category_id
@@ -302,6 +331,8 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
+        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_forum_info).collect();
+
         Ok(post_vec)
     }
 
@@ -312,9 +343,9 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithForumInfo>, AppError> {
-        let post_vec = sqlx::query_as::<_, PostWithForumInfo>(
+        let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
-                "SELECT p.*, c.category_name as forum_category, f.icon_url as forum_icon_url
+                "SELECT p.*, c.category_name, c.category_color, f.icon_url as forum_icon_url
                 FROM posts p
                 JOIN forums f on f.forum_id = p.forum_id
                 LEFT JOIN forum_categories c on c.category_id = p.category_id
@@ -335,6 +366,8 @@ pub mod ssr {
             .bind(offset)
             .fetch_all(db_pool)
             .await?;
+
+        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_forum_info).collect();
 
         Ok(post_vec)
     }
@@ -567,8 +600,7 @@ pub async fn get_sorted_post_vec(
         POST_BATCH_SIZE,
         num_already_loaded as i64,
         &db_pool,
-    )
-    .await?;
+    ).await?;
 
     Ok(post_vec)
 }
@@ -587,8 +619,7 @@ pub async fn get_subscribed_post_vec(
         POST_BATCH_SIZE,
         num_already_loaded as i64,
         &db_pool,
-    )
-    .await?;
+    ).await?;
 
     Ok(post_vec)
 }
@@ -1125,6 +1156,7 @@ pub fn EditPostForm(
 #[cfg(test)]
 mod tests {
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
+    use crate::forum_category::{Color, ForumCategoryHeader};
     use crate::post::{Post, PostSortType, PostWithForumInfo};
     use std::collections::HashMap;
 
@@ -1163,9 +1195,11 @@ mod tests {
 
     #[test]
     fn test_from_post_and_category_map() {
+        let category_header_a = ForumCategoryHeader::new(String::from("a"), Color::Blue);
+        let category_header_b = ForumCategoryHeader::new(String::from("b"), Color::Red);
         let category_map = HashMap::from([
-            (1, String::from("a")),
-            (2, String::from("b")),
+            (1, category_header_a.clone()),
+            (2, category_header_b.clone()),
         ]);
         
         let post_1 = create_post_with_category("a", "i", Some(1));
@@ -1179,11 +1213,11 @@ mod tests {
         let post_with_forum_info_4 = PostWithForumInfo::from_post_and_category_map(post_4.clone(), &category_map);
         
         assert_eq!(post_with_forum_info_1.post, post_1);
-        assert_eq!(post_with_forum_info_1.forum_category, Some(String::from("a")));
+        assert_eq!(post_with_forum_info_1.forum_category, Some(category_header_a));
         assert_eq!(post_with_forum_info_1.forum_icon_url, None);
 
         assert_eq!(post_with_forum_info_2.post, post_2);
-        assert_eq!(post_with_forum_info_2.forum_category, Some(String::from("b")));
+        assert_eq!(post_with_forum_info_2.forum_category, Some(category_header_b));
         assert_eq!(post_with_forum_info_2.forum_icon_url, None);
 
         assert_eq!(post_with_forum_info_3.post, post_3);

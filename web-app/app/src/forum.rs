@@ -492,7 +492,7 @@ pub fn ForumHeader(
     view! {
         <div class="flex gap-2 items-center p-2">
             <ForumIcon icon_url=forum_header.icon_url class="h-5 w-5"/>
-            <span>{forum_header.forum_name}</span>
+            <span class="pt-1 pb-1.5">{forum_header.forum_name}</span>
         </div>
     }
 }
@@ -848,7 +848,7 @@ pub fn ForumPostMiniatures(
                             <a href=post_path>
                                 <div class="flex flex-col gap-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
-                                    <div class="flex gap-1">
+                                    <div class="flex gap-1 items-center">
                                         <ForumHeader forum_header/>
                                         {
                                             post_info.forum_category.map(|category_name| view! { <ForumCategoryBadge category_name/> })

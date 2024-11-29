@@ -158,7 +158,7 @@ pub fn ForumCategoryBadge(
     category_name: String,
 ) -> impl IntoView {
     view! {
-        <div class="bg-blue-500 px-2 py-1 rounded-full h-full w-fit">{category_name}</div>
+        <div class="flex items-center bg-blue-500 px-2 pt-1 pb-1.5 rounded-full text-sm leading-none">{category_name}</div>
     }
 }
 
@@ -199,7 +199,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                                 let is_active = forum_category.is_active;
                                 view! {
                                     <div
-                                        class="flex justify-between align-center"
+                                        class="flex justify-between content-center"
                                     >
                                         <div
                                             class="w-5/6 flex gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"

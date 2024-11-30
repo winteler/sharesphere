@@ -324,6 +324,24 @@ pub fn ModalFormButtons(
 
 /// Component to render cancel and publish buttons for a modal Form
 #[component]
+pub fn RotatingArrow(
+    #[prop(into)]
+    point_up: Signal<bool>,
+    #[prop(default = "h-3 w-3")]
+    class: &'static str,
+) -> impl IntoView {
+    let arrow_class = Signal::derive(move || match point_up.get() {
+        true => format!("{class} transition duration-200"),
+        false => format!("{class} transition duration-200 rotate-180"),
+    });
+    
+    view! {
+        <ArrowUpIcon class=arrow_class/>
+    }
+}
+
+/// Component to render cancel and publish buttons for a modal Form
+#[component]
 pub fn Collapse<C>(
     #[prop(into)]
     title_view: ViewFnOnce,
@@ -340,10 +358,7 @@ where
         true => "transition duration-500 opacity-100 visible",
         false => "opacity-0 invisible h-0",
     };
-    let arrow_class = Signal::derive(move || match show_children.get() {
-        true => "h-3 w-3 transition duration-200",
-        false => "h-3 w-3 transition duration-200 rotate-180",
-    });
+    
     view! {
         <div class="flex flex-col">
             <button
@@ -352,7 +367,7 @@ where
             >
                 <div class="flex justify-between items-center">
                     <div>{title_view.run()}</div>
-                    <ArrowUpIcon class=arrow_class/>
+                    <RotatingArrow point_up=show_children/>
                 </div>
             </button>
             <div class=children_class>

@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
-use crate::colors::Color;
+use crate::colors::{Color, ColorSelect};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
@@ -196,6 +196,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
     let forum_name = forum_state.forum_name;
 
     let category_input = RwSignal::new(String::new());
+    let color_input = RwSignal::new(Color::None);
     let activated_input = RwSignal::new(true);
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let description_autosize = use_textarea_autosize(textarea_ref);
@@ -212,7 +213,8 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                 <div class="flex flex-col">
                     <div class="border-b border-base-content/20 pl-2">
                         <div class="w-5/6 flex gap-1">
-                            <div class="w-2/6 py-2 font-bold">"Category"</div>
+                            <div class="w-3/12 py-2 font-bold">"Category"</div>
+                            <div class="w-1/12 py-2 font-bold">"Color"</div>
                             <div class="w-3/6 py-2 font-bold">"Description"</div>
                             <div class="w-20 py-2 font-bold text-center">"Activated"</div>
                         </div>
@@ -222,16 +224,19 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                         {
                             forum_category_vec.iter().map(|forum_category| {
                                 let category_name = forum_category.category_name.clone();
+                                let color = forum_category.category_color;
+                                let color_class = format!("h-4 w-4 rounded-full {}", color.to_bg_class());
                                 let description = forum_category.description.clone();
                                 let is_active = forum_category.is_active;
                                 view! {
                                     <div
-                                        class="flex justify-between content-center"
+                                        class="flex justify-between items-center"
                                     >
                                         <div
-                                            class="w-5/6 flex gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                            class="w-5/6 flex items-center gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
+                                                color_input.set(color);
                                                 description_data.set_content.set(description.clone());
                                                 if let Some(textarea_ref) = textarea_ref.get() {
                                                     textarea_ref.set_value(&description);
@@ -239,7 +244,8 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                                                 activated_input.set(is_active);
                                             }
                                         >
-                                            <div class="w-2/6 select-none">{category_name.clone()}</div>
+                                            <div class="w-3/12 select-none">{category_name.clone()}</div>
+                                            <div class="w-1/12 h-fit"><div class=color_class></div></div>
                                             <div class="w-3/6 select-none whitespace-pre-wrap">{description.clone()}</div>
                                             <div class="w-20 flex justify-center">
                                                 {
@@ -257,7 +263,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                         }
                         </TransitionUnpack>
                     </div>
-                    <SetCategoryForm category_input activated_input description_data/>
+                    <SetCategoryForm category_input color_input activated_input description_data/>
                 </div>
             </div>
         </AuthorizedShow>
@@ -268,6 +274,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
 #[component]
 pub fn SetCategoryForm(
     category_input: RwSignal<String>,
+    color_input: RwSignal<Color>,
     activated_input: RwSignal<bool>,
     description_data: TextareaData,
 ) -> impl IntoView {
@@ -283,25 +290,21 @@ pub fn SetCategoryForm(
                     class="hidden"
                     value=forum_name
                 />
-                <div class="w-full flex gap-1 justify-between">
-                    <div class="flex gap-1 content-center w-5/6">
+                <div class="w-full flex gap-1 justify-between items-center">
+                    <div class="flex gap-1 items-center w-5/6">
                         <input
                             tabindex="0"
                             type="text"
                             name="category_name"
                             placeholder="Category"
                             autocomplete="off"
-                            class="input input-bordered input-primary w-2/6"
+                            class="input input-bordered input-primary w-3/12"
                             on:input=move |ev| {
                                 category_input.set(event_target_value(&ev));
                             }
                             prop:value=category_input
                         />
-                        <input
-                            name="category_color"
-                            class="hidden"
-                            value=move || Color::Blue.to_string()
-                        />
+                        <ColorSelect name="category_color" color_input class="w-1/12"/>
                         <FormTextEditor
                             name="description"
                             placeholder="Description"

@@ -10,7 +10,7 @@ pub fn AddCommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl 
 #[component]
 pub fn ArrowUpIcon(
     #[prop(into)]
-    class: Signal<&'static str>,
+    class: Signal<String>,
 ) -> impl IntoView {
     view! {
         <img src="/svg/arrow_up.svg" class=class/>

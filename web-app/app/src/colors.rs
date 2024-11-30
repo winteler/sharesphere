@@ -1,5 +1,7 @@
-use crate::icons::ArrowUpIcon;
+use crate::widget::RotatingArrow;
+use leptos::html;
 use leptos::prelude::*;
+use leptos_use::on_click_outside;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
@@ -57,6 +59,18 @@ impl Color {
     }
 }
 
+/// Component to display a color
+#[component]
+pub fn ColorIndicator(
+    #[prop(into)]
+    color: Signal<Color>,
+) -> impl IntoView {
+    let color_class = move || format!("w-4 h-4 rounded-full {}", color.get().to_bg_class());
+    view! {
+        <div class="px-2 py-1 h-fit w-fit"><div class=color_class></div></div>
+    }
+}
+
 /// Component to select a color
 #[component]
 pub fn ColorSelect(
@@ -69,30 +83,47 @@ pub fn ColorSelect(
     #[prop(default = "")]
     class: &'static str,
 ) -> impl IntoView {
+    let show_dropdown = RwSignal::new(false);
     let color_string = move || color_input.get().to_string();
-    let select_class = move || format!("w-4 h-4 {}", color_input.get().to_bg_class());
-    let div_class = format!("flex gap-1 {class}");
+    let div_class = format!("h-full flex gap-1 {class}");
+    let dropdown_ref = NodeRef::<html::Div>::new();
+    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+
+    let label_view = match label.is_empty() {
+        true => ().into_any(),
+        false => view! { <span class="label-text">{label}</span> }.into_any()
+    };
+
     view! {
-        <div class=div_class>
+        <div class=div_class node_ref=dropdown_ref>
             <input type="text" name=name value=color_string class="hidden"/>
-            <span class="label-text">{label}</span>
-            <div class="dropdown dropdown-end">
-                <label tabindex="0" class="h-full flex items-center gap-2 p-1 border border-primary hover:bg-base-content/20">
-                    <div class=select_class></div>
-                    <ArrowUpIcon class="h-2 w-2 rotate-180"/>
-                </label>
-                <ul tabindex="0" class="menu menu-sm dropdown-content z-[1] p-2 shadow bg-base-200 rounded-sm">
-                { move || {
-                    Color::iter().into_iter().map(|color: Color| {
-                        let div_class = format!("w-4 h-4 rounded-full {}", color.to_bg_class());
-                        view! {
-                            <li on:click=move |_| color_input.set(color)>
-                                <div class=div_class></div>
-                            </li>
-                        }.into_any()
-                    }).collect_view()
-                }}
-                </ul>
+            {label_view}
+            <div class="h-full relative">
+                <div
+                    class="h-full flex items-center gap-2 pr-2 border border-primary bg-base-100 hover:bg-base-content/20"
+                    on:click=move |_| show_dropdown.update(|value| *value = !*value)
+                >
+                    <ColorIndicator color=color_input/>
+                    <RotatingArrow point_up=show_dropdown class="h-2 w-2"/>
+                </div>
+                <Show when=show_dropdown>
+                    <div class="absolute z-40 origin-bottom-left">
+                        <div class="grid grid-cols-3 gap-1 shadow bg-base-100 rounded mt-1 w-28">
+                        { move || {
+                            Color::iter().into_iter().map(|color: Color| {
+                                view! {
+                                    <div class="w-fit rounded hover:bg-base-content/20" on:click=move |_| {
+                                        color_input.set(color);
+                                        show_dropdown.set(false);
+                                    }>
+                                        <ColorIndicator color/>
+                                    </div>
+                                }.into_any()
+                            }).collect_view()
+                        }}
+                        </div>
+                    </div>
+                </Show>
             </div>
         </div>
     }

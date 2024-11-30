@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
-use crate::colors::{Color, ColorSelect};
+use crate::colors::{Color, ColorIndicator, ColorSelect};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
@@ -225,7 +225,6 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                             forum_category_vec.iter().map(|forum_category| {
                                 let category_name = forum_category.category_name.clone();
                                 let color = forum_category.category_color;
-                                let color_class = format!("h-4 w-4 rounded-full {}", color.to_bg_class());
                                 let description = forum_category.description.clone();
                                 let is_active = forum_category.is_active;
                                 view! {
@@ -245,7 +244,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                                             }
                                         >
                                             <div class="w-3/12 select-none">{category_name.clone()}</div>
-                                            <div class="w-1/12 h-fit"><div class=color_class></div></div>
+                                            <div class="w-1/12 h-fit"><ColorIndicator color/></div>
                                             <div class="w-3/6 select-none whitespace-pre-wrap">{description.clone()}</div>
                                             <div class="w-20 flex justify-center">
                                                 {
@@ -290,8 +289,8 @@ pub fn SetCategoryForm(
                     class="hidden"
                     value=forum_name
                 />
-                <div class="w-full flex gap-1 justify-between items-center">
-                    <div class="flex gap-1 items-center w-5/6">
+                <div class="w-full flex gap-1 justify-between items-stretch pl-2">
+                    <div class="flex gap-1 items-center w-5/6 p-1">
                         <input
                             tabindex="0"
                             type="text"

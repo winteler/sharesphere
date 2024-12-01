@@ -465,6 +465,7 @@ async fn populate_dev_db() -> Result<(), AppError> {
     // generate forum with many posts
     let (_forum, _, _forum_post_vec) = create_forum_with_posts(
         forum_name,
+        None,
         num_posts,
         Some((0..num_posts).map(|_| rng.gen_range(-100..101)).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),

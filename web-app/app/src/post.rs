@@ -167,7 +167,7 @@ pub mod ssr {
             } else {
                 None
             };
-
+            println!("Forum id: {}, icon_url: {:?}", self.post.forum_id, self.forum_icon_url);
             PostWithForumInfo {
                 post: self.post,
                 forum_category,

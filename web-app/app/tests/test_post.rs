@@ -206,6 +206,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     let (forum1, _, mut expected_post_vec) = create_forum_with_posts(
         forum1_name,
+        Some("url"),
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
@@ -215,6 +216,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     create_forum_with_posts(
         forum2_name,
+        None,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
@@ -299,6 +301,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 
     let (_, _, mut expected_forum1_post_vec) = create_forum_with_posts(
         forum1_name,
+        Some("url"),
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
@@ -309,6 +312,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 
     let (_, _, mut expected_forum2_post_vec) = create_forum_with_posts(
         forum2_name,
+        None,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
@@ -370,6 +374,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 
     let (forum, forum_category_1, mut expected_post_vec) = create_forum_with_posts(
         forum_name,
+        None,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
@@ -495,6 +500,7 @@ async fn test_get_post_vec_by_forum_name_with_pinned_post() -> Result<(), AppErr
 
     create_forum_with_posts(
         forum_name,
+        Some("url"),
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
@@ -554,6 +560,7 @@ async fn test_get_post_vec_by_forum_name_with_category() -> Result<(), AppError>
 
     let (forum, _, _) = create_forum_with_posts(
         forum_name,
+        None,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),

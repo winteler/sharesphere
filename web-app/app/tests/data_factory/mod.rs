@@ -8,6 +8,7 @@ use app::comment::Comment;
 use app::errors::AppError;
 use app::forum::Forum;
 use app::forum_category::ForumCategory;
+use app::forum_management::ssr::set_forum_icon_url;
 use app::post::{Post, PostWithForumInfo};
 use app::ranking::VoteValue;
 use app::user::User;
@@ -56,13 +57,14 @@ pub async fn create_forum_with_post_and_comment(
 
 pub async fn create_forum_with_posts(
     forum_name: &str,
+    forum_icon_url: Option<&str>,
     num_posts: usize,
     score_vec: Option<Vec<i32>>,
     category_vec: Vec<bool>,
     user: &User,
     db_pool: &PgPool,
 ) -> Result<(Forum, ForumCategory, Vec<PostWithForumInfo>), AppError> {
-    let forum = forum::ssr::create_forum(
+    let mut forum = forum::ssr::create_forum(
         forum_name,
         "forum",
         false,
@@ -71,6 +73,9 @@ pub async fn create_forum_with_posts(
     ).await?;
     
     let user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
+
+    set_forum_icon_url(forum_name, forum_icon_url, &user, &db_pool).await.expect("Should set icon url.");
+    forum.icon_url = forum_icon_url.map(|x| x.to_string());
     
     let forum_category = forum_category::ssr::set_forum_category(
         forum_name,

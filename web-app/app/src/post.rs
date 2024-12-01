@@ -1194,8 +1194,14 @@ mod tests {
 
     #[test]
     fn test_from_post() {
-        let category_header_a = ForumCategoryHeader::new(String::from("a"), Color::Blue);
-        let category_header_b = ForumCategoryHeader::new(String::from("b"), Color::Red);
+        let category_header_a = ForumCategoryHeader {
+            category_name: String::from("a"),
+            category_color: Color::Blue,
+        };
+        let category_header_b = ForumCategoryHeader {
+            category_name: String::from("b"),
+            category_color: Color::Red,
+        };
         
         let post_1 = create_post_with_category("a", "i", Some(1));
         let post_2 = create_post_with_category("b", "j", Some(2));

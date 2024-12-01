@@ -613,7 +613,7 @@ pub fn ForumContents() -> impl IntoView {
             let mut forum_category_map = HashMap::<i64, ForumCategoryHeader>::new();
             if let Ok(forum_category_vec) = forum_state.forum_categories_resource.await {
                 for forum_category in forum_category_vec {
-                    forum_category_map.insert(forum_category.category_id, ForumCategoryHeader::new(forum_category.category_name, forum_category.category_color));
+                    forum_category_map.insert(forum_category.category_id, forum_category.clone().into());
                 }
             }
 
@@ -653,7 +653,7 @@ pub fn ForumContents() -> impl IntoView {
                 let mut forum_category_map = HashMap::<i64, ForumCategoryHeader>::new();
                 if let Ok(forum_category_vec) = forum_state.forum_categories_resource.await {
                     for forum_category in forum_category_vec {
-                        forum_category_map.insert(forum_category.category_id, ForumCategoryHeader::new(forum_category.category_name, forum_category.category_color));
+                        forum_category_map.insert(forum_category.category_id, forum_category.clone().into());
                     }
                 }
                 let num_post = post_vec.read_untracked().len();

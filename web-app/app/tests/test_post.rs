@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use float_cmp::approx_eq;
@@ -24,18 +25,6 @@ mod common;
 mod data_factory;
 
 pub fn sort_post_vec(
-    post_vec: &mut [Post],
-    sort_type: PostSortType,
-) {
-    match sort_type {
-        PostSortType::Hot => post_vec.sort_by(|l, r| r.recommended_score.partial_cmp(&l.recommended_score).unwrap()),
-        PostSortType::Trending => post_vec.sort_by(|l, r| r.trending_score.partial_cmp(&l.trending_score).unwrap()),
-        PostSortType::Best => post_vec.sort_by(|l, r| r.score.partial_cmp(&l.score).unwrap()),
-        PostSortType::Recent => post_vec.sort_by(|l, r| r.create_timestamp.partial_cmp(&l.create_timestamp).unwrap()),
-    }
-}
-
-pub fn sort_post_with_info_vec(
     post_vec: &mut [PostWithForumInfo],
     sort_type: PostSortType,
 ) {
@@ -48,44 +37,19 @@ pub fn sort_post_with_info_vec(
 }
 
 pub fn test_post_vec(
-    post_vec: &[Post],
-    expected_post_vec: &[Post],
-    sort_type: PostSortType,
-) {
-    assert_eq!(post_vec.len(), expected_post_vec.iter().len());
-    // Check that all expected post are present
-    for expected_post in expected_post_vec {
-        assert!(post_vec.contains(expected_post));
-    }
-    // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple posts
-    for (index, (post, expected_post)) in post_vec.iter().zip(expected_post_vec.iter()).enumerate() {
-        assert!(match sort_type {
-            PostSortType::Hot => post.recommended_score == expected_post.recommended_score,
-            PostSortType::Trending => post.trending_score == expected_post.trending_score,
-            PostSortType::Best => post.score == expected_post.score,
-            PostSortType::Recent => post.create_timestamp == expected_post.create_timestamp,
-        });
-        if index > 0 {
-            let previous_post = &post_vec[index - 1];
-            assert!(match sort_type {
-                PostSortType::Hot => post.recommended_score <= previous_post.recommended_score,
-                PostSortType::Trending => post.trending_score <= previous_post.trending_score,
-                PostSortType::Best => post.score <= previous_post.score,
-                PostSortType::Recent => post.create_timestamp <= previous_post.create_timestamp,
-            });
-        }
-    }
-}
-
-pub fn test_post_with_info_vec(
     post_vec: &[PostWithForumInfo],
     expected_post_vec: &[PostWithForumInfo],
     sort_type: PostSortType,
 ) {
     assert_eq!(post_vec.len(), expected_post_vec.iter().len());
     // Check that all expected post are present
-    for expected_post in expected_post_vec {
-        assert!(post_vec.contains(expected_post));
+    for (i, expected_post) in expected_post_vec.iter().enumerate() {
+        let has_post = post_vec.contains(expected_post);
+        if !has_post {
+            println!("Missing expected post {i}: {:?}", expected_post);
+        }
+        assert!(has_post);
+        
     }
     // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple posts
     for (index, (post_with_info, expected_post_with_info)) in post_vec.iter().zip(expected_post_vec.iter()).enumerate() {
@@ -240,10 +204,11 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     let forum2_name = "2";
     let num_post = 10usize;
 
-    let (forum1, expected_post_vec) = create_forum_with_posts(
+    let (forum1, _, mut expected_post_vec) = create_forum_with_posts(
         forum1_name,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
+        (0..num_post).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await?;
@@ -252,6 +217,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         forum2_name,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
+        (0..num_post).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await?;
@@ -266,10 +232,6 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     assert!(post_vec.is_empty());
 
     forum::ssr::subscribe(forum1.forum_id, user.user_id, &db_pool).await?;
-
-    let mut expected_post_with_info_vec: Vec<PostWithForumInfo> = expected_post_vec.into_iter().map(|post| {
-        PostWithForumInfo::from_post(post, None, None)
-    }).collect();
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -286,15 +248,15 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
             0,
             &db_pool,
         ).await?;
-        sort_post_with_info_vec(&mut expected_post_with_info_vec, sort_type);
-        test_post_with_info_vec(&post_vec, &expected_post_with_info_vec, sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type);
+        test_post_vec(&post_vec, &expected_post_vec, sort_type);
     }
 
     // test banned post are not returned
     user.admin_role = AdminRole::Admin;
     let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
-        expected_post_with_info_vec.first().expect("First post should be accessible.").post.post_id,
+        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
         rule.rule_id,
         "test",
         &user,
@@ -333,29 +295,27 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     let forum1_name = "1";
     let forum2_name = "2";
     let num_post = 10;
-    let mut expected_post_vec = Vec::<Post>::new();
+    let mut expected_post_vec = Vec::<PostWithForumInfo>::new();
 
-    let (_, mut expected_forum1_post_vec) = create_forum_with_posts(
+    let (_, _, mut expected_forum1_post_vec) = create_forum_with_posts(
         forum1_name,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
+        (0..num_post).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_forum1_post_vec);
 
-    let (_, mut expected_forum2_post_vec) = create_forum_with_posts(
+    let (_, _, mut expected_forum2_post_vec) = create_forum_with_posts(
         forum2_name,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
+        (0..num_post).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_forum2_post_vec);
-
-    let mut expected_post_with_info_vec: Vec<PostWithForumInfo> = expected_post_vec.into_iter().map(|post| {
-        PostWithForumInfo::from_post(post, None, None)
-    }).collect();
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -377,16 +337,16 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
             num_post as i64,
             &db_pool
         ).await.expect("Second post vec should be loaded");
-        sort_post_with_info_vec(&mut expected_post_with_info_vec, sort_type);
-        test_post_with_info_vec(&post_vec, &expected_post_with_info_vec[..num_post], sort_type);
-        test_post_with_info_vec(&second_post_vec, &expected_post_with_info_vec[num_post..2*num_post], sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type);
+        test_post_vec(&post_vec, &expected_post_vec[..num_post], sort_type);
+        test_post_vec(&second_post_vec, &expected_post_vec[num_post..2*num_post], sort_type);
     }
 
     // Moderate post, test that it is no longer in the result
     user.admin_role = AdminRole::Admin;
     let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
-        expected_post_with_info_vec.first().expect("First post should be accessible.").post.post_id,
+        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
         rule.rule_id,
         "test",
         &user,
@@ -408,10 +368,11 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     let forum_name = "forum";
     let num_posts = 20usize;
 
-    let (_, mut expected_post_vec) = create_forum_with_posts(
+    let (forum, forum_category_1, mut expected_post_vec) = create_forum_with_posts(
         forum_name,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await?;
@@ -419,15 +380,20 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     // Reload user to refresh moderator permission
     let mut user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
 
-    let forum_category = set_forum_category(
+    let forum_category_2 = set_forum_category(
         forum_name,
         "a",
-        Color::Blue,
+        Color::Red,
         "a",
         true,
         &user,
         &db_pool
     ).await.expect("Forum category should be set.");
+    
+    let category_map = HashMap::from([
+        (forum_category_1.category_id, forum_category_1.clone()),
+        (forum_category_2.category_id, forum_category_2.clone()),
+    ]);
 
     let category_post_1 = create_post(
         forum_name,
@@ -437,12 +403,16 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
         false,
         false,
         false,
-        Some(forum_category.category_id),
+        Some(forum_category_2.category_id),
         &user,
         &db_pool
     ).await.expect("Post 1 with category should be created.");
 
-    expected_post_vec.push(category_post_1);
+    expected_post_vec.push(PostWithForumInfo::from_post(
+        category_post_1,
+        Some(forum_category_2.clone().into()),
+        forum.icon_url.clone())
+    );
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -461,10 +431,17 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
             load_count as i64,
             0,
             &db_pool,
-        ).await?;
+        ).await.expect("First post vec should be loaded");
         
+        
+        let post_vec: Vec<PostWithForumInfo> = post_vec.into_iter().map(|post| {
+            let forum_category = post.category_id.map(|category_id| {
+                category_map.get(&category_id).expect("Category should be in map").clone().into()
+            });
+            PostWithForumInfo::from_post(post, forum_category, forum.icon_url.clone())
+        }).collect();
         test_post_vec(&post_vec, &expected_post_vec[..load_count], sort_type);
-
+        
         let second_post_vec = ssr::get_post_vec_by_forum_name(
             forum_name,
             None,
@@ -474,6 +451,12 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
             &db_pool,
         ).await?;
 
+        let second_post_vec: Vec<PostWithForumInfo> = second_post_vec.into_iter().map(|post| {
+            let forum_category = post.category_id.map(|category_id| {
+                category_map.get(&category_id).expect("Category should be in map").clone().into()
+            });
+            PostWithForumInfo::from_post(post, forum_category, forum.icon_url.clone())
+        }).collect();
         test_post_vec(&second_post_vec, &expected_post_vec[load_count..(num_posts + 1)], sort_type);
     }
 
@@ -481,7 +464,7 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 
     let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
     let moderated_post = moderate_post(
-        expected_post_vec.first().expect("First post should be accessible.").post_id,
+        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
         rule.rule_id,
         "test",
         &user,
@@ -514,6 +497,7 @@ async fn test_get_post_vec_by_forum_name_with_pinned_post() -> Result<(), AppErr
         forum_name,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await?;
@@ -568,10 +552,11 @@ async fn test_get_post_vec_by_forum_name_with_category() -> Result<(), AppError>
     let forum_name = "forum";
     let num_posts = 10usize;
 
-    create_forum_with_posts(
+    let (forum, _, _) = create_forum_with_posts(
         forum_name,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await?;
@@ -615,7 +600,10 @@ async fn test_get_post_vec_by_forum_name_with_category() -> Result<(), AppError>
         &db_pool
     ).await.expect("Post 2 with category should be created.");
 
-    let mut expected_post_vec = vec![category_post_1, category_post_2];
+    let mut expected_post_vec = vec![
+        PostWithForumInfo::from_post(category_post_1, Some(forum_category.clone().into()), forum.icon_url.clone()),
+        PostWithForumInfo::from_post(category_post_2, Some(forum_category.clone().into()), forum.icon_url.clone()),
+    ];
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -633,7 +621,10 @@ async fn test_get_post_vec_by_forum_name_with_category() -> Result<(), AppError>
             0,
             &db_pool,
         ).await?;
-
+        let category_post_vec: Vec<PostWithForumInfo> = category_post_vec.into_iter().map(|post| {
+            let forum_category = post.category_id.map(|_| forum_category.clone().into());
+            PostWithForumInfo::from_post(post, forum_category, forum.icon_url.clone())
+        }).collect();
         sort_post_vec(&mut expected_post_vec, sort_type);
         test_post_vec(&category_post_vec, &expected_post_vec, sort_type);
     }

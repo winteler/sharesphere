@@ -2,14 +2,16 @@
 
 use sqlx::PgPool;
 
+use app::colors::Color;
 use app::comment::ssr::create_comment;
 use app::comment::Comment;
 use app::errors::AppError;
 use app::forum::Forum;
-use app::post::Post;
+use app::forum_category::ForumCategory;
+use app::post::{Post, PostWithForumInfo};
 use app::ranking::VoteValue;
 use app::user::User;
-use app::{comment, forum, post, ranking};
+use app::{comment, forum, forum_category, post, ranking};
 
 pub async fn create_forum_with_post(
     forum_name: &str,
@@ -56,9 +58,10 @@ pub async fn create_forum_with_posts(
     forum_name: &str,
     num_posts: usize,
     score_vec: Option<Vec<i32>>,
+    category_vec: Vec<bool>,
     user: &User,
     db_pool: &PgPool,
-) -> Result<(Forum, Vec<Post>), AppError> {
+) -> Result<(Forum, ForumCategory, Vec<PostWithForumInfo>), AppError> {
     let forum = forum::ssr::create_forum(
         forum_name,
         "forum",
@@ -66,9 +69,25 @@ pub async fn create_forum_with_posts(
         user,
         db_pool,
     ).await?;
+    
+    let user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
+    
+    let forum_category = forum_category::ssr::set_forum_category(
+        forum_name,
+        "create_posts",
+        Color::Blue,
+        "test",
+        true,
+        &user,
+        db_pool,
+    ).await.expect("Forum category should be created.");
 
-    let mut expected_post_vec = Vec::<Post>::with_capacity(num_posts);
+    let mut expected_post_vec = Vec::<PostWithForumInfo>::with_capacity(num_posts);
     for i in 0..num_posts {
+        let category_id = match category_vec.get(i) {
+            Some(has_category) if *has_category => Some(forum_category.category_id),
+            _ => None,
+        };
         let mut post = post::ssr::create_post(
             forum_name,
             i.to_string().as_str(),
@@ -77,8 +96,8 @@ pub async fn create_forum_with_posts(
             false,
             false,
             false,
-            None,
-            user,
+            category_id,
+            &user,
             db_pool,
         ).await?;
 
@@ -88,10 +107,11 @@ pub async fn create_forum_with_posts(
             }
         }
 
-        expected_post_vec.push(post);
+        let forum_category_header = category_id.map(|_| forum_category.clone().into());
+        expected_post_vec.push(PostWithForumInfo::from_post(post, forum_category_header, forum.icon_url.clone()));
     }
 
-    Ok((forum, expected_post_vec))
+    Ok((forum, forum_category, expected_post_vec))
 }
 
 pub async fn create_post_with_comments(

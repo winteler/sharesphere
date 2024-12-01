@@ -41,11 +41,11 @@ pub struct ForumCategory {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl ForumCategoryHeader {
-    pub fn new(category_name: String, category_color: Color) -> Self {
-        Self {
-            category_name,
-            category_color,
+impl From<ForumCategory> for ForumCategoryHeader {
+    fn from(forum_category: ForumCategory) -> Self {
+        ForumCategoryHeader {
+            category_name: forum_category.category_name,
+            category_color: forum_category.category_color,
         }
     }
 }

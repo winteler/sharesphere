@@ -463,10 +463,11 @@ async fn populate_dev_db() -> Result<(), AppError> {
     let mut rng = rand::thread_rng();
 
     // generate forum with many posts
-    let (_forum, _forum_post_vec) = create_forum_with_posts(
+    let (_forum, _, _forum_post_vec) = create_forum_with_posts(
         forum_name,
         num_posts,
         Some((0..num_posts).map(|_| rng.gen_range(-100..101)).collect()),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &test_user,
         &db_pool,
     )

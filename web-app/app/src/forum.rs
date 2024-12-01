@@ -18,12 +18,12 @@ use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::forum_category::{get_forum_category_vec, DeleteForumCategory, ForumCategory, ForumCategoryBadge, ForumCategoryHeader, SetForumCategory};
+use crate::forum_category::{get_forum_category_vec, DeleteForumCategory, ForumCategory, ForumCategoryHeader, SetForumCategory};
 use crate::forum_management::MANAGE_FORUM_ROUTE;
 use crate::icons::{ForumIcon, InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
-use crate::post::{get_post_vec_by_forum_name, PostWithForumInfo};
+use crate::post::{get_post_vec_by_forum_name, PostBadgeList, PostWithForumInfo};
 use crate::post::{
     CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE, POST_ROUTE_PREFIX,
 };
@@ -490,7 +490,7 @@ pub fn ForumHeader(
     forum_header: ForumHeader
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-2 items-center p-2">
+        <div class="flex gap-2 items-center">
             <ForumIcon icon_url=forum_header.icon_url class="h-5 w-5"/>
             <span class="pt-1 pb-1.5">{forum_header.forum_name}</span>
         </div>
@@ -691,6 +691,7 @@ pub fn ForumContents() -> impl IntoView {
             load_error
             additional_load_count
             list_ref
+            show_forum_header=false
         />
     }.into_any()
 }
@@ -832,6 +833,8 @@ pub fn ForumPostMiniatures(
     additional_load_count: RwSignal<i64>,
     /// reference to the container of the posts in order to reset scroll position when context changes
     list_ref: NodeRef<html::Ul>,
+    #[prop(default = true)]
+    show_forum_header: bool,
 ) -> impl IntoView {
     view! {
         <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20"
@@ -853,19 +856,22 @@ pub fn ForumPostMiniatures(
                 // renders each item to a view
                 children=move |(_key, post_info)| {
                     let post = post_info.post;
-                    let forum_header = ForumHeader::new(post.forum_name.clone(), post_info.forum_icon_url);
+                    let forum_header = match show_forum_header {
+                        true => Some(ForumHeader::new(post.forum_name.clone(), post_info.forum_icon_url)),
+                        false => None,
+                    };
                     let post_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + post.forum_name.as_str() + POST_ROUTE_PREFIX + PATH_SEPARATOR + &post.post_id.to_string();
                     view! {
                         <li>
                             <a href=post_path>
                                 <div class="flex flex-col gap-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
-                                    <div class="flex gap-1 items-center">
-                                        <ForumHeader forum_header/>
-                                        {
-                                            post_info.forum_category.map(|category_header| view! { <ForumCategoryBadge category_header/> })
-                                        }
-                                    </div>
+                                    <PostBadgeList
+                                        forum_header
+                                        forum_category=post_info.forum_category
+                                        is_spoiler=post.is_spoiler
+                                        is_nsfw=post.is_nsfw
+                                    />
                                     <div class="flex gap-1">
                                         <ScoreIndicator score=post.score/>
                                         <CommentCountWidget count=post.num_comments/>

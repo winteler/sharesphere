@@ -3489,10 +3489,6 @@ html {
   width: 100vw;
 }
 
-.w-24 {
-  width: 6rem;
-}
-
 .min-w-6 {
   min-width: 1.5rem;
 }
@@ -3960,6 +3956,16 @@ html {
   padding-right: 1.5rem;
 }
 
+.py-0 {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+.py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+
 .py-1 {
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
@@ -4021,10 +4027,6 @@ html {
 
 .pt-4 {
   padding-top: 1rem;
-}
-
-.pr-1 {
-  padding-right: 0.25rem;
 }
 
 .text-left {

@@ -44,17 +44,17 @@ impl From<i16> for Color {
 impl Color {
     pub fn to_bg_class(&self) -> &'static str {
         match self {
-            Color::None => "border border-base-content/20",
-            Color::Blue => "bg-blue-500 text-white",
-            Color::Purple => "bg-purple-500 text-white",
-            Color::Pink => "bg-pink-500 text-white",
-            Color::Red => "bg-red-500 text-white",
-            Color::Orange => "bg-orange-500 text-black",
-            Color::Yellow => "bg-yellow-500 text-black",
-            Color::Green => "bg-green-500 text-black",
-            Color::Cyan => "bg-cyan-500 text-white",
-            Color::Black => "bg-black text-white",
-            Color::White => "bg-white text-black",
+            Color::None => "border border-base-content/20 font-semibold",
+            Color::Blue => "bg-blue-500 text-white font-semibold",
+            Color::Purple => "bg-purple-500 text-white font-semibold",
+            Color::Pink => "bg-pink-500 text-white font-semibold",
+            Color::Red => "bg-red-500 text-black font-semibold",
+            Color::Orange => "bg-orange-500 text-black font-semibold",
+            Color::Yellow => "bg-yellow-500 text-black font-semibold",
+            Color::Green => "bg-green-500 text-black font-semibold",
+            Color::Cyan => "bg-cyan-500 text-white font-semibold",
+            Color::Black => "bg-black text-white font-semibold",
+            Color::White => "bg-white text-black font-semibold",
         }
     }
 }

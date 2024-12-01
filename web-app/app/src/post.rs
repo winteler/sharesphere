@@ -17,8 +17,8 @@ use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::forum::{get_matching_forum_header_vec, ForumCategoryDropdown, ForumHeader, ForumState};
-use crate::forum_category::{get_forum_category_vec, ForumCategoryHeader};
-use crate::icons::{EditIcon, LoadingIcon};
+use crate::forum_category::{get_forum_category_vec, ForumCategoryBadge, ForumCategoryHeader};
+use crate::icons::{EditIcon, LoadingIcon, NsfwIcon, SpoilerIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
@@ -76,8 +76,9 @@ pub struct Post {
 
 // TODO try with flatten on option
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct PostWithUserInfo {
+pub struct PostWithInfo {
     pub post: Post,
+    pub forum_category: Option<ForumCategoryHeader>,
     pub vote: Option<Vote>,
 }
 
@@ -146,9 +147,11 @@ pub mod ssr {
     }
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
-    pub struct PostJoinVote {
+    pub struct PostJoinInfo {
         #[sqlx(flatten)]
         pub post: super::Post,
+        pub category_name: Option<String>,
+        pub category_color: Option<Color>,
         pub vote_id: Option<i64>,
         pub vote_post_id: Option<i64>,
         pub vote_comment_id: Option<Option<i64>>,
@@ -159,15 +162,13 @@ pub mod ssr {
 
     impl PostJoinCategory {
         pub fn into_post_with_forum_info(self) -> PostWithForumInfo {
-            let forum_category = if self.category_name.is_some() {
-                Some(ForumCategoryHeader {
-                    category_name: self.category_name.unwrap(),
-                    category_color: self.category_color.unwrap(),
-                })
-            } else {
-                None
+            let forum_category = match (self.category_name, self.category_color) {
+                (Some(category_name), Some(category_color)) => Some(ForumCategoryHeader {
+                    category_name,
+                    category_color,
+                }),
+                _ => None,
             };
-            println!("Forum id: {}, icon_url: {:?}", self.post.forum_id, self.forum_icon_url);
             PostWithForumInfo {
                 post: self.post,
                 forum_category,
@@ -176,23 +177,30 @@ pub mod ssr {
         }
     }
 
-    impl PostJoinVote {
-        pub fn into_post_with_info(self) -> PostWithUserInfo {
-            let post_vote = if self.vote_id.is_some() {
-                Some(Vote {
-                    vote_id: self.vote_id.unwrap(),
+    impl PostJoinInfo {
+        pub fn into_post_with_info(self) -> PostWithInfo {
+            let forum_category = match (self.category_name, self.category_color) {
+                (Some(category_name), Some(category_color)) => Some(ForumCategoryHeader {
+                    category_name,
+                    category_color,
+                }),
+                _ => None,
+            };
+            let post_vote = match (self.vote_id, self.vote_user_id, self.value, self.vote_timestamp) {
+                (Some(vote_id), Some(vote_user_id), Some(value), Some(vote_timestamp)) => Some(Vote {
+                    vote_id,
                     post_id: self.post.post_id,
                     comment_id: None,
-                    user_id: self.vote_user_id.unwrap(),
-                    value: VoteValue::from(self.value.unwrap()),
-                    timestamp: self.vote_timestamp.unwrap(),
-                })
-            } else {
-                None
+                    user_id: vote_user_id,
+                    value: VoteValue::from(value),
+                    timestamp: vote_timestamp,
+                }),
+                _ => None,
             };
 
-            PostWithUserInfo {
+            PostWithInfo {
                 post: self.post,
+                forum_category,
                 vote: post_vote,
             }
         }
@@ -229,19 +237,22 @@ pub mod ssr {
         post_id: i64,
         user: Option<&User>,
         db_pool: &PgPool,
-    ) -> Result<PostWithUserInfo, AppError> {
+    ) -> Result<PostWithInfo, AppError> {
 
         let user_id = user.map(|user| user.user_id);
 
-        let post_join_vote = sqlx::query_as::<_, PostJoinVote>(
+        let post_join_vote = sqlx::query_as::<_, PostJoinInfo>(
             "SELECT p.*,
-            v.vote_id,
-            v.user_id as vote_user_id,
-            v.post_id as vote_post_id,
-            v.comment_id as vote_comment_id,
-            v.value,
-            v.timestamp as vote_timestamp
+                c.category_name,
+                c.category_color,
+                v.vote_id,
+                v.user_id as vote_user_id,
+                v.post_id as vote_post_id,
+                v.comment_id as vote_comment_id,
+                v.value,
+                v.timestamp as vote_timestamp
             FROM posts p
+            LEFT JOIN forum_categories c on c.category_id = p.category_id
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
                v.comment_id IS NULL AND
@@ -508,7 +519,7 @@ pub mod ssr {
     #[cfg(test)]
     mod tests {
         use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
-        use crate::post::ssr::PostJoinVote;
+        use crate::post::ssr::PostJoinInfo;
         use crate::post::{Post, PostSortType};
         use crate::ranking::VoteValue;
         use crate::user::User;
@@ -519,7 +530,7 @@ pub mod ssr {
             let mut user_post = Post::default();
             user_post.creator_id = user.user_id;
 
-            let user_post_without_vote = PostJoinVote {
+            let user_post_without_vote = PostJoinInfo {
                 post: user_post.clone(),
                 vote_id: None,
                 vote_post_id: None,
@@ -532,7 +543,7 @@ pub mod ssr {
             assert_eq!(user_post_with_info.post, user_post);
             assert_eq!(user_post_with_info.vote, None);
 
-            let user_post_with_vote = PostJoinVote {
+            let user_post_with_vote = PostJoinInfo {
                 post: user_post.clone(),
                 vote_id: Some(0),
                 vote_post_id: Some(user_post.post_id),
@@ -542,7 +553,7 @@ pub mod ssr {
                 vote_timestamp: Some(user_post.create_timestamp),
             };
             let user_post_with_info = user_post_with_vote.into_post_with_info();
-            let user_vote = user_post_with_info.vote.expect("PostWithUserInfo should contain vote.");
+            let user_vote = user_post_with_info.vote.expect("PostWithInfo should contain vote.");
             assert_eq!(user_post_with_info.post, user_post);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, user_post.post_id);
@@ -552,7 +563,7 @@ pub mod ssr {
             let mut other_post = Post::default();
             other_post.creator_id = user.user_id + 1;
 
-            let other_post_with_vote = PostJoinVote {
+            let other_post_with_vote = PostJoinInfo {
                 post: other_post.clone(),
                 vote_id: Some(0),
                 vote_post_id: Some(other_post.post_id),
@@ -562,7 +573,7 @@ pub mod ssr {
                 vote_timestamp: Some(other_post.create_timestamp),
             };
             let other_post_with_info = other_post_with_vote.into_post_with_info();
-            let user_vote = other_post_with_info.vote.expect("PostWithUserInfo should contain vote.");
+            let user_vote = other_post_with_info.vote.expect("PostWithInfo should contain vote.");
             assert_eq!(other_post_with_info.post, other_post);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, other_post.post_id);
@@ -581,7 +592,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithUserInfo, ServerFnError<AppError>> {
+pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithInfo, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = get_user().await?;
     Ok(ssr::get_post_with_info_by_id(post_id, user.as_ref(), &db_pool).await?)
@@ -836,9 +847,15 @@ pub fn Post() -> impl IntoView {
             <ArcTransitionUnpack resource=post_resource let:post_with_info>
                 <div class="card">
                     <div class="card-body">
-                        <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-1">
                             <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
                             <PostBody post=post_with_info.post.clone()/>
+                            <PostBadgeList
+                                forum_header=None
+                                forum_category=post_with_info.forum_category.clone()
+                                is_spoiler=post_with_info.post.is_spoiler
+                                is_nsfw=post_with_info.post.is_nsfw
+                            />
                             <PostWidgetBar post=post_with_info comment_vec/>
                         </div>
                     </div>
@@ -862,11 +879,44 @@ pub fn Post() -> impl IntoView {
     }.into_any()
 }
 
+/// Component to display a post's forum, its category and whether it's a spoiler/NSFW
+#[component]
+pub fn PostBadgeList(
+    forum_header: Option<ForumHeader>,
+    forum_category: Option<ForumCategoryHeader>,
+    is_spoiler: bool,
+    is_nsfw: bool,
+) -> impl IntoView {
+    view! {
+        <div class="flex gap-2 items-center pl-1">
+        {
+            forum_header.map(|forum_header| view! { <ForumHeader forum_header/> })
+        }
+        {
+            forum_category.map(|category_header| view! { <ForumCategoryBadge category_header/> })
+        }
+        {
+            match is_spoiler {
+                true => Some(view! { <div class="h-fit w-fit px-2 py-0.5 bg-black rounded-full"><SpoilerIcon/></div> }),
+                false => None
+            }
+        }
+        {
+            match is_nsfw {
+                true => Some(view! { <NsfwIcon/>}),
+                false => None
+            }
+        }
+        </div>
+    }
+}
+
 /// Displays the body of a post
 #[component]
 pub fn PostBody(post: Post) -> impl IntoView {
 
     view! {
+        <div class="pb-4">
         {
             match (&post.moderator_message, &post.infringed_rule_title) {
                 (Some(moderator_message), Some(infringed_rule_title)) => view! { 
@@ -883,13 +933,14 @@ pub fn PostBody(post: Post) -> impl IntoView {
                 }.into_any(),
             }
         }
+        </div>
     }.into_any()
 }
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
 fn PostWidgetBar(
-    post: Arc<PostWithUserInfo>,
+    post: Arc<PostWithInfo>,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     view! {

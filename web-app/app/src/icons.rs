@@ -302,6 +302,13 @@ pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl 
 }
 
 #[component]
+pub fn NsfwIcon() -> impl IntoView {
+    view! {
+        <div class="rounded-full px-2 pt-1 pb-1.5 bg-black text-sm font-semibold leading-none w-fit h-fit">"18+"</div>
+    }
+}
+
+#[component]
 pub fn PauseIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/pause.svg" class=class/>
@@ -351,6 +358,13 @@ pub fn ScoreIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoV
 }
 
 #[component]
+pub fn SettingsIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/settings_gear.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn SideBarIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/sidebar.svg" class=class/>
@@ -358,9 +372,9 @@ pub fn SideBarIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl Int
 }
 
 #[component]
-pub fn SpoilerIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn SpoilerIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/editor/spoiler.svg" class=class/>
+        <img src="/svg/spoiler.svg" class=class/>
     }
 }
 
@@ -375,13 +389,6 @@ pub fn StarIcon(
     };
     view! {
         <img src=svg_path class=class/>
-    }
-}
-
-#[component]
-pub fn SettingsIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/settings_gear.svg" class=class/>
     }
 }
 

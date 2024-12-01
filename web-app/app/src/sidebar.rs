@@ -23,7 +23,7 @@ pub fn ForumLinkList(
                 forum_header_vec.iter().map(|forum_header| {
                     let forum_path = FORUM_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &forum_header.forum_name;
                     view! {
-                        <li class="rounded hover:bg-base-content/20">
+                        <li class="px-2 rounded hover:bg-base-content/20">
                             <a href=forum_path>
                                 <ForumHeader forum_header=forum_header.clone()/>
                             </a>

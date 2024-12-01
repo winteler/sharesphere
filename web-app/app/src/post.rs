@@ -5,7 +5,6 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
@@ -98,15 +97,15 @@ pub enum PostSortType {
 }
 
 impl PostWithForumInfo {
-    pub fn from_post_and_category_map(post: Post, category_map: &HashMap<i64, ForumCategoryHeader>) -> Self {
-        let forum_category = match &post.category_id {
-            Some(category_id) => category_map.get(category_id).cloned(),
-            None => None,
-        };
+    pub fn from_post(
+        post: Post,
+        forum_category: Option<ForumCategoryHeader>,
+        forum_icon_url: Option<String>,
+    ) -> Self {
         PostWithForumInfo {
             post,
             forum_category,
-            forum_icon_url: None,
+            forum_icon_url,
         }
     }
 }
@@ -1155,10 +1154,10 @@ pub fn EditPostForm(
 
 #[cfg(test)]
 mod tests {
+    use crate::colors::Color;
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-    use crate::forum_category::{Color, ForumCategoryHeader};
+    use crate::forum_category::ForumCategoryHeader;
     use crate::post::{Post, PostSortType, PostWithForumInfo};
-    use std::collections::HashMap;
 
     fn create_post_with_category(forum_name: &str, title: &str, category_id: Option<i64>) -> Post {
         Post {
@@ -1194,23 +1193,19 @@ mod tests {
     }
 
     #[test]
-    fn test_from_post_and_category_map() {
+    fn test_from_post() {
         let category_header_a = ForumCategoryHeader::new(String::from("a"), Color::Blue);
         let category_header_b = ForumCategoryHeader::new(String::from("b"), Color::Red);
-        let category_map = HashMap::from([
-            (1, category_header_a.clone()),
-            (2, category_header_b.clone()),
-        ]);
         
         let post_1 = create_post_with_category("a", "i", Some(1));
         let post_2 = create_post_with_category("b", "j", Some(2));
         let post_3 = create_post_with_category("c", "k", Some(3));
         let post_4 = create_post_with_category("d", "l", None);
         
-        let post_with_forum_info_1 = PostWithForumInfo::from_post_and_category_map(post_1.clone(), &category_map);
-        let post_with_forum_info_2 = PostWithForumInfo::from_post_and_category_map(post_2.clone(), &category_map);
-        let post_with_forum_info_3 = PostWithForumInfo::from_post_and_category_map(post_3.clone(), &category_map);
-        let post_with_forum_info_4 = PostWithForumInfo::from_post_and_category_map(post_4.clone(), &category_map);
+        let post_with_forum_info_1 = PostWithForumInfo::from_post(post_1.clone(), Some(category_header_a.clone()), None);
+        let post_with_forum_info_2 = PostWithForumInfo::from_post(post_2.clone(), Some(category_header_b.clone()), None);
+        let post_with_forum_info_3 = PostWithForumInfo::from_post(post_3.clone(), None, None);
+        let post_with_forum_info_4 = PostWithForumInfo::from_post(post_4.clone(), None, None);
         
         assert_eq!(post_with_forum_info_1.post, post_1);
         assert_eq!(post_with_forum_info_1.forum_category, Some(category_header_a));

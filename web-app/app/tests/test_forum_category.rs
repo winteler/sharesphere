@@ -1,4 +1,5 @@
 use crate::common::{create_user, get_db_pool};
+use app::colors::Color;
 use app::errors::AppError;
 use app::forum::ssr::create_forum;
 use app::forum_category::ssr::{delete_forum_category, get_forum_category_vec, set_forum_category, CATEGORY_NOT_DELETED_STR};
@@ -18,6 +19,7 @@ async fn test_get_forum_category_vec() -> Result<(), AppError> {
     let forum_1_category_1 = set_forum_category(
         &forum_1.forum_name,
         "1",
+        Color::Black,
         "1",
         false,
         &user,
@@ -27,6 +29,7 @@ async fn test_get_forum_category_vec() -> Result<(), AppError> {
     let forum_1_category_1_updated = set_forum_category(
         &forum_1_category_1.forum_name,
         &forum_1_category_1.category_name,
+        Color::Black,
         "updated",
         true,
         &user,
@@ -36,6 +39,7 @@ async fn test_get_forum_category_vec() -> Result<(), AppError> {
     let forum_1_category_2 = set_forum_category(
         &forum_1.forum_name,
         "2",
+        Color::Black,
         "2",
         true,
         &user,
@@ -45,6 +49,7 @@ async fn test_get_forum_category_vec() -> Result<(), AppError> {
     let forum_1_category_off = set_forum_category(
         &forum_1.forum_name,
         "0",
+        Color::Black,
         "0",
         false,
         &user,
@@ -54,6 +59,7 @@ async fn test_get_forum_category_vec() -> Result<(), AppError> {
     let forum_2_category_1 = set_forum_category(
         &forum_2.forum_name,
         "1",
+        Color::Black,
         "1",
         true,
         &user,
@@ -94,6 +100,7 @@ async fn test_set_forum_category() -> Result<(), AppError> {
         set_forum_category(
             &forum.forum_name,
             category_name,
+            Color::Black,
             description,
             true,
             &user,
@@ -107,6 +114,7 @@ async fn test_set_forum_category() -> Result<(), AppError> {
     let forum_category = set_forum_category(
         &forum.forum_name,
         category_name,
+        Color::Black,
         description,
         true,
         &user,
@@ -125,6 +133,7 @@ async fn test_set_forum_category() -> Result<(), AppError> {
     let updated_category = set_forum_category(
         &forum.forum_name,
         category_name,
+        Color::Black,
         updated_description,
         false,
         &user,
@@ -143,6 +152,7 @@ async fn test_set_forum_category() -> Result<(), AppError> {
     let forum_2_category = set_forum_category(
         &forum_2.forum_name,
         category_name,
+        Color::Black,
         description,
         false,
         &user,
@@ -171,6 +181,7 @@ async fn test_delete_forum_category() -> Result<(), AppError> {
     let forum_category = set_forum_category(
         &forum.forum_name,
         category_name,
+        Color::Purple,
         "b",
         true,
         &user,
@@ -184,6 +195,7 @@ async fn test_delete_forum_category() -> Result<(), AppError> {
     let forum_category = set_forum_category(
         &forum.forum_name,
         category_name,
+        Color::Cyan,
         "b",
         true,
         &user,

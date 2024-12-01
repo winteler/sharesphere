@@ -625,7 +625,13 @@ pub fn ForumContents() -> impl IntoView {
             ).await {
                 Ok(init_post_vec) => {
                     post_vec.set(
-                        init_post_vec.into_iter().map(|post| PostWithForumInfo::from_post_and_category_map(post, &forum_category_map)).collect(),
+                        init_post_vec.into_iter().map(|post| {
+                            let category_id = match post.category_id {
+                                Some(category_id) => forum_category_map.get(&category_id).cloned(),
+                                None => None,
+                            };
+                            PostWithForumInfo::from_post(post, category_id, None)
+                        }).collect(),
                     );
                     if let Some(list_ref) = list_ref.get_untracked() {
                         list_ref.set_scroll_top(0);
@@ -659,7 +665,13 @@ pub fn ForumContents() -> impl IntoView {
                 ).await {
                     Ok(add_post_vec) => post_vec.update(|post_vec| {
                         post_vec.extend(
-                            add_post_vec.into_iter().map(|post| PostWithForumInfo::from_post_and_category_map(post, &forum_category_map))
+                            add_post_vec.into_iter().map(|post| {
+                                let category_id = match post.category_id {
+                                    Some(category_id) => forum_category_map.get(&category_id).cloned(),
+                                    None => None,
+                                };
+                                PostWithForumInfo::from_post(post, category_id, None)
+                            })
                         )
                     }),
                     Err(e) => load_error.set(Some(AppError::from(e))),

@@ -518,6 +518,7 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
+        use crate::colors::Color;
         use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
         use crate::post::ssr::PostJoinInfo;
         use crate::post::{Post, PostSortType};
@@ -532,6 +533,8 @@ pub mod ssr {
 
             let user_post_without_vote = PostJoinInfo {
                 post: user_post.clone(),
+                category_name: None,
+                category_color: None,
                 vote_id: None,
                 vote_post_id: None,
                 vote_comment_id: None,
@@ -541,10 +544,13 @@ pub mod ssr {
             };
             let user_post_with_info = user_post_without_vote.into_post_with_info();
             assert_eq!(user_post_with_info.post, user_post);
+            assert_eq!(user_post_with_info.forum_category, None);
             assert_eq!(user_post_with_info.vote, None);
 
             let user_post_with_vote = PostJoinInfo {
                 post: user_post.clone(),
+                category_name: Some(String::from("a")),
+                category_color: None,
                 vote_id: Some(0),
                 vote_post_id: Some(user_post.post_id),
                 vote_comment_id: None,
@@ -555,6 +561,7 @@ pub mod ssr {
             let user_post_with_info = user_post_with_vote.into_post_with_info();
             let user_vote = user_post_with_info.vote.expect("PostWithInfo should contain vote.");
             assert_eq!(user_post_with_info.post, user_post);
+            assert_eq!(user_post_with_info.forum_category, None);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, user_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Up);
@@ -565,6 +572,8 @@ pub mod ssr {
 
             let other_post_with_vote = PostJoinInfo {
                 post: other_post.clone(),
+                category_name: Some(String::from("a")),
+                category_color: Some(Color::Green),
                 vote_id: Some(0),
                 vote_post_id: Some(other_post.post_id),
                 vote_comment_id: None,
@@ -574,7 +583,10 @@ pub mod ssr {
             };
             let other_post_with_info = other_post_with_vote.into_post_with_info();
             let user_vote = other_post_with_info.vote.expect("PostWithInfo should contain vote.");
+            let forum_category = other_post_with_info.forum_category.expect("PostWithInfo should contain category.");
             assert_eq!(other_post_with_info.post, other_post);
+            assert_eq!(forum_category.category_name, String::from("a"));
+            assert_eq!(forum_category.category_color, Color::Green);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, other_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Down);

@@ -127,32 +127,69 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
 async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
-
+    
     let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
+    
+    let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
+    let forum_category = set_forum_category(
+        &forum.forum_name, 
+        "b",
+        Color::Orange, 
+        "test", 
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to set forum category.");
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
+    let post_1 = create_post(
+        &forum.forum_name,
+        post_1_title,
+        post_1_body,
+        None, 
+        false, 
+        false, 
+        false,
+        Some(forum_category.category_id),
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(
+        &forum.forum_name,
+        post_2_title,
+        post_2_body,
+        Some(post_2_markdown_body), 
+        false, 
+        false, 
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create post 2.");
 
     let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
+    assert_eq!(post_1_without_vote.forum_category.expect("Should have category"), forum_category.clone().into());
     assert_eq!(post_1_without_vote.vote, None);
 
     let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
+    assert_eq!(post_1_without_vote.forum_category.expect("Should have category"), forum_category.into());
     assert_eq!(post_1_without_vote.vote, None);
 
     let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, None, &db_pool).await.expect("Should be able to load post 2.");
     assert_eq!(post_2_without_vote.post, post_2);
+    assert_eq!(post_2_without_vote.forum_category, None);
     assert_eq!(post_2_without_vote.vote, None);
 
     let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 2.");
     assert_eq!(post_2_without_vote.post, post_2);
+    assert_eq!(post_2_without_vote.forum_category, None);
     assert_eq!(post_2_without_vote.vote, None);
 
     let post_1_vote = vote_on_content(VoteValue::Up, post_1.post_id, None, None, &user, &db_pool).await.expect("Should be possible to vote on post_1.");

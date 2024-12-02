@@ -47,10 +47,19 @@ pub mod ssr {
     use crate::user::User;
     use axum_session_sqlx::SessionPgPool;
     use openidconnect::core::CoreTokenResponse;
-    use openidconnect::RequestTokenError;
+    use openidconnect::{NonceVerifier, RequestTokenError};
     use sqlx::PgPool;
 
     pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
+
+    /// A no-op NonceVerifier implementation.
+    struct NoNonceVerifier;
+
+    impl NonceVerifier for NoNonceVerifier {
+        fn verify(self, _nonce: Option<&openidconnect::Nonce>) -> std::result::Result<(), String> {
+            Ok(())
+        }
+    }
 
     pub fn get_issuer_url() -> Result<oidc::IssuerUrl, AppError> {
         Ok(oidc::IssuerUrl::new(env::var(OIDC_ISSUER_URL_ENV)?)?)
@@ -110,6 +119,13 @@ pub mod ssr {
         auth_session.cache_clear_user(user_id);
         Ok(())
     }
+    
+    fn get_nonce(auth_session: &AuthSession) -> Option<oidc::Nonce> {
+        match auth_session.session.get::<String>(NONCE_KEY) {
+            Some(nonce) if !nonce.is_empty() => Some(oidc::Nonce::new(nonce)),
+            _ => None,
+        }
+    }
 
     pub async fn check_refresh_token() -> Result<Option<User>, AppError> {
         let auth_session = get_session()?;
@@ -120,33 +136,28 @@ pub mod ssr {
             let _lock = user_lock.lock().await;
 
             log::info!("Check refresh token.");
-            let client = ssr::get_auth_client().await?;
-            let token_response: oidc::core::CoreTokenResponse =
+            let client = get_auth_client().await?;
+            let token_response: CoreTokenResponse =
                 auth_session
                     .session
                     .get(OIDC_TOKEN_KEY)
                     .ok_or(AppError::new("Not authenticated."))?;
 
-            let nonce = oidc::Nonce::new(
-                auth_session
-                    .session
-                    .get(NONCE_KEY)
-                    .unwrap_or(String::from("")),
-            );
-
-            // TODO implement NonceVerifier to not check upon refresh?
-
             let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
-            let claims = id_token.claims(&client.id_token_verifier(), &nonce);
+
+            let claims = match get_nonce(&auth_session) {
+                Some(nonce) => id_token.claims(&client.id_token_verifier(), &nonce),
+                None => id_token.claims(&client.id_token_verifier(), NoNonceVerifier),
+            };
             match claims {
                 Err(openidconnect::ClaimsVerificationError::Expired(_)) => {
-                    log::info!("Id token expired, refresh tokens.");
+                    log::debug!("Id token expired, refresh tokens.");
                     auth_session.session.remove(NONCE_KEY);
                     auth_session.session.remove(OIDC_TOKEN_KEY);
                     auth_session.logout_user();
                     let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
                     let token_response = client
-                        .exchange_refresh_token(&refresh_token)
+                        .exchange_refresh_token(refresh_token)
                         .request_async(async_http_client)
                         .await;
 
@@ -197,18 +208,23 @@ pub mod ssr {
         auth_session: AuthSession,
         client: oidc::core::CoreClient,
     ) -> Result<SqlUser, AppError> {
-        let nonce = oidc::Nonce::new(
-            auth_session
-                .session
-                .get(NONCE_KEY)
-                .unwrap_or(String::from("")),
-        );
         // Extract the ID token claims after verifying its authenticity and nonce.
         let id_token = token_response
             .id_token()
             .ok_or(AppError::new("Id token missing."))?;
-        log::info!("Get token claims.");
-        let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
+
+        let claims = match get_nonce(&auth_session) {
+            Some(nonce) => id_token.claims(&client.id_token_verifier(), &nonce),
+            None => id_token.claims(&client.id_token_verifier(), NoNonceVerifier),
+        };
+
+        let claims = match claims {
+            Ok(claims) => claims,
+            Err(e) => {
+                log::error!("Failed to get claims: {e}.");
+                return Err(e.into());
+            }
+        };
 
         // Verify the access token hash to ensure that the access token hasn't been substituted for another user's.
         if let Some(expected_access_token_hash) = claims.access_token_hash() {

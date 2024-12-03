@@ -135,15 +135,14 @@ pub mod ssr {
             // Lock the mutex for this user
             let _lock = user_lock.lock().await;
 
-            log::info!("Check refresh token.");
-            let client = get_auth_client().await?;
-            let token_response: CoreTokenResponse =
-                auth_session
-                    .session
-                    .get(OIDC_TOKEN_KEY)
-                    .ok_or(AppError::new("Not authenticated."))?;
+            let token_response: CoreTokenResponse = auth_session
+                .session
+                .get(OIDC_TOKEN_KEY)
+                .ok_or(AppError::new("Token missing, cannot check validity."))?;
 
             let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
+
+            let client = get_auth_client().await?;
 
             let claims = match get_nonce(&auth_session) {
                 Some(nonce) => id_token.claims(&client.id_token_verifier(), &nonce),
@@ -153,8 +152,6 @@ pub mod ssr {
                 Err(openidconnect::ClaimsVerificationError::Expired(_)) => {
                     log::debug!("Id token expired, refresh tokens.");
                     auth_session.session.remove(NONCE_KEY);
-                    auth_session.session.remove(OIDC_TOKEN_KEY);
-                    auth_session.logout_user();
                     let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
                     let token_response = client
                         .exchange_refresh_token(refresh_token)
@@ -166,6 +163,8 @@ pub mod ssr {
                             let sql_user = process_token_response(token_response, auth_session.clone(), client).await?;
                             let db_pool = get_db_pool()?;
                             let user = User::get(sql_user.user_id, &db_pool).await;
+                            log::debug!("Logged in as {:?}", sql_user);
+                            auth_session.cache_clear_user(sql_user.user_id);
                             Ok(user)
                         }
                         Err(e) => {
@@ -183,6 +182,7 @@ pub mod ssr {
                                     log::error!("Failed to refresh token: other error: {:?}", msg);
                                 }
                             }
+                            auth_session.logout_user();
                             Ok(None)
                         }
                     }
@@ -191,6 +191,7 @@ pub mod ssr {
                     log::error!("Unexpected error while getting claims: {e}");
                     auth_session.session.remove(NONCE_KEY);
                     auth_session.session.remove(OIDC_TOKEN_KEY);
+                    auth_session.logout_user();
                     Ok(None)
                 },
                 Ok(claims) => {
@@ -199,10 +200,12 @@ pub mod ssr {
                 },
             }
         } else {
+            log::debug!("Not logged in.");
             Ok(None)
         }
     }
 
+    /// process the input token response, upsert the corresponding user and returns it
     pub async fn process_token_response(
         token_response: CoreTokenResponse,
         auth_session: AuthSession,
@@ -240,17 +243,16 @@ pub mod ssr {
         // The authenticated user's identity is now available. See the IdTokenClaims struct for a
         // complete listing of the available claims.
         log::debug!(
-        "User {} with e-mail address {} has authenticated successfully",
-        claims.subject().as_str(),
-        claims
-            .email()
-            .map(|email| email.as_str())
-            .unwrap_or("<not provided>"),
-    );
+            "User {} with e-mail address {} has authenticated successfully",
+            claims.subject().as_str(),
+            claims
+                .email()
+                .map(|email| email.as_str())
+                .unwrap_or("<not provided>"),
+        );
 
-        auth_session
-            .session
-            .set(OIDC_TOKEN_KEY, token_response.clone());
+        auth_session.session.remove(OIDC_TOKEN_KEY);
+        auth_session.session.set(OIDC_TOKEN_KEY, token_response.clone());
 
         let oidc_id = claims.subject().to_string();
         let db_pool = get_db_pool()?;
@@ -258,9 +260,6 @@ pub mod ssr {
         let username: String = claims.preferred_username().ok_or(AppError::new("Username missing from token"))?.to_string();
         let email: String = claims.email().ok_or(AppError::new("Email missing from token"))?.to_string();
         let user = create_or_update_user(&oidc_id, &username, &email, &db_pool).await?;
-
-        auth_session.login_user(user.user_id);
-        auth_session.remember_user(true);
 
         Ok(user)
     }
@@ -328,7 +327,10 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError<Ap
         .await
         .map_err(AppError::from)?;
 
-    ssr::process_token_response(token_response, auth_session, client).await?;
+    let sql_user = ssr::process_token_response(token_response, auth_session.clone(), client).await?;
+    auth_session.login_user(sql_user.user_id);
+    auth_session.remember_user(true);
+
     leptos_axum::redirect(redirect_url.as_ref());
     Ok(())
 }

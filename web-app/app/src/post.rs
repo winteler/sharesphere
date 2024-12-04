@@ -16,11 +16,11 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::forum::{get_matching_forum_header_vec, ForumCategoryDropdown, ForumHeader, ForumState};
-use crate::forum_category::{get_forum_category_vec, ForumCategoryBadge, ForumCategoryHeader};
 use crate::icons::{EditIcon, LoadingIcon, NsfwIcon, SpoilerIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
+use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereState};
+use crate::sphere_category::{get_sphere_category_vec, SphereCategoryBadge, SphereCategoryHeader};
 use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 
@@ -30,13 +30,13 @@ use crate::{
     auth::{get_user, ssr::check_user},
     constants::PATH_SEPARATOR,
     editor::get_styled_html_from_markdown,
-    forum::FORUM_ROUTE_PREFIX,
     ranking::{ssr::vote_on_content, VoteValue},
+    sphere::SPHERE_ROUTE_PREFIX,
 };
 
 pub const CREATE_POST_SUFFIX: &str = "/post";
 pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX);
-pub const CREATE_POST_FORUM_QUERY_PARAM: &str = "forum";
+pub const CREATE_POST_SPHERE_QUERY_PARAM: &str = "sphere";
 pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const POST_BATCH_SIZE: i64 = 50;
@@ -53,8 +53,8 @@ pub struct Post {
     pub category_id: Option<i64>,
     pub is_edited: bool,
     pub meta_post_id: Option<i64>,
-    pub forum_id: i64,
-    pub forum_name: String,
+    pub sphere_id: i64,
+    pub sphere_name: String,
     pub creator_id: i64,
     pub creator_name: String,
     pub is_creator_moderator: bool,
@@ -78,15 +78,15 @@ pub struct Post {
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithInfo {
     pub post: Post,
-    pub forum_category: Option<ForumCategoryHeader>,
+    pub sphere_category: Option<SphereCategoryHeader>,
     pub vote: Option<Vote>,
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct PostWithForumInfo {
+pub struct PostWithSphereInfo {
     pub post: Post,
-    pub forum_category: Option<ForumCategoryHeader>,
-    pub forum_icon_url: Option<String>,
+    pub sphere_category: Option<SphereCategoryHeader>,
+    pub sphere_icon_url: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -97,16 +97,16 @@ pub enum PostSortType {
     Recent,
 }
 
-impl PostWithForumInfo {
+impl PostWithSphereInfo {
     pub fn from_post(
         post: Post,
-        forum_category: Option<ForumCategoryHeader>,
-        forum_icon_url: Option<String>,
+        sphere_category: Option<SphereCategoryHeader>,
+        sphere_icon_url: Option<String>,
     ) -> Self {
-        PostWithForumInfo {
+        PostWithSphereInfo {
             post,
-            forum_category,
-            forum_icon_url,
+            sphere_category,
+            sphere_icon_url,
         }
     }
 }
@@ -129,9 +129,9 @@ pub mod ssr {
     use crate::colors::Color;
     use crate::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
     use crate::errors::AppError;
-    use crate::forum::Forum;
     use crate::ranking::VoteValue;
     use crate::role::PermissionLevel;
+    use crate::sphere::Sphere;
     use crate::user::User;
     use sqlx::PgPool;
 
@@ -143,7 +143,7 @@ pub mod ssr {
         pub post: Post,
         pub category_name: Option<String>,
         pub category_color: Option<Color>,
-        pub forum_icon_url: Option<String>,
+        pub sphere_icon_url: Option<String>,
     }
 
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
@@ -161,26 +161,26 @@ pub mod ssr {
     }
 
     impl PostJoinCategory {
-        pub fn into_post_with_forum_info(self) -> PostWithForumInfo {
-            let forum_category = match (self.category_name, self.category_color) {
-                (Some(category_name), Some(category_color)) => Some(ForumCategoryHeader {
+        pub fn into_post_with_sphere_info(self) -> PostWithSphereInfo {
+            let sphere_category = match (self.category_name, self.category_color) {
+                (Some(category_name), Some(category_color)) => Some(SphereCategoryHeader {
                     category_name,
                     category_color,
                 }),
                 _ => None,
             };
-            PostWithForumInfo {
+            PostWithSphereInfo {
                 post: self.post,
-                forum_category,
-                forum_icon_url: self.forum_icon_url,
+                sphere_category,
+                sphere_icon_url: self.sphere_icon_url,
             }
         }
     }
 
     impl PostJoinInfo {
         pub fn into_post_with_info(self) -> PostWithInfo {
-            let forum_category = match (self.category_name, self.category_color) {
-                (Some(category_name), Some(category_color)) => Some(ForumCategoryHeader {
+            let sphere_category = match (self.category_name, self.category_color) {
+                (Some(category_name), Some(category_color)) => Some(SphereCategoryHeader {
                     category_name,
                     category_color,
                 }),
@@ -200,7 +200,7 @@ pub mod ssr {
 
             PostWithInfo {
                 post: self.post,
-                forum_category,
+                sphere_category,
                 vote: post_vote,
             }
         }
@@ -252,7 +252,7 @@ pub mod ssr {
                 v.value,
                 v.timestamp as vote_timestamp
             FROM posts p
-            LEFT JOIN forum_categories c on c.category_id = p.category_id
+            LEFT JOIN sphere_categories c on c.category_id = p.category_id
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
                v.comment_id IS NULL AND
@@ -267,27 +267,27 @@ pub mod ssr {
         Ok(post_join_vote.into_post_with_info())
     }
 
-    pub async fn get_post_forum(
+    pub async fn get_post_sphere(
         post_id: i64,
         db_pool: &PgPool,
-    ) -> Result<Forum, AppError> {
-        let forum = sqlx::query_as!(
-            Forum,
+    ) -> Result<Sphere, AppError> {
+        let sphere = sqlx::query_as!(
+            Sphere,
             "SELECT f.*
-            FROM forums f
-            JOIN posts p on p.forum_id = f.forum_id
+            FROM spheres f
+            JOIN posts p on p.sphere_id = f.sphere_id
             WHERE p.post_id = $1",
             post_id
         )
             .fetch_one(db_pool)
             .await?;
 
-        Ok(forum)
+        Ok(sphere)
     }
 
-    pub async fn get_post_vec_by_forum_name(
-        forum_name: &str,
-        forum_category_id: Option<i64>,
+    pub async fn get_post_vec_by_sphere_name(
+        sphere_name: &str,
+        sphere_category_id: Option<i64>,
         sort_type: SortType,
         limit: i64,
         offset: i64,
@@ -296,9 +296,9 @@ pub mod ssr {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT p.* FROM posts p
-                JOIN forums f on f.forum_id = p.forum_id
+                JOIN spheres f on f.sphere_id = p.sphere_id
                 WHERE
-                    f.forum_name = $1 AND
+                    f.sphere_name = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
                     p.moderator_id IS NULL
                 ORDER BY p.is_pinned DESC, {} DESC
@@ -307,8 +307,8 @@ pub mod ssr {
                 sort_type.to_order_by_code(),
             ).as_str(),
         )
-            .bind(forum_name)
-            .bind(forum_category_id)
+            .bind(sphere_name)
+            .bind(sphere_category_id)
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -322,13 +322,13 @@ pub mod ssr {
         limit: i64,
         offset: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<PostWithForumInfo>, AppError> {
+    ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, f.icon_url as forum_icon_url
+                "SELECT p.*, c.category_name, c.category_color, f.icon_url as sphere_icon_url
                 FROM posts p
-                JOIN forums f on f.forum_id = p.forum_id
-                LEFT JOIN forum_categories c on c.category_id = p.category_id
+                JOIN spheres f on f.sphere_id = p.sphere_id
+                LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE p.moderator_id IS NULL
                 ORDER BY {} DESC
                 LIMIT $1
@@ -341,7 +341,7 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_forum_info).collect();
+        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_sphere_info).collect();
 
         Ok(post_vec)
     }
@@ -352,16 +352,16 @@ pub mod ssr {
         limit: i64,
         offset: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<PostWithForumInfo>, AppError> {
+    ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, f.icon_url as forum_icon_url
+                "SELECT p.*, c.category_name, c.category_color, f.icon_url as sphere_icon_url
                 FROM posts p
-                JOIN forums f on f.forum_id = p.forum_id
-                LEFT JOIN forum_categories c on c.category_id = p.category_id
+                JOIN spheres f on f.sphere_id = p.sphere_id
+                LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
-                    f.forum_id IN (
-                        SELECT forum_id FROM forum_subscriptions WHERE user_id = $1
+                    f.sphere_id IN (
+                        SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
                     ) AND
                     p.moderator_id IS NULL
                 ORDER BY {} DESC
@@ -377,13 +377,13 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_forum_info).collect();
+        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_sphere_info).collect();
 
         Ok(post_vec)
     }
 
     pub async fn create_post(
-        forum_name: &str,
+        sphere_name: &str,
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
@@ -394,25 +394,25 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
-        user.check_can_publish_on_forum(forum_name)?;
-        if forum_name.is_empty() || post_title.is_empty() {
+        user.check_can_publish_on_sphere(sphere_name)?;
+        if sphere_name.is_empty() || post_title.is_empty() {
             return Err(AppError::new(
-                "Cannot create post without a valid forum and title.",
+                "Cannot create post without a valid sphere and title.",
             ));
         }
         if is_pinned {
-            user.check_permissions(forum_name, PermissionLevel::Moderate)?;
+            user.check_permissions(sphere_name, PermissionLevel::Moderate)?;
         }
 
         let post = sqlx::query_as!(
             Post,
             "INSERT INTO posts (
-                title, body, markdown_body, is_nsfw, is_spoiler, category_id, forum_id,
-                forum_name, is_pinned, creator_id, creator_name, is_creator_moderator
+                title, body, markdown_body, is_nsfw, is_spoiler, category_id, sphere_id,
+                sphere_name, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
                 $1, $2, $3, $4, $5, $6,
-                (SELECT forum_id FROM forums WHERE forum_name = $7),
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $7),
                 $7, $8, $9, $10, $11
             ) RETURNING *",
             post_title,
@@ -421,11 +421,11 @@ pub mod ssr {
             is_nsfw,
             is_spoiler,
             category_id,
-            forum_name,
+            sphere_name,
             is_pinned,
             user.user_id,
             user.username,
-            user.check_permissions(forum_name, PermissionLevel::Moderate).is_ok(),
+            user.check_permissions(sphere_name, PermissionLevel::Moderate).is_ok(),
         )
             .fetch_one(db_pool)
             .await?;
@@ -452,7 +452,7 @@ pub mod ssr {
         }
         if is_pinned {
             let post = get_post_by_id(post_id, db_pool).await?;
-            user.check_permissions(&post.forum_name, PermissionLevel::Moderate)?;
+            user.check_permissions(&post.sphere_name, PermissionLevel::Moderate)?;
         }
 
         let post = sqlx::query_as!(
@@ -544,7 +544,7 @@ pub mod ssr {
             };
             let user_post_with_info = user_post_without_vote.into_post_with_info();
             assert_eq!(user_post_with_info.post, user_post);
-            assert_eq!(user_post_with_info.forum_category, None);
+            assert_eq!(user_post_with_info.sphere_category, None);
             assert_eq!(user_post_with_info.vote, None);
 
             let user_post_with_vote = PostJoinInfo {
@@ -561,7 +561,7 @@ pub mod ssr {
             let user_post_with_info = user_post_with_vote.into_post_with_info();
             let user_vote = user_post_with_info.vote.expect("PostWithInfo should contain vote.");
             assert_eq!(user_post_with_info.post, user_post);
-            assert_eq!(user_post_with_info.forum_category, None);
+            assert_eq!(user_post_with_info.sphere_category, None);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, user_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Up);
@@ -583,10 +583,10 @@ pub mod ssr {
             };
             let other_post_with_info = other_post_with_vote.into_post_with_info();
             let user_vote = other_post_with_info.vote.expect("PostWithInfo should contain vote.");
-            let forum_category = other_post_with_info.forum_category.expect("PostWithInfo should contain category.");
+            let sphere_category = other_post_with_info.sphere_category.expect("PostWithInfo should contain category.");
             assert_eq!(other_post_with_info.post, other_post);
-            assert_eq!(forum_category.category_name, String::from("a"));
-            assert_eq!(forum_category.category_color, Color::Green);
+            assert_eq!(sphere_category.category_name, String::from("a"));
+            assert_eq!(sphere_category.category_color, Color::Green);
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, other_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Down);
@@ -614,7 +614,7 @@ pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithInfo, Serv
 pub async fn get_sorted_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<PostWithForumInfo>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_sorted_post_vec(
@@ -632,7 +632,7 @@ pub async fn get_subscribed_post_vec(
     user_id: i64,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<PostWithForumInfo>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_subscribed_post_vec(
@@ -647,16 +647,16 @@ pub async fn get_subscribed_post_vec(
 }
 
 #[server]
-pub async fn get_post_vec_by_forum_name(
-    forum_name: String,
-    forum_category_id: Option<i64>,
+pub async fn get_post_vec_by_sphere_name(
+    sphere_name: String,
+    sphere_category_id: Option<i64>,
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<Post>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let post_vec = ssr::get_post_vec_by_forum_name(
-        forum_name.as_str(),
-        forum_category_id,
+    let post_vec = ssr::get_post_vec_by_sphere_name(
+        sphere_name.as_str(),
+        sphere_category_id,
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
@@ -668,7 +668,7 @@ pub async fn get_post_vec_by_forum_name(
 
 #[server]
 pub async fn create_post(
-    forum: String,
+    sphere: String,
     title: String,
     body: String,
     is_markdown: bool,
@@ -689,7 +689,7 @@ pub async fn create_post(
     };
 
     let post = ssr::create_post(
-        forum.as_str(),
+        sphere.as_str(),
         title.as_str(),
         body.as_str(),
         markdown_body,
@@ -704,9 +704,9 @@ pub async fn create_post(
     let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
 
     log::trace!("Created post with id: {}", post.post_id);
-    let new_post_path: &str = &(FORUM_ROUTE_PREFIX.to_owned()
+    let new_post_path: &str = &(SPHERE_ROUTE_PREFIX.to_owned()
         + PATH_SEPARATOR
-        + forum.as_str()
+        + sphere.as_str()
         + POST_ROUTE_PREFIX
         + PATH_SEPARATOR
         + post.post_id.to_string().as_ref());
@@ -778,12 +778,12 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 #[component]
 pub fn Post() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
 
     let post_resource = Resource::new(
-        move || (post_id.get(), state.edit_post_action.version().get(), forum_state.moderate_post_action.version().get()),
+        move || (post_id.get(), state.edit_post_action.version().get(), sphere_state.moderate_post_action.version().get()),
         move |(post_id, _, _)| {
             log::debug!("Load data for post: {post_id}");
             get_post_with_info_by_id(post_id)
@@ -863,8 +863,8 @@ pub fn Post() -> impl IntoView {
                             <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
                             <PostBody post=post_with_info.post.clone()/>
                             <PostBadgeList
-                                forum_header=None
-                                forum_category=post_with_info.forum_category.clone()
+                                sphere_header=None
+                                sphere_category=post_with_info.sphere_category.clone()
                                 is_spoiler=post_with_info.post.is_spoiler
                                 is_nsfw=post_with_info.post.is_nsfw
                             />
@@ -891,35 +891,38 @@ pub fn Post() -> impl IntoView {
     }.into_any()
 }
 
-/// Component to display a post's forum, its category and whether it's a spoiler/NSFW
+/// Component to display a post's sphere, its category and whether it's a spoiler/NSFW
 #[component]
 pub fn PostBadgeList(
-    forum_header: Option<ForumHeader>,
-    forum_category: Option<ForumCategoryHeader>,
+    sphere_header: Option<SphereHeader>,
+    sphere_category: Option<SphereCategoryHeader>,
     is_spoiler: bool,
     is_nsfw: bool,
 ) -> impl IntoView {
-    view! {
-        <div class="flex gap-2 items-center pl-1">
-        {
-            forum_header.map(|forum_header| view! { <ForumHeader forum_header/> })
-        }
-        {
-            forum_category.map(|category_header| view! { <ForumCategoryBadge category_header/> })
-        }
-        {
-            match is_spoiler {
-                true => Some(view! { <div class="h-fit w-fit px-2 py-0.5 bg-black rounded-full"><SpoilerIcon/></div> }),
-                false => None
+    match (sphere_header, sphere_category, is_spoiler, is_nsfw) {
+        (None, None, false, false) => None,
+        (sphere_header, sphere_category, is_spoiler, is_nsfw) => Some(view! {
+            <div class="flex gap-2 items-center">
+            {
+                sphere_header.map(|sphere_header| view! { <SphereHeader sphere_header/> })
             }
-        }
-        {
-            match is_nsfw {
-                true => Some(view! { <NsfwIcon/>}),
-                false => None
+            {
+                sphere_category.map(|category_header| view! { <SphereCategoryBadge category_header/> })
             }
-        }
-        </div>
+            {
+                match is_spoiler {
+                    true => Some(view! { <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full"><SpoilerIcon/></div> }),
+                    false => None
+                }
+            }
+            {
+                match is_nsfw {
+                    true => Some(view! { <NsfwIcon/>}),
+                    false => None
+                }
+            }
+            </div>
+        })
     }
 }
 
@@ -1018,12 +1021,12 @@ pub fn CreatePost() -> impl IntoView {
     let create_post_action = ServerAction::<CreatePost>::new();
 
     let query = use_query_map();
-    let forum_query = move || {
-        query.read_untracked().get(CREATE_POST_FORUM_QUERY_PARAM).unwrap_or_default()
+    let sphere_query = move || {
+        query.read_untracked().get(CREATE_POST_SPHERE_QUERY_PARAM).unwrap_or_default()
     };
 
-    let forum_name_input = RwSignal::new(forum_query());
-    let forum_name_debounced: Signal<String> = signal_debounced(forum_name_input, 250.0);
+    let sphere_name_input = RwSignal::new(sphere_query());
+    let sphere_name_debounced: Signal<String> = signal_debounced(sphere_name_input, 250.0);
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
@@ -1033,14 +1036,14 @@ pub fn CreatePost() -> impl IntoView {
     };
     let is_title_empty = RwSignal::new(true);
 
-    let matching_forums_resource = Resource::new(
-        move || forum_name_debounced.get(),
-        move |forum_prefix| get_matching_forum_header_vec(forum_prefix),
+    let matching_spheres_resource = Resource::new(
+        move || sphere_name_debounced.get(),
+        move |sphere_prefix| get_matching_sphere_header_vec(sphere_prefix),
     );
 
-    let forum_categories_resource = Resource::new(
-        move || forum_name_debounced.get(),
-        move |forum_name| get_forum_category_vec(forum_name)
+    let sphere_categories_resource = Resource::new(
+        move || sphere_name_debounced.get(),
+        move |sphere_name| get_sphere_category_vec(sphere_name)
     );
 
     view! {
@@ -1053,26 +1056,26 @@ pub fn CreatePost() -> impl IntoView {
                             <input
                                 tabindex="0"
                                 type="text"
-                                name="forum"
+                                name="sphere"
                                 placeholder="Sphere"
                                 autocomplete="off"
                                 class="input input-bordered input-primary w-full h-input_m"
                                 on:input=move |ev| {
-                                    forum_name_input.set(event_target_value(&ev).to_lowercase());
+                                    sphere_name_input.set(event_target_value(&ev).to_lowercase());
                                 }
-                                prop:value=forum_name_input
+                                prop:value=sphere_name_input
                             />
                             <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-sm w-full">
-                            <TransitionUnpack resource=matching_forums_resource let:forum_header_vec>
+                            <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
                             {
-                                forum_header_vec.clone().into_iter().map(|forum_header| {
+                                sphere_header_vec.clone().into_iter().map(|sphere_header| {
                                     view! {
                                         <li>
                                             <button
                                                 type="button"
-                                                on:click=move |_| forum_name_input.set(forum_header.forum_name.clone())
+                                                on:click=move |_| sphere_name_input.set(sphere_header.sphere_name.clone())
                                             >
-                                                <ForumHeader forum_header=forum_header.clone()/>
+                                                <SphereHeader sphere_header=sphere_header.clone()/>
                                             </button>
                                         </li>
                                     }
@@ -1100,14 +1103,14 @@ pub fn CreatePost() -> impl IntoView {
                         />
                         <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
                         <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
-                        <IsPinnedCheckbox forum_name=forum_name_input/>
-                        <ForumCategoryDropdown forum_categories_resource name="category_id" show_inactive=false/>
+                        <IsPinnedCheckbox sphere_name=sphere_name_input/>
+                        <SphereCategoryDropdown sphere_categories_resource name="category_id" show_inactive=false/>
                         <Transition>
-                            <button type="submit" class="btn btn-active btn-secondary" disabled=move || match &*matching_forums_resource.read() {
-                                Some(Ok(forum_header_vec)) => {
+                            <button type="submit" class="btn btn-active btn-secondary" disabled=move || match &*matching_spheres_resource.read() {
+                                Some(Ok(sphere_header_vec)) => {
                                     is_title_empty.get() ||
                                     body_data.content.read().is_empty() ||
-                                    !forum_header_vec.iter().any(|forum_header| forum_header.forum_name == *forum_name_input.read())
+                                    !sphere_header_vec.iter().any(|sphere_header| sphere_header.sphere_name == *sphere_name_input.read())
                                 },
                                 _ => true,
                             }>
@@ -1148,7 +1151,7 @@ pub fn EditPostForm(
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
     let (current_body, is_markdown) = post.with_value(|post| match &post.markdown_body {
         Some(body) => (body.clone(), true),
         None => (post.body.clone(), false),
@@ -1203,7 +1206,7 @@ pub fn EditPostForm(
                     />
                     <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
-                    <IsPinnedCheckbox forum_name=forum_state.forum_name value=is_pinned/>
+                    <IsPinnedCheckbox sphere_name=sphere_state.sphere_name value=is_pinned/>
                     <ModalFormButtons
                         disable_publish=is_post_empty
                         show_form
@@ -1219,10 +1222,10 @@ pub fn EditPostForm(
 mod tests {
     use crate::colors::Color;
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-    use crate::forum_category::ForumCategoryHeader;
-    use crate::post::{Post, PostSortType, PostWithForumInfo};
+    use crate::post::{Post, PostSortType, PostWithSphereInfo};
+    use crate::sphere_category::SphereCategoryHeader;
 
-    fn create_post_with_category(forum_name: &str, title: &str, category_id: Option<i64>) -> Post {
+    fn create_post_with_category(sphere_name: &str, title: &str, category_id: Option<i64>) -> Post {
         Post {
             post_id: 0,
             title: title.to_string(),
@@ -1233,8 +1236,8 @@ mod tests {
             category_id,
             is_edited: false,
             meta_post_id: None,
-            forum_id: 0,
-            forum_name: forum_name.to_string(),
+            sphere_id: 0,
+            sphere_name: sphere_name.to_string(),
             creator_id: 0,
             creator_name: String::default(),
             is_creator_moderator: false,
@@ -1257,11 +1260,11 @@ mod tests {
 
     #[test]
     fn test_from_post() {
-        let category_header_a = ForumCategoryHeader {
+        let category_header_a = SphereCategoryHeader {
             category_name: String::from("a"),
             category_color: Color::Blue,
         };
-        let category_header_b = ForumCategoryHeader {
+        let category_header_b = SphereCategoryHeader {
             category_name: String::from("b"),
             category_color: Color::Red,
         };
@@ -1271,26 +1274,26 @@ mod tests {
         let post_3 = create_post_with_category("c", "k", Some(3));
         let post_4 = create_post_with_category("d", "l", None);
         
-        let post_with_forum_info_1 = PostWithForumInfo::from_post(post_1.clone(), Some(category_header_a.clone()), None);
-        let post_with_forum_info_2 = PostWithForumInfo::from_post(post_2.clone(), Some(category_header_b.clone()), None);
-        let post_with_forum_info_3 = PostWithForumInfo::from_post(post_3.clone(), None, None);
-        let post_with_forum_info_4 = PostWithForumInfo::from_post(post_4.clone(), None, None);
+        let post_with_sphere_info_1 = PostWithSphereInfo::from_post(post_1.clone(), Some(category_header_a.clone()), None);
+        let post_with_sphere_info_2 = PostWithSphereInfo::from_post(post_2.clone(), Some(category_header_b.clone()), None);
+        let post_with_sphere_info_3 = PostWithSphereInfo::from_post(post_3.clone(), None, None);
+        let post_with_sphere_info_4 = PostWithSphereInfo::from_post(post_4.clone(), None, None);
         
-        assert_eq!(post_with_forum_info_1.post, post_1);
-        assert_eq!(post_with_forum_info_1.forum_category, Some(category_header_a));
-        assert_eq!(post_with_forum_info_1.forum_icon_url, None);
+        assert_eq!(post_with_sphere_info_1.post, post_1);
+        assert_eq!(post_with_sphere_info_1.sphere_category, Some(category_header_a));
+        assert_eq!(post_with_sphere_info_1.sphere_icon_url, None);
 
-        assert_eq!(post_with_forum_info_2.post, post_2);
-        assert_eq!(post_with_forum_info_2.forum_category, Some(category_header_b));
-        assert_eq!(post_with_forum_info_2.forum_icon_url, None);
+        assert_eq!(post_with_sphere_info_2.post, post_2);
+        assert_eq!(post_with_sphere_info_2.sphere_category, Some(category_header_b));
+        assert_eq!(post_with_sphere_info_2.sphere_icon_url, None);
 
-        assert_eq!(post_with_forum_info_3.post, post_3);
-        assert_eq!(post_with_forum_info_3.forum_category, None);
-        assert_eq!(post_with_forum_info_3.forum_icon_url, None);
+        assert_eq!(post_with_sphere_info_3.post, post_3);
+        assert_eq!(post_with_sphere_info_3.sphere_category, None);
+        assert_eq!(post_with_sphere_info_3.sphere_icon_url, None);
 
-        assert_eq!(post_with_forum_info_4.post, post_4);
-        assert_eq!(post_with_forum_info_4.forum_category, None);
-        assert_eq!(post_with_forum_info_4.forum_icon_url, None);
+        assert_eq!(post_with_sphere_info_4.post, post_4);
+        assert_eq!(post_with_sphere_info_4.sphere_category, None);
+        assert_eq!(post_with_sphere_info_4.sphere_icon_url, None);
     }
     
     #[test]

@@ -5,11 +5,11 @@ use crate::content::{Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::IsPinnedCheckbox;
-use crate::forum::ForumState;
 use crate::icons::{AddCommentIcon, EditIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::navigation_bar::get_current_path;
 use crate::ranking::{SortType, Vote, VotePanel};
+use crate::sphere::SphereState;
 use crate::unpack::ActionError;
 use crate::widget::{AuthorWidget, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
@@ -90,10 +90,10 @@ pub mod ssr {
 
     use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
     use crate::errors::AppError;
-    use crate::forum::Forum;
-    use crate::post::ssr::get_post_forum;
+    use crate::post::ssr::get_post_sphere;
     use crate::ranking::VoteValue;
     use crate::role::PermissionLevel;
+    use crate::sphere::Sphere;
     use crate::user::User;
 
     use super::*;
@@ -160,15 +160,15 @@ pub mod ssr {
         Ok(comment)
     }
     
-    pub async fn get_comment_forum(
+    pub async fn get_comment_sphere(
         comment_id: i64,
         db_pool: &PgPool,
-    ) -> Result<Forum, AppError> {
-        let forum = sqlx::query_as!(
-            Forum,
+    ) -> Result<Sphere, AppError> {
+        let sphere = sqlx::query_as!(
+            Sphere,
             "SELECT f.*
-            FROM forums f
-            JOIN posts p on p.forum_id = f.forum_id
+            FROM spheres f
+            JOIN posts p on p.sphere_id = f.sphere_id
             JOIN comments c on c.post_id = p.post_id
             WHERE c.comment_id = $1",
             comment_id
@@ -176,7 +176,7 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
-        Ok(forum)
+        Ok(sphere)
     }
 
     pub async fn get_post_comment_tree(
@@ -291,13 +291,13 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        let forum = get_post_forum(post_id, &db_pool).await?;
-        user.check_can_publish_on_forum(&forum.forum_name)?;
+        let sphere = get_post_sphere(post_id, &db_pool).await?;
+        user.check_can_publish_on_sphere(&sphere.sphere_name)?;
         if comment.is_empty() {
             return Err(AppError::new("Cannot create empty comment."));
         }
         if is_pinned {
-            user.check_permissions(&forum.forum_name, PermissionLevel::Moderate)?;
+            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
         let comment = sqlx::query_as!(
             Comment,
@@ -311,7 +311,7 @@ pub mod ssr {
             is_pinned,
             user.user_id,
             user.username,
-            user.check_permissions(&forum.forum_name, PermissionLevel::Moderate).is_ok(),
+            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate).is_ok(),
         )
             .fetch_one(db_pool)
             .await?;
@@ -330,8 +330,8 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         if is_pinned {
-            let forum = get_comment_forum(comment_id, &db_pool).await?;
-            user.check_permissions(&forum.forum_name, PermissionLevel::Moderate)?;
+            let sphere = get_comment_sphere(comment_id, &db_pool).await?;
+            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
         let comment = sqlx::query_as!(
             Comment,
@@ -766,7 +766,7 @@ pub fn CommentForm(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let comment_autosize = use_textarea_autosize(textarea_ref);
     let comment_data = TextareaData {
@@ -809,7 +809,7 @@ pub fn CommentForm(
                         placeholder="Your comment..."
                         data=comment_data
                     />
-                    <IsPinnedCheckbox forum_name=forum_name/>
+                    <IsPinnedCheckbox sphere_name=sphere_name/>
                     <ModalFormButtons
                         disable_publish=is_comment_empty
                         show_form
@@ -888,7 +888,7 @@ pub fn EditCommentForm(
     comment: RwSignal<Comment>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     let (current_body, is_markdown) =
         comment.with_untracked(|comment| match &comment.markdown_body {
             Some(body) => (body.clone(), true),
@@ -934,7 +934,7 @@ pub fn EditCommentForm(
                         data=comment_data
                         is_markdown
                     />
-                    <IsPinnedCheckbox forum_name value=comment.read_untracked().is_pinned/>
+                    <IsPinnedCheckbox sphere_name value=comment.read_untracked().is_pinned/>
                     <ModalFormButtons
                         disable_publish=is_comment_empty
                         show_form

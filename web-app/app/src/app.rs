@@ -1,21 +1,23 @@
+use leptos::html;
+use leptos::prelude::*;
+use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
+use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
+
 use crate::auth::*;
 use crate::comment::CommentSortType;
 use crate::content::PostSortWidget;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
-use crate::forum::*;
-use crate::forum_management::{ForumCockpit, ForumCockpitGuard, MANAGE_FORUM_ROUTE};
 use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
 use crate::sidebar::*;
+use crate::sphere::*;
+use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
 use crate::unpack::ArcSuspenseUnpack;
 use crate::user::User;
-use leptos::html;
-use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
-use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
+
 
 pub const PUBLISH_ROUTE: &str = "/publish";
 
@@ -26,8 +28,8 @@ pub struct GlobalState {
     pub subscribe_action: ServerAction<Subscribe>,
     pub unsubscribe_action: ServerAction<Unsubscribe>,
     pub edit_post_action: ServerAction<EditPost>,
-    pub create_forum_action: ServerAction<CreateForum>,
-    pub forum_reload_signal: RwSignal<usize>,
+    pub create_sphere_action: ServerAction<CreateSphere>,
+    pub sphere_reload_signal: RwSignal<usize>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
     pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
@@ -36,22 +38,22 @@ pub struct GlobalState {
 impl Default for GlobalState {
     fn default() -> Self {
         let logout_action = ServerAction::<EndSession>::new();
-        let create_forum_action = ServerAction::<CreateForum>::new();
+        let create_sphere_action = ServerAction::<CreateSphere>::new();
         Self {
             login_action: ServerAction::<Login>::new(),
             logout_action,
             subscribe_action: ServerAction::<Subscribe>::new(),
             unsubscribe_action: ServerAction::<Unsubscribe>::new(),
             edit_post_action: ServerAction::<EditPost>::new(),
-            create_forum_action,
-            forum_reload_signal: RwSignal::new(0),
+            create_sphere_action,
+            sphere_reload_signal: RwSignal::new(0),
             post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
             user: Resource::new(
                 move || {
                     (
                         logout_action.version().get(),
-                        create_forum_action.version().get(),
+                        create_sphere_action.version().get(),
                     )
                 },
                 move |_| get_user(),
@@ -145,16 +147,16 @@ pub fn App() -> impl IntoView {
                             }
                         }>
                             <Route path=StaticSegment("") view=HomePage/>
-                            <ParentRoute path=(StaticSegment(FORUM_ROUTE_PREFIX), ParamSegment(FORUM_ROUTE_PARAM_NAME)) view=ForumBanner>
+                            <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
                                 <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
-                                <ParentRoute path=StaticSegment(MANAGE_FORUM_ROUTE) view=ForumCockpitGuard>
-                                    <Route path=StaticSegment("") view=ForumCockpit/>
+                                <ParentRoute path=StaticSegment(MANAGE_SPHERE_ROUTE) view=SphereCockpitGuard>
+                                    <Route path=StaticSegment("") view=SphereCockpit/>
                                 </ParentRoute>
-                                <Route path=StaticSegment("") view=ForumContents/>
+                                <Route path=StaticSegment("") view=SphereContents/>
                             </ParentRoute>
                             <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
                             <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
-                                <Route path=StaticSegment(CREATE_FORUM_SUFFIX) view=CreateForum/>
+                                <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>
                                 <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
                             </ParentRoute>
                         </Routes>
@@ -259,7 +261,7 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post_vec = RwSignal::new(Vec::<PostWithForumInfo>::new());
+    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
@@ -307,7 +309,7 @@ fn DefaultHomePage() -> impl IntoView {
     );
 
     view! {
-        <ForumPostMiniatures
+        <SpherePostMiniatures
             post_vec=post_vec
             is_loading=is_loading
             load_error=load_error
@@ -322,7 +324,7 @@ fn DefaultHomePage() -> impl IntoView {
 fn UserHomePage(user: User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
-    let post_vec = RwSignal::new(Vec::<PostWithForumInfo>::new());
+    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
@@ -372,7 +374,7 @@ fn UserHomePage(user: User) -> impl IntoView {
     );
 
     view! {
-        <ForumPostMiniatures
+        <SpherePostMiniatures
             post_vec
             is_loading
             load_error

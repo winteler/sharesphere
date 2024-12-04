@@ -10,22 +10,22 @@ use app::colors::Color;
 use app::comment::ssr::create_comment;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
-use app::forum_category::ssr::set_forum_category;
 use app::moderation::ssr::moderate_post;
-use app::post::ssr::{create_post, get_post_by_id, get_post_forum, get_post_with_info_by_id, update_post_scores};
-use app::post::{ssr, Post, PostSortType, PostWithForumInfo};
+use app::post::ssr::{create_post, get_post_by_id, get_post_sphere, get_post_with_info_by_id, update_post_scores};
+use app::post::{ssr, Post, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
 use app::rule::ssr::add_rule;
+use app::sphere_category::ssr::set_sphere_category;
 use app::user::User;
-use app::{forum, post};
+use app::{post, sphere};
 
 mod common;
 mod data_factory;
 
 pub fn sort_post_vec(
-    post_vec: &mut [PostWithForumInfo],
+    post_vec: &mut [PostWithSphereInfo],
     sort_type: PostSortType,
 ) {
     match sort_type {
@@ -37,8 +37,8 @@ pub fn sort_post_vec(
 }
 
 pub fn test_post_vec(
-    post_vec: &[PostWithForumInfo],
-    expected_post_vec: &[PostWithForumInfo],
+    post_vec: &[PostWithSphereInfo],
+    expected_post_vec: &[PostWithSphereInfo],
     sort_type: PostSortType,
 ) {
     assert_eq!(post_vec.len(), expected_post_vec.iter().len());
@@ -104,16 +104,16 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
+    let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let expected_post_1 = create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
+    let expected_post_1 = create_post(&sphere.sphere_name, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let expected_post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let expected_post_2 = create_post(&sphere.sphere_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1, expected_post_1);
@@ -128,30 +128,30 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
     
-    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
+    let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
     
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
-    let forum_category = set_forum_category(
-        &forum.forum_name, 
+    let sphere_category = set_sphere_category(
+        &sphere.sphere_name,
         "b",
         Color::Orange, 
         "test", 
         true,
         &user,
         &db_pool
-    ).await.expect("Should be able to set forum category.");
+    ).await.expect("Should be able to set sphere category.");
 
     let post_1_title = "1";
     let post_1_body = "test";
     let post_1 = create_post(
-        &forum.forum_name,
+        &sphere.sphere_name,
         post_1_title,
         post_1_body,
         None, 
         false, 
         false, 
         false,
-        Some(forum_category.category_id),
+        Some(sphere_category.category_id),
         &user,
         &db_pool
     ).await.expect("Should be able to create post 1.");
@@ -160,7 +160,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     let post_2_body = "test";
     let post_2_markdown_body = "test";
     let post_2 = create_post(
-        &forum.forum_name,
+        &sphere.sphere_name,
         post_2_title,
         post_2_body,
         Some(post_2_markdown_body), 
@@ -174,22 +174,22 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
 
     let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
-    assert_eq!(post_1_without_vote.forum_category.expect("Should have category"), forum_category.clone().into());
+    assert_eq!(post_1_without_vote.sphere_category.expect("Should have category"), sphere_category.clone().into());
     assert_eq!(post_1_without_vote.vote, None);
 
     let post_1_without_vote = get_post_with_info_by_id(post_1.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1_without_vote.post, post_1);
-    assert_eq!(post_1_without_vote.forum_category.expect("Should have category"), forum_category.into());
+    assert_eq!(post_1_without_vote.sphere_category.expect("Should have category"), sphere_category.into());
     assert_eq!(post_1_without_vote.vote, None);
 
     let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, None, &db_pool).await.expect("Should be able to load post 2.");
     assert_eq!(post_2_without_vote.post, post_2);
-    assert_eq!(post_2_without_vote.forum_category, None);
+    assert_eq!(post_2_without_vote.sphere_category, None);
     assert_eq!(post_2_without_vote.vote, None);
 
     let post_2_without_vote = get_post_with_info_by_id(post_2.post_id, Some(&user), &db_pool).await.expect("Should be able to load post 2.");
     assert_eq!(post_2_without_vote.post, post_2);
-    assert_eq!(post_2_without_vote.forum_category, None);
+    assert_eq!(post_2_without_vote.sphere_category, None);
     assert_eq!(post_2_without_vote.vote, None);
 
     let post_1_vote = vote_on_content(VoteValue::Up, post_1.post_id, None, None, &user, &db_pool).await.expect("Should be possible to vote on post_1.");
@@ -219,15 +219,15 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_post_forum() -> Result<(), AppError> {
+async fn test_get_post_sphere() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
-    let post = create_post(&forum.forum_name, "1", "test", None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post.");
+    let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
+    let post = create_post(&sphere.sphere_name, "1", "test", None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post.");
 
-    let result_forum = get_post_forum(post.post_id, &db_pool).await.expect("Post forum should be available.");
-    assert_eq!(result_forum, forum);
+    let result_sphere = get_post_sphere(post.post_id, &db_pool).await.expect("Post sphere should be available.");
+    assert_eq!(result_sphere, sphere);
 
     Ok(())
 }
@@ -237,12 +237,12 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let forum1_name = "1";
-    let forum2_name = "2";
+    let sphere1_name = "1";
+    let sphere2_name = "2";
     let num_post = 10usize;
 
-    let (forum1, _, mut expected_post_vec) = create_forum_with_posts(
-        forum1_name,
+    let (sphere1, _, mut expected_post_vec) = create_sphere_with_posts(
+        sphere1_name,
         Some("url"),
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
@@ -251,8 +251,8 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         &db_pool,
     ).await?;
 
-    create_forum_with_posts(
-        forum2_name,
+    create_sphere_with_posts(
+        sphere2_name,
         None,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
@@ -270,7 +270,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     ).await?;
     assert!(post_vec.is_empty());
 
-    forum::ssr::subscribe(forum1.forum_id, user.user_id, &db_pool).await?;
+    sphere::ssr::subscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -309,11 +309,11 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         0,
         &db_pool,
     ).await?;
-    let moderated_post = PostWithForumInfo::from_post(moderated_post, None, None);
+    let moderated_post = PostWithSphereInfo::from_post(moderated_post, None, None);
     assert!(!post_vec.contains(&moderated_post));
 
     // test no posts are returned after unsubscribing
-    forum::ssr::unsubscribe(forum1.forum_id, user.user_id, &db_pool).await?;
+    sphere::ssr::unsubscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
     let post_vec = ssr::get_subscribed_post_vec(
         user.user_id,
         SortType::Post(PostSortType::Hot),
@@ -331,13 +331,13 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let forum1_name = "1";
-    let forum2_name = "2";
+    let sphere1_name = "1";
+    let sphere2_name = "2";
     let num_post = 10;
-    let mut expected_post_vec = Vec::<PostWithForumInfo>::new();
+    let mut expected_post_vec = Vec::<PostWithSphereInfo>::new();
 
-    let (_, _, mut expected_forum1_post_vec) = create_forum_with_posts(
-        forum1_name,
+    let (_, _, mut expected_sphere1_post_vec) = create_sphere_with_posts(
+        sphere1_name,
         Some("url"),
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
@@ -345,10 +345,10 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         &user,
         &db_pool,
     ).await?;
-    expected_post_vec.append(&mut expected_forum1_post_vec);
+    expected_post_vec.append(&mut expected_sphere1_post_vec);
 
-    let (_, _, mut expected_forum2_post_vec) = create_forum_with_posts(
-        forum2_name,
+    let (_, _, mut expected_sphere2_post_vec) = create_sphere_with_posts(
+        sphere2_name,
         None,
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
@@ -356,7 +356,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         &user,
         &db_pool,
     ).await?;
-    expected_post_vec.append(&mut expected_forum2_post_vec);
+    expected_post_vec.append(&mut expected_sphere2_post_vec);
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -395,22 +395,22 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     ).await.expect("Post should be moderated.");
 
     let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Hot), num_post as i64, 0, &db_pool).await?;
-    let moderated_post = PostWithForumInfo::from_post(moderated_post, None, None);
+    let moderated_post = PostWithSphereInfo::from_post(moderated_post, None, None);
     assert!(!post_vec.contains(&moderated_post));
 
     Ok(())
 }
 
 #[tokio::test]
-async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
+async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
+    let sphere_name = "sphere";
     let num_posts = 20usize;
 
-    let (forum, forum_category_1, mut expected_post_vec) = create_forum_with_posts(
-        forum_name,
+    let (sphere, sphere_category_1, mut expected_post_vec) = create_sphere_with_posts(
+        sphere_name,
         None,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
@@ -422,38 +422,38 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     // Reload user to refresh moderator permission
     let mut user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
 
-    let forum_category_2 = set_forum_category(
-        forum_name,
+    let sphere_category_2 = set_sphere_category(
+        sphere_name,
         "a",
         Color::Red,
         "a",
         true,
         &user,
         &db_pool
-    ).await.expect("Forum category should be set.");
+    ).await.expect("Sphere category should be set.");
     
     let category_map = HashMap::from([
-        (forum_category_1.category_id, forum_category_1.clone()),
-        (forum_category_2.category_id, forum_category_2.clone()),
+        (sphere_category_1.category_id, sphere_category_1.clone()),
+        (sphere_category_2.category_id, sphere_category_2.clone()),
     ]);
 
     let category_post_1 = create_post(
-        forum_name,
+        sphere_name,
         "1",
         "1",
         None,
         false,
         false,
         false,
-        Some(forum_category_2.category_id),
+        Some(sphere_category_2.category_id),
         &user,
         &db_pool
     ).await.expect("Post 1 with category should be created.");
 
-    expected_post_vec.push(PostWithForumInfo::from_post(
+    expected_post_vec.push(PostWithSphereInfo::from_post(
         category_post_1,
-        Some(forum_category_2.clone().into()),
-        forum.icon_url.clone())
+        Some(sphere_category_2.clone().into()),
+        sphere.icon_url.clone())
     );
 
     let post_sort_type_array = [
@@ -466,8 +466,8 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
     let load_count = 15;
     for sort_type in post_sort_type_array {
         sort_post_vec(&mut expected_post_vec, sort_type);
-        let post_vec = ssr::get_post_vec_by_forum_name(
-            forum_name,
+        let post_vec = ssr::get_post_vec_by_sphere_name(
+            sphere_name,
             None,
             SortType::Post(sort_type),
             load_count as i64,
@@ -476,16 +476,16 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
         ).await.expect("First post vec should be loaded");
         
         
-        let post_vec: Vec<PostWithForumInfo> = post_vec.into_iter().map(|post| {
-            let forum_category = post.category_id.map(|category_id| {
+        let post_vec: Vec<PostWithSphereInfo> = post_vec.into_iter().map(|post| {
+            let sphere_category = post.category_id.map(|category_id| {
                 category_map.get(&category_id).expect("Category should be in map").clone().into()
             });
-            PostWithForumInfo::from_post(post, forum_category, forum.icon_url.clone())
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
         test_post_vec(&post_vec, &expected_post_vec[..load_count], sort_type);
         
-        let second_post_vec = ssr::get_post_vec_by_forum_name(
-            forum_name,
+        let second_post_vec = ssr::get_post_vec_by_sphere_name(
+            sphere_name,
             None,
             SortType::Post(sort_type),
             load_count as i64,
@@ -493,11 +493,11 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
             &db_pool,
         ).await?;
 
-        let second_post_vec: Vec<PostWithForumInfo> = second_post_vec.into_iter().map(|post| {
-            let forum_category = post.category_id.map(|category_id| {
+        let second_post_vec: Vec<PostWithSphereInfo> = second_post_vec.into_iter().map(|post| {
+            let sphere_category = post.category_id.map(|category_id| {
                 category_map.get(&category_id).expect("Category should be in map").clone().into()
             });
-            PostWithForumInfo::from_post(post, forum_category, forum.icon_url.clone())
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
         test_post_vec(&second_post_vec, &expected_post_vec[load_count..(num_posts + 1)], sort_type);
     }
@@ -513,8 +513,8 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Post should be moderated.");
 
-    let post_vec = ssr::get_post_vec_by_forum_name(
-        forum_name,
+    let post_vec = ssr::get_post_vec_by_sphere_name(
+        sphere_name,
         None,
         SortType::Post(PostSortType::Hot),
         num_posts as i64,
@@ -528,15 +528,15 @@ async fn test_get_post_vec_by_forum_name() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_post_vec_by_forum_name_with_pinned_post() -> Result<(), AppError> {
+async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
+    let sphere_name = "sphere";
     let num_posts = 20usize;
 
-    create_forum_with_posts(
-        forum_name,
+    create_sphere_with_posts(
+        sphere_name,
         Some("url"),
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
@@ -551,7 +551,7 @@ async fn test_get_post_vec_by_forum_name_with_pinned_post() -> Result<(), AppErr
     let partial_load_num_post = num_posts / 2;
 
     let pinned_post = create_post(
-        forum_name,
+        sphere_name,
         "pinned",
         "a",
         None,
@@ -571,8 +571,8 @@ async fn test_get_post_vec_by_forum_name_with_pinned_post() -> Result<(), AppErr
     ];
     
     for sort_type in post_sort_type_array {
-        let post_vec = ssr::get_post_vec_by_forum_name(
-            forum_name,
+        let post_vec = ssr::get_post_vec_by_sphere_name(
+            sphere_name,
             None,
             SortType::Post(sort_type),
             partial_load_num_post as i64,
@@ -588,15 +588,15 @@ async fn test_get_post_vec_by_forum_name_with_pinned_post() -> Result<(), AppErr
 }
 
 #[tokio::test]
-async fn test_get_post_vec_by_forum_name_with_category() -> Result<(), AppError> {
+async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
+    let sphere_name = "sphere";
     let num_posts = 10usize;
 
-    let (forum, _, _) = create_forum_with_posts(
-        forum_name,
+    let (sphere, _, _) = create_sphere_with_posts(
+        sphere_name,
         None,
         num_posts,
         Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
@@ -608,45 +608,45 @@ async fn test_get_post_vec_by_forum_name_with_category() -> Result<(), AppError>
     // Reload user to refresh moderator permission
     let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
 
-    let forum_category = set_forum_category(
-        forum_name,
+    let sphere_category = set_sphere_category(
+        sphere_name,
         "a",
         Color::Green,
         "a",
         true,
         &user,
         &db_pool
-    ).await.expect("Forum category should be set.");
+    ).await.expect("Sphere category should be set.");
 
     let category_post_1 = create_post(
-        forum_name,
+        sphere_name,
         "1",
         "1",
         None,
         false,
         false,
         false,
-        Some(forum_category.category_id),
+        Some(sphere_category.category_id),
         &user,
         &db_pool
     ).await.expect("Post 1 with category should be created.");
 
     let category_post_2 = create_post(
-        forum_name,
+        sphere_name,
         "2",
         "2",
         None,
         false,
         false,
         false,
-        Some(forum_category.category_id),
+        Some(sphere_category.category_id),
         &user,
         &db_pool
     ).await.expect("Post 2 with category should be created.");
 
     let mut expected_post_vec = vec![
-        PostWithForumInfo::from_post(category_post_1, Some(forum_category.clone().into()), forum.icon_url.clone()),
-        PostWithForumInfo::from_post(category_post_2, Some(forum_category.clone().into()), forum.icon_url.clone()),
+        PostWithSphereInfo::from_post(category_post_1, Some(sphere_category.clone().into()), sphere.icon_url.clone()),
+        PostWithSphereInfo::from_post(category_post_2, Some(sphere_category.clone().into()), sphere.icon_url.clone()),
     ];
 
     let post_sort_type_array = [
@@ -657,17 +657,17 @@ async fn test_get_post_vec_by_forum_name_with_category() -> Result<(), AppError>
     ];
 
     for sort_type in post_sort_type_array {
-        let category_post_vec = ssr::get_post_vec_by_forum_name(
-            forum_name,
-            Some(forum_category.category_id),
+        let category_post_vec = ssr::get_post_vec_by_sphere_name(
+            sphere_name,
+            Some(sphere_category.category_id),
             SortType::Post(sort_type),
             num_posts as i64,
             0,
             &db_pool,
         ).await?;
-        let category_post_vec: Vec<PostWithForumInfo> = category_post_vec.into_iter().map(|post| {
-            let forum_category = post.category_id.map(|_| forum_category.clone().into());
-            PostWithForumInfo::from_post(post, forum_category, forum.icon_url.clone())
+        let category_post_vec: Vec<PostWithSphereInfo> = category_post_vec.into_iter().map(|post| {
+            let sphere_category = post.category_id.map(|_| sphere_category.clone().into());
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
         sort_post_vec(&mut expected_post_vec, sort_type);
         test_post_vec(&category_post_vec, &expected_post_vec, sort_type);
@@ -681,12 +681,12 @@ async fn test_create_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum = forum::ssr::create_forum("a", "forum", false, &user, &db_pool).await?;
+    let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
 
     let post_1_title = "1";
     let post_1_body = "test";
     let post_1 = create_post(
-        &forum.forum_name,
+        &sphere.sphere_name,
         post_1_title,
         post_1_body,
         None,
@@ -706,8 +706,8 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.category_id, None);
     assert_eq!(post_1.is_edited, false);
     assert_eq!(post_1.meta_post_id, None);
-    assert_eq!(post_1.forum_id, forum.forum_id);
-    assert_eq!(post_1.forum_name, forum.forum_name);
+    assert_eq!(post_1.sphere_id, sphere.sphere_id);
+    assert_eq!(post_1.sphere_name, sphere.sphere_name);
     assert_eq!(post_1.creator_id, user.user_id);
     assert_eq!(post_1.creator_name, user.username);
     assert_eq!(post_1.is_creator_moderator, false); // user not refreshed yet
@@ -722,7 +722,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_post(&forum.forum_name, post_1_title, post_1_body, None, false, false, true, None, &user, &db_pool).await,
+        create_post(&sphere.sphere_name, post_1_title, post_1_body, None, false, false, true, None, &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -730,7 +730,7 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&forum.forum_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, true, None, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&sphere.sphere_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, true, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
@@ -740,8 +740,8 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.category_id, None);
     assert_eq!(post_2.is_edited, false);
     assert_eq!(post_2.meta_post_id, None);
-    assert_eq!(post_2.forum_id, forum.forum_id);
-    assert_eq!(post_2.forum_name, forum.forum_name);
+    assert_eq!(post_2.sphere_id, sphere.sphere_id);
+    assert_eq!(post_2.sphere_name, sphere.sphere_name);
     assert_eq!(post_2.creator_id, user.user_id);
     assert_eq!(post_2.creator_name, user.username);
     assert_eq!(post_2.is_creator_moderator, true);
@@ -772,17 +772,17 @@ async fn test_update_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
-    forum::ssr::create_forum(
-        forum_name,
-        "forum",
+    let sphere_name = "sphere";
+    sphere::ssr::create_sphere(
+        sphere_name,
+        "sphere",
         false,
         &user,
         &db_pool,
     ).await?;
 
     let post = post::ssr::create_post(
-        forum_name,
+        sphere_name,
         "post",
         "body",
         None,
@@ -827,7 +827,7 @@ async fn increment_post_comment_count() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_forum_with_post("forum", &user, &db_pool).await;
+    let (_, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
     assert_eq!(post.num_comments, 0);
 
     let _comment = create_comment(post.post_id, None, "a", None, false, &user, &db_pool).await.expect("Should create comment.");
@@ -843,7 +843,7 @@ async fn test_update_post_scores() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_forum_with_post("forum", &user, &db_pool).await;
+    let (_, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
     let post = set_post_score(post.post_id, 10, &db_pool).await.expect("Post score should be set.");
 
     // wait to have a meaningful difference in scores after update
@@ -869,7 +869,7 @@ async fn test_post_scores() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_forum_with_post("forum", &user, &db_pool).await;
+    let (_, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
 
     let mut rng = rand::thread_rng();
 

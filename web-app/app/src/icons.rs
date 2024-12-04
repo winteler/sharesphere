@@ -95,7 +95,7 @@ pub fn EditTimeIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl In
 }
 
 #[component]
-pub fn ForumIcon(
+pub fn SphereIcon(
     icon_url: Option<String>,
     #[prop(default = "h-7 w-7")]
     class: &'static str
@@ -304,7 +304,7 @@ pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl 
 #[component]
 pub fn NsfwIcon() -> impl IntoView {
     view! {
-        <div class="rounded-full px-2 pt-1 pb-1.5 bg-black text-sm font-semibold leading-none w-fit h-fit">"18+"</div>
+        <div class="rounded-full px-1 pt-1 pb-1.5 bg-black text-sm font-semibold leading-none w-fit h-fit">"18+"</div>
     }
 }
 

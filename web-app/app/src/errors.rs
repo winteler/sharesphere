@@ -14,8 +14,8 @@ const NOT_AUTHENTICATED_MESSAGE: &str = "Please authenticate yourself.";
 const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble authenticating you.";
 const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong.";
 const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not resist.";
-const FORUM_BAN_UNTIL_MESSAGE: &str = "You are banned from this forum until";
-const PERMANENT_FORUM_BAN_MESSAGE: &str = "You are permanently banned from this website.";
+const SPHERE_BAN_UNTIL_MESSAGE: &str = "You are banned from this sphere until";
+const PERMANENT_SPHERE_BAN_MESSAGE: &str = "You are permanently banned from this website.";
 const GLOBAL_BAN_UNTIL_MESSAGE: &str = "You are globally banned until";
 const PERMANENT_GLOBAL_BAN_MESSAGE: &str = "You are permanently banned from this website.";
 const BAD_REQUEST_MESSAGE: &str = "Sorry, we didn't understand your request.";
@@ -27,8 +27,8 @@ pub enum AppError {
     AuthenticationError(String),
     NotAuthenticated,
     InsufficientPrivileges,
-    ForumBanUntil(chrono::DateTime<chrono::Utc>),
-    PermanentForumBan,
+    SphereBanUntil(chrono::DateTime<chrono::Utc>),
+    PermanentSphereBan,
     GlobalBanUntil(chrono::DateTime<chrono::Utc>),
     PermanentGlobalBan,
     CommunicationError(ServerFnError),
@@ -42,8 +42,8 @@ impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             AppError::AuthenticationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::NotAuthenticated | AppError::InsufficientPrivileges | AppError::ForumBanUntil(_) |
-            AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => StatusCode::FORBIDDEN,
+            AppError::NotAuthenticated | AppError::InsufficientPrivileges | AppError::SphereBanUntil(_) |
+            AppError::PermanentSphereBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => StatusCode::FORBIDDEN,
             AppError::CommunicationError(error) => match error {
                 ServerFnError::Args(_) | ServerFnError::MissingArg(_) | ServerFnError::Serialization(_) | ServerFnError::Deserialization(_) => StatusCode::BAD_REQUEST,
                 ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
@@ -61,8 +61,8 @@ impl AppError {
             AppError::AuthenticationError(_) => String::from(AUTH_FAILED_MESSAGE),
             AppError::NotAuthenticated => String::from(NOT_AUTHENTICATED_MESSAGE),
             AppError::InsufficientPrivileges => String::from(NOT_AUTHORIZED_MESSAGE),
-            AppError::ForumBanUntil(timestamp) => format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, timestamp),
-            AppError::PermanentForumBan => String::from(PERMANENT_FORUM_BAN_MESSAGE),
+            AppError::SphereBanUntil(timestamp) => format!("{} {}", SPHERE_BAN_UNTIL_MESSAGE, timestamp),
+            AppError::PermanentSphereBan => String::from(PERMANENT_SPHERE_BAN_MESSAGE),
             AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp),
             AppError::PermanentGlobalBan => String::from(PERMANENT_GLOBAL_BAN_MESSAGE),
             AppError::CommunicationError(error) => match error {
@@ -193,7 +193,7 @@ pub fn AppErrorIcon(
         AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> }.into_any(),
         AppError::NotAuthenticated => view! { <AuthErrorIcon/> }.into_any(),
         AppError::InsufficientPrivileges => view! { <NotAuthorizedIcon/> }.into_any(),
-        AppError::ForumBanUntil(_) | AppError::PermanentForumBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <BannedIcon/> }.into_any(),
+        AppError::SphereBanUntil(_) | AppError::PermanentSphereBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <BannedIcon/> }.into_any(),
         AppError::CommunicationError(error) => match error {
             ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
             ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),
@@ -229,7 +229,7 @@ pub fn ErrorDisplay(
 
 #[cfg(test)]
 mod tests {
-    use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, FORUM_BAN_UNTIL_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_FORUM_BAN_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, UNAVAILABLE_MESSAGE};
+    use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, PERMANENT_SPHERE_BAN_MESSAGE, SPHERE_BAN_UNTIL_MESSAGE, UNAVAILABLE_MESSAGE};
     use http::StatusCode;
     use leptos::prelude::ServerFnError;
     use leptos::server_fn::error::NoCustomError;
@@ -252,8 +252,8 @@ mod tests {
         assert_eq!(AppError::AuthenticationError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(AppError::NotAuthenticated.status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::InsufficientPrivileges.status_code(), StatusCode::FORBIDDEN);
-        assert_eq!(AppError::ForumBanUntil(test_timestamp).status_code(), StatusCode::FORBIDDEN);
-        assert_eq!(AppError::PermanentForumBan.status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::SphereBanUntil(test_timestamp).status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::PermanentSphereBan.status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::GlobalBanUntil(test_timestamp).status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::PermanentGlobalBan.status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::CommunicationError(server_fn_error).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
@@ -286,8 +286,8 @@ mod tests {
         assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), String::from(AUTH_FAILED_MESSAGE));
         assert_eq!(AppError::NotAuthenticated.user_message(), String::from(NOT_AUTHENTICATED_MESSAGE));
         assert_eq!(AppError::InsufficientPrivileges.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
-        assert_eq!(AppError::ForumBanUntil(test_timestamp).user_message(), format!("{} {}", FORUM_BAN_UNTIL_MESSAGE, test_timestamp.clone().to_string()));
-        assert_eq!(AppError::PermanentForumBan.user_message(), String::from(PERMANENT_FORUM_BAN_MESSAGE));
+        assert_eq!(AppError::SphereBanUntil(test_timestamp).user_message(), format!("{} {}", SPHERE_BAN_UNTIL_MESSAGE, test_timestamp.clone().to_string()));
+        assert_eq!(AppError::PermanentSphereBan.user_message(), String::from(PERMANENT_SPHERE_BAN_MESSAGE));
         assert_eq!(AppError::GlobalBanUntil(test_timestamp).user_message(), format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, test_timestamp.to_string()));
         assert_eq!(AppError::PermanentGlobalBan.user_message(), String::from(PERMANENT_GLOBAL_BAN_MESSAGE));
         assert_eq!(AppError::CommunicationError(server_fn_error).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
@@ -329,12 +329,12 @@ mod tests {
             AppError::InsufficientPrivileges
         );
         assert_eq!(
-            AppError::from_str(AppError::ForumBanUntil(test_timestamp).to_string().as_str()).expect("AppError should be convert to string and back"),
-            AppError::ForumBanUntil(test_timestamp)
+            AppError::from_str(AppError::SphereBanUntil(test_timestamp).to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::SphereBanUntil(test_timestamp)
         );
         assert_eq!(
-            AppError::from_str(AppError::PermanentForumBan.to_string().as_str()).expect("AppError should be convert to string and back"),
-            AppError::PermanentForumBan
+            AppError::from_str(AppError::PermanentSphereBan.to_string().as_str()).expect("AppError should be convert to string and back"),
+            AppError::PermanentSphereBan
         );
         assert_eq!(
             AppError::from_str(AppError::GlobalBanUntil(test_timestamp).to_string().as_str()).expect("AppError should be convert to string and back"),

@@ -6,29 +6,29 @@ use app::colors::Color;
 use app::comment::ssr::create_comment;
 use app::comment::Comment;
 use app::errors::AppError;
-use app::forum::Forum;
-use app::forum_category::ForumCategory;
-use app::forum_management::ssr::set_forum_icon_url;
-use app::post::{Post, PostWithForumInfo};
+use app::post::{Post, PostWithSphereInfo};
 use app::ranking::VoteValue;
+use app::sphere::Sphere;
+use app::sphere_category::SphereCategory;
+use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::User;
-use app::{comment, forum, forum_category, post, ranking};
+use app::{comment, post, ranking, sphere, sphere_category};
 
-pub async fn create_forum_with_post(
-    forum_name: &str,
+pub async fn create_sphere_with_post(
+    sphere_name: &str,
     user: &User,
     db_pool: &PgPool,
-) -> (Forum, Post) {
-    let forum = forum::ssr::create_forum(
-        forum_name,
-        "forum",
+) -> (Sphere, Post) {
+    let sphere = sphere::ssr::create_sphere(
+        sphere_name,
+        "sphere",
         false,
         &user,
         db_pool,
-    ).await.expect("Should be able to create forum.");
+    ).await.expect("Should be able to create sphere.");
 
     let post = post::ssr::create_post(
-        forum_name,
+        sphere_name,
         "post",
         "body",
         None,
@@ -40,33 +40,33 @@ pub async fn create_forum_with_post(
         db_pool,
     ).await.expect("Should be able to create post.");
 
-    (forum, post)
+    (sphere, post)
 }
 
-pub async fn create_forum_with_post_and_comment(
-    forum_name: &str,
+pub async fn create_sphere_with_post_and_comment(
+    sphere_name: &str,
     user: &User,
     db_pool: &PgPool,
-) -> (Forum, Post, Comment) {
-    let (forum, post) = create_forum_with_post(forum_name, user, db_pool).await;
+) -> (Sphere, Post, Comment) {
+    let (sphere, post) = create_sphere_with_post(sphere_name, user, db_pool).await;
 
     let comment = create_comment(post.post_id, None, "comment", None, false, user, db_pool).await.expect("Comment should be created.");
 
-    (forum, post, comment)
+    (sphere, post, comment)
 }
 
-pub async fn create_forum_with_posts(
-    forum_name: &str,
-    forum_icon_url: Option<&str>,
+pub async fn create_sphere_with_posts(
+    sphere_name: &str,
+    sphere_icon_url: Option<&str>,
     num_posts: usize,
     score_vec: Option<Vec<i32>>,
     category_vec: Vec<bool>,
     user: &User,
     db_pool: &PgPool,
-) -> Result<(Forum, ForumCategory, Vec<PostWithForumInfo>), AppError> {
-    let mut forum = forum::ssr::create_forum(
-        forum_name,
-        "forum",
+) -> Result<(Sphere, SphereCategory, Vec<PostWithSphereInfo>), AppError> {
+    let mut sphere = sphere::ssr::create_sphere(
+        sphere_name,
+        "sphere",
         false,
         user,
         db_pool,
@@ -74,27 +74,27 @@ pub async fn create_forum_with_posts(
     
     let user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
 
-    set_forum_icon_url(forum_name, forum_icon_url, &user, &db_pool).await.expect("Should set icon url.");
-    forum.icon_url = forum_icon_url.map(|x| x.to_string());
+    set_sphere_icon_url(sphere_name, sphere_icon_url, &user, &db_pool).await.expect("Should set icon url.");
+    sphere.icon_url = sphere_icon_url.map(|x| x.to_string());
     
-    let forum_category = forum_category::ssr::set_forum_category(
-        forum_name,
+    let sphere_category = sphere_category::ssr::set_sphere_category(
+        sphere_name,
         "create_posts",
         Color::Blue,
         "test",
         true,
         &user,
         db_pool,
-    ).await.expect("Forum category should be created.");
+    ).await.expect("Sphere category should be created.");
 
-    let mut expected_post_vec = Vec::<PostWithForumInfo>::with_capacity(num_posts);
+    let mut expected_post_vec = Vec::<PostWithSphereInfo>::with_capacity(num_posts);
     for i in 0..num_posts {
         let category_id = match category_vec.get(i) {
-            Some(has_category) if *has_category => Some(forum_category.category_id),
+            Some(has_category) if *has_category => Some(sphere_category.category_id),
             _ => None,
         };
         let mut post = post::ssr::create_post(
-            forum_name,
+            sphere_name,
             i.to_string().as_str(),
             "body",
             None,
@@ -112,15 +112,15 @@ pub async fn create_forum_with_posts(
             }
         }
 
-        let forum_category_header = category_id.map(|_| forum_category.clone().into());
-        expected_post_vec.push(PostWithForumInfo::from_post(post, forum_category_header, forum.icon_url.clone()));
+        let sphere_category_header = category_id.map(|_| sphere_category.clone().into());
+        expected_post_vec.push(PostWithSphereInfo::from_post(post, sphere_category_header, sphere.icon_url.clone()));
     }
 
-    Ok((forum, forum_category, expected_post_vec))
+    Ok((sphere, sphere_category, expected_post_vec))
 }
 
 pub async fn create_post_with_comments(
-    forum_name: &str,
+    sphere_name: &str,
     post_title: &str,
     num_comments: usize,
     parent_index_vec: Vec<Option<i64>>,
@@ -130,7 +130,7 @@ pub async fn create_post_with_comments(
     db_pool: &PgPool,
 ) -> Result<Post, AppError> {
     let post = post::ssr::create_post(
-        forum_name,
+        sphere_name,
         post_title,
         "body",
         None,

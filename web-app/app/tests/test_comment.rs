@@ -3,7 +3,7 @@ use rand::Rng;
 pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::comment;
-use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_forum};
+use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_sphere};
 use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
@@ -103,9 +103,9 @@ async fn test_get_comment_by_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let (_, _, expected_comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
+    let (_, _, expected_comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
 
-    let comment = get_comment_by_id(expected_comment.comment_id, &db_pool).await.expect("Should be able to get comment forum.");
+    let comment = get_comment_by_id(expected_comment.comment_id, &db_pool).await.expect("Should be able to get comment sphere.");
 
     assert_eq!(comment, expected_comment);
     
@@ -113,15 +113,15 @@ async fn test_get_comment_by_id() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_comment_forum() -> Result<(), AppError> {
+async fn test_get_comment_sphere() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let (expected_forum, _, comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
+    let (expected_sphere, _, comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
 
-    let forum = get_comment_forum(comment.comment_id, &db_pool).await.expect("Should be able to get comment forum.");
+    let sphere = get_comment_sphere(comment.comment_id, &db_pool).await.expect("Should be able to get comment sphere.");
 
-    assert_eq!(forum, expected_forum);
+    assert_eq!(sphere, expected_sphere);
 
     Ok(())
 }
@@ -131,10 +131,10 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let forum_name = "forum";
-    app::forum::ssr::create_forum(
-        forum_name,
-        "forum",
+    let sphere_name = "sphere";
+    app::sphere::ssr::create_sphere(
+        sphere_name,
+        "sphere",
         false,
         &user,
         &db_pool,
@@ -144,7 +144,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     let mut rng = rand::thread_rng();
 
     let post = create_post_with_comments(
-        forum_name,
+        sphere_name,
         "Post with comments",
         num_comments,
         (1..num_comments+1).map(|i| match i {
@@ -212,7 +212,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let (_forum, post) = create_forum_with_post("forum", &user, &db_pool).await;
+    let (_sphere, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
 
     let comment_body = "a";
     let comment = create_comment(post.post_id, None, comment_body, None, false, &user, &db_pool).await.expect("Comment should be created.");
@@ -277,7 +277,7 @@ async fn test_update_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let (_forum, _post, comment) = create_forum_with_post_and_comment("forum", &user, &db_pool).await;
+    let (_sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
 
     let updated_markdown_body = "# Here is a comment with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");

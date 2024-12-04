@@ -49,12 +49,12 @@ pub fn LabeledFormCheckbox(
 #[component]
 pub fn IsPinnedCheckbox(
     #[prop(into)]
-    forum_name: Signal<String>,
+    sphere_name: Signal<String>,
     #[prop(default = false)]
     value: bool,
 ) -> impl IntoView {
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
             <LabeledFormCheckbox name="is_pinned" label="Pinned" value/>
         </AuthorizedShow>
     }

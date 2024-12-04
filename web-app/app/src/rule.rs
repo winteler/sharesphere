@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
-use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, EditIcon, PlusIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
+use crate::sphere::SphereState;
 use crate::unpack::ArcTransitionUnpack;
 use crate::widget::{ModalDialog, ModalFormButtons};
 
@@ -23,8 +23,8 @@ use crate::{
 pub struct Rule {
     pub rule_id: i64,
     pub rule_key: i64, // business id to track rule across updates
-    pub forum_id: Option<i64>,
-    pub forum_name: Option<String>,
+    pub sphere_id: Option<i64>,
+    pub sphere_name: Option<String>,
     pub priority: i16,
     pub title: String,
     pub description: String,
@@ -57,41 +57,41 @@ pub mod ssr {
         Ok(rule)
     }
 
-    pub async fn get_forum_rule_vec(
-        forum_name: &str,
+    pub async fn get_sphere_rule_vec(
+        sphere_name: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<Rule>, AppError> {
-        let forum_rule_vec = sqlx::query_as!(
+        let sphere_rule_vec = sqlx::query_as!(
             Rule,
             "SELECT * FROM rules
-            WHERE COALESCE(forum_name, $1) = $1 AND delete_timestamp IS NULL
-            ORDER BY forum_name NULLS FIRST, priority, create_timestamp",
-            forum_name
+            WHERE COALESCE(sphere_name, $1) = $1 AND delete_timestamp IS NULL
+            ORDER BY sphere_name NULLS FIRST, priority, create_timestamp",
+            sphere_name
         )
             .fetch_all(db_pool)
             .await?;
 
-        Ok(forum_rule_vec)
+        Ok(sphere_rule_vec)
     }
 
     pub async fn add_rule(
-        forum_name: Option<&str>,
+        sphere_name: Option<&str>,
         priority: i16,
         title: &str,
         description: &str,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        match forum_name {
-            Some(forum_name) => user.check_permissions(forum_name, PermissionLevel::Manage)?,
+        match sphere_name {
+            Some(sphere_name) => user.check_permissions(sphere_name, PermissionLevel::Manage)?,
             None => user.check_admin_role(AdminRole::Admin)?,
         };
 
         sqlx::query!(
             "UPDATE rules
              SET priority = priority + 1
-             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority >= $2 AND delete_timestamp IS NULL",
-            forum_name,
+             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority >= $2 AND delete_timestamp IS NULL",
+            sphere_name,
             priority,
         )
             .execute(db_pool)
@@ -100,12 +100,12 @@ pub mod ssr {
         let rule = sqlx::query_as!(
             Rule,
             "INSERT INTO rules
-            (forum_id, forum_name, priority, title, description, user_id)
+            (sphere_id, sphere_name, priority, title, description, user_id)
             VALUES (
-                (SELECT forum_id FROM forums WHERE forum_name = $1),
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $1),
                 $1, $2, $3, $4, $5
             ) RETURNING *",
-            forum_name,
+            sphere_name,
             priority,
             title,
             description,
@@ -118,7 +118,7 @@ pub mod ssr {
     }
 
     pub async fn update_rule(
-        forum_name: Option<&str>,
+        sphere_name: Option<&str>,
         current_priority: i16,
         priority: i16,
         title: &str,
@@ -126,8 +126,8 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        match forum_name {
-            Some(forum_name) => user.check_permissions(forum_name, PermissionLevel::Manage)?,
+        match sphere_name {
+            Some(sphere_name) => user.check_permissions(sphere_name, PermissionLevel::Manage)?,
             None => user.check_admin_role(AdminRole::Admin)?,
         };
 
@@ -135,9 +135,9 @@ pub mod ssr {
             Rule,
             "UPDATE rules
              SET delete_timestamp = CURRENT_TIMESTAMP
-             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL
+             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL
              RETURNING *",
-            forum_name,
+            sphere_name,
             current_priority,
         )
             .fetch_one(db_pool)
@@ -147,8 +147,8 @@ pub mod ssr {
             sqlx::query!(
                 "UPDATE rules
                 SET priority = priority - 1
-                WHERE forum_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $2 AND $3 AND delete_timestamp IS NULL",
-                forum_name,
+                WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $2 AND $3 AND delete_timestamp IS NULL",
+                sphere_name,
                 current_priority,
                 priority,
             )
@@ -158,8 +158,8 @@ pub mod ssr {
             sqlx::query!(
                 "UPDATE rules
                 SET priority = priority + 1
-                WHERE forum_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $3 AND $2 AND delete_timestamp IS NULL",
-                forum_name,
+                WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $3 AND $2 AND delete_timestamp IS NULL",
+                sphere_name,
                 current_priority,
                 priority,
             )
@@ -170,14 +170,14 @@ pub mod ssr {
         let new_rule = sqlx::query_as!(
             Rule,
             "INSERT INTO rules
-            (rule_key, forum_id, forum_name, priority, title, description, user_id)
+            (rule_key, sphere_id, sphere_name, priority, title, description, user_id)
             VALUES (
                 $1,
-                (SELECT forum_id FROM forums WHERE forum_name = $2),
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
                 $2, $3, $4, $5, $6
             ) RETURNING *",
             current_rule.rule_key,
-            forum_name,
+            sphere_name,
             priority,
             title,
             description,
@@ -190,21 +190,21 @@ pub mod ssr {
     }
 
     pub async fn remove_rule(
-        forum_name: Option<&str>,
+        sphere_name: Option<&str>,
         priority: i16,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        match forum_name {
-            Some(forum_name) => user.check_permissions(forum_name, PermissionLevel::Manage)?,
+        match sphere_name {
+            Some(sphere_name) => user.check_permissions(sphere_name, PermissionLevel::Manage)?,
             None => user.check_admin_role(AdminRole::Admin)?,
         };
 
         sqlx::query!(
             "UPDATE rules
              SET delete_timestamp = CURRENT_TIMESTAMP
-             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL",
-            forum_name,
+             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL",
+            sphere_name,
             priority,
         )
             .execute(db_pool)
@@ -213,8 +213,8 @@ pub mod ssr {
         sqlx::query!(
             "UPDATE rules
              SET priority = priority - 1
-             WHERE forum_name IS NOT DISTINCT FROM $1 AND priority > $2 AND delete_timestamp IS NULL",
-            forum_name,
+             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority > $2 AND delete_timestamp IS NULL",
+            sphere_name,
             priority,
         )
             .execute(db_pool)
@@ -234,30 +234,30 @@ pub async fn get_rule_by_id(
 }
 
 #[server]
-pub async fn get_forum_rule_vec(
-    forum_name: String
+pub async fn get_sphere_rule_vec(
+    sphere_name: String
 ) -> Result<Vec<Rule>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let rule_vec = ssr::get_forum_rule_vec(&forum_name, &db_pool).await?;
+    let rule_vec = ssr::get_sphere_rule_vec(&sphere_name, &db_pool).await?;
     Ok(rule_vec)
 }
 
 #[server]
 pub async fn add_rule(
-    forum_name: Option<String>,
+    sphere_name: Option<String>,
     priority: i16,
     title: String,
     description: String,
 ) -> Result<Rule, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    let rule = ssr::add_rule(forum_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
+    let rule = ssr::add_rule(sphere_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
     Ok(rule)
 }
 
 #[server]
 pub async fn update_rule(
-    forum_name: Option<String>,
+    sphere_name: Option<String>,
     current_priority: i16,
     priority: i16,
     title: String,
@@ -265,30 +265,30 @@ pub async fn update_rule(
 ) -> Result<Rule, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    let rule = ssr::update_rule(forum_name.as_ref().map(String::as_str), current_priority, priority, &title, &description, &user, &db_pool).await?;
+    let rule = ssr::update_rule(sphere_name.as_ref().map(String::as_str), current_priority, priority, &title, &description, &user, &db_pool).await?;
     Ok(rule)
 }
 
 #[server]
 pub async fn remove_rule(
-    forum_name: Option<String>,
+    sphere_name: Option<String>,
     priority: i16,
 ) -> Result<(), ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    ssr::remove_rule(forum_name.as_deref(), priority, &user, &db_pool).await?;
+    ssr::remove_rule(sphere_name.as_deref(), priority, &user, &db_pool).await?;
     Ok(())
 }
 
-/// Component to manage forum rules
+/// Component to manage sphere rules
 #[component]
-pub fn ForumRulesPanel() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
+pub fn SphereRulesPanel() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
-            <ArcTransitionUnpack resource=forum_state.forum_rules_resource let:forum_rule_vec>
+            <ArcTransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
                 <div class="flex flex-col gap-1">
                     <div class="border-b border-base-content/20 pl-1">
                         <div class="w-5/6 flex gap-1">
@@ -298,7 +298,7 @@ pub fn ForumRulesPanel() -> impl IntoView {
                         </div>
                     </div>
                     <For
-                        each= move || (*forum_rule_vec).clone().into_iter().enumerate()
+                        each= move || (*sphere_rule_vec).clone().into_iter().enumerate()
                         key=|(_index, rule)| rule.rule_id
                         children=move |(_, rule)| {
                             let rule = StoredValue::new(rule);
@@ -336,23 +336,23 @@ pub fn ForumRulesPanel() -> impl IntoView {
     }
 }
 
-/// Component to delete a forum rule
+/// Component to delete a sphere rule
 #[component]
 pub fn DeleteRuleButton(
     rule: StoredValue<Rule>
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = forum_state.forum_name;
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = sphere_state.sphere_name;
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             <ActionForm
-                action=forum_state.remove_rule_action
+                action=sphere_state.remove_rule_action
                 attr:class="h-fit flex justify-center"
             >
                 <input
-                    name="forum_name"
+                    name="sphere_name"
                     class="hidden"
-                    value=forum_state.forum_name
+                    value=sphere_state.sphere_name
                 />
                 <input
                     name="priority"
@@ -367,13 +367,13 @@ pub fn DeleteRuleButton(
     }
 }
 
-/// Component to edit a forum rule
+/// Component to edit a sphere rule
 #[component]
 pub fn EditRuleForm(
     rule: StoredValue<Rule>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
     let rule_priority = rule.with_value(|rule| rule.priority);
     let priority = RwSignal::new(rule_priority.to_string());
     let title_ref = NodeRef::<html::Textarea>::new();
@@ -397,11 +397,11 @@ pub fn EditRuleForm(
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Edit a rule"</div>
-            <ActionForm action=forum_state.update_rule_action>
+            <ActionForm action=sphere_state.update_rule_action>
                 <input
-                    name="forum_name"
+                    name="sphere_name"
                     class="hidden"
-                    value=forum_state.forum_name
+                    value=sphere_state.sphere_name
                 />
                 <input
                     name="current_priority"
@@ -420,10 +420,10 @@ pub fn EditRuleForm(
     }
 }
 
-/// Component to create a forum rule
+/// Component to create a sphere rule
 #[component]
 pub fn CreateRuleForm() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
     let show_dialog = RwSignal::new(false);
     let priority = RwSignal::new(String::default());
     let title_ref = NodeRef::<html::Textarea>::new();
@@ -458,13 +458,13 @@ pub fn CreateRuleForm() -> impl IntoView {
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Add a rule"</div>
                 <ActionForm
-                    action=forum_state.add_rule_action
+                    action=sphere_state.add_rule_action
                     on:submit=move |_| show_dialog.set(false)
                 >
                     <input
-                        name="forum_name"
+                        name="sphere_name"
                         class="hidden"
-                        value=forum_state.forum_name
+                        value=sphere_state.sphere_name
                     />
                     <div class="flex flex-col gap-3 w-full">
                         <RuleInputs priority title_data description_data/>

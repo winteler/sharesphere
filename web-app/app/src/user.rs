@@ -24,9 +24,9 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub admin_role: AdminRole,
-    pub permission_by_forum_map: HashMap<String, PermissionLevel>,
+    pub permission_by_sphere_map: HashMap<String, PermissionLevel>,
     pub ban_status: BanStatus,
-    pub ban_status_by_forum_map: HashMap<String, BanStatus>,
+    pub ban_status_by_sphere_map: HashMap<String, BanStatus>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub is_deleted: bool,
 }
@@ -51,9 +51,9 @@ impl Default for User {
             username: String::default(),
             email: String::default(),
             admin_role: AdminRole::None,
-            permission_by_forum_map: HashMap::new(),
+            permission_by_sphere_map: HashMap::new(),
             ban_status: BanStatus::None,
-            ban_status_by_forum_map: HashMap::new(),
+            ban_status_by_sphere_map: HashMap::new(),
             timestamp: chrono::DateTime::default(),
             is_deleted: false,
         }
@@ -61,8 +61,8 @@ impl Default for User {
 }
 
 impl User {
-    fn check_forum_permissions(&self, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        match self.permission_by_forum_map.get(forum_name).is_some_and(|permission_level| *permission_level >= req_permission_level) {
+    fn check_sphere_permissions(&self, sphere_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        match self.permission_by_sphere_map.get(sphere_name).is_some_and(|permission_level| *permission_level >= req_permission_level) {
             true => Ok(()),
             false => Err(AppError::InsufficientPrivileges)
         }
@@ -75,21 +75,21 @@ impl User {
         }
     }
 
-    pub fn check_permissions(&self, forum_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+    pub fn check_permissions(&self, sphere_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
         let has_admin_permission = self.admin_role.get_permission_level() >= req_permission_level;
-        let has_forum_permission = self.check_forum_permissions(forum_name, req_permission_level).is_ok();
-        match has_admin_permission || has_forum_permission {
+        let has_sphere_permission = self.check_sphere_permissions(sphere_name, req_permission_level).is_ok();
+        match has_admin_permission || has_sphere_permission {
             true => Ok(()),
             false => Err(AppError::InsufficientPrivileges)
         }
     }
 
-    pub fn check_is_forum_leader(&self, forum_name: &str) -> Result<(), AppError> {
-        self.check_forum_permissions(forum_name, PermissionLevel::Lead)
+    pub fn check_is_sphere_leader(&self, sphere_name: &str) -> Result<(), AppError> {
+        self.check_sphere_permissions(sphere_name, PermissionLevel::Lead)
     }
 
-    pub fn get_forum_permission_level(&self, forum_name: &str) -> PermissionLevel {
-        max(self.admin_role.get_permission_level(), self.permission_by_forum_map.get(forum_name).cloned().unwrap_or(PermissionLevel::None))
+    pub fn get_sphere_permission_level(&self, sphere_name: &str) -> PermissionLevel {
+        max(self.admin_role.get_permission_level(), self.permission_by_sphere_map.get(sphere_name).cloned().unwrap_or(PermissionLevel::None))
     }
     
     pub fn check_can_publish(&self) -> Result<(), AppError> {
@@ -103,13 +103,13 @@ impl User {
         }
     }
 
-    pub fn check_can_publish_on_forum(&self, forum_name: &str) -> Result<(), AppError> {
+    pub fn check_can_publish_on_sphere(&self, sphere_name: &str) -> Result<(), AppError> {
         self.check_can_publish()?;
-        match self.ban_status_by_forum_map.get(forum_name) {
+        match self.ban_status_by_sphere_map.get(sphere_name) {
             Some(ban_status) if ban_status.is_active() => match ban_status {
-                BanStatus::Until(timestamp) => Err(AppError::ForumBanUntil(*timestamp)),
-                BanStatus::Permanent => Err(AppError::PermanentForumBan),
-                BanStatus::None => Err(AppError::InternalServerError(String::from("User with forum BanStatus::None despite ban_status.is_active == true"))), // should never happen
+                BanStatus::Until(timestamp) => Err(AppError::SphereBanUntil(*timestamp)),
+                BanStatus::Permanent => Err(AppError::PermanentSphereBan),
+                BanStatus::None => Err(AppError::InternalServerError(String::from("User with sphere BanStatus::None despite ban_status.is_active == true"))), // should never happen
             },
             _ => Ok(())
         }
@@ -118,17 +118,18 @@ impl User {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::errors::AppError;
-    use crate::forum_management::UserBan;
-    use crate::role::ssr::get_user_forum_role;
-    use crate::role::UserForumRole;
-    use async_trait::async_trait;
     use axum_session_auth::Authentication;
     use lru::LruCache;
     use sqlx::PgPool;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
     use tokio::sync::Mutex;
+
+    use crate::errors::AppError;
+    use crate::role::ssr::get_user_sphere_role;
+    use crate::role::UserSphereRole;
+    use crate::sphere_management::UserBan;
+    use async_trait::async_trait;
 
     use super::*;
 
@@ -161,18 +162,18 @@ pub mod ssr {
 
         pub fn into_user(
             self,
-            user_role_vec: Vec<UserForumRole>,
+            user_role_vec: Vec<UserSphereRole>,
             user_ban_vec: Vec<UserBan>,
         ) -> User {
-            let mut permission_by_forum_map: HashMap<String, PermissionLevel> = HashMap::new();
-            for user_forum_role in user_role_vec {
-                permission_by_forum_map.insert(
-                    user_forum_role.forum_name.clone(),
-                    user_forum_role.permission_level,
+            let mut permission_by_sphere_map: HashMap<String, PermissionLevel> = HashMap::new();
+            for user_sphere_role in user_role_vec {
+                permission_by_sphere_map.insert(
+                    user_sphere_role.sphere_name.clone(),
+                    user_sphere_role.permission_level,
                 );
             }
             let mut global_ban_status = BanStatus::None;
-            let mut ban_status_by_forum_map: HashMap<String, BanStatus> = HashMap::new();
+            let mut ban_status_by_sphere_map: HashMap<String, BanStatus> = HashMap::new();
             let current_timestamp = chrono::offset::Utc::now();
             for user_ban in user_ban_vec {
                 let (ban_status, is_valid) = match user_ban.until_timestamp {
@@ -183,15 +184,15 @@ pub mod ssr {
                     None => (BanStatus::Permanent, true),
                 };
                 if is_valid {
-                    match user_ban.forum_name {
-                        Some(forum_name) => {
-                            match ban_status_by_forum_map.get_mut(&forum_name) {
+                    match user_ban.sphere_name {
+                        Some(sphere_name) => {
+                            match ban_status_by_sphere_map.get_mut(&sphere_name) {
                                 Some(current_ban_status) => {
                                     if ban_status > *current_ban_status {
                                         *current_ban_status = ban_status;
                                     }
                                 },
-                                None => _ = ban_status_by_forum_map.insert(forum_name, ban_status),
+                                None => _ = ban_status_by_sphere_map.insert(sphere_name, ban_status),
                             };
                         },
                         None => {
@@ -209,9 +210,9 @@ pub mod ssr {
                 username: self.username,
                 email: self.email,
                 admin_role: self.admin_role,
-                permission_by_forum_map,
+                permission_by_sphere_map,
                 ban_status: global_ban_status,
-                ban_status_by_forum_map,
+                ban_status_by_sphere_map,
                 timestamp: self.timestamp,
                 is_deleted: self.is_deleted,
             }
@@ -256,13 +257,13 @@ pub mod ssr {
                 .await
             {
                 Ok(sql_user) => {
-                    let user_forum_role_vec = load_user_forum_role_vec(sql_user.user_id, db_pool)
+                    let user_sphere_role_vec = load_user_sphere_role_vec(sql_user.user_id, db_pool)
                         .await
                         .unwrap_or_default();
                     let user_ban_vec = load_user_ban_vec(sql_user.user_id, db_pool)
                         .await
                         .unwrap_or_default();
-                    Some(sql_user.into_user(user_forum_role_vec, user_ban_vec))
+                    Some(sql_user.into_user(user_sphere_role_vec, user_ban_vec))
                 }
                 Err(select_error) => {
                     log::debug!("User not found with error: {}", select_error);
@@ -271,17 +272,17 @@ pub mod ssr {
             }
         }
 
-        pub async fn check_can_set_user_forum_role(
+        pub async fn check_can_set_user_sphere_role(
             &self,
             permission_level: PermissionLevel,
             user_id: i64,
-            forum_name: &str,
+            sphere_name: &str,
             db_pool: &PgPool,
         ) -> Result<(), AppError> {
-            match (self.admin_role, self.permission_by_forum_map.get(forum_name)) {
+            match (self.admin_role, self.permission_by_sphere_map.get(sphere_name)) {
                 (AdminRole::Admin, _) => Ok(()),
                 (_, Some(own_level)) if *own_level >= PermissionLevel::Manage && *own_level > permission_level => {
-                    match get_user_forum_role(user_id, forum_name, db_pool).await {
+                    match get_user_sphere_role(user_id, sphere_name, db_pool).await {
                         Err(AppError::NotFound) => Ok(()),
                         Ok(user_role) if *own_level > user_role.permission_level => Ok(()),
                         _ => Err(AppError::InsufficientPrivileges),
@@ -362,21 +363,21 @@ pub mod ssr {
         Ok(sql_user)
     }
 
-    async fn load_user_forum_role_vec(
+    async fn load_user_sphere_role_vec(
         user_id: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<UserForumRole>, AppError> {
-        let user_forum_role_vec = sqlx::query_as!(
-            UserForumRole,
+    ) -> Result<Vec<UserSphereRole>, AppError> {
+        let user_sphere_role_vec = sqlx::query_as!(
+            UserSphereRole,
             "SELECT *
-            FROM user_forum_roles
+            FROM user_sphere_roles
             WHERE user_id = $1",
             user_id
         )
             .fetch_all(db_pool)
             .await?;
-        log::trace!("User roles: {:?}", user_forum_role_vec);
-        Ok(user_forum_role_vec)
+        log::trace!("User roles: {:?}", user_sphere_role_vec);
+        Ok(user_sphere_role_vec)
     }
 
     async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
@@ -412,23 +413,23 @@ pub mod ssr {
                 timestamp: chrono::DateTime::from_timestamp_nanos(0),
                 is_deleted: false,
             };
-            let user_forum_role_vec = vec![
-                UserForumRole {
+            let user_sphere_role_vec = vec![
+                UserSphereRole {
                     role_id: 0,
                     user_id: 0,
                     username: String::from("b"),
-                    forum_id: 0,
-                    forum_name: String::from("0"),
+                    sphere_id: 0,
+                    sphere_name: String::from("0"),
                     permission_level: PermissionLevel::Moderate,
                     grantor_id: 0,
                     timestamp: past_timestamp,
                 },
-                UserForumRole {
+                UserSphereRole {
                     role_id: 0,
                     user_id: 0,
                     username: String::from("b"),
-                    forum_id: 1,
-                    forum_name: String::from("1"),
+                    sphere_id: 1,
+                    sphere_name: String::from("1"),
                     permission_level: PermissionLevel::Lead,
                     grantor_id: 0,
                     timestamp: past_timestamp,
@@ -439,8 +440,8 @@ pub mod ssr {
                     ban_id: 0,
                     user_id: 0,
                     username: String::from("b"),
-                    forum_id: None,
-                    forum_name: None,
+                    sphere_id: None,
+                    sphere_name: None,
                     post_id: 0,
                     comment_id: None,
                     infringed_rule_id: 0,
@@ -452,8 +453,8 @@ pub mod ssr {
                     ban_id: 1,
                     user_id: 0,
                     username: String::from("b"),
-                    forum_id: Some(0),
-                    forum_name: Some(String::from("a")),
+                    sphere_id: Some(0),
+                    sphere_name: Some(String::from("a")),
                     post_id: 0,
                     comment_id: None,
                     infringed_rule_id: 0,
@@ -465,8 +466,8 @@ pub mod ssr {
                     ban_id: 2,
                     user_id: 0,
                     username: String::from("b"),
-                    forum_id: Some(1),
-                    forum_name: Some(String::from("b")),
+                    sphere_id: Some(1),
+                    sphere_name: Some(String::from("b")),
                     post_id: 0,
                     comment_id: None,
                     infringed_rule_id: 0,
@@ -478,8 +479,8 @@ pub mod ssr {
                     ban_id: 3,
                     user_id: 0,
                     username: String::from("b"),
-                    forum_id: Some(2),
-                    forum_name: Some(String::from("c")),
+                    sphere_id: Some(2),
+                    sphere_name: Some(String::from("c")),
                     post_id: 0,
                     comment_id: None,
                     infringed_rule_id: 0,
@@ -488,7 +489,7 @@ pub mod ssr {
                     create_timestamp: Default::default(),
                 },
             ];
-            let user_1 = sql_user.clone().into_user(user_forum_role_vec.clone(), user_ban_vec);
+            let user_1 = sql_user.clone().into_user(user_sphere_role_vec.clone(), user_ban_vec);
             assert_eq!(user_1.user_id, 0);
             assert_eq!(user_1.oidc_id, "a");
             assert_eq!(user_1.username, "b");
@@ -496,16 +497,16 @@ pub mod ssr {
             assert_eq!(user_1.admin_role, AdminRole::None);
             assert_eq!(user_1.timestamp, chrono::DateTime::from_timestamp_nanos(0));
             assert_eq!(user_1.is_deleted, false);
-            assert_eq!(user_1.permission_by_forum_map[&String::from("0")], PermissionLevel::Moderate);
-            assert_eq!(user_1.permission_by_forum_map[&String::from("1")], PermissionLevel::Lead);
+            assert_eq!(user_1.permission_by_sphere_map[&String::from("0")], PermissionLevel::Moderate);
+            assert_eq!(user_1.permission_by_sphere_map[&String::from("1")], PermissionLevel::Lead);
             assert_eq!(user_1.ban_status, BanStatus::None);
-            assert_eq!(user_1.ban_status_by_forum_map.get(&String::from("a")), None);
+            assert_eq!(user_1.ban_status_by_sphere_map.get(&String::from("a")), None);
             assert_eq!(
-                *user_1.ban_status_by_forum_map.get(&String::from("b")).expect("User should have ban for forum 'b'."),
+                *user_1.ban_status_by_sphere_map.get(&String::from("b")).expect("User should have ban for sphere 'b'."),
                 BanStatus::Until(future_timestamp)
             );
             assert_eq!(
-                *user_1.ban_status_by_forum_map.get(&String::from("c")).expect("User should have ban for forum 'c'."),
+                *user_1.ban_status_by_sphere_map.get(&String::from("c")).expect("User should have ban for sphere 'c'."),
                 BanStatus::Permanent
             );
 
@@ -513,8 +514,8 @@ pub mod ssr {
                 ban_id: 3,
                 user_id: 0,
                 username: String::from("b"),
-                forum_id: None,
-                forum_name: None,
+                sphere_id: None,
+                sphere_name: None,
                 post_id: 0,
                 comment_id: None,
                 infringed_rule_id: 0,
@@ -522,7 +523,7 @@ pub mod ssr {
                 until_timestamp: Some(future_timestamp),
                 create_timestamp: Default::default(),
             }];
-            let user_2 = sql_user.into_user(user_forum_role_vec, user_2_ban_vec);
+            let user_2 = sql_user.into_user(user_sphere_role_vec, user_2_ban_vec);
             assert_eq!(user_2.ban_status, BanStatus::Until(future_timestamp));
         }
     }
@@ -596,7 +597,7 @@ mod tests {
     #[test]
     fn test_user_check_permissions() {
         let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
+        user.permission_by_sphere_map = get_user_permission_map();
         assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
         assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
         assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
@@ -707,31 +708,31 @@ mod tests {
     }
 
     #[test]
-    fn test_user_check_is_forum_leader() {
+    fn test_user_check_is_sphere_leader() {
         let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_is_forum_leader("b"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_is_forum_leader("c"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_is_forum_leader("d"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_is_forum_leader("e"), Ok(()));
+        user.permission_by_sphere_map = get_user_permission_map();
+        assert_eq!(user.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_sphere_leader("b"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_sphere_leader("c"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_sphere_leader("d"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_is_sphere_leader("e"), Ok(()));
         let mut admin = User::default();
         admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(admin.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_is_forum_leader("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(admin.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
     }
 
     #[test]
-    fn test_user_get_forum_permission_level() {
+    fn test_user_get_sphere_permission_level() {
         let mut user = User::default();
-        user.permission_by_forum_map = get_user_permission_map();
-        assert_eq!(user.get_forum_permission_level("missing"), PermissionLevel::None);
-        assert_eq!(user.get_forum_permission_level("a"), PermissionLevel::None);
-        assert_eq!(user.get_forum_permission_level("b"), PermissionLevel::Moderate);
-        assert_eq!(user.get_forum_permission_level("c"), PermissionLevel::Ban);
-        assert_eq!(user.get_forum_permission_level("d"), PermissionLevel::Manage);
-        assert_eq!(user.get_forum_permission_level("e"), PermissionLevel::Lead);
+        user.permission_by_sphere_map = get_user_permission_map();
+        assert_eq!(user.get_sphere_permission_level("missing"), PermissionLevel::None);
+        assert_eq!(user.get_sphere_permission_level("a"), PermissionLevel::None);
+        assert_eq!(user.get_sphere_permission_level("b"), PermissionLevel::Moderate);
+        assert_eq!(user.get_sphere_permission_level("c"), PermissionLevel::Ban);
+        assert_eq!(user.get_sphere_permission_level("d"), PermissionLevel::Manage);
+        assert_eq!(user.get_sphere_permission_level("e"), PermissionLevel::Lead);
     }
 
     #[test]
@@ -749,34 +750,34 @@ mod tests {
     }
 
     #[test]
-    fn test_user_check_can_publish_on_forum() {
+    fn test_user_check_can_publish_on_sphere() {
         let past_timestamp = chrono::DateTime::from_timestamp_nanos(0);
         let future_timestamp = chrono::offset::Utc::now().add(Days::new(1));
         let mut user = User::default();
-        user.ban_status_by_forum_map = HashMap::from([
+        user.ban_status_by_sphere_map = HashMap::from([
             (String::from("a"), BanStatus::None),
             (String::from("b"), BanStatus::Until(past_timestamp)),
             (String::from("c"), BanStatus::Until(future_timestamp)),
             (String::from("d"), BanStatus::Permanent),
         ]);
-        assert_eq!(user.check_can_publish_on_forum("a"), Ok(()));
-        assert_eq!(user.check_can_publish_on_forum("b"), Ok(()));
-        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
-        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
+        assert_eq!(user.check_can_publish_on_sphere("a"), Ok(()));
+        assert_eq!(user.check_can_publish_on_sphere("b"), Ok(()));
+        assert_eq!(user.check_can_publish_on_sphere("c"), Err(AppError::SphereBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_sphere("d"), Err(AppError::PermanentSphereBan));
         user.ban_status = BanStatus::Until(past_timestamp);
-        assert_eq!(user.check_can_publish_on_forum("a"), Ok(()));
-        assert_eq!(user.check_can_publish_on_forum("b"), Ok(()));
-        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::ForumBanUntil(future_timestamp)));
-        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::PermanentForumBan));
+        assert_eq!(user.check_can_publish_on_sphere("a"), Ok(()));
+        assert_eq!(user.check_can_publish_on_sphere("b"), Ok(()));
+        assert_eq!(user.check_can_publish_on_sphere("c"), Err(AppError::SphereBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_sphere("d"), Err(AppError::PermanentSphereBan));
         user.ban_status = BanStatus::Until(future_timestamp);
-        assert_eq!(user.check_can_publish_on_forum("a"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.check_can_publish_on_forum("b"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::GlobalBanUntil(future_timestamp)));
-        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_sphere("a"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_sphere("b"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_sphere("c"), Err(AppError::GlobalBanUntil(future_timestamp)));
+        assert_eq!(user.check_can_publish_on_sphere("d"), Err(AppError::GlobalBanUntil(future_timestamp)));
         user.ban_status = BanStatus::Permanent;
-        assert_eq!(user.check_can_publish_on_forum("a"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.check_can_publish_on_forum("b"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.check_can_publish_on_forum("c"), Err(AppError::PermanentGlobalBan));
-        assert_eq!(user.check_can_publish_on_forum("d"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_sphere("a"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_sphere("b"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_sphere("c"), Err(AppError::PermanentGlobalBan));
+        assert_eq!(user.check_can_publish_on_sphere("d"), Err(AppError::PermanentGlobalBan));
     }
 }

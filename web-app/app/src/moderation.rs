@@ -9,19 +9,19 @@ use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
-use crate::forum::ForumState;
 use crate::icons::{HammerIcon, MagnifierIcon};
 use crate::post::Post;
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::rule::get_rule_by_id;
 use crate::rule::Rule;
+use crate::sphere::SphereState;
 use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
-    comment::ssr::{get_comment_by_id, get_comment_forum},
+    comment::ssr::{get_comment_by_id, get_comment_sphere},
     post::ssr::get_post_by_id,
     rule::ssr::load_rule_by_id
 };
@@ -36,10 +36,9 @@ pub struct ModerationInfo {
 pub mod ssr {
     use crate::comment::Comment;
     use crate::errors::AppError;
-    use crate::forum_management::ssr::is_user_forum_moderator;
-    use crate::forum_management::UserBan;
     use crate::post::Post;
     use crate::role::{AdminRole, PermissionLevel};
+    use crate::sphere_management::{ssr::is_user_sphere_moderator, UserBan};
     use crate::user::User;
     use sqlx::PgPool;
 
@@ -84,9 +83,9 @@ pub mod ssr {
                 WHERE
                     p.post_id = $5 AND
                     EXISTS (
-                        SELECT * FROM user_forum_roles r
+                        SELECT * FROM user_sphere_roles r
                         WHERE
-                            r.forum_id = p.forum_id AND
+                            r.sphere_id = p.sphere_id AND
                             r.user_id = $3
                     )
                 RETURNING *",
@@ -132,7 +131,7 @@ pub mod ssr {
                 .fetch_one(db_pool)
                 .await?
         } else {
-            // check if the user has at least the moderate permission for this forum
+            // check if the user has at least the moderate permission for this sphere
             sqlx::query_as!(
                 Comment,
                 "UPDATE comments c SET
@@ -145,8 +144,8 @@ pub mod ssr {
                 WHERE
                     c.comment_id = $5 AND
                     EXISTS (
-                        SELECT * FROM user_forum_roles r
-                        JOIN posts p ON p.forum_id = r.forum_id
+                        SELECT * FROM user_sphere_roles r
+                        JOIN posts p ON p.sphere_id = r.sphere_id
                         WHERE
                             p.post_id = c.post_id AND
                             r.user_id = $3
@@ -165,9 +164,9 @@ pub mod ssr {
         Ok(comment)
     }
 
-    pub async fn ban_user_from_forum(
+    pub async fn ban_user_from_sphere(
         user_id: i64,
-        forum_name: &String,
+        sphere_name: &String,
         post_id: i64,
         comment_id: Option<i64>,
         rule_id: i64,
@@ -175,21 +174,21 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: &PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.check_permissions(&forum_name, PermissionLevel::Moderate).is_ok() && user.user_id != user_id && !is_user_forum_moderator(user_id, forum_name, &db_pool).await? {
+        if user.check_permissions(&sphere_name, PermissionLevel::Moderate).is_ok() && user.user_id != user_id && !is_user_sphere_moderator(user_id, sphere_name, &db_pool).await? {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
                 Some(ban_duration) => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
+                        "INSERT INTO user_bans (user_id, username, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
                          VALUES (
                             $1,
                             (SELECT username FROM users WHERE user_id = $1),
-                            (SELECT forum_id FROM forums WHERE forum_name = $2),
+                            (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
                             $2, $3, $4, $5, $6, CURRENT_TIMESTAMP + $7 * interval '1 day'
                         ) RETURNING *",
                         user_id,
-                        forum_name,
+                        sphere_name,
                         post_id,
                         comment_id,
                         rule_id,
@@ -202,15 +201,15 @@ pub mod ssr {
                 None => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, username, forum_id, forum_name, post_id, comment_id, infringed_rule_id, moderator_id)
+                        "INSERT INTO user_bans (user_id, username, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id)
                          VALUES (
                             $1,
                             (SELECT username FROM users WHERE user_id = $1),
-                            (SELECT forum_id FROM forums WHERE forum_name = $2),
+                            (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
                             $2, $3, $4, $5, $6
                         ) RETURNING *",
                         user_id,
-                        forum_name,
+                        sphere_name,
                         post_id,
                         comment_id,
                         rule_id,
@@ -222,7 +221,7 @@ pub mod ssr {
             };
             Ok(user_ban)
         } else {
-            Err(AppError::InternalServerError(format!("Error while trying to ban user {user_id}. Insufficient permissions or user is a moderator of the forum.")))
+            Err(AppError::InternalServerError(format!("Error while trying to ban user {user_id}. Insufficient permissions or user is a moderator of the sphere.")))
         }
     }
 }
@@ -257,7 +256,7 @@ pub async fn get_moderation_info(
 
 /// Function to moderate a post and optionally ban its author
 ///
-/// The ban is performed for the forum of the given post and the duration is given by `ban_num_days`.
+/// The ban is performed for the sphere of the given post and the duration is given by `ban_num_days`.
 /// If `ban_num_days == None`, the duration of the ban is permanent.
 #[server]
 pub async fn moderate_post(
@@ -278,9 +277,9 @@ pub async fn moderate_post(
         &db_pool
     ).await?;
 
-    ssr::ban_user_from_forum(
+    ssr::ban_user_from_sphere(
         post.creator_id,
-        &post.forum_name,
+        &post.sphere_name,
         post.post_id,
         None,
         rule_id,
@@ -296,7 +295,7 @@ pub async fn moderate_post(
 
 /// Function to moderate a comment and optionally ban its author
 ///
-/// The ban is performed for the forum of the given comment and the duration is given by `ban_num_days`.
+/// The ban is performed for the sphere of the given comment and the duration is given by `ban_num_days`.
 /// If `ban_num_days == None`, the duration of the ban is permanent.
 #[server]
 pub async fn moderate_comment(
@@ -317,11 +316,11 @@ pub async fn moderate_comment(
         &db_pool
     ).await?;
 
-    let forum = get_comment_forum(comment_id, &db_pool).await?;
+    let sphere = get_comment_sphere(comment_id, &db_pool).await?;
 
-    ssr::ban_user_from_forum(
+    ssr::ban_user_from_sphere(
         comment.creator_id,
-        &forum.forum_name,
+        &sphere.sphere_name,
         comment.post_id,
         Some(comment.comment_id),
         rule_id,
@@ -379,9 +378,9 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
 #[component]
 pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
             <div>
                 <ModerateButton show_dialog/>
                 <ModeratePostDialog
@@ -397,9 +396,9 @@ pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
 #[component]
 pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Moderate>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
             <div>
                 <ModerateButton show_dialog/>
                 <ModerateCommentDialog
@@ -418,7 +417,7 @@ pub fn ModeratePostDialog(
     post_id: i64,
     show_dialog: RwSignal<bool>
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
 
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
@@ -436,7 +435,7 @@ pub fn ModeratePostDialog(
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
                 <div class="text-center font-bold text-2xl">"Moderate a post"</div>
-                <ActionForm action=forum_state.moderate_post_action>
+                <ActionForm action=sphere_state.moderate_post_action>
                     <div class="flex flex-col gap-3 w-full">
                         <input
                             type="text"
@@ -457,7 +456,7 @@ pub fn ModeratePostDialog(
                         />
                     </div>
                 </ActionForm>
-                <ActionError action=forum_state.moderate_post_action.into()/>
+                <ActionError action=sphere_state.moderate_post_action.into()/>
             </div>
         </ModalDialog>
     }.into_any()
@@ -529,7 +528,7 @@ pub fn ModerateCommentDialog(
 pub fn RuleSelect(
     name: &'static str,
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
     view! {
         <div class="flex items-center justify-between w-full">
             <span class="text-xl font-semibold">"Infringed rule:"</span>
@@ -537,7 +536,7 @@ pub fn RuleSelect(
                 class="select select-bordered"
                 name=name
             >
-                <ArcTransitionUnpack resource=forum_state.forum_rules_resource let:rules_vec>
+                <ArcTransitionUnpack resource=sphere_state.sphere_rules_resource let:rules_vec>
                 {
                     rules_vec.iter().map(|rule| {
                         view! {
@@ -558,7 +557,7 @@ pub fn RuleSelect(
 pub fn BanMenu() -> impl IntoView {
     let ban_value = RwSignal::new(0);
     let is_permanent_ban = RwSignal::new(false);
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     view! {
         <input
             type="number"
@@ -567,7 +566,7 @@ pub fn BanMenu() -> impl IntoView {
             value=ban_value
             disabled=is_permanent_ban
         />
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Ban>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Ban>
             <div class="flex items-center justify-between w-full">
                 <span class="text-xl font-semibold">"Ban duration (days):"</span>
                 <select
@@ -603,7 +602,7 @@ pub fn ModerationInfoButton(
     content: Signal<Content>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
     let show_button = move || {
         let (is_moderated, creator_id) = match &*content.read() {
             Content::Post(post) => (post.infringed_rule_id.is_some(), post.creator_id),
@@ -613,7 +612,7 @@ pub fn ModerationInfoButton(
             Some(Ok(Some(user))) => user.user_id == creator_id,
             _ => false
         };
-        let is_moderator = *forum_state.permission_level.read() >= PermissionLevel::Moderate;
+        let is_moderator = *sphere_state.permission_level.read() >= PermissionLevel::Moderate;
         is_moderated && (is_author || is_moderator)
     };
     let show_dialog = RwSignal::new(false);

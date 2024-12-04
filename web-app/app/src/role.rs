@@ -30,12 +30,12 @@ pub enum PermissionLevel {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct UserForumRole {
+pub struct UserSphereRole {
     pub role_id: i64,
     pub user_id: i64,
     pub username: String,
-    pub forum_id: i64,
-    pub forum_name: String,
+    pub sphere_id: i64,
+    pub sphere_name: String,
     pub permission_level: PermissionLevel,
     pub grantor_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -72,140 +72,140 @@ pub mod ssr {
 
     use super::*;
 
-    pub async fn get_user_forum_role(
+    pub async fn get_user_sphere_role(
         user_id: i64,
-        forum_name: &str,
+        sphere_name: &str,
         db_pool: &PgPool,
-    ) -> Result<UserForumRole, AppError> {
-        let user_forum_role = sqlx::query_as!(
-            UserForumRole,
-            "SELECT * FROM user_forum_roles \
+    ) -> Result<UserSphereRole, AppError> {
+        let user_sphere_role = sqlx::query_as!(
+            UserSphereRole,
+            "SELECT * FROM user_sphere_roles \
             WHERE user_id = $1 AND \
-                  forum_name = $2",
+                  sphere_name = $2",
             user_id,
-            forum_name,
+            sphere_name,
         )
             .fetch_one(db_pool)
             .await?;
 
-        Ok(user_forum_role)
+        Ok(user_sphere_role)
     }
 
-    pub async fn get_forum_role_vec(
-        forum_name: &str,
+    pub async fn get_sphere_role_vec(
+        sphere_name: &str,
         db_pool: &PgPool,
-    ) -> Result<Vec<UserForumRole>, AppError> {
-        let forum_role_vec = sqlx::query_as!(
-            UserForumRole,
-            "SELECT * FROM user_forum_roles
+    ) -> Result<Vec<UserSphereRole>, AppError> {
+        let sphere_role_vec = sqlx::query_as!(
+            UserSphereRole,
+            "SELECT * FROM user_sphere_roles
             WHERE
-                forum_name = $1 AND
+                sphere_name = $1 AND
                 permission_level != 'None'",
-            forum_name,
+            sphere_name,
         )
             .fetch_all(db_pool)
             .await?;
 
-        Ok(forum_role_vec)
+        Ok(sphere_role_vec)
     }
 
-    pub async fn set_user_forum_role(
+    pub async fn set_user_sphere_role(
         user_id: i64,
-        forum_name: &str,
+        sphere_name: &str,
         permission_level: PermissionLevel,
         grantor: &User,
         db_pool: &PgPool,
-    ) -> Result<(UserForumRole, Option<i64>), AppError> {
+    ) -> Result<(UserSphereRole, Option<i64>), AppError> {
         if permission_level == PermissionLevel::Lead {
-            set_forum_leader(user_id, forum_name, grantor, db_pool).await
+            set_sphere_leader(user_id, sphere_name, grantor, db_pool).await
         } else {
-            grantor.check_can_set_user_forum_role(permission_level, user_id, forum_name, db_pool).await?;
-            let user_forum_role = insert_user_forum_role(
+            grantor.check_can_set_user_sphere_role(permission_level, user_id, sphere_name, db_pool).await?;
+            let user_sphere_role = insert_user_sphere_role(
                 user_id,
-                forum_name,
+                sphere_name,
                 permission_level,
                 grantor,
                 db_pool,
             ).await?;
-            Ok((user_forum_role, None))
+            Ok((user_sphere_role, None))
         }
     }
-    async fn set_forum_leader(
+    async fn set_sphere_leader(
         user_id: i64,
-        forum_name: &str,
+        sphere_name: &str,
         grantor: &User,
         db_pool: &PgPool,
-    ) -> Result<(UserForumRole, Option<i64>), AppError> {
-        match grantor.check_is_forum_leader(forum_name).is_ok() {
+    ) -> Result<(UserSphereRole, Option<i64>), AppError> {
+        match grantor.check_is_sphere_leader(sphere_name).is_ok() {
             true => {
                 let manage_level_str: &str = PermissionLevel::Manage.into();
                 sqlx::query_as!(
-                    UserForumRole,
-                    "UPDATE user_forum_roles
+                    UserSphereRole,
+                    "UPDATE user_sphere_roles
                     SET
                         permission_level = $1,
                         timestamp = CURRENT_TIMESTAMP
                     WHERE user_id = $2 AND
-                          forum_name = $3
+                          sphere_name = $3
                     RETURNING *",
                     manage_level_str,
                     grantor.user_id,
-                    forum_name,
+                    sphere_name,
                 )
                     .fetch_one(db_pool)
                     .await?;
-                let user_forum_role = insert_user_forum_role(
+                let user_sphere_role = insert_user_sphere_role(
                     user_id,
-                    forum_name,
+                    sphere_name,
                     PermissionLevel::Lead,
                     grantor,
                     db_pool,
                 ).await?;
-                Ok((user_forum_role, Some(grantor.user_id)))
+                Ok((user_sphere_role, Some(grantor.user_id)))
             },
             false => {
-                let user_forum_role = insert_user_forum_role(
+                let user_sphere_role = insert_user_sphere_role(
                     user_id,
-                    forum_name,
+                    sphere_name,
                     PermissionLevel::Lead,
                     grantor,
                     db_pool,
                 ).await?;
-                Ok((user_forum_role, None))
+                Ok((user_sphere_role, None))
             },
         }
     }
 
-    async fn insert_user_forum_role(
+    async fn insert_user_sphere_role(
         user_id: i64,
-        forum_name: &str,
+        sphere_name: &str,
         permission_level: PermissionLevel,
         grantor: &User,
         db_pool: &PgPool,
-    ) -> Result<UserForumRole, AppError> {
-        if user_id == grantor.user_id && grantor.check_is_forum_leader(forum_name).is_ok() {
-            return Err(AppError::InternalServerError(String::from("Forum leader cannot lower his permissions, must designate another leader.")))
+    ) -> Result<UserSphereRole, AppError> {
+        if user_id == grantor.user_id && grantor.check_is_sphere_leader(sphere_name).is_ok() {
+            return Err(AppError::InternalServerError(String::from("Sphere leader cannot lower his permissions, must designate another leader.")))
         }
         let permission_level_str: &str = permission_level.into();
-        let user_forum_role = sqlx::query_as!(
-                UserForumRole,
-                "INSERT INTO user_forum_roles (user_id, username, forum_id, forum_name, permission_level, grantor_id)
+        let user_sphere_role = sqlx::query_as!(
+                UserSphereRole,
+                "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
                 VALUES ($1,
                     (SELECT username from users where user_id = $1),
-                    (SELECT forum_id FROM forums WHERE forum_name = $2),
+                    (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
                     $2, $3, $4)
-                ON CONFLICT (user_id, forum_id) DO UPDATE
+                ON CONFLICT (user_id, sphere_id) DO UPDATE
                 SET permission_level = EXCLUDED.permission_level,
                     timestamp = CURRENT_TIMESTAMP
                 RETURNING *",
                 user_id,
-                forum_name,
+                sphere_name,
                 permission_level_str,
                 grantor.user_id,
             )
             .fetch_one(db_pool)
             .await?;
-        Ok(user_forum_role)
+        Ok(user_sphere_role)
     }
 
     pub async fn set_user_admin_role(
@@ -234,11 +234,11 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_forum_role_vec(forum_name: String) -> Result<Vec<UserForumRole>, ServerFnError<AppError>> {
+pub async fn get_sphere_role_vec(sphere_name: String) -> Result<Vec<UserSphereRole>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
-    let role_vec = ssr::get_forum_role_vec(
-        &forum_name,
+    let role_vec = ssr::get_sphere_role_vec(
+        &sphere_name,
         &db_pool,
     ).await?;
 
@@ -246,34 +246,34 @@ pub async fn get_forum_role_vec(forum_name: String) -> Result<Vec<UserForumRole>
 }
 
 #[server]
-pub async fn set_user_forum_role(
+pub async fn set_user_sphere_role(
     username: String,
-    forum_name: String,
+    sphere_name: String,
     permission_level: PermissionLevel,
-) -> Result<UserForumRole, ServerFnError<AppError>> {
+) -> Result<UserSphereRole, ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let assigned_user = SqlUser::get_by_username(&username, &db_pool).await?;
 
-    let (forum_role, _) = ssr::set_user_forum_role(
+    let (sphere_role, _) = ssr::set_user_sphere_role(
         assigned_user.user_id,
-        &forum_name,
+        &sphere_name,
         permission_level,
         &user,
         &db_pool,
     ).await?;
 
-    reload_user(forum_role.user_id)?;
+    reload_user(sphere_role.user_id)?;
 
-    Ok(forum_role)
+    Ok(sphere_role)
 }
 
 /// Component to show children when the user has at least the input permission level
 #[component]
 pub fn AuthorizedShow<C: IntoView + 'static>(
     #[prop(into)]
-    forum_name: Signal<String>,
+    sphere_name: Signal<String>,
     permission_level: PermissionLevel,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
@@ -282,7 +282,7 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
     view! {
         <ArcSuspenseUnpack resource=state.user let:user>
             <Show when=move || match &*user {
-                Some(user) => user.check_permissions(&forum_name.read(), permission_level).is_ok(),
+                Some(user) => user.check_permissions(&sphere_name.read(), permission_level).is_ok(),
                 None => false,
             }>
             {

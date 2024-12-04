@@ -7,9 +7,9 @@ use crate::colors::{Color, ColorIndicator, ColorSelect};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
-use crate::forum::ForumState;
 use crate::icons::{DeleteIcon, PauseIcon, PlayIcon, SaveIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
+use crate::sphere::SphereState;
 use crate::unpack::TransitionUnpack;
 
 
@@ -21,17 +21,17 @@ use crate::{
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct ForumCategoryHeader {
+pub struct SphereCategoryHeader {
     pub category_name: String,
     pub category_color: Color,
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct ForumCategory {
+pub struct SphereCategory {
     pub category_id: i64,
-    pub forum_id: i64,
-    pub forum_name: String,
+    pub sphere_id: i64,
+    pub sphere_name: String,
     pub category_name: String,
     pub category_color: Color,
     pub description: String,
@@ -41,11 +41,11 @@ pub struct ForumCategory {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl From<ForumCategory> for ForumCategoryHeader {
-    fn from(forum_category: ForumCategory) -> Self {
-        ForumCategoryHeader {
-            category_name: forum_category.category_name,
-            category_color: forum_category.category_color,
+impl From<SphereCategory> for SphereCategoryHeader {
+    fn from(sphere_category: SphereCategory) -> Self {
+        SphereCategoryHeader {
+            category_name: sphere_category.category_name,
+            category_color: sphere_category.category_color,
         }
     }
 }
@@ -53,55 +53,55 @@ impl From<ForumCategory> for ForumCategoryHeader {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use crate::errors::AppError;
-    use crate::forum_category::{Color, ForumCategory};
     use crate::role::PermissionLevel;
+    use crate::sphere_category::{Color, SphereCategory};
     use crate::user::User;
     use sqlx::PgPool;
 
     pub const CATEGORY_NOT_DELETED_STR: &str = "Category was not deleted, it either doesn't exist or is used.";
     
-    pub async fn get_forum_category_vec(
-        forum_name: &str,
+    pub async fn get_sphere_category_vec(
+        sphere_name: &str,
         db_pool: &PgPool,
-    ) -> Result<Vec<ForumCategory>, AppError> {
-        let forum_category_vec = sqlx::query_as!(
-            ForumCategory,
-            "SELECT * FROM forum_categories
-            WHERE forum_name = $1
+    ) -> Result<Vec<SphereCategory>, AppError> {
+        let sphere_category_vec = sqlx::query_as!(
+            SphereCategory,
+            "SELECT * FROM sphere_categories
+            WHERE sphere_name = $1
             ORDER BY is_active DESC, category_name",
-            forum_name
+            sphere_name
         )
             .fetch_all(db_pool)
             .await?;
 
-        Ok(forum_category_vec)
+        Ok(sphere_category_vec)
     }
 
-    pub async fn set_forum_category(
-        forum_name: &str,
+    pub async fn set_sphere_category(
+        sphere_name: &str,
         category_name: &str,
         category_color: Color,
         description: &str,
         is_active: bool,
         user: &User,
         db_pool: &PgPool,
-    ) -> Result<ForumCategory, AppError> {
-        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+    ) -> Result<SphereCategory, AppError> {
+        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
 
         let category = sqlx::query_as!(
-            ForumCategory,
-            "INSERT INTO forum_categories
-            (forum_id, forum_name, category_name, category_color, description, is_active, creator_id)
+            SphereCategory,
+            "INSERT INTO sphere_categories
+            (sphere_id, sphere_name, category_name, category_color, description, is_active, creator_id)
             VALUES (
-                (SELECT forum_id FROM forums WHERE forum_name = $1),
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $1),
                 $1, $2, $3, $4, $5, $6
-            ) ON CONFLICT (forum_id, category_name) DO UPDATE
+            ) ON CONFLICT (sphere_id, category_name) DO UPDATE
                 SET description = EXCLUDED.description,
                     category_color = EXCLUDED.category_color,
                     is_active = EXCLUDED.is_active,
                     timestamp = CURRENT_TIMESTAMP
             RETURNING *",
-            forum_name,
+            sphere_name,
             category_name,
             category_color as i32,
             description,
@@ -114,20 +114,20 @@ pub mod ssr {
         Ok(category)
     }
 
-    pub async fn delete_forum_category(
-        forum_name: &str,
+    pub async fn delete_sphere_category(
+        sphere_name: &str,
         category_name: &str,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
 
         let result = sqlx::query!(
-            "DELETE FROM forum_categories c
-             WHERE forum_name = $1 AND category_name = $2 AND NOT EXISTS (
+            "DELETE FROM sphere_categories c
+             WHERE sphere_name = $1 AND category_name = $2 AND NOT EXISTS (
                 SELECT 1 FROM posts p WHERE p.category_id = c.category_id
              )",
-            forum_name,
+            sphere_name,
             category_name,
         )
             .execute(db_pool)
@@ -142,43 +142,43 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_forum_category_vec(
-    forum_name: String,
-) -> Result<Vec<ForumCategory>, ServerFnError<AppError>> {
+pub async fn get_sphere_category_vec(
+    sphere_name: String,
+) -> Result<Vec<SphereCategory>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let forum_category_vec = ssr::get_forum_category_vec(&forum_name, &db_pool).await?;
-    Ok(forum_category_vec)
+    let sphere_category_vec = ssr::get_sphere_category_vec(&sphere_name, &db_pool).await?;
+    Ok(sphere_category_vec)
 }
 
 #[server]
-pub async fn set_forum_category(
-    forum_name: String,
+pub async fn set_sphere_category(
+    sphere_name: String,
     category_name: String,
     category_color: Color,
     description: String,
     is_active: bool,
-) -> Result<ForumCategory, ServerFnError<AppError>> {
+) -> Result<SphereCategory, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    let forum_category = ssr::set_forum_category(&forum_name, &category_name, category_color, &description, is_active, &user, &db_pool).await?;
-    Ok(forum_category)
+    let sphere_category = ssr::set_sphere_category(&sphere_name, &category_name, category_color, &description, is_active, &user, &db_pool).await?;
+    Ok(sphere_category)
 }
 
 #[server]
-pub async fn delete_forum_category(
-    forum_name: String,
+pub async fn delete_sphere_category(
+    sphere_name: String,
     category_name: String,
 ) -> Result<(), ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    ssr::delete_forum_category(&forum_name, &category_name, &user, &db_pool).await?;
+    ssr::delete_sphere_category(&sphere_name, &category_name, &user, &db_pool).await?;
     Ok(())
 }
 
-/// Component to display a badge with forum category's name
+/// Component to display a badge with sphere category's name
 #[component]
-pub fn ForumCategoryBadge(
-    category_header: ForumCategoryHeader,
+pub fn SphereCategoryBadge(
+    category_header: SphereCategoryHeader,
 ) -> impl IntoView {
     let class = format!(
         "flex items-center {} px-2 pt-1 pb-1.5 rounded-full text-sm leading-none",
@@ -189,11 +189,11 @@ pub fn ForumCategoryBadge(
     }
 }
 
-/// Component to manage forum categories
+/// Component to manage sphere categories
 #[component]
-pub fn ForumCategoriesDialog() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = forum_state.forum_name;
+pub fn SphereCategoriesDialog() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = sphere_state.sphere_name;
 
     let category_input = RwSignal::new(String::new());
     let color_input = RwSignal::new(Color::None);
@@ -206,10 +206,10 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
         textarea_ref
     };
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
-                <div class="text-xl text-center">"Forum categories"</div>
+                <div class="text-xl text-center">"Sphere categories"</div>
                 <div class="flex flex-col">
                     <div class="border-b border-base-content/20 pl-2">
                         <div class="w-5/6 flex gap-1">
@@ -220,13 +220,13 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                         </div>
                     </div>
                     <div class="flex flex-col gap-1 pl-2 py-1">
-                        <TransitionUnpack resource=forum_state.forum_categories_resource let:forum_category_vec>
+                        <TransitionUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
                         {
-                            forum_category_vec.iter().map(|forum_category| {
-                                let category_name = forum_category.category_name.clone();
-                                let color = forum_category.category_color;
-                                let description = forum_category.description.clone();
-                                let is_active = forum_category.is_active;
+                            sphere_category_vec.iter().map(|sphere_category| {
+                                let category_name = sphere_category.category_name.clone();
+                                let color = sphere_category.category_color;
+                                let description = sphere_category.description.clone();
+                                let is_active = sphere_category.is_active;
                                 view! {
                                     <div
                                         class="flex justify-between items-center"
@@ -255,7 +255,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
                                                 }
                                             </div>
                                         </div>
-                                        <DeleteCategoryButton category_name=forum_category.category_name.clone()/>
+                                        <DeleteCategoryButton category_name=sphere_category.category_name.clone()/>
                                     </div>
                                 }
                             }).collect_view()
@@ -269,7 +269,7 @@ pub fn ForumCategoriesDialog() -> impl IntoView {
     }
 }
 
-/// Component to set permission levels for a forum
+/// Component to set permission levels for a sphere
 #[component]
 pub fn SetCategoryForm(
     category_input: RwSignal<String>,
@@ -277,17 +277,17 @@ pub fn SetCategoryForm(
     activated_input: RwSignal<bool>,
     description_data: TextareaData,
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = forum_state.forum_name;
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = sphere_state.sphere_name;
     let disable_submit = move || category_input.read().is_empty() && description_data.content.read().is_empty();
 
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
-            <ActionForm action=forum_state.set_forum_category_action>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
+            <ActionForm action=sphere_state.set_sphere_category_action>
                 <input
-                    name="forum_name"
+                    name="sphere_name"
                     class="hidden"
-                    value=forum_name
+                    value=sphere_name
                 />
                 <div class="w-full flex gap-1 justify-between items-stretch pl-2">
                     <div class="flex gap-1 items-center w-5/6 p-1">
@@ -325,24 +325,24 @@ pub fn SetCategoryForm(
     }
 }
 
-/// Component to delete a forum category
+/// Component to delete a sphere category
 #[component]
 pub fn DeleteCategoryButton(
     category_name: String,
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = forum_state.forum_name;
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = sphere_state.sphere_name;
     let category_name = StoredValue::new(category_name);
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             <ActionForm
-                action=forum_state.delete_forum_category_action
+                action=sphere_state.delete_sphere_category_action
                 attr:class="h-fit flex justify-center"
             >
                 <input
-                    name="forum_name"
+                    name="sphere_name"
                     class="hidden"
-                    value=forum_state.forum_name
+                    value=sphere_state.sphere_name
                 />
                 <input
                     name="category_name"

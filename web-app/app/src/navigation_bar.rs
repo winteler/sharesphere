@@ -1,12 +1,13 @@
+use leptos::prelude::*;
+use leptos_router::components::Form;
+
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::constants::{PATH_SEPARATOR, SITE_ROOT};
-use crate::forum::*;
 use crate::icons::*;
-use crate::post::{CREATE_POST_FORUM_QUERY_PARAM, CREATE_POST_ROUTE};
+use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
+use crate::sphere::*;
 use crate::user::User;
-use leptos::prelude::*;
-use leptos_router::components::Form;
 
 pub fn get_current_url(url: RwSignal<String>) {
     let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));
@@ -20,16 +21,16 @@ pub fn get_current_path(path: RwSignal<String>) {
     path.update(|value | *value = path_str);
 }
 
-/// # Extract the forum name from the current path, if it exists
+/// # Extract the sphere name from the current path, if it exists
 ///
 /// ```
-/// use crate::app::navigation_bar::get_forum_from_path;
+/// use crate::app::navigation_bar::get_sphere_from_path;
 ///
-/// assert_eq!(get_forum_from_path("test"), None);
-/// assert_eq!(get_forum_from_path("/forums/test"), Some(String::from("test")));
+/// assert_eq!(get_sphere_from_path("test"), None);
+/// assert_eq!(get_sphere_from_path("/spheres/test"), Some(String::from("test")));
 /// ```
-pub fn get_forum_from_path(path: &str) -> Option<String> {
-    if path.starts_with(FORUM_ROUTE_PREFIX) {
+pub fn get_sphere_from_path(path: &str) -> Option<String> {
+    if path.starts_with(SPHERE_ROUTE_PREFIX) {
         let mut path_part_it = path.split(PATH_SEPARATOR);
         Some(String::from(path_part_it.nth(2).unwrap_or("")))
     } else {
@@ -37,19 +38,19 @@ pub fn get_forum_from_path(path: &str) -> Option<String> {
     }
 }
 
-pub fn get_forum_name(forum_name: RwSignal<String>) {
+pub fn get_sphere_name(sphere_name: RwSignal<String>) {
     let path = window().location().pathname().unwrap_or_default();
-    forum_name.update(|name| *name = get_forum_from_path(&path).unwrap_or_default());
+    sphere_name.update(|name| *name = get_sphere_from_path(&path).unwrap_or_default());
 }
 
 pub fn get_create_post_path(create_post_route: RwSignal<String>) {
     let path = window().location().pathname().unwrap_or_default();
     log::debug!("Current path: {path}");
 
-    let current_forum = get_forum_from_path(&path);
+    let current_sphere = get_sphere_from_path(&path);
 
-    if let Some(forum_name) = current_forum {
-        create_post_route.set(format!("{CREATE_POST_ROUTE}?{CREATE_POST_FORUM_QUERY_PARAM}={forum_name}"));
+    if let Some(sphere_name) = current_sphere {
+        create_post_route.set(format!("{CREATE_POST_ROUTE}?{CREATE_POST_SPHERE_QUERY_PARAM}={sphere_name}"));
     } else {
         create_post_route.set(String::from(CREATE_POST_ROUTE));
     };
@@ -133,7 +134,7 @@ pub fn LoggedInMenu(
 
 #[component]
 pub fn PlusMenu() -> impl IntoView {
-    let current_forum = RwSignal::new(String::default());
+    let current_sphere = RwSignal::new(String::default());
     let create_sphere_str = "Settle a Sphere!";
     let create_post_str = "Share a Post!";
     view! {
@@ -145,10 +146,10 @@ pub fn PlusMenu() -> impl IntoView {
                 <li>
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }.into_any()
-                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.set(String::from(CREATE_FORUM_ROUTE)))
+                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.set(String::from(CREATE_SPHERE_ROUTE)))
                         let:_user
                     >
-                        <a href=CREATE_FORUM_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
+                        <a href=CREATE_SPHERE_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
                     </LoginGuardButton>
                 </li>
                 <li>
@@ -158,8 +159,8 @@ pub fn PlusMenu() -> impl IntoView {
                         let:_user
                     >
                         <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
-                            <input type="text" name=CREATE_POST_FORUM_QUERY_PARAM class="hidden" value=current_forum/>
-                            <button type="submit" class="whitespace-nowrap" on:click=move |_| get_forum_name(current_forum)>
+                            <input type="text" name=CREATE_POST_SPHERE_QUERY_PARAM class="hidden" value=current_sphere/>
+                            <button type="submit" class="whitespace-nowrap" on:click=move |_| get_sphere_name(current_sphere)>
                                 {create_post_str}
                             </button>
                         </Form>

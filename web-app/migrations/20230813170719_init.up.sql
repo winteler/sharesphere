@@ -9,11 +9,11 @@ CREATE TABLE users (
     UNIQUE (user_id, username)
 );
 
-CREATE TABLE forums (
-    forum_id BIGSERIAL PRIMARY KEY,
-    forum_name TEXT UNIQUE NOT NULL,
-    normalized_forum_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
-            REPLACE(LOWER(forum_name), '-', '_')
+CREATE TABLE spheres (
+    sphere_id BIGSERIAL PRIMARY KEY,
+    sphere_name TEXT UNIQUE NOT NULL,
+    normalized_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
+            REPLACE(LOWER(sphere_name), '-', '_')
         ) STORED,
     description TEXT NOT NULL,
     is_nsfw BOOLEAN NOT NULL,
@@ -24,52 +24,52 @@ CREATE TABLE forums (
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (forum_id, forum_name)
+    UNIQUE (sphere_id, sphere_name)
 );
 
-CREATE TABLE user_forum_roles (
+CREATE TABLE user_sphere_roles (
     role_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     username TEXT NOT NULL,
-    forum_id BIGINT NOT NULL,
-    forum_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL,
+    sphere_name TEXT NOT NULL,
     permission_level TEXT NOT NULL CHECK (permission_level IN ('None', 'Moderate', 'Ban', 'Manage', 'Lead')),
     grantor_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_role UNIQUE (user_id, forum_id),
+    CONSTRAINT unique_role UNIQUE (user_id, sphere_id),
     CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
+    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
 
--- index to guarantee maximum 1 leader per forum
-CREATE UNIQUE INDEX unique_forum_leader ON user_forum_roles (forum_id, permission_level)
-    WHERE user_forum_roles.permission_level = 'Lead';
+-- index to guarantee maximum 1 leader per sphere
+CREATE UNIQUE INDEX unique_sphere_leader ON user_sphere_roles (sphere_id, permission_level)
+    WHERE user_sphere_roles.permission_level = 'Lead';
 
 CREATE TABLE rules (
     rule_id BIGSERIAL PRIMARY KEY,
     rule_key BIGSERIAL, -- business id to track rule across updates
-    forum_id BIGINT,
-    forum_name TEXT,
+    sphere_id BIGINT,
+    sphere_name TEXT,
     priority SMALLINT NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
+    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
 
 -- index to guarantee numbering of rules is unique
-CREATE UNIQUE INDEX unique_rule ON rules (forum_id, priority)
+CREATE UNIQUE INDEX unique_rule ON rules (sphere_id, priority)
     WHERE rules.delete_timestamp IS NULL;
 -- index to guarantee there is only one active rule for a given rule_key
 CREATE UNIQUE INDEX unique_rule_key ON rules (rule_key)
     WHERE rules.delete_timestamp IS NULL;
 
-CREATE TABLE forum_categories (
+CREATE TABLE sphere_categories (
     category_id BIGSERIAL PRIMARY KEY,
-    forum_id BIGINT NOT NULL,
-    forum_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL,
+    sphere_name TEXT NOT NULL,
     category_name TEXT NOT NULL,
     category_color SMALLINT NOT NULL,
     description TEXT NOT NULL,
@@ -77,19 +77,19 @@ CREATE TABLE forum_categories (
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT forum_category UNIQUE (category_id, forum_id),
-    CONSTRAINT unique_category UNIQUE (forum_id, category_name),
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
+    CONSTRAINT sphere_category UNIQUE (category_id, sphere_id),
+    CONSTRAINT unique_category UNIQUE (sphere_id, category_name),
+    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
 
-CREATE INDEX category_order ON forum_categories (forum_name, is_active, category_name);
+CREATE INDEX category_order ON sphere_categories (sphere_name, is_active, category_name);
 
-CREATE TABLE forum_subscriptions (
+CREATE TABLE sphere_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,
    user_id BIGINT NOT NULL REFERENCES users (user_id),
-   forum_id BIGINT NOT NULL REFERENCES forums (forum_id),
+   sphere_id BIGINT NOT NULL REFERENCES spheres (sphere_id),
    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-   CONSTRAINT unique_subscription UNIQUE (user_id, forum_id)
+   CONSTRAINT unique_subscription UNIQUE (user_id, sphere_id)
 );
 
 CREATE TABLE posts (
@@ -102,8 +102,8 @@ CREATE TABLE posts (
     category_id BIGINT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     meta_post_id BIGINT,
-    forum_id BIGINT NOT NULL,
-    forum_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL,
+    sphere_name TEXT NOT NULL,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
     is_creator_moderator BOOLEAN NOT NULL,
@@ -125,8 +125,8 @@ CREATE TABLE posts (
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,
     scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL,
-    CONSTRAINT valid_forum_category FOREIGN KEY (category_id, forum_id) REFERENCES forum_categories (category_id, forum_id) MATCH SIMPLE
+    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL,
+    CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
 );
 
 CREATE TABLE comments (
@@ -165,8 +165,8 @@ CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     username TEXT NOT NULL,
-    forum_id BIGINT,
-    forum_name TEXT,
+    sphere_id BIGINT,
+    sphere_name TEXT,
     post_id BIGINT NOT NULL,
     comment_id BIGINT,
     infringed_rule_id BIGINT NOT NULL REFERENCES rules (rule_id),
@@ -174,5 +174,5 @@ CREATE TABLE user_bans (
     until_timestamp TIMESTAMPTZ,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
-    CONSTRAINT valid_forum FOREIGN KEY (forum_id, forum_name) REFERENCES forums (forum_id, forum_name) MATCH FULL
+    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );

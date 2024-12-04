@@ -13,22 +13,22 @@ use strum::IntoEnumIterator;
 use crate::app::{GlobalState, LoginWindow};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::{AppError, ErrorDisplay};
-use crate::forum::{Forum, ForumState};
-use crate::forum_category::ForumCategoriesDialog;
 use crate::icons::{DeleteIcon, MagnifierIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
-use crate::role::{AuthorizedShow, PermissionLevel, SetUserForumRole};
-use crate::rule::ForumRulesPanel;
+use crate::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
+use crate::rule::SphereRulesPanel;
+use crate::sphere::{Sphere, SphereState};
+use crate::sphere_category::SphereCategoriesDialog;
 use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
 use crate::user::get_matching_username_set;
-use crate::widget::{EnumDropdown, ForumImageForm, ModalDialog};
+use crate::widget::{EnumDropdown, ModalDialog, SphereImageForm};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
 };
 
-pub const MANAGE_FORUM_ROUTE: &str = "/manage";
+pub const MANAGE_SPHERE_ROUTE: &str = "/manage";
 pub const NONE_STR: &str = "None";
 pub const DAY_STR: &str = "day";
 pub const DAYS_STR: &str = "days";
@@ -36,7 +36,7 @@ pub const PERMANENT_STR: &str = "Permanent";
 pub const ASSET_FOLDER: &str = "./public/";
 pub const ICON_FOLDER: &str = "icons/";
 pub const BANNER_FOLDER: &str = "banners/";
-pub const MISSING_FORUM_STR: &str = "Missing forum name.";
+pub const MISSING_SPHERE_STR: &str = "Missing sphere name.";
 pub const MISSING_BANNER_FILE_STR: &str = "Missing banner file.";
 pub const INCORRECT_BANNER_FILE_TYPE_STR: &str = "Banner file must be an image.";
 pub const BANNER_FILE_INFER_ERROR_STR: &str = "Could not infer file extension.";
@@ -47,8 +47,8 @@ pub struct UserBan {
     pub ban_id: i64,
     pub user_id: i64,
     pub username: String,
-    pub forum_id: Option<i64>,
-    pub forum_name: Option<String>,
+    pub sphere_id: Option<i64>,
+    pub sphere_name: Option<String>,
     pub post_id: i64,
     pub comment_id: Option<i64>,
     pub infringed_rule_id: i64,
@@ -70,37 +70,37 @@ pub mod ssr {
 
     use crate::constants::IMAGE_TYPE;
     use crate::errors::AppError;
-    use crate::forum_management::{UserBan, BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_FORUM_STR};
     use crate::role::{AdminRole, PermissionLevel};
+    use crate::sphere_management::{UserBan, BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_SPHERE_STR};
     use crate::user::User;
-    use crate::widget::{FORUM_NAME_PARAM, IMAGE_FILE_PARAM};
+    use crate::widget::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
 
     pub const MAX_IMAGE_MB_SIZE: usize = 5; // 5 MB
     pub const MAX_IMAGE_SIZE: usize = MAX_IMAGE_MB_SIZE * 1024 * 1024; // 5 MB in bytes
 
-    pub async fn is_user_forum_moderator(
+    pub async fn is_user_sphere_moderator(
         user_id: i64,
-        forum: &str,
+        sphere: &str,
         db_pool: &PgPool,
     ) -> Result<bool, AppError> {
         match User::get(user_id, db_pool).await {
-            Some(user) => Ok(user.check_permissions(forum, PermissionLevel::Moderate).is_ok()),
+            Some(user) => Ok(user.check_permissions(sphere, PermissionLevel::Moderate).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
     }
 
-    pub async fn get_forum_ban_vec(
-        forum_name: &str,
+    pub async fn get_sphere_ban_vec(
+        sphere_name: &str,
         username_prefix: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
             "SELECT * FROM user_bans
-            WHERE forum_name = $1 AND
+            WHERE sphere_name = $1 AND
                   username like $2
             ORDER BY until_timestamp DESC",
-            forum_name,
+            sphere_name,
             format!("{username_prefix}%"),
         )
             .fetch_all(db_pool)
@@ -122,8 +122,8 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
-        match &user_ban.forum_name {
-            Some(forum_name) => grantor.check_permissions(forum_name, PermissionLevel::Ban),
+        match &user_ban.sphere_name {
+            Some(sphere_name) => grantor.check_permissions(sphere_name, PermissionLevel::Ban),
             None => grantor.check_admin_role(AdminRole::Moderator),
         }?;
 
@@ -137,12 +137,12 @@ pub mod ssr {
         Ok(user_ban)
     }
 
-    /// Extracts and stores a forum associated image from `data` and returns the forum name and file name for the image.
+    /// Extracts and stores a sphere associated image from `data` and returns the sphere name and file name for the image.
     ///
     /// The image will be stored locally on the server with the following path: <store_path><image_category><file_name>.
-    /// Returns an error if the forum name or file cannot be found, if the file does not contain a valid image file or
+    /// Returns an error if the sphere name or file cannot be found, if the file does not contain a valid image file or
     /// if directories in the path <store_path><image_category> do not exist.
-    pub async fn store_forum_image(
+    pub async fn store_sphere_image(
         store_path: &str,
         image_category: &str,
         data: MultipartData,
@@ -152,25 +152,25 @@ pub mod ssr {
         // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
         // unwrap
         let mut data = data.into_inner().unwrap();
-        let mut forum_name = Err(AppError::new(MISSING_FORUM_STR));
+        let mut sphere_name = Err(AppError::new(MISSING_SPHERE_STR));
         let mut file_field = Err(AppError::new(MISSING_BANNER_FILE_STR));
 
         while let Ok(Some(field)) = data.next_field().await {
             let name = field.name().unwrap_or_default().to_string();
-            if name == FORUM_NAME_PARAM {
-                forum_name = Ok(field.text().await.map_err(|e| AppError::new(e.to_string()))?);
+            if name == SPHERE_NAME_PARAM {
+                sphere_name = Ok(field.text().await.map_err(|e| AppError::new(e.to_string()))?);
             } else if name == IMAGE_FILE_PARAM {
                 file_field = Ok(field);
             }
         }
 
-        let forum_name = forum_name?;
+        let sphere_name = sphere_name?;
         let mut file_field = file_field?;
 
-        user.check_permissions(&forum_name, PermissionLevel::Manage)?;
+        user.check_permissions(&sphere_name, PermissionLevel::Manage)?;
 
         if file_field.file_name().unwrap_or_default().is_empty() {
-            return Ok((forum_name, None))
+            return Ok((sphere_name, None))
         }
 
         let temp_file_path = format!("/tmp/image_{}", Uuid::new_v4());
@@ -201,30 +201,30 @@ pub mod ssr {
             Err(e) => Err(AppError::from(e)),
         }?;
 
-        let image_path = format!("{}{}{}.{}", store_path, image_category, forum_name.clone(), file_extension);
+        let image_path = format!("{}{}{}.{}", store_path, image_category, sphere_name.clone(), file_extension);
         println!("Image path: {}", image_path);
 
         // TODO create folder?
         // TODO delete previous file? Here or somewhere else?
         rename(&temp_file_path, &image_path).await?;
-        let file_name = format!("{}.{}", forum_name, file_extension);
-        Ok((forum_name, Some(file_name)))
+        let file_name = format!("{}.{}", sphere_name, file_extension);
+        Ok((sphere_name, Some(file_name)))
     }
 
-    pub async fn set_forum_icon_url(
-        forum_name: &str,
+    pub async fn set_sphere_icon_url(
+        sphere_name: &str,
         icon_url: Option<&str>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
         sqlx::query!(
-            "UPDATE forums
+            "UPDATE spheres
              SET icon_url = $1,
                  timestamp = CURRENT_TIMESTAMP
-             WHERE forum_name = $2",
+             WHERE sphere_name = $2",
             icon_url,
-            forum_name,
+            sphere_name,
         )
             .execute(db_pool)
             .await?;
@@ -232,20 +232,20 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn set_forum_banner_url(
-        forum_name: &str,
+    pub async fn set_sphere_banner_url(
+        sphere_name: &str,
         banner_url: Option<&str>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(forum_name, PermissionLevel::Manage)?;
+        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
         sqlx::query!(
-            "UPDATE forums
+            "UPDATE spheres
              SET banner_url = $1,
                  timestamp = CURRENT_TIMESTAMP
-             WHERE forum_name = $2",
+             WHERE sphere_name = $2",
             banner_url,
-            forum_name,
+            sphere_name,
         )
             .execute(db_pool)
             .await?;
@@ -255,12 +255,12 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_forum_ban_vec(
-    forum_name: String,
+pub async fn get_sphere_ban_vec(
+    sphere_name: String,
     username_prefix: String,
 ) -> Result<Vec<UserBan>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let ban_vec = ssr::get_forum_ban_vec(&forum_name, &username_prefix, &db_pool).await?;
+    let ban_vec = ssr::get_sphere_ban_vec(&sphere_name, &username_prefix, &db_pool).await?;
     Ok(ban_vec)
 }
 
@@ -276,42 +276,42 @@ pub async fn remove_user_ban(
 }
 
 #[server(input = MultipartFormData)]
-pub async fn set_forum_icon(
+pub async fn set_sphere_icon(
     data: MultipartData,
 ) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (forum_name, icon_file_name) = ssr::store_forum_image(ASSET_FOLDER, ICON_FOLDER, data, &user).await?;
+    let (sphere_name, icon_file_name) = ssr::store_sphere_image(ASSET_FOLDER, ICON_FOLDER, data, &user).await?;
     let icon_url = icon_file_name.map(|icon_file_name| format!("/{ICON_FOLDER}{icon_file_name}"));
-    ssr::set_forum_icon_url(&forum_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
+    ssr::set_sphere_icon_url(&sphere_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
 
 #[server(input = MultipartFormData)]
-pub async fn set_forum_banner(
+pub async fn set_sphere_banner(
     data: MultipartData,
 ) -> Result<(), ServerFnError<AppError>> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (forum_name, banner_file_name) = ssr::store_forum_image(ASSET_FOLDER, BANNER_FOLDER, data, &user).await?;
+    let (sphere_name, banner_file_name) = ssr::store_sphere_image(ASSET_FOLDER, BANNER_FOLDER, data, &user).await?;
     let banner_url = banner_file_name.map(|banner_file_name| format!("/{BANNER_FOLDER}{banner_file_name}"));
-    ssr::set_forum_banner_url(&forum_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
+    ssr::set_sphere_banner_url(&sphere_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
 
-/// Component to guard the forum cockpit
+/// Component to guard the sphere cockpit
 #[component]
-pub fn ForumCockpitGuard() -> impl IntoView {
+pub fn SphereCockpitGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     view! {
         <SuspenseUnpack resource=state.user let:user>
         {
             match user {
                 Some(user) => {
-                    match user.check_permissions(&forum_name.read_untracked(), PermissionLevel::Moderate) {
+                    match user.check_permissions(&sphere_name.read_untracked(), PermissionLevel::Moderate) {
                         Ok(_) => view! { <Outlet/> }.into_any(),
                         Err(error) => view! { <ErrorDisplay error/> }.into_any(),
                     }
@@ -323,47 +323,47 @@ pub fn ForumCockpitGuard() -> impl IntoView {
     }.into_any()
 }
 
-/// Component to manage a forum
+/// Component to manage a sphere
 #[component]
-pub fn ForumCockpit() -> impl IntoView {
+pub fn SphereCockpit() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-1/2 mx-auto">
-            <div class="text-2xl text-center">"Forum Cockpit"</div>
-            <ForumDescriptionDialog/>
-            <ForumIconDialog/>
-            <ForumBannerDialog/>
-            <ForumCategoriesDialog/>
+            <div class="text-2xl text-center">"Sphere Cockpit"</div>
+            <SphereDescriptionDialog/>
+            <SphereIconDialog/>
+            <SphereBannerDialog/>
+            <SphereCategoriesDialog/>
             <ModeratorPanel/>
-            <ForumRulesPanel/>
+            <SphereRulesPanel/>
             <BanPanel/>
         </div>
     }.into_any()
 }
 
-/// Component to edit a forum's description
+/// Component to edit a sphere's description
 #[component]
-pub fn ForumDescriptionDialog() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = expect_context::<ForumState>().forum_name;
+pub fn SphereDescriptionDialog() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
-                <div class="text-xl text-center">"Forum description"</div>
-                <ArcSuspenseUnpack resource=forum_state.forum_resource let:forum>
-                    <ForumDescriptionForm forum=forum/>
+                <div class="text-xl text-center">"Sphere description"</div>
+                <ArcSuspenseUnpack resource=sphere_state.sphere_resource let:sphere>
+                    <SphereDescriptionForm sphere=sphere/>
                 </ArcSuspenseUnpack>
             </div>
         </AuthorizedShow>
     }
 }
 
-/// Form to edit a forum's description
+/// Form to edit a sphere's description
 #[component]
-pub fn ForumDescriptionForm(
-    forum: Arc<Forum>,
+pub fn SphereDescriptionForm(
+    sphere: Arc<Sphere>,
 ) -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
+    let sphere_state = expect_context::<SphereState>();
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let description_autosize = use_textarea_autosize(textarea_ref);
     let description_data = TextareaData {
@@ -371,17 +371,17 @@ pub fn ForumDescriptionForm(
         set_content: description_autosize.set_content,
         textarea_ref
     };
-    description_data.set_content.set(forum.description.clone());
+    description_data.set_content.set(sphere.description.clone());
     let disable_submit = move || description_data.content.read().is_empty();
     view! {
         <ActionForm
-            action=forum_state.update_forum_desc_action
+            action=sphere_state.update_sphere_desc_action
             attr:class="flex flex-col gap-1"
         >
             <input
-                name="forum_name"
+                name="sphere_name"
                 class="hidden"
-                value=forum_state.forum_name
+                value=sphere_state.sphere_name
             />
             <FormTextEditor
                 name="description"
@@ -399,21 +399,21 @@ pub fn ForumDescriptionForm(
     }
 }
 
-/// Component to edit a forum's icon
+/// Component to edit a sphere's icon
 #[component]
-pub fn ForumIconDialog() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = forum_state.forum_name;
+pub fn SphereIconDialog() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = sphere_state.sphere_name;
     let set_icon_action = Action::new_local(|data: &FormData| {
-        set_forum_icon(data.clone().into())
+        set_sphere_icon(data.clone().into())
     });
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
-                <div class="text-xl text-center">"Forum icon"</div>
-                <ForumImageForm
-                    forum_name=forum_state.forum_name
+                <div class="text-xl text-center">"Sphere icon"</div>
+                <SphereImageForm
+                    sphere_name=sphere_state.sphere_name
                     action=set_icon_action
                     preview_class="max-h-12 max-w-full object-contain"
                 />
@@ -422,21 +422,21 @@ pub fn ForumIconDialog() -> impl IntoView {
     }
 }
 
-/// Component to edit a forum's banner
+/// Component to edit a sphere's banner
 #[component]
-pub fn ForumBannerDialog() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = forum_state.forum_name;
+pub fn SphereBannerDialog() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = sphere_state.sphere_name;
     let set_banner_action = Action::new_local(|data: &FormData| {
-        set_forum_banner(data.clone().into())
+        set_sphere_banner(data.clone().into())
     });
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
-                <div class="text-xl text-center">"Forum banner"</div>
-                <ForumImageForm
-                    forum_name=forum_state.forum_name
+                <div class="text-xl text-center">"Sphere banner"</div>
+                <SphereImageForm
+                    sphere_name=sphere_state.sphere_name
                     action=set_banner_action
                 />
             </div>
@@ -447,25 +447,25 @@ pub fn ForumBannerDialog() -> impl IntoView {
 /// Component to manage moderators
 #[component]
 pub fn ModeratorPanel() -> impl IntoView {
-    let forum_state = expect_context::<ForumState>();
-    let forum_name = forum_state.forum_name;
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = sphere_state.sphere_name;
     let username_input = RwSignal::new(String::default());
     let select_ref = NodeRef::<html::Select>::new();
 
-    let set_role_action = ServerAction::<SetUserForumRole>::new();
+    let set_role_action = ServerAction::<SetUserSphereRole>::new();
 
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
-            <ArcTransitionUnpack resource=forum_state.forum_roles_resource let:forum_role_vec>
+            <ArcTransitionUnpack resource=sphere_state.sphere_roles_resource let:sphere_role_vec>
                 <div class="flex flex-col gap-1">
                     <div class="flex gap-1 border-b border-base-content/20">
                         <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
                         <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
                     </div>
                     <For
-                        each= move || (*forum_role_vec).clone().into_iter().enumerate()
+                        each= move || (*sphere_role_vec).clone().into_iter().enumerate()
                         key=|(_index, role)| (role.user_id, role.permission_level)
                         children=move |(_, role)| {
                             let username = StoredValue::new(role.username);
@@ -489,7 +489,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                 </div>
             </ArcTransitionUnpack>
             <PermissionLevelForm
-                forum_name
+                sphere_name
                 username_input
                 select_ref
                 set_role_action
@@ -498,13 +498,13 @@ pub fn ModeratorPanel() -> impl IntoView {
     }
 }
 
-/// Component to set permission levels for a forum
+/// Component to set permission levels for a sphere
 #[component]
 pub fn PermissionLevelForm(
-    forum_name: Memo<String>,
+    sphere_name: Memo<String>,
     username_input: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
-    set_role_action: ServerAction<SetUserForumRole>
+    set_role_action: ServerAction<SetUserSphereRole>
 ) -> impl IntoView {
     let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
     let matching_user_resource = Resource::new(
@@ -520,12 +520,12 @@ pub fn PermissionLevelForm(
     let disable_submit = move || username_input.read().is_empty();
 
     view! {
-        <AuthorizedShow forum_name permission_level=PermissionLevel::Manage>
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             <ActionForm action=set_role_action>
                 <input
-                    name="forum_name"
+                    name="sphere_name"
                     class="hidden"
-                    value=forum_name
+                    value=sphere_name
                 />
                 <div class="flex gap-1 content-center">
                     <div class="dropdown dropdown-end w-2/5">
@@ -582,14 +582,14 @@ pub fn PermissionLevelForm(
 /// Component to manage ban users
 #[component]
 pub fn BanPanel() -> impl IntoView {
-    let forum_name = expect_context::<ForumState>().forum_name;
+    let sphere_name = expect_context::<SphereState>().sphere_name;
     let username_input = RwSignal::new(String::default());
     let username_debounced: Signal<String> = signal_debounced(username_input, 250.0);
 
     let unban_action = ServerAction::<RemoveUserBan>::new();
     let banned_users_resource = Resource::new(
         move || (username_debounced.get(), unban_action.version().get()),
-        move |(username, _)| get_forum_ban_vec(forum_name.get_untracked(), username)
+        move |(username, _)| get_sphere_ban_vec(sphere_name.get_untracked(), username)
     );
 
     view! {
@@ -627,7 +627,7 @@ pub fn BanPanel() -> impl IntoView {
                                     post_id=child.1.post_id
                                     comment_id=child.1.comment_id
                                 />
-                                <AuthorizedShow forum_name permission_level=PermissionLevel::Ban>
+                                <AuthorizedShow sphere_name permission_level=PermissionLevel::Ban>
                                     <ActionForm action=unban_action>
                                         <input
                                             name="ban_id"

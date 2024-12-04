@@ -13,7 +13,7 @@ use crate::constants::{
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
 
-pub const FORUM_NAME_PARAM: &str = "forum_name";
+pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
 
 /// Component that displays its children in a modal dialog
@@ -196,11 +196,11 @@ pub fn MinimizeMaximizeWidget(
 }
 
 /// Form to upload an image to the server
-/// The form contains two inputs: a hidden forum name and an image form
+/// The form contains two inputs: a hidden sphere name and an image form
 #[component]
-pub fn ForumImageForm(
+pub fn SphereImageForm(
     #[prop(into)]
-    forum_name: Signal<String>,
+    sphere_name: Signal<String>,
     action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
     #[prop(default = "max-h-80 max-w-full object-contain")]
     preview_class: &'static str,
@@ -251,9 +251,9 @@ pub fn ForumImageForm(
     view! {
         <form on:submit=on_submit class="flex flex-col gap-1">
             <input
-                name=FORUM_NAME_PARAM
+                name=SPHERE_NAME_PARAM
                 class="hidden"
-                value=forum_name
+                value=sphere_name
             />
             <input
                 type="file"
@@ -280,7 +280,7 @@ pub fn ForumImageForm(
                     {
                         Some(Ok(())) => {
                             if let Some(state) = use_context::<GlobalState>() {
-                                state.forum_reload_signal.update(|value| *value += 1);
+                                state.sphere_reload_signal.update(|value| *value += 1);
                             }
                             ().into_any()
                         }

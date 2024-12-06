@@ -247,7 +247,7 @@ pub fn FormMarkdownEditor(
                         {data.content}
                     </textarea>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                     <div class="flex bg-base-300 rounded-md">
                         <label>
                             <input

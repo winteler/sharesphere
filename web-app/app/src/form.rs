@@ -30,6 +30,8 @@ pub fn LabeledFormCheckbox(
     label: &'static str,
     #[prop(default = false)]
     value: bool,
+    #[prop(default = false)]
+    disabled: bool,
     #[prop(default = "")]
     class: &'static str,
 ) -> impl IntoView {
@@ -40,7 +42,13 @@ pub fn LabeledFormCheckbox(
             <input type="text" name=name value=is_checked_string class="hidden"/>
             <label class="cursor-pointer label p-0">
                 <span class="label-text">{label}</span>
-                <input type="checkbox" class="checkbox checkbox-primary" checked=is_checked on:click=move |_| is_checked.update(|value| *value = !*value)/>
+                <input
+                    type="checkbox"
+                    class="checkbox checkbox-primary"
+                    checked=is_checked
+                    disabled=disabled
+                    on:click=move |_| is_checked.update(|value| *value = !*value)
+                />
             </label>
         </div>
     }

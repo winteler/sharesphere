@@ -273,9 +273,9 @@ pub mod ssr {
     ) -> Result<Sphere, AppError> {
         let sphere = sqlx::query_as!(
             Sphere,
-            "SELECT f.*
-            FROM spheres f
-            JOIN posts p on p.sphere_id = f.sphere_id
+            "SELECT s.*
+            FROM spheres s
+            JOIN posts p on p.sphere_id = s.sphere_id
             WHERE p.post_id = $1",
             post_id
         )
@@ -296,9 +296,9 @@ pub mod ssr {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT p.* FROM posts p
-                JOIN spheres f on f.sphere_id = p.sphere_id
+                JOIN spheres s on s.sphere_id = p.sphere_id
                 WHERE
-                    f.sphere_name = $1 AND
+                    s.sphere_name = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
                     p.moderator_id IS NULL
                 ORDER BY p.is_pinned DESC, {} DESC
@@ -325,11 +325,12 @@ pub mod ssr {
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, f.icon_url as sphere_icon_url
+                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
                 FROM posts p
-                JOIN spheres f on f.sphere_id = p.sphere_id
+                JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
-                WHERE p.moderator_id IS NULL
+                WHERE p.moderator_id IS NULL AND
+                      NOT p.is_nsfw
                 ORDER BY {} DESC
                 LIMIT $1
                 OFFSET $2",
@@ -355,12 +356,12 @@ pub mod ssr {
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, f.icon_url as sphere_icon_url
+                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
                 FROM posts p
-                JOIN spheres f on f.sphere_id = p.sphere_id
+                JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
-                    f.sphere_id IN (
+                    s.sphere_id IN (
                         SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
                     ) AND
                     p.moderator_id IS NULL
@@ -411,7 +412,14 @@ pub mod ssr {
                 sphere_name, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
-                $1, $2, $3, $4, $5, $6,
+                $1, $2, $3,
+                (
+                    CASE 
+                        WHEN $4 THEN TRUE
+                        ELSE (SELECT is_nsfw FROM spheres WHERE sphere_name = $7)
+                    END
+                ),
+                $5, $6,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $7),
                 $7, $8, $9, $10, $11
             ) RETURNING *",
@@ -461,8 +469,17 @@ pub mod ssr {
                 title = $1,
                 body = $2,
                 markdown_body = $3,
-                is_spoiler = $4,
-                is_nsfw = $5,
+                is_nsfw = (
+                    CASE
+                        WHEN $4 THEN TRUE
+                        ELSE (
+                            SELECT s.is_nsfw FROM spheres s
+                            JOIN posts p ON p.sphere_id = s.sphere_id
+                            WHERE p.post_id = $8
+                        )
+                    END
+                ),
+                is_spoiler = $5,
                 is_pinned = $6,
                 category_id = $7,
                 edit_timestamp = CURRENT_TIMESTAMP
@@ -473,8 +490,8 @@ pub mod ssr {
             post_title,
             post_body,
             post_markdown_body,
-            is_spoiler,
             is_nsfw,
+            is_spoiler,
             is_pinned,
             category_id,
             post_id,
@@ -859,7 +876,7 @@ pub fn Post() -> impl IntoView {
             <ArcTransitionUnpack resource=post_resource let:post_with_info>
                 <div class="card">
                     <div class="card-body">
-                        <div class="flex flex-col gap-1">
+                        <div class="flex flex-col gap-2">
                             <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
                             <PostBody post=post_with_info.post.clone()/>
                             <PostBadgeList
@@ -902,7 +919,7 @@ pub fn PostBadgeList(
     match (sphere_header, sphere_category, is_spoiler, is_nsfw) {
         (None, None, false, false) => None,
         (sphere_header, sphere_category, is_spoiler, is_nsfw) => Some(view! {
-            <div class="flex gap-2 items-center">
+            <div class="flex gap-1 items-center">
             {
                 sphere_header.map(|sphere_header| view! { <SphereHeader sphere_header/> })
             }
@@ -931,7 +948,7 @@ pub fn PostBadgeList(
 pub fn PostBody(post: Post) -> impl IntoView {
 
     view! {
-        <div class="pb-4">
+        <div class="pb-2">
         {
             match (&post.moderator_message, &post.infringed_rule_title) {
                 (Some(moderator_message), Some(infringed_rule_title)) => view! { 
@@ -1025,6 +1042,7 @@ pub fn CreatePost() -> impl IntoView {
         query.read_untracked().get(CREATE_POST_SPHERE_QUERY_PARAM).unwrap_or_default()
     };
 
+    let selected_sphere = RwSignal::new(None);
     let sphere_name_input = RwSignal::new(sphere_query());
     let sphere_name_debounced: Signal<String> = signal_debounced(sphere_name_input, 250.0);
     let textarea_ref = NodeRef::<html::Textarea>::new();
@@ -1068,14 +1086,19 @@ pub fn CreatePost() -> impl IntoView {
                             <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-sm w-full">
                             <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
                             {
+                                match sphere_header_vec.first() {
+                                    Some(header) if header.sphere_name == sphere_name_input.get_untracked() => selected_sphere.set(Some(header.clone())),
+                                    _ => selected_sphere.set(None)
+                                };
                                 sphere_header_vec.clone().into_iter().map(|sphere_header| {
+                                    let sphere_name = sphere_header.sphere_name.clone();
                                     view! {
                                         <li>
                                             <button
                                                 type="button"
-                                                on:click=move |_| sphere_name_input.set(sphere_header.sphere_name.clone())
+                                                on:click=move |_| sphere_name_input.set(sphere_name.clone())
                                             >
-                                                <SphereHeader sphere_header=sphere_header.clone()/>
+                                                <SphereHeader sphere_header/>
                                             </button>
                                         </li>
                                     }
@@ -1102,15 +1125,19 @@ pub fn CreatePost() -> impl IntoView {
                             data=body_data
                         />
                         <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
-                        <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
+                        { move || {
+                            match &*selected_sphere.read() {
+                                Some(header) if header.is_nsfw => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=true disabled=true/> },
+                                _ => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/> },
+                            }
+                        }}
                         <IsPinnedCheckbox sphere_name=sphere_name_input/>
                         <SphereCategoryDropdown sphere_categories_resource name="category_id" show_inactive=false/>
                         <Transition>
-                            <button type="submit" class="btn btn-active btn-secondary" disabled=move || match &*matching_spheres_resource.read() {
-                                Some(Ok(sphere_header_vec)) => {
+                            <button type="submit" class="btn btn-active btn-secondary" disabled=move || match &*selected_sphere.read() {
+                                Some(_) => {
                                     is_title_empty.get() ||
-                                    body_data.content.read().is_empty() ||
-                                    !sphere_header_vec.iter().any(|sphere_header| sphere_header.sphere_name == *sphere_name_input.read())
+                                    body_data.content.read().is_empty()
                                 },
                                 _ => true,
                             }>

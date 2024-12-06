@@ -166,9 +166,9 @@ pub mod ssr {
     ) -> Result<Sphere, AppError> {
         let sphere = sqlx::query_as!(
             Sphere,
-            "SELECT f.*
-            FROM spheres f
-            JOIN posts p on p.sphere_id = f.sphere_id
+            "SELECT s.*
+            FROM spheres s
+            JOIN posts p on p.sphere_id = s.sphere_id
             JOIN comments c on c.post_id = p.post_id
             WHERE c.comment_id = $1",
             comment_id

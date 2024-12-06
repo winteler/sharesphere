@@ -86,6 +86,7 @@ pub struct SphereWithUserInfo {
 pub struct SphereHeader {
     pub sphere_name: String,
     pub icon_url: Option<String>,
+    pub is_nsfw: bool,
 }
 
 #[derive(Copy, Clone)]
@@ -108,10 +109,11 @@ pub struct SphereState {
 }
 
 impl SphereHeader {
-    pub fn new(sphere_name: String, icon_url: Option<String>) -> Self {
+    pub fn new(sphere_name: String, icon_url: Option<String>, is_nsfw: bool) -> Self {
         Self {
             sphere_name,
             icon_url,
+            is_nsfw,
         }
     }
 }
@@ -170,12 +172,12 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<SphereWithUserInfo, AppError> {
         let sphere = sqlx::query_as::<_, SphereWithUserInfo>(
-            "SELECT f.*, s.subscription_id
-            FROM spheres f
-            LEFT JOIN sphere_subscriptions s ON
-                s.sphere_id = f.sphere_id AND
-                s.user_id = $1
-            WHERE f.sphere_name = $2",
+            "SELECT s.*, sub.subscription_id
+            FROM spheres s
+            LEFT JOIN sphere_subscriptions sub ON
+                sub.sphere_id = s.sphere_id AND
+                sub.user_id = $1
+            WHERE s.sphere_name = $2",
         )
             .bind(user_id)
             .bind(sphere_name)
@@ -207,7 +209,10 @@ pub mod ssr {
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
-            "SELECT sphere_name, icon_url FROM spheres WHERE sphere_name LIKE $1 ORDER BY sphere_name LIMIT $2",
+            "SELECT sphere_name, icon_url, is_nsfw
+            FROM spheres
+            WHERE sphere_name LIKE $1
+            ORDER BY sphere_name LIMIT $2",
             format!("{sphere_prefix}%"),
             limit,
         )
@@ -223,7 +228,10 @@ pub mod ssr {
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
-            "SELECT sphere_name, icon_url FROM spheres ORDER BY num_members DESC, sphere_name LIMIT $1",
+            "SELECT sphere_name, icon_url, is_nsfw
+            FROM spheres
+            where NOT is_nsfw
+            ORDER BY num_members DESC, sphere_name LIMIT $1",
             limit
         )
             .fetch_all(db_pool)
@@ -238,10 +246,11 @@ pub mod ssr {
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
-            "SELECT f.sphere_name, f.icon_url FROM spheres f
-            JOIN sphere_subscriptions s ON
-                f.sphere_id = s.sphere_id AND
-                s.user_id = $1
+            "SELECT s.sphere_name, s.icon_url, s.is_nsfw 
+            FROM spheres s
+            JOIN sphere_subscriptions sub ON
+                s.sphere_id = sub.sphere_id AND
+                sub.user_id = $1
             ORDER BY sphere_name",
             user_id,
         )
@@ -857,7 +866,7 @@ pub fn SpherePostMiniatures(
                 children=move |(_key, post_info)| {
                     let post = post_info.post;
                     let sphere_header = match show_sphere_header {
-                        true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url)),
+                        true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
                         false => None,
                     };
                     let post_path = SPHERE_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + post.sphere_name.as_str() + POST_ROUTE_PREFIX + PATH_SEPARATOR + &post.post_id.to_string();

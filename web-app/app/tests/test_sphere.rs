@@ -24,9 +24,9 @@ async fn set_sphere_num_members(
 ) -> Result<Sphere, AppError> {
     let sphere = sqlx::query_as!(
         Sphere,
-        "UPDATE spheres \
-        SET num_members = $1 \
-        WHERE sphere_id = $2 \
+        "UPDATE spheres
+        SET num_members = $1
+        WHERE sphere_id = $2
         RETURNING *",
         num_members,
         sphere_id
@@ -49,7 +49,7 @@ async fn test_is_sphere_available() -> Result<(), AppError> {
         false,
         &test_user,
         &db_pool,
-    ).await?;
+    ).await.expect("Sphere should be created");
 
     assert_eq!(
         sphere::ssr::is_sphere_available(sphere_name, &db_pool).await?,

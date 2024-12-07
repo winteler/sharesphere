@@ -27,6 +27,26 @@ CREATE TABLE spheres (
     UNIQUE (sphere_id, sphere_name)
 );
 
+CREATE TABLE satellites (
+    satellite_id BIGSERIAL PRIMARY KEY,
+    satellite_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL,
+    sphere_name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    is_nsfw BOOLEAN NOT NULL,
+    is_spoiler BOOLEAN NOT NULL,
+    num_posts INT NOT NULL DEFAULT 0,
+    creator_id BIGINT NOT NULL REFERENCES users (user_id),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delete_timestamp TIMESTAMPTZ,
+    CONSTRAINT unique_topic UNIQUE (satellite_name, sphere_id),
+    CONSTRAINT valid_forum FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
+);
+
+-- index to guarantee unique satellite names per forum for active satellites
+CREATE UNIQUE INDEX unique_satellite ON satellites (satellite_name, sphere_id)
+    WHERE satellites.delete_timestamp IS NULL;
+
 CREATE TABLE user_sphere_roles (
     role_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,

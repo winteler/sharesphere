@@ -8,6 +8,8 @@ use app::comment::Comment;
 use app::errors::AppError;
 use app::post::{Post, PostWithSphereInfo};
 use app::ranking::VoteValue;
+use app::satellite::ssr::insert_satellite;
+use app::satellite::Satellite;
 use app::sphere::Sphere;
 use app::sphere_category::SphereCategory;
 use app::sphere_management::ssr::set_sphere_icon_url;
@@ -117,6 +119,40 @@ pub async fn create_sphere_with_posts(
     }
 
     Ok((sphere, sphere_category, expected_post_vec))
+}
+
+pub async fn create_sphere_with_satellites(
+    sphere_name: &str,
+    num_satellites: usize,
+    user: &mut User,
+    db_pool: &PgPool,
+) -> Result<(Sphere, Vec<Satellite>), AppError> {
+    let sphere = sphere::ssr::create_sphere(
+        sphere_name,
+        "sphere",
+        false,
+        user,
+        db_pool,
+    ).await?;
+    
+    *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
+    
+    let mut satellite_vec = Vec::new();
+    for i in 0..num_satellites {
+        let satellite = insert_satellite(
+            i.to_string().as_str(),
+            &sphere.sphere_name,
+            "test",
+            false,
+            false,
+            &user,
+            db_pool,
+        ).await.expect("Satellite 1 should be inserted");
+        
+        satellite_vec.push(satellite);
+    }
+    
+    Ok((sphere, satellite_vec))
 }
 
 pub async fn create_post_with_comments(

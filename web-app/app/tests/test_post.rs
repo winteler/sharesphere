@@ -129,7 +129,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     let user = create_test_user(&db_pool).await;
     
     let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
-    
+
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
     let sphere_category = set_sphere_category(
         &sphere.sphere_name,
@@ -357,6 +357,21 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_sphere2_post_vec);
+    
+    let nsfw_post = create_post(
+        sphere1_name,
+        "nsfw",
+        "nsfw",
+        None,
+        false,
+        true,
+        false,
+        None,
+        &user,
+        &db_pool,
+    ).await.expect("nsfw_post should be created.");
+    // set high score to make sure it would appear at the top if it wasn't correctly filtered.
+    set_post_score(nsfw_post.post_id, 1000, &db_pool).await.expect("nsfw_post score should be set");
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -442,8 +457,8 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         "1",
         "1",
         None,
-        false,
-        false,
+        true,
+        true,
         false,
         Some(sphere_category_2.category_id),
         &user,
@@ -681,12 +696,13 @@ async fn test_create_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
-    let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
+    let sphere_1 = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
+    let sphere_2 = sphere::ssr::create_sphere("b", "sphere", true, &user, &db_pool).await?;
 
     let post_1_title = "1";
     let post_1_body = "test";
     let post_1 = create_post(
-        &sphere.sphere_name,
+        &sphere_1.sphere_name,
         post_1_title,
         post_1_body,
         None,
@@ -706,8 +722,8 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.category_id, None);
     assert_eq!(post_1.is_edited, false);
     assert_eq!(post_1.meta_post_id, None);
-    assert_eq!(post_1.sphere_id, sphere.sphere_id);
-    assert_eq!(post_1.sphere_name, sphere.sphere_name);
+    assert_eq!(post_1.sphere_id, sphere_1.sphere_id);
+    assert_eq!(post_1.sphere_name, sphere_1.sphere_name);
     assert_eq!(post_1.creator_id, user.user_id);
     assert_eq!(post_1.creator_name, user.username);
     assert_eq!(post_1.is_creator_moderator, false); // user not refreshed yet
@@ -722,7 +738,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_post(&sphere.sphere_name, post_1_title, post_1_body, None, false, false, true, None, &user, &db_pool).await,
+        create_post(&sphere_1.sphere_name, post_1_title, post_1_body, None, false, false, true, None, &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -730,18 +746,18 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&sphere.sphere_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, true, None, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&sphere_1.sphere_name, post_2_title, post_2_body, Some(post_2_markdown_body), true, true, true, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
     assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
-    assert_eq!(post_2.is_nsfw, false);
-    assert_eq!(post_2.is_spoiler, false);
+    assert_eq!(post_2.is_nsfw, true);
+    assert_eq!(post_2.is_spoiler, true);
     assert_eq!(post_2.category_id, None);
     assert_eq!(post_2.is_edited, false);
     assert_eq!(post_2.meta_post_id, None);
-    assert_eq!(post_2.sphere_id, sphere.sphere_id);
-    assert_eq!(post_2.sphere_name, sphere.sphere_name);
+    assert_eq!(post_2.sphere_id, sphere_1.sphere_id);
+    assert_eq!(post_2.sphere_name, sphere_1.sphere_name);
     assert_eq!(post_2.creator_id, user.user_id);
     assert_eq!(post_2.creator_name, user.username);
     assert_eq!(post_2.is_creator_moderator, true);
@@ -754,6 +770,32 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.is_pinned, true);
     assert_eq!(post_2.score, 0);
 
+    let nsfw_post_title = "1";
+    let nsfw_post_body = "test";
+    let nsfw_post = create_post(&sphere_2.sphere_name, nsfw_post_title, nsfw_post_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create nsfw post.");
+
+    assert_eq!(nsfw_post.title, nsfw_post_title);
+    assert_eq!(nsfw_post.body, nsfw_post_body);
+    assert_eq!(nsfw_post.markdown_body, None);
+    assert_eq!(nsfw_post.is_nsfw, true);
+    assert_eq!(nsfw_post.is_spoiler, false);
+    assert_eq!(nsfw_post.category_id, None);
+    assert_eq!(nsfw_post.is_edited, false);
+    assert_eq!(nsfw_post.meta_post_id, None);
+    assert_eq!(nsfw_post.sphere_id, sphere_2.sphere_id);
+    assert_eq!(nsfw_post.sphere_name, sphere_2.sphere_name);
+    assert_eq!(nsfw_post.creator_id, user.user_id);
+    assert_eq!(nsfw_post.creator_name, user.username);
+    assert_eq!(nsfw_post.is_creator_moderator, true);
+    assert_eq!(nsfw_post.moderator_message, None);
+    assert_eq!(nsfw_post.infringed_rule_id, None);
+    assert_eq!(nsfw_post.infringed_rule_title, None);
+    assert_eq!(nsfw_post.moderator_id, None);
+    assert_eq!(nsfw_post.moderator_name, None);
+    assert_eq!(nsfw_post.num_comments, 0);
+    assert_eq!(nsfw_post.is_pinned, false);
+    assert_eq!(nsfw_post.score, 0);
+
     let post_1_with_info = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
 
     assert_eq!(post_1_with_info.post, post_1);
@@ -763,6 +805,11 @@ async fn test_create_post() -> Result<(), AppError> {
 
     assert_eq!(post_2_with_info.post, post_2);
     assert_eq!(post_2_with_info.vote, None);
+
+    let nsfw_post_with_info = get_post_with_info_by_id(nsfw_post.post_id, None, &db_pool).await.expect("Should be able to load post 2.");
+
+    assert_eq!(nsfw_post_with_info.post, nsfw_post);
+    assert_eq!(nsfw_post_with_info.vote, None);
 
     Ok(())
 }
@@ -777,6 +824,14 @@ async fn test_update_post() -> Result<(), AppError> {
         sphere_name,
         "sphere",
         false,
+        &user,
+        &db_pool,
+    ).await?;
+    
+    let nsfw_sphere = sphere::ssr::create_sphere(
+        "nsfw",
+        "nsfw",
+        true,
         &user,
         &db_pool,
     ).await?;
@@ -817,6 +872,43 @@ async fn test_update_post() -> Result<(), AppError> {
         updated_post.edit_timestamp.is_some() &&
         updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
         updated_post.create_timestamp == post.create_timestamp
+    );
+
+    let nsfw_sphere_post = post::ssr::create_post(
+        &nsfw_sphere.sphere_name,
+        "post",
+        "body",
+        None,
+        false,
+        true,
+        false,
+        None,
+        &user,
+        &db_pool,
+    ).await?;
+
+    let updated_nsfw_post = post::ssr::update_post(
+        nsfw_sphere_post.post_id,
+        updated_title,
+        &updated_html_body,
+        Some(updated_markdown_body),
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await?;
+
+    assert_eq!(updated_nsfw_post.title, updated_title);
+    assert_eq!(updated_nsfw_post.body, updated_html_body);
+    assert_eq!(updated_nsfw_post.markdown_body, Some(String::from(updated_markdown_body)));
+    // a post in a nsfw sphere is always nsfw, input of the update is ignored
+    assert_eq!(updated_nsfw_post.is_nsfw, true);
+    assert!(
+        updated_nsfw_post.edit_timestamp.is_some() &&
+            updated_nsfw_post.edit_timestamp.unwrap() > updated_nsfw_post.create_timestamp &&
+            updated_nsfw_post.create_timestamp == nsfw_sphere_post.create_timestamp
     );
 
     Ok(())

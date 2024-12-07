@@ -49,8 +49,7 @@ async fn test_is_sphere_available() -> Result<(), AppError> {
         false,
         &test_user,
         &db_pool,
-    )
-    .await?;
+    ).await?;
 
     assert_eq!(
         sphere::ssr::is_sphere_available(sphere_name, &db_pool).await?,
@@ -110,7 +109,7 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
             sphere::ssr::create_sphere(
                 i.to_string().as_str(),
                 "sphere",
-                false,
+                i % 2 == 0,
                 &user,
                 &db_pool,
             ).await?.sphere_name,
@@ -139,7 +138,7 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
             sphere::ssr::create_sphere(
                 i.to_string().as_str(),
                 "sphere",
-                false,
+                i % 2 == 0,
                 &user,
                 &db_pool,
             )
@@ -171,22 +170,37 @@ async fn test_get_popular_sphere_headers() -> Result<(), AppError> {
             false,
             &test_user,
             &db_pool,
-        )
-        .await?;
+        ).await?;
 
         set_sphere_num_members(sphere.sphere_id, i, &db_pool).await?;
     }
 
     let popular_sphere_header_vec =
         sphere::ssr::get_popular_sphere_headers(num_sphere_fetch as i64, &db_pool).await?;
-
+    
     assert_eq!(popular_sphere_header_vec.len(), num_sphere_fetch);
+    // check nsfw sphere is excluded
+    
     let mut expected_sphere_num = num_sphere - 1;
     for sphere_header in popular_sphere_header_vec {
         assert_eq!(sphere_header.sphere_name, expected_sphere_num.to_string());
         assert_eq!(sphere_header.icon_url, None);
         expected_sphere_num -= 1;
     }
+
+    let nsfw_sphere = sphere::ssr::create_sphere(
+        "nsfw",
+        "sphere",
+        true,
+        &test_user,
+        &db_pool,
+    ).await?;
+
+    let popular_sphere_header_vec =
+        sphere::ssr::get_popular_sphere_headers((num_sphere + 1)  as i64, &db_pool).await?;
+
+    assert_eq!(popular_sphere_header_vec.len(), num_sphere as usize);
+    assert!(!popular_sphere_header_vec.contains(&(&nsfw_sphere).into()));
 
     Ok(())
 }
@@ -205,7 +219,7 @@ async fn test_get_subscribed_sphere_headers() -> Result<(), AppError> {
         let sphere = sphere::ssr::create_sphere(
             i.to_string().as_str(),
             "sphere",
-            false,
+            i % 2 == 0,
             &creator_user,
             &db_pool,
         )
@@ -215,13 +229,15 @@ async fn test_get_subscribed_sphere_headers() -> Result<(), AppError> {
             subscribe(sphere.sphere_id, creator_user.user_id, &db_pool).await?;
             expected_create_sub_sphere_vec.push(SphereHeader {
                 sphere_name: sphere.sphere_name,
-                icon_url: None,
+                icon_url: sphere.icon_url,
+                is_nsfw: sphere.is_nsfw,
             });
         } else {
             subscribe(sphere.sphere_id, member_user.user_id, &db_pool).await?;
             expected_member_sub_sphere_vec.push(SphereHeader {
                 sphere_name: sphere.sphere_name,
-                icon_url: None,
+                icon_url: sphere.icon_url,
+                is_nsfw: sphere.is_nsfw,
             });
         }
     }

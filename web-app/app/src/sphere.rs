@@ -108,6 +108,12 @@ pub struct SphereState {
     pub remove_rule_action: ServerAction<RemoveRule>,
 }
 
+impl From<&Sphere> for SphereHeader {
+    fn from(sphere: &Sphere) -> Self {
+        Self::new(sphere.sphere_name.clone(), sphere.icon_url.clone(), sphere.is_nsfw)
+    }
+}
+
 impl SphereHeader {
     pub fn new(sphere_name: String, icon_url: Option<String>, is_nsfw: bool) -> Self {
         Self {

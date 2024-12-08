@@ -12,7 +12,7 @@ async fn test_get_satellite_vec_by_sphere_name() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (sphere, expected_satellite_vec) = create_sphere_with_satellites(
+    let (sphere, expected_satellite_vec) = create_sphere_with_satellite_vec(
         "sphere",
         5,
         &mut user,
@@ -34,7 +34,7 @@ async fn test_get_satellite_sphere() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (expected_sphere, expected_satellite_vec) = create_sphere_with_satellites(
+    let (expected_sphere, expected_satellite_vec) = create_sphere_with_satellite_vec(
         "sphere",
         1,
         &mut user,

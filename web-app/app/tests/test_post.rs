@@ -431,7 +431,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         sphere_name,
         None,
         num_posts,
-        Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        Some((0..num_posts).map(|i| i as i32).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
@@ -558,7 +558,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
         sphere_name,
         Some("url"),
         num_posts,
-        Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        Some((0..num_posts).map(|i| i as i32).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
@@ -619,7 +619,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         sphere_name,
         None,
         num_posts,
-        Some((0..num_posts).map(|i| (i as i32) / 2).collect()),
+        Some((0..num_posts).map(|i| i as i32).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
@@ -818,6 +818,77 @@ async fn test_create_post() -> Result<(), AppError> {
 
     assert_eq!(nsfw_post_with_info.post, nsfw_post);
     assert_eq!(nsfw_post_with_info.vote, None);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_create_post_in_satellite() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere, satellite) = create_sphere_with_satellite(
+        "a",
+        "b",
+        &mut user,
+        &db_pool
+    ).await.expect("Should be able to create sphere.");
+
+    let post = create_post(
+        &sphere.sphere_name,
+        Some(satellite.satellite_id),
+        "a",
+        "b",
+        None,
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create post in.");
+
+    assert_eq!(post.title, "a");
+    assert_eq!(post.body, "b");
+    assert_eq!(post.markdown_body, None);
+    assert_eq!(post.is_nsfw, false);
+    assert_eq!(post.is_spoiler, false);
+    assert_eq!(post.category_id, None);
+    assert_eq!(post.is_edited, false);
+    assert_eq!(post.sphere_id, sphere.sphere_id);
+    assert_eq!(post.sphere_name, sphere.sphere_name);
+    assert_eq!(post.satellite_id, Some(satellite.satellite_id));
+    assert_eq!(post.creator_id, user.user_id);
+    assert_eq!(post.creator_name, user.username);
+    assert_eq!(post.is_creator_moderator, true);
+    assert_eq!(post.moderator_message, None);
+    assert_eq!(post.infringed_rule_id, None);
+    assert_eq!(post.infringed_rule_title, None);
+    assert_eq!(post.moderator_id, None);
+    assert_eq!(post.moderator_name, None);
+    assert_eq!(post.num_comments, 0);
+    assert_eq!(post.is_pinned, false);
+    assert_eq!(post.score, 0);
+
+    // cannot create post for non-existent satellite
+    assert!(
+        matches!(
+            create_post(
+                &sphere.sphere_name,
+                Some(-1),
+                "a",
+                "b",
+                None,
+                false,
+                false,
+                false,
+                None,
+                &user,
+                &db_pool
+            ).await,
+            Err(AppError::DatabaseError(_))
+        )
+    );
 
     Ok(())
 }

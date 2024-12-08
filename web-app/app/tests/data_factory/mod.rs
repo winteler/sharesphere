@@ -123,7 +123,36 @@ pub async fn create_sphere_with_posts(
     Ok((sphere, sphere_category, expected_post_vec))
 }
 
-pub async fn create_sphere_with_satellites(
+pub async fn create_sphere_with_satellite(
+    sphere_name: &str,
+    satellite_name: &str,
+    user: &mut User,
+    db_pool: &PgPool,
+) -> Result<(Sphere, Satellite), AppError> {
+    let sphere = sphere::ssr::create_sphere(
+        sphere_name,
+        "sphere",
+        false,
+        user,
+        db_pool,
+    ).await?;
+
+    *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
+
+    let satellite = insert_satellite(
+        satellite_name,
+        &sphere.sphere_name,
+        "test",
+        false,
+        false,
+        &user,
+        db_pool,
+    ).await.expect("Satellite should be inserted");
+
+    Ok((sphere, satellite))
+}
+
+pub async fn create_sphere_with_satellite_vec(
     sphere_name: &str,
     num_satellites: usize,
     user: &mut User,

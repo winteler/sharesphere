@@ -31,6 +31,7 @@ pub async fn create_sphere_with_post(
 
     let post = post::ssr::create_post(
         sphere_name,
+        None,
         "post",
         "body",
         None,
@@ -97,6 +98,7 @@ pub async fn create_sphere_with_posts(
         };
         let mut post = post::ssr::create_post(
             sphere_name,
+            None,
             i.to_string().as_str(),
             "body",
             None,
@@ -167,6 +169,7 @@ pub async fn create_post_with_comments(
 ) -> Result<Post, AppError> {
     let post = post::ssr::create_post(
         sphere_name,
+        None,
         post_title,
         "body",
         None,

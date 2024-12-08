@@ -204,6 +204,7 @@ async fn test_delete_sphere_category() -> Result<(), AppError> {
 
     create_post(
         &sphere.sphere_name,
+        None,
         "a",
         "b",
         None,

@@ -213,7 +213,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     assert!(ban_user_from_sphere(banned_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &unauthorized_user, None, &db_pool).await.is_err());
     // ban with 0 days has no effect
     assert_eq!(ban_user_from_sphere(unauthorized_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &user, Some(0), &db_pool).await?, None);
-    let post = create_post(&sphere.sphere_name, "a", "b", None, false, false, false, None, &unauthorized_user, &db_pool).await?;
+    let post = create_post(&sphere.sphere_name, None,"a", "b", None, false, false, false, None, &unauthorized_user, &db_pool).await?;
 
     // cannot ban moderators
     assert!(ban_user_from_sphere(user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &global_moderator, Some(1), &db_pool).await.is_err());
@@ -231,7 +231,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
 
     // banned user cannot create new content
     let unauthorized_user = User::get(unauthorized_user.user_id, &db_pool).await.expect("Should be able to reload user.");
-    assert!(create_post(&sphere.sphere_name, "c", "d", None, false, false, false, None, &unauthorized_user, &db_pool).await.is_err());
+    assert!(create_post(&sphere.sphere_name, None,"c", "d", None, false, false, false, None, &unauthorized_user, &db_pool).await.is_err());
     assert!(create_comment(post.post_id, None, "a", None, false, &unauthorized_user, &db_pool).await.is_err());
 
     // global moderator can ban ordinary users
@@ -252,7 +252,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
 
     // banned user cannot create new content
     let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Should be possible to reload banned user.");
-    assert!(create_post(&sphere.sphere_name, "c", "d", None, false, false, false, None, &banned_user, &db_pool).await.is_err());
+    assert!(create_post(&sphere.sphere_name, None,"c", "d", None, false, false, false, None, &banned_user, &db_pool).await.is_err());
     assert!(create_comment(post.post_id, None, "a", None, false, &banned_user, &db_pool).await.is_err());
 
     Ok(())

@@ -108,12 +108,12 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
 
     let post_1_title = "1";
     let post_1_body = "test";
-    let expected_post_1 = create_post(&sphere.sphere_name, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
+    let expected_post_1 = create_post(&sphere.sphere_name, None, post_1_title, post_1_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let expected_post_2 = create_post(&sphere.sphere_name, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let expected_post_2 = create_post(&sphere.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), false, false, false, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
     assert_eq!(post_1, expected_post_1);
@@ -145,6 +145,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     let post_1_body = "test";
     let post_1 = create_post(
         &sphere.sphere_name,
+        None,
         post_1_title,
         post_1_body,
         None, 
@@ -161,6 +162,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     let post_2_markdown_body = "test";
     let post_2 = create_post(
         &sphere.sphere_name,
+        None,
         post_2_title,
         post_2_body,
         Some(post_2_markdown_body), 
@@ -224,7 +226,7 @@ async fn test_get_post_sphere() -> Result<(), AppError> {
     let user = create_test_user(&db_pool).await;
 
     let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
-    let post = create_post(&sphere.sphere_name, "1", "test", None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post.");
+    let post = create_post(&sphere.sphere_name, None, "1", "test", None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create post.");
 
     let result_sphere = get_post_sphere(post.post_id, &db_pool).await.expect("Post sphere should be available.");
     assert_eq!(result_sphere, sphere);
@@ -360,6 +362,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
     
     let nsfw_post = create_post(
         sphere1_name,
+        None,
         "nsfw",
         "nsfw",
         None,
@@ -454,6 +457,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
 
     let category_post_1 = create_post(
         sphere_name,
+        None,
         "1",
         "1",
         None,
@@ -567,6 +571,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
 
     let pinned_post = create_post(
         sphere_name,
+        None,
         "pinned",
         "a",
         None,
@@ -635,6 +640,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
 
     let category_post_1 = create_post(
         sphere_name,
+        None,
         "1",
         "1",
         None,
@@ -648,6 +654,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
 
     let category_post_2 = create_post(
         sphere_name,
+        None,
         "2",
         "2",
         None,
@@ -703,6 +710,7 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_1_body = "test";
     let post_1 = create_post(
         &sphere_1.sphere_name,
+        None,
         post_1_title,
         post_1_body,
         None,
@@ -721,9 +729,9 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.is_spoiler, false);
     assert_eq!(post_1.category_id, None);
     assert_eq!(post_1.is_edited, false);
-    assert_eq!(post_1.meta_post_id, None);
     assert_eq!(post_1.sphere_id, sphere_1.sphere_id);
     assert_eq!(post_1.sphere_name, sphere_1.sphere_name);
+    assert_eq!(post_1.satellite_id, None);
     assert_eq!(post_1.creator_id, user.user_id);
     assert_eq!(post_1.creator_name, user.username);
     assert_eq!(post_1.is_creator_moderator, false); // user not refreshed yet
@@ -738,7 +746,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_post(&sphere_1.sphere_name, post_1_title, post_1_body, None, false, false, true, None, &user, &db_pool).await,
+        create_post(&sphere_1.sphere_name, None, post_1_title, post_1_body, None, false, false, true, None, &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -746,7 +754,7 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2 = create_post(&sphere_1.sphere_name, post_2_title, post_2_body, Some(post_2_markdown_body), true, true, true, None, &user, &db_pool).await.expect("Should be able to create post 2.");
+    let post_2 = create_post(&sphere_1.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), true, true, true, None, &user, &db_pool).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
@@ -755,9 +763,9 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.is_spoiler, true);
     assert_eq!(post_2.category_id, None);
     assert_eq!(post_2.is_edited, false);
-    assert_eq!(post_2.meta_post_id, None);
     assert_eq!(post_2.sphere_id, sphere_1.sphere_id);
     assert_eq!(post_2.sphere_name, sphere_1.sphere_name);
+    assert_eq!(post_2.satellite_id, None);
     assert_eq!(post_2.creator_id, user.user_id);
     assert_eq!(post_2.creator_name, user.username);
     assert_eq!(post_2.is_creator_moderator, true);
@@ -772,7 +780,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     let nsfw_post_title = "1";
     let nsfw_post_body = "test";
-    let nsfw_post = create_post(&sphere_2.sphere_name, nsfw_post_title, nsfw_post_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create nsfw post.");
+    let nsfw_post = create_post(&sphere_2.sphere_name, None, nsfw_post_title, nsfw_post_body, None, false, false, false, None, &user, &db_pool).await.expect("Should be able to create nsfw post.");
 
     assert_eq!(nsfw_post.title, nsfw_post_title);
     assert_eq!(nsfw_post.body, nsfw_post_body);
@@ -781,9 +789,9 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(nsfw_post.is_spoiler, false);
     assert_eq!(nsfw_post.category_id, None);
     assert_eq!(nsfw_post.is_edited, false);
-    assert_eq!(nsfw_post.meta_post_id, None);
     assert_eq!(nsfw_post.sphere_id, sphere_2.sphere_id);
     assert_eq!(nsfw_post.sphere_name, sphere_2.sphere_name);
+    assert_eq!(nsfw_post.satellite_id, None);
     assert_eq!(nsfw_post.creator_id, user.user_id);
     assert_eq!(nsfw_post.creator_name, user.username);
     assert_eq!(nsfw_post.is_creator_moderator, true);
@@ -838,6 +846,7 @@ async fn test_update_post() -> Result<(), AppError> {
 
     let post = post::ssr::create_post(
         sphere_name,
+        None,
         "post",
         "body",
         None,
@@ -876,6 +885,7 @@ async fn test_update_post() -> Result<(), AppError> {
 
     let nsfw_sphere_post = post::ssr::create_post(
         &nsfw_sphere.sphere_name,
+        None,
         "post",
         "body",
         None,

@@ -52,9 +52,9 @@ pub struct Post {
     pub is_spoiler: bool,
     pub category_id: Option<i64>,
     pub is_edited: bool,
-    pub meta_post_id: Option<i64>,
     pub sphere_id: i64,
     pub sphere_name: String,
+    pub satellite_id: Option<i64>,
     pub creator_id: i64,
     pub creator_name: String,
     pub is_creator_moderator: bool,
@@ -300,7 +300,8 @@ pub mod ssr {
                 WHERE
                     s.sphere_name = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
-                    p.moderator_id IS NULL
+                    p.moderator_id IS NULL AND
+                    p.satellite_id IS NULL
                 ORDER BY p.is_pinned DESC, {} DESC
                 LIMIT $3
                 OFFSET $4",
@@ -308,6 +309,38 @@ pub mod ssr {
             ).as_str(),
         )
             .bind(sphere_name)
+            .bind(sphere_category_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(post_vec)
+    }
+
+    pub async fn get_post_vec_by_satellite_id(
+        satellite_id: i64,
+        sphere_category_id: Option<i64>,
+        sort_type: SortType,
+        limit: i64,
+        offset: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<Post>, AppError> {
+        let post_vec = sqlx::query_as::<_, Post>(
+            format!(
+                "SELECT p.* FROM posts p
+                JOIN spheres s on s.sphere_id = p.sphere_id
+                WHERE
+                    s.satellite_id = $1 AND
+                    p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
+                    p.moderator_id IS NULL
+                ORDER BY p.is_pinned DESC, {} DESC
+                LIMIT $3
+                OFFSET $4",
+                sort_type.to_order_by_code(),
+            ).as_str(),
+        )
+            .bind(satellite_id)
             .bind(sphere_category_id)
             .bind(limit)
             .bind(offset)
@@ -329,8 +362,10 @@ pub mod ssr {
                 FROM posts p
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
-                WHERE p.moderator_id IS NULL AND
-                      NOT p.is_nsfw
+                WHERE
+                    p.moderator_id IS NULL AND
+                    NOT p.is_nsfw AND
+                    p.satellite_id IS NULL
                 ORDER BY {} DESC
                 LIMIT $1
                 OFFSET $2",
@@ -364,7 +399,8 @@ pub mod ssr {
                     s.sphere_id IN (
                         SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
                     ) AND
-                    p.moderator_id IS NULL
+                    p.moderator_id IS NULL AND
+                    p.satellite_id IS NULL
                 ORDER BY {} DESC
                 LIMIT $2
                 OFFSET $3",
@@ -385,6 +421,7 @@ pub mod ssr {
 
     pub async fn create_post(
         sphere_name: &str,
+        satellite_id: Option<i64>,
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
@@ -409,7 +446,7 @@ pub mod ssr {
             Post,
             "INSERT INTO posts (
                 title, body, markdown_body, is_nsfw, is_spoiler, category_id, sphere_id,
-                sphere_name, is_pinned, creator_id, creator_name, is_creator_moderator
+                sphere_name, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
                 $1, $2, $3,
@@ -421,7 +458,7 @@ pub mod ssr {
                 ),
                 $5, $6,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $7),
-                $7, $8, $9, $10, $11
+                $7, $8, $9, $10, $11, $12
             ) RETURNING *",
             post_title,
             post_body,
@@ -430,6 +467,7 @@ pub mod ssr {
             is_spoiler,
             category_id,
             sphere_name,
+            satellite_id,
             is_pinned,
             user.user_id,
             user.username,
@@ -686,6 +724,7 @@ pub async fn get_post_vec_by_sphere_name(
 #[server]
 pub async fn create_post(
     sphere: String,
+    satellite_id: Option<i64>,
     title: String,
     body: String,
     is_markdown: bool,
@@ -707,6 +746,7 @@ pub async fn create_post(
 
     let post = ssr::create_post(
         sphere.as_str(),
+        satellite_id,
         title.as_str(),
         body.as_str(),
         markdown_body,
@@ -1262,9 +1302,9 @@ mod tests {
             is_spoiler: false,
             category_id,
             is_edited: false,
-            meta_post_id: None,
             sphere_id: 0,
             sphere_name: sphere_name.to_string(),
+            satellite_id: None,
             creator_id: 0,
             creator_name: String::default(),
             is_creator_moderator: false,

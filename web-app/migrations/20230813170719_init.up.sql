@@ -39,7 +39,8 @@ CREATE TABLE satellites (
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT unique_topic UNIQUE (satellite_name, sphere_id),
+    CONSTRAINT unique_satellite_name UNIQUE (satellite_name, sphere_id),
+    CONSTRAINT unique_sphere UNIQUE (sphere_id, satellite_id),
     CONSTRAINT valid_forum FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
 
@@ -146,6 +147,7 @@ CREATE TABLE posts (
     edit_timestamp TIMESTAMPTZ,
     scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL,
+    CONSTRAINT valid_satellite FOREIGN KEY (sphere_id, satellite_id) REFERENCES satellites (sphere_id, satellite_id),
     CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
 );
 

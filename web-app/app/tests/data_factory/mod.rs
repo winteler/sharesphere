@@ -25,7 +25,7 @@ pub async fn create_sphere_with_post(
         sphere_name,
         "sphere",
         false,
-        &user,
+        user,
         db_pool,
     ).await.expect("Should be able to create sphere.");
 
@@ -38,8 +38,8 @@ pub async fn create_sphere_with_post(
         false,
         false,
         false,
-        None,
-        &user,
+        None, 
+        user,
         db_pool,
     ).await.expect("Should be able to create post.");
 
@@ -145,7 +145,7 @@ pub async fn create_sphere_with_satellite(
         "test",
         false,
         false,
-        &user,
+        user,
         db_pool,
     ).await.expect("Satellite should be inserted");
 
@@ -176,7 +176,7 @@ pub async fn create_sphere_with_satellite_vec(
             "test",
             false,
             false,
-            &user,
+            user,
             db_pool,
         ).await.expect("Satellite 1 should be inserted");
         

@@ -135,7 +135,6 @@ pub mod ssr {
     use crate::user::User;
     use sqlx::PgPool;
 
-
     #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
     #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
     pub struct PostJoinCategory {
@@ -451,12 +450,27 @@ pub mod ssr {
              VALUES (
                 $1, $2, $3,
                 (
-                    CASE 
+                    CASE
                         WHEN $4 THEN TRUE
-                        ELSE (SELECT is_nsfw FROM spheres WHERE sphere_name = $7)
+                        ELSE (
+                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $7) OR
+                            COALESCE(
+                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $8),
+                                FALSE
+                            )
+                        )
                     END
                 ),
-                $5, $6,
+                (
+                    CASE
+                        WHEN $5 THEN TRUE
+                        ELSE COALESCE(
+                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $8),
+                            FALSE
+                        )
+                    END
+                ),
+                $6,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $7),
                 $7, $8, $9, $10, $11, $12
             ) RETURNING *",
@@ -511,13 +525,23 @@ pub mod ssr {
                     CASE
                         WHEN $4 THEN TRUE
                         ELSE (
-                            SELECT s.is_nsfw FROM spheres s
-                            JOIN posts p ON p.sphere_id = s.sphere_id
+                            SELECT s.is_nsfw OR COALESCE(sa.is_nsfw, FALSE) FROM posts p
+                            JOIN spheres s ON s.sphere_id = p.sphere_id
+                            LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
                             WHERE p.post_id = $8
                         )
                     END
                 ),
-                is_spoiler = $5,
+                is_spoiler = (
+                    CASE
+                        WHEN $5 THEN TRUE
+                        ELSE (
+                            SELECT COALESCE(sa.is_spoiler, FALSE) FROM posts p
+                            LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
+                            WHERE post_id = $8
+                        )
+                    END
+                ),
                 is_pinned = $6,
                 category_id = $7,
                 edit_timestamp = CURRENT_TIMESTAMP

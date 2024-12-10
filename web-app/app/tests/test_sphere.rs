@@ -471,7 +471,7 @@ async fn test_unsubscribe() -> Result<(), AppError> {
 /// "fake" test used to easily populate dev DB
 async fn populate_dev_db() -> Result<(), AppError> {
     let db_pool = create_db_pool().await.expect("DB pool should be available.");
-    let test_user = create_test_user(&db_pool).await;
+    let mut test_user = create_test_user(&db_pool).await;
 
     let sphere_name = "test";
     let num_posts = 500usize;
@@ -485,7 +485,7 @@ async fn populate_dev_db() -> Result<(), AppError> {
         num_posts,
         Some((0..num_posts).map(|_| rng.gen_range(-100..101)).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
-        &test_user,
+        &mut test_user,
         &db_pool,
     )
     .await?;

@@ -35,7 +35,7 @@ async fn test_sql_user_get_by_username() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_user_get() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let creator_user = create_user("creator", &db_pool).await;
+    let mut creator_user = create_user("creator", &db_pool).await;
     let test_user = create_user("user", &db_pool).await;
     let mut admin = create_user("admin", &db_pool).await;
     admin.admin_role = AdminRole::Admin;
@@ -43,14 +43,11 @@ async fn test_user_get() -> Result<(), AppError> {
     // Create common rule to enable bans
     let rule = rule::ssr::add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
 
-    let (sphere_a, _post_a) = create_sphere_with_post("a", &creator_user, &db_pool).await;
-    let (sphere_b, _post_b) = create_sphere_with_post("b", &creator_user, &db_pool).await;
-    let (sphere_c, post_c) = create_sphere_with_post("c", &creator_user, &db_pool).await;
-    let (sphere_d, post_d) = create_sphere_with_post("d", &creator_user, &db_pool).await;
-    let (sphere_e, post_e) = create_sphere_with_post("e", &creator_user, &db_pool).await;
-
-    // reload creator_user so that it has the updated roles after creating spheres.
-    let creator_user = User::get(creator_user.user_id, &db_pool).await.expect("Creator user should be created.");
+    let (sphere_a, _post_a) = create_sphere_with_post("a", &mut creator_user, &db_pool).await;
+    let (sphere_b, _post_b) = create_sphere_with_post("b", &mut creator_user, &db_pool).await;
+    let (sphere_c, post_c) = create_sphere_with_post("c", &mut creator_user, &db_pool).await;
+    let (sphere_d, post_d) = create_sphere_with_post("d", &mut creator_user, &db_pool).await;
+    let (sphere_e, post_e) = create_sphere_with_post("e", &mut creator_user, &db_pool).await;
 
     set_user_sphere_role(test_user.user_id, &sphere_a.sphere_name, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
     set_user_sphere_role(test_user.user_id, &sphere_b.sphere_name, PermissionLevel::Manage, &creator_user, &db_pool).await?;
@@ -59,8 +56,8 @@ async fn test_user_get() -> Result<(), AppError> {
         ban_user_from_sphere(test_user.user_id, &sphere_c.sphere_name, post_c.post_id, None, rule.rule_id, &creator_user, Some(0), &db_pool).await.expect("User ban should be created for sphere c."),
         None
     );
-    let sphere_ban_d = ban_user_from_sphere(test_user.user_id, &sphere_d.sphere_name, post_d.post_id, None, rule.rule_id, &creator_user, Some(1), &db_pool).await
-        ?
+    let sphere_ban_d = ban_user_from_sphere(test_user.user_id, &sphere_d.sphere_name, post_d.post_id, None, rule.rule_id, &creator_user, Some(1), &db_pool)
+        .await?
         .expect("User should have ban for sphere d.");
     ban_user_from_sphere(test_user.user_id, &sphere_e.sphere_name, post_e.post_id, None, rule.rule_id, &creator_user, None, &db_pool).await
         .expect("User ban should be created for sphere e.")

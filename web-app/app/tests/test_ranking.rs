@@ -13,9 +13,9 @@ mod utils;
 #[tokio::test]
 async fn test_vote_on_content_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
+    let (_, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
 
     let post_with_vote = post::ssr::get_post_with_info_by_id(post.post_id, Some(&user), &db_pool).await?;
     assert!(post_with_vote.vote.is_none());
@@ -97,9 +97,9 @@ async fn test_vote_on_content_post() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_vote_on_content_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (_, _, init_comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
+    let (_, _, init_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let comment = get_comment_by_id(init_comment.comment_id, &db_pool).await?;
 

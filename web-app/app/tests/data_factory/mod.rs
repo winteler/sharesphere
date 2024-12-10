@@ -8,7 +8,7 @@ use app::comment::Comment;
 use app::errors::AppError;
 use app::post::{Post, PostWithSphereInfo};
 use app::ranking::VoteValue;
-use app::satellite::ssr::insert_satellite;
+use app::satellite::ssr::create_satellite;
 use app::satellite::Satellite;
 use app::sphere::Sphere;
 use app::sphere_category::SphereCategory;
@@ -18,7 +18,7 @@ use app::{comment, post, ranking, sphere, sphere_category};
 
 pub async fn create_sphere_with_post(
     sphere_name: &str,
-    user: &User,
+    user: &mut User,
     db_pool: &PgPool,
 ) -> (Sphere, Post) {
     let sphere = sphere::ssr::create_sphere(
@@ -28,6 +28,8 @@ pub async fn create_sphere_with_post(
         user,
         db_pool,
     ).await.expect("Should be able to create sphere.");
+
+    *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
 
     let post = post::ssr::create_post(
         sphere_name,
@@ -48,7 +50,7 @@ pub async fn create_sphere_with_post(
 
 pub async fn create_sphere_with_post_and_comment(
     sphere_name: &str,
-    user: &User,
+    user: &mut User,
     db_pool: &PgPool,
 ) -> (Sphere, Post, Comment) {
     let (sphere, post) = create_sphere_with_post(sphere_name, user, db_pool).await;
@@ -64,7 +66,7 @@ pub async fn create_sphere_with_posts(
     num_posts: usize,
     score_vec: Option<Vec<i32>>,
     category_vec: Vec<bool>,
-    user: &User,
+    user: &mut User,
     db_pool: &PgPool,
 ) -> Result<(Sphere, SphereCategory, Vec<PostWithSphereInfo>), AppError> {
     let mut sphere = sphere::ssr::create_sphere(
@@ -75,7 +77,7 @@ pub async fn create_sphere_with_posts(
         db_pool,
     ).await?;
     
-    let user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
+    *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
 
     set_sphere_icon_url(sphere_name, sphere_icon_url, &user, &db_pool).await.expect("Should set icon url.");
     sphere.icon_url = sphere_icon_url.map(|x| x.to_string());
@@ -126,6 +128,8 @@ pub async fn create_sphere_with_posts(
 pub async fn create_sphere_with_satellite(
     sphere_name: &str,
     satellite_name: &str,
+    is_nsfw_satellite: bool,
+    is_spoiler_satellite: bool,
     user: &mut User,
     db_pool: &PgPool,
 ) -> Result<(Sphere, Satellite), AppError> {
@@ -139,12 +143,12 @@ pub async fn create_sphere_with_satellite(
 
     *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
 
-    let satellite = insert_satellite(
+    let satellite = create_satellite(
         satellite_name,
         &sphere.sphere_name,
         "test",
-        false,
-        false,
+        is_nsfw_satellite,
+        is_spoiler_satellite,
         user,
         db_pool,
     ).await.expect("Satellite should be inserted");
@@ -170,7 +174,7 @@ pub async fn create_sphere_with_satellite_vec(
     
     let mut satellite_vec = Vec::new();
     for i in 0..num_satellites {
-        let satellite = insert_satellite(
+        let satellite = create_satellite(
             i.to_string().as_str(),
             &sphere.sphere_name,
             "test",

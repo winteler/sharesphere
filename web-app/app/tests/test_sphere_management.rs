@@ -24,12 +24,11 @@ mod utils;
 #[tokio::test]
 async fn test_get_sphere_ban_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let lead = create_user("test", &db_pool).await;
+    let mut lead = create_user("test", &db_pool).await;
     let banned_user_1 = create_user("1", &db_pool).await;
     let banned_user_2 = create_user("2", &db_pool).await;
 
-    let (sphere, post) = create_sphere_with_post("sphere", &lead, &db_pool).await;
-    let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after sphere creation");
+    let (sphere, post) = create_sphere_with_post("sphere", &mut lead, &db_pool).await;
 
     let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", &lead, &db_pool).await.expect("Rule should be added.");
 
@@ -75,13 +74,12 @@ async fn test_get_sphere_ban_vec() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_remove_user_ban() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let lead = create_user("test", &db_pool).await;
+    let mut lead = create_user("test", &db_pool).await;
     let mut global_mod = create_user("global", &db_pool).await;
     global_mod.admin_role = AdminRole::Moderator;
     let banned_user_1 = create_user("1", &db_pool).await;
 
-    let (sphere, post) = create_sphere_with_post("sphere", &lead, &db_pool).await;
-    let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after sphere creation");
+    let (sphere, post) = create_sphere_with_post("sphere", &mut lead, &db_pool).await;
     
     let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", &lead, &db_pool).await.expect("Rule should be added.");
 
@@ -132,13 +130,12 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_moderate_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_user("test", &db_pool).await;
+    let mut user = create_user("test", &db_pool).await;
     let mut global_moderator = create_user("mod", &db_pool).await;
     global_moderator.admin_role = AdminRole::Moderator;
     let unauthorized_user = create_user("user", &db_pool).await;
 
-    let (sphere, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
-    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded after sphere creation");
+    let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
     let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_post(post.post_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
@@ -163,13 +160,12 @@ async fn test_moderate_post() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_moderate_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_user("test", &db_pool).await;
+    let mut user = create_user("test", &db_pool).await;
     let mut global_moderator = create_user("mod", &db_pool).await;
     global_moderator.admin_role = AdminRole::Moderator;
     let unauthorized_user = create_user("user", &db_pool).await;
     
-    let (sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
-    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded after sphere creation");
+    let (sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
     let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_comment(comment.comment_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
@@ -194,7 +190,7 @@ async fn test_moderate_comment() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_user("test", &db_pool).await;
+    let mut user = create_user("test", &db_pool).await;
     let mut global_moderator = create_user("mod", &db_pool).await;
     let mut admin = create_user("admin", &db_pool).await;
     // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
@@ -205,9 +201,8 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     let unauthorized_user = create_user("user", &db_pool).await;
     let banned_user = create_user("banned", &db_pool).await;
 
-    let (sphere, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
+    let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
     let rule = add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
-    let user = User::get(user.user_id, &db_pool).await.expect("Should be able to reload user.");
 
     // unauthorized used cannot ban
     assert!(ban_user_from_sphere(banned_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &unauthorized_user, None, &db_pool).await.is_err());

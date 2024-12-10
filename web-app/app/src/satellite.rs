@@ -53,7 +53,7 @@ pub mod ssr {
         Ok(sphere)
     }
 
-    pub async fn insert_satellite(
+    pub async fn create_satellite(
         satellite_name: &str,
         sphere_name: &str,
         description: &str,

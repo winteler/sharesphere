@@ -101,9 +101,9 @@ fn test_comment_with_children(
 #[tokio::test]
 async fn test_get_comment_by_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (_, _, expected_comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
+    let (_, _, expected_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let comment = get_comment_by_id(expected_comment.comment_id, &db_pool).await.expect("Should be able to get comment sphere.");
 
@@ -115,9 +115,9 @@ async fn test_get_comment_by_id() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_comment_sphere() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (expected_sphere, _, comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
+    let (expected_sphere, _, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let sphere = get_comment_sphere(comment.comment_id, &db_pool).await.expect("Should be able to get comment sphere.");
 
@@ -210,9 +210,10 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_create_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
+    let base_user = create_user("base", &db_pool).await;
 
-    let (_sphere, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
+    let (_sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
 
     let comment_body = "a";
     let comment = create_comment(post.post_id, None, comment_body, None, false, &user, &db_pool).await.expect("Comment should be created.");
@@ -227,7 +228,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.post_id, post.post_id);
     assert_eq!(comment.creator_id, user.user_id);
     assert_eq!(comment.creator_name, user.username);
-    assert_eq!(comment.is_creator_moderator, false); // user not refreshed yet
+    assert_eq!(comment.is_creator_moderator, true);
     assert_eq!(comment.moderator_id, None);
     assert_eq!(comment.moderator_name, None);
     assert_eq!(comment.is_pinned, false);
@@ -237,7 +238,7 @@ async fn test_create_comment() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_comment(post.post_id, Some(comment.comment_id), comment_body, None, true, &user, &db_pool).await,
+        create_comment(post.post_id, Some(comment.comment_id), comment_body, None, true, &base_user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -275,9 +276,9 @@ async fn test_create_comment() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_update_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (_sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &user, &db_pool).await;
+    let (_sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let updated_markdown_body = "# Here is a comment with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");

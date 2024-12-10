@@ -11,12 +11,13 @@ use app::comment::ssr::create_comment;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
-use app::post::ssr::{create_post, get_post_by_id, get_post_sphere, get_post_with_info_by_id, update_post_scores};
+use app::post::ssr::{create_post, get_post_by_id, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
 use app::post::{ssr, Post, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
 use app::rule::ssr::add_rule;
+use app::satellite::ssr::create_satellite;
 use app::sphere_category::ssr::set_sphere_category;
 use app::user::User;
 use app::{post, sphere};
@@ -249,9 +250,35 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
+        &mut user,
+        &db_pool,
+    ).await.expect("Should create sphere 1 with posts.");
+
+    // create post in satellite to make sure it doesn't get included in the results
+    let satellite = create_satellite(
+        "a",
+        &sphere1.sphere_name,
+        "satellite",
+        false,
+        false,
         &user,
         &db_pool,
-    ).await?;
+    ).await.expect("Should be able to insert satellite.");
+    
+    create_post(
+        &satellite.sphere_name,
+        Some(satellite.satellite_id),
+        "satellite",
+        "satellite",
+        None,
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool,
+    ).await.expect("Should create satellite post.");
+    
 
     create_sphere_with_posts(
         sphere2_name,
@@ -259,9 +286,9 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
-        &user,
+        &mut user,
         &db_pool,
-    ).await?;
+    ).await.expect("Should create sphere 2 with posts.");
 
     let post_vec = ssr::get_subscribed_post_vec(
         user.user_id,
@@ -344,7 +371,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
-        &user,
+        &mut user,
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_sphere1_post_vec);
@@ -355,12 +382,13 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         num_post,
         Some((0..num_post).map(|i| i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
-        &user,
+        &mut user,
         &db_pool,
     ).await?;
     expected_post_vec.append(&mut expected_sphere2_post_vec);
     
-    let nsfw_post = create_post(
+    // create nsfw post to check it's filtered from result
+    create_post(
         sphere1_name,
         None,
         "nsfw",
@@ -373,8 +401,31 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         &user,
         &db_pool,
     ).await.expect("nsfw_post should be created.");
-    // set high score to make sure it would appear at the top if it wasn't correctly filtered.
-    set_post_score(nsfw_post.post_id, 1000, &db_pool).await.expect("nsfw_post score should be set");
+
+    // create post in satellite to make sure it doesn't get included in the results
+    let satellite = create_satellite(
+        "a",
+        sphere1_name,
+        "satellite",
+        false,
+        false,
+        &user,
+        &db_pool,
+    ).await.expect("Should be able to insert satellite.");
+
+    create_post(
+        &satellite.sphere_name,
+        Some(satellite.satellite_id),
+        "satellite",
+        "satellite",
+        None,
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool,
+    ).await.expect("Should create satellite post.");
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -422,7 +473,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
     let sphere_name = "sphere";
     let num_posts = 20usize;
@@ -433,12 +484,9 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         num_posts,
         Some((0..num_posts).map(|i| i as i32).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
-        &user,
+        &mut user,
         &db_pool,
-    ).await?;
-
-    // Reload user to refresh moderator permission
-    let mut user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
+    ).await.expect("Should create sphere with posts");
 
     let sphere_category_2 = set_sphere_category(
         sphere_name,
@@ -448,7 +496,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         true,
         &user,
         &db_pool
-    ).await.expect("Sphere category should be set.");
+    ).await.expect("Sphere category should be set");
     
     let category_map = HashMap::from([
         (sphere_category_1.category_id, sphere_category_1.clone()),
@@ -474,6 +522,31 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         Some(sphere_category_2.clone().into()),
         sphere.icon_url.clone())
     );
+
+    // create post in satellite to make sure it doesn't get included in the results
+    let satellite = create_satellite(
+        "a",
+        sphere_name,
+        "satellite",
+        false,
+        false,
+        &user,
+        &db_pool,
+    ).await.expect("Should be able to insert satellite.");
+
+    create_post(
+        &satellite.sphere_name,
+        Some(satellite.satellite_id),
+        "satellite",
+        "satellite",
+        None,
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool,
+    ).await.expect("Should create satellite post.");
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -549,7 +622,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
     let sphere_name = "sphere";
     let num_posts = 20usize;
@@ -560,13 +633,9 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
         num_posts,
         Some((0..num_posts).map(|i| i as i32).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
-        &user,
+        &mut user,
         &db_pool,
-    ).await?;
-
-    // Reload user to refresh moderator permission
-    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
-
+    ).await.expect("Sphere with post should be created");
     let partial_load_num_post = num_posts / 2;
 
     let pinned_post = create_post(
@@ -581,7 +650,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
         None,
         &user,
         &db_pool
-    ).await.expect("Pinned post should be created.");
+    ).await.expect("Pinned post should be created");
 
     let post_sort_type_array = [
         PostSortType::Hot,
@@ -610,7 +679,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
 #[tokio::test]
 async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
     let sphere_name = "sphere";
     let num_posts = 10usize;
@@ -621,13 +690,10 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         num_posts,
         Some((0..num_posts).map(|i| i as i32).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
-        &user,
+        &mut user,
         &db_pool,
-    ).await?;
-
-    // Reload user to refresh moderator permission
-    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
-
+    ).await.expect("Sphere with post should be created");
+    
     let sphere_category = set_sphere_category(
         sphere_name,
         "a",
@@ -827,18 +893,20 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (sphere, satellite) = create_sphere_with_satellite(
-        "a",
-        "b",
+    let (sphere_1, satellite_1) = create_sphere_with_satellite(
+        "1",
+        "1",
+        false,
+        false,
         &mut user,
         &db_pool
     ).await.expect("Should be able to create sphere.");
 
     let post = create_post(
-        &sphere.sphere_name,
-        Some(satellite.satellite_id),
-        "a",
-        "b",
+        &sphere_1.sphere_name,
+        Some(satellite_1.satellite_id),
+        "1",
+        "1",
         None,
         false,
         false,
@@ -848,16 +916,16 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
         &db_pool
     ).await.expect("Should be able to create post in.");
 
-    assert_eq!(post.title, "a");
-    assert_eq!(post.body, "b");
+    assert_eq!(post.title, "1");
+    assert_eq!(post.body, "1");
     assert_eq!(post.markdown_body, None);
     assert_eq!(post.is_nsfw, false);
     assert_eq!(post.is_spoiler, false);
     assert_eq!(post.category_id, None);
     assert_eq!(post.is_edited, false);
-    assert_eq!(post.sphere_id, sphere.sphere_id);
-    assert_eq!(post.sphere_name, sphere.sphere_name);
-    assert_eq!(post.satellite_id, Some(satellite.satellite_id));
+    assert_eq!(post.sphere_id, sphere_1.sphere_id);
+    assert_eq!(post.sphere_name, sphere_1.sphere_name);
+    assert_eq!(post.satellite_id, Some(satellite_1.satellite_id));
     assert_eq!(post.creator_id, user.user_id);
     assert_eq!(post.creator_name, user.username);
     assert_eq!(post.is_creator_moderator, true);
@@ -870,11 +938,56 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.is_pinned, false);
     assert_eq!(post.score, 0);
 
+    let (sphere_2, satellite_2) = create_sphere_with_satellite(
+        "2",
+        "2",
+        true,
+        true,
+        &mut user,
+        &db_pool
+    ).await.expect("Should be able to create sphere.");
+
+    let post = create_post(
+        &sphere_2.sphere_name,
+        Some(satellite_2.satellite_id),
+        "2",
+        "2",
+        None,
+        false,
+        false,
+        true,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create post in.");
+
+    assert_eq!(post.title, "2");
+    assert_eq!(post.body, "2");
+    assert_eq!(post.markdown_body, None);
+    assert_eq!(post.is_nsfw, true);
+    assert_eq!(post.is_spoiler, true);
+    assert_eq!(post.category_id, None);
+    assert_eq!(post.is_edited, false);
+    assert_eq!(post.sphere_id, sphere_2.sphere_id);
+    assert_eq!(post.sphere_name, sphere_2.sphere_name);
+    assert_eq!(post.satellite_id, Some(satellite_2.satellite_id));
+    assert_eq!(post.creator_id, user.user_id);
+    assert_eq!(post.creator_name, user.username);
+    assert_eq!(post.is_creator_moderator, true);
+    assert_eq!(post.moderator_message, None);
+    assert_eq!(post.infringed_rule_id, None);
+    assert_eq!(post.infringed_rule_title, None);
+    assert_eq!(post.moderator_id, None);
+    assert_eq!(post.moderator_name, None);
+    assert_eq!(post.num_comments, 0);
+    assert_eq!(post.is_pinned, true);
+    assert_eq!(post.score, 0);
+
     // cannot create post for non-existent satellite
     assert!(
         matches!(
             create_post(
-                &sphere.sphere_name,
+                &sphere_1.sphere_name,
                 Some(-1),
                 "a",
                 "b",
@@ -996,11 +1109,121 @@ async fn test_update_post() -> Result<(), AppError> {
 }
 
 #[tokio::test]
+async fn test_update_post_in_satellite() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere_1, satellite_1) = create_sphere_with_satellite(
+        "1",
+        "1",
+        false,
+        false,
+        &mut user,
+        &db_pool
+    ).await.expect("Should be able to create sphere");
+
+    let post = create_post(
+        &sphere_1.sphere_name,
+        Some(satellite_1.satellite_id),
+        "1",
+        "1",
+        None,
+        true,
+        true,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create post in");
+
+    let updated_title = "updated post";
+    let updated_markdown_body = "# Here is a post with markdown";
+    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown");
+    
+    let updated_post = update_post(
+        post.post_id,
+        updated_title,
+        &updated_html_body,
+        Some(updated_markdown_body),
+        false,
+        false,
+        true,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to update post");
+
+    assert_eq!(updated_post.title, updated_title);
+    assert_eq!(updated_post.body, updated_html_body);
+    assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
+    assert_eq!(updated_post.satellite_id, Some(satellite_1.satellite_id));
+    assert_eq!(updated_post.is_spoiler, false);
+    assert_eq!(updated_post.is_nsfw, false);
+    assert_eq!(updated_post.is_pinned, true);
+    assert!(
+        updated_post.edit_timestamp.is_some() &&
+            updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
+            updated_post.create_timestamp == post.create_timestamp
+    );
+
+    let (sphere_2, satellite_2) = create_sphere_with_satellite(
+        "2",
+        "2",
+        true,
+        true,
+        &mut user,
+        &db_pool
+    ).await.expect("Should be able to create sphere");
+
+    let post = create_post(
+        &sphere_2.sphere_name,
+        Some(satellite_2.satellite_id),
+        "2",
+        "2",
+        None,
+        true,
+        true,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create post in");
+
+    let updated_post = update_post(
+        post.post_id,
+        updated_title,
+        &updated_html_body,
+        Some(updated_markdown_body),
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to update post");
+
+    assert_eq!(updated_post.title, updated_title);
+    assert_eq!(updated_post.body, updated_html_body);
+    assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
+    assert_eq!(updated_post.satellite_id, Some(satellite_2.satellite_id));
+    assert_eq!(updated_post.is_spoiler, true);
+    assert_eq!(updated_post.is_nsfw, true);
+    assert_eq!(updated_post.is_pinned, false);
+    assert!(
+        updated_post.edit_timestamp.is_some() &&
+            updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
+            updated_post.create_timestamp == post.create_timestamp
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn increment_post_comment_count() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
+    let (_, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
     assert_eq!(post.num_comments, 0);
 
     let _comment = create_comment(post.post_id, None, "a", None, false, &user, &db_pool).await.expect("Should create comment.");
@@ -1014,9 +1237,9 @@ async fn increment_post_comment_count() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_update_post_scores() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
+    let (_, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
     let post = set_post_score(post.post_id, 10, &db_pool).await.expect("Post score should be set.");
 
     // wait to have a meaningful difference in scores after update
@@ -1040,9 +1263,9 @@ async fn test_update_post_scores() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_post_scores() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let (_, post) = create_sphere_with_post("sphere", &user, &db_pool).await;
+    let (_, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
 
     let mut rng = rand::thread_rng();
 

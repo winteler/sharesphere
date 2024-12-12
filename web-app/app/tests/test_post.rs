@@ -670,7 +670,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
         ).await?;
 
         assert_eq!(post_vec.len(), partial_load_num_post);
-        assert_eq!(post_vec[0], pinned_post);
+        assert_eq!(post_vec.first(), Some(&pinned_post));
     }
 
     Ok(())
@@ -782,13 +782,23 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
     let satellite_1 = satellite_vec.first().expect("Should have 1st satellite");
     let satellite_2 = satellite_vec.get(1).expect("Should have 2nd satellite");
 
+    let sphere_category = set_sphere_category(
+        sphere_name,
+        "a",
+        Color::Green,
+        "a",
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Sphere category should be set.");
+
     let mut expected_post_vec = create_posts(
         &sphere,
         Some(satellite_1.satellite_id),
         num_posts,
         Some((0..num_posts).map(|i| i as i32).collect()),
-        None,
-        (0..num_posts).map(|_| false).collect(),
+        Some(&sphere_category),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &user,
         &db_pool,
     ).await.expect("Should create satellite 1 posts");
@@ -838,10 +848,13 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
             &db_pool,
         ).await.expect("First post vec should be loaded");
 
-
         let post_vec: Vec<PostWithSphereInfo> = post_vec.into_iter().map(|post| {
-            PostWithSphereInfo::from_post(post, None, sphere.icon_url.clone())
+            let sphere_category = post.category_id.map(|_| {
+                sphere_category.clone().into()
+            });
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
+
         test_post_vec(&post_vec, &expected_post_vec[..load_count], sort_type);
 
         let second_post_vec = ssr::get_post_vec_by_satellite_id(
@@ -854,7 +867,10 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
         ).await?;
 
         let second_post_vec: Vec<PostWithSphereInfo> = second_post_vec.into_iter().map(|post| {
-            PostWithSphereInfo::from_post(post, None, sphere.icon_url.clone())
+            let sphere_category = post.category_id.map(|_| {
+                sphere_category.clone().into()
+            });
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
         test_post_vec(&second_post_vec, &expected_post_vec[load_count..num_posts], sort_type);
     }
@@ -880,6 +896,182 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
     ).await?;
 
     assert!(!post_vec.contains(&moderated_post));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_post_vec_by_satellite_id_with_pinned_post() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let sphere_name = "sphere";
+    let num_posts = 20usize;
+
+    let (sphere, satellite) = create_sphere_with_satellite(
+        sphere_name,
+        "test",
+        false,
+        false,
+        &mut user,
+        &db_pool,
+    ).await.expect("Sphere with satellites should be created");
+
+    let pinned_post = create_post(
+        sphere_name,
+        Some(satellite.satellite_id),
+        "pinned",
+        "a",
+        None,
+        false,
+        false,
+        true,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Pinned post should be created");
+
+    create_posts(
+        &sphere,
+        Some(satellite.satellite_id),
+        num_posts,
+        Some((0..num_posts).map(|i| i as i32).collect()),
+        None,
+        (0..num_posts).map(|_| false).collect(),
+        &user,
+        &db_pool,
+    ).await.expect("Should create satellite posts");
+
+
+    let post_sort_type_array = [
+        PostSortType::Hot,
+        PostSortType::Trending,
+        PostSortType::Best,
+        PostSortType::Recent,
+    ];
+
+    let load_count = 15;
+    for sort_type in post_sort_type_array {
+        let post_vec = ssr::get_post_vec_by_satellite_id(
+            satellite.satellite_id,
+            None,
+            SortType::Post(sort_type),
+            load_count as i64,
+            0,
+            &db_pool,
+        ).await.expect("First post vec should be loaded");
+
+        assert_eq!(post_vec.len(), load_count);
+        assert_eq!(post_vec.first(), Some(&pinned_post));
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let sphere_name = "sphere";
+    let num_posts = 20usize;
+
+    let (sphere, satellite) = create_sphere_with_satellite(
+        sphere_name,
+        "satellite",
+        false,
+        false,
+        &mut user,
+        &db_pool,
+    ).await.expect("Sphere with satellite should be created");
+
+    let sphere_category = set_sphere_category(
+        sphere_name,
+        "a",
+        Color::Green,
+        "a",
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Sphere category should be set.");
+
+    let other_sphere_category = set_sphere_category(
+        sphere_name,
+        "b",
+        Color::Blue,
+        "b",
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Other sphere category should be set.");
+
+    let category_post_1 = create_post(
+        sphere_name,
+        Some(satellite.satellite_id),
+        "1",
+        "1",
+        None,
+        false,
+        false,
+        false,
+        Some(sphere_category.category_id),
+        &user,
+        &db_pool
+    ).await.expect("Post 1 with category should be created.");
+
+    let category_post_2 = create_post(
+        sphere_name,
+        Some(satellite.satellite_id),
+        "2",
+        "2",
+        None,
+        false,
+        false,
+        false,
+        Some(sphere_category.category_id),
+        &user,
+        &db_pool
+    ).await.expect("Post 2 with category should be created.");
+
+    let mut expected_post_vec = vec![
+        PostWithSphereInfo::from_post(category_post_1, Some(sphere_category.clone().into()), sphere.icon_url.clone()),
+        PostWithSphereInfo::from_post(category_post_2, Some(sphere_category.clone().into()), sphere.icon_url.clone()),
+    ];
+
+    create_posts(
+        &sphere,
+        Some(satellite.satellite_id),
+        num_posts,
+        Some((0..num_posts).map(|i| i as i32).collect()),
+        Some(&other_sphere_category),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
+        &user,
+        &db_pool,
+    ).await.expect("Should create satellite 1 posts");
+
+    let post_sort_type_array = [
+        PostSortType::Hot,
+        PostSortType::Trending,
+        PostSortType::Best,
+        PostSortType::Recent,
+    ];
+
+    for sort_type in post_sort_type_array {
+        let category_post_vec = ssr::get_post_vec_by_satellite_id(
+            satellite.satellite_id,
+            Some(sphere_category.category_id),
+            SortType::Post(sort_type),
+            num_posts as i64,
+            0,
+            &db_pool,
+        ).await?;
+        let category_post_vec: Vec<PostWithSphereInfo> = category_post_vec.into_iter().map(|post| {
+            let sphere_category = post.category_id.map(|_| sphere_category.clone().into());
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
+        }).collect();
+        sort_post_vec(&mut expected_post_vec, sort_type);
+        test_post_vec(&category_post_vec, &expected_post_vec, sort_type);
+    }
 
     Ok(())
 }

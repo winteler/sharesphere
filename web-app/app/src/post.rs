@@ -328,7 +328,7 @@ pub mod ssr {
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT p.* FROM posts p
-                JOIN spheres s on s.sphere_id = p.sphere_id
+                JOIN satellites s on s.satellite_id = p.satellite_id
                 WHERE
                     s.satellite_id = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND

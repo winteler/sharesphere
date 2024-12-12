@@ -76,31 +76,56 @@ pub async fn create_sphere_with_posts(
         user,
         db_pool,
     ).await?;
-    
+
     *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
 
-    set_sphere_icon_url(sphere_name, sphere_icon_url, &user, &db_pool).await.expect("Should set icon url.");
+    set_sphere_icon_url(sphere_name, sphere_icon_url, user, db_pool).await.expect("Should set icon url.");
     sphere.icon_url = sphere_icon_url.map(|x| x.to_string());
-    
+
     let sphere_category = sphere_category::ssr::set_sphere_category(
         sphere_name,
         "create_posts",
         Color::Blue,
         "test",
         true,
-        &user,
+        user,
         db_pool,
     ).await.expect("Sphere category should be created.");
 
+    let expected_post_vec = create_posts(
+        &sphere,
+        None,
+        num_posts,
+        score_vec,
+        Some(&sphere_category),
+        category_vec,
+        user,
+        db_pool,
+    ).await?;
+
+    Ok((sphere, sphere_category, expected_post_vec))
+}
+
+pub async fn create_posts(
+    sphere: &Sphere,
+    satellite_id: Option<i64>,
+    num_posts: usize,
+    score_vec: Option<Vec<i32>>,
+    sphere_category: Option<&SphereCategory>,
+    category_vec: Vec<bool>,
+    user: &User,
+    db_pool: &PgPool,
+) -> Result<Vec<PostWithSphereInfo>, AppError> {
+
     let mut expected_post_vec = Vec::<PostWithSphereInfo>::with_capacity(num_posts);
     for i in 0..num_posts {
-        let category_id = match category_vec.get(i) {
-            Some(has_category) if *has_category => Some(sphere_category.category_id),
+        let category_id = match (category_vec.get(i), sphere_category) {
+            (Some(has_category), Some(sphere_category)) if *has_category => Some(sphere_category.category_id),
             _ => None,
         };
         let mut post = post::ssr::create_post(
-            sphere_name,
-            None,
+            &sphere.sphere_name,
+            satellite_id,
             i.to_string().as_str(),
             "body",
             None,
@@ -118,11 +143,14 @@ pub async fn create_sphere_with_posts(
             }
         }
 
-        let sphere_category_header = category_id.map(|_| sphere_category.clone().into());
+        let sphere_category_header = match (category_id, sphere_category) {
+            (Some(_), Some(sphere_category)) => Some(sphere_category.clone().into()),
+            _ => None,
+        };
         expected_post_vec.push(PostWithSphereInfo::from_post(post, sphere_category_header, sphere.icon_url.clone()));
     }
 
-    Ok((sphere, sphere_category, expected_post_vec))
+    Ok(expected_post_vec)
 }
 
 pub async fn create_sphere_with_satellite(

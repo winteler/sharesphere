@@ -765,6 +765,126 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
 }
 
 #[tokio::test]
+async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let sphere_name = "sphere";
+    let num_posts = 20usize;
+
+    let (sphere, satellite_vec) = create_sphere_with_satellite_vec(
+        sphere_name,
+        2,
+        &mut user,
+        &db_pool,
+    ).await.expect("Sphere with satellites should be created");
+    
+    let satellite_1 = satellite_vec.first().expect("Should have 1st satellite");
+    let satellite_2 = satellite_vec.get(1).expect("Should have 2nd satellite");
+
+    let mut expected_post_vec = create_posts(
+        &sphere,
+        Some(satellite_1.satellite_id),
+        num_posts,
+        Some((0..num_posts).map(|i| i as i32).collect()),
+        None,
+        (0..num_posts).map(|_| false).collect(),
+        &user,
+        &db_pool,
+    ).await.expect("Should create satellite 1 posts");
+
+    // Create other posts in sphere and other satellite to make sure we only get posts from satellite 1
+    create_post(
+        sphere_name,
+        None,
+        "1",
+        "1",
+        None,
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Sphere post should be created.");
+
+    create_posts(
+        &sphere,
+        Some(satellite_2.satellite_id),
+        num_posts,
+        Some((0..num_posts).map(|i| i as i32).collect()),
+        None,
+        (0..num_posts).map(|_| false).collect(),
+        &user,
+        &db_pool,
+    ).await.expect("Should create satellite 2 posts");
+
+    let post_sort_type_array = [
+        PostSortType::Hot,
+        PostSortType::Trending,
+        PostSortType::Best,
+        PostSortType::Recent,
+    ];
+
+    let load_count = 15;
+    for sort_type in post_sort_type_array {
+        sort_post_vec(&mut expected_post_vec, sort_type);
+        let post_vec = ssr::get_post_vec_by_satellite_id(
+            satellite_1.satellite_id,
+            None,
+            SortType::Post(sort_type),
+            load_count as i64,
+            0,
+            &db_pool,
+        ).await.expect("First post vec should be loaded");
+
+
+        let post_vec: Vec<PostWithSphereInfo> = post_vec.into_iter().map(|post| {
+            PostWithSphereInfo::from_post(post, None, sphere.icon_url.clone())
+        }).collect();
+        test_post_vec(&post_vec, &expected_post_vec[..load_count], sort_type);
+
+        let second_post_vec = ssr::get_post_vec_by_satellite_id(
+            satellite_1.satellite_id,
+            None,
+            SortType::Post(sort_type),
+            load_count as i64,
+            load_count as i64,
+            &db_pool,
+        ).await?;
+
+        let second_post_vec: Vec<PostWithSphereInfo> = second_post_vec.into_iter().map(|post| {
+            PostWithSphereInfo::from_post(post, None, sphere.icon_url.clone())
+        }).collect();
+        test_post_vec(&second_post_vec, &expected_post_vec[load_count..num_posts], sort_type);
+    }
+
+    user.admin_role = AdminRole::Admin;
+
+    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
+    let moderated_post = moderate_post(
+        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
+        rule.rule_id,
+        "test",
+        &user,
+        &db_pool,
+    ).await.expect("Post should be moderated.");
+
+    let post_vec = ssr::get_post_vec_by_satellite_id(
+        satellite_1.satellite_id,
+        None,
+        SortType::Post(PostSortType::Hot),
+        num_posts as i64,
+        0,
+        &db_pool,
+    ).await?;
+
+    assert!(!post_vec.contains(&moderated_post));
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_create_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;

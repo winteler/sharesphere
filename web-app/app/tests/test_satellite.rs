@@ -1,9 +1,9 @@
-use app::errors::AppError;
-use app::satellite::ssr::{create_satellite, get_satellite_sphere, get_satellite_vec_by_sphere_name, update_satellite};
-use app::sphere::ssr::create_sphere;
-use app::user::User;
 pub use crate::common::*;
 pub use crate::data_factory::*;
+use app::errors::AppError;
+use app::satellite::ssr::{create_satellite, delete_satellite, get_satellite_sphere, get_satellite_vec_by_sphere_name, update_satellite};
+use app::sphere::ssr::create_sphere;
+use app::user::User;
 
 mod common;
 mod data_factory;
@@ -96,6 +96,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
     assert_eq!(satellite_1.description, "1");
     assert_eq!(satellite_1.is_nsfw, false);
     assert_eq!(satellite_1.is_spoiler, true);
+    assert_eq!(satellite_1.delete_timestamp, None);
 
     let satellite_2 = create_satellite(
         "2",
@@ -112,6 +113,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
     assert_eq!(satellite_2.description, "2");
     assert_eq!(satellite_2.is_nsfw, true);
     assert_eq!(satellite_2.is_spoiler, false);
+    assert_eq!(satellite_2.delete_timestamp, None);
 
     let nsfw_satellite = create_satellite(
         "3",
@@ -128,6 +130,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
     assert_eq!(nsfw_satellite.description, "3");
     assert_eq!(nsfw_satellite.is_nsfw, true);
     assert_eq!(nsfw_satellite.is_spoiler, false);
+    assert_eq!(nsfw_satellite.delete_timestamp, None);
 
     Ok(())
 }
@@ -188,6 +191,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
     assert_eq!(updated_satellite_1.description, "a");
     assert_eq!(updated_satellite_1.is_nsfw, false);
     assert_eq!(updated_satellite_1.is_spoiler, true);
+    assert_eq!(updated_satellite_1.delete_timestamp, None);
 
     let updated_nsfw_satellite = update_satellite(
         nsfw_satellite.satellite_id,
@@ -205,6 +209,37 @@ async fn test_update_satellite() -> Result<(), AppError> {
     assert_eq!(updated_nsfw_satellite.description, "b");
     assert_eq!(updated_nsfw_satellite.is_nsfw, true);
     assert_eq!(updated_nsfw_satellite.is_spoiler, false);
+    assert_eq!(updated_nsfw_satellite.delete_timestamp, None);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_delete_satellite() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere, satellite) = create_sphere_with_satellite(
+        "1",
+        "1",
+        false,
+        false,
+        &mut user,
+        &db_pool,
+    ).await.expect("Sphere with satellite should be created");
+
+    let deleted_satellite = delete_satellite(satellite.satellite_id, &user, &db_pool).await.expect("Satellite should be deleted");
+
+    assert_eq!(deleted_satellite.satellite_name, "1");
+    assert_eq!(deleted_satellite.sphere_name, sphere.sphere_name);
+    assert_eq!(deleted_satellite.description, "test");
+    assert_eq!(deleted_satellite.is_nsfw, false);
+    assert_eq!(deleted_satellite.is_spoiler, false);
+    assert!(deleted_satellite.delete_timestamp.is_some_and(|delete_timestamp| delete_timestamp > deleted_satellite.timestamp));
+
+    let satellite_vec = get_satellite_vec_by_sphere_name(&sphere.sphere_name, &db_pool).await.expect("Should get sphere satellite vec");
+
+    assert_eq!(satellite_vec.first(), Some(&deleted_satellite));
 
     Ok(())
 }

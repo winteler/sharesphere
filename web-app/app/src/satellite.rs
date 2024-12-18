@@ -13,7 +13,7 @@ pub struct Satellite {
     pub num_posts: i32,
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    pub disable_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[cfg(feature = "ssr")]
@@ -25,11 +25,28 @@ pub mod ssr {
     use crate::user::User;
     use sqlx::PgPool;
 
+    pub async fn get_active_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
+        let satellite_vec = sqlx::query_as!(
+            Satellite,
+            "SELECT * FROM satellites
+            WHERE
+                sphere_name = $1 AND
+                disable_timestamp IS NULL
+            ORDER BY satellite_name",
+            sphere_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(satellite_vec)
+    }
+
     pub async fn get_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
         let satellite_vec = sqlx::query_as!(
             Satellite,
             "SELECT * FROM satellites
-            WHERE sphere_name = $1
+            WHERE
+                sphere_name = $1
             ORDER BY satellite_name",
             sphere_name
         )
@@ -128,7 +145,7 @@ pub mod ssr {
         Ok(satellite)
     }
 
-    pub async fn delete_satellite(
+    pub async fn disable_satellite(
         satellite_id: i64,
         user: &User,
         db_pool: &PgPool
@@ -139,7 +156,7 @@ pub mod ssr {
         let satellite = sqlx::query_as!(
             Satellite,
             "UPDATE satellites
-            SET delete_timestamp = CURRENT_TIMESTAMP
+            SET disable_timestamp = CURRENT_TIMESTAMP
             WHERE satellite_id = $1
             RETURNING *",
             satellite_id,

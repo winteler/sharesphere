@@ -38,7 +38,7 @@ CREATE TABLE satellites (
     num_posts INT NOT NULL DEFAULT 0,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    delete_timestamp TIMESTAMPTZ,
+    disable_timestamp TIMESTAMPTZ,
     CONSTRAINT unique_satellite_name UNIQUE (satellite_name, sphere_id),
     CONSTRAINT unique_sphere UNIQUE (sphere_id, satellite_id),
     CONSTRAINT valid_forum FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
@@ -46,7 +46,7 @@ CREATE TABLE satellites (
 
 -- index to guarantee unique satellite names per forum for active satellites
 CREATE UNIQUE INDEX unique_satellite ON satellites (satellite_name, sphere_id)
-    WHERE satellites.delete_timestamp IS NULL;
+    WHERE satellites.disable_timestamp IS NULL;
 
 CREATE TABLE user_sphere_roles (
     role_id BIGSERIAL PRIMARY KEY,

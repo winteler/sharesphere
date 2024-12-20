@@ -108,8 +108,8 @@ async fn test_create_satellite() -> Result<(), AppError> {
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user");
 
     let satellite_1 = create_satellite(
-        "1",
         &sphere.sphere_name,
+        "1",
         "1",
         false,
         true,
@@ -125,8 +125,8 @@ async fn test_create_satellite() -> Result<(), AppError> {
     assert_eq!(satellite_1.disable_timestamp, None);
 
     let satellite_2 = create_satellite(
-        "2",
         &sphere.sphere_name,
+        "2",
         "2",
         true,
         false,
@@ -142,8 +142,8 @@ async fn test_create_satellite() -> Result<(), AppError> {
     assert_eq!(satellite_2.disable_timestamp, None);
 
     let nsfw_satellite = create_satellite(
-        "3",
         &nsfw_sphere.sphere_name,
+        "3",
         "3",
         false,
         false,
@@ -187,8 +187,8 @@ async fn test_update_satellite() -> Result<(), AppError> {
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user");
 
     let nsfw_satellite = create_satellite(
-        "2",
         &nsfw_sphere.sphere_name,
+        "2",
         "2",
         true,
         true,

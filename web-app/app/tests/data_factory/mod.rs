@@ -172,8 +172,8 @@ pub async fn create_sphere_with_satellite(
     *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
 
     let satellite = create_satellite(
-        satellite_name,
         &sphere.sphere_name,
+        satellite_name,
         "test",
         is_nsfw_satellite,
         is_spoiler_satellite,
@@ -203,8 +203,8 @@ pub async fn create_sphere_with_satellite_vec(
     let mut satellite_vec = Vec::new();
     for i in 0..num_satellites {
         let satellite = create_satellite(
-            i.to_string().as_str(),
             &sphere.sphere_name,
+            i.to_string().as_str(),
             "test",
             false,
             false,

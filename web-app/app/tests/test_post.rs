@@ -256,8 +256,8 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     // create post in satellite to make sure it doesn't get included in the results
     let satellite = create_satellite(
-        "a",
         &sphere1.sphere_name,
+        "a",
         "satellite",
         false,
         false,
@@ -404,8 +404,8 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 
     // create post in satellite to make sure it doesn't get included in the results
     let satellite = create_satellite(
-        "a",
         sphere1_name,
+        "a",
         "satellite",
         false,
         false,
@@ -525,8 +525,8 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
 
     // create post in satellite to make sure it doesn't get included in the results
     let satellite = create_satellite(
-        "a",
         sphere_name,
+        "a",
         "satellite",
         false,
         false,

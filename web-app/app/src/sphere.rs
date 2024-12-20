@@ -28,6 +28,7 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
+use crate::satellite::{get_satellite_vec_by_sphere_name, CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
 use crate::sidebar::SphereSidebar;
 use crate::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategory, SphereCategoryHeader};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
@@ -95,9 +96,13 @@ pub struct SphereState {
     pub category_id_filter: RwSignal<Option<i64>>,
     pub permission_level: Signal<PermissionLevel>,
     pub sphere_resource: Resource<Result<Sphere, ServerFnError<AppError>>>,
+    pub satellite_resource: Resource<Result<Vec<Satellite>, ServerFnError<AppError>>>,
     pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
     pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, ServerFnError<AppError>>>,
     pub sphere_rules_resource: Resource<Result<Vec<Rule>, ServerFnError<AppError>>>,
+    pub create_satellite_action: ServerAction<CreateSatellite>,
+    pub update_satellite_action: ServerAction<UpdateSatellite>,
+    pub disable_satellite_action: ServerAction<DisableSatellite>,
     pub moderate_post_action: ServerAction<ModeratePost>,
     pub update_sphere_desc_action: ServerAction<UpdateSphereDescription>,
     pub set_sphere_category_action: ServerAction<SetSphereCategory>,
@@ -517,6 +522,9 @@ pub fn SphereHeader(
 pub fn SphereBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_name = get_sphere_name_memo(use_params_map());
+    let create_satellite_action = ServerAction::<CreateSatellite>::new();
+    let update_satellite_action = ServerAction::<UpdateSatellite>::new();
+    let disable_satellite_action = ServerAction::<DisableSatellite>::new();
     let update_sphere_desc_action = ServerAction::<UpdateSphereDescription>::new();
     let set_sphere_category_action = ServerAction::<SetSphereCategory>::new();
     let delete_sphere_category_action = ServerAction::<DeleteSphereCategory>::new();
@@ -541,6 +549,15 @@ pub fn SphereBanner() -> impl IntoView {
             ),
             move |(sphere_name, _, _)| get_sphere_by_name(sphere_name)
         ),
+        satellite_resource: Resource::new(
+            move || (
+                sphere_name.get(),
+                create_satellite_action.version().get(),
+                update_satellite_action.version().get(),
+                disable_satellite_action.version().get(),
+            ),
+            move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, false)
+        ),
         sphere_categories_resource: Resource::new(
             move || (
                 sphere_name.get(),
@@ -562,6 +579,9 @@ pub fn SphereBanner() -> impl IntoView {
             ),
             move |(sphere_name, _, _, _)| get_sphere_rule_vec(sphere_name),
         ),
+        create_satellite_action,
+        update_satellite_action,
+        disable_satellite_action,
         moderate_post_action: ServerAction::<ModeratePost>::new(),
         update_sphere_desc_action,
         set_sphere_category_action,

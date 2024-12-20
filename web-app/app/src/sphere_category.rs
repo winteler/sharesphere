@@ -216,7 +216,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                             <div class="w-3/12 py-2 font-bold">"Category"</div>
                             <div class="w-1/12 py-2 font-bold">"Color"</div>
                             <div class="w-3/6 py-2 font-bold">"Description"</div>
-                            <div class="w-20 py-2 font-bold text-center">"Activated"</div>
+                            <div class="w-20 py-2 font-bold text-center">"Active"</div>
                         </div>
                     </div>
                     <div class="flex flex-col gap-1 pl-2 py-1">
@@ -247,12 +247,12 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                             <div class="w-1/12 h-fit"><ColorIndicator color/></div>
                                             <div class="w-3/6 select-none whitespace-pre-wrap">{description.clone()}</div>
                                             <div class="w-20 flex justify-center">
-                                                {
-                                                    match is_active {
-                                                        true => view! { <PlayIcon/> }.into_any(),
-                                                        false => view! { <PauseIcon/> }.into_any(),
-                                                    }
+                                            {
+                                                match is_active {
+                                                    true => view! { <PlayIcon/> }.into_any(),
+                                                    false => view! { <PauseIcon/> }.into_any(),
                                                 }
+                                            }
                                             </div>
                                         </div>
                                         <DeleteCategoryButton category_name=sphere_category.category_name.clone()/>

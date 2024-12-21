@@ -31,14 +31,25 @@ pub struct TextareaData {
 }
 
 #[cfg(feature = "ssr")]
-mod ssr {
+pub mod ssr {
     use std::io::Cursor;
 
     use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
     use quick_xml::{Reader, Writer};
 
     use crate::constants::SPOILER_TAG;
+    use crate::editor::get_styled_html_from_markdown;
     use crate::errors::AppError;
+
+    pub async fn get_html_and_markdown_bodies(body: String, is_markdown: bool) -> Result<(String, Option<String>), AppError> {
+        match is_markdown {
+            true => Ok((
+                get_styled_html_from_markdown(body.clone()).await?,
+                Some(body),
+            )),
+            false => Ok((body, None)),
+        }
+    }
 
     pub fn style_html_user_content(user_content: &str) -> Result<String, AppError> {
         let mut reader = Reader::from_str(user_content);
@@ -477,6 +488,29 @@ mod tests {
     use leptos::prelude::ServerFnError;
 
     use crate::editor::{get_styled_html_from_markdown, ssr::style_html_user_content};
+    use crate::editor::ssr::get_html_and_markdown_bodies;
+
+    #[tokio::test]
+    async fn test_get_html_and_markdown_bodies() -> Result<(), ServerFnError> {
+        let text_body = "hello world";
+        let markdown_body = "#this is a header";
+        
+        let (html_text_body, markdown_text_body) = get_html_and_markdown_bodies(
+            text_body.to_string(), 
+            false
+        ).await.expect("Should get text body");
+        assert_eq!(html_text_body, text_body);
+        assert_eq!(markdown_text_body, None);
+
+        let (html_markdown_body, markdown_markdown_body) = get_html_and_markdown_bodies(
+            markdown_body.to_string(), 
+            true
+        ).await.expect("Should get text body");
+        assert_eq!(html_markdown_body, get_styled_html_from_markdown(markdown_body.to_string()).await.expect("Should get html body"));
+        assert_eq!(markdown_markdown_body.as_deref(), Some(markdown_body));
+        
+        Ok(())
+    }
 
     #[test]
     fn test_style_html_user_content() -> Result<(), ServerFnError> {

@@ -4,7 +4,7 @@ use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 use server_fn::ServerFnError;
 
-use crate::editor::{FormTextEditor, TextareaData};
+use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
 use crate::icons::{DeleteIcon, EditIcon, PauseIcon, PlayIcon, PlusIcon};
@@ -17,6 +17,7 @@ use crate::widget::{ModalDialog, ModalFormButtons};
 use crate::{
     app::ssr::get_db_pool,
     auth::ssr::check_user,
+    editor::ssr::get_html_and_markdown_bodies,
     satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
 
@@ -27,7 +28,8 @@ pub struct Satellite {
     pub satellite_name: String,
     pub sphere_id: i64,
     pub sphere_name: String,
-    pub description: String,
+    pub body: String,
+    pub markdown_body: Option<String>,
     pub is_nsfw: bool,
     pub is_spoiler: bool,
     pub num_posts: i32,
@@ -93,7 +95,8 @@ pub mod ssr {
     pub async fn create_satellite(
         sphere_name: &str,
         satellite_name: &str,
-        description: &str,
+        body: &str,
+        markdown_body: Option<&str>,
         is_nsfw: bool,
         is_spoiler: bool,
         user: &User,
@@ -104,23 +107,24 @@ pub mod ssr {
         let satellite = sqlx::query_as!(
             Satellite,
             "INSERT INTO satellites
-            (satellite_name, sphere_id, sphere_name, description, is_nsfw, is_spoiler, creator_id) 
+            (satellite_name, sphere_id, sphere_name, body, markdown_body, is_nsfw, is_spoiler, creator_id)
             VALUES (
                 $1,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                $2, $3,
+                $2, $3, $4,
                 (
                     CASE 
-                        WHEN $4 THEN TRUE
+                        WHEN $5 THEN TRUE
                         ELSE (SELECT is_nsfw FROM spheres WHERE sphere_name = $2)
                     END
                 ),
-                $5, $6
+                $6, $7
             ) 
             RETURNING *",
             satellite_name,
             sphere_name,
-            description,
+            body,
+            markdown_body,
             is_nsfw,
             is_spoiler,
             user.user_id,
@@ -134,7 +138,8 @@ pub mod ssr {
     pub async fn update_satellite(
         satellite_id: i64,
         satellite_name: &str,
-        description: &str,
+        body: &str,
+        markdown_body: Option<&str>,
         is_nsfw: bool,
         is_spoiler: bool,
         user: &User,
@@ -148,13 +153,15 @@ pub mod ssr {
             "UPDATE satellites
             SET
                 satellite_name = $1,
-                description = $2,
-                is_nsfw = $3,
-                is_spoiler = $4
-            WHERE satellite_id = $5
+                body = $2,
+                markdown_body = $3,
+                is_nsfw = $4,
+                is_spoiler = $5
+            WHERE satellite_id = $6
             RETURNING *",
             satellite_name,
-            description,
+            body,
+            markdown_body,
             is_nsfw || sphere.is_nsfw,
             is_spoiler,
             satellite_id,
@@ -204,16 +211,21 @@ pub async fn get_satellite_vec_by_sphere_name(
 pub async fn create_satellite(
     sphere_name: String,
     satellite_name: String,
-    description: String,
+    body: String,
+    is_markdown: bool,
     is_nsfw: bool,
     is_spoiler: bool,
 ) -> Result<Satellite, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
+
+    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
+
     let satellite = ssr::create_satellite(
         &sphere_name,
         &satellite_name,
-        &description,
+        &body,
+        markdown_body.as_deref(),
         is_nsfw,
         is_spoiler,
         &user,
@@ -226,16 +238,21 @@ pub async fn create_satellite(
 pub async fn update_satellite(
     satellite_id: i64,
     satellite_name: String,
-    description: String,
+    body: String,
+    is_markdown: bool,
     is_nsfw: bool,
     is_spoiler: bool,
 ) -> Result<Satellite, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
+
+    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
+
     let satellite = ssr::update_satellite(
         satellite_id,
         &satellite_name,
-        &description,
+        &body,
+        markdown_body.as_deref(),
         is_nsfw,
         is_spoiler,
         &user,
@@ -265,13 +282,13 @@ pub fn SatellitePanel() -> impl IntoView {
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
-            <div class="text-xl text-center">"Rules"</div>
+            <div class="text-xl text-center">"Satellites"</div>
             <div class="flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
                     <div class="w-5/6 flex gap-1">
-                        <div class="w-5/12 py-2 font-bold">"Title"</div>
-                        <div class="w-6/12 py-2 font-bold">"Description"</div>
+                        <div class="w-3/6 py-2 font-bold">"Title"</div>
                         <div class="w-20 py-2 font-bold text-center">"Active"</div>
+                        <div class="w-20 py-2 font-bold text-center">"Link"</div>
                     </div>
                 </div>
                 <TransitionUnpack resource=sphere_state.satellite_resource let:satellite_vec>
@@ -279,13 +296,11 @@ pub fn SatellitePanel() -> impl IntoView {
                     satellite_vec.iter().map(|satellite| {
                         let show_edit_form = RwSignal::new(false);
                         let satellite_name = satellite.satellite_name.clone();
-                        let description = satellite.description.clone();
                         let satellite = satellite.clone();
                         view! {
                             <div class="flex gap-1 justify-between rounded pl-1">
                                 <div class="w-5/6 flex gap-1">
-                                    <div class="w-5/12 select-none">{satellite_name}</div>
-                                    <div class="w-6/12 select-none">{description}</div>
+                                    <div class="w-3/6 select-none">{satellite_name}</div>
                                     <div class="w-20 flex justify-center">
                                     {
                                         match satellite.disable_timestamp.is_none() {
@@ -294,6 +309,7 @@ pub fn SatellitePanel() -> impl IntoView {
                                         }
                                     }
                                     </div>
+                                    <div class="w-20 flex justify-center">"Link"</div>
                                 </div>
                                 <div class="flex gap-1 justify-end">
                                     <button
@@ -316,7 +332,7 @@ pub fn SatellitePanel() -> impl IntoView {
                 }
                 </TransitionUnpack>
             </div>
-            <CreateRuleForm/>
+            <CreateSatelliteForm/>
         </div>
     }
 }
@@ -363,15 +379,21 @@ pub fn EditSatelliteForm(
         set_content: title_autosize.set_content,
         textarea_ref: title_ref,
     };
-    let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(description_ref);
-    let description_data = TextareaData {
-        content: desc_autosize.content,
-        set_content: desc_autosize.set_content,
-        textarea_ref: description_ref,
+    title_data.set_content.set(satellite.satellite_name);
+    let body_ref = NodeRef::<html::Textarea>::new();
+    let body_autosize = use_textarea_autosize(body_ref);
+    let body_data = TextareaData {
+        content: body_autosize.content,
+        set_content: body_autosize.set_content,
+        textarea_ref: body_ref,
     };
+    let (body, is_markdown_body) = match satellite.markdown_body {
+        Some(markdown_body) => (markdown_body, true),
+        None => (satellite.body, false),
+    };
+    body_data.set_content.set(body);
     let invalid_inputs = Signal::derive(move || {
-        title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+        title_autosize.content.read().is_empty() || body_data.content.read().is_empty()
     });
 
     view! {
@@ -384,7 +406,7 @@ pub fn EditSatelliteForm(
                     value=satellite.satellite_id
                 />
                 <div class="flex flex-col gap-3 w-full">
-                    <SatelliteInputs title_data description_data is_nsfw is_spoiler/>
+                    <SatelliteInputs title_data body_data is_markdown_body is_nsfw is_spoiler/>
                     <ModalFormButtons
                         disable_publish=invalid_inputs
                         show_form
@@ -397,7 +419,7 @@ pub fn EditSatelliteForm(
 
 /// Component to create a sphere rule
 #[component]
-pub fn CreateRuleForm() -> impl IntoView {
+pub fn CreateSatelliteForm() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let show_dialog = RwSignal::new(false);
     let title_ref = NodeRef::<html::Textarea>::new();
@@ -407,15 +429,15 @@ pub fn CreateRuleForm() -> impl IntoView {
         set_content: title_autosize.set_content,
         textarea_ref: title_ref,
     };
-    let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(description_ref);
-    let description_data = TextareaData {
-        content: desc_autosize.content,
-        set_content: desc_autosize.set_content,
-        textarea_ref: description_ref,
+    let body_ref = NodeRef::<html::Textarea>::new();
+    let body_autosize = use_textarea_autosize(body_ref);
+    let body_data = TextareaData {
+        content: body_autosize.content,
+        set_content: body_autosize.set_content,
+        textarea_ref: body_ref,
     };
     let invalid_inputs = Signal::derive(move || {
-        title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+        title_autosize.content.read().is_empty() || body_data.content.read().is_empty()
     });
 
     view! {
@@ -441,7 +463,7 @@ pub fn CreateRuleForm() -> impl IntoView {
                         value=sphere_state.sphere_name
                     />
                     <div class="flex flex-col gap-3 w-full">
-                        <SatelliteInputs title_data description_data is_nsfw=false is_spoiler=false/>
+                        <SatelliteInputs title_data body_data is_markdown_body=false is_nsfw=false is_spoiler=false/>
                         <ModalFormButtons
                             disable_publish=invalid_inputs
                             show_form=show_dialog
@@ -457,23 +479,24 @@ pub fn CreateRuleForm() -> impl IntoView {
 #[component]
 pub fn SatelliteInputs(
     title_data: TextareaData,
-    description_data: TextareaData,
+    body_data: TextareaData,
+    is_markdown_body: bool,
     is_nsfw: bool,
     is_spoiler: bool,
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-1 content-center">
+        <div class="flex flex-col gap-1 content-center">
             <FormTextEditor
-                name="title"
-                placeholder="Title"
+                name="satellite_name"
+                placeholder="Name"
                 data=title_data
-                class="w-5/12"
             />
-            <FormTextEditor
-                name="description"
-                placeholder="Description"
-                data=description_data
-                class="w-6/12"
+            <FormMarkdownEditor
+                name="body"
+                placeholder="Body"
+                is_markdown_name="is_markdown"
+                data=body_data
+                is_markdown=is_markdown_body
             />
             <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
             <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>

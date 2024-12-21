@@ -1,3 +1,10 @@
+use std::fmt;
+
+use leptos::html;
+use leptos::prelude::*;
+use leptos_use::use_textarea_autosize;
+use serde::{Deserialize, Serialize};
+
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
@@ -16,15 +23,10 @@ use crate::widget::{AuthorWidget, MinimizeMaximizeWidget, ModalDialog, ModalForm
 use crate::{
     app::ssr::get_db_pool,
     auth::{get_user, ssr::check_user},
-    editor::get_styled_html_from_markdown,
+    editor::{ssr::get_html_and_markdown_bodies},
     post::ssr::increment_post_comment_count,
     ranking::{ssr::vote_on_content, VoteValue},
 };
-use leptos::html;
-use leptos::prelude::*;
-use leptos_use::use_textarea_autosize;
-use serde::{Deserialize, Serialize};
-use std::fmt;
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -447,19 +449,13 @@ pub async fn create_comment(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (comment, markdown_comment) = match is_markdown {
-        true => (
-            get_styled_html_from_markdown(comment.clone()).await?,
-            Some(comment.as_str()),
-        ),
-        false => (comment, None),
-    };
+    let (comment, markdown_comment) = get_html_and_markdown_bodies(comment, is_markdown).await?;
 
     let mut comment = ssr::create_comment(
         post_id,
         parent_comment_id,
         comment.as_str(),
-        markdown_comment,
+        markdown_comment.as_deref(),
         is_pinned.unwrap_or(false),
         &user,
         &db_pool,
@@ -495,18 +491,12 @@ pub async fn edit_comment(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (comment, markdown_comment) = match is_markdown {
-        true => (
-            get_styled_html_from_markdown(comment.clone()).await?,
-            Some(comment.as_str()),
-        ),
-        false => (comment, None),
-    };
+    let (comment, markdown_comment) = get_html_and_markdown_bodies(comment, is_markdown).await?;
 
     let comment = ssr::update_comment(
         comment_id,
         comment.as_str(),
-        markdown_comment,
+        markdown_comment.as_deref(),
         is_pinned.unwrap_or(false),
         &user,
         &db_pool,

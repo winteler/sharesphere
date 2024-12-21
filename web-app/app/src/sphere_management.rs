@@ -27,6 +27,7 @@ use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
 };
+use crate::satellite::SatellitePanel;
 
 pub const MANAGE_SPHERE_ROUTE: &str = "/manage";
 pub const NONE_STR: &str = "None";
@@ -332,6 +333,7 @@ pub fn SphereCockpit() -> impl IntoView {
             <SphereDescriptionDialog/>
             <SphereIconDialog/>
             <SphereBannerDialog/>
+            <SatellitePanel/>
             <SphereCategoriesDialog/>
             <ModeratorPanel/>
             <SphereRulesPanel/>

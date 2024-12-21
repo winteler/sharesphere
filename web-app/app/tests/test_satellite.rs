@@ -101,7 +101,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
 
 
     assert_eq!(
-        create_satellite("1", &sphere.sphere_name, "1", false, false, &user, &db_pool).await,
+        create_satellite("1", &sphere.sphere_name, "1", None, false, false, &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
 
@@ -111,6 +111,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
         &sphere.sphere_name,
         "1",
         "1",
+        Some("1"),
         false,
         true,
         &user,
@@ -119,7 +120,8 @@ async fn test_create_satellite() -> Result<(), AppError> {
 
     assert_eq!(satellite_1.satellite_name, "1");
     assert_eq!(satellite_1.sphere_name, sphere.sphere_name);
-    assert_eq!(satellite_1.description, "1");
+    assert_eq!(satellite_1.body, "1");
+    assert_eq!(satellite_1.markdown_body.as_deref(), Some("1"));
     assert_eq!(satellite_1.is_nsfw, false);
     assert_eq!(satellite_1.is_spoiler, true);
     assert_eq!(satellite_1.disable_timestamp, None);
@@ -128,6 +130,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
         &sphere.sphere_name,
         "2",
         "2",
+        None,
         true,
         false,
         &user,
@@ -136,7 +139,8 @@ async fn test_create_satellite() -> Result<(), AppError> {
 
     assert_eq!(satellite_2.satellite_name, "2");
     assert_eq!(satellite_2.sphere_name, sphere.sphere_name);
-    assert_eq!(satellite_2.description, "2");
+    assert_eq!(satellite_2.body, "2");
+    assert_eq!(satellite_2.markdown_body, None);
     assert_eq!(satellite_2.is_nsfw, true);
     assert_eq!(satellite_2.is_spoiler, false);
     assert_eq!(satellite_2.disable_timestamp, None);
@@ -145,6 +149,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
         &nsfw_sphere.sphere_name,
         "3",
         "3",
+        None,
         false,
         false,
         &user,
@@ -153,7 +158,8 @@ async fn test_create_satellite() -> Result<(), AppError> {
 
     assert_eq!(nsfw_satellite.satellite_name, "3");
     assert_eq!(nsfw_satellite.sphere_name, nsfw_sphere.sphere_name);
-    assert_eq!(nsfw_satellite.description, "3");
+    assert_eq!(nsfw_satellite.body, "3");
+    assert_eq!(nsfw_satellite.markdown_body, None);
     assert_eq!(nsfw_satellite.is_nsfw, true);
     assert_eq!(nsfw_satellite.is_spoiler, false);
     assert_eq!(nsfw_satellite.disable_timestamp, None);
@@ -190,6 +196,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
         &nsfw_sphere.sphere_name,
         "2",
         "2",
+        Some("2"),
         true,
         true,
         &user,
@@ -197,7 +204,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
     ).await.expect("Nsfw satellite should be created");
 
     assert_eq!(
-        update_satellite(satellite_1.satellite_id, "a", "error", false, true, &base_user, &db_pool).await,
+        update_satellite(satellite_1.satellite_id, "a", "error", None, false, true, &base_user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -205,6 +212,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
         satellite_1.satellite_id,
         "a",
         "a",
+        Some("a"),
         false,
         true,
         &user,
@@ -214,7 +222,8 @@ async fn test_update_satellite() -> Result<(), AppError> {
     assert_eq!(updated_satellite_1.satellite_id, satellite_1.satellite_id);
     assert_eq!(updated_satellite_1.satellite_name, "a");
     assert_eq!(updated_satellite_1.sphere_name, sphere_1.sphere_name);
-    assert_eq!(updated_satellite_1.description, "a");
+    assert_eq!(updated_satellite_1.body, "a");
+    assert_eq!(updated_satellite_1.markdown_body.as_deref(), Some("a"));
     assert_eq!(updated_satellite_1.is_nsfw, false);
     assert_eq!(updated_satellite_1.is_spoiler, true);
     assert_eq!(updated_satellite_1.disable_timestamp, None);
@@ -223,6 +232,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
         nsfw_satellite.satellite_id,
         "b",
         "b",
+        None,
         false,
         false,
         &user,
@@ -232,7 +242,8 @@ async fn test_update_satellite() -> Result<(), AppError> {
     assert_eq!(updated_nsfw_satellite.satellite_id, nsfw_satellite.satellite_id);
     assert_eq!(updated_nsfw_satellite.satellite_name, "b");
     assert_eq!(updated_nsfw_satellite.sphere_name, nsfw_sphere.sphere_name);
-    assert_eq!(updated_nsfw_satellite.description, "b");
+    assert_eq!(updated_nsfw_satellite.body, "b");
+    assert_eq!(updated_nsfw_satellite.markdown_body, None);
     assert_eq!(updated_nsfw_satellite.is_nsfw, true);
     assert_eq!(updated_nsfw_satellite.is_spoiler, false);
     assert_eq!(updated_nsfw_satellite.disable_timestamp, None);
@@ -258,7 +269,7 @@ async fn test_disable_satellite() -> Result<(), AppError> {
 
     assert_eq!(deleted_satellite.satellite_name, "1");
     assert_eq!(deleted_satellite.sphere_name, sphere.sphere_name);
-    assert_eq!(deleted_satellite.description, "test");
+    assert_eq!(deleted_satellite.body, "test");
     assert_eq!(deleted_satellite.is_nsfw, false);
     assert_eq!(deleted_satellite.is_spoiler, false);
     assert!(deleted_satellite.disable_timestamp.is_some_and(|delete_timestamp| delete_timestamp > deleted_satellite.timestamp));

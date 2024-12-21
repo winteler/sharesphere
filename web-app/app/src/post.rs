@@ -29,7 +29,7 @@ use crate::{
     app::ssr::get_db_pool,
     auth::{get_user, ssr::check_user},
     constants::PATH_SEPARATOR,
-    editor::get_styled_html_from_markdown,
+    editor::ssr::get_html_and_markdown_bodies,
     ranking::{ssr::vote_on_content, VoteValue},
     sphere::SPHERE_ROUTE_PREFIX,
 };
@@ -760,20 +760,14 @@ pub async fn create_post(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (body, markdown_body) = match is_markdown {
-        true => (
-            get_styled_html_from_markdown(body.clone()).await?,
-            Some(body.as_str()),
-        ),
-        false => (body, None),
-    };
+    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
     let post = ssr::create_post(
         sphere.as_str(),
         satellite_id,
         title.as_str(),
         body.as_str(),
-        markdown_body,
+        markdown_body.as_deref(),
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
@@ -811,19 +805,13 @@ pub async fn edit_post(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (body, markdown_body) = match is_markdown {
-        true => (
-            get_styled_html_from_markdown(body.clone()).await?,
-            Some(body.as_str()),
-        ),
-        false => (body, None),
-    };
+    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
     let post = ssr::update_post(
         post_id,
         title.as_str(),
         body.as_str(),
-        markdown_body,
+        markdown_body.as_deref(),
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),

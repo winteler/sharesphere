@@ -21,6 +21,9 @@ use crate::{
     satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
 
+pub const SATELLITE_ROUTE_PREFIX: &str = "/satellite";
+pub const SATELLITE_ROUTE_PARAM_NAME: &str = "satellite_id";
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Satellite {
@@ -47,6 +50,20 @@ pub mod ssr {
     use crate::user::User;
     use sqlx::PgPool;
 
+    pub async fn get_satellite_by_id(satellite_id: i64, db_pool: &PgPool) -> Result<Satellite, AppError> {
+        let satellite = sqlx::query_as!(
+            Satellite,
+            "SELECT * FROM satellites
+            WHERE
+                sphere_id = $1",
+            satellite_id
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(satellite)
+    }
+    
     pub async fn get_active_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
         let satellite_vec = sqlx::query_as!(
             Satellite,
@@ -273,6 +290,18 @@ pub async fn disable_satellite(
         &db_pool
     ).await?;
     Ok(satellite)
+}
+
+/// Component to display a satellite and its content
+#[component]
+pub fn SatelliteContent() -> impl IntoView {
+    
+}
+
+/// Component to display a post inside a Satellite
+#[component]
+pub fn SatellitePost() -> impl IntoView {
+
 }
 
 /// Component to display active satellites for the current sphere

@@ -1,12 +1,44 @@
 pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::errors::AppError;
-use app::satellite::ssr::{create_satellite, disable_satellite, get_active_satellite_vec_by_sphere_name, get_satellite_sphere, get_satellite_vec_by_sphere_name, update_satellite};
+use app::satellite::ssr::{create_satellite, disable_satellite, get_active_satellite_vec_by_sphere_name, get_satellite_by_id, get_satellite_sphere, get_satellite_vec_by_sphere_name, update_satellite};
 use app::sphere::ssr::create_sphere;
 use app::user::User;
 
 mod common;
 mod data_factory;
+
+#[tokio::test]
+async fn test_get_satellite_by_id() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (_, expected_satellite_1) = create_sphere_with_satellite(
+        "1",
+        "1",
+        true,
+        false,
+        &mut user,
+        &db_pool,
+    ).await.expect("Error creating sphere and satellites");
+
+    let (_, expected_satellite_2) = create_sphere_with_satellite(
+        "2",
+        "2",
+        false,
+        true,
+        &mut user,
+        &db_pool,
+    ).await.expect("Error creating sphere and satellites");
+    
+    let satellite_1 = get_satellite_by_id(expected_satellite_1.satellite_id, &db_pool).await.expect("Error getting satellite 1");
+    let satellite_2 = get_satellite_by_id(expected_satellite_2.satellite_id, &db_pool).await.expect("Error getting satellite 2");
+    
+    assert_eq!(satellite_1, expected_satellite_1);
+    assert_eq!(satellite_2, expected_satellite_2);
+    
+    Ok(())
+}
 
 #[tokio::test]
 async fn test_get_active_satellite_vec_by_sphere_name() -> Result<(), AppError> {

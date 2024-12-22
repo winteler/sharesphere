@@ -12,6 +12,7 @@ use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
+use crate::satellite::{SatelliteContent, SatellitePost, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX};
 use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
@@ -148,6 +149,10 @@ pub fn App() -> impl IntoView {
                         }>
                             <Route path=StaticSegment("") view=HomePage/>
                             <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
+                                <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=Outlet>
+                                    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=SatellitePost/>
+                                    <Route path=StaticSegment("") view=SatelliteContent/>
+                                </ParentRoute>
                                 <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
                                 <ParentRoute path=StaticSegment(MANAGE_SPHERE_ROUTE) view=SphereCockpitGuard>
                                     <Route path=StaticSegment("") view=SphereCockpit/>

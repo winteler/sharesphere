@@ -7,7 +7,7 @@ use server_fn::ServerFnError;
 use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::icons::{DeleteIcon, EditIcon, PauseIcon, PlayIcon, PlusIcon};
+use crate::icons::{DeleteIcon, EditIcon, NsfwIcon, PauseIcon, PlayIcon, PlusIcon, SpoilerIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::SphereState;
 use crate::unpack::TransitionUnpack;
@@ -289,14 +289,28 @@ pub fn ActiveSatelliteList() -> impl IntoView {
                     let satellite_list = satellite_vec.iter().map(|satellite| {
                         let satellite_name = satellite.satellite_name.clone();
                         view! {
-                            <div>
+                            <div class="p-2 border border-1 border-base-content/20 rounded hover:bg-base-content/20 flex flex-col gap-1">
                                 {satellite_name}
+                                <div class="flex gap-1">
+                                {
+                                    match satellite.is_spoiler {
+                                        true => Some(view! { <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full"><SpoilerIcon/></div> }),
+                                        false => None
+                                    }
+                                }
+                                {
+                                    match satellite.is_nsfw {
+                                        true => Some(view! { <NsfwIcon/>}),
+                                        false => None
+                                    }
+                                }
+                                </div>
                             </div>
                         }
                     }).collect_view();
 
                     Some(view! {
-                        <div class="flex flex-col gap-2">
+                        <div class="grid grid-cols-2 2xl:grid-cols-4 gap-2">
                             {satellite_list}
                         </div>
                     })

@@ -275,10 +275,52 @@ pub async fn disable_satellite(
     Ok(satellite)
 }
 
+/// Component to display active satellites for the current sphere
+#[component]
+pub fn ActiveSatelliteList() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+
+    view! {
+        <TransitionUnpack resource=sphere_state.satellite_resource let:satellite_vec>
+        {
+            match satellite_vec.is_empty() {
+                true => None,
+                false => {
+                    let satellite_list = satellite_vec.iter().map(|satellite| {
+                        let satellite_name = satellite.satellite_name.clone();
+                        view! {
+                            <div>
+                                {satellite_name}
+                            </div>
+                        }
+                    }).collect_view();
+
+                    Some(view! {
+                        <div class="flex flex-col gap-2">
+                            {satellite_list}
+                        </div>
+                    })
+                },
+            }
+
+        }
+        </TransitionUnpack>
+    }
+}
+
 /// Component to manage satellites
 #[component]
 pub fn SatellitePanel() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
+    let satellite_resource = Resource::new(
+        move || (
+            sphere_state.sphere_name.get(),
+            sphere_state.create_satellite_action.version().get(),
+            sphere_state.update_satellite_action.version().get(),
+            sphere_state.disable_satellite_action.version().get(),
+        ),
+        move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, true)
+    );
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
@@ -291,7 +333,7 @@ pub fn SatellitePanel() -> impl IntoView {
                         <div class="w-20 py-2 font-bold text-center">"Link"</div>
                     </div>
                 </div>
-                <TransitionUnpack resource=sphere_state.satellite_resource let:satellite_vec>
+                <TransitionUnpack resource=satellite_resource let:satellite_vec>
                 {
                     satellite_vec.iter().map(|satellite| {
                         let show_edit_form = RwSignal::new(false);
@@ -337,7 +379,7 @@ pub fn SatellitePanel() -> impl IntoView {
     }
 }
 
-/// Component to delete a sphere rule
+/// Component to disable a satellite
 #[component]
 pub fn DisableSatelliteButton(
     satellite_id: i64
@@ -417,7 +459,7 @@ pub fn EditSatelliteForm(
     }
 }
 
-/// Component to create a sphere rule
+/// Component to create a satellite
 #[component]
 pub fn CreateSatelliteForm() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
@@ -475,7 +517,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
     }
 }
 
-/// Components with inputs to create or edit a rule
+/// Components with inputs to create or edit a satellite
 #[component]
 pub fn SatelliteInputs(
     title_data: TextareaData,

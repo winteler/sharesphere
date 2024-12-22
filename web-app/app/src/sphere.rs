@@ -28,7 +28,7 @@ use crate::post::{
 use crate::ranking::ScoreIndicator;
 use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
-use crate::satellite::{get_satellite_vec_by_sphere_name, CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
+use crate::satellite::{get_satellite_vec_by_sphere_name, ActiveSatelliteList, CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
 use crate::sidebar::SphereSidebar;
 use crate::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategory, SphereCategoryHeader};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
@@ -556,7 +556,7 @@ pub fn SphereBanner() -> impl IntoView {
                 update_satellite_action.version().get(),
                 disable_satellite_action.version().get(),
             ),
-            move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, false)
+            move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, true)
         ),
         sphere_categories_resource: Resource::new(
             move || (
@@ -717,6 +717,7 @@ pub fn SphereContents() -> impl IntoView {
     );
 
     view! {
+        <ActiveSatelliteList/>
         <ArcSuspenseUnpack resource=sphere_with_sub_resource let:sphere>
             <SphereToolbar sphere/>
         </ArcSuspenseUnpack>

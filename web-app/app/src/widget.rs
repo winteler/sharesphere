@@ -11,7 +11,7 @@ use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::errors::{AppError, ErrorDisplay};
-use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, SaveIcon, SelfAuthorIcon};
+use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -132,6 +132,30 @@ pub fn ModeratorWidget(
             </div>
         </Show>
     }.into_any()
+}
+
+/// Component to display a content's tags (spoiler, nsfw, ...)
+#[component]
+pub fn TagsWidget(
+    is_nsfw: bool,
+    is_spoiler: bool,
+) -> impl IntoView {
+    view! {
+        <div class="flex gap-1">
+        {
+            match is_spoiler {
+                true => Some(view! { <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full"><SpoilerIcon/></div> }),
+                false => None
+            }
+        }
+        {
+            match is_nsfw {
+                true => Some(view! { <NsfwIcon/>}),
+                false => None
+            }
+        }
+        </div>
+    }
 }
 
 /// Component to display the creation time of a post

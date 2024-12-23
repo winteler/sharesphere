@@ -1,5 +1,7 @@
 use leptos::html;
 use leptos::prelude::*;
+use leptos_router::hooks::use_params_map;
+use leptos_router::params::ParamsMap;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 use server_fn::ServerFnError;
@@ -7,11 +9,11 @@ use server_fn::ServerFnError;
 use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::icons::{DeleteIcon, EditIcon, NsfwIcon, PauseIcon, PlayIcon, PlusIcon, SpoilerIcon};
+use crate::icons::{DeleteIcon, EditIcon, PauseIcon, PlayIcon, PlusIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::sphere::SphereState;
+use crate::sphere::{SphereState, SPHERE_ROUTE_PREFIX};
 use crate::unpack::TransitionUnpack;
-use crate::widget::{ModalDialog, ModalFormButtons};
+use crate::widget::{ModalDialog, ModalFormButtons, TagsWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -20,6 +22,7 @@ use crate::{
     editor::ssr::get_html_and_markdown_bodies,
     satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
+use crate::content::ContentBody;
 
 pub const SATELLITE_ROUTE_PREFIX: &str = "/satellite";
 pub const SATELLITE_ROUTE_PARAM_NAME: &str = "satellite_id";
@@ -213,9 +216,9 @@ pub mod ssr {
 #[server]
 pub async fn get_satellite_by_id(
     satellite_id: i64,
-) -> Result<Vec<Satellite>, ServerFnError<AppError>> {
+) -> Result<Satellite, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let satellite = ssr::get_satellite_by_id(satellite_id, &db_pool);
+    let satellite = ssr::get_satellite_by_id(satellite_id, &db_pool).await?;
     Ok(satellite)
 }
 
@@ -300,16 +303,63 @@ pub async fn disable_satellite(
     Ok(satellite)
 }
 
+fn get_satellite_link(satellite: &Satellite) -> String {
+    format!("{SPHERE_ROUTE_PREFIX}/{}{SATELLITE_ROUTE_PREFIX}/{}", satellite.sphere_name, satellite.satellite_id)
+}
+
+/// Get a memo returning the last valid satellite_id from the url. Used to avoid triggering resources when leaving pages
+pub fn get_satellite_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
+    Memo::new(move |current_satellite_id: Option<&i64>| {
+        if let Some(new_satellite_id_str) = params.read().get_str(SATELLITE_ROUTE_PARAM_NAME) {
+            if let Ok(new_satellite_id) = new_satellite_id_str.parse::<i64>() {
+                log::trace!("Current satellite id: {current_satellite_id:?}, new satellite id: {new_satellite_id}");
+                new_satellite_id
+            } else {
+                log::trace!("Could not parse new satellite id: {new_satellite_id_str}, reuse current satellite id: {current_satellite_id:?}");
+                current_satellite_id.cloned().unwrap_or_default()
+            }
+        } else {
+            log::trace!("Could not find new satellite id, reuse current satellite id: {current_satellite_id:?}");
+            current_satellite_id.cloned().unwrap_or_default()
+        }
+    })
+}
+
 /// Component to display a satellite and its content
 #[component]
 pub fn SatelliteContent() -> impl IntoView {
-    
+    let params = use_params_map();
+    let satellite_id = get_satellite_id_memo(params);
+
+    let satellite_resource = Resource::new(
+        move || satellite_id.get(),
+        move |satellite_id| get_satellite_by_id(satellite_id)
+    );
+
+    view! {
+        <TransitionUnpack resource=satellite_resource let:satellite>
+            <div class="card">
+                <div class="card-body">
+                    <div class="flex flex-col gap-2">
+                        <h2 class="card-title">{satellite.satellite_name.clone()}</h2>
+                        <ContentBody
+                            body=satellite.body.clone()
+                            is_markdown=satellite.markdown_body.is_some()
+                        />
+                        <TagsWidget is_spoiler=satellite.is_spoiler is_nsfw=satellite.is_nsfw/>
+                    </div>
+                </div>
+            </div>
+        </TransitionUnpack>
+    }
 }
 
 /// Component to display a post inside a Satellite
 #[component]
 pub fn SatellitePost() -> impl IntoView {
+    view! {
 
+    }
 }
 
 /// Component to display active satellites for the current sphere
@@ -325,24 +375,15 @@ pub fn ActiveSatelliteList() -> impl IntoView {
                 false => {
                     let satellite_list = satellite_vec.iter().map(|satellite| {
                         let satellite_name = satellite.satellite_name.clone();
+                        let satellite_link = get_satellite_link(satellite);
                         view! {
-                            <div class="p-2 border border-1 border-base-content/20 rounded hover:bg-base-content/20 flex flex-col gap-1">
+                            <a
+                                href=satellite_link
+                                class="p-2 border border-1 border-base-content/20 rounded hover:bg-base-content/20 flex flex-col gap-1"
+                            >
                                 {satellite_name}
-                                <div class="flex gap-1">
-                                {
-                                    match satellite.is_spoiler {
-                                        true => Some(view! { <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full"><SpoilerIcon/></div> }),
-                                        false => None
-                                    }
-                                }
-                                {
-                                    match satellite.is_nsfw {
-                                        true => Some(view! { <NsfwIcon/>}),
-                                        false => None
-                                    }
-                                }
-                                </div>
-                            </div>
+                                <TagsWidget is_spoiler=satellite.is_spoiler is_nsfw=satellite.is_nsfw/>
+                            </a>
                         }
                     }).collect_view();
 
@@ -389,6 +430,7 @@ pub fn SatellitePanel() -> impl IntoView {
                     satellite_vec.iter().map(|satellite| {
                         let show_edit_form = RwSignal::new(false);
                         let satellite_name = satellite.satellite_name.clone();
+                        let satellite_link = get_satellite_link(satellite);
                         let satellite = satellite.clone();
                         view! {
                             <div class="flex gap-1 justify-between rounded pl-1">
@@ -402,7 +444,7 @@ pub fn SatellitePanel() -> impl IntoView {
                                         }
                                     }
                                     </div>
-                                    <div class="w-20 flex justify-center">"Link"</div>
+                                    <div class="w-20 flex justify-center"><a href=satellite_link>"Link"</a></div>
                                 </div>
                                 <div class="flex gap-1 justify-end">
                                     <button
@@ -456,7 +498,7 @@ pub fn DisableSatelliteButton(
     }
 }
 
-/// Component to edit a sphere rule
+/// Component to edit a satellite
 #[component]
 pub fn EditSatelliteForm(
     satellite: Satellite,
@@ -491,7 +533,7 @@ pub fn EditSatelliteForm(
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Edit a rule"</div>
+            <div class="text-center font-bold text-2xl">"Edit a satellite"</div>
             <ActionForm action=sphere_state.update_satellite_action>
                 <input
                     name="satellite_id"
@@ -545,7 +587,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Add a rule"</div>
+            <div class="text-center font-bold text-2xl">"Add a satellite"</div>
                 <ActionForm
                     action=sphere_state.create_satellite_action
                     on:submit=move |_| show_dialog.set(false)

@@ -16,13 +16,13 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::icons::{EditIcon, LoadingIcon, NsfwIcon, SpoilerIcon};
+use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereState};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategoryBadge, SphereCategoryHeader};
 use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
-use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -978,18 +978,7 @@ pub fn PostBadgeList(
             {
                 sphere_category.map(|category_header| view! { <SphereCategoryBadge category_header/> })
             }
-            {
-                match is_spoiler {
-                    true => Some(view! { <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full"><SpoilerIcon/></div> }),
-                    false => None
-                }
-            }
-            {
-                match is_nsfw {
-                    true => Some(view! { <NsfwIcon/>}),
-                    false => None
-                }
-            }
+            <TagsWidget is_spoiler is_nsfw/>
             </div>
         })
     }

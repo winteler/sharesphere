@@ -54,8 +54,7 @@ pub mod ssr {
         let satellite = sqlx::query_as!(
             Satellite,
             "SELECT * FROM satellites
-            WHERE
-                sphere_id = $1",
+            WHERE sphere_id = $1",
             satellite_id
         )
             .fetch_one(db_pool)
@@ -84,8 +83,7 @@ pub mod ssr {
         let satellite_vec = sqlx::query_as!(
             Satellite,
             "SELECT * FROM satellites
-            WHERE
-                sphere_name = $1
+            WHERE sphere_name = $1
             ORDER BY satellite_name",
             sphere_name
         )
@@ -211,6 +209,16 @@ pub mod ssr {
         Ok(satellite)
     }
 }
+
+#[server]
+pub async fn get_satellite_by_id(
+    satellite_id: i64,
+) -> Result<Vec<Satellite>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let satellite = ssr::get_satellite_by_id(satellite_id, &db_pool);
+    Ok(satellite)
+}
+
 #[server]
 pub async fn get_satellite_vec_by_sphere_name(
     sphere_name: String,

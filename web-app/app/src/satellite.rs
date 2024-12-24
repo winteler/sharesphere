@@ -57,7 +57,7 @@ pub mod ssr {
         let satellite = sqlx::query_as!(
             Satellite,
             "SELECT * FROM satellites
-            WHERE sphere_id = $1",
+            WHERE satellite_id = $1",
             satellite_id
         )
             .fetch_one(db_pool)

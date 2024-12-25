@@ -17,6 +17,7 @@ use crate::icons::{DeleteIcon, MagnifierIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
 use crate::rule::SphereRulesPanel;
+use crate::satellite::SatellitePanel;
 use crate::sphere::{Sphere, SphereState};
 use crate::sphere_category::SphereCategoriesDialog;
 use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
@@ -27,7 +28,6 @@ use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
 };
-use crate::satellite::SatellitePanel;
 
 pub const MANAGE_SPHERE_ROUTE: &str = "/manage";
 pub const NONE_STR: &str = "None";
@@ -328,7 +328,7 @@ pub fn SphereCockpitGuard() -> impl IntoView {
 #[component]
 pub fn SphereCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-1/2 mx-auto">
+        <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-2/3 mx-auto">
             <div class="text-2xl text-center">"Sphere Cockpit"</div>
             <SphereDescriptionDialog/>
             <SphereIconDialog/>

@@ -1,4 +1,3 @@
-use crate::app::GlobalState;
 use crate::comment::{Comment, CommentSortType};
 use crate::icons::{FlameIcon, GraphIcon, HourglassIcon, PodiumIcon};
 use crate::post::{Post, PostSortType};
@@ -33,19 +32,21 @@ pub fn ContentBody(
 
 /// Component to indicate how to sort posts
 #[component]
-pub fn PostSortWidget() -> impl IntoView {
+pub fn PostSortWidget(
+    sort_signal: RwSignal<SortType>
+) -> impl IntoView {
     view! {
         <div class="join rounded-none">
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) datatip="Hot">
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) sort_signal datatip="Hot">
                 <FlameIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) datatip="Trending">
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) sort_signal datatip="Trending">
                 <GraphIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) datatip="Best">
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) sort_signal datatip="Best">
                 <PodiumIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) datatip="Recent">
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) sort_signal datatip="Recent">
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>
@@ -54,13 +55,15 @@ pub fn PostSortWidget() -> impl IntoView {
 
 /// Component to indicate how to sort comments
 #[component]
-pub fn CommentSortWidget() -> impl IntoView {
+pub fn CommentSortWidget(
+    sort_signal: RwSignal<SortType>
+) -> impl IntoView {
     view! {
         <div class="join rounded-none">
-            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) datatip="Best">
+            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) sort_signal datatip="Best">
                 <PodiumIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) datatip="Recent">
+            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) sort_signal datatip="Recent">
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>
@@ -71,14 +74,10 @@ pub fn CommentSortWidget() -> impl IntoView {
 #[component]
 pub fn SortWidgetOption(
     sort_type: SortType,
+    sort_signal: RwSignal<SortType>,
     datatip: &'static str,
     children: ChildrenFn,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let sort_signal = match sort_type {
-        SortType::Post(_) => state.post_sort_type,
-        SortType::Comment(_) => state.comment_sort_type,
-    };
     let is_selected = move || sort_signal.read() == sort_type;
     let class = move || {
         let mut class =

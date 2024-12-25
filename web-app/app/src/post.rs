@@ -746,6 +746,26 @@ pub async fn get_post_vec_by_sphere_name(
 }
 
 #[server]
+pub async fn get_post_vec_by_satellite_id(
+    satellite_id: i64,
+    sphere_category_id: Option<i64>,
+    sort_type: SortType,
+    num_already_loaded: usize,
+) -> Result<Vec<Post>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let post_vec = ssr::get_post_vec_by_satellite_id(
+        satellite_id,
+        sphere_category_id,
+        sort_type,
+        POST_BATCH_SIZE,
+        num_already_loaded as i64,
+        &db_pool,
+    )
+        .await?;
+    Ok(post_vec)
+}
+
+#[server]
 pub async fn create_post(
     sphere: String,
     satellite_id: Option<i64>,
@@ -942,7 +962,7 @@ pub fn Post() -> impl IntoView {
                     </div>
                 </div>
             </ArcTransitionUnpack>
-            <CommentSortWidget/>
+            <CommentSortWidget sort_signal=state.comment_sort_type/>
             <CommentSection comment_vec/>
             <Show when=move || load_error.read().is_some()>
             {

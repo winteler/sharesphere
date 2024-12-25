@@ -25,7 +25,7 @@ use crate::post::{get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo
 use crate::post::{
     CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, POST_ROUTE_PREFIX,
 };
-use crate::ranking::ScoreIndicator;
+use crate::ranking::{ScoreIndicator, SortType};
 use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
 use crate::satellite::{get_satellite_vec_by_sphere_name, ActiveSatelliteList, CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
@@ -651,6 +651,7 @@ pub fn SphereContents() -> impl IntoView {
                     sphere_category_map.insert(sphere_category.category_id, sphere_category.clone().into());
                 }
             }
+            log::info!("Load posts by sphere");
 
             match get_post_vec_by_sphere_name(
                 sphere_name.get(),
@@ -719,7 +720,11 @@ pub fn SphereContents() -> impl IntoView {
     view! {
         <ActiveSatelliteList/>
         <ArcSuspenseUnpack resource=sphere_with_sub_resource let:sphere>
-            <SphereToolbar sphere/>
+            <SphereToolbar
+                sphere
+                sort_signal=state.post_sort_type
+                category_id_signal=sphere_state.category_id_filter
+            />
         </ArcSuspenseUnpack>
         <SpherePostMiniatures
             post_vec
@@ -734,7 +739,11 @@ pub fn SphereContents() -> impl IntoView {
 
 /// Component to display the sphere toolbar
 #[component]
-pub fn SphereToolbar(sphere: Arc<SphereWithUserInfo>) -> impl IntoView {
+pub fn SphereToolbar(
+    sphere: Arc<SphereWithUserInfo>,
+    sort_signal: RwSignal<SortType>,
+    category_id_signal: RwSignal<Option<i64>>,
+) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let sphere_categories_resource = sphere_state.sphere_categories_resource;
@@ -746,8 +755,8 @@ pub fn SphereToolbar(sphere: Arc<SphereWithUserInfo>) -> impl IntoView {
     view! {
         <div class="flex w-full justify-between content-center">
             <div class="flex w-full gap-2">
-                <PostSortWidget/>
-                <SphereCategoryDropdown sphere_categories_resource/>
+                <PostSortWidget sort_signal/>
+                <SphereCategoryDropdown sphere_categories_resource category_id_signal=Some(category_id_signal)/>
             </div>
             <div class="flex gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
@@ -801,12 +810,13 @@ pub fn SphereToolbar(sphere: Arc<SphereWithUserInfo>) -> impl IntoView {
 #[component]
 pub fn SphereCategoryDropdown(
     sphere_categories_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    #[prop(default = None)]
+    category_id_signal: Option<RwSignal<Option<i64>>>,
     #[prop(default = true)]
     show_inactive: bool,
     #[prop(default = "")]
     name: &'static str,
 ) -> impl IntoView {
-    let sphere_state = use_context::<SphereState>();
     let is_selected = RwSignal::new(false);
     let select_class = move || match is_selected.get() {
         true => "select select-bordered w-fit",
@@ -827,10 +837,10 @@ pub fn SphereCategoryDropdown(
                     on:click=move |ev| {
                         let selected = event_target_value(&ev);
                         is_selected.set(!selected.is_empty());
-                        if let Some(sphere_state) = sphere_state {
+                        if let Some(category_id_signal) = category_id_signal {
                             match selected.parse::<i64>() {
-                                Ok(category_id) => sphere_state.category_id_filter.set(Some(category_id)),
-                                _ => sphere_state.category_id_filter.set(None),
+                                Ok(category_id) => category_id_signal.set(Some(category_id)),
+                                _ => category_id_signal.set(None),
                             };
                         };
                     }
@@ -900,7 +910,7 @@ pub fn SpherePostMiniatures(
                     view! {
                         <li>
                             <a href=post_path>
-                                <div class="flex flex-col gap-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
+                                <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
                                     <PostBadgeList
                                         sphere_header

@@ -244,7 +244,7 @@ fn HomePage() -> impl IntoView {
                     <span class="text-4xl select-none">"ShareSphere"</span>
                 </div>
             </div>
-            <PostSortWidget/>
+            <PostSortWidget sort_signal=state.post_sort_type/>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 { 
                     move || Suspend::new(async move { 

@@ -5,16 +5,21 @@ use leptos_router::params::ParamsMap;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 use server_fn::ServerFnError;
+use std::collections::HashMap;
 
+use crate::content::ContentBody;
 use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::icons::{DeleteIcon, EditIcon, PauseIcon, PlayIcon, PlusIcon};
+use crate::icons::{DeleteIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
+use crate::post::{get_post_vec_by_satellite_id, PostSortType, PostWithSphereInfo};
 use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::sphere::{SphereState, SPHERE_ROUTE_PREFIX};
-use crate::unpack::TransitionUnpack;
+use crate::sphere::{get_sphere_with_user_info, SpherePostMiniatures, SphereState, SphereToolbar, SPHERE_ROUTE_PREFIX};
+use crate::sphere_category::SphereCategoryHeader;
+use crate::unpack::{ArcSuspenseUnpack, TransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons, TagsWidget};
 
+use crate::ranking::SortType;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -22,7 +27,6 @@ use crate::{
     editor::ssr::get_html_and_markdown_bodies,
     satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
-use crate::content::ContentBody;
 
 pub const SATELLITE_ROUTE_PREFIX: &str = "/satellite";
 pub const SATELLITE_ROUTE_PARAM_NAME: &str = "satellite_id";
@@ -328,12 +332,101 @@ pub fn get_satellite_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 /// Component to display a satellite and its content
 #[component]
 pub fn SatelliteContent() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
     let params = use_params_map();
     let satellite_id = get_satellite_id_memo(params);
 
     let satellite_resource = Resource::new(
         move || satellite_id.get(),
         move |satellite_id| get_satellite_by_id(satellite_id)
+    );
+
+    let sphere_with_sub_resource = Resource::new(
+        move || (sphere_state.sphere_name.get(),),
+        move |(sphere_name,)| get_sphere_with_user_info(sphere_name),
+    );
+
+    let category_id_signal = RwSignal::new(None);
+    let sort_signal = RwSignal::new(SortType::Post(PostSortType::Hot));
+    let additional_load_count = RwSignal::new(0);
+    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
+
+    let _initial_post_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            // TODO return map in resource directly?
+            let mut sphere_category_map = HashMap::<i64, SphereCategoryHeader>::new();
+            if let Ok(sphere_category_vec) = sphere_state.sphere_categories_resource.await {
+                for sphere_category in sphere_category_vec {
+                    sphere_category_map.insert(sphere_category.category_id, sphere_category.clone().into());
+                }
+            }
+
+            match get_post_vec_by_satellite_id(
+                satellite_id.get(),
+                category_id_signal.get(),
+                sort_signal.get(),
+                0
+            ).await {
+                Ok(init_post_vec) => {
+                    post_vec.set(
+                        init_post_vec.into_iter().map(|post| {
+                            let category_id = match post.category_id {
+                                Some(category_id) => sphere_category_map.get(&category_id).cloned(),
+                                None => None,
+                            };
+                            PostWithSphereInfo::from_post(post, category_id, None)
+                        }).collect(),
+                    );
+                    if let Some(list_ref) = list_ref.get_untracked() {
+                        list_ref.set_scroll_top(0);
+                    }
+                },
+                Err(ref e) => {
+                    post_vec.update(|post_vec| post_vec.clear());
+                    load_error.set(Some(AppError::from(e)))
+                },
+            };
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let mut sphere_category_map = HashMap::<i64, SphereCategoryHeader>::new();
+                if let Ok(sphere_category_vec) = sphere_state.sphere_categories_resource.await {
+                    for sphere_category in sphere_category_vec {
+                        sphere_category_map.insert(sphere_category.category_id, sphere_category.clone().into());
+                    }
+                }
+                let num_post = post_vec.read_untracked().len();
+                match get_post_vec_by_satellite_id(
+                    satellite_id.get_untracked(),
+                    category_id_signal.get_untracked(),
+                    sort_signal.get_untracked(),
+                    num_post
+                ).await {
+                    Ok(add_post_vec) => post_vec.update(|post_vec| {
+                        post_vec.extend(
+                            add_post_vec.into_iter().map(|post| {
+                                let category_id = match post.category_id {
+                                    Some(category_id) => sphere_category_map.get(&category_id).cloned(),
+                                    None => None,
+                                };
+                                PostWithSphereInfo::from_post(post, category_id, None)
+                            })
+                        )
+                    }),
+                    Err(e) => load_error.set(Some(AppError::from(e))),
+                }
+                is_loading.set(false);
+            }
+        }
     );
 
     view! {
@@ -351,6 +444,21 @@ pub fn SatelliteContent() -> impl IntoView {
                 </div>
             </div>
         </TransitionUnpack>
+        <ArcSuspenseUnpack resource=sphere_with_sub_resource let:sphere>
+            <SphereToolbar
+                sphere
+                sort_signal
+                category_id_signal
+            />
+        </ArcSuspenseUnpack>
+        <SpherePostMiniatures
+            post_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
+            show_sphere_header=false
+        />
     }
 }
 
@@ -394,7 +502,6 @@ pub fn ActiveSatelliteList() -> impl IntoView {
                     })
                 },
             }
-
         }
         </TransitionUnpack>
     }
@@ -444,7 +551,11 @@ pub fn SatellitePanel() -> impl IntoView {
                                         }
                                     }
                                     </div>
-                                    <div class="w-20 flex justify-center"><a href=satellite_link>"Link"</a></div>
+                                    <div class="w-20 flex justify-center">
+                                        <a href=satellite_link class="hover:bg-base-content/20">
+                                            <LinkIcon/>
+                                        </a>
+                                    </div>
                                 </div>
                                 <div class="flex gap-1 justify-end">
                                     <button

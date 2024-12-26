@@ -1,12 +1,3 @@
-use leptos::html;
-use leptos::prelude::*;
-use leptos_router::hooks::use_params_map;
-use leptos_router::params::ParamsMap;
-use leptos_use::use_textarea_autosize;
-use serde::{Deserialize, Serialize};
-use server_fn::ServerFnError;
-use std::collections::HashMap;
-
 use crate::content::ContentBody;
 use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use crate::errors::AppError;
@@ -18,6 +9,15 @@ use crate::sphere::{get_sphere_with_user_info, SpherePostMiniatures, SphereState
 use crate::sphere_category::SphereCategoryHeader;
 use crate::unpack::{ArcSuspenseUnpack, TransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons, TagsWidget};
+use leptos::html;
+use leptos::prelude::*;
+use leptos_router::components::Outlet;
+use leptos_router::hooks::use_params_map;
+use leptos_router::params::ParamsMap;
+use leptos_use::use_textarea_autosize;
+use serde::{Deserialize, Serialize};
+use server_fn::ServerFnError;
+use std::collections::HashMap;
 
 use crate::ranking::SortType;
 #[cfg(feature = "ssr")]
@@ -46,6 +46,14 @@ pub struct Satellite {
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub disable_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Copy, Clone)]
+pub struct SatelliteState {
+    pub satellite_id: Memo<i64>,
+    pub sort_type: RwSignal<SortType>,
+    pub category_id_filter: RwSignal<Option<i64>>,
+    pub satellite_resource: Resource<Result<Satellite, ServerFnError<AppError>>>,
 }
 
 #[cfg(feature = "ssr")]
@@ -307,8 +315,11 @@ pub async fn disable_satellite(
     Ok(satellite)
 }
 
-fn get_satellite_link(satellite: &Satellite) -> String {
-    format!("{SPHERE_ROUTE_PREFIX}/{}{SATELLITE_ROUTE_PREFIX}/{}", satellite.sphere_name, satellite.satellite_id)
+pub fn get_satellite_path(
+    sphere_name: &str,
+    satellite_id: i64
+) -> String {
+    format!("{SPHERE_ROUTE_PREFIX}/{}{SATELLITE_ROUTE_PREFIX}/{}", sphere_name, satellite_id)
 }
 
 /// Get a memo returning the last valid satellite_id from the url. Used to avoid triggering resources when leaving pages
@@ -329,17 +340,61 @@ pub fn get_satellite_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     })
 }
 
-/// Component to display a satellite and its content
+/// Component to display a satellite banner
+#[component]
+pub fn SatelliteBanner() -> impl IntoView {
+    let params = use_params_map();
+    let satellite_id = get_satellite_id_memo(params);
+    let satellite_state = SatelliteState {
+        satellite_id,
+        sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
+        category_id_filter: RwSignal::new(None),
+        satellite_resource: Resource::new(
+            move || satellite_id.get(),
+            move |satellite_id| get_satellite_by_id(satellite_id)
+        ),
+    };
+    provide_context(satellite_state);
+
+    view! {
+        <TransitionUnpack resource=satellite_state.satellite_resource let:satellite>
+            <div class="w-1/2 2xl:w-1/4">
+                <SatelliteHeader
+                    satellite_name=satellite.satellite_name.clone()
+                    satellite_link=get_satellite_path(&satellite.sphere_name, satellite.satellite_id)
+                    is_spoiler=satellite.is_spoiler
+                    is_nsfw=satellite.is_nsfw
+                />
+            </div>
+        </TransitionUnpack>
+        <Outlet/>
+    }
+}
+
+/// Component to a satellite's header
+#[component]
+pub fn SatelliteHeader(
+    satellite_name: String,
+    satellite_link: String,
+    is_spoiler: bool,
+    is_nsfw: bool,
+) -> impl IntoView {
+    view! {
+        <a
+            href=satellite_link
+            class="p-2 border border-1 border-base-content/20 rounded hover:bg-base-content/20 flex flex-col gap-1"
+        >
+            {satellite_name}
+            <TagsWidget is_spoiler=is_spoiler is_nsfw=is_nsfw/>
+        </a>
+    }
+}
+
+/// Component to display a satellite's content
 #[component]
 pub fn SatelliteContent() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
-    let params = use_params_map();
-    let satellite_id = get_satellite_id_memo(params);
-
-    let satellite_resource = Resource::new(
-        move || satellite_id.get(),
-        move |satellite_id| get_satellite_by_id(satellite_id)
-    );
+    let satellite_state = expect_context::<SatelliteState>();
 
     let sphere_with_sub_resource = Resource::new(
         move || (sphere_state.sphere_name.get(),),
@@ -366,7 +421,7 @@ pub fn SatelliteContent() -> impl IntoView {
             }
 
             match get_post_vec_by_satellite_id(
-                satellite_id.get(),
+                satellite_state.satellite_id.get(),
                 category_id_signal.get(),
                 sort_signal.get(),
                 0
@@ -406,7 +461,7 @@ pub fn SatelliteContent() -> impl IntoView {
                 }
                 let num_post = post_vec.read_untracked().len();
                 match get_post_vec_by_satellite_id(
-                    satellite_id.get_untracked(),
+                    satellite_state.satellite_id.get_untracked(),
                     category_id_signal.get_untracked(),
                     sort_signal.get_untracked(),
                     num_post
@@ -430,18 +485,12 @@ pub fn SatelliteContent() -> impl IntoView {
     );
 
     view! {
-        <TransitionUnpack resource=satellite_resource let:satellite>
-            <div class="card">
-                <div class="card-body">
-                    <div class="flex flex-col gap-2">
-                        <h2 class="card-title">{satellite.satellite_name.clone()}</h2>
-                        <ContentBody
-                            body=satellite.body.clone()
-                            is_markdown=satellite.markdown_body.is_some()
-                        />
-                        <TagsWidget is_spoiler=satellite.is_spoiler is_nsfw=satellite.is_nsfw/>
-                    </div>
-                </div>
+        <TransitionUnpack resource=satellite_state.satellite_resource let:satellite>
+            <div class="p-2">
+                <ContentBody
+                    body=satellite.body.clone()
+                    is_markdown=satellite.markdown_body.is_some()
+                />
             </div>
         </TransitionUnpack>
         <ArcSuspenseUnpack resource=sphere_with_sub_resource let:sphere>
@@ -462,6 +511,14 @@ pub fn SatelliteContent() -> impl IntoView {
     }
 }
 
+/// Component to create a post in a satellite
+#[component]
+pub fn CreateSatellitePost() -> impl IntoView {
+    view! {
+        <div>"Create satellite post"</div>
+    }
+}
+
 /// Component to display a post inside a Satellite
 #[component]
 pub fn SatellitePost() -> impl IntoView {
@@ -476,22 +533,21 @@ pub fn ActiveSatelliteList() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
 
     view! {
-        <TransitionUnpack resource=sphere_state.satellite_resource let:satellite_vec>
+        <TransitionUnpack resource=sphere_state.satellite_vec_resource let:satellite_vec>
         {
             match satellite_vec.is_empty() {
                 true => None,
                 false => {
                     let satellite_list = satellite_vec.iter().map(|satellite| {
                         let satellite_name = satellite.satellite_name.clone();
-                        let satellite_link = get_satellite_link(satellite);
+                        let satellite_link = get_satellite_path(&satellite.sphere_name, satellite.satellite_id);
                         view! {
-                            <a
-                                href=satellite_link
-                                class="p-2 border border-1 border-base-content/20 rounded hover:bg-base-content/20 flex flex-col gap-1"
-                            >
-                                {satellite_name}
-                                <TagsWidget is_spoiler=satellite.is_spoiler is_nsfw=satellite.is_nsfw/>
-                            </a>
+                            <SatelliteHeader
+                                satellite_name
+                                satellite_link
+                                is_spoiler=satellite.is_spoiler
+                                is_nsfw=satellite.is_nsfw
+                            />
                         }
                     }).collect_view();
 
@@ -511,7 +567,7 @@ pub fn ActiveSatelliteList() -> impl IntoView {
 #[component]
 pub fn SatellitePanel() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
-    let satellite_resource = Resource::new(
+    let satellite_vec_resource = Resource::new(
         move || (
             sphere_state.sphere_name.get(),
             sphere_state.create_satellite_action.version().get(),
@@ -532,12 +588,12 @@ pub fn SatellitePanel() -> impl IntoView {
                         <div class="w-20 py-2 font-bold text-center">"Link"</div>
                     </div>
                 </div>
-                <TransitionUnpack resource=satellite_resource let:satellite_vec>
+                <TransitionUnpack resource=satellite_vec_resource let:satellite_vec>
                 {
                     satellite_vec.iter().map(|satellite| {
                         let show_edit_form = RwSignal::new(false);
                         let satellite_name = satellite.satellite_name.clone();
-                        let satellite_link = get_satellite_link(satellite);
+                        let satellite_link = get_satellite_path(&satellite.sphere_name, satellite.satellite_id);
                         let satellite = satellite.clone();
                         view! {
                             <div class="flex gap-1 justify-between rounded pl-1">

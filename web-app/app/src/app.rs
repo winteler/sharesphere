@@ -12,7 +12,7 @@ use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
 use crate::ranking::SortType;
-use crate::satellite::{SatelliteContent, SatellitePost, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX};
+use crate::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent, SatellitePost, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX};
 use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
@@ -149,8 +149,11 @@ pub fn App() -> impl IntoView {
                         }>
                             <Route path=StaticSegment("") view=HomePage/>
                             <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
-                                <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=Outlet>
+                                <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=SatelliteBanner>
                                     <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=SatellitePost/>
+                                    <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
+                                        <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreateSatellitePost/>
+                                    </ParentRoute>
                                     <Route path=StaticSegment("") view=SatelliteContent/>
                                 </ParentRoute>
                                 <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
@@ -160,7 +163,7 @@ pub fn App() -> impl IntoView {
                                 <Route path=StaticSegment("") view=SphereContents/>
                             </ParentRoute>
                             <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
-                            <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
+                            <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuardHome>
                                 <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>
                                 <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
                             </ParentRoute>
@@ -173,6 +176,17 @@ pub fn App() -> impl IntoView {
                 </div>
             </main>
         </Router>
+    }
+}
+
+/// Login guard with home sidebar
+#[component]
+fn LoginGuardHome() -> impl IntoView {
+    view! {
+        <LoginGuard/>
+        <div class="max-2xl:hidden">
+            <HomeSidebar/>
+        </div>
     }
 }
 
@@ -193,9 +207,6 @@ fn LoginGuard() -> impl IntoView {
             }
         }
         </ArcSuspenseUnpack>
-        <div class="max-2xl:hidden">
-            <HomeSidebar/>
-        </div>
     }
 }
 

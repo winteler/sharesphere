@@ -20,8 +20,8 @@ use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereState};
-use crate::sphere_category::{get_sphere_category_vec, SphereCategoryBadge, SphereCategoryHeader};
-use crate::unpack::{ActionError, ArcTransitionUnpack, TransitionUnpack};
+use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
+use crate::unpack::{ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -87,6 +87,13 @@ pub struct PostWithSphereInfo {
     pub post: Post,
     pub sphere_category: Option<SphereCategoryHeader>,
     pub sphere_icon_url: Option<String>,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct PostInheritedAttributes {
+    pub is_spoiler: bool,
+    pub is_nsfw: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -264,6 +271,26 @@ pub mod ssr {
             .await?;
 
         Ok(post_join_vote.into_post_with_info())
+    }
+
+    pub async fn get_post_inherited_attributes(
+        post_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<PostInheritedAttributes, AppError> {
+        let inherited_attributes = sqlx::query_as::<_, PostInheritedAttributes>(
+            "SELECT
+                COALESCE(sa.is_spoiler, FALSE) AS is_spoiler,
+                COALESCE(sa.is_nsfw, s.is_nsfw) AS is_nsfw
+            FROM posts p
+            JOIN spheres s on s.sphere_id = p.sphere_id
+            LEFT JOIN satellites sa on sa.satellite_id = p.satellite_id
+            WHERE p.post_id = $1",
+        )
+            .bind(post_id)
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(inherited_attributes)
     }
 
     pub async fn get_post_sphere(
@@ -690,6 +717,13 @@ pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithInfo, Serv
 }
 
 #[server]
+pub async fn get_post_inherited_attributes(post_id: i64) -> Result<PostInheritedAttributes, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    Ok(ssr::get_post_inherited_attributes(post_id, &db_pool).await?)
+}
+
+
+#[server]
 pub async fn get_sorted_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
@@ -1095,6 +1129,72 @@ pub fn EditPostButton(
 
 /// Component to create a new post
 #[component]
+pub fn PostForm(
+    title: RwSignal<String>,
+    body_data: TextareaData,
+    #[prop(into)]
+    sphere_name: Signal<String>,
+    #[prop(into)]
+    is_parent_spoiler: Signal<bool>,
+    #[prop(into)]
+    is_parent_nsfw: Signal<bool>,
+    category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    #[prop(default = None)]
+    current_post: Option<StoredValue<Post>>,
+) -> impl IntoView {
+    let (is_spoiler, is_nsfw, is_pinned, is_markdown) = match current_post {
+        Some(post) => post.with_value(|post| {
+            title.set(post.title.clone());
+            let (current_body, is_markdown) = match &post.markdown_body {
+                Some(body) => (body.clone(), true),
+                None => (post.body.clone(), false),
+            };
+            body_data.set_content.set(current_body);
+            (post.is_spoiler, post.is_nsfw, post.is_pinned, is_markdown)
+        }),
+        None => (false, false, false, false),
+    };
+
+    view! {
+        <input
+            type="text"
+            name="title"
+            placeholder="Title"
+            class="input input-bordered input-primary h-input_m"
+            value=title
+            autofocus
+            autocomplete="off"
+            on:input=move |ev| {
+                title.set(event_target_value(&ev));
+            }
+        />
+        <FormMarkdownEditor
+            name="body"
+            is_markdown_name="is_markdown"
+            placeholder="Content"
+            data=body_data
+            is_markdown
+        />
+        { move || {
+            match is_parent_spoiler.get() {
+                true => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=true disabled=true/> },
+                false => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/> },
+            }
+        }}
+        { move || {
+            match is_parent_nsfw.get() {
+                true => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=true disabled=true/> },
+                false => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/> },
+            }
+        }}
+        <IsPinnedCheckbox sphere_name value=is_pinned/>
+        // TODO take initial value
+        <SphereCategoryDropdown category_vec_resource name="category_id" show_inactive=false/>
+    }
+}
+
+/// Component to create a new post
+#[component]
 pub fn CreatePost() -> impl IntoView {
     let create_post_action = ServerAction::<CreatePost>::new();
 
@@ -1103,9 +1203,12 @@ pub fn CreatePost() -> impl IntoView {
         query.read_untracked().get(CREATE_POST_SPHERE_QUERY_PARAM).unwrap_or_default()
     };
 
-    let selected_sphere = RwSignal::new(None);
+    let is_sphere_selected = RwSignal::new(false);
+    let is_sphere_nsfw = RwSignal::new(false);
     let sphere_name_input = RwSignal::new(sphere_query());
     let sphere_name_debounced: Signal<String> = signal_debounced(sphere_name_input, 250.0);
+
+    let title = RwSignal::new(String::default());
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
@@ -1113,14 +1216,13 @@ pub fn CreatePost() -> impl IntoView {
         set_content: body_autosize.set_content,
         textarea_ref,
     };
-    let is_title_empty = RwSignal::new(true);
 
     let matching_spheres_resource = Resource::new(
         move || sphere_name_debounced.get(),
         move |sphere_prefix| get_matching_sphere_header_vec(sphere_prefix),
     );
 
-    let sphere_categories_resource = Resource::new(
+    let category_vec_resource = Resource::new(
         move || sphere_name_debounced.get(),
         move |sphere_name| get_sphere_category_vec(sphere_name)
     );
@@ -1128,84 +1230,67 @@ pub fn CreatePost() -> impl IntoView {
     view! {
         <div class="w-4/5 2xl:w-1/3 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
-
-                    <div class="flex flex-col gap-2 w-full">
-                        <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
-                        <div class="dropdown dropdown-end">
-                            <input
-                                tabindex="0"
-                                type="text"
-                                name="sphere"
-                                placeholder="Sphere"
-                                autocomplete="off"
-                                class="input input-bordered input-primary w-full h-input_m"
-                                on:input=move |ev| {
-                                    sphere_name_input.set(event_target_value(&ev).to_lowercase());
-                                }
-                                prop:value=sphere_name_input
-                            />
-                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-sm w-full">
-                            <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
-                            {
-                                match sphere_header_vec.first() {
-                                    Some(header) if header.sphere_name == sphere_name_input.get_untracked() => selected_sphere.set(Some(header.clone())),
-                                    _ => selected_sphere.set(None)
-                                };
-                                sphere_header_vec.clone().into_iter().map(|sphere_header| {
-                                    let sphere_name = sphere_header.sphere_name.clone();
-                                    view! {
-                                        <li>
-                                            <button
-                                                type="button"
-                                                on:click=move |_| sphere_name_input.set(sphere_name.clone())
-                                            >
-                                                <SphereHeader sphere_header/>
-                                            </button>
-                                        </li>
-                                    }
-                                }).collect_view()
-                            }
-                            </TransitionUnpack>
-                            </ul>
-                        </div>
+                <div class="flex flex-col gap-2 w-full">
+                    <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
+                    <div class="dropdown dropdown-end">
                         <input
+                            tabindex="0"
                             type="text"
-                            name="title"
-                            placeholder="Title"
-                            class="input input-bordered input-primary h-input_m"
-                            autofocus
+                            name="sphere"
+                            placeholder="Sphere"
                             autocomplete="off"
+                            class="input input-bordered input-primary w-full h-input_m"
                             on:input=move |ev| {
-                                is_title_empty.set(event_target_value(&ev).is_empty());
+                                sphere_name_input.set(event_target_value(&ev).to_lowercase());
                             }
+                            prop:value=sphere_name_input
                         />
-                        <FormMarkdownEditor
-                            name="body"
-                            is_markdown_name="is_markdown"
-                            placeholder="Content"
-                            data=body_data
-                        />
-                        <LabeledFormCheckbox name="is_spoiler" label="Spoiler"/>
-                        { move || {
-                            match &*selected_sphere.read() {
-                                Some(header) if header.is_nsfw => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=true disabled=true/> },
-                                _ => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/> },
-                            }
-                        }}
-                        <IsPinnedCheckbox sphere_name=sphere_name_input/>
-                        <SphereCategoryDropdown sphere_categories_resource name="category_id" show_inactive=false/>
-                        <Transition>
-                            <button type="submit" class="btn btn-active btn-secondary" disabled=move || match &*selected_sphere.read() {
-                                Some(_) => {
-                                    is_title_empty.get() ||
-                                    body_data.content.read().is_empty()
+                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-sm w-full">
+                        <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
+                        {
+                            match sphere_header_vec.first() {
+                                Some(header) if header.sphere_name == sphere_name_input.get_untracked() => {
+                                    is_sphere_nsfw.set(header.is_nsfw);
+                                    is_sphere_selected.set(true);
                                 },
-                                _ => true,
-                            }>
-                                "Create"
-                            </button>
-                        </Transition>
+                                _ => {
+                                    is_sphere_selected.set(true);
+                                    is_sphere_nsfw.set(false);
+                                }
+                            };
+                            sphere_header_vec.clone().into_iter().map(|sphere_header| {
+                                let sphere_name = sphere_header.sphere_name.clone();
+                                view! {
+                                    <li>
+                                        <button
+                                            type="button"
+                                            on:click=move |_| sphere_name_input.set(sphere_name.clone())
+                                        >
+                                            <SphereHeader sphere_header/>
+                                        </button>
+                                    </li>
+                                }
+                            }).collect_view()
+                        }
+                        </TransitionUnpack>
+                        </ul>
                     </div>
+                    <PostForm
+                        title
+                        body_data
+                        sphere_name=sphere_name_input
+                        is_parent_spoiler=false
+                        is_parent_nsfw=is_sphere_nsfw
+                        category_vec_resource
+                    />
+                    <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
+                        !is_sphere_selected.get() ||
+                        title.read().is_empty() ||
+                        body_data.content.read().is_empty()
+                    }>
+                        "Submit"
+                    </button>
+                </div>
             </ActionForm>
             <ActionError action=create_post_action.into()/>
         </div>
@@ -1240,18 +1325,9 @@ pub fn EditPostForm(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
-    let (current_body, is_markdown) = post.with_value(|post| match &post.markdown_body {
-        Some(body) => (body.clone(), true),
-        None => (post.body.clone(), false),
-    });
-    let (post_id, title, is_spoiler, is_nsfw, is_pinned) = post.with_value(|post| (
-        post.post_id,
-        post.title.clone(),
-        post.is_spoiler,
-        post.is_nsfw,
-        post.is_pinned,
-    ));
-    let is_title_empty = RwSignal::new(false);
+
+    let post_id = post.with_value(|post| post.post_id);
+    let title = RwSignal::new(String::default());
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
@@ -1259,8 +1335,12 @@ pub fn EditPostForm(
         set_content: body_autosize.set_content,
         textarea_ref,
     };
-    body_data.set_content.set(current_body);
-    let is_post_empty = Signal::derive(move || body_data.content.read().is_empty());
+    let disable_publish = Signal::derive(move || title.read().is_empty() || body_data.content.read().is_empty());
+
+    let inherited_attributes_resource = Resource::new(
+        move || (),
+        move |_| get_post_inherited_attributes(post_id)
+    );
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
@@ -1273,30 +1353,19 @@ pub fn EditPostForm(
                         class="hidden"
                         value=post_id
                     />
-                    <input
-                        type="text"
-                        name="title"
-                        placeholder="Title"
-                        value=title
-                        class="input input-bordered input-primary h-input_m"
-                        autofocus
-                        autocomplete="off"
-                        on:input=move |ev| {
-                            is_title_empty.set(event_target_value(&ev).is_empty());
-                        }
-                    />
-                    <FormMarkdownEditor
-                        name="body"
-                        is_markdown_name="is_markdown"
-                        placeholder="Content"
-                        data=body_data
-                        is_markdown
-                    />
-                    <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
-                    <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
-                    <IsPinnedCheckbox sphere_name=sphere_state.sphere_name value=is_pinned/>
+                    <SuspenseUnpack resource=inherited_attributes_resource let:inherited_post_attr>
+                        <PostForm
+                            title
+                            body_data
+                            sphere_name=sphere_state.sphere_name
+                            is_parent_spoiler=inherited_post_attr.is_spoiler
+                            is_parent_nsfw=inherited_post_attr.is_nsfw
+                            category_vec_resource=sphere_state.sphere_categories_resource
+                            current_post=Some(post)
+                        />
+                    </SuspenseUnpack>
                     <ModalFormButtons
-                        disable_publish=is_post_empty
+                        disable_publish
                         show_form
                     />
                 </div>

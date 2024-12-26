@@ -1,4 +1,6 @@
+use crate::app::{GlobalState, PUBLISH_ROUTE};
 use const_format::concatcp;
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::{Form, Outlet, A};
@@ -8,8 +10,6 @@ use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-
-use crate::app::{GlobalState, PUBLISH_ROUTE};
 
 use crate::auth::LoginGuardButton;
 use crate::constants::PATH_SEPARATOR;
@@ -21,14 +21,14 @@ use crate::form::LabeledFormCheckbox;
 use crate::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
-use crate::post::{get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo};
+use crate::post::{get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo, CREATE_POST_SUFFIX};
 use crate::post::{
     CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, POST_ROUTE_PREFIX,
 };
 use crate::ranking::{ScoreIndicator, SortType};
 use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
-use crate::satellite::{get_satellite_vec_by_sphere_name, ActiveSatelliteList, CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
+use crate::satellite::{get_satellite_path, get_satellite_vec_by_sphere_name, ActiveSatelliteList, CreateSatellite, DisableSatellite, Satellite, SatelliteState, UpdateSatellite};
 use crate::sidebar::SphereSidebar;
 use crate::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategory, SphereCategoryHeader};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
@@ -96,7 +96,7 @@ pub struct SphereState {
     pub category_id_filter: RwSignal<Option<i64>>,
     pub permission_level: Signal<PermissionLevel>,
     pub sphere_resource: Resource<Result<Sphere, ServerFnError<AppError>>>,
-    pub satellite_resource: Resource<Result<Vec<Satellite>, ServerFnError<AppError>>>,
+    pub satellite_vec_resource: Resource<Result<Vec<Satellite>, ServerFnError<AppError>>>,
     pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
     pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, ServerFnError<AppError>>>,
     pub sphere_rules_resource: Resource<Result<Vec<Rule>, ServerFnError<AppError>>>,
@@ -549,7 +549,7 @@ pub fn SphereBanner() -> impl IntoView {
             ),
             move |(sphere_name, _, _)| get_sphere_by_name(sphere_name)
         ),
-        satellite_resource: Resource::new(
+        satellite_vec_resource: Resource::new(
             move || (
                 sphere_name.get(),
                 create_satellite_action.version().get(),
@@ -742,11 +742,12 @@ pub fn SphereContents() -> impl IntoView {
 pub fn SphereToolbar(
     sphere: Arc<SphereWithUserInfo>,
     sort_signal: RwSignal<SortType>,
-    category_id_signal: RwSignal<Option<i64>>,
+    category_id_signal: RwSignal<Option<i64>>
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
-    let sphere_categories_resource = sphere_state.sphere_categories_resource;
+    let satellite_state = use_context::<SatelliteState>();
+    let category_vec_resource = sphere_state.sphere_categories_resource;
     let sphere_id = sphere.sphere.sphere_id;
     let sphere_name = RwSignal::new(sphere.sphere.sphere_name.clone());
     let is_subscribed = RwSignal::new(sphere.subscription_id.is_some());
@@ -756,7 +757,7 @@ pub fn SphereToolbar(
         <div class="flex w-full justify-between content-center">
             <div class="flex w-full gap-2">
                 <PostSortWidget sort_signal/>
-                <SphereCategoryDropdown sphere_categories_resource category_id_signal=Some(category_id_signal)/>
+                <SphereCategoryDropdown category_vec_resource category_id_signal=Some(category_id_signal)/>
             </div>
             <div class="flex gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
@@ -793,12 +794,27 @@ pub fn SphereToolbar(
                         redirect_path_fn=&get_create_post_path
                         let:_user
                     >
-                        <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
-                            <input type="text" name=CREATE_POST_SPHERE_QUERY_PARAM class="hidden" value=sphere_name/>
-                            <button type="submit" class="btn btn-circle btn-ghost">
-                                <PlusIcon class="h-6 w-6"/>
-                            </button>
-                        </Form>
+                    { move || match satellite_state {
+                        Some(satellite_state) => {
+                            let create_post_link = get_satellite_path(
+                                &*sphere_state.sphere_name.read(),
+                                satellite_state.satellite_id.get()
+                            ) + PUBLISH_ROUTE + CREATE_POST_SUFFIX;
+                            Either::Left(view! {
+                                <a href=create_post_link class="btn btn-circle btn-ghost">
+                                    <PlusIcon class="h-6 w-6"/>
+                                </a>
+                            })
+                        }
+                        None => Either::Right(view! {
+                            <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
+                                <input type="text" name=CREATE_POST_SPHERE_QUERY_PARAM class="hidden" value=sphere_name/>
+                                <button type="submit" class="btn btn-circle btn-ghost">
+                                    <PlusIcon class="h-6 w-6"/>
+                                </button>
+                            </Form>
+                        }),
+                    }}
                     </LoginGuardButton>
                 </div>
             </div>
@@ -809,7 +825,7 @@ pub fn SphereToolbar(
 /// Dialog to select a sphere category
 #[component]
 pub fn SphereCategoryDropdown(
-    sphere_categories_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
     #[prop(default = None)]
     category_id_signal: Option<RwSignal<Option<i64>>>,
     #[prop(default = true)]
@@ -824,7 +840,7 @@ pub fn SphereCategoryDropdown(
     };
     
     view! {
-        <TransitionUnpack resource=sphere_categories_resource let:sphere_category_vec>
+        <TransitionUnpack resource=category_vec_resource let:sphere_category_vec>
         {
             if sphere_category_vec.is_empty() || (!show_inactive && !sphere_category_vec.iter().any(|sphere_category| sphere_category.is_active)) {
                 log::debug!("No category to display.");

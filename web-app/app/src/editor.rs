@@ -371,10 +371,10 @@ pub fn HelpButton() -> impl IntoView {
             <Show when=show_help>
                 <div class="relative z-30">
                     <div
-                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-160 bg-base-200/90 rounded"
+                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-128 bg-base-200/90 rounded"
                         node_ref=modal_ref
                     >
-                        <div class="relative flex flex-col gap-2 leading-snug text-justify">
+                        <div class="relative flex flex-col gap-2 leading-snug text-justify text-sm">
                             <p>
                                 "To add formatting to your content, the 'Markdown mode' must be activated with the following button: "
                                 <span class="inline-flex align-bottom w-fit p-1 mt-1 rounded-md bg-base-content/20"><MarkdownIcon/></span>
@@ -487,8 +487,8 @@ mod tests {
     use indoc::indoc;
     use leptos::prelude::ServerFnError;
 
-    use crate::editor::{get_styled_html_from_markdown, ssr::style_html_user_content};
     use crate::editor::ssr::get_html_and_markdown_bodies;
+    use crate::editor::{get_styled_html_from_markdown, ssr::style_html_user_content};
 
     #[tokio::test]
     async fn test_get_html_and_markdown_bodies() -> Result<(), ServerFnError> {

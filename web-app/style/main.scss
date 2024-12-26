@@ -3518,6 +3518,10 @@ html {
   width: 100vw;
 }
 
+.w-128 {
+  width: 32rem;
+}
+
 .min-w-6 {
   min-width: 1.5rem;
 }
@@ -4399,6 +4403,10 @@ textarea::-webkit-scrollbar {
 
   .\32xl\:w-1\/4 {
     width: 25%;
+  }
+
+  .\32xl\:w-2\/5 {
+    width: 40%;
   }
 
   .\32xl\:grid-cols-4 {

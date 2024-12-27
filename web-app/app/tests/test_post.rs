@@ -4,14 +4,12 @@ use std::time::Duration;
 use float_cmp::approx_eq;
 use rand::Rng;
 
-pub use crate::common::*;
-pub use crate::data_factory::*;
 use app::colors::Color;
 use app::comment::ssr::create_comment;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
-use app::post::ssr::{create_post, get_post_by_id, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
+use app::post::ssr::{create_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
 use app::post::{ssr, Post, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
@@ -21,6 +19,10 @@ use app::satellite::ssr::create_satellite;
 use app::sphere_category::ssr::set_sphere_category;
 use app::user::User;
 use app::{post, sphere};
+use app::sphere::ssr::create_sphere;
+
+pub use crate::common::*;
+pub use crate::data_factory::*;
 
 mod common;
 mod data_factory;
@@ -217,6 +219,124 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
     assert_eq!(post_2_with_vote.post.markdown_body, Some(String::from(post_2_markdown_body)));
     assert_eq!(post_2_with_vote.post.score, -1);
     assert_eq!(post_2_with_vote.vote, post_2_vote);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere_1, satellite_1) = create_sphere_with_satellite(
+        "1",
+        "1",
+        false,
+        true,
+        &mut user,
+        &db_pool,
+    ).await.expect("Should be able to create sphere with satellite.");
+
+    let (sphere_2, satellite_2) = create_sphere_with_satellite(
+        "2",
+        "2",
+        true,
+        false,
+        &mut user,
+        &db_pool,
+    ).await.expect("Should be able to create sphere with satellite.");
+
+    let nsfw_sphere = create_sphere(
+        "nsfw",
+        "nsfw",
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create nsfw sphere.");
+
+    let sphere_post = create_post(
+        &sphere_1.sphere_name,
+        None,
+        "1",
+        "1",
+        None,
+        true,
+        true,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create sphere 1 post.");
+
+    let sphere_post_inherited_attr = get_post_inherited_attributes(
+        sphere_post.post_id,
+        &db_pool
+    ).await.expect("Should be able to get inherited post attr.");
+    assert_eq!(sphere_post_inherited_attr.is_nsfw, false);
+    assert_eq!(sphere_post_inherited_attr.is_spoiler, false);
+
+    let nsfw_sphere_post = create_post(
+        &nsfw_sphere.sphere_name,
+        None,
+        "2",
+        "2",
+        None,
+        false,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create nsfw post.");
+
+    let nsfw_sphere_post_inherited_attr = get_post_inherited_attributes(
+        nsfw_sphere_post.post_id,
+        &db_pool
+    ).await.expect("Should be able to get inherited post attr.");
+    assert_eq!(nsfw_sphere_post_inherited_attr.is_nsfw, true);
+    assert_eq!(nsfw_sphere_post_inherited_attr.is_spoiler, false);
+
+    let satellite_1_post = create_post(
+        &sphere_1.sphere_name,
+        Some(satellite_1.satellite_id),
+        "3",
+        "3",
+        None,
+        false,
+        true,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create satellite 1 post.");
+
+    let satellite_1_post_inherited_attr = get_post_inherited_attributes(
+        satellite_1_post.post_id,
+        &db_pool,
+    ).await.expect("Should be able to get inherited post attr.");
+    assert_eq!(satellite_1_post_inherited_attr.is_nsfw, false);
+    assert_eq!(satellite_1_post_inherited_attr.is_spoiler, true);
+
+    let satellite_2_post = create_post(
+        &sphere_2.sphere_name,
+        Some(satellite_2.satellite_id),
+        "4",
+        "4",
+        None,
+        true,
+        false,
+        false,
+        None,
+        &user,
+        &db_pool
+    ).await.expect("Should be able to create satellite 2 post.");
+
+    let satellite_2_post_inherited_attr = get_post_inherited_attributes(
+        satellite_2_post.post_id,
+        &db_pool,
+    ).await.expect("Should be able to get inherited post attr.");
+    assert_eq!(satellite_2_post_inherited_attr.is_nsfw, true);
+    assert_eq!(satellite_2_post_inherited_attr.is_spoiler, false);
 
     Ok(())
 }

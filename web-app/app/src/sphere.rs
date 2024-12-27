@@ -23,7 +23,7 @@ use crate::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, Spher
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
 use crate::post::{get_post_path, get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo, CREATE_POST_SUFFIX};
-use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, };
+use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::ranking::{ScoreIndicator, SortType};
 use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
@@ -126,31 +126,6 @@ impl SphereHeader {
             is_nsfw,
         }
     }
-}
-
-/// # Normalizes a sphere's name by making it lowercase and replacing '-' by '_'.
-/// # Normalization is used to ensure sphere names are sufficiently different.
-///
-/// ```
-/// use app::sphere::normalize_sphere_name;
-///
-/// assert_eq!(normalize_sphere_name("Test 123-"), "test 123_");
-/// ```
-pub fn normalize_sphere_name(name: &str) -> String {
-    name.to_lowercase().replace("-", "_")
-}
-
-/// # Returns whether a sphere name is valid. Valid characters are ascii alphanumeric, '-' and '_'
-///
-/// ```
-/// use app::sphere::is_valid_sphere_name;
-///
-/// assert_eq!(is_valid_sphere_name("-Abc123_"), true);
-/// assert_eq!(is_valid_sphere_name(" name"), false);
-/// assert_eq!(is_valid_sphere_name("name%"), false);
-/// ```
-pub fn is_valid_sphere_name(name: &str) -> bool {
-    name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 #[cfg(feature = "ssr")]
@@ -488,25 +463,6 @@ pub async fn unsubscribe(sphere_id: i64) -> Result<(), ServerFnError<AppError>> 
 
     ssr::unsubscribe(sphere_id, user.user_id, &db_pool).await?;
     Ok(())
-}
-
-pub fn get_sphere_path(
-    sphere_name: &str,
-) -> String {
-    format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}")
-}
-
-/// Get the current sphere name from the path. When the current path does not contain a sphere, returns the last valid sphere. Used to avoid sending a request when leaving a page
-fn get_sphere_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
-    Memo::new(move |current_sphere_name: Option<&String>| {
-        if let Some(new_sphere_name) = params.read().get_str(SPHERE_ROUTE_PARAM_NAME) {
-            log::trace!("Current sphere name {current_sphere_name:?}, new sphere name: {new_sphere_name}");
-            new_sphere_name.to_string()
-        } else {
-            log::trace!("No valid sphere name, keep current value: {current_sphere_name:?}");
-            current_sphere_name.cloned().unwrap_or_default()
-        }
-    })
 }
 
 /// Component to display a sphere's header
@@ -1094,4 +1050,55 @@ pub fn CreateSphere() -> impl IntoView {
             <ActionError action=state.create_sphere_action.into()/>
         </div>
     }
+}
+
+/// # Normalizes a sphere's name by making it lowercase and replacing '-' by '_'.
+/// # Normalization is used to ensure sphere names are sufficiently different.
+///
+/// ```
+/// use app::sphere::normalize_sphere_name;
+///
+/// assert_eq!(normalize_sphere_name("Test 123-"), "test 123_");
+/// ```
+pub fn normalize_sphere_name(name: &str) -> String {
+    name.to_lowercase().replace("-", "_")
+}
+
+/// # Returns whether a sphere name is valid. Valid characters are ascii alphanumeric, '-' and '_'
+///
+/// ```
+/// use app::sphere::is_valid_sphere_name;
+///
+/// assert_eq!(is_valid_sphere_name("-Abc123_"), true);
+/// assert_eq!(is_valid_sphere_name(" name"), false);
+/// assert_eq!(is_valid_sphere_name("name%"), false);
+/// ```
+pub fn is_valid_sphere_name(name: &str) -> bool {
+    name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// # Returns the path to a sphere given its name
+///
+/// ```
+/// use app::sphere::get_sphere_path;
+///
+/// assert_eq!(get_sphere_path("test"), "/spheres/test");
+/// ```
+pub fn get_sphere_path(
+    sphere_name: &str,
+) -> String {
+    format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}")
+}
+
+/// Get the current sphere name from the path. When the current path does not contain a sphere, returns the last valid sphere. Used to avoid sending a request when leaving a page
+fn get_sphere_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
+    Memo::new(move |current_sphere_name: Option<&String>| {
+        if let Some(new_sphere_name) = params.read().get_str(SPHERE_ROUTE_PARAM_NAME) {
+            log::trace!("Current sphere name {current_sphere_name:?}, new sphere name: {new_sphere_name}");
+            new_sphere_name.to_string()
+        } else {
+            log::trace!("No valid sphere name, keep current value: {current_sphere_name:?}");
+            current_sphere_name.cloned().unwrap_or_default()
+        }
+    })
 }

@@ -872,38 +872,6 @@ pub async fn edit_post(
     Ok(post)
 }
 
-pub fn get_post_path(
-    sphere_name: &str,
-    satellite_id: Option<i64>,
-    post_id: i64,
-) -> String {
-    match satellite_id {
-        Some(satellite_id) => format!(
-            "{SPHERE_ROUTE_PREFIX}/{sphere_name}{SATELLITE_ROUTE_PREFIX}/{satellite_id}{POST_ROUTE_PREFIX}/{}",
-            post_id
-        ),
-        None => format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}{POST_ROUTE_PREFIX}/{}", post_id)
-    }
-}
-
-/// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
-pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
-    Memo::new(move |current_post_id: Option<&i64>| {
-        if let Some(new_post_id_string) = params.read().get_str(POST_ROUTE_PARAM_NAME) {
-            if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
-                log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
-                new_post_id
-            } else {
-                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
-                current_post_id.cloned().unwrap_or_default()
-            }
-        } else {
-            log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
-            current_post_id.cloned().unwrap_or_default()
-        }
-    })
-}
-
 /// Component to display a content
 #[component]
 pub fn Post() -> impl IntoView {
@@ -1380,6 +1348,46 @@ pub fn EditPostForm(
             <ActionError action=state.edit_post_action.into()/>
         </div>
     }
+}
+
+/// # Returns the path to a post given its id, sphere and optional satellite
+///
+/// ```
+/// use app::post::get_post_path;
+///
+/// assert_eq!(get_post_path("test", None, 1), "/spheres/test/posts/1");
+/// assert_eq!(get_post_path("test", Some(1), 1), "/spheres/test/satellites/1/posts/1");
+/// ```
+pub fn get_post_path(
+    sphere_name: &str,
+    satellite_id: Option<i64>,
+    post_id: i64,
+) -> String {
+    match satellite_id {
+        Some(satellite_id) => format!(
+            "{SPHERE_ROUTE_PREFIX}/{sphere_name}{SATELLITE_ROUTE_PREFIX}/{satellite_id}{POST_ROUTE_PREFIX}/{}",
+            post_id
+        ),
+        None => format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}{POST_ROUTE_PREFIX}/{}", post_id)
+    }
+}
+
+/// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
+pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
+    Memo::new(move |current_post_id: Option<&i64>| {
+        if let Some(new_post_id_string) = params.read().get_str(POST_ROUTE_PARAM_NAME) {
+            if let Ok(new_post_id) = new_post_id_string.parse::<i64>() {
+                log::trace!("Current post id: {current_post_id:?}, new post id: {new_post_id}");
+                new_post_id
+            } else {
+                log::trace!("Could not parse new post id: {new_post_id_string}, reuse current post id: {current_post_id:?}");
+                current_post_id.cloned().unwrap_or_default()
+            }
+        } else {
+            log::trace!("Could not find new post id, reuse current post id: {current_post_id:?}");
+            current_post_id.cloned().unwrap_or_default()
+        }
+    })
 }
 
 #[cfg(test)]

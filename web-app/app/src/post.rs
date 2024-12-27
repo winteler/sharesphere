@@ -1,3 +1,6 @@
+use std::fmt;
+use std::sync::Arc;
+
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
@@ -5,8 +8,6 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::sync::Arc;
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
@@ -19,19 +20,18 @@ use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
-use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereState};
+use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
 use crate::unpack::{ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
+use crate::satellite::SATELLITE_ROUTE_PREFIX;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
     auth::{get_user, ssr::check_user},
-    constants::PATH_SEPARATOR,
     editor::ssr::get_html_and_markdown_bodies,
     ranking::{ssr::vote_on_content, VoteValue},
-    sphere::SPHERE_ROUTE_PREFIX,
 };
 
 pub const CREATE_POST_SUFFIX: &str = "/post";
@@ -722,7 +722,6 @@ pub async fn get_post_inherited_attributes(post_id: i64) -> Result<PostInherited
     Ok(ssr::get_post_inherited_attributes(post_id, &db_pool).await?)
 }
 
-
 #[server]
 pub async fn get_sorted_post_vec(
     sort_type: SortType,
@@ -833,14 +832,9 @@ pub async fn create_post(
     let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
 
     log::trace!("Created post with id: {}", post.post_id);
-    let new_post_path: &str = &(SPHERE_ROUTE_PREFIX.to_owned()
-        + PATH_SEPARATOR
-        + sphere.as_str()
-        + POST_ROUTE_PREFIX
-        + PATH_SEPARATOR
-        + post.post_id.to_string().as_ref());
+    let new_post_path = get_post_path(&sphere, satellite_id, post.post_id);
 
-    leptos_axum::redirect(new_post_path);
+    leptos_axum::redirect(new_post_path.as_str());
     Ok(())
 }
 
@@ -872,11 +866,24 @@ pub async fn edit_post(
         category_id,
         &user,
         &db_pool,
-    )
-    .await?;
+    ).await?;
 
     log::trace!("Updated post with id: {}", post.post_id);
     Ok(post)
+}
+
+pub fn get_post_path(
+    sphere_name: &str,
+    satellite_id: Option<i64>,
+    post_id: i64,
+) -> String {
+    match satellite_id {
+        Some(satellite_id) => format!(
+            "{SPHERE_ROUTE_PREFIX}/{sphere_name}{SATELLITE_ROUTE_PREFIX}/{satellite_id}{POST_ROUTE_PREFIX}/{}",
+            post_id
+        ),
+        None => format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}{POST_ROUTE_PREFIX}/{}", post_id)
+    }
 }
 
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages
@@ -1025,9 +1032,9 @@ pub fn PostBadgeList(
     match (sphere_header, sphere_category, is_spoiler, is_nsfw) {
         (None, None, false, false) => None,
         (sphere_header, sphere_category, is_spoiler, is_nsfw) => Some(view! {
-            <div class="flex gap-1 items-center">
+            <div class="flex gap-2 items-center">
             {
-                sphere_header.map(|sphere_header| view! { <SphereHeader sphere_header/> })
+                sphere_header.map(|sphere_header| view! { <SphereHeaderLink sphere_header/> })
             }
             {
                 sphere_category.map(|category_header| view! { <SphereCategoryBadge category_header/> })
@@ -1246,33 +1253,33 @@ pub fn CreatePost() -> impl IntoView {
                             prop:value=sphere_name_input
                         />
                         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-sm w-full">
-                        <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
-                        {
-                            match sphere_header_vec.first() {
-                                Some(header) if header.sphere_name == sphere_name_input.get_untracked() => {
-                                    is_sphere_nsfw.set(header.is_nsfw);
-                                    is_sphere_selected.set(true);
-                                },
-                                _ => {
-                                    is_sphere_selected.set(true);
-                                    is_sphere_nsfw.set(false);
-                                }
-                            };
-                            sphere_header_vec.clone().into_iter().map(|sphere_header| {
-                                let sphere_name = sphere_header.sphere_name.clone();
-                                view! {
-                                    <li>
-                                        <button
-                                            type="button"
-                                            on:click=move |_| sphere_name_input.set(sphere_name.clone())
-                                        >
-                                            <SphereHeader sphere_header/>
-                                        </button>
-                                    </li>
-                                }
-                            }).collect_view()
-                        }
-                        </TransitionUnpack>
+                            <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
+                            {
+                                match sphere_header_vec.first() {
+                                    Some(header) if header.sphere_name == sphere_name_input.get_untracked() => {
+                                        is_sphere_nsfw.set(header.is_nsfw);
+                                        is_sphere_selected.set(true);
+                                    },
+                                    _ => {
+                                        is_sphere_selected.set(true);
+                                        is_sphere_nsfw.set(false);
+                                    }
+                                };
+                                sphere_header_vec.clone().into_iter().map(|sphere_header| {
+                                    let sphere_name = sphere_header.sphere_name.clone();
+                                    view! {
+                                        <li>
+                                            <button
+                                                type="button"
+                                                on:click=move |_| sphere_name_input.set(sphere_name.clone())
+                                            >
+                                                <SphereHeader sphere_header/>
+                                            </button>
+                                        </li>
+                                    }
+                                }).collect_view()
+                            }
+                            </TransitionUnpack>
                         </ul>
                     </div>
                     <PostForm

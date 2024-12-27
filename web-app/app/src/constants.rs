@@ -17,6 +17,5 @@ pub const HOT_ORDER_BY_COLUMN: &str = "recommended_score";
 pub const TRENDING_ORDER_BY_COLUMN: &str = "trending_score";
 pub const BEST_ORDER_BY_COLUMN: &str = "score";
 pub const RECENT_ORDER_BY_COLUMN: &str = "create_timestamp";
-pub const PATH_SEPARATOR: &str = "/";
 pub const SITE_ROOT: &str = "/";
 pub const IMAGE_TYPE: &str = "image/";

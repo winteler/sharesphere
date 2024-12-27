@@ -1,8 +1,7 @@
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
-use crate::constants::PATH_SEPARATOR;
-use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers, SphereHeader, SphereState, SPHERE_ROUTE_PREFIX};
+use crate::sphere::{get_popular_sphere_headers, get_sphere_path, get_subscribed_sphere_headers, SphereHeader, SphereState};
 use crate::sphere_category::SphereCategoryBadge;
 use crate::unpack::TransitionUnpack;
 use crate::widget::{Collapse, TitleCollapse};
@@ -21,7 +20,7 @@ pub fn SphereLinkList(
             <ul class="flex flex-col pt-1 pl-1">
             {
                 sphere_header_vec.iter().map(|sphere_header| {
-                    let sphere_path = SPHERE_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &sphere_header.sphere_name;
+                    let sphere_path = get_sphere_path(&sphere_header.sphere_name);
                     view! {
                         <li class="px-2 rounded hover:bg-base-content/20">
                             <a href=sphere_path>

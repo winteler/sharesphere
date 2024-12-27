@@ -3,7 +3,7 @@ use leptos_router::components::Form;
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
-use crate::constants::{PATH_SEPARATOR, SITE_ROOT};
+use crate::constants::SITE_ROOT;
 use crate::icons::*;
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::sphere::*;
@@ -31,7 +31,7 @@ pub fn get_current_path(path: RwSignal<String>) {
 /// ```
 pub fn get_sphere_from_path(path: &str) -> Option<String> {
     if path.starts_with(SPHERE_ROUTE_PREFIX) {
-        let mut path_part_it = path.split(PATH_SEPARATOR);
+        let mut path_part_it = path.split("/");
         Some(String::from(path_part_it.nth(2).unwrap_or("")))
     } else {
         None

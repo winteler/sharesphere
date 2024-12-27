@@ -1,18 +1,19 @@
-use crate::app::{GlobalState, PUBLISH_ROUTE};
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use const_format::concatcp;
 use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::{Form, Outlet, A};
-use leptos_router::hooks::use_params_map;
+use leptos_router::hooks::{use_navigate, use_params_map};
 use leptos_router::params::ParamsMap;
+use leptos_router::NavigateOptions;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
 
+use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::auth::LoginGuardButton;
-use crate::constants::PATH_SEPARATOR;
 use crate::content::PostSortWidget;
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::error_template::ErrorTemplate;
@@ -21,10 +22,8 @@ use crate::form::LabeledFormCheckbox;
 use crate::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
-use crate::post::{get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo, CREATE_POST_SUFFIX};
-use crate::post::{
-    CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, POST_ROUTE_PREFIX,
-};
+use crate::post::{get_post_path, get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo, CREATE_POST_SUFFIX};
+use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, };
 use crate::ranking::{ScoreIndicator, SortType};
 use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
@@ -440,7 +439,7 @@ pub async fn create_sphere(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let new_sphere_path: &str = &(SPHERE_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + sphere_name.as_str());
+    let new_sphere_path = get_sphere_path(&sphere_name);
 
     let sphere = ssr::create_sphere(
         sphere_name.as_str(),
@@ -455,7 +454,7 @@ pub async fn create_sphere(
     reload_user(user.user_id)?;
 
     // Redirect to the new sphere
-    leptos_axum::redirect(new_sphere_path);
+    leptos_axum::redirect(&new_sphere_path);
     Ok(())
 }
 
@@ -491,6 +490,12 @@ pub async fn unsubscribe(sphere_id: i64) -> Result<(), ServerFnError<AppError>> 
     Ok(())
 }
 
+pub fn get_sphere_path(
+    sphere_name: &str,
+) -> String {
+    format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}")
+}
+
 /// Get the current sphere name from the path. When the current path does not contain a sphere, returns the last valid sphere. Used to avoid sending a request when leaving a page
 fn get_sphere_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     Memo::new(move |current_sphere_name: Option<&String>| {
@@ -504,16 +509,41 @@ fn get_sphere_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
     })
 }
 
-/// Component to display a sphere's banner
+/// Component to display a sphere's header
 #[component]
 pub fn SphereHeader(
     sphere_header: SphereHeader
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-2 items-center">
+        <div
+            class="w-fit flex gap-1.5 items-center"
+        >
             <SphereIcon icon_url=sphere_header.icon_url class="h-5 w-5"/>
-            <span class="pt-1 pb-1.5">{sphere_header.sphere_name}</span>
+            <span class="pt-1 pb-1.5 text-sm">{sphere_header.sphere_name}</span>
         </div>
+    }
+}
+
+/// Component to display a sphere's header a navigate to it upon clicking
+#[component]
+pub fn SphereHeaderLink(
+    sphere_header: SphereHeader
+) -> impl IntoView {
+    // use navigate and prevent default to handle case where sphere header is in another <a>
+    let navigate = use_navigate();
+    let sphere_path = get_sphere_path(&sphere_header.sphere_name);
+    let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
+    view! {
+        <button
+            class="px-1 rounded-full hover:bg-base-content/20"
+            on:click=move |ev| {
+                ev.prevent_default();
+                navigate(sphere_path.as_str(), NavigateOptions::default());
+            }
+            aria-label=aria_label
+        >
+            <SphereHeader sphere_header/>
+        </button>
     }
 }
 
@@ -593,7 +623,7 @@ pub fn SphereBanner() -> impl IntoView {
     };
     provide_context(sphere_state);
 
-    let sphere_path = move || SPHERE_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + &sphere_name.get();
+    let sphere_path = move || get_sphere_path(&sphere_name.get());
 
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
@@ -751,7 +781,7 @@ pub fn SphereToolbar(
     let sphere_id = sphere.sphere.sphere_id;
     let sphere_name = RwSignal::new(sphere.sphere.sphere_name.clone());
     let is_subscribed = RwSignal::new(sphere.subscription_id.is_some());
-    let manage_path = move || SPHERE_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + sphere_name.get().as_str() + MANAGE_SPHERE_ROUTE;
+    let manage_path = move || get_sphere_path(&sphere_name.get()) + MANAGE_SPHERE_ROUTE;
 
     view! {
         <div class="flex w-full justify-between content-center">
@@ -922,7 +952,7 @@ pub fn SpherePostMiniatures(
                         true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
                         false => None,
                     };
-                    let post_path = SPHERE_ROUTE_PREFIX.to_owned() + PATH_SEPARATOR + post.sphere_name.as_str() + POST_ROUTE_PREFIX + PATH_SEPARATOR + &post.post_id.to_string();
+                    let post_path = get_post_path(&post.sphere_name, post.satellite_id, post.post_id);
                     view! {
                         <li>
                             <a href=post_path>

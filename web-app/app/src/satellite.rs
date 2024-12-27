@@ -1,14 +1,5 @@
-use crate::content::ContentBody;
-use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
-use crate::errors::AppError;
-use crate::form::LabeledFormCheckbox;
-use crate::icons::{DeleteIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
-use crate::post::{get_post_vec_by_satellite_id, PostSortType, PostWithSphereInfo};
-use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::sphere::{get_sphere_with_user_info, SpherePostMiniatures, SphereState, SphereToolbar, SPHERE_ROUTE_PREFIX};
-use crate::sphere_category::SphereCategoryHeader;
-use crate::unpack::{ArcSuspenseUnpack, TransitionUnpack};
-use crate::widget::{ModalDialog, ModalFormButtons, TagsWidget};
+use std::collections::HashMap;
+
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
@@ -17,9 +8,20 @@ use leptos_router::params::ParamsMap;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 use server_fn::ServerFnError;
-use std::collections::HashMap;
 
+use crate::content::ContentBody;
+use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
+use crate::errors::AppError;
+use crate::form::LabeledFormCheckbox;
+use crate::icons::{DeleteIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
+use crate::post::{get_post_vec_by_satellite_id, CreatePost, PostForm, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
+use crate::role::{AuthorizedShow, PermissionLevel};
+use crate::sphere::{get_sphere_with_user_info, SpherePostMiniatures, SphereState, SphereToolbar, SPHERE_ROUTE_PREFIX};
+use crate::sphere_category::{get_sphere_category_vec, SphereCategoryHeader};
+use crate::unpack::{ActionError, ArcSuspenseUnpack, SuspenseUnpack, TransitionUnpack};
+use crate::widget::{ModalDialog, ModalFormButtons, TagsWidget};
+
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -514,16 +516,62 @@ pub fn SatelliteContent() -> impl IntoView {
 /// Component to create a post in a satellite
 #[component]
 pub fn CreateSatellitePost() -> impl IntoView {
-    view! {
-        <div>"Create satellite post"</div>
-    }
-}
+    let sphere_state = expect_context::<SphereState>();
+    let satellite_state = expect_context::<SatelliteState>();
 
-/// Component to display a post inside a Satellite
-#[component]
-pub fn SatellitePost() -> impl IntoView {
-    view! {
+    let create_post_action = ServerAction::<CreatePost>::new();
 
+    let title = RwSignal::new(String::default());
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let body_autosize = use_textarea_autosize(textarea_ref);
+    let body_data = TextareaData {
+        content: body_autosize.content,
+        set_content: body_autosize.set_content,
+        textarea_ref,
+    };
+
+    let category_vec_resource = Resource::new(
+        move || sphere_state.sphere_name.get(),
+        move |sphere_name| get_sphere_category_vec(sphere_name)
+    );
+
+    view! {
+        <div class="w-4/5 2xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+            <ActionForm action=create_post_action>
+                <div class="flex flex-col gap-2 w-full">
+                    <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
+                    <input
+                        type="text"
+                        name="sphere"
+                        class="hidden"
+                        value=sphere_state.sphere_name
+                    />
+                    <input
+                        type="text"
+                        name="satellite_id"
+                        class="hidden"
+                        value=satellite_state.satellite_id
+                    />
+                    <SuspenseUnpack resource=satellite_state.satellite_resource let:satellite>
+                        <PostForm
+                            title
+                            body_data
+                            sphere_name=sphere_state.sphere_name
+                            is_parent_spoiler=satellite.is_spoiler
+                            is_parent_nsfw=satellite.is_nsfw
+                            category_vec_resource
+                        />
+                    </SuspenseUnpack>
+                    <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
+                        title.read().is_empty() ||
+                        body_data.content.read().is_empty()
+                    }>
+                        "Submit"
+                    </button>
+                </div>
+            </ActionForm>
+            <ActionError action=create_post_action.into()/>
+        </div>
     }
 }
 
@@ -599,7 +647,7 @@ pub fn SatellitePanel() -> impl IntoView {
                             <div class="flex gap-1 justify-between rounded pl-1">
                                 <div class="w-5/6 flex gap-1">
                                     <div class="w-3/6 select-none">{satellite_name}</div>
-                                    <div class="w-20 flex justify-center">
+                                    <div class="w-20 flex justify-center items-center">
                                     {
                                         match satellite.disable_timestamp.is_none() {
                                             true => view! { <PlayIcon/> }.into_any(),
@@ -607,8 +655,8 @@ pub fn SatellitePanel() -> impl IntoView {
                                         }
                                     }
                                     </div>
-                                    <div class="w-20 flex justify-center">
-                                        <a href=satellite_link class="hover:bg-base-content/20">
+                                    <div class="w-20 flex justify-center items-center">
+                                        <a href=satellite_link class="p-2 rounded-full hover:bg-base-content/20">
                                             <LinkIcon/>
                                         </a>
                                     </div>

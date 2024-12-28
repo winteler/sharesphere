@@ -1117,7 +1117,7 @@ pub fn PostForm(
     #[prop(default = None)]
     current_post: Option<StoredValue<Post>>,
 ) -> impl IntoView {
-    let (is_spoiler, is_nsfw, is_pinned, is_markdown) = match current_post {
+    let (is_markdown, is_spoiler, is_nsfw, is_pinned, category_id) = match current_post {
         Some(post) => post.with_value(|post| {
             title.set(post.title.clone());
             let (current_body, is_markdown) = match &post.markdown_body {
@@ -1125,9 +1125,9 @@ pub fn PostForm(
                 None => (post.body.clone(), false),
             };
             body_data.set_content.set(current_body);
-            (post.is_spoiler, post.is_nsfw, post.is_pinned, is_markdown)
+            (is_markdown, post.is_spoiler, post.is_nsfw, post.is_pinned, post.category_id)
         }),
-        None => (false, false, false, false),
+        None => (false, false, false, false, None),
     };
 
     view! {
@@ -1164,7 +1164,7 @@ pub fn PostForm(
         }}
         <IsPinnedCheckbox sphere_name value=is_pinned/>
         // TODO take initial value
-        <SphereCategoryDropdown category_vec_resource name="category_id" show_inactive=false/>
+        <SphereCategoryDropdown category_vec_resource init_category_id=category_id name="category_id" show_inactive=false/>
     }
 }
 

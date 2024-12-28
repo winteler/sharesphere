@@ -813,13 +813,15 @@ pub fn SphereToolbar(
 pub fn SphereCategoryDropdown(
     category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
     #[prop(default = None)]
+    init_category_id: Option<i64>,
+    #[prop(default = None)]
     category_id_signal: Option<RwSignal<Option<i64>>>,
     #[prop(default = true)]
     show_inactive: bool,
     #[prop(default = "")]
     name: &'static str,
 ) -> impl IntoView {
-    let is_selected = RwSignal::new(false);
+    let is_selected = RwSignal::new(init_category_id.is_some());
     let select_class = move || match is_selected.get() {
         true => "select select-bordered w-fit",
         false => "select select-bordered w-fit text-gray-400",
@@ -847,14 +849,21 @@ pub fn SphereCategoryDropdown(
                         };
                     }
                 >
-                    <option selected value="" class="text-gray-400">"Category"</option>
+                    <option selected=init_category_id.is_none() value="" class="text-gray-400">"Category"</option>
                     {
                         sphere_category_vec.iter().map(|sphere_category| {
+                            let is_selected = init_category_id.is_some_and(|category_id| category_id == sphere_category.category_id);
                             match show_inactive || sphere_category.is_active {
-                                true => view! {
-                                    <option class="text-white" value=sphere_category.category_id>{sphere_category.category_name.clone()}</option>
-                                }.into_any(),
-                                false => ().into_any(),
+                                true => Some(view! {
+                                    <option
+                                        class="text-white"
+                                        selected=is_selected
+                                        value=sphere_category.category_id
+                                    >
+                                        {sphere_category.category_name.clone()}
+                                    </option>
+                                }),
+                                false => None,
                             }
                         }).collect_view()
                     }

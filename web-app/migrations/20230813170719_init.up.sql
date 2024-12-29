@@ -119,6 +119,8 @@ CREATE TABLE posts (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     markdown_body TEXT,
+    link TEXT,
+    link_type SMALLINT NOT NULL CHECK (link_type IN (-1, 0, 1, 2)),
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     is_spoiler BOOLEAN NOT NULL DEFAULT FALSE,
     category_id BIGINT,

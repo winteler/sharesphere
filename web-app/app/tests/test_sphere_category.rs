@@ -1,6 +1,7 @@
 use crate::common::{create_user, get_db_pool};
 use app::colors::Color;
 use app::errors::AppError;
+use app::post::LinkType;
 use app::post::ssr::create_post;
 use app::sphere::ssr::create_sphere;
 use app::sphere_category::ssr::{delete_sphere_category, get_sphere_category_vec, set_sphere_category, CATEGORY_NOT_DELETED_STR};
@@ -208,6 +209,8 @@ async fn test_delete_sphere_category() -> Result<(), AppError> {
         "a",
         "b",
         None,
+        None,
+        LinkType::None,
         false,
         false,
         false,

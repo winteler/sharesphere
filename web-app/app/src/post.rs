@@ -8,7 +8,7 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
-
+use strum_macros::{Display, EnumIter};
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
@@ -41,6 +41,17 @@ pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const POST_BATCH_SIZE: i64 = 50;
 
+#[repr(i16)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, Eq, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+pub enum LinkType {
+    #[default]
+    None = -1,
+    WebPage = 0,
+    Image = 1,
+    Video = 2,
+}
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Post {
@@ -48,6 +59,8 @@ pub struct Post {
     pub title: String,
     pub body: String,
     pub markdown_body: Option<String>,
+    pub link: Option<String>,
+    pub link_type: LinkType,
     pub is_nsfw: bool,
     pub is_spoiler: bool,
     pub category_id: Option<i64>,
@@ -102,6 +115,17 @@ pub enum PostSortType {
     Trending,
     Best,
     Recent,
+}
+
+impl From<i16> for LinkType {
+    fn from(category_color_val: i16) -> Self {
+        match category_color_val {
+            x if x == LinkType::WebPage as i16 => LinkType::WebPage,
+            x if x == LinkType::Image as i16 => LinkType::Image,
+            x if x == LinkType::Video as i16 => LinkType::Video,
+            _ => LinkType::None,
+        }
+    }
 }
 
 impl PostWithSphereInfo {
@@ -451,6 +475,8 @@ pub mod ssr {
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
+        link: Option<&str>,
+        link_type: LinkType,
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
@@ -471,18 +497,18 @@ pub mod ssr {
         let post = sqlx::query_as!(
             Post,
             "INSERT INTO posts (
-                title, body, markdown_body, is_nsfw, is_spoiler, category_id, sphere_id,
+                title, body, markdown_body, link, link_type, is_nsfw, is_spoiler, category_id, sphere_id,
                 sphere_name, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
-                $1, $2, $3,
+                $1, $2, $3, $4, $5,
                 (
                     CASE
-                        WHEN $4 THEN TRUE
+                        WHEN $6 THEN TRUE
                         ELSE (
-                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $7) OR
+                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $9) OR
                             COALESCE(
-                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $8),
+                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $10),
                                 FALSE
                             )
                         )
@@ -490,20 +516,22 @@ pub mod ssr {
                 ),
                 (
                     CASE
-                        WHEN $5 THEN TRUE
+                        WHEN $7 THEN TRUE
                         ELSE COALESCE(
-                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $8),
+                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $10),
                             FALSE
                         )
                     END
                 ),
-                $6,
-                (SELECT sphere_id FROM spheres WHERE sphere_name = $7),
-                $7, $8, $9, $10, $11, $12
+                $8,
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $9),
+                $9, $10, $11, $12, $13, $14
             ) RETURNING *",
             post_title,
             post_body,
             post_markdown_body,
+            link,
+            link_type as i16,
             is_nsfw,
             is_spoiler,
             category_id,
@@ -525,6 +553,8 @@ pub mod ssr {
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
+        link: Option<&str>,
+        link_type: LinkType,
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
@@ -548,37 +578,41 @@ pub mod ssr {
                 title = $1,
                 body = $2,
                 markdown_body = $3,
+                link = $4,
+                link_type = $5,
                 is_nsfw = (
                     CASE
-                        WHEN $4 THEN TRUE
+                        WHEN $6 THEN TRUE
                         ELSE (
                             SELECT s.is_nsfw OR COALESCE(sa.is_nsfw, FALSE) FROM posts p
                             JOIN spheres s ON s.sphere_id = p.sphere_id
                             LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE p.post_id = $8
+                            WHERE p.post_id = $10
                         )
                     END
                 ),
                 is_spoiler = (
                     CASE
-                        WHEN $5 THEN TRUE
+                        WHEN $7 THEN TRUE
                         ELSE (
                             SELECT COALESCE(sa.is_spoiler, FALSE) FROM posts p
                             LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE post_id = $8
+                            WHERE post_id = $10
                         )
                     END
                 ),
-                is_pinned = $6,
-                category_id = $7,
+                is_pinned = $8,
+                category_id = $9,
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
-                post_id = $8 AND
-                creator_id = $9
+                post_id = $10 AND
+                creator_id = $11
             RETURNING *",
             post_title,
             post_body,
             post_markdown_body,
+            link,
+            link_type as i16,
             is_nsfw,
             is_spoiler,
             is_pinned,
@@ -804,6 +838,8 @@ pub async fn create_post(
     satellite_id: Option<i64>,
     title: String,
     body: String,
+    link: Option<String>,
+    link_type: LinkType,
     is_markdown: bool,
     is_spoiler: bool,
     is_nsfw: bool,
@@ -821,6 +857,8 @@ pub async fn create_post(
         title.as_str(),
         body.as_str(),
         markdown_body.as_deref(),
+        link.as_deref(),
+        link_type,
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
@@ -843,13 +881,15 @@ pub async fn edit_post(
     post_id: i64,
     title: String,
     body: String,
+    link: Option<String>,
+    link_type: LinkType,
     is_markdown: bool,
     is_spoiler: bool,
     is_nsfw: bool,
     is_pinned: Option<bool>,
     category_id: Option<i64>,
 ) -> Result<Post, ServerFnError<AppError>> {
-    log::trace!("Edit post {post_id}, title = {title}, body = {body}");
+    log::trace!("Edit post {post_id}, title = {title}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -860,6 +900,8 @@ pub async fn edit_post(
         title.as_str(),
         body.as_str(),
         markdown_body.as_deref(),
+        link.as_deref(),
+        link_type,
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
@@ -1394,7 +1436,7 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 mod tests {
     use crate::colors::Color;
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-    use crate::post::{Post, PostSortType, PostWithSphereInfo};
+    use crate::post::{LinkType, Post, PostSortType, PostWithSphereInfo};
     use crate::sphere_category::SphereCategoryHeader;
 
     fn create_post_with_category(sphere_name: &str, title: &str, category_id: Option<i64>) -> Post {
@@ -1403,6 +1445,8 @@ mod tests {
             title: title.to_string(),
             body: String::default(),
             markdown_body: None,
+            link: None,
+            link_type: LinkType::None,
             is_nsfw: false,
             is_spoiler: false,
             category_id,

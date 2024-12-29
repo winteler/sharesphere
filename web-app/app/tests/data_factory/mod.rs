@@ -6,7 +6,7 @@ use app::colors::Color;
 use app::comment::ssr::create_comment;
 use app::comment::Comment;
 use app::errors::AppError;
-use app::post::{Post, PostWithSphereInfo};
+use app::post::{LinkType, Post, PostWithSphereInfo};
 use app::ranking::VoteValue;
 use app::satellite::ssr::create_satellite;
 use app::satellite::Satellite;
@@ -37,6 +37,8 @@ pub async fn create_sphere_with_post(
         "post",
         "body",
         None,
+        None,
+        LinkType::None,
         false,
         false,
         false,
@@ -129,6 +131,8 @@ pub async fn create_posts(
             i.to_string().as_str(),
             "body",
             None,
+            None,
+            LinkType::None,
             false,
             false,
             false,
@@ -236,6 +240,8 @@ pub async fn create_post_with_comments(
         post_title,
         "body",
         None,
+        None,
+        LinkType::None,
         false,
         false,
         false,

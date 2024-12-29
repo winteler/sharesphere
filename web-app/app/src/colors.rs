@@ -128,3 +128,17 @@ pub fn ColorSelect(
         </div>
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::colors::Color;
+
+    #[test]
+    fn test_color_from_i16() {
+        for color in Color::Iter() {
+            assert_eq!(Color::from(color as i16), color);
+        }
+        assert_eq!(Color::from(-2), Color::None);
+        assert_eq!(Color::from(100), Color::None);
+    }
+}

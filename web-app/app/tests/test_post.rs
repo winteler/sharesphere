@@ -1270,6 +1270,8 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.title, post_1_title);
     assert_eq!(post_1.body, post_1_body);
     assert_eq!(post_1.markdown_body, None);
+    assert_eq!(post_1.link, None);
+    assert_eq!(post_1.link_type, LinkType::None);
     assert_eq!(post_1.is_nsfw, false);
     assert_eq!(post_1.is_spoiler, false);
     assert_eq!(post_1.category_id, None);
@@ -1299,12 +1301,16 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
+    let post_2_link = "webpage";
     let post_2 = create_post(
-        &sphere_1.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), None, LinkType::None,true, true, true, None, &user, &db_pool
+        &sphere_1.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), Some(post_2_link), LinkType::WebPage,true, true, true, None, &user, &db_pool
     ).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
+    assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
+    assert_eq!(post_2.link, Some(String::from(post_2_link)));
+    assert_eq!(post_2.link_type, LinkType::WebPage);
     assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
     assert_eq!(post_2.is_nsfw, true);
     assert_eq!(post_2.is_spoiler, true);
@@ -1327,13 +1333,16 @@ async fn test_create_post() -> Result<(), AppError> {
 
     let nsfw_post_title = "1";
     let nsfw_post_body = "test";
+    let nsfw_post_link = "image";
     let nsfw_post = create_post(
-        &sphere_2.sphere_name, None, nsfw_post_title, nsfw_post_body, None, None, LinkType::None, false, false, false, None, &user, &db_pool
+        &sphere_2.sphere_name, None, nsfw_post_title, nsfw_post_body, None, Some(nsfw_post_link), LinkType::Image, false, false, false, None, &user, &db_pool
     ).await.expect("Should be able to create nsfw post.");
 
     assert_eq!(nsfw_post.title, nsfw_post_title);
     assert_eq!(nsfw_post.body, nsfw_post_body);
     assert_eq!(nsfw_post.markdown_body, None);
+    assert_eq!(nsfw_post.link, Some(String::from(nsfw_post_link)));
+    assert_eq!(nsfw_post.link_type, LinkType::Image);
     assert_eq!(nsfw_post.is_nsfw, true);
     assert_eq!(nsfw_post.is_spoiler, false);
     assert_eq!(nsfw_post.category_id, None);
@@ -1404,6 +1413,8 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.title, "1");
     assert_eq!(post.body, "1");
     assert_eq!(post.markdown_body, None);
+    assert_eq!(post.link, None);
+    assert_eq!(post.link_type, LinkType::None);
     assert_eq!(post.is_nsfw, false);
     assert_eq!(post.is_spoiler, false);
     assert_eq!(post.category_id, None);
@@ -1438,8 +1449,8 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
         "2",
         "2",
         None,
-        None,
-        LinkType::None,
+        Some("link"),
+        LinkType::Video,
         false,
         false,
         true,
@@ -1451,6 +1462,8 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.title, "2");
     assert_eq!(post.body, "2");
     assert_eq!(post.markdown_body, None);
+    assert_eq!(post.link, Some(String::from("link")));
+    assert_eq!(post.link_type, LinkType::Video);
     assert_eq!(post.is_nsfw, true);
     assert_eq!(post.is_spoiler, true);
     assert_eq!(post.category_id, None);
@@ -1536,13 +1549,14 @@ async fn test_update_post() -> Result<(), AppError> {
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");
+    let updated_link = "updated_link";
     let updated_post = post::ssr::update_post(
         post.post_id,
         updated_title,
         &updated_html_body,
         Some(updated_markdown_body),
-        None,
-        LinkType::None,
+        Some(updated_link),
+        LinkType::WebPage,
         false,
         false,
         false,
@@ -1554,6 +1568,8 @@ async fn test_update_post() -> Result<(), AppError> {
     assert_eq!(updated_post.title, updated_title);
     assert_eq!(updated_post.body, updated_html_body);
     assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
+    assert_eq!(updated_post.link, Some(String::from(updated_link)));
+    assert_eq!(updated_post.link_type, LinkType::WebPage);
     assert!(
         updated_post.edit_timestamp.is_some() &&
         updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
@@ -1566,8 +1582,8 @@ async fn test_update_post() -> Result<(), AppError> {
         "post",
         "body",
         None,
-        None,
-        LinkType::None,
+        Some("link"),
+        LinkType::Image,
         false,
         true,
         false,
@@ -1594,6 +1610,8 @@ async fn test_update_post() -> Result<(), AppError> {
     assert_eq!(updated_nsfw_post.title, updated_title);
     assert_eq!(updated_nsfw_post.body, updated_html_body);
     assert_eq!(updated_nsfw_post.markdown_body, Some(String::from(updated_markdown_body)));
+    assert_eq!(updated_nsfw_post.link, None);
+    assert_eq!(updated_nsfw_post.link_type, LinkType::None);
     // a post in a nsfw sphere is always nsfw, input of the update is ignored
     assert_eq!(updated_nsfw_post.is_nsfw, true);
     assert!(
@@ -1638,14 +1656,15 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown");
+    let updated_link = "new_link";
     
     let updated_post = update_post(
         post.post_id,
         updated_title,
         &updated_html_body,
         Some(updated_markdown_body),
-        None,
-        LinkType::None,
+        Some(updated_link),
+        LinkType::Video,
         false,
         false,
         true,
@@ -1657,6 +1676,8 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(updated_post.title, updated_title);
     assert_eq!(updated_post.body, updated_html_body);
     assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
+    assert_eq!(updated_post.link, Some(String::from(updated_link)));
+    assert_eq!(updated_post.link_type, LinkType::Video);
     assert_eq!(updated_post.satellite_id, Some(satellite_1.satellite_id));
     assert_eq!(updated_post.is_spoiler, false);
     assert_eq!(updated_post.is_nsfw, false);
@@ -1710,6 +1731,8 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(updated_post.title, updated_title);
     assert_eq!(updated_post.body, updated_html_body);
     assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
+    assert_eq!(updated_post.link, None);
+    assert_eq!(updated_post.link_type, LinkType::None);
     assert_eq!(updated_post.satellite_id, Some(satellite_2.satellite_id));
     assert_eq!(updated_post.is_spoiler, true);
     assert_eq!(updated_post.is_nsfw, true);

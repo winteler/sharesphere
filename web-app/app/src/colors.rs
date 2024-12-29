@@ -110,7 +110,7 @@ pub fn ColorSelect(
                     <div class="absolute z-40 origin-bottom-left">
                         <div class="grid grid-cols-3 gap-1 shadow bg-base-100 rounded mt-1 w-28">
                         { move || {
-                            Color::iter().into_iter().map(|color: Color| {
+                            Color::iter().map(|color: Color| {
                                 view! {
                                     <div class="w-fit rounded hover:bg-base-content/20" on:click=move |_| {
                                         color_input.set(color);
@@ -132,10 +132,11 @@ pub fn ColorSelect(
 #[cfg(test)]
 mod tests {
     use crate::colors::Color;
+    use strum::IntoEnumIterator;
 
     #[test]
     fn test_color_from_i16() {
-        for color in Color::Iter() {
+        for color in Color::iter() {
             assert_eq!(Color::from(color as i16), color);
         }
         assert_eq!(Color::from(-2), Color::None);

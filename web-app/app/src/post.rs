@@ -1434,6 +1434,7 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 
 #[cfg(test)]
 mod tests {
+    use strum::IntoEnumIterator;
     use crate::colors::Color;
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
     use crate::post::{LinkType, Post, PostSortType, PostWithSphereInfo};
@@ -1472,6 +1473,15 @@ mod tests {
             edit_timestamp: None,
             scoring_timestamp: Default::default(),
         }
+    }
+
+    #[test]
+    fn test_link_type_from_i16() {
+        for link_type in LinkType::iter() {
+            assert_eq!(LinkType::from(link_type as i16), link_type);
+        }
+        assert_eq!(LinkType::from(-2), LinkType::None);
+        assert_eq!(LinkType::from(100), LinkType::None);
     }
 
     #[test]

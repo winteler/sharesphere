@@ -14,7 +14,7 @@ use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
 use crate::icons::{DeleteIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
-use crate::post::{get_post_vec_by_satellite_id, CreatePost, PostForm, PostSortType, PostWithSphereInfo};
+use crate::post::{get_post_vec_by_satellite_id, CreatePost, LinkType, PostForm, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::{get_sphere_with_user_info, SpherePostMiniatures, SphereState, SphereToolbar, SPHERE_ROUTE_PREFIX};
@@ -504,6 +504,8 @@ pub fn CreateSatellitePost() -> impl IntoView {
         set_content: body_autosize.set_content,
         textarea_ref,
     };
+    let link_input = RwSignal::new(String::default());
+    let link_type_input = RwSignal::new(LinkType::None);
 
     let category_vec_resource = Resource::new(
         move || sphere_state.sphere_name.get(),
@@ -531,6 +533,8 @@ pub fn CreateSatellitePost() -> impl IntoView {
                         <PostForm
                             title
                             body_data
+                            link_input
+                            link_type_input
                             sphere_name=sphere_state.sphere_name
                             is_parent_spoiler=satellite.is_spoiler
                             is_parent_nsfw=satellite.is_nsfw
@@ -539,7 +543,13 @@ pub fn CreateSatellitePost() -> impl IntoView {
                     </SuspenseUnpack>
                     <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
                         title.read().is_empty() ||
-                        body_data.content.read().is_empty()
+                        (
+                            body_data.content.read().is_empty() &&
+                            *link_type_input.read() == LinkType::None
+                        ) || (
+                            *link_type_input.read() != LinkType::None &&
+                            link_input.read().is_empty() // TODO check valid url?
+                        )
                     }>
                         "Submit"
                     </button>

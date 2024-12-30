@@ -564,7 +564,7 @@ pub fn PermissionLevelForm(
                     <EnumDropdown
                         name="permission_level"
                         enum_iter=PermissionLevel::iter()
-                        _select_ref=select_ref
+                        select_ref
                     />
                     <button
                         type="submit"

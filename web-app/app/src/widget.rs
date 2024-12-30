@@ -51,7 +51,7 @@ pub fn ModalDialog(
 pub fn EnumDropdown<I, T>(
     name: &'static str,
     enum_iter: I,
-    _select_ref: NodeRef<html::Select>,
+    select_ref: NodeRef<html::Select>,
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T>,
@@ -61,7 +61,7 @@ where
         <select
             name=name
             class="select select-bordered w-fit"
-            node_ref=_select_ref
+            node_ref=select_ref
         >
         {
             enum_iter.into_iter().map(|enum_val| view! {<option>{enum_val.into()}</option>}.into_any()).collect_view()

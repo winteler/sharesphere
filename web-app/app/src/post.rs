@@ -8,7 +8,9 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumIter};
+use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
+
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
@@ -20,12 +22,12 @@ use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
+use crate::satellite::SATELLITE_ROUTE_PREFIX;
 use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
 use crate::unpack::{ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
-use crate::satellite::SATELLITE_ROUTE_PREFIX;
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -42,7 +44,7 @@ pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const POST_BATCH_SIZE: i64 = 50;
 
 #[repr(i16)]
-#[derive(Clone, Copy, Debug, Default, Display, EnumIter, Eq, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum LinkType {
     #[default]
@@ -851,6 +853,8 @@ pub async fn create_post(
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
+    // TODO check link
+
     let post = ssr::create_post(
         sphere.as_str(),
         satellite_id,
@@ -894,6 +898,8 @@ pub async fn edit_post(
     let db_pool = get_db_pool()?;
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
+
+    // TODO check link
 
     let post = ssr::update_post(
         post_id,
@@ -1149,6 +1155,8 @@ pub fn EditPostButton(
 pub fn PostForm(
     title: RwSignal<String>,
     body_data: TextareaData,
+    link_input: RwSignal<String>,
+    link_type_input: RwSignal<LinkType>,
     #[prop(into)]
     sphere_name: Signal<String>,
     #[prop(into)]
@@ -1161,7 +1169,6 @@ pub fn PostForm(
 ) -> impl IntoView {
     let (is_markdown, is_spoiler, is_nsfw, is_pinned, category_id) = match current_post {
         Some(post) => post.with_value(|post| {
-            title.set(post.title.clone());
             let (current_body, is_markdown) = match &post.markdown_body {
                 Some(body) => (body.clone(), true),
                 None => (post.body.clone(), false),
@@ -1192,6 +1199,7 @@ pub fn PostForm(
             data=body_data
             is_markdown
         />
+        <ExternalContentForm link_input link_type_input/>
         { move || {
             match is_parent_spoiler.get() {
                 true => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=true disabled=true/> },
@@ -1205,8 +1213,53 @@ pub fn PostForm(
             }
         }}
         <IsPinnedCheckbox sphere_name value=is_pinned/>
-        // TODO take initial value
         <SphereCategoryDropdown category_vec_resource init_category_id=category_id name="category_id" show_inactive=false/>
+    }
+}
+
+/// Component to give a link to external content
+#[component]
+pub fn ExternalContentForm(
+    link_input: RwSignal<String>,
+    link_type_input: RwSignal<LinkType>,
+) -> impl IntoView {
+
+    view! {
+        <div class="h-full flex gap-2 items-center">
+            <span class="label-text w-fit">"External content"</span>
+            <select
+                name="link_type"
+                class="select select-bordered h-input_m w-fit"
+            >
+            {
+                LinkType::iter().map(|link_type| {
+                    let link_type_str: &'static str = link_type.into();
+                    view! {
+                        <option
+                            selected=move || link_type_input.get_untracked() == link_type
+                            on:click=move |_| link_type_input.set(link_type)
+                        >
+                            {link_type_str}
+                        </option>
+                    }
+                }).collect_view()
+            }
+            </select>
+            <Show when=move || *link_type_input.read() != LinkType::None>
+                <input
+                    type="text"
+                    name="link"
+                    placeholder="Link"
+                    class="input input-bordered input-primary h-input_m grow"
+                    value=link_input
+                    autofocus
+                    autocomplete="off"
+                    on:input=move |ev| {
+                        link_input.set(event_target_value(&ev));
+                    }
+                />
+            </Show>
+        </div>
     }
 }
 
@@ -1233,6 +1286,8 @@ pub fn CreatePost() -> impl IntoView {
         set_content: body_autosize.set_content,
         textarea_ref,
     };
+    let link_input = RwSignal::new(String::default());
+    let link_type_input = RwSignal::new(LinkType::None);
 
     let matching_spheres_resource = Resource::new(
         move || sphere_name_debounced.get(),
@@ -1295,6 +1350,8 @@ pub fn CreatePost() -> impl IntoView {
                     <PostForm
                         title
                         body_data
+                        link_input
+                        link_type_input
                         sphere_name=sphere_name_input
                         is_parent_spoiler=false
                         is_parent_nsfw=is_sphere_nsfw
@@ -1303,7 +1360,13 @@ pub fn CreatePost() -> impl IntoView {
                     <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
                         !is_sphere_selected.get() ||
                         title.read().is_empty() ||
-                        body_data.content.read().is_empty()
+                        (
+                            body_data.content.read().is_empty() &&
+                            *link_type_input.read() == LinkType::None
+                        ) || (
+                            *link_type_input.read() != LinkType::None &&
+                            link_input.read().is_empty() // TODO check valid url?
+                        )
                     }>
                         "Submit"
                     </button>
@@ -1343,8 +1406,8 @@ pub fn EditPostForm(
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
 
-    let post_id = post.with_value(|post| post.post_id);
-    let title = RwSignal::new(String::default());
+    let (post_id, title, link, link_type) = post.with_value(|post| (post.post_id, post.title.clone(), post.link.clone(), post.link_type));
+    let title = RwSignal::new(title);
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
@@ -1352,7 +1415,18 @@ pub fn EditPostForm(
         set_content: body_autosize.set_content,
         textarea_ref,
     };
-    let disable_publish = Signal::derive(move || title.read().is_empty() || body_data.content.read().is_empty());
+    let link_input = RwSignal::new(link.unwrap_or_default());
+    let link_type_input = RwSignal::new(link_type);
+    let disable_publish = Signal::derive(move || {
+        title.read().is_empty() ||
+        (
+            body_data.content.read().is_empty() &&
+            *link_type_input.read() == LinkType::None
+        ) || (
+            *link_type_input.read() != LinkType::None &&
+            link_input.read().is_empty()
+        )
+    });
 
     let inherited_attributes_resource = Resource::new(
         move || (),
@@ -1374,6 +1448,8 @@ pub fn EditPostForm(
                         <PostForm
                             title
                             body_data
+                            link_input
+                            link_type_input
                             sphere_name=sphere_state.sphere_name
                             is_parent_spoiler=inherited_post_attr.is_spoiler
                             is_parent_nsfw=inherited_post_attr.is_nsfw

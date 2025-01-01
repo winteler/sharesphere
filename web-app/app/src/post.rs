@@ -1266,7 +1266,7 @@ pub fn ExternalContentForm(
     }
 }
 
-/// Component to give a link to external content
+/// Component to give display an external content
 #[component]
 pub fn ExternalContentDisplay(
     #[prop(into)]

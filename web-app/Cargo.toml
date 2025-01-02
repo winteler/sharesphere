@@ -9,13 +9,13 @@ lto = true
 opt-level = 'z'
 
 [workspace.dependencies]
-leptos = { version = "0.7.0-rc3", features = ["nightly"] }
-leptos_meta = { version = "0.7.0-rc3" }
-leptos_router = { version = "0.7.0-rc3", features = ["nightly"] }
-leptos_axum = { version = "0.7.0-rc3" }
-server_fn = { version = "0.7.0-rc3", features = [ "multipart"] }
+leptos = { version = "0.7.2", features = ["nightly"] }
+leptos_meta = { version = "0.7.2" }
+leptos_router = { version = "0.7.2", features = ["nightly"] }
+leptos_axum = { version = "0.7.2" }
+server_fn = { version = "0.7.2", features = [ "multipart"] }
 
-leptos-use = { version = "0.14.0-rc5", features = ["use_textarea_autosize"] }
+leptos-use = { version = "0.15.1", features = ["use_textarea_autosize"] }
 
 anyhow = "*"
 axum = {  version = "0.7", features = [ "macros" ] }

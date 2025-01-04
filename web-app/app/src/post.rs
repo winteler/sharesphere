@@ -20,7 +20,7 @@ use crate::embed::Embed;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::icons::{EditIcon, LinkIcon, LoadingIcon};
+use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{SortType, Vote, VotePanel};
 use crate::satellite::SATELLITE_ROUTE_PREFIX;
@@ -50,9 +50,10 @@ pub const POST_BATCH_SIZE: i64 = 50;
 pub enum LinkType {
     #[default]
     None = -1,
-    WebPage = 0,
+    Link = 0,
     Image = 1,
     Video = 2,
+    Rich = 3,
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -123,9 +124,10 @@ pub enum PostSortType {
 impl From<i16> for LinkType {
     fn from(category_color_val: i16) -> Self {
         match category_color_val {
-            x if x == LinkType::WebPage as i16 => LinkType::WebPage,
+            x if x == LinkType::Link as i16 => LinkType::Link,
             x if x == LinkType::Image as i16 => LinkType::Image,
             x if x == LinkType::Video as i16 => LinkType::Video,
+            x if x == LinkType::Rich as i16 => LinkType::Rich,
             _ => LinkType::None,
         }
     }
@@ -1224,7 +1226,7 @@ pub fn ExternalContentForm(
     link_input: RwSignal<String>,
     link_type_input: RwSignal<LinkType>,
 ) -> impl IntoView {
-
+    let select_ref = NodeRef::<html::Select>::new();
     view! {
         <div class="w-full flex flex-col gap-2">
             <div class="h-full flex gap-2 items-center">
@@ -1232,9 +1234,9 @@ pub fn ExternalContentForm(
                 <select
                     name="link_type"
                     class="select select-bordered h-input_m w-fit"
+                    node_ref=select_ref
                 >
-                {
-                    LinkType::iter().map(|link_type| {
+                { move || LinkType::iter().map(|link_type| {
                         let link_type_str: &'static str = link_type.into();
                         view! {
                             <option
@@ -1247,49 +1249,21 @@ pub fn ExternalContentForm(
                     }).collect_view()
                 }
                 </select>
-                <Show when=move || *link_type_input.read() != LinkType::None>
-                    <input
-                        type="text"
-                        name="link"
-                        placeholder="Link"
-                        class="input input-bordered input-primary h-input_m grow"
-                        value=link_input
-                        autofocus
-                        autocomplete="off"
-                        on:input=move |ev| {
-                            link_input.set(event_target_value(&ev));
-                        }
-                    />
-                </Show>
+                <input
+                    type="text"
+                    name="link"
+                    placeholder="Link"
+                    class="input input-bordered input-primary h-input_m grow"
+                    value=link_input
+                    autofocus
+                    autocomplete="off"
+                    on:input=move |ev| {
+                        link_input.set(event_target_value(&ev));
+                    }
+                />
             </div>
-            <Embed link_input link_type_input/>
-            <ExternalContentDisplay link_input link_type_input/>
+            <Embed link_input link_type_input select_ref/>
         </div>
-    }
-}
-
-/// Component to display an external content
-#[component]
-pub fn ExternalContentDisplay(
-    #[prop(into)]
-    link_input: Signal<String>,
-    #[prop(into)]
-    link_type_input: Signal<LinkType>,
-) -> impl IntoView {
-    let media_class = "max-h-80 max-w-full object-contain";
-    view! {
-        { move || match link_type_input.get() {
-            LinkType::None => None,
-            LinkType::WebPage => Some(view! {
-                <a href=link_input><LinkIcon/></a>
-            }.into_any()),
-            LinkType::Image => Some(view! {
-                <img src=link_input alt="Linked image" class=media_class/>
-            }.into_any()),
-            LinkType::Video => Some(view! {
-                <iframe src=link_input sandbox class=media_class></iframe>
-            }.into_any()),
-        }}
     }
 }
 

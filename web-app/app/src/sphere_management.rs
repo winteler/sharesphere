@@ -469,7 +469,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                     <For
                         each= move || (*sphere_role_vec).clone().into_iter().enumerate()
                         key=|(_index, role)| (role.user_id, role.permission_level)
-                        children=move |(_, role)| {
+                        children=move |(index, role)| {
                             let username = StoredValue::new(role.username);
                             view! {
                                 <div
@@ -477,7 +477,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                                     on:click=move |_| {
                                         username_input.set(username.get_value());
                                         match select_ref.get_untracked() {
-                                            Some(select_ref) => select_ref.set_selected_index(role.permission_level as i32),
+                                            Some(select_ref) => select_ref.set_selected_index(index as i32),
                                             None => log::error!("Form permission level select failed to load."),
                                         };
                                     }

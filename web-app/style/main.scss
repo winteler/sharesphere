@@ -3369,6 +3369,10 @@ html {
   height: 100vh;
 }
 
+.h-auto {
+  height: auto;
+}
+
 .max-h-12 {
   max-height: 3rem;
 }
@@ -3381,8 +3385,17 @@ html {
   max-height: 24rem;
 }
 
+.max-h-160 {
+  max-height: 40rem;
+}
+
 .min-h-24 {
   min-height: 6rem;
+}
+
+.min-h-fit {
+  min-height: -moz-fit-content;
+  min-height: fit-content;
 }
 
 .min-h-full {
@@ -3516,6 +3529,10 @@ html {
 
 .w-screen {
   width: 100vw;
+}
+
+.w-auto {
+  width: auto;
 }
 
 .min-w-6 {
@@ -4099,11 +4116,6 @@ html {
 .text-5xl {
   font-size: 3rem;
   line-height: 1;
-}
-
-.text-base {
-  font-size: 1rem;
-  line-height: 1.5rem;
 }
 
 .text-lg {

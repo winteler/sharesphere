@@ -16,6 +16,7 @@ use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, Comme
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
+use crate::embed::Embed;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
@@ -1261,12 +1262,13 @@ pub fn ExternalContentForm(
                     />
                 </Show>
             </div>
+            <Embed link_input link_type_input/>
             <ExternalContentDisplay link_input link_type_input/>
         </div>
     }
 }
 
-/// Component to give display an external content
+/// Component to display an external content
 #[component]
 pub fn ExternalContentDisplay(
     #[prop(into)]

@@ -6,6 +6,7 @@ pub mod colors;
 pub mod constants;
 pub mod content;
 pub mod editor;
+pub mod embed;
 pub mod errors;
 pub mod error_template;
 pub mod footer;
@@ -25,4 +26,3 @@ pub mod sphere_management;
 pub mod unpack;
 pub mod user;
 pub mod widget;
-

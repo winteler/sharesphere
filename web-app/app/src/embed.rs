@@ -1,36 +1,142 @@
-use std::collections::HashMap;
 use lazy_static::lazy_static;
 use leptos::html;
 use leptos::prelude::*;
-use oembed_rs::{matches_scheme, EmbedType, Endpoint, Provider};
+use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
-use serde_json::Value;
 use strum::IntoEnumIterator;
-
+use crate::errors::AppError;
 use crate::icons::LinkIcon;
-use crate::post::LinkType;
+use crate::post::{LinkType};
 
 const DEFAULT_MEDIA_CLASS: &str = "h-fit w-fit max-h-160 max-w-full object-contain";
 
-/// oEmbed response with optional version attribute
-/// Used to handle providers that don't respect the specification
+lazy_static! {
+    static ref PROVIDERS: Vec<OEmbedProvider> =
+        serde_json::from_slice(include_bytes!("../embed/providers.json"))
+            .expect("failed to load oEmbed providers");
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OEmbedProvider {
+    pub provider_name: String,
+    pub provider_url: String,
+    pub endpoints: Vec<OEmbedEndpoint>,
+}
+
+/// Endpoint of oEmbed provider
+#[derive(Debug, Deserialize)]
+pub struct OEmbedEndpoint {
+    #[serde(default)]
+    pub schemes: Vec<String>,
+    pub url: String,
+    #[serde(default)]
+    pub discovery: bool,
+}
+
+/// oEmbed type, as defined in section 2.3.4 of the [oEmbed specification][1].
+///
+/// [1]: https://oembed.com/
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type")]
+pub enum OEmbedType {
+    #[serde(rename = "photo")]
+    Photo(Photo),
+    #[serde(rename = "video")]
+    Video(Video),
+    #[serde(rename = "link")]
+    Link,
+    #[serde(rename = "rich")]
+    Rich(Rich),
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Video {
+    pub html: String,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Photo {
+    pub url: String,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Rich {
+    pub html: String,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+}
+
+/// oEmbed reply
+/// Set version as optional to handle providers that don't respect the specification
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct OptionalVersionEmbedResponse {
+pub struct OEmbedReply {
     #[serde(flatten)]
-    pub oembed_type: EmbedType,
+    pub oembed_type: OEmbedType,
     pub version: Option<String>,
     pub title: Option<String>,
     pub author_name: Option<String>,
     pub author_url: Option<String>,
     pub provider_name: Option<String>,
     pub provider_url: Option<String>,
-    pub cache_age: Option<String>,
+    pub cache_age: Option<i32>,
     pub thumbnail_url: Option<String>,
     pub thumbnail_width: Option<i32>,
     pub thumbnail_height: Option<i32>,
-    #[serde(flatten)]
-    pub extra: HashMap<String, Value>,
 }
+
+impl OEmbedProvider {
+    /// Find an endpoint with one scheme matching the input `url` for this provider
+    pub fn find_matching_endpoint(&self, url: &str) -> Option<&OEmbedEndpoint> {
+        self.endpoints.iter().find(|&endpoint| endpoint.has_matching_scheme(url))
+    }
+}
+
+impl OEmbedEndpoint {
+    /// Find a scheme matching the input `url` for this endpoint
+    pub fn has_matching_scheme(&self, url: &str) -> bool {
+        self.schemes.iter().any(|scheme| url_matches_scheme(url, scheme))
+    }
+}
+
+/// # Check if the `scheme` matches the given `url`
+///
+/// ```
+/// use crate::app::embed::url_matches_scheme;
+///
+/// assert_eq!(url_matches_scheme("https://www.youtube.com/watch?v=test", "https://*.youtube.com/watch*"), true);
+/// assert_eq!(url_matches_scheme("https://bsky.app/profile/test/post/testpost", "https://bsky.app/profile/*/post/*"), true);
+/// assert_eq!(url_matches_scheme("https://bsky.app/profile/test", "https://*.youtube.com/watch*"), false);
+/// ```
+pub fn url_matches_scheme(mut url: &str, scheme: &str) -> bool {
+    for (i, pattern) in scheme.split('*').enumerate() {
+        if pattern.is_empty() {
+            continue;
+        }
+
+        if let Some(index) = url.find(pattern) {
+            if i == 0 && index > 0 {
+                // the url should start with the first pattern
+                return false;
+            }
+            url = &url[(index + pattern.len())..];
+        } else {
+            return false;
+        }
+    }
+    scheme.ends_with('*') || url.is_empty()
+}
+
+/// Find the oEmbed provider and endpoint based on the URL using ShareSphere's providers.json
+pub fn find_url_provider(url: &str) -> Option<(&OEmbedProvider, &OEmbedEndpoint)> {
+    PROVIDERS.iter().find_map(|provider| {
+        provider.find_matching_endpoint(url).map(|endpoint| (provider, endpoint))
+    })
+}
+
 
 #[cfg(not(feature = "ssr"))]
 pub fn fetch_api<T>(
@@ -54,14 +160,11 @@ where
             }
         });
 
-        let reply = gloo_net::http::Request::get(path)
+        gloo_net::http::Request::get(path)
             .abort_signal(abort_signal.as_ref())
             .send()
-            .await;
-
-        log::info!("Reply: {:?}", reply);
-
-        reply.map_err(|e| log::error!("API error {e}"))
+            .await
+            .map_err(|e| log::error!("API error {e}"))
             .ok()?
             .json()
             .await
@@ -77,28 +180,12 @@ where
 {
     reqwest::get(path)
         .await
-        .map_err(|e| log::error!("API error {e}"))
+        .map_err(|e| log::error!("Request error: {e}"))
         .ok()?
         .json()
         .await
-        .map_err(|e| log::error!("Deserialize error {e}"))
+        .map_err(|e| log::error!("Deserialize error: {e}"))
         .ok()
-}
-
-lazy_static! {
-    static ref PROVIDERS: Vec<Provider> =
-        serde_json::from_slice(include_bytes!("../embed/providers.json"))
-            .expect("failed to load oEmbed providers");
-}
-
-/// Find the oEmbed provider and endpoint based on the URL using ShareSphere's providers.json
-pub fn find_provider(url: &str) -> Option<(&Provider, &Endpoint)> {
-    PROVIDERS.iter().find_map(|p| {
-        p.endpoints
-            .iter()
-            .find(|e| e.schemes.iter().any(|s| matches_scheme(s, url)))
-            .map(|e| (p, e))
-    })
 }
 
 /// Select the given `link_type` in the given `list_ref` node
@@ -117,6 +204,34 @@ pub fn select_link_type(
     };
 }
 
+/// Infer a link's type based on the url and update the link type signal based on the result
+pub fn infer_link_type(
+    url: &str,
+    link_type: RwSignal<LinkType>,
+    select_ref: NodeRef<html::Select>
+) {
+    let mime_guess = from_path(url);
+    match mime_guess.first() {
+        Some(mime_guess) if mime_guess.type_() == mime::IMAGE => {
+            link_type.set(LinkType::Image);
+            select_link_type(LinkType::Image, select_ref);
+        },
+        Some(mime_guess) if mime_guess.type_() == mime::VIDEO => {
+            link_type.set(LinkType::Video);
+            select_link_type(LinkType::Video, select_ref);
+        },
+        _ => (),
+    }
+}
+
+#[server]
+pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<AppError>> {
+    let oembed_data = fetch_api::<OEmbedReply>(&url)
+        .await
+        .ok_or(AppError::new("Cannot get oEmbed data at endpoint {url}"))?;
+    Ok(oembed_data)
+}
+
 /// Component to safely embed content at the url `link-input`.
 /// It will try to infer the content type using the oembed API. If the provider of the url
 /// is not in the whitelisted list of providers, it will instead try to naively embed the
@@ -133,14 +248,18 @@ pub fn Embed(
         move |url| async move {
             match url.is_empty() {
                 true => None,
-                false => match find_provider(&url) {
+                false => match find_url_provider(&url) {
                     Some((_provider, endpoint)) => {
+                        // TODO check values for width and height
                         let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
-                        log::info!("Fetch oembed data: {endpoint}");
-                        // TODO: add server-side backup in case CORS is missing
-                        let oembed_data = fetch_api::<OptionalVersionEmbedResponse>(&endpoint).await;
-                        log::info!("{:?}", oembed_data);
-                        oembed_data
+                        log::debug!("Fetch oembed data: {endpoint}");
+                        match fetch_api::<OEmbedReply>(&endpoint).await {
+                            Some(oembed_data) => Some(oembed_data),
+                            None => {
+                                log::debug!("Failed to get oEmbed data in browser, try again through the server.");
+                                get_oembed_data(endpoint).await.map_err(|e| log::error!("{e}")).ok()
+                            }
+                        }
                     },
                     None => {
                         log::info!("Could not find oembed provider for url: {url}");
@@ -155,32 +274,34 @@ pub fn Embed(
         <Suspense>
         { move || match &*oembed_resource.read() {
             Some(Some(oembed_data)) => {
-                log::info!("Embed data {:?}", oembed_data);
                 // TODO automatically set title?
                 match &oembed_data.oembed_type {
-                    EmbedType::Link => {
+                    OEmbedType::Link => {
                         link_type_input.set(LinkType::Link);
                         select_link_type(LinkType::Link, select_ref);
                         Some(view! { <a href=link_input><LinkIcon/></a> }.into_any())
                     },
-                    EmbedType::Photo(photo) => {
+                    OEmbedType::Photo(photo) => {
                         link_type_input.set(LinkType::Image);
                         select_link_type(LinkType::Image, select_ref);
                         Some(view! { <ImageEmbed url=photo.url.clone()/> }.into_any())
                     },
-                    EmbedType::Video(video) => {
+                    OEmbedType::Video(video) => {
                         link_type_input.set(LinkType::Video);
                         select_link_type(LinkType::Video, select_ref);
                         Some(view! { <div inner_html=video.html.clone()/> }.into_any())
                     },
-                    EmbedType::Rich(rich) => {
+                    OEmbedType::Rich(rich) => {
                         link_type_input.set(LinkType::Rich);
                         select_link_type(LinkType::Rich, select_ref);
                         Some(view! { <div inner_html=rich.html.clone()/> }.into_any())
                     },
                 }
             },
-            Some(None) => Some(view! { <NaiveEmbed link_input link_type_input/> }.into_any()),
+            Some(None) => {
+                infer_link_type(&*link_input.read(), link_type_input, select_ref);
+                Some(view! { <NaiveEmbed link_input link_type_input/> }.into_any())
+            },
             None => None
         }}
         </Suspense>
@@ -198,13 +319,23 @@ pub fn NaiveEmbed(
     // TODO decide if naively embed or just provide link?
     // TODO check link for extension to decide format
     view! {
-        { move || match link_type_input.get() {
-            LinkType::None => None,
-            LinkType::Link => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
-            LinkType::Image => Some(view! { <ImageEmbed url=link_input.get()/> }.into_any()),
-            // TODO check url to see if it has video extension
-            LinkType::Video => Some(view! { <iframe src=link_input class=DEFAULT_MEDIA_CLASS></iframe> }.into_any()),
-            LinkType::Rich => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
+        { move || {
+            match link_type_input.get() {
+                LinkType::None => None,
+                LinkType::Link => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
+                LinkType::Image => Some(view! { <ImageEmbed url=link_input.get()/> }.into_any()),
+                // TODO check url to see if it has video extension
+                LinkType::Video => Some(view! {
+                    <iframe
+                        src=link_input
+                        class=DEFAULT_MEDIA_CLASS
+                        sandbox="allow-scripts allow-same-origin"
+                        allow="autoplay"
+                        referrerpolicy="no-referrer">
+                    ></iframe>
+                }.into_any()),
+                LinkType::Rich => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
+            }
         }}
     }
 }

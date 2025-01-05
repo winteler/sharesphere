@@ -226,7 +226,6 @@ pub mod ssr {
     }
 }
 
-/// 
 #[server]
 pub async fn get_moderation_info(
     post_id: i64,

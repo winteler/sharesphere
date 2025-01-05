@@ -211,6 +211,7 @@ async fn test_delete_sphere_category() -> Result<(), AppError> {
         None,
         None,
         LinkType::None,
+        None,
         false,
         false,
         false,

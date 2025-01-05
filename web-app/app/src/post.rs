@@ -65,6 +65,7 @@ pub struct Post {
     pub markdown_body: Option<String>,
     pub link: Option<String>,
     pub link_type: LinkType,
+    pub link_embed: Option<String>,
     pub is_nsfw: bool,
     pub is_spoiler: bool,
     pub category_id: Option<i64>,
@@ -482,6 +483,7 @@ pub mod ssr {
         post_markdown_body: Option<&str>,
         link: Option<&str>,
         link_type: LinkType,
+        link_embed: Option<&str>,
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
@@ -502,18 +504,18 @@ pub mod ssr {
         let post = sqlx::query_as!(
             Post,
             "INSERT INTO posts (
-                title, body, markdown_body, link, link_type, is_nsfw, is_spoiler, category_id, sphere_id,
+                title, body, markdown_body, link, link_type, link_embed, is_nsfw, is_spoiler, category_id, sphere_id,
                 sphere_name, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
-                $1, $2, $3, $4, $5,
+                $1, $2, $3, $4, $5, $6,
                 (
                     CASE
-                        WHEN $6 THEN TRUE
+                        WHEN $7 THEN TRUE
                         ELSE (
-                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $9) OR
+                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $10) OR
                             COALESCE(
-                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $10),
+                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $11),
                                 FALSE
                             )
                         )
@@ -521,22 +523,23 @@ pub mod ssr {
                 ),
                 (
                     CASE
-                        WHEN $7 THEN TRUE
+                        WHEN $8 THEN TRUE
                         ELSE COALESCE(
-                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $10),
+                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $11),
                             FALSE
                         )
                     END
                 ),
-                $8,
-                (SELECT sphere_id FROM spheres WHERE sphere_name = $9),
-                $9, $10, $11, $12, $13, $14
+                $9,
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $10),
+                $10, $11, $12, $13, $14, $15
             ) RETURNING *",
             post_title,
             post_body,
             post_markdown_body,
             link,
             link_type as i16,
+            link_embed,
             is_nsfw,
             is_spoiler,
             category_id,
@@ -560,6 +563,7 @@ pub mod ssr {
         post_markdown_body: Option<&str>,
         link: Option<&str>,
         link_type: LinkType,
+        link_embed: Option<&str>,
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
@@ -585,39 +589,41 @@ pub mod ssr {
                 markdown_body = $3,
                 link = $4,
                 link_type = $5,
+                link_embed = $6,
                 is_nsfw = (
                     CASE
-                        WHEN $6 THEN TRUE
+                        WHEN $7 THEN TRUE
                         ELSE (
                             SELECT s.is_nsfw OR COALESCE(sa.is_nsfw, FALSE) FROM posts p
                             JOIN spheres s ON s.sphere_id = p.sphere_id
                             LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE p.post_id = $10
+                            WHERE p.post_id = $11
                         )
                     END
                 ),
                 is_spoiler = (
                     CASE
-                        WHEN $7 THEN TRUE
+                        WHEN $8 THEN TRUE
                         ELSE (
                             SELECT COALESCE(sa.is_spoiler, FALSE) FROM posts p
                             LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE post_id = $10
+                            WHERE post_id = $11
                         )
                     END
                 ),
-                is_pinned = $8,
-                category_id = $9,
+                is_pinned = $9,
+                category_id = $10,
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
-                post_id = $10 AND
-                creator_id = $11
+                post_id = $11 AND
+                creator_id = $12
             RETURNING *",
             post_title,
             post_body,
             post_markdown_body,
             link,
             link_type as i16,
+            link_embed,
             is_nsfw,
             is_spoiler,
             is_pinned,
@@ -866,6 +872,7 @@ pub async fn create_post(
         markdown_body.as_deref(),
         link.as_deref(),
         link_type,
+        None,
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
@@ -911,6 +918,7 @@ pub async fn edit_post(
         markdown_body.as_deref(),
         link.as_deref(),
         link_type,
+        None,
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
@@ -1202,7 +1210,7 @@ pub fn PostForm(
             data=body_data
             is_markdown
         />
-        <ExternalContentForm link_input link_type_input/>
+        <LinkForm link_input link_type_input/>
         { move || {
             match is_parent_spoiler.get() {
                 true => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=true disabled=true/> },
@@ -1222,7 +1230,7 @@ pub fn PostForm(
 
 /// Component to give a link to external content
 #[component]
-pub fn ExternalContentForm(
+pub fn LinkForm(
     link_input: RwSignal<String>,
     link_type_input: RwSignal<LinkType>,
 ) -> impl IntoView {
@@ -1230,7 +1238,7 @@ pub fn ExternalContentForm(
     view! {
         <div class="w-full flex flex-col gap-2">
             <div class="h-full flex gap-2 items-center">
-                <span class="label-text w-fit">"External content"</span>
+                <span class="label-text w-fit">"Link"</span>
                 <select
                     name="link_type"
                     class="select select-bordered h-input_m w-fit"
@@ -1528,6 +1536,7 @@ mod tests {
             markdown_body: None,
             link: None,
             link_type: LinkType::None,
+            link_embed: None,
             is_nsfw: false,
             is_spoiler: false,
             category_id,

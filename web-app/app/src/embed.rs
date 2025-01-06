@@ -4,6 +4,7 @@ use leptos::prelude::*;
 use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
 use strum::IntoEnumIterator;
+use url::Url;
 use crate::errors::AppError;
 use crate::icons::LinkIcon;
 use crate::post::{LinkType};
@@ -16,7 +17,7 @@ lazy_static! {
             .expect("failed to load oEmbed providers");
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 pub struct OEmbedProvider {
     pub provider_name: String,
     pub provider_url: String,
@@ -24,7 +25,7 @@ pub struct OEmbedProvider {
 }
 
 /// Endpoint of oEmbed provider
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 pub struct OEmbedEndpoint {
     #[serde(default)]
     pub schemes: Vec<String>,
@@ -191,8 +192,10 @@ where
 /// Select the given `link_type` in the given `list_ref` node
 pub fn select_link_type(
     link_type: LinkType,
+    link_type_input: RwSignal<LinkType>,
     select_ref: NodeRef<html::Select>
 ) {
+    link_type_input.set(link_type);
     match select_ref.get_untracked() {
         Some(select_ref) => {
             let index = LinkType::iter().position(|variant| variant == link_type);
@@ -210,17 +213,15 @@ pub fn infer_link_type(
     link_type: RwSignal<LinkType>,
     select_ref: NodeRef<html::Select>
 ) {
-    let mime_guess = from_path(url);
-    match mime_guess.first() {
-        Some(mime_guess) if mime_guess.type_() == mime::IMAGE => {
-            link_type.set(LinkType::Image);
-            select_link_type(LinkType::Image, select_ref);
-        },
-        Some(mime_guess) if mime_guess.type_() == mime::VIDEO => {
-            link_type.set(LinkType::Video);
-            select_link_type(LinkType::Video, select_ref);
-        },
-        _ => (),
+    if Url::parse(url).is_ok() {
+        let mime_guess = from_path(url);
+        match mime_guess.first() {
+            Some(mime_guess) if mime_guess.type_() == mime::IMAGE => select_link_type(LinkType::Image, link_type, select_ref),
+            Some(mime_guess) if mime_guess.type_() == mime::VIDEO => select_link_type(LinkType::Video, link_type, select_ref),
+            _ => select_link_type(LinkType::Link, link_type, select_ref),
+        };
+    } else {
+        select_link_type(LinkType::None, link_type, select_ref);
     }
 }
 
@@ -241,6 +242,7 @@ pub fn Embed(
     #[prop(into)]
     link_input: Signal<String>,
     link_type_input: RwSignal<LinkType>,
+    title: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
 ) -> impl IntoView {
     let oembed_resource = Resource::new(
@@ -274,32 +276,36 @@ pub fn Embed(
         <Suspense>
         { move || match &*oembed_resource.read() {
             Some(Some(oembed_data)) => {
-                // TODO automatically set title?
+                title.update(|title| if title.is_empty() {
+                    *title = oembed_data.title.clone().unwrap_or_default();
+                });
+                if let Some(select_ref) = select_ref.get_untracked() {
+                    select_ref.set_disabled(true);
+                };
                 match &oembed_data.oembed_type {
                     OEmbedType::Link => {
-                        link_type_input.set(LinkType::Link);
-                        select_link_type(LinkType::Link, select_ref);
+                        select_link_type(LinkType::Link, link_type_input, select_ref);
                         Some(view! { <a href=link_input><LinkIcon/></a> }.into_any())
                     },
                     OEmbedType::Photo(photo) => {
-                        link_type_input.set(LinkType::Image);
-                        select_link_type(LinkType::Image, select_ref);
+                        select_link_type(LinkType::Image, link_type_input, select_ref);
                         Some(view! { <ImageEmbed url=photo.url.clone()/> }.into_any())
                     },
                     OEmbedType::Video(video) => {
-                        link_type_input.set(LinkType::Video);
-                        select_link_type(LinkType::Video, select_ref);
-                        Some(view! { <div inner_html=video.html.clone()/> }.into_any())
+                        select_link_type(LinkType::Video, link_type_input, select_ref);
+                        Some(view! { <div class="flex justify-center items-center" inner_html=video.html.clone()/> }.into_any())
                     },
                     OEmbedType::Rich(rich) => {
-                        link_type_input.set(LinkType::Rich);
-                        select_link_type(LinkType::Rich, select_ref);
+                        select_link_type(LinkType::Rich, link_type_input, select_ref);
                         Some(view! { <div inner_html=rich.html.clone()/> }.into_any())
                     },
                 }
             },
             Some(None) => {
-                infer_link_type(&*link_input.read(), link_type_input, select_ref);
+                infer_link_type(&link_input.read(), link_type_input, select_ref);
+                if let Some(select_ref) = select_ref.get_untracked() {
+                    select_ref.set_disabled(false);
+                };
                 Some(view! { <NaiveEmbed link_input link_type_input/> }.into_any())
             },
             None => None
@@ -317,22 +323,20 @@ pub fn NaiveEmbed(
     link_type_input: Signal<LinkType>,
 ) -> impl IntoView {
     // TODO decide if naively embed or just provide link?
-    // TODO check link for extension to decide format
     view! {
         { move || {
             match link_type_input.get() {
                 LinkType::None => None,
                 LinkType::Link => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
                 LinkType::Image => Some(view! { <ImageEmbed url=link_input.get()/> }.into_any()),
-                // TODO check url to see if it has video extension
                 LinkType::Video => Some(view! {
-                    <iframe
+                    <video
                         src=link_input
                         class=DEFAULT_MEDIA_CLASS
-                        sandbox="allow-scripts allow-same-origin"
-                        allow="autoplay"
-                        referrerpolicy="no-referrer">
-                    ></iframe>
+                        controls
+                    >
+                        "Your browser doesn't support this video's format."
+                    </video>
                 }.into_any()),
                 LinkType::Rich => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
             }
@@ -347,5 +351,73 @@ pub fn ImageEmbed(url: String) -> impl IntoView {
         <div class="flex justify-center items-center">
             <img src=url class=DEFAULT_MEDIA_CLASS/>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::embed::{find_url_provider, OEmbedEndpoint, OEmbedProvider};
+
+    #[test]
+    fn test_oembed_provider_find_matching_endpoint() {
+        let endpoint1 = OEmbedEndpoint {
+            schemes: vec![
+                String::from("https://www.test.com/image/*"),
+                String::from("https://www.test.com/profile/*/post/*"),
+            ],
+            url: "https://www.test.com/embed".to_string(),
+            discovery: false,
+        };
+
+        let endpoint2 = OEmbedEndpoint {
+            schemes: vec![
+                String::from("https://www.test.com/video/*"),
+            ],
+            url: "https://www.test.com/embed".to_string(),
+            discovery: false,
+        };
+
+        let provider = OEmbedProvider {
+            provider_name: "test".to_string(),
+            provider_url: "https://www.test.com".to_string(),
+            endpoints: vec![endpoint1.clone(), endpoint2.clone()],
+        };
+
+        assert_eq!(provider.find_matching_endpoint("https://www.test.com/image/a"), Some(&endpoint1));
+        assert_eq!(provider.find_matching_endpoint("https://www.test.com/profile/1/post/a"), Some(&endpoint1));
+        assert_eq!(provider.find_matching_endpoint("https://www.test.com/video/a"), Some(&endpoint2));
+        assert_eq!(provider.find_matching_endpoint("https://www.other.com/profile/1/post/a"), None);
+    }
+
+    #[test]
+    fn test_oembed_endpoint_has_matching_scheme() {
+        let endpoint = OEmbedEndpoint {
+            schemes: vec![
+                String::from("https://www.test.com/image/*"),
+                String::from("https://www.test.com/profile/*/post/*"),
+            ],
+            url: "https://www.test.com/embed".to_string(),
+            discovery: false,
+        };
+
+        assert_eq!(endpoint.has_matching_scheme("https://www.test.com/image/a"), true);
+        assert_eq!(endpoint.has_matching_scheme("https://www.test.com/profile/1/post/a"), true);
+        assert_eq!(endpoint.has_matching_scheme("https://www.test.com/profile/1/posts/a"), false);
+        assert_eq!(endpoint.has_matching_scheme("https://www.other.com/profile/1/post/a"), false);
+    }
+
+    #[test]
+    fn test_find_url_provider() {
+        let (youtube_provider, youtube_endpoint) = find_url_provider("https://www.youtube.com/watch?v=test").expect("Find youtube provider");
+        assert_eq!(youtube_provider.provider_name, String::from("YouTube"));
+        assert_eq!(youtube_provider.provider_url, String::from("https://www.youtube.com/"));
+        assert_eq!(youtube_endpoint.url, String::from("https://www.youtube.com/oembed"));
+        assert_eq!(youtube_endpoint.discovery, true);
+
+        let (giphy_provider, giphy_endpoint) = find_url_provider("https://giphy.com/gifs/test").expect("Find giphy provider");
+        assert_eq!(giphy_provider.provider_name, String::from("GIPHY"));
+        assert_eq!(giphy_provider.provider_url, String::from("https://giphy.com"));
+        assert_eq!(giphy_endpoint.url, String::from("https://giphy.com/services/oembed"));
+        assert_eq!(giphy_endpoint.discovery, true);
     }
 }

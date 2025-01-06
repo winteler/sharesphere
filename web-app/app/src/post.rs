@@ -1210,7 +1210,7 @@ pub fn PostForm(
             data=body_data
             is_markdown
         />
-        <LinkForm link_input link_type_input/>
+        <LinkForm link_input link_type_input title/>
         { move || {
             match is_parent_spoiler.get() {
                 true => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=true disabled=true/> },
@@ -1233,6 +1233,7 @@ pub fn PostForm(
 pub fn LinkForm(
     link_input: RwSignal<String>,
     link_type_input: RwSignal<LinkType>,
+    title: RwSignal<String>,
 ) -> impl IntoView {
     let select_ref = NodeRef::<html::Select>::new();
     view! {
@@ -1270,7 +1271,7 @@ pub fn LinkForm(
                     }
                 />
             </div>
-            <Embed link_input link_type_input select_ref/>
+            <Embed link_input link_type_input title select_ref/>
         </div>
     }
 }

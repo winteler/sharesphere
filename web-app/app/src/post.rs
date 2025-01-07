@@ -16,7 +16,7 @@ use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, Comme
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
-use crate::embed::Embed;
+use crate::embed::EmbedPreview;
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
@@ -1271,7 +1271,7 @@ pub fn LinkForm(
                     }
                 />
             </div>
-            <Embed link_input link_type_input title select_ref/>
+            <EmbedPreview link_input link_type_input title select_ref/>
         </div>
     }
 }

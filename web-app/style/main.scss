@@ -3369,12 +3369,12 @@ html {
   height: 100vh;
 }
 
-.h-auto {
-  height: auto;
-}
-
 .max-h-12 {
   max-height: 3rem;
+}
+
+.max-h-160 {
+  max-height: 40rem;
 }
 
 .max-h-80 {
@@ -3385,17 +3385,8 @@ html {
   max-height: 24rem;
 }
 
-.max-h-160 {
-  max-height: 40rem;
-}
-
 .min-h-24 {
   min-height: 6rem;
-}
-
-.min-h-fit {
-  min-height: -moz-fit-content;
-  min-height: fit-content;
 }
 
 .min-h-full {
@@ -3529,10 +3520,6 @@ html {
 
 .w-screen {
   width: 100vw;
-}
-
-.w-auto {
-  width: auto;
 }
 
 .min-w-6 {
@@ -3898,6 +3885,11 @@ html {
 .bg-pink-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(236 72 153 / var(--tw-bg-opacity));
+}
+
+.bg-primary {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--p) / var(--tw-bg-opacity));
 }
 
 .bg-purple-500 {
@@ -4362,6 +4354,29 @@ textarea::-webkit-scrollbar {
 .hover\:bg-success:hover {
   --tw-bg-opacity: 1;
   background-color: hsl(var(--su) / var(--tw-bg-opacity));
+}
+
+.hover\:bg-base-content\/50:hover {
+  background-color: hsl(var(--bc) / 0.5);
+}
+
+.hover\:bg-secondary:hover {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--s) / var(--tw-bg-opacity));
+}
+
+.hover\:bg-base-content:hover {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--bc) / var(--tw-bg-opacity));
+}
+
+.hover\:bg-base-content\/75:hover {
+  background-color: hsl(var(--bc) / 0.75);
+}
+
+.hover\:bg-black:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity));
 }
 
 .active\:scale-90:active {

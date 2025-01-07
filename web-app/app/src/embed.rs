@@ -5,11 +5,12 @@ use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
 use strum::IntoEnumIterator;
 use url::Url;
-use crate::errors::AppError;
+use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LinkIcon;
 use crate::post::{LinkType};
 
 const DEFAULT_MEDIA_CLASS: &str = "h-fit w-fit max-h-160 max-w-full object-contain";
+const THUMBNAIL_CLASS: &str = "h-16 w-16 object-contain";
 
 lazy_static! {
     static ref PROVIDERS: Vec<OEmbedProvider> =
@@ -213,13 +214,15 @@ pub fn infer_link_type(
     link_type: RwSignal<LinkType>,
     select_ref: NodeRef<html::Select>
 ) {
-    if Url::parse(url).is_ok() {
-        let mime_guess = from_path(url);
-        match mime_guess.first() {
-            Some(mime_guess) if mime_guess.type_() == mime::IMAGE => select_link_type(LinkType::Image, link_type, select_ref),
-            Some(mime_guess) if mime_guess.type_() == mime::VIDEO => select_link_type(LinkType::Video, link_type, select_ref),
-            _ => select_link_type(LinkType::Link, link_type, select_ref),
-        };
+    if let Ok(url) = Url::parse(url) {
+        if url.scheme() == "https" && url.domain().is_some() {
+            let mime_guess = from_path(url.as_str());
+            match mime_guess.first() {
+                Some(mime_guess) if mime_guess.type_() == mime::IMAGE => select_link_type(LinkType::Image, link_type, select_ref),
+                Some(mime_guess) if mime_guess.type_() == mime::VIDEO => select_link_type(LinkType::Video, link_type, select_ref),
+                _ => select_link_type(LinkType::Link, link_type, select_ref),
+            };
+        }
     } else {
         select_link_type(LinkType::None, link_type, select_ref);
     }
@@ -229,7 +232,8 @@ pub fn infer_link_type(
 pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<AppError>> {
     let oembed_data = fetch_api::<OEmbedReply>(&url)
         .await
-        .ok_or(AppError::new("Cannot get oEmbed data at endpoint {url}"))?;
+        .ok_or(AppError::new(format!("Cannot get oEmbed data at endpoint {url}")))?;
+    // TODO try to cleanup html with the ammonia crate
     Ok(oembed_data)
 }
 
@@ -238,7 +242,7 @@ pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<A
 /// is not in the whitelisted list of providers, it will instead try to naively embed the
 /// content using the user-defined `link_input_type`
 #[component]
-pub fn Embed(
+pub fn EmbedPreview(
     #[prop(into)]
     link_input: Signal<String>,
     link_type_input: RwSignal<LinkType>,
@@ -256,10 +260,10 @@ pub fn Embed(
                         let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
                         log::debug!("Fetch oembed data: {endpoint}");
                         match fetch_api::<OEmbedReply>(&endpoint).await {
-                            Some(oembed_data) => Some(oembed_data),
+                            Some(oembed_data) => Some((oembed_data, url)),
                             None => {
                                 log::debug!("Failed to get oEmbed data in browser, try again through the server.");
-                                get_oembed_data(endpoint).await.map_err(|e| log::error!("{e}")).ok()
+                                get_oembed_data(endpoint).await.map_err(|e| log::error!("{e}")).ok().map(|data| (data, url))
                             }
                         }
                     },
@@ -275,7 +279,7 @@ pub fn Embed(
     view! {
         <Suspense>
         { move || match &*oembed_resource.read() {
-            Some(Some(oembed_data)) => {
+            Some(Some((oembed_data, url))) => {
                 title.update(|title| if title.is_empty() {
                     *title = oembed_data.title.clone().unwrap_or_default();
                 });
@@ -285,7 +289,11 @@ pub fn Embed(
                 match &oembed_data.oembed_type {
                     OEmbedType::Link => {
                         select_link_type(LinkType::Link, link_type_input, select_ref);
-                        Some(view! { <a href=link_input><LinkIcon/></a> }.into_any())
+                        match (Url::parse(url), oembed_data.thumbnail_url.clone()) {
+                            (Ok(url), Some(thumbnail_url)) => Some(view! { <LinkEmbed url thumbnail_url=Some(thumbnail_url)/> }.into_any()),
+                            (Ok(url), None) => Some(view! { <LinkEmbed url/> }.into_any()),
+                            _ => Some(view! { <ErrorDisplay error=AppError::new("Invalid url")/> }.into_any()),
+                        }
                     },
                     OEmbedType::Photo(photo) => {
                         select_link_type(LinkType::Image, link_type_input, select_ref);
@@ -325,22 +333,44 @@ pub fn NaiveEmbed(
     // TODO decide if naively embed or just provide link?
     view! {
         { move || {
-            match link_type_input.get() {
-                LinkType::None => None,
-                LinkType::Link => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
-                LinkType::Image => Some(view! { <ImageEmbed url=link_input.get()/> }.into_any()),
-                LinkType::Video => Some(view! {
-                    <video
-                        src=link_input
-                        class=DEFAULT_MEDIA_CLASS
-                        controls
-                    >
-                        "Your browser doesn't support this video's format."
-                    </video>
-                }.into_any()),
-                LinkType::Rich => Some(view! { <a href=link_input><LinkIcon/></a> }.into_any()),
+            match (link_type_input.get(), Url::parse(&link_input.read())) {
+                (LinkType::None, _) => None,
+                (_, Err(e)) => Some(view! { <ErrorDisplay error=AppError::new(format!("Invalid link: {e}"))/> }.into_any()),
+                (LinkType::Link, Ok(url)) => Some(view! { <LinkEmbed url/> }.into_any()),
+                (LinkType::Image, Ok(url)) => Some(view! { <ImageEmbed url=url.to_string()/> }.into_any()),
+                (LinkType::Video, Ok(url)) => Some(view! { <VideoEmbed url=url.to_string()/> }.into_any()),
+                (LinkType::Rich, Ok(url)) => Some(view! { <LinkEmbed url/> }.into_any()),
             }
         }}
+    }
+}
+
+/// Component to embed a link with an optional thumbnail
+#[component]
+pub fn LinkEmbed(
+    url: Url,
+    #[prop(default = None)]
+    thumbnail_url: Option<String>,
+) -> impl IntoView {
+    match url.domain() {
+        Some(domain) => {
+            let clean_domain = match domain.starts_with("www.") {
+                true => domain[4..].to_string(),
+                false => domain.to_string(),
+            };
+            view! {
+                <div class="flex justify-center">
+                    <a href=url.to_string() class="w-fit flex items-center gap-2 px-2 py-1 bg-primary rounded hover:bg-base-content/50">
+                        { match thumbnail_url {
+                            Some(thumbnail_url) => view! { <img src=thumbnail_url class=THUMBNAIL_CLASS/> }.into_any(),
+                            None => view! { <LinkIcon/> }.into_any(),
+                        }}
+                        <div>{clean_domain}</div>
+                    </a>
+                </div>
+            }.into_any()
+        },
+        None => view! { <ErrorDisplay error=AppError::new("Invalid domain name")/> }.into_any(),
     }
 }
 
@@ -350,6 +380,22 @@ pub fn ImageEmbed(url: String) -> impl IntoView {
     view! {
         <div class="flex justify-center items-center">
             <img src=url class=DEFAULT_MEDIA_CLASS/>
+        </div>
+    }
+}
+
+/// Component to embed a video
+#[component]
+pub fn VideoEmbed(url: String) -> impl IntoView {
+    view! {
+        <div class="flex justify-center items-center">
+            <video
+                src=url
+                class=DEFAULT_MEDIA_CLASS
+                controls
+            >
+                "Your browser doesn't support this video's format."
+            </video>
         </div>
     }
 }

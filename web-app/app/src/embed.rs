@@ -5,6 +5,7 @@ use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
 use strum::IntoEnumIterator;
 use url::Url;
+
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LinkIcon;
 use crate::post::{LinkType};
@@ -228,12 +229,86 @@ pub fn infer_link_type(
     }
 }
 
+#[cfg(feature = "ssr")]
+pub mod ssr {
+    use std::collections::HashSet;
+    use ammonia::Builder;
+
+    pub fn clean_html(
+        html: &str,
+    ) -> String {
+        log::debug!("Html: {}", html);
+
+        // Create a set of allowed iframe attributes
+        let iframe_attributes = HashSet::from(
+            [
+                "width",
+                "height",
+                "src",
+                "frameborder",
+                "allowfullscreen",
+                "scrollbar",
+                "style",
+                "title",
+            ]
+        );
+
+        let clean_html = Builder::default()
+            .add_tags(["iframe"])
+            .add_tag_attributes("iframe", iframe_attributes)
+            .add_tag_attribute_values(
+                "iframe",
+                "allow",
+                [
+                    "encrypted-media",
+                    "picture-in-picture",
+                ]
+            ).add_tag_attribute_values(
+                "iframe",
+                "referrerpolicy",
+                ["strict-origin", "strict-origin-when-cross-origin"]
+            ).attribute_filter(|element, attribute, value| {
+                match (element, attribute) {
+                    ("iframe", "style") => {
+                        let allowed_values = ["border", "min-width", "min-height"];
+                        let allowed_styles = value
+                            .split(';')
+                            .filter_map(|v| {
+                                let mut parts = v.split(':').map(str::trim);
+                                if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+                                    if allowed_values.contains(&key) {
+                                        return Some(format!("{}:{}", key, value));
+                                    }
+                                }
+                                None
+                            })
+                            .collect::<Vec<String>>()
+                            .join(";");
+                        log::debug!("Allowed styles: {}", allowed_styles);
+                        Some(allowed_styles.into())
+                    }
+                    _ => Some(value.into())
+                }
+            })
+            .clean(html)
+            .to_string();
+        log::debug!("clean_html: {}", clean_html);
+        clean_html
+    }
+}
+
 #[server]
 pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<AppError>> {
-    let oembed_data = fetch_api::<OEmbedReply>(&url)
+    let mut oembed_data = fetch_api::<OEmbedReply>(&url)
         .await
         .ok_or(AppError::new(format!("Cannot get oEmbed data at endpoint {url}")))?;
-    // TODO try to cleanup html with the ammonia crate
+    
+    match oembed_data.oembed_type {
+        OEmbedType::Video(ref mut video) => video.html = ssr::clean_html(&video.html),
+        OEmbedType::Rich(ref mut rich) => rich.html = ssr::clean_html(&rich.html),
+        _ => ()
+    };
+    
     Ok(oembed_data)
 }
 
@@ -259,6 +334,7 @@ pub fn EmbedPreview(
                         // TODO check values for width and height
                         let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
                         log::debug!("Fetch oembed data: {endpoint}");
+                        
                         match fetch_api::<OEmbedReply>(&endpoint).await {
                             Some(oembed_data) => Some((oembed_data, url)),
                             None => {
@@ -301,11 +377,11 @@ pub fn EmbedPreview(
                     },
                     OEmbedType::Video(video) => {
                         select_link_type(LinkType::Video, link_type_input, select_ref);
-                        Some(view! { <div class="flex justify-center items-center" inner_html=video.html.clone()/> }.into_any())
+                        Some(view! { <div class="flex justify-center items-center h-fit w-full" inner_html=video.html.clone()/> }.into_any())
                     },
                     OEmbedType::Rich(rich) => {
                         select_link_type(LinkType::Rich, link_type_input, select_ref);
-                        Some(view! { <div inner_html=rich.html.clone()/> }.into_any())
+                        Some(view! { <div class="flex justify-center items-center h-fit w-full" inner_html=rich.html.clone()/> }.into_any())
                     },
                 }
             },

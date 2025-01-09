@@ -9,14 +9,13 @@ use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
-use crate::embed::EmbedPreview;
+use crate::embed::{EmbedPreview, Link, LinkType};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
@@ -34,6 +33,7 @@ use crate::{
     app::ssr::get_db_pool,
     auth::{get_user, ssr::check_user},
     editor::ssr::get_html_and_markdown_bodies,
+    embed::ssr::verify_link_and_get_embed,
     ranking::{ssr::vote_on_content, VoteValue},
 };
 
@@ -44,18 +44,6 @@ pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const POST_BATCH_SIZE: i64 = 50;
 
-#[repr(i16)]
-#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
-pub enum LinkType {
-    #[default]
-    None = -1,
-    Link = 0,
-    Image = 1,
-    Video = 2,
-    Rich = 3,
-}
-
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Post {
@@ -63,9 +51,8 @@ pub struct Post {
     pub title: String,
     pub body: String,
     pub markdown_body: Option<String>,
-    pub link: Option<String>,
-    pub link_type: LinkType,
-    pub link_embed: Option<String>,
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub link: Link,
     pub is_nsfw: bool,
     pub is_spoiler: bool,
     pub category_id: Option<i64>,
@@ -120,18 +107,6 @@ pub enum PostSortType {
     Trending,
     Best,
     Recent,
-}
-
-impl From<i16> for LinkType {
-    fn from(category_color_val: i16) -> Self {
-        match category_color_val {
-            x if x == LinkType::Link as i16 => LinkType::Link,
-            x if x == LinkType::Image as i16 => LinkType::Image,
-            x if x == LinkType::Video as i16 => LinkType::Video,
-            x if x == LinkType::Rich as i16 => LinkType::Rich,
-            _ => LinkType::None,
-        }
-    }
 }
 
 impl PostWithSphereInfo {
@@ -257,12 +232,11 @@ pub mod ssr {
         post_id: i64,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
-        let post = sqlx::query_as!(
-            Post,
+        let post = sqlx::query_as::<_, Post>(
             "SELECT * FROM posts
             WHERE post_id = $1",
-            post_id
         )
+            .bind(post_id)
             .fetch_one(db_pool)
             .await?;
 
@@ -481,9 +455,7 @@ pub mod ssr {
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
-        link: Option<&str>,
-        link_type: LinkType,
-        link_embed: Option<&str>,
+        link: Link,
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
@@ -501,21 +473,20 @@ pub mod ssr {
             user.check_permissions(sphere_name, PermissionLevel::Moderate)?;
         }
 
-        let post = sqlx::query_as!(
-            Post,
+        let post = sqlx::query_as::<_, Post>(
             "INSERT INTO posts (
-                title, body, markdown_body, link, link_type, link_embed, is_nsfw, is_spoiler, category_id, sphere_id,
+                title, body, markdown_body, link_type, link_url, link_embed, is_nsfw, is_spoiler, category_id, sphere_id,
                 sphere_name, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
-                $1, $2, $3, $4, $5, $6,
+                $1, $2, $3, $4, $5, $6, $7
                 (
                     CASE
-                        WHEN $7 THEN TRUE
+                        WHEN $8 THEN TRUE
                         ELSE (
-                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $10) OR
+                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $11) OR
                             COALESCE(
-                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $11),
+                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $12),
                                 FALSE
                             )
                         )
@@ -523,33 +494,34 @@ pub mod ssr {
                 ),
                 (
                     CASE
-                        WHEN $8 THEN TRUE
+                        WHEN $9 THEN TRUE
                         ELSE COALESCE(
-                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $11),
+                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $12),
                             FALSE
                         )
                     END
                 ),
-                $9,
-                (SELECT sphere_id FROM spheres WHERE sphere_name = $10),
-                $10, $11, $12, $13, $14, $15
+                $10,
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $11),
+                $11, $12, $13, $14, $15, $16
             ) RETURNING *",
-            post_title,
-            post_body,
-            post_markdown_body,
-            link,
-            link_type as i16,
-            link_embed,
-            is_nsfw,
-            is_spoiler,
-            category_id,
-            sphere_name,
-            satellite_id,
-            is_pinned,
-            user.user_id,
-            user.username,
-            user.check_permissions(sphere_name, PermissionLevel::Moderate).is_ok(),
         )
+            .bind(post_title)
+            .bind(post_body)
+            .bind(post_markdown_body)
+            .bind(link.link_type as i16)
+            .bind(link.link_url)
+            .bind(link.link_embed)
+            .bind(link.link_thumbnail_url)
+            .bind(is_nsfw)
+            .bind(is_spoiler)
+            .bind(category_id)
+            .bind(sphere_name)
+            .bind(satellite_id)
+            .bind(is_pinned)
+            .bind(user.user_id)
+            .bind(user.username.clone())
+            .bind(user.check_permissions(sphere_name, PermissionLevel::Moderate).is_ok())
             .fetch_one(db_pool)
             .await?;
 
@@ -561,9 +533,7 @@ pub mod ssr {
         post_title: &str,
         post_body: &str,
         post_markdown_body: Option<&str>,
-        link: Option<&str>,
-        link_type: LinkType,
-        link_embed: Option<&str>,
+        link: Link,
         is_spoiler: bool,
         is_nsfw: bool,
         is_pinned: bool,
@@ -581,56 +551,57 @@ pub mod ssr {
             user.check_permissions(&post.sphere_name, PermissionLevel::Moderate)?;
         }
 
-        let post = sqlx::query_as!(
-            Post,
+        let post = sqlx::query_as::<_, Post>(
             "UPDATE posts SET
                 title = $1,
                 body = $2,
                 markdown_body = $3,
-                link = $4,
-                link_type = $5,
+                link_type = $4,
+                link_url = $5,
                 link_embed = $6,
+                link_thumbnail_url = $7,
                 is_nsfw = (
                     CASE
-                        WHEN $7 THEN TRUE
+                        WHEN $8 THEN TRUE
                         ELSE (
                             SELECT s.is_nsfw OR COALESCE(sa.is_nsfw, FALSE) FROM posts p
                             JOIN spheres s ON s.sphere_id = p.sphere_id
                             LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE p.post_id = $11
+                            WHERE p.post_id = $12
                         )
                     END
                 ),
                 is_spoiler = (
                     CASE
-                        WHEN $8 THEN TRUE
+                        WHEN $9 THEN TRUE
                         ELSE (
                             SELECT COALESCE(sa.is_spoiler, FALSE) FROM posts p
                             LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE post_id = $11
+                            WHERE post_id = $12
                         )
                     END
                 ),
-                is_pinned = $9,
-                category_id = $10,
+                is_pinned = $10,
+                category_id = $11,
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
-                post_id = $11 AND
-                creator_id = $12
+                post_id = $12 AND
+                creator_id = $13
             RETURNING *",
-            post_title,
-            post_body,
-            post_markdown_body,
-            link,
-            link_type as i16,
-            link_embed,
-            is_nsfw,
-            is_spoiler,
-            is_pinned,
-            category_id,
-            post_id,
-            user.user_id,
         )
+            .bind(post_title)
+            .bind(post_body)
+            .bind(post_markdown_body)
+            .bind(link.link_type as i16)
+            .bind(link.link_url)
+            .bind(link.link_embed)
+            .bind(link.link_thumbnail_url)
+            .bind(is_nsfw)
+            .bind(is_spoiler)
+            .bind(is_pinned)
+            .bind(category_id)
+            .bind(post_id)
+            .bind(user.user_id)
             .fetch_one(db_pool)
             .await?;
 
@@ -641,14 +612,13 @@ pub mod ssr {
         post_id: i64,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
-        let post = sqlx::query_as!(
-            Post,
+        let post = sqlx::query_as::<_, Post>(
             "UPDATE posts
             SET num_comments = num_comments + 1
             WHERE post_id = $1
             RETURNING *",
-            post_id,
         )
+            .bind(post_id)
             .fetch_one(db_pool)
             .await?;
 
@@ -849,8 +819,8 @@ pub async fn create_post(
     satellite_id: Option<i64>,
     title: String,
     body: String,
-    link: Option<String>,
     link_type: LinkType,
+    link: Option<String>,
     is_markdown: bool,
     is_spoiler: bool,
     is_nsfw: bool,
@@ -862,7 +832,10 @@ pub async fn create_post(
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
-    // TODO check link
+    let link = match (link_type, link) {
+        (link_type, Some(link)) if link_type != LinkType::None => verify_link_and_get_embed(link_type, &link).await,
+        _ => Link::default(),
+    };
 
     let post = ssr::create_post(
         sphere.as_str(),
@@ -870,9 +843,7 @@ pub async fn create_post(
         title.as_str(),
         body.as_str(),
         markdown_body.as_deref(),
-        link.as_deref(),
-        link_type,
-        None,
+        link,
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
@@ -895,8 +866,8 @@ pub async fn edit_post(
     post_id: i64,
     title: String,
     body: String,
-    link: Option<String>,
     link_type: LinkType,
+    link: Option<String>,
     is_markdown: bool,
     is_spoiler: bool,
     is_nsfw: bool,
@@ -909,16 +880,17 @@ pub async fn edit_post(
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
-    // TODO check link
+    let link = match (link_type, link) {
+        (link_type, Some(link)) if link_type != LinkType::None => verify_link_and_get_embed(link_type, &link).await,
+        _ => Link::default(),
+    };
 
     let post = ssr::update_post(
         post_id,
         title.as_str(),
         body.as_str(),
         markdown_body.as_deref(),
-        link.as_deref(),
-        link_type,
-        None,
+        link,
         is_spoiler,
         is_nsfw,
         is_pinned.unwrap_or(false),
@@ -1419,7 +1391,12 @@ pub fn EditPostForm(
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
 
-    let (post_id, title, link, link_type) = post.with_value(|post| (post.post_id, post.title.clone(), post.link.clone(), post.link_type));
+    let (post_id, title, link_url, link_type) = post.with_value(|post| (
+        post.post_id,
+        post.title.clone(),
+        post.link.link_url.clone(),
+        post.link.link_type.clone()
+    ));
     let title = RwSignal::new(title);
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
@@ -1428,7 +1405,7 @@ pub fn EditPostForm(
         set_content: body_autosize.set_content,
         textarea_ref,
     };
-    let link_input = RwSignal::new(link.unwrap_or_default());
+    let link_input = RwSignal::new(link_url.unwrap_or_default());
     let link_type_input = RwSignal::new(link_type);
     let disable_publish = Signal::derive(move || {
         title.read().is_empty() ||
@@ -1523,10 +1500,10 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 
 #[cfg(test)]
 mod tests {
-    use strum::IntoEnumIterator;
     use crate::colors::Color;
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-    use crate::post::{LinkType, Post, PostSortType, PostWithSphereInfo};
+    use crate::embed::{Link, LinkType};
+    use crate::post::{Post, PostSortType, PostWithSphereInfo};
     use crate::sphere_category::SphereCategoryHeader;
 
     fn create_post_with_category(sphere_name: &str, title: &str, category_id: Option<i64>) -> Post {
@@ -1535,9 +1512,7 @@ mod tests {
             title: title.to_string(),
             body: String::default(),
             markdown_body: None,
-            link: None,
-            link_type: LinkType::None,
-            link_embed: None,
+            link: Link::default(),
             is_nsfw: false,
             is_spoiler: false,
             category_id,
@@ -1563,15 +1538,6 @@ mod tests {
             edit_timestamp: None,
             scoring_timestamp: Default::default(),
         }
-    }
-
-    #[test]
-    fn test_link_type_from_i16() {
-        for link_type in LinkType::iter() {
-            assert_eq!(LinkType::from(link_type as i16), link_type);
-        }
-        assert_eq!(LinkType::from(-2), LinkType::None);
-        assert_eq!(LinkType::from(100), LinkType::None);
     }
 
     #[test]

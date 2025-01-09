@@ -4,11 +4,11 @@ use leptos::prelude::*;
 use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
 use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use url::Url;
 
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LinkIcon;
-use crate::post::{LinkType};
 
 const DEFAULT_MEDIA_CLASS: &str = "h-fit w-fit max-h-160 max-w-full object-contain";
 const THUMBNAIL_CLASS: &str = "h-16 w-16 object-contain";
@@ -17,6 +17,27 @@ lazy_static! {
     static ref PROVIDERS: Vec<OEmbedProvider> =
         serde_json::from_slice(include_bytes!("../embed/providers.json"))
             .expect("failed to load oEmbed providers");
+}
+
+#[repr(i16)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+pub enum LinkType {
+    #[default]
+    None = -1,
+    Link = 0,
+    Image = 1,
+    Video = 2,
+    Rich = 3,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct Link {
+    pub link_type: LinkType,
+    pub link_url: Option<String>,
+    pub link_embed: Option<String>,
+    pub link_thumbnail_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
@@ -42,12 +63,12 @@ pub struct OEmbedEndpoint {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum OEmbedType {
+    #[serde(rename = "link")]
+    Link,
     #[serde(rename = "photo")]
     Photo(Photo),
     #[serde(rename = "video")]
     Video(Video),
-    #[serde(rename = "link")]
-    Link,
     #[serde(rename = "rich")]
     Rich(Rich),
 }
@@ -89,6 +110,34 @@ pub struct OEmbedReply {
     pub thumbnail_url: Option<String>,
     pub thumbnail_width: Option<i32>,
     pub thumbnail_height: Option<i32>,
+}
+
+impl From<i16> for LinkType {
+    fn from(category_color_val: i16) -> Self {
+        match category_color_val {
+            x if x == LinkType::Link as i16 => LinkType::Link,
+            x if x == LinkType::Image as i16 => LinkType::Image,
+            x if x == LinkType::Video as i16 => LinkType::Video,
+            x if x == LinkType::Rich as i16 => LinkType::Rich,
+            _ => LinkType::None,
+        }
+    }
+}
+
+impl Link  {
+    pub fn new(
+        link_type: LinkType,
+        link_url: Option<String>,
+        link_embed: Option<String>,
+        link_thumbnail_url: Option<String>,
+    ) -> Self {
+        Self {
+            link_type,
+            link_url,
+            link_embed,
+            link_thumbnail_url,
+        }
+    }
 }
 
 impl OEmbedProvider {
@@ -209,23 +258,30 @@ pub fn select_link_type(
     };
 }
 
-/// Infer a link's type based on the url and update the link type signal based on the result
+/// Infer a link's type based on the url
 pub fn infer_link_type(
     url: &str,
-    link_type: RwSignal<LinkType>,
-    select_ref: NodeRef<html::Select>
-) {
+) -> LinkType {
     if let Ok(url) = Url::parse(url) {
-        if url.scheme() == "https" && url.domain().is_some() {
-            let mime_guess = from_path(url.as_str());
-            match mime_guess.first() {
-                Some(mime_guess) if mime_guess.type_() == mime::IMAGE => select_link_type(LinkType::Image, link_type, select_ref),
-                Some(mime_guess) if mime_guess.type_() == mime::VIDEO => select_link_type(LinkType::Video, link_type, select_ref),
-                _ => select_link_type(LinkType::Link, link_type, select_ref),
-            };
+        check_url_and_infer_type(&url)
+    } else {
+        LinkType::None
+    }
+}
+
+/// Check that an url is valid and infer its type
+pub fn check_url_and_infer_type(
+    url: &Url,
+) -> LinkType {
+    if url.scheme() == "https" && url.domain().is_some() {
+        let mime_guess = from_path(url.as_str());
+        match mime_guess.first() {
+            Some(mime_guess) if mime_guess.type_() == mime::IMAGE => LinkType::Image,
+            Some(mime_guess) if mime_guess.type_() == mime::VIDEO => LinkType::Video,
+            _ => LinkType::Link,
         }
     } else {
-        select_link_type(LinkType::None, link_type, select_ref);
+        LinkType::None
     }
 }
 
@@ -233,6 +289,8 @@ pub fn infer_link_type(
 pub mod ssr {
     use std::collections::HashSet;
     use ammonia::Builder;
+    use url::Url;
+    use crate::embed::{find_url_provider, get_oembed_data, check_url_and_infer_type, OEmbedType, Link, LinkType};
 
     pub fn clean_html(
         html: &str,
@@ -270,7 +328,7 @@ pub mod ssr {
             ).attribute_filter(|element, attribute, value| {
                 match (element, attribute) {
                     ("iframe", "style") => {
-                        let allowed_values = ["border", "min-width", "min-height"];
+                        let allowed_values = ["border", "min-width", "min-height, width, height"];
                         let allowed_styles = value
                             .split(';')
                             .filter_map(|v| {
@@ -294,6 +352,54 @@ pub mod ssr {
             .to_string();
         log::debug!("clean_html: {}", clean_html);
         clean_html
+    }
+
+    pub async fn verify_link_and_get_embed(
+        link_type: LinkType,
+        link: &str,
+    ) -> Link {
+        match (link_type, Url::parse(link)) {
+            (_, Err(_)) => Link::default(),
+            (LinkType::None, Ok(_)) => Link::default(),
+            (LinkType::Link, Ok(url)) => Link::new(LinkType::Link, Some(url.to_string()), None, None),
+            (_, Ok(url)) => {
+                match find_url_provider(url.as_str()) {
+                    Some((_provider, endpoint)) => {
+                        // TODO check values for width and height
+                        let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
+                        log::debug!("Fetch oembed data: {endpoint}");
+                        match get_oembed_data(endpoint).await {
+                            Ok(oembed_data) => {
+                                let thumbnail_url = oembed_data.thumbnail_url;
+                                match oembed_data.oembed_type {
+                                    OEmbedType::Link => Link::new(LinkType::Link, Some(url.to_string()), None, thumbnail_url),
+                                    OEmbedType::Photo(photo) => Link::new(LinkType::Image, Some(photo.url), None, thumbnail_url),
+                                    OEmbedType::Video(video) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&video.html)), thumbnail_url),
+                                    OEmbedType::Rich(rich) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&rich.html)), thumbnail_url),
+                                }
+                            },
+                            Err(e) => {
+                                log::debug!("Failed to get oembed data: {}", e);
+                                let inferred_type = check_url_and_infer_type(&url);
+                                let link = match inferred_type {
+                                    LinkType::None => None,
+                                    _ => Some(url.to_string()),
+                                };
+                                Link::new(inferred_type, link, None, None)
+                            },
+                        }
+                    },
+                    None => {
+                        let inferred_type = check_url_and_infer_type(&url);
+                        let link = match inferred_type {
+                            LinkType::None => None,
+                            _ => Some(url.to_string()),
+                        };
+                        Link::new(inferred_type, link, None, None)
+                    },
+                }
+            },
+        }
     }
 }
 
@@ -324,6 +430,7 @@ pub fn EmbedPreview(
     title: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
 ) -> impl IntoView {
+    // TODO try to simplify with new verify_link_and_get_embed function
     let oembed_resource = Resource::new(
         move || link_input.get(),
         move |url| async move {
@@ -386,7 +493,8 @@ pub fn EmbedPreview(
                 }
             },
             Some(None) => {
-                infer_link_type(&link_input.read(), link_type_input, select_ref);
+                let link_type = infer_link_type(&link_input.read());
+                select_link_type(link_type, link_type_input, select_ref);
                 if let Some(select_ref) = select_ref.get_untracked() {
                     select_ref.set_disabled(false);
                 };
@@ -478,7 +586,17 @@ pub fn VideoEmbed(url: String) -> impl IntoView {
 
 #[cfg(test)]
 mod tests {
-    use crate::embed::{find_url_provider, OEmbedEndpoint, OEmbedProvider};
+    use strum::IntoEnumIterator;
+    use crate::embed::{find_url_provider, LinkType, OEmbedEndpoint, OEmbedProvider};
+
+    #[test]
+    fn test_link_type_from_i16() {
+        for link_type in LinkType::iter() {
+            assert_eq!(LinkType::from(link_type as i16), link_type);
+        }
+        assert_eq!(LinkType::from(-2), LinkType::None);
+        assert_eq!(LinkType::from(100), LinkType::None);
+    }
 
     #[test]
     fn test_oembed_provider_find_matching_endpoint() {

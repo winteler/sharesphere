@@ -11,10 +11,11 @@ use server_fn::ServerFnError;
 
 use crate::content::ContentBody;
 use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
+use crate::embed::LinkType;
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
 use crate::icons::{DeleteIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
-use crate::post::{get_post_vec_by_satellite_id, CreatePost, LinkType, PostForm, PostSortType, PostWithSphereInfo};
+use crate::post::{get_post_vec_by_satellite_id, CreatePost, PostForm, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::{get_sphere_with_user_info, SpherePostMiniatures, SphereState, SphereToolbar, SPHERE_ROUTE_PREFIX};

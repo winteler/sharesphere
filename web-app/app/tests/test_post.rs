@@ -10,7 +10,7 @@ use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
 use app::post::ssr::{create_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
-use app::post::{ssr, LinkType, Post, PostSortType, PostWithSphereInfo};
+use app::post::{ssr, Post, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
@@ -19,6 +19,7 @@ use app::satellite::ssr::create_satellite;
 use app::sphere_category::ssr::set_sphere_category;
 use app::user::User;
 use app::{post, sphere};
+use app::embed::{Link, LinkType};
 use app::sphere::ssr::create_sphere;
 
 pub use crate::common::*;
@@ -112,14 +113,14 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
     let post_1_title = "1";
     let post_1_body = "test";
     let expected_post_1 = create_post(
-        &sphere.sphere_name, None, post_1_title, post_1_body, None, None, LinkType::None, None,false, false, false, None, &user, &db_pool
+        &sphere.sphere_name, None, post_1_title, post_1_body, None, Link::default(),false, false, false, None, &user, &db_pool
     ).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
     let expected_post_2 = create_post(
-        &sphere.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), None, LinkType::None, None,false, false, false, None, &user, &db_pool
+        &sphere.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), Link::default(),false, false, false, None, &user, &db_pool
     ).await.expect("Should be able to create post 2.");
 
     let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
@@ -156,9 +157,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
         post_1_title,
         post_1_body,
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false, 
         false, 
         false,
@@ -176,9 +175,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
         post_2_title,
         post_2_body,
         Some(post_2_markdown_body),
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false, 
         false, 
         false,
@@ -270,9 +267,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "1",
         "1",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         true,
         true,
         false,
@@ -294,9 +289,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "2",
         "2",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -318,9 +311,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "3",
         "3",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         true,
         false,
@@ -342,9 +333,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "4",
         "4",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         true,
         false,
         false,
@@ -370,7 +359,7 @@ async fn test_get_post_sphere() -> Result<(), AppError> {
 
     let sphere = sphere::ssr::create_sphere("a", "sphere", false, &user, &db_pool).await?;
     let post = create_post(
-        &sphere.sphere_name, None, "1", "test", None, None, LinkType::None, None,false, false, false, None, &user, &db_pool
+        &sphere.sphere_name, None, "1", "test", None, Link::default(),false, false, false, None, &user, &db_pool
     ).await.expect("Should be able to create post.");
 
     let result_sphere = get_post_sphere(post.post_id, &db_pool).await.expect("Post sphere should be available.");
@@ -416,9 +405,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         "satellite",
         "satellite",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -542,9 +529,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         "nsfw",
         "nsfw",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         true,
         false,
@@ -571,9 +556,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         "satellite",
         "satellite",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -664,9 +647,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         "1",
         "1",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         true,
         true,
         false,
@@ -699,9 +680,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         "satellite",
         "satellite",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -806,9 +785,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
         "pinned",
         "a",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         true,
@@ -875,9 +852,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         "1",
         "1",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -892,9 +867,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         "2",
         "2",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -981,9 +954,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
         "1",
         "1",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1097,9 +1068,7 @@ async fn test_get_post_vec_by_satellite_id_with_pinned_post() -> Result<(), AppE
         "pinned",
         "a",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         true,
@@ -1188,9 +1157,7 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
         "1",
         "1",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1205,9 +1172,7 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
         "2",
         "2",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1275,9 +1240,7 @@ async fn test_create_post() -> Result<(), AppError> {
         post_1_title,
         post_1_body,
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1289,9 +1252,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.title, post_1_title);
     assert_eq!(post_1.body, post_1_body);
     assert_eq!(post_1.markdown_body, None);
-    assert_eq!(post_1.link, None);
-    assert_eq!(post_1.link_type, LinkType::None);
-    assert_eq!(post_1.link_embed, None);
+    assert_eq!(post_1.link, Link::default());
     assert_eq!(post_1.is_nsfw, false);
     assert_eq!(post_1.is_spoiler, false);
     assert_eq!(post_1.category_id, None);
@@ -1313,7 +1274,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_post(&sphere_1.sphere_name, None, post_1_title, post_1_body, None, None, LinkType::None, None, false, false, true, None, &user, &db_pool).await,
+        create_post(&sphere_1.sphere_name, None, post_1_title, post_1_body, None, Link::default(), false, false, true, None, &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -1321,17 +1282,31 @@ async fn test_create_post() -> Result<(), AppError> {
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
-    let post_2_link = "webpage";
+    let post_2_link = Link::new(
+        LinkType::Link,
+        Some(String::from("link")),
+        None,
+        Some(String::from("thumbnail"))
+    );
     let post_2 = create_post(
-        &sphere_1.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), Some(post_2_link), LinkType::Link, None,true, true, true, None, &user, &db_pool
+        &sphere_1.sphere_name,
+        None,
+        post_2_title,
+        post_2_body,
+        Some(post_2_markdown_body),
+        post_2_link.clone(),
+        true,
+        true,
+        true,
+        None,
+        &user,
+        &db_pool
     ).await.expect("Should be able to create post 2.");
 
     assert_eq!(post_2.title, post_2_title);
     assert_eq!(post_2.body, post_2_body);
     assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
-    assert_eq!(post_2.link, Some(String::from(post_2_link)));
-    assert_eq!(post_2.link_type, LinkType::Link);
-    assert_eq!(post_2.link_embed, None);
+    assert_eq!(post_2.link, post_2_link);
     assert_eq!(post_2.markdown_body, Some(String::from(post_2_markdown_body)));
     assert_eq!(post_2.is_nsfw, true);
     assert_eq!(post_2.is_spoiler, true);
@@ -1354,17 +1329,19 @@ async fn test_create_post() -> Result<(), AppError> {
 
     let nsfw_post_title = "1";
     let nsfw_post_body = "test";
-    let nsfw_post_link = "image";
-    let nsfw_link_embed = "embed";
+    let nsfw_link = Link::new(
+        LinkType::Image,
+        Some(String::from("image")),
+        Some(String::from("embed")),
+        Some(String::from("thumbnail")),
+    );
     let nsfw_post = create_post(
         &sphere_2.sphere_name, 
         None, 
         nsfw_post_title, 
         nsfw_post_body, 
-        None, 
-        Some(nsfw_post_link), 
-        LinkType::Image, 
-        Some(nsfw_link_embed), 
+        None,
+        nsfw_link.clone(),
         false, 
         false, 
         false, 
@@ -1376,9 +1353,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(nsfw_post.title, nsfw_post_title);
     assert_eq!(nsfw_post.body, nsfw_post_body);
     assert_eq!(nsfw_post.markdown_body, None);
-    assert_eq!(nsfw_post.link, Some(String::from(nsfw_post_link)));
-    assert_eq!(nsfw_post.link_type, LinkType::Image);
-    assert_eq!(nsfw_post.link_embed.as_deref(), Some(nsfw_link_embed));
+    assert_eq!(nsfw_post.link, nsfw_link);
     assert_eq!(nsfw_post.is_nsfw, true);
     assert_eq!(nsfw_post.is_spoiler, false);
     assert_eq!(nsfw_post.category_id, None);
@@ -1436,9 +1411,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
         "1",
         "1",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1450,9 +1423,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.title, "1");
     assert_eq!(post.body, "1");
     assert_eq!(post.markdown_body, None);
-    assert_eq!(post.link, None);
-    assert_eq!(post.link_type, LinkType::None);
-    assert_eq!(post.link_embed, None);
+    assert_eq!(post.link, Link::default());
     assert_eq!(post.is_nsfw, false);
     assert_eq!(post.is_spoiler, false);
     assert_eq!(post.category_id, None);
@@ -1481,15 +1452,20 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
         &db_pool
     ).await.expect("Should be able to create sphere.");
 
+    let link = Link::new(
+        LinkType::Video,
+        Some(String::from("link")),
+        Some(String::from("embed")),
+        None,
+    );
+
     let post = create_post(
         &sphere_2.sphere_name,
         Some(satellite_2.satellite_id),
         "2",
         "2",
         None,
-        Some("link"),
-        LinkType::Video,
-        Some("embed"),
+        link.clone(),
         false,
         false,
         true,
@@ -1501,9 +1477,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.title, "2");
     assert_eq!(post.body, "2");
     assert_eq!(post.markdown_body, None);
-    assert_eq!(post.link, Some(String::from("link")));
-    assert_eq!(post.link_type, LinkType::Video);
-    assert_eq!(post.link_embed.as_deref(), Some("embed"));
+    assert_eq!(post.link, link);
     assert_eq!(post.is_nsfw, true);
     assert_eq!(post.is_spoiler, true);
     assert_eq!(post.category_id, None);
@@ -1532,9 +1506,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
                 "a",
                 "b",
                 None,
-                None,
-                LinkType::None,
-                None,
+                Link::default(),
                 false,
                 false,
                 false,
@@ -1555,7 +1527,7 @@ async fn test_update_post() -> Result<(), AppError> {
     let user = create_test_user(&db_pool).await;
 
     let sphere_name = "sphere";
-    sphere::ssr::create_sphere(
+    create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -1563,7 +1535,7 @@ async fn test_update_post() -> Result<(), AppError> {
         &db_pool,
     ).await?;
     
-    let nsfw_sphere = sphere::ssr::create_sphere(
+    let nsfw_sphere = create_sphere(
         "nsfw",
         "nsfw",
         true,
@@ -1571,15 +1543,13 @@ async fn test_update_post() -> Result<(), AppError> {
         &db_pool,
     ).await?;
 
-    let post = post::ssr::create_post(
+    let post = create_post(
         sphere_name,
         None,
         "post",
         "body",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1591,16 +1561,18 @@ async fn test_update_post() -> Result<(), AppError> {
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");
-    let updated_link = "updated_link";
-    let updated_embed = "embed";
-    let updated_post = post::ssr::update_post(
+    let updated_link = Link::new(
+        LinkType::Rich,
+        Some(String::from("updated_link")),
+        Some(String::from("embed")),
+        Some(String::from("thumbnail")),
+    );
+    let updated_post = update_post(
         post.post_id,
         updated_title,
         &updated_html_body,
         Some(updated_markdown_body),
-        Some(updated_link),
-        LinkType::Rich,
-        Some(updated_embed),
+        updated_link.clone(),
         false,
         false,
         false,
@@ -1612,24 +1584,25 @@ async fn test_update_post() -> Result<(), AppError> {
     assert_eq!(updated_post.title, updated_title);
     assert_eq!(updated_post.body, updated_html_body);
     assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
-    assert_eq!(updated_post.link, Some(String::from(updated_link)));
-    assert_eq!(updated_post.link_type, LinkType::Rich);
-    assert_eq!(updated_post.link_embed.as_deref(), Some(updated_embed));
+    assert_eq!(updated_post.link, updated_link);
     assert!(
         updated_post.edit_timestamp.is_some() &&
         updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
         updated_post.create_timestamp == post.create_timestamp
     );
 
-    let nsfw_sphere_post = post::ssr::create_post(
+    let nsfw_sphere_post = create_post(
         &nsfw_sphere.sphere_name,
         None,
         "post",
         "body",
         None,
-        Some("link"),
-        LinkType::Image,
-        Some("embed"),
+        Link::new(
+            LinkType::Image,
+            Some(String::from("link")),
+            Some(String::from("embed")),
+            Some(String::from("thumbnail")),
+        ),
         false,
         true,
         false,
@@ -1638,14 +1611,12 @@ async fn test_update_post() -> Result<(), AppError> {
         &db_pool,
     ).await?;
 
-    let updated_nsfw_post = post::ssr::update_post(
+    let updated_nsfw_post = update_post(
         nsfw_sphere_post.post_id,
         updated_title,
         &updated_html_body,
         Some(updated_markdown_body),
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1657,9 +1628,7 @@ async fn test_update_post() -> Result<(), AppError> {
     assert_eq!(updated_nsfw_post.title, updated_title);
     assert_eq!(updated_nsfw_post.body, updated_html_body);
     assert_eq!(updated_nsfw_post.markdown_body, Some(String::from(updated_markdown_body)));
-    assert_eq!(updated_nsfw_post.link, None);
-    assert_eq!(updated_nsfw_post.link_type, LinkType::None);
-    assert_eq!(updated_nsfw_post.link_embed, None);
+    assert_eq!(updated_nsfw_post.link, Link::default());
     // a post in a nsfw sphere is always nsfw, input of the update is ignored
     assert_eq!(updated_nsfw_post.is_nsfw, true);
     assert!(
@@ -1691,9 +1660,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
         "1",
         "1",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         true,
         true,
         false,
@@ -1705,16 +1672,19 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown");
-    let updated_link = "new_link";
+    let updated_link = Link::new(
+        LinkType::Video,
+        Some(String::from("updated_link")),
+        None,
+        None,
+    );
     
     let updated_post = update_post(
         post.post_id,
         updated_title,
         &updated_html_body,
         Some(updated_markdown_body),
-        Some(updated_link),
-        LinkType::Video,
-        None,
+        updated_link.clone(),
         false,
         false,
         true,
@@ -1726,8 +1696,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(updated_post.title, updated_title);
     assert_eq!(updated_post.body, updated_html_body);
     assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
-    assert_eq!(updated_post.link, Some(String::from(updated_link)));
-    assert_eq!(updated_post.link_type, LinkType::Video);
+    assert_eq!(updated_post.link, updated_link);
     assert_eq!(updated_post.satellite_id, Some(satellite_1.satellite_id));
     assert_eq!(updated_post.is_spoiler, false);
     assert_eq!(updated_post.is_nsfw, false);
@@ -1753,9 +1722,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
         "2",
         "2",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         true,
         true,
         false,
@@ -1769,9 +1736,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
         updated_title,
         &updated_html_body,
         Some(updated_markdown_body),
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -1783,8 +1748,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(updated_post.title, updated_title);
     assert_eq!(updated_post.body, updated_html_body);
     assert_eq!(updated_post.markdown_body, Some(String::from(updated_markdown_body)));
-    assert_eq!(updated_post.link, None);
-    assert_eq!(updated_post.link_type, LinkType::None);
+    assert_eq!(updated_post.link, Link::default());
     assert_eq!(updated_post.satellite_id, Some(satellite_2.satellite_id));
     assert_eq!(updated_post.is_spoiler, true);
     assert_eq!(updated_post.is_nsfw, true);

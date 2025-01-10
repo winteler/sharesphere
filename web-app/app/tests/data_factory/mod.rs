@@ -6,7 +6,7 @@ use app::colors::Color;
 use app::comment::ssr::create_comment;
 use app::comment::Comment;
 use app::errors::AppError;
-use app::post::{LinkType, Post, PostWithSphereInfo};
+use app::post::{Post, PostWithSphereInfo};
 use app::ranking::VoteValue;
 use app::satellite::ssr::create_satellite;
 use app::satellite::Satellite;
@@ -15,6 +15,7 @@ use app::sphere_category::SphereCategory;
 use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::User;
 use app::{comment, post, ranking, sphere, sphere_category};
+use app::embed::Link;
 
 pub async fn create_sphere_with_post(
     sphere_name: &str,
@@ -37,9 +38,7 @@ pub async fn create_sphere_with_post(
         "post",
         "body",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -132,9 +131,7 @@ pub async fn create_posts(
             i.to_string().as_str(),
             "body",
             None,
-            None,
-            LinkType::None,
-            None,
+            Link::default(),
             false,
             false,
             false,
@@ -242,9 +239,7 @@ pub async fn create_post_with_comments(
         post_title,
         "body",
         None,
-        None,
-        LinkType::None,
-        None,
+        Link::default(),
         false,
         false,
         false,
@@ -295,12 +290,11 @@ pub async fn set_post_score(
     score: i32,
     db_pool: &PgPool,
 ) -> Result<Post, AppError> {
-    let post = sqlx::query_as!(
-        Post,
+    let post = sqlx::query_as::<_, Post>(
         "UPDATE posts SET score = $1, scoring_timestamp = CURRENT_TIMESTAMP WHERE post_id = $2 RETURNING *",
-        score,
-        post_id,
     )
+        .bind(score)
+        .bind(post_id)
         .fetch_one(db_pool)
         .await?;
 

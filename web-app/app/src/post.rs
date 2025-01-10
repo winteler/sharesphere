@@ -475,11 +475,11 @@ pub mod ssr {
 
         let post = sqlx::query_as::<_, Post>(
             "INSERT INTO posts (
-                title, body, markdown_body, link_type, link_url, link_embed, is_nsfw, is_spoiler, category_id, sphere_id,
+                title, body, markdown_body, link_type, link_url, link_embed, link_thumbnail_url, is_nsfw, is_spoiler, category_id, sphere_id,
                 sphere_name, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
-                $1, $2, $3, $4, $5, $6, $7
+                $1, $2, $3, $4, $5, $6, $7,
                 (
                     CASE
                         WHEN $8 THEN TRUE
@@ -1502,7 +1502,7 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 mod tests {
     use crate::colors::Color;
     use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-    use crate::embed::{Link, LinkType};
+    use crate::embed::{Link};
     use crate::post::{Post, PostSortType, PostWithSphereInfo};
     use crate::sphere_category::SphereCategoryHeader;
 

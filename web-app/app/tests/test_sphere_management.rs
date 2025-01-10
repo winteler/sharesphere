@@ -5,9 +5,9 @@ use crate::common::*;
 use crate::data_factory::{create_sphere_with_post, create_sphere_with_post_and_comment};
 use crate::utils::*;
 use app::comment::ssr::create_comment;
+use app::embed::{Link};
 use app::errors::AppError;
 use app::moderation::ssr::{ban_user_from_sphere, moderate_comment, moderate_post};
-use app::post::LinkType;
 use app::post::ssr::create_post;
 use app::role::ssr::set_user_admin_role;
 use app::role::AdminRole;
@@ -210,7 +210,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     // ban with 0 days has no effect
     assert_eq!(ban_user_from_sphere(unauthorized_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &user, Some(0), &db_pool).await?, None);
     let post = create_post(
-        &sphere.sphere_name, None,"a", "b", None, None, LinkType::None, None,false, false, false, None, &unauthorized_user, &db_pool
+        &sphere.sphere_name, None,"a", "b", None, Link::default(),false, false, false, None, &unauthorized_user, &db_pool
     ).await?;
 
     // cannot ban moderators
@@ -232,7 +232,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     assert!(
         matches!(
             create_post(
-                &sphere.sphere_name, None,"c", "d", None, None, LinkType::None, None, false, false, false, None, &unauthorized_user, &db_pool
+                &sphere.sphere_name, None,"c", "d", None, Link::default(), false, false, false, None, &unauthorized_user, &db_pool
             ).await,
             Err(AppError::SphereBanUntil(_)),
         )
@@ -263,7 +263,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     // banned user cannot create new content
     let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Should be possible to reload banned user.");
     assert_eq!(
-        create_post(&sphere.sphere_name, None,"c", "d", None, None, LinkType::None, None, false, false, false, None, &banned_user, &db_pool).await,
+        create_post(&sphere.sphere_name, None,"c", "d", None, Link::default(), false, false, false, None, &banned_user, &db_pool).await,
         Err(AppError::PermanentSphereBan),
     );
     assert_eq!(

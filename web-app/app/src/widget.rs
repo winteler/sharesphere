@@ -19,6 +19,7 @@ pub const IMAGE_FILE_PARAM: &str = "image";
 /// Component that displays its children in a modal dialog
 #[component]
 pub fn ModalDialog(
+    #[prop(default = "")]
     class: &'static str,
     show_dialog: RwSignal<bool>,
     children: ChildrenFn,
@@ -35,7 +36,7 @@ pub fn ModalDialog(
             >
                 <div class="fixed inset-0 bg-base-200 bg-opacity-75 transition-opacity"></div>
                 <div class="fixed inset-0 z-10 w-screen overflow-auto">
-                    <div class="flex min-h-full items-end justify-center items-center">
+                    <div class="flex min-h-full justify-center items-center">
                         <div class=dialog_class>
                             {children()}
                         </div>

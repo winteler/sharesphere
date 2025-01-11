@@ -418,6 +418,22 @@ pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<A
     Ok(oembed_data)
 }
 
+/// Component to naively and safely embed external content
+#[component]
+pub fn Embed(
+    link: Link
+) -> impl IntoView {
+    match (link.link_type, link.link_url, link.link_embed, link.link_thumbnail_url) {
+        (LinkType::None, _, _, _) => None,
+        (_, None, _, _) => None,
+        (LinkType::Link, Some(link_url), None, thumbnail_url) => Url::parse(&link_url).ok().map(|url| view! { <LinkEmbed url thumbnail_url/> }.into_any()),
+        (link_type, Some(link_url), None, _) => Some(view! { <NaiveEmbed link_input=link_url link_type_input=link_type/> }.into_any()),
+        (_, Some(_), Some(link_embed), _) => Some(view! {
+            <div class="flex items-center h-fit w-full" inner_html=link_embed/>
+        }.into_any()),
+    }
+}
+
 /// Component to safely embed content at the url `link-input`.
 /// It will try to infer the content type using the oembed API. If the provider of the url
 /// is not in the whitelisted list of providers, it will instead try to naively embed the

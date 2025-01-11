@@ -15,7 +15,7 @@ use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, Comme
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
-use crate::embed::{EmbedPreview, Link, LinkType};
+use crate::embed::{Embed, EmbedPreview, Link, LinkType};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
@@ -991,6 +991,7 @@ pub fn Post() -> impl IntoView {
                         <div class="flex flex-col gap-2">
                             <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
                             <PostBody post=post_with_info.post.clone()/>
+                            <Embed link=post_with_info.post.link.clone()/>
                             <PostBadgeList
                                 sphere_header=None
                                 sphere_category=post_with_info.sphere_category.clone()
@@ -1138,8 +1139,8 @@ pub fn EditPostButton(
 pub fn PostForm(
     title: RwSignal<String>,
     body_data: TextareaData,
-    link_input: RwSignal<String>,
     link_type_input: RwSignal<LinkType>,
+    link_input: RwSignal<String>,
     #[prop(into)]
     sphere_name: Signal<String>,
     #[prop(into)]
@@ -1208,12 +1209,17 @@ pub fn LinkForm(
     title: RwSignal<String>,
 ) -> impl IntoView {
     let select_ref = NodeRef::<html::Select>::new();
+    let link_type_value = move || link_type_input.get().to_string();
     view! {
         <div class="w-full flex flex-col gap-2">
             <div class="h-full flex gap-2 items-center">
                 <span class="label-text w-fit">"Link"</span>
-                <select
+                <input
                     name="link_type"
+                    class="hidden"
+                    value=link_type_value
+                />
+                <select
                     class="select select-bordered h-input_m w-fit"
                     node_ref=select_ref
                 >
@@ -1335,8 +1341,8 @@ pub fn CreatePost() -> impl IntoView {
                     <PostForm
                         title
                         body_data
-                        link_input
                         link_type_input
+                        link_input
                         sphere_name=sphere_name_input
                         is_parent_spoiler=false
                         is_parent_nsfw=is_sphere_nsfw
@@ -1371,7 +1377,7 @@ pub fn EditPostDialog(
     let post = StoredValue::new(post);
     view! {
         <ModalDialog
-            class="w-full max-w-xl"
+            class="w-full flex justify-center"
             show_dialog
         >
             <EditPostForm
@@ -1391,11 +1397,11 @@ pub fn EditPostForm(
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
 
-    let (post_id, title, link_url, link_type) = post.with_value(|post| (
+    let (post_id, title, link_type, link_url) = post.with_value(|post| (
         post.post_id,
         post.title.clone(),
+        post.link.link_type,
         post.link.link_url.clone(),
-        post.link.link_type.clone()
     ));
     let title = RwSignal::new(title);
     let textarea_ref = NodeRef::<html::Textarea>::new();
@@ -1405,8 +1411,8 @@ pub fn EditPostForm(
         set_content: body_autosize.set_content,
         textarea_ref,
     };
-    let link_input = RwSignal::new(link_url.unwrap_or_default());
     let link_type_input = RwSignal::new(link_type);
+    let link_input = RwSignal::new(link_url.unwrap_or_default());
     let disable_publish = Signal::derive(move || {
         title.read().is_empty() ||
         (
@@ -1424,7 +1430,7 @@ pub fn EditPostForm(
     );
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3 w-4/5 2xl:w-2/5">
             <div class="text-center font-bold text-2xl">"Edit your post"</div>
             <ActionForm action=state.edit_post_action>
                 <div class="flex flex-col gap-3 w-full">
@@ -1438,8 +1444,8 @@ pub fn EditPostForm(
                         <PostForm
                             title
                             body_data
-                            link_input
                             link_type_input
+                            link_input
                             sphere_name=sphere_state.sphere_name
                             is_parent_spoiler=inherited_post_attr.is_spoiler
                             is_parent_nsfw=inherited_post_attr.is_nsfw

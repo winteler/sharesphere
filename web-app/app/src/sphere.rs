@@ -1004,7 +1004,7 @@ pub fn CreateSphere() -> impl IntoView {
                             name="sphere_name"
                             placeholder="Name"
                             autocomplete="off"
-                            class="input input-bordered input-primary h-input_l flex-none w-3/5"
+                            class="input input-bordered input-primary h-input_m flex-none w-3/5"
                             autofocus
                             on:input=move |ev| {
                                 sphere_name.set(event_target_value(&ev));
@@ -1021,7 +1021,7 @@ pub fn CreateSphere() -> impl IntoView {
                                 Some(Ok(false)) => {
                                     is_name_taken.set(true);
                                     view! {
-                                        <div class="alert alert-error h-input_l flex items-center justify-center">
+                                        <div class="alert alert-error h-input_m flex items-center justify-center">
                                             <span class="font-semibold">"Unavailable"</span>
                                         </div>
                                     }.into_any()
@@ -1040,7 +1040,7 @@ pub fn CreateSphere() -> impl IntoView {
 
                         }
                         </Suspense>
-                        <div class="alert alert-error h-input_l flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
+                        <div class="alert alert-error h-input_m flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
                             <InternalErrorIcon class="h-16 w-16"/>
                             <span>"Only alphanumeric characters."</span>
                         </div>

@@ -3630,10 +3630,6 @@ html {
   align-content: flex-start;
 }
 
-.items-end {
-  align-items: flex-end;
-}
-
 .items-center {
   align-items: center;
 }
@@ -4338,6 +4334,10 @@ textarea::-webkit-scrollbar {
   background-color: hsl(var(--bc) / 0.2);
 }
 
+.hover\:bg-base-content\/50:hover {
+  background-color: hsl(var(--bc) / 0.5);
+}
+
 .hover\:bg-error:hover {
   --tw-bg-opacity: 1;
   background-color: hsl(var(--er) / var(--tw-bg-opacity));
@@ -4354,29 +4354,6 @@ textarea::-webkit-scrollbar {
 .hover\:bg-success:hover {
   --tw-bg-opacity: 1;
   background-color: hsl(var(--su) / var(--tw-bg-opacity));
-}
-
-.hover\:bg-base-content\/50:hover {
-  background-color: hsl(var(--bc) / 0.5);
-}
-
-.hover\:bg-secondary:hover {
-  --tw-bg-opacity: 1;
-  background-color: hsl(var(--s) / var(--tw-bg-opacity));
-}
-
-.hover\:bg-base-content:hover {
-  --tw-bg-opacity: 1;
-  background-color: hsl(var(--bc) / var(--tw-bg-opacity));
-}
-
-.hover\:bg-base-content\/75:hover {
-  background-color: hsl(var(--bc) / 0.75);
-}
-
-.hover\:bg-black:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 0 0 / var(--tw-bg-opacity));
 }
 
 .active\:scale-90:active {
@@ -4431,5 +4408,9 @@ textarea::-webkit-scrollbar {
 
   .\32xl\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .\32xl\:justify-start {
+    justify-content: flex-start;
   }
 }

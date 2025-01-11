@@ -7,6 +7,13 @@ use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use url::Url;
 
+#[cfg(feature = "ssr")]
+use {
+    reqwest::Client,
+    http::header::{ACCEPT, USER_AGENT},
+    http::{HeaderMap, HeaderValue},
+};
+
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LinkIcon;
 
@@ -230,7 +237,19 @@ pub async fn fetch_api<T>(path: &str) -> Option<T>
 where
     T: Serialize + DeserializeOwned,
 {
-    reqwest::get(path)
+    let client = Client::new();
+
+    // Configure headers, as some api provider require them
+    let mut headers = HeaderMap::new();
+    headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+    headers.insert(
+        USER_AGENT,
+        HeaderValue::from_static("Mozilla/5.0 (compatible; RustApp/1.0)"),
+    );
+
+    client.get(path)
+        .headers(headers)
+        .send()
         .await
         .map_err(|e| log::error!("Request error: {e}"))
         .ok()?
@@ -426,10 +445,14 @@ pub fn Embed(
     match (link.link_type, link.link_url, link.link_embed, link.link_thumbnail_url) {
         (LinkType::None, _, _, _) => None,
         (_, None, _, _) => None,
-        (LinkType::Link, Some(link_url), None, thumbnail_url) => Url::parse(&link_url).ok().map(|url| view! { <LinkEmbed url thumbnail_url/> }.into_any()),
-        (link_type, Some(link_url), None, _) => Some(view! { <NaiveEmbed link_input=link_url link_type_input=link_type/> }.into_any()),
+        (LinkType::Link, Some(link_url), None, thumbnail_url) => Url::parse(&link_url).ok().map(|url| view! {
+            <LinkEmbed url thumbnail_url/>
+        }.into_any()),
+        (link_type, Some(link_url), None, _) => Some(view! {
+            <NaiveEmbed link_input=link_url link_type_input=link_type/>
+        }.into_any()),
         (_, Some(_), Some(link_embed), _) => Some(view! {
-            <div class="flex items-center h-fit w-full" inner_html=link_embed/>
+            <HtmlEmbed html=link_embed/>
         }.into_any()),
     }
 }
@@ -467,7 +490,7 @@ pub fn EmbedPreview(
                         }
                     },
                     None => {
-                        log::info!("Could not find oembed provider for url: {url}");
+                        log::debug!("Could not find oembed provider for url: {url}");
                         None
                     }
                 }
@@ -489,22 +512,21 @@ pub fn EmbedPreview(
                     OEmbedType::Link => {
                         select_link_type(LinkType::Link, link_type_input, select_ref);
                         match (Url::parse(url), oembed_data.thumbnail_url.clone()) {
-                            (Ok(url), Some(thumbnail_url)) => Some(view! { <LinkEmbed url thumbnail_url=Some(thumbnail_url)/> }.into_any()),
-                            (Ok(url), None) => Some(view! { <LinkEmbed url/> }.into_any()),
+                            (Ok(url), thumbnail_url) => Some(view! { <LinkEmbed url thumbnail_url align_center=true/> }.into_any()),
                             _ => Some(view! { <ErrorDisplay error=AppError::new("Invalid url")/> }.into_any()),
                         }
                     },
                     OEmbedType::Photo(photo) => {
                         select_link_type(LinkType::Image, link_type_input, select_ref);
-                        Some(view! { <ImageEmbed url=photo.url.clone()/> }.into_any())
+                        Some(view! { <ImageEmbed url=photo.url.clone() align_center=true/> }.into_any())
                     },
                     OEmbedType::Video(video) => {
                         select_link_type(LinkType::Video, link_type_input, select_ref);
-                        Some(view! { <div class="flex justify-center items-center h-fit w-full" inner_html=video.html.clone()/> }.into_any())
+                        Some(view! { <HtmlEmbed html=video.html.clone() align_center=true/> }.into_any())
                     },
                     OEmbedType::Rich(rich) => {
                         select_link_type(LinkType::Rich, link_type_input, select_ref);
-                        Some(view! { <div class="flex justify-center items-center h-fit w-full" inner_html=rich.html.clone()/> }.into_any())
+                        Some(view! { <HtmlEmbed html=rich.html.clone() align_center=true/> }.into_any())
                     },
                 }
             },
@@ -514,7 +536,7 @@ pub fn EmbedPreview(
                 if let Some(select_ref) = select_ref.get_untracked() {
                     select_ref.set_disabled(false);
                 };
-                Some(view! { <NaiveEmbed link_input link_type_input/> }.into_any())
+                Some(view! { <NaiveEmbed link_input link_type_input align_center=true/> }.into_any())
             },
             None => None
         }}
@@ -529,17 +551,18 @@ pub fn NaiveEmbed(
     link_input: Signal<String>,
     #[prop(into)]
     link_type_input: Signal<LinkType>,
+    #[prop(default = false)]
+    align_center: bool,
 ) -> impl IntoView {
-    // TODO decide if naively embed or just provide link?
     view! {
         { move || {
             match (link_type_input.get(), Url::parse(&link_input.read())) {
                 (LinkType::None, _) => None,
                 (_, Err(e)) => Some(view! { <ErrorDisplay error=AppError::new(format!("Invalid link: {e}"))/> }.into_any()),
-                (LinkType::Link, Ok(url)) => Some(view! { <LinkEmbed url/> }.into_any()),
-                (LinkType::Image, Ok(url)) => Some(view! { <ImageEmbed url=url.to_string()/> }.into_any()),
-                (LinkType::Video, Ok(url)) => Some(view! { <VideoEmbed url=url.to_string()/> }.into_any()),
-                (LinkType::Rich, Ok(url)) => Some(view! { <LinkEmbed url/> }.into_any()),
+                (LinkType::Link, Ok(url)) => Some(view! { <LinkEmbed url align_center/> }.into_any()),
+                (LinkType::Image, Ok(url)) => Some(view! { <ImageEmbed url=url.to_string() align_center/> }.into_any()),
+                (LinkType::Video, Ok(url)) => Some(view! { <VideoEmbed url=url.to_string() align_center/> }.into_any()),
+                (LinkType::Rich, Ok(url)) => Some(view! { <LinkEmbed url align_center/> }.into_any()),
             }
         }}
     }
@@ -551,15 +574,21 @@ pub fn LinkEmbed(
     url: Url,
     #[prop(default = None)]
     thumbnail_url: Option<String>,
+    #[prop(default = false)]
+    align_center: bool,
 ) -> impl IntoView {
     match url.domain() {
         Some(domain) => {
+            let class = match align_center {
+                true => "flex justify-center items-center h-fit w-full",
+                false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+            };
             let clean_domain = match domain.starts_with("www.") {
                 true => domain[4..].to_string(),
                 false => domain.to_string(),
             };
             view! {
-                <div class="flex justify-center">
+                <div class=class>
                     <a href=url.to_string() class="w-fit flex items-center gap-2 px-2 py-1 bg-primary rounded hover:bg-base-content/50">
                         { match thumbnail_url {
                             Some(thumbnail_url) => view! { <img src=thumbnail_url class=THUMBNAIL_CLASS/> }.into_any(),
@@ -576,9 +605,17 @@ pub fn LinkEmbed(
 
 /// Component to embed an image
 #[component]
-pub fn ImageEmbed(url: String) -> impl IntoView {
+pub fn ImageEmbed(
+    url: String,
+    #[prop(default = false)]
+    align_center: bool,
+) -> impl IntoView {
+    let class = match align_center {
+        true => "flex justify-center items-center h-fit w-full",
+        false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+    };
     view! {
-        <div class="flex justify-center items-center">
+        <div class=class>
             <img src=url class=DEFAULT_MEDIA_CLASS/>
         </div>
     }
@@ -586,9 +623,17 @@ pub fn ImageEmbed(url: String) -> impl IntoView {
 
 /// Component to embed a video
 #[component]
-pub fn VideoEmbed(url: String) -> impl IntoView {
+pub fn VideoEmbed(
+    url: String,
+    #[prop(default = false)]
+    align_center: bool,
+) -> impl IntoView {
+    let class = match align_center {
+        true => "flex justify-center items-center h-fit w-full",
+        false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+    };
     view! {
-        <div class="flex justify-center items-center">
+        <div class=class>
             <video
                 src=url
                 class=DEFAULT_MEDIA_CLASS
@@ -597,6 +642,22 @@ pub fn VideoEmbed(url: String) -> impl IntoView {
                 "Your browser doesn't support this video's format."
             </video>
         </div>
+    }
+}
+
+/// Component to embed html
+#[component]
+pub fn HtmlEmbed(
+    html: String,
+    #[prop(default = false)]
+    align_center: bool,
+) -> impl IntoView {
+    let class = match align_center {
+        true => "flex justify-center items-center h-fit w-full",
+        false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+    };
+    view! {
+        <div class=class inner_html=html/>
     }
 }
 

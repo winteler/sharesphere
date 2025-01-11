@@ -3,8 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
-use strum::IntoEnumIterator;
-use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
+use strum_macros::{Display, EnumString, IntoStaticStr};
 use url::Url;
 
 #[cfg(feature = "ssr")]
@@ -26,8 +25,16 @@ lazy_static! {
             .expect("failed to load oEmbed providers");
 }
 
+#[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum EmbedType {
+    #[default]
+    None = 0,
+    Link = 1,
+    Embed = 2,
+}
+
 #[repr(i16)]
-#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum LinkType {
     #[default]
@@ -262,16 +269,26 @@ where
 /// Select the given `link_type` in the given `list_ref` node
 pub fn select_link_type(
     link_type: LinkType,
-    link_type_input: RwSignal<LinkType>,
+    link_embed: RwSignal<EmbedType>,
     select_ref: NodeRef<html::Select>
 ) {
-    link_type_input.set(link_type);
+    let select_index = match link_type {
+        LinkType::None => {
+            link_embed.update_untracked(|embed_type| *embed_type = EmbedType::None);
+            EmbedType::None as i32
+        },
+        LinkType::Link => {
+            link_embed.update_untracked(|embed_type| *embed_type = EmbedType::Link);
+            EmbedType::Link as i32
+        },
+        LinkType::Image | LinkType::Video | LinkType::Rich => {
+            link_embed.update_untracked(|embed_type| *embed_type = EmbedType::Embed);
+            EmbedType::Embed as i32
+        },
+    };
     match select_ref.get_untracked() {
         Some(select_ref) => {
-            let index = LinkType::iter().position(|variant| variant == link_type);
-            if let Some(index) = index {
-                select_ref.set_selected_index(index as i32);
-            }
+            select_ref.set_selected_index(select_index);
         },
         None => log::error!("Link type select failed to load."),
     };
@@ -309,7 +326,7 @@ pub mod ssr {
     use std::collections::HashSet;
     use ammonia::Builder;
     use url::Url;
-    use crate::embed::{find_url_provider, get_oembed_data, check_url_and_infer_type, OEmbedType, Link, LinkType};
+    use crate::embed::{find_url_provider, get_oembed_data, check_url_and_infer_type, OEmbedType, Link, LinkType, EmbedType};
 
     pub fn clean_html(
         html: &str,
@@ -374,14 +391,14 @@ pub mod ssr {
     }
 
     pub async fn verify_link_and_get_embed(
-        link_type: LinkType,
+        embed_type: EmbedType,
         link: &str,
     ) -> Link {
-        match (link_type, Url::parse(link)) {
+        match (embed_type, Url::parse(link)) {
             (_, Err(_)) => Link::default(),
-            (LinkType::None, Ok(_)) => Link::default(),
-            (LinkType::Link, Ok(url)) => Link::new(LinkType::Link, Some(url.to_string()), None, None),
-            (_, Ok(url)) => {
+            (EmbedType::None, Ok(_)) => Link::default(),
+            (EmbedType::Link, Ok(url)) => Link::new(LinkType::Link, Some(url.to_string()), None, None),
+            (EmbedType::Embed, Ok(url)) => {
                 match find_url_provider(url.as_str()) {
                     Some((_provider, endpoint)) => {
                         // TODO check values for width and height
@@ -449,7 +466,7 @@ pub fn Embed(
             <LinkEmbed url thumbnail_url/>
         }.into_any()),
         (link_type, Some(link_url), None, _) => Some(view! {
-            <NaiveEmbed link_input=link_url link_type_input=link_type/>
+            <NaiveEmbed link_input=link_url link_type/>
         }.into_any()),
         (_, Some(_), Some(link_embed), _) => Some(view! {
             <HtmlEmbed html=link_embed/>
@@ -463,9 +480,9 @@ pub fn Embed(
 /// content using the user-defined `link_input_type`
 #[component]
 pub fn EmbedPreview(
+    embed_type_input: RwSignal<EmbedType>,
     #[prop(into)]
     link_input: Signal<String>,
-    link_type_input: RwSignal<LinkType>,
     title: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
 ) -> impl IntoView {
@@ -500,45 +517,46 @@ pub fn EmbedPreview(
 
     view! {
         <Suspense>
-        { move || match &*oembed_resource.read() {
-            Some(Some((oembed_data, url))) => {
+        { move || match (embed_type_input.get(), &*oembed_resource.read()) {
+            (EmbedType::Link, _) => Some(view! { <NaiveEmbed link_input link_type=LinkType::Link align_center=true/> }.into_any()),
+            (_, Some(Some((oembed_data, url)))) => {
                 title.update(|title| if title.is_empty() {
                     *title = oembed_data.title.clone().unwrap_or_default();
                 });
-                if let Some(select_ref) = select_ref.get_untracked() {
-                    select_ref.set_disabled(true);
-                };
                 match &oembed_data.oembed_type {
                     OEmbedType::Link => {
-                        select_link_type(LinkType::Link, link_type_input, select_ref);
+                        select_link_type(LinkType::Link, embed_type_input, select_ref);
                         match (Url::parse(url), oembed_data.thumbnail_url.clone()) {
                             (Ok(url), thumbnail_url) => Some(view! { <LinkEmbed url thumbnail_url align_center=true/> }.into_any()),
                             _ => Some(view! { <ErrorDisplay error=AppError::new("Invalid url")/> }.into_any()),
                         }
                     },
                     OEmbedType::Photo(photo) => {
-                        select_link_type(LinkType::Image, link_type_input, select_ref);
+                        select_link_type(LinkType::Image, embed_type_input, select_ref);
                         Some(view! { <ImageEmbed url=photo.url.clone() align_center=true/> }.into_any())
                     },
                     OEmbedType::Video(video) => {
-                        select_link_type(LinkType::Video, link_type_input, select_ref);
+                        select_link_type(LinkType::Video, embed_type_input, select_ref);
                         Some(view! { <HtmlEmbed html=video.html.clone() align_center=true/> }.into_any())
                     },
                     OEmbedType::Rich(rich) => {
-                        select_link_type(LinkType::Rich, link_type_input, select_ref);
+                        select_link_type(LinkType::Rich, embed_type_input, select_ref);
                         Some(view! { <HtmlEmbed html=rich.html.clone() align_center=true/> }.into_any())
                     },
                 }
             },
-            Some(None) => {
-                let link_type = infer_link_type(&link_input.read());
-                select_link_type(link_type, link_type_input, select_ref);
-                if let Some(select_ref) = select_ref.get_untracked() {
-                    select_ref.set_disabled(false);
-                };
-                Some(view! { <NaiveEmbed link_input link_type_input align_center=true/> }.into_any())
+            (embed_type, Some(None)) => {
+                match embed_type {
+                    EmbedType::Link => Some(view! { <NaiveEmbed link_input link_type=LinkType::Link align_center=true/> }.into_any()),
+                    EmbedType::Embed => {
+                         let link_type = infer_link_type(&link_input.read());
+                        select_link_type(link_type, embed_type_input, select_ref);
+                        Some(view! { <NaiveEmbed link_input link_type align_center=true/> }.into_any())
+                    },
+                    EmbedType::None => None,
+                }
             },
-            None => None
+            (EmbedType::None, _) | (_, None) => None
         }}
         </Suspense>
     }
@@ -549,14 +567,13 @@ pub fn EmbedPreview(
 pub fn NaiveEmbed(
     #[prop(into)]
     link_input: Signal<String>,
-    #[prop(into)]
-    link_type_input: Signal<LinkType>,
+    link_type: LinkType,
     #[prop(default = false)]
     align_center: bool,
 ) -> impl IntoView {
     view! {
         { move || {
-            match (link_type_input.get(), Url::parse(&link_input.read())) {
+            match (link_type, Url::parse(&link_input.read())) {
                 (LinkType::None, _) => None,
                 (_, Err(e)) => Some(view! { <ErrorDisplay error=AppError::new(format!("Invalid link: {e}"))/> }.into_any()),
                 (LinkType::Link, Ok(url)) => Some(view! { <LinkEmbed url align_center/> }.into_any()),

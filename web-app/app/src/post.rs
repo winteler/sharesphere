@@ -8,14 +8,13 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_router::params::ParamsMap;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
-use crate::embed::{Embed, EmbedPreview, Link, LinkType};
+use crate::embed::{Embed, EmbedPreview, EmbedType, Link, LinkType};
 use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
@@ -819,7 +818,7 @@ pub async fn create_post(
     satellite_id: Option<i64>,
     title: String,
     body: String,
-    link_type: LinkType,
+    embed_type: EmbedType,
     link: Option<String>,
     is_markdown: bool,
     is_spoiler: bool,
@@ -832,8 +831,8 @@ pub async fn create_post(
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
-    let link = match (link_type, link) {
-        (link_type, Some(link)) if link_type != LinkType::None => verify_link_and_get_embed(link_type, &link).await,
+    let link = match (embed_type, link) {
+        (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
         _ => Link::default(),
     };
 
@@ -866,7 +865,7 @@ pub async fn edit_post(
     post_id: i64,
     title: String,
     body: String,
-    link_type: LinkType,
+    embed_type: EmbedType,
     link: Option<String>,
     is_markdown: bool,
     is_spoiler: bool,
@@ -880,8 +879,8 @@ pub async fn edit_post(
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
-    let link = match (link_type, link) {
-        (link_type, Some(link)) if link_type != LinkType::None => verify_link_and_get_embed(link_type, &link).await,
+    let link = match (embed_type, link) {
+        (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
         _ => Link::default(),
     };
 
@@ -1139,7 +1138,7 @@ pub fn EditPostButton(
 pub fn PostForm(
     title: RwSignal<String>,
     body_data: TextareaData,
-    link_type_input: RwSignal<LinkType>,
+    embed_type_input: RwSignal<EmbedType>,
     link_input: RwSignal<String>,
     #[prop(into)]
     sphere_name: Signal<String>,
@@ -1183,7 +1182,7 @@ pub fn PostForm(
             data=body_data
             is_markdown
         />
-        <LinkForm link_input link_type_input title/>
+        <LinkForm link_input embed_type_input title/>
         { move || {
             match is_parent_spoiler.get() {
                 true => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=true disabled=true/> },
@@ -1204,37 +1203,45 @@ pub fn PostForm(
 /// Component to give a link to external content
 #[component]
 pub fn LinkForm(
+    embed_type_input: RwSignal<EmbedType>,
     link_input: RwSignal<String>,
-    link_type_input: RwSignal<LinkType>,
     title: RwSignal<String>,
 ) -> impl IntoView {
     let select_ref = NodeRef::<html::Select>::new();
-    let link_type_value = move || link_type_input.get().to_string();
+    let input_ref = NodeRef::<html::Input>::new();
     view! {
         <div class="w-full flex flex-col gap-2">
             <div class="h-full flex gap-2 items-center">
                 <span class="label-text w-fit">"Link"</span>
-                <input
-                    name="link_type"
-                    class="hidden"
-                    value=link_type_value
-                />
                 <select
+                    name="embed_type"
                     class="select select-bordered h-input_m w-fit"
                     node_ref=select_ref
                 >
-                { move || LinkType::iter().map(|link_type| {
-                        let link_type_str: &'static str = link_type.into();
-                        view! {
-                            <option
-                                selected=move || link_type_input.get_untracked() == link_type
-                                on:click=move |_| link_type_input.set(link_type)
-                            >
-                                {link_type_str}
-                            </option>
+                    <option
+                        selected=move || embed_type_input.get_untracked() == EmbedType::None
+                        on:click=move |_| {
+                            embed_type_input.set(EmbedType::None);
+                            link_input.set(String::default());
+                            if let Some(link_input_ref) = input_ref.get_untracked() {
+                                link_input_ref.set_value("");
+                            }
                         }
-                    }).collect_view()
-                }
+                    >
+                        "None"
+                    </option>
+                    <option
+                        selected=move || embed_type_input.get_untracked() == EmbedType::Link
+                        on:click=move |_| embed_type_input.set(EmbedType::Link)
+                    >
+                        "Link"
+                    </option>
+                    <option
+                        selected=move || embed_type_input.get_untracked() == EmbedType::Embed
+                        on:click=move |_| embed_type_input.set(EmbedType::Embed)
+                    >
+                        "Embed"
+                    </option>
                 </select>
                 <input
                     type="text"
@@ -1247,9 +1254,10 @@ pub fn LinkForm(
                     on:input=move |ev| {
                         link_input.set(event_target_value(&ev));
                     }
+                    node_ref=input_ref
                 />
             </div>
-            <EmbedPreview link_input link_type_input title select_ref/>
+            <EmbedPreview embed_type_input link_input title select_ref/>
         </div>
     }
 }
@@ -1278,7 +1286,7 @@ pub fn CreatePost() -> impl IntoView {
         textarea_ref,
     };
     let link_input = RwSignal::new(String::default());
-    let link_type_input = RwSignal::new(LinkType::None);
+    let embed_type_input = RwSignal::new(EmbedType::None);
 
     let matching_spheres_resource = Resource::new(
         move || sphere_name_debounced.get(),
@@ -1341,7 +1349,7 @@ pub fn CreatePost() -> impl IntoView {
                     <PostForm
                         title
                         body_data
-                        link_type_input
+                        embed_type_input
                         link_input
                         sphere_name=sphere_name_input
                         is_parent_spoiler=false
@@ -1353,9 +1361,9 @@ pub fn CreatePost() -> impl IntoView {
                         title.read().is_empty() ||
                         (
                             body_data.content.read().is_empty() &&
-                            *link_type_input.read() == LinkType::None
+                            *embed_type_input.read() == EmbedType::None
                         ) || (
-                            *link_type_input.read() != LinkType::None &&
+                            *embed_type_input.read() != EmbedType::None &&
                             link_input.read().is_empty() // TODO check valid url?
                         )
                     }>
@@ -1411,15 +1419,19 @@ pub fn EditPostForm(
         set_content: body_autosize.set_content,
         textarea_ref,
     };
-    let link_type_input = RwSignal::new(link_type);
+    let embed_type_input = RwSignal::new(match link_type {
+        LinkType::None => EmbedType::None,
+        LinkType::Link => EmbedType::Link,
+        _ => EmbedType::Embed,
+    });
     let link_input = RwSignal::new(link_url.unwrap_or_default());
     let disable_publish = Signal::derive(move || {
         title.read().is_empty() ||
         (
             body_data.content.read().is_empty() &&
-            *link_type_input.read() == LinkType::None
+            embed_type_input.read() == EmbedType::None
         ) || (
-            *link_type_input.read() != LinkType::None &&
+            embed_type_input.read() != EmbedType::None &&
             link_input.read().is_empty()
         )
     });
@@ -1444,7 +1456,7 @@ pub fn EditPostForm(
                         <PostForm
                             title
                             body_data
-                            link_type_input
+                            embed_type_input
                             link_input
                             sphere_name=sphere_state.sphere_name
                             is_parent_spoiler=inherited_post_attr.is_spoiler

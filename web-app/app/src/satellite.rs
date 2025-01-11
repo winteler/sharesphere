@@ -11,7 +11,6 @@ use server_fn::ServerFnError;
 
 use crate::content::ContentBody;
 use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
-use crate::embed::LinkType;
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
 use crate::icons::{DeleteIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
@@ -30,6 +29,7 @@ use crate::{
     editor::ssr::get_html_and_markdown_bodies,
     satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
+use crate::embed::EmbedType;
 
 pub const SATELLITE_ROUTE_PREFIX: &str = "/satellites";
 pub const SATELLITE_ROUTE_PARAM_NAME: &str = "satellite_id";
@@ -506,7 +506,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
         textarea_ref,
     };
     let link_input = RwSignal::new(String::default());
-    let link_type_input = RwSignal::new(LinkType::None);
+    let embed_type_input = RwSignal::new(EmbedType::None);
 
     let category_vec_resource = Resource::new(
         move || sphere_state.sphere_name.get(),
@@ -534,8 +534,8 @@ pub fn CreateSatellitePost() -> impl IntoView {
                         <PostForm
                             title
                             body_data
+                            embed_type_input
                             link_input
-                            link_type_input
                             sphere_name=sphere_state.sphere_name
                             is_parent_spoiler=satellite.is_spoiler
                             is_parent_nsfw=satellite.is_nsfw
@@ -546,9 +546,9 @@ pub fn CreateSatellitePost() -> impl IntoView {
                         title.read().is_empty() ||
                         (
                             body_data.content.read().is_empty() &&
-                            *link_type_input.read() == LinkType::None
+                            *embed_type_input.read() == EmbedType::None
                         ) || (
-                            *link_type_input.read() != LinkType::None &&
+                            *embed_type_input.read() != EmbedType::None &&
                             link_input.read().is_empty() // TODO check valid url?
                         )
                     }>

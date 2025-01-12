@@ -209,11 +209,10 @@ pub fn ListNumberIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl 
 
 /// Renders a loading icon
 #[component]
-pub fn LoadingIcon(#[prop(default = "loading-md my-5")] class: &'static str) -> impl IntoView {
-    let class = String::from("loading loading-spinner ") + class;
+pub fn LoadingIcon(#[prop(default = "h-7 w-7 my-5")] class: &'static str) -> impl IntoView {
     view! {
         <div class="w-full flex content-center justify-center">
-            <div class=class></div>
+            <img src="/svg/loading.svg" class=class/>
         </div>
     }
 }

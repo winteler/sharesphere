@@ -787,8 +787,7 @@ pub async fn get_post_vec_by_sphere_name(
         POST_BATCH_SIZE,
         num_already_loaded as i64,
         &db_pool,
-    )
-    .await?;
+    ).await?;
     Ok(post_vec)
 }
 

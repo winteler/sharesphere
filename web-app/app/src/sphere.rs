@@ -585,15 +585,14 @@ pub fn SphereBanner() -> impl IntoView {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
             <ArcTransitionUnpack resource=sphere_state.sphere_resource let:sphere>
             {
-                let sphere_banner_image = format!("url({})", sphere.banner_url.clone().unwrap_or(String::from("/banner.jpg")));
+                let sphere_banner_class = format!(
+                    "flex-none bg-cover bg-center bg-no-repeat bg-[url('{}')] rounded w-full h-40 flex items-center justify-center",
+                    sphere.banner_url.clone().unwrap_or(String::from("/banner.jpg"))
+                );
                 view! {
                     <a
                         href=sphere_path()
-                        class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-40 flex items-center justify-center"
-                        style:background-image=sphere_banner_image
-                        style:background-position="center"
-                        style:background-repeat="no-repeat"
-                        style:background-size="cover"
+                        class=sphere_banner_class
                     >
                         <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
                             <SphereIcon icon_url=sphere.icon_url.clone() class="h-12 w-12"/>
@@ -629,6 +628,7 @@ pub fn SphereContents() -> impl IntoView {
 
     let _initial_post_resource = LocalResource::new(
         move || async move {
+            post_vec.write().clear();
             is_loading.set(true);
             // TODO return map in resource directly?
             let mut sphere_category_map = HashMap::<i64, SphereCategoryHeader>::new();

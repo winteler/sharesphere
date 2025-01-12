@@ -1,5 +1,5 @@
+<!-- Vectors and icons by <a href="https://github.com/designmodo/Flat-UI?ref=svgrepo.com" target="_blank">Designmodo</a> in MIT License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
 <svg width="800px" height="800px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <!-- Vectors and icons by <a href="https://github.com/designmodo/Flat-UI?ref=svgrepo.com" target="_blank">Designmodo</a> in MIT License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
     <path fill-rule="evenodd" clip-rule="evenodd" fill="#F29C1F" d="M80 100L56 0H44L20 100h13l17-73.914L67 100z"/>
     <path fill-rule="evenodd" clip-rule="evenodd" fill="#ECF0F1" d="M0 10h100v62H0V10z"/>
     <path clip-rule="evenodd" stroke="#E64C3C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" d="M10 61l13.024-13.024L29 53l16.988-16.012L55 46l15-15 5 5 15-15" fill="none"/>

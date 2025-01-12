@@ -1,6 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
+use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 
 use crate::auth::*;
@@ -104,6 +104,15 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                // TODO refine with nonce, add more constraints
+                <Meta
+                    http_equiv="Content-Security-Policy" 
+                    content="default-src 'self'; script-src 'unsafe-inline' 'wasm-unsafe-eval';
+                        img-src 'self' https:;
+                        media-src 'self' https:;
+                        frame-src 'self' https:;
+                        connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/;"
+                />
                 <AutoReload options=options.clone() />
                 <HydrationScripts options/>
                 <MetaTags/>
@@ -244,11 +253,7 @@ fn HomePage() -> impl IntoView {
     view! {
         <div class="flex flex-col flex-1 w-full overflow-y-auto  pt-2 px-2 gap-2">
             <div
-                class="flex-none bg-cover bg-center bg-no-repeat rounded w-full h-40 flex items-center justify-center"
-                style:background-image="url(/banner.jpg)"
-                style:background-position="top left"
-                style:background-repeat="no-repeat"
-                style:background-size="cover"
+                class="flex-none bg-cover bg-center bg-no-repeat bg-[url('/banner.jpg')] rounded w-full h-40 flex items-center justify-center"
             >
                 <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
                     <LogoIcon class="h-12 w-12"/>

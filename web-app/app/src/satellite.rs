@@ -389,6 +389,7 @@ pub fn SatelliteContent() -> impl IntoView {
 
     let _initial_post_resource = LocalResource::new(
         move || async move {
+            post_vec.write().clear();
             is_loading.set(true);
             // TODO return map in resource directly?
             let mut sphere_category_map = HashMap::<i64, SphereCategoryHeader>::new();

@@ -1,3 +1,4 @@
+<!-- Vectors and icons by <a href="https://github.com/jaynewey/charm-icons?ref=svgrepo.com" target="_blank">Jaynewey</a> in MIT License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
 <svg
     width="800px"
     height="800px"
@@ -9,7 +10,6 @@
     stroke-linecap="round"
     stroke-width="1.2"
 >
-    <!-- Vectors and icons by <a href="https://github.com/jaynewey/charm-icons?ref=svgrepo.com" target="_blank">Jaynewey</a> in MIT License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
     <path d="m8 1.75 5.25 2v5c0 2.25-2 4.5-5.25 5.5-3.25-1-5.25-3-5.25-5.5v-5z"/>
     <path stroke-width="1.4" d="m8 5.25v3"/>
     <circle cx="8" cy="10.75" r="1" fill="white" stroke="none"/>

@@ -3932,6 +3932,14 @@ html {
   --tw-bg-opacity: 0.75;
 }
 
+.bg-\[url\(\'\/banner\.jpg\'\)\] {
+  background-image: url('/banner.jpg');
+}
+
+.bg-\[url\(\'\{\}\'\)\] {
+  background-image: url('{}');
+}
+
 .bg-cover {
   background-size: cover;
 }

@@ -32,7 +32,7 @@ use crate::{
     app::ssr::get_db_pool,
     auth::{get_user, ssr::check_user},
     editor::ssr::get_html_and_markdown_bodies,
-    embed::ssr::verify_link_and_get_embed,
+    embed::verify_link_and_get_embed,
     ranking::{ssr::vote_on_content, VoteValue},
 };
 
@@ -831,9 +831,9 @@ pub async fn create_post(
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
-    let link = match (embed_type, link) {
+    let (link, _) = match (embed_type, link) {
         (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
-        _ => Link::default(),
+        _ => (Link::default(), None),
     };
 
     let post = ssr::create_post(
@@ -879,9 +879,9 @@ pub async fn edit_post(
 
     let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
 
-    let link = match (embed_type, link) {
+    let (link, _) = match (embed_type, link) {
         (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
-        _ => Link::default(),
+        _ => (Link::default(), None),
     };
 
     let post = ssr::update_post(
@@ -1136,7 +1136,7 @@ pub fn EditPostButton(
 /// Component to create a new post
 #[component]
 pub fn PostForm(
-    title: RwSignal<String>,
+    title_input: RwSignal<String>,
     body_data: TextareaData,
     embed_type_input: RwSignal<EmbedType>,
     link_input: RwSignal<String>,
@@ -1168,11 +1168,11 @@ pub fn PostForm(
             name="title"
             placeholder="Title"
             class="input input-bordered input-primary h-input_m"
-            value=title
+            value=title_input
             autofocus
             autocomplete="off"
             on:input=move |ev| {
-                title.set(event_target_value(&ev));
+                title_input.set(event_target_value(&ev));
             }
         />
         <FormMarkdownEditor
@@ -1182,7 +1182,7 @@ pub fn PostForm(
             data=body_data
             is_markdown
         />
-        <LinkForm link_input embed_type_input title/>
+        <LinkForm link_input embed_type_input title_input/>
         { move || {
             match is_parent_spoiler.get() {
                 true => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=true disabled=true/> },
@@ -1205,7 +1205,7 @@ pub fn PostForm(
 pub fn LinkForm(
     embed_type_input: RwSignal<EmbedType>,
     link_input: RwSignal<String>,
-    title: RwSignal<String>,
+    title_input: RwSignal<String>,
 ) -> impl IntoView {
     let select_ref = NodeRef::<html::Select>::new();
     let input_ref = NodeRef::<html::Input>::new();
@@ -1257,7 +1257,7 @@ pub fn LinkForm(
                     node_ref=input_ref
                 />
             </div>
-            <EmbedPreview embed_type_input link_input title select_ref/>
+            <EmbedPreview embed_type_input link_input title_input select_ref/>
         </div>
     }
 }
@@ -1277,7 +1277,7 @@ pub fn CreatePost() -> impl IntoView {
     let sphere_name_input = RwSignal::new(sphere_query());
     let sphere_name_debounced: Signal<String> = signal_debounced(sphere_name_input, 250.0);
 
-    let title = RwSignal::new(String::default());
+    let title_input = RwSignal::new(String::default());
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
@@ -1347,7 +1347,7 @@ pub fn CreatePost() -> impl IntoView {
                         </ul>
                     </div>
                     <PostForm
-                        title
+                        title_input
                         body_data
                         embed_type_input
                         link_input
@@ -1358,7 +1358,7 @@ pub fn CreatePost() -> impl IntoView {
                     />
                     <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
                         !is_sphere_selected.get() ||
-                        title.read().is_empty() ||
+                        title_input.read().is_empty() ||
                         (
                             body_data.content.read().is_empty() &&
                             *embed_type_input.read() == EmbedType::None
@@ -1411,7 +1411,7 @@ pub fn EditPostForm(
         post.link.link_type,
         post.link.link_url.clone(),
     ));
-    let title = RwSignal::new(title);
+    let title_input = RwSignal::new(title);
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
@@ -1426,7 +1426,7 @@ pub fn EditPostForm(
     });
     let link_input = RwSignal::new(link_url.unwrap_or_default());
     let disable_publish = Signal::derive(move || {
-        title.read().is_empty() ||
+        title_input.read().is_empty() ||
         (
             body_data.content.read().is_empty() &&
             embed_type_input.read() == EmbedType::None
@@ -1454,7 +1454,7 @@ pub fn EditPostForm(
                     />
                     <SuspenseUnpack resource=inherited_attributes_resource let:inherited_post_attr>
                         <PostForm
-                            title
+                            title_input
                             body_data
                             embed_type_input
                             link_input

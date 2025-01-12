@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use ammonia::Builder;
 use lazy_static::lazy_static;
 use leptos::html;
 use leptos::prelude::*;
@@ -138,6 +140,16 @@ impl From<i16> for LinkType {
     }
 }
 
+impl From<LinkType> for EmbedType {
+    fn from(link_type: LinkType) -> Self {
+        match link_type {
+            LinkType::None => EmbedType::None,
+            LinkType::Link => EmbedType::Link,
+            _ => EmbedType::Embed,
+        }
+    }
+}
+
 impl Link  {
     pub fn new(
         link_type: LinkType,
@@ -267,28 +279,16 @@ where
 }
 
 /// Select the given `link_type` in the given `list_ref` node
-pub fn select_link_type(
+pub fn select_embed_type(
     link_type: LinkType,
     link_embed: RwSignal<EmbedType>,
     select_ref: NodeRef<html::Select>
 ) {
-    let select_index = match link_type {
-        LinkType::None => {
-            link_embed.update_untracked(|embed_type| *embed_type = EmbedType::None);
-            EmbedType::None as i32
-        },
-        LinkType::Link => {
-            link_embed.update_untracked(|embed_type| *embed_type = EmbedType::Link);
-            EmbedType::Link as i32
-        },
-        LinkType::Image | LinkType::Video | LinkType::Rich => {
-            link_embed.update_untracked(|embed_type| *embed_type = EmbedType::Embed);
-            EmbedType::Embed as i32
-        },
-    };
+    let new_embed_type = link_type.into();
+    link_embed.update_untracked(|embed_type| *embed_type = new_embed_type);
     match select_ref.get_untracked() {
         Some(select_ref) => {
-            select_ref.set_selected_index(select_index);
+            select_ref.set_selected_index(new_embed_type as i32);
         },
         None => log::error!("Link type select failed to load."),
     };
@@ -321,121 +321,118 @@ pub fn check_url_and_infer_type(
     }
 }
 
-#[cfg(feature = "ssr")]
-pub mod ssr {
-    use std::collections::HashSet;
-    use ammonia::Builder;
-    use url::Url;
-    use crate::embed::{find_url_provider, get_oembed_data, check_url_and_infer_type, OEmbedType, Link, LinkType, EmbedType};
+pub fn clean_html(
+    html: &str,
+) -> String {
+    log::debug!("Html: {}", html);
 
-    pub fn clean_html(
-        html: &str,
-    ) -> String {
-        log::debug!("Html: {}", html);
+    // Create a set of allowed iframe attributes
+    let iframe_attributes = HashSet::from(
+        [
+            "width",
+            "height",
+            "src",
+            "frameborder",
+            "allowfullscreen",
+            "scrollbar",
+            "style",
+            "title",
+        ]
+    );
 
-        // Create a set of allowed iframe attributes
-        let iframe_attributes = HashSet::from(
+    let clean_html = Builder::default()
+        .add_tags(["iframe"])
+        .add_tag_attributes("iframe", iframe_attributes)
+        .add_tag_attribute_values(
+            "iframe",
+            "allow",
             [
-                "width",
-                "height",
-                "src",
-                "frameborder",
-                "allowfullscreen",
-                "scrollbar",
-                "style",
-                "title",
+                "encrypted-media",
+                "picture-in-picture",
             ]
-        );
-
-        let clean_html = Builder::default()
-            .add_tags(["iframe"])
-            .add_tag_attributes("iframe", iframe_attributes)
-            .add_tag_attribute_values(
-                "iframe",
-                "allow",
-                [
-                    "encrypted-media",
-                    "picture-in-picture",
-                ]
-            ).add_tag_attribute_values(
-                "iframe",
-                "referrerpolicy",
-                ["strict-origin", "strict-origin-when-cross-origin"]
-            ).attribute_filter(|element, attribute, value| {
-                match (element, attribute) {
-                    ("iframe", "style") => {
-                        let allowed_values = ["border", "min-width", "min-height, width, height"];
-                        let allowed_styles = value
-                            .split(';')
-                            .filter_map(|v| {
-                                let mut parts = v.split(':').map(str::trim);
-                                if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
-                                    if allowed_values.contains(&key) {
-                                        return Some(format!("{}:{}", key, value));
-                                    }
-                                }
-                                None
-                            })
-                            .collect::<Vec<String>>()
-                            .join(";");
-                        log::debug!("Allowed styles: {}", allowed_styles);
-                        Some(allowed_styles.into())
-                    }
-                    _ => Some(value.into())
-                }
-            })
-            .clean(html)
-            .to_string();
-        log::debug!("clean_html: {}", clean_html);
-        clean_html
-    }
-
-    pub async fn verify_link_and_get_embed(
-        embed_type: EmbedType,
-        link: &str,
-    ) -> Link {
-        match (embed_type, Url::parse(link)) {
-            (_, Err(_)) => Link::default(),
-            (EmbedType::None, Ok(_)) => Link::default(),
-            (EmbedType::Link, Ok(url)) => Link::new(LinkType::Link, Some(url.to_string()), None, None),
-            (EmbedType::Embed, Ok(url)) => {
-                match find_url_provider(url.as_str()) {
-                    Some((_provider, endpoint)) => {
-                        // TODO check values for width and height
-                        let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
-                        log::debug!("Fetch oembed data: {endpoint}");
-                        match get_oembed_data(endpoint).await {
-                            Ok(oembed_data) => {
-                                let thumbnail_url = oembed_data.thumbnail_url;
-                                match oembed_data.oembed_type {
-                                    OEmbedType::Link => Link::new(LinkType::Link, Some(url.to_string()), None, thumbnail_url),
-                                    OEmbedType::Photo(photo) => Link::new(LinkType::Image, Some(photo.url), None, thumbnail_url),
-                                    OEmbedType::Video(video) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&video.html)), thumbnail_url),
-                                    OEmbedType::Rich(rich) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&rich.html)), thumbnail_url),
-                                }
-                            },
-                            Err(e) => {
-                                log::debug!("Failed to get oembed data: {}", e);
-                                let inferred_type = check_url_and_infer_type(&url);
-                                let link = match inferred_type {
-                                    LinkType::None => None,
-                                    _ => Some(url.to_string()),
-                                };
-                                Link::new(inferred_type, link, None, None)
-                            },
+        ).add_tag_attribute_values(
+        "iframe",
+        "referrerpolicy",
+        ["strict-origin", "strict-origin-when-cross-origin"]
+    ).attribute_filter(|element, attribute, value| {
+        match (element, attribute) {
+            ("iframe", "style") => {
+                let allowed_values = ["border", "min-width", "min-height, width, height"];
+                let allowed_styles = value
+                    .split(';')
+                    .filter_map(|v| {
+                        let mut parts = v.split(':').map(str::trim);
+                        if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+                            if allowed_values.contains(&key) {
+                                return Some(format!("{}:{}", key, value));
+                            }
                         }
-                    },
-                    None => {
-                        let inferred_type = check_url_and_infer_type(&url);
-                        let link = match inferred_type {
-                            LinkType::None => None,
-                            _ => Some(url.to_string()),
-                        };
-                        Link::new(inferred_type, link, None, None)
-                    },
-                }
-            },
+                        None
+                    })
+                    .collect::<Vec<String>>()
+                    .join(";");
+                log::debug!("Allowed styles: {}", allowed_styles);
+                Some(allowed_styles.into())
+            }
+            _ => Some(value.into())
         }
+    })
+        .clean(html)
+        .to_string();
+    log::debug!("clean_html: {}", clean_html);
+    clean_html
+}
+
+/// Check the input `link`'s validity and returns Link and an optional title.
+/// If embed_type is EmbedType::Link, the link is always embedded as a simple link,
+/// otherwise the link type will be inferred using the oEmbed API or the file extension.
+/// If the type cannot be inferred, it will fallback to a link.
+pub async fn verify_link_and_get_embed(
+    embed_type: EmbedType,
+    link: &str,
+) -> (Link, Option<String>) {
+    match (embed_type, Url::parse(link)) {
+        (_, Err(_)) => (Link::default(), None),
+        (EmbedType::Link, Ok(url)) => (Link::new(LinkType::Link, Some(url.to_string()), None, None), None),
+        (_, Ok(url)) => {
+            match find_url_provider(url.as_str()) {
+                Some((_provider, endpoint)) => {
+                    // TODO check values for width and height
+                    let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
+                    log::debug!("Fetch oembed data: {endpoint}");
+                    match get_oembed_data(endpoint).await {
+                        Ok(oembed_data) => {
+                            let title = oembed_data.title;
+                            let thumbnail_url = oembed_data.thumbnail_url;
+                            let link = match oembed_data.oembed_type {
+                                OEmbedType::Link => Link::new(LinkType::Link, Some(url.to_string()), None, thumbnail_url),
+                                OEmbedType::Photo(photo) => Link::new(LinkType::Image, Some(photo.url), None, thumbnail_url),
+                                OEmbedType::Video(video) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&video.html)), thumbnail_url),
+                                OEmbedType::Rich(rich) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&rich.html)), thumbnail_url),
+                            };
+                            (link, title)
+                        },
+                        Err(e) => {
+                            log::debug!("Failed to get oembed data: {}", e);
+                            let inferred_type = check_url_and_infer_type(&url);
+                            let link = match inferred_type {
+                                LinkType::None => None,
+                                _ => Some(url.to_string()),
+                            };
+                            (Link::new(inferred_type, link, None, None), None)
+                        },
+                    }
+                },
+                None => {
+                    let inferred_type = check_url_and_infer_type(&url);
+                    let link = match inferred_type {
+                        LinkType::None => None,
+                        _ => Some(url.to_string()),
+                    };
+                    (Link::new(inferred_type, link, None, None), None)
+                },
+            }
+        },
     }
 }
 
@@ -446,119 +443,67 @@ pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<A
         .ok_or(AppError::new(format!("Cannot get oEmbed data at endpoint {url}")))?;
     
     match oembed_data.oembed_type {
-        OEmbedType::Video(ref mut video) => video.html = ssr::clean_html(&video.html),
-        OEmbedType::Rich(ref mut rich) => rich.html = ssr::clean_html(&rich.html),
+        OEmbedType::Video(ref mut video) => video.html = clean_html(&video.html),
+        OEmbedType::Rich(ref mut rich) => rich.html = clean_html(&rich.html),
         _ => ()
     };
     
     Ok(oembed_data)
 }
 
-/// Component to naively and safely embed external content
-#[component]
-pub fn Embed(
-    link: Link
-) -> impl IntoView {
-    match (link.link_type, link.link_url, link.link_embed, link.link_thumbnail_url) {
-        (LinkType::None, _, _, _) => None,
-        (_, None, _, _) => None,
-        (LinkType::Link, Some(link_url), None, thumbnail_url) => Url::parse(&link_url).ok().map(|url| view! {
-            <LinkEmbed url thumbnail_url/>
-        }.into_any()),
-        (link_type, Some(link_url), None, _) => Some(view! {
-            <NaiveEmbed link_input=link_url link_type/>
-        }.into_any()),
-        (_, Some(_), Some(link_embed), _) => Some(view! {
-            <HtmlEmbed html=link_embed/>
-        }.into_any()),
-    }
-}
-
 /// Component to safely embed content at the url `link-input`.
 /// It will try to infer the content type using the oembed API. If the provider of the url
 /// is not in the whitelisted list of providers, it will instead try to naively embed the
-/// content using the user-defined `link_input_type`
+/// content using file extension in the url and fallback to a simple link.
 #[component]
 pub fn EmbedPreview(
     embed_type_input: RwSignal<EmbedType>,
     #[prop(into)]
     link_input: Signal<String>,
-    title: RwSignal<String>,
+    title_input: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
 ) -> impl IntoView {
     // TODO try to simplify with new verify_link_and_get_embed function
-    let oembed_resource = Resource::new(
-        move || link_input.get(),
-        move |url| async move {
-            match url.is_empty() {
-                true => None,
-                false => match find_url_provider(&url) {
-                    Some((_provider, endpoint)) => {
-                        // TODO check values for width and height
-                        let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
-                        log::debug!("Fetch oembed data: {endpoint}");
-                        
-                        match fetch_api::<OEmbedReply>(&endpoint).await {
-                            Some(oembed_data) => Some((oembed_data, url)),
-                            None => {
-                                log::debug!("Failed to get oEmbed data in browser, try again through the server.");
-                                get_oembed_data(endpoint).await.map_err(|e| log::error!("{e}")).ok().map(|data| (data, url))
-                            }
-                        }
-                    },
-                    None => {
-                        log::debug!("Could not find oembed provider for url: {url}");
-                        None
-                    }
-                }
-            }
+    let link_resource = Resource::new(
+        move || (embed_type_input.get(), link_input.get()),
+        move |(embed_type, url)| async move {
+            verify_link_and_get_embed(embed_type, &url).await
         },
     );
 
     view! {
         <Suspense>
-        { move || match (embed_type_input.get(), &*oembed_resource.read()) {
-            (EmbedType::Link, _) => Some(view! { <NaiveEmbed link_input link_type=LinkType::Link align_center=true/> }.into_any()),
-            (_, Some(Some((oembed_data, url)))) => {
-                title.update(|title| if title.is_empty() {
-                    *title = oembed_data.title.clone().unwrap_or_default();
+        { move || link_resource.read().clone().map(|(link, title)| {
+                title_input.update(|title_input| if title_input.is_empty() {
+                    *title_input = title.unwrap_or_default();
                 });
-                match &oembed_data.oembed_type {
-                    OEmbedType::Link => {
-                        select_link_type(LinkType::Link, embed_type_input, select_ref);
-                        match (Url::parse(url), oembed_data.thumbnail_url.clone()) {
-                            (Ok(url), thumbnail_url) => Some(view! { <LinkEmbed url thumbnail_url align_center=true/> }.into_any()),
-                            _ => Some(view! { <ErrorDisplay error=AppError::new("Invalid url")/> }.into_any()),
-                        }
-                    },
-                    OEmbedType::Photo(photo) => {
-                        select_link_type(LinkType::Image, embed_type_input, select_ref);
-                        Some(view! { <ImageEmbed url=photo.url.clone() align_center=true/> }.into_any())
-                    },
-                    OEmbedType::Video(video) => {
-                        select_link_type(LinkType::Video, embed_type_input, select_ref);
-                        Some(view! { <HtmlEmbed html=video.html.clone() align_center=true/> }.into_any())
-                    },
-                    OEmbedType::Rich(rich) => {
-                        select_link_type(LinkType::Rich, embed_type_input, select_ref);
-                        Some(view! { <HtmlEmbed html=rich.html.clone() align_center=true/> }.into_any())
-                    },
-                }
-            },
-            (embed_type, Some(None)) => {
-                match embed_type {
-                    EmbedType::Link => Some(view! { <NaiveEmbed link_input link_type=LinkType::Link align_center=true/> }.into_any()),
-                    EmbedType::Embed => {
-                         let link_type = infer_link_type(&link_input.read());
-                        select_link_type(link_type, embed_type_input, select_ref);
-                        Some(view! { <NaiveEmbed link_input link_type align_center=true/> }.into_any())
-                    },
-                    EmbedType::None => None,
-                }
-            },
-            (EmbedType::None, _) | (_, None) => None
-        }}
+                select_embed_type(link.link_type, embed_type_input, select_ref);
+                view! { <Embed link align_center=true/> }
+            })
+        }
         </Suspense>
+    }
+}
+
+/// Component to safely embed external content
+#[component]
+pub fn Embed(
+    link: Link,
+    #[prop(default = false)]
+    align_center: bool,
+) -> impl IntoView {
+    match (link.link_type, link.link_url, link.link_embed, link.link_thumbnail_url) {
+        (LinkType::None, _, _, _) => None,
+        (_, None, _, _) => None,
+        (LinkType::Link, Some(link_url), None, thumbnail_url) => Url::parse(&link_url).ok().map(|url| view! {
+            <LinkEmbed url thumbnail_url align_center/>
+        }.into_any()),
+        (link_type, Some(link_url), None, _) => Some(view! {
+            <NaiveEmbed link_input=link_url link_type align_center/>
+        }.into_any()),
+        (_, Some(_), Some(link_embed), _) => Some(view! {
+            <HtmlEmbed html=link_embed align_center/>
+        }.into_any()),
     }
 }
 

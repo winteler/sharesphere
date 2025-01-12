@@ -637,7 +637,7 @@ pub fn SphereContents() -> impl IntoView {
                     sphere_category_map.insert(sphere_category.category_id, sphere_category.clone().into());
                 }
             }
-            log::info!("Load posts by sphere");
+            // TODO check no unnecessary loads
 
             match get_post_vec_by_sphere_name(
                 sphere_name.get(),

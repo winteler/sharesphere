@@ -497,7 +497,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
 
     let create_post_action = ServerAction::<CreatePost>::new();
 
-    let title = RwSignal::new(String::default());
+    let title_input = RwSignal::new(String::default());
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
@@ -532,7 +532,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
                     />
                     <SuspenseUnpack resource=satellite_state.satellite_resource let:satellite>
                         <PostForm
-                            title
+                            title_input
                             body_data
                             embed_type_input
                             link_input
@@ -543,7 +543,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
                         />
                     </SuspenseUnpack>
                     <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
-                        title.read().is_empty() ||
+                        title_input.read().is_empty() ||
                         (
                             body_data.content.read().is_empty() &&
                             *embed_type_input.read() == EmbedType::None

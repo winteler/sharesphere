@@ -30,7 +30,7 @@ web-sys.workspace = true
 
 async-trait = { version = "*", optional = true }
 
-ammonia = { version = "4", optional = true }
+ammonia = "4"
 cfg-if = "1"
 const_format = "0.2.33"
 gloo-net = { version = "0.6.0", features = ["http"] }
@@ -64,7 +64,6 @@ ssr = [
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "leptos-use/ssr",
-    "dep:ammonia",
     "dep:anyhow",
     "dep:async-trait",
     "dep:axum_session",

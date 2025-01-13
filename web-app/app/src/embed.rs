@@ -279,30 +279,16 @@ where
 }
 
 /// Select the given `link_type` in the given `list_ref` node
-pub fn select_embed_type(
+fn select_embed_type(
     link_type: LinkType,
     link_embed: RwSignal<EmbedType>,
     select_ref: NodeRef<html::Select>
 ) {
     let new_embed_type = link_type.into();
     link_embed.update_untracked(|embed_type| *embed_type = new_embed_type);
-    match select_ref.get_untracked() {
-        Some(select_ref) => {
-            select_ref.set_selected_index(new_embed_type as i32);
-        },
-        None => log::error!("Link type select failed to load."),
+    if let Some(select_ref) = select_ref.get_untracked() {
+        select_ref.set_selected_index(new_embed_type as i32);
     };
-}
-
-/// Infer a link's type based on the url
-pub fn infer_link_type(
-    url: &str,
-) -> LinkType {
-    if let Ok(url) = Url::parse(url) {
-        check_url_and_infer_type(&url)
-    } else {
-        LinkType::None
-    }
 }
 
 /// Check that an url is valid and infer its type
@@ -321,6 +307,25 @@ pub fn check_url_and_infer_type(
     }
 }
 
+fn filter_attribute_values(attribute_value: &str, allowed_values: &[&str]) -> String {
+    attribute_value
+        .split(';')
+        .filter_map(|v| {
+            let mut parts = v.split(':').map(str::trim);
+            if let Some(key) = parts.next() {
+                if allowed_values.contains(&key) {
+                    return match parts.next() {
+                        Some(value) => Some(format!("{}:{}", key, value)),
+                        None => Some(key.to_string()),
+                    };
+                }
+            }
+            None
+        })
+        .collect::<Vec<String>>()
+        .join(";")
+}
+
 pub fn clean_html(
     html: &str,
 ) -> String {
@@ -335,6 +340,7 @@ pub fn clean_html(
             "frameborder",
             "allowfullscreen",
             "scrollbar",
+            "allow",
             "style",
             "title",
         ]
@@ -345,40 +351,21 @@ pub fn clean_html(
         .add_tag_attributes("iframe", iframe_attributes)
         .add_tag_attribute_values(
             "iframe",
-            "allow",
-            [
-                "encrypted-media",
-                "picture-in-picture",
-            ]
-        ).add_tag_attribute_values(
-        "iframe",
-        "referrerpolicy",
-        ["strict-origin", "strict-origin-when-cross-origin"]
-    ).attribute_filter(|element, attribute, value| {
-        match (element, attribute) {
-            ("iframe", "style") => {
-                let allowed_values = ["border", "min-width", "min-height, width, height"];
-                let allowed_styles = value
-                    .split(';')
-                    .filter_map(|v| {
-                        let mut parts = v.split(':').map(str::trim);
-                        if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
-                            if allowed_values.contains(&key) {
-                                return Some(format!("{}:{}", key, value));
-                            }
-                        }
-                        None
-                    })
-                    .collect::<Vec<String>>()
-                    .join(";");
-                log::debug!("Allowed styles: {}", allowed_styles);
-                Some(allowed_styles.into())
+            "referrerpolicy",
+            ["strict-origin", "strict-origin-when-cross-origin"]
+        ).attribute_filter(|element, attribute, value| {
+            match (element, attribute) {
+                ("iframe", "style") => {
+                    Some(filter_attribute_values(value, &["border", "min-width", "min-height, width, height"]).into())
+                }
+                ("iframe", "allow") => {
+                    Some(filter_attribute_values(value, &["encrypted-media", "picture-in-picture"]).into())
+                }
+                _ => Some(value.into())
             }
-            _ => Some(value.into())
-        }
-    })
-        .clean(html)
-        .to_string();
+        })
+            .clean(html)
+            .to_string();
     log::debug!("clean_html: {}", clean_html);
     clean_html
 }
@@ -625,14 +612,16 @@ pub fn HtmlEmbed(
 
 #[cfg(test)]
 mod tests {
-    use strum::IntoEnumIterator;
-    use crate::embed::{find_url_provider, LinkType, OEmbedEndpoint, OEmbedProvider};
+    use url::Url;
+    use crate::embed::{check_url_and_infer_type, clean_html, find_url_provider, LinkType, OEmbedEndpoint, OEmbedProvider};
 
     #[test]
     fn test_link_type_from_i16() {
-        for link_type in LinkType::iter() {
-            assert_eq!(LinkType::from(link_type as i16), link_type);
-        }
+        assert_eq!(LinkType::from(-1), LinkType::None);
+        assert_eq!(LinkType::from(0), LinkType::Link);
+        assert_eq!(LinkType::from(1), LinkType::Image);
+        assert_eq!(LinkType::from(2), LinkType::Video);
+        assert_eq!(LinkType::from(3), LinkType::Rich);
         assert_eq!(LinkType::from(-2), LinkType::None);
         assert_eq!(LinkType::from(100), LinkType::None);
     }
@@ -698,5 +687,61 @@ mod tests {
         assert_eq!(giphy_provider.provider_url, String::from("https://giphy.com"));
         assert_eq!(giphy_endpoint.url, String::from("https://giphy.com/services/oembed"));
         assert_eq!(giphy_endpoint.discovery, true);
+    }
+
+    #[test]
+    fn test_check_url_and_infer_type() {
+        let no_domain_url = Url::parse("http://127.0.0.1:8000").expect("Should parse no_domain_url");
+        let http_url = Url::parse("http://www.test.com/").expect("Should parse http_url");
+        let https_link = Url::parse("https://www.test.com/").expect("Should parse https_link");
+        let https_image = Url::parse("https://www.test.com/test.jpg").expect("Should parse https_image");
+        let https_video = Url::parse("https://www.test.com/test.mp4").expect("Should parse https_video");
+        assert_eq!(check_url_and_infer_type(&no_domain_url), LinkType::None);
+        assert_eq!(check_url_and_infer_type(&http_url), LinkType::None);
+        assert_eq!(check_url_and_infer_type(&https_link), LinkType::Link);
+        assert_eq!(check_url_and_infer_type(&https_image), LinkType::Image);
+        assert_eq!(check_url_and_infer_type(&https_video), LinkType::Video);
+    }
+
+    #[test]
+    fn test_clean_html() {
+        let input_html = r#"
+            <div>Safe content</div>
+            <iframe
+                width="600"
+                height="400"
+                src="https://example.com/embed"
+                style="border:1px solid black;min-width:300px;unsupported:invalid"
+                allow="encrypted-media;picture-in-picture;autoplay"
+                referrerpolicy="strict-origin"
+                title="Example Embed">
+            </iframe>
+            <script>alert("malicious script");</script>
+        "#;
+
+        // Expected output after cleaning
+        let expected_output = r#"
+            <div>Safe content</div>
+            <iframe width="600" height="400" src="https://example.com/embed" style="border:1px solid black;min-width:300px" allow="encrypted-media;picture-in-picture" referrerpolicy="strict-origin" title="Example Embed">
+            </iframe>
+        "#;
+
+        assert_eq!(clean_html(input_html).trim(), expected_output.trim());
+
+        let input_html = r#"
+            <iframe
+                src="https://example.com/embed"
+                allow="accelerometer; gyroscope; clipboard-write;"
+                referrerpolicy="unsafe-url">
+            </iframe>
+        "#;
+
+        // Expected output after cleaning
+        let expected_output = r#"
+            <iframe src="https://example.com/embed" allow="">
+            </iframe>
+        "#;
+
+        assert_eq!(clean_html(input_html).trim(), expected_output.trim());
     }
 }

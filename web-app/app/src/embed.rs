@@ -395,7 +395,7 @@ pub async fn verify_link_and_get_embed(
                                 OEmbedType::Link => Link::new(LinkType::Link, Some(url.to_string()), None, thumbnail_url),
                                 OEmbedType::Photo(photo) => Link::new(LinkType::Image, Some(photo.url), None, thumbnail_url),
                                 OEmbedType::Video(video) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&video.html)), thumbnail_url),
-                                OEmbedType::Rich(rich) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&rich.html)), thumbnail_url),
+                                OEmbedType::Rich(rich) => Link::new(LinkType::Rich, Some(url.to_string()), Some(clean_html(&rich.html)), thumbnail_url),
                             };
                             (link, title)
                         },

@@ -619,29 +619,31 @@ pub fn ModerationInfoButton(
     };
     
     view! {
-        <Show when=show_button>
-            <button
-                class=button_class
-                on:click=move |_| show_dialog.update(|value| *value = !*value)
-            >
-                <MagnifierIcon/>
-            </button>
-            <ModalDialog
-                class="w-full max-w-xl"
-                show_dialog
-            >
-                <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-                    <ContentModerationInfo content=content/>
-                    <button
-                        type="button"
-                        class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
-                        on:click=move |_| show_dialog.set(false)
-                    >
-                        "Close"
-                    </button>
-                </div>
-            </ModalDialog>
-        </Show>
+        <Suspense>
+            <Show when=show_button>
+                <button
+                    class=button_class
+                    on:click=move |_| show_dialog.update(|value| *value = !*value)
+                >
+                    <MagnifierIcon/>
+                </button>
+                <ModalDialog
+                    class="w-full max-w-xl"
+                    show_dialog
+                >
+                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+                        <ContentModerationInfo content=content/>
+                        <button
+                            type="button"
+                            class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                            on:click=move |_| show_dialog.set(false)
+                        >
+                            "Close"
+                        </button>
+                    </div>
+                </ModalDialog>
+            </Show>
+        </Suspense>
     }.into_any()
 }
 

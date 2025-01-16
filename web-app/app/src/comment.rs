@@ -830,23 +830,25 @@ pub fn EditCommentButton(
     };
 
     view! {
-        <Show when=show_button>
-            <div>
-                <button
-                    class=comment_button_class
-                    aria-expanded=move || show_dialog.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                >
-                    <EditIcon/>
-                </button>
-                <EditCommentDialog
-                    comment_id
-                    comment
-                    show_dialog
-                />
-            </div>
-        </Show>
+        <Suspense>
+            <Show when=show_button>
+                <div>
+                    <button
+                        class=comment_button_class
+                        aria-expanded=move || show_dialog.get().to_string()
+                        aria-haspopup="dialog"
+                        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                    >
+                        <EditIcon/>
+                    </button>
+                    <EditCommentDialog
+                        comment_id
+                        comment
+                        show_dialog
+                    />
+                </div>
+            </Show>
+        </Suspense>
     }
 }
 

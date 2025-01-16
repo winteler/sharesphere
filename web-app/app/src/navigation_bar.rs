@@ -6,6 +6,7 @@ use crate::auth::LoginGuardButton;
 use crate::constants::SITE_ROOT;
 use crate::icons::*;
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
+use crate::profile::get_profile_path;
 use crate::sphere::*;
 use crate::user::User;
 
@@ -84,14 +85,14 @@ pub fn NavigationBar() -> impl IntoView
                     <MagnifierIcon/>
                 </button>
                 <PlusMenu/>
-                <UserProfile/>
+                <UserMenu/>
             </div>
         </div>
     }.into_any()
 }
 
 #[component]
-pub fn UserProfile() -> impl IntoView {
+pub fn UserMenu() -> impl IntoView {
     view! {
         <LoginGuardButton
                 login_button_class="btn btn-ghost btn-circle rounded-full"
@@ -117,7 +118,7 @@ pub fn LoggedInMenu(
                 <UserIcon/>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-200 rounded-sm w-52">
-                <li><a href="#">"Settings"</a></li>
+                <li><a href=get_profile_path(&user.username)>"Profile"</a></li>
                 <li>
                     <ActionForm action=state.logout_action attr:class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>

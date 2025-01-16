@@ -180,249 +180,6 @@ impl OEmbedEndpoint {
     }
 }
 
-/// # Check if the `scheme` matches the given `url`
-///
-/// ```
-/// use crate::app::embed::url_matches_scheme;
-///
-/// assert_eq!(url_matches_scheme("https://www.youtube.com/watch?v=test", "https://*.youtube.com/watch*"), true);
-/// assert_eq!(url_matches_scheme("https://bsky.app/profile/test/post/testpost", "https://bsky.app/profile/*/post/*"), true);
-/// assert_eq!(url_matches_scheme("https://bsky.app/profile/test", "https://*.youtube.com/watch*"), false);
-/// ```
-pub fn url_matches_scheme(mut url: &str, scheme: &str) -> bool {
-    for (i, pattern) in scheme.split('*').enumerate() {
-        if pattern.is_empty() {
-            continue;
-        }
-
-        if let Some(index) = url.find(pattern) {
-            if i == 0 && index > 0 {
-                // the url should start with the first pattern
-                return false;
-            }
-            url = &url[(index + pattern.len())..];
-        } else {
-            return false;
-        }
-    }
-    scheme.ends_with('*') || url.is_empty()
-}
-
-/// Find the oEmbed provider and endpoint based on the URL using ShareSphere's providers.json
-pub fn find_url_provider(url: &str) -> Option<(&OEmbedProvider, &OEmbedEndpoint)> {
-    PROVIDERS.iter().find_map(|provider| {
-        provider.find_matching_endpoint(url).map(|endpoint| (provider, endpoint))
-    })
-}
-
-
-#[cfg(not(feature = "ssr"))]
-pub fn fetch_api<T>(
-    path: &str,
-) -> impl std::future::Future<Output = Option<T>> + Send + '_
-where
-    T: Serialize + DeserializeOwned,
-{
-    use leptos::prelude::on_cleanup;
-    use send_wrapper::SendWrapper;
-
-    SendWrapper::new(async move {
-        let abort_controller =
-            SendWrapper::new(web_sys::AbortController::new().ok());
-        let abort_signal = abort_controller.as_ref().map(|a| a.signal());
-
-        // abort in-flight requests if, e.g., we've navigated away from this page
-        on_cleanup(move || {
-            if let Some(abort_controller) = abort_controller.take() {
-                abort_controller.abort()
-            }
-        });
-
-        gloo_net::http::Request::get(path)
-            .abort_signal(abort_signal.as_ref())
-            .send()
-            .await
-            .map_err(|e| log::error!("API error {e}"))
-            .ok()?
-            .json()
-            .await
-            .map_err(|e| log::error!("Deserialize error {e}"))
-            .ok()
-    })
-}
-
-#[cfg(feature = "ssr")]
-pub async fn fetch_api<T>(path: &str) -> Option<T>
-where
-    T: Serialize + DeserializeOwned,
-{
-    let client = Client::new();
-
-    // Configure headers, as some api provider require them
-    let mut headers = HeaderMap::new();
-    headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
-    headers.insert(
-        USER_AGENT,
-        HeaderValue::from_static("Mozilla/5.0 (compatible; RustApp/1.0)"),
-    );
-
-    client.get(path)
-        .headers(headers)
-        .send()
-        .await
-        .map_err(|e| log::error!("Request error: {e}"))
-        .ok()?
-        .json()
-        .await
-        .map_err(|e| log::error!("Deserialize error: {e}"))
-        .ok()
-}
-
-/// Select the given `link_type` in the given `list_ref` node
-fn select_embed_type(
-    link_type: LinkType,
-    link_embed: RwSignal<EmbedType>,
-    select_ref: NodeRef<html::Select>
-) {
-    let new_embed_type = link_type.into();
-    link_embed.update_untracked(|embed_type| *embed_type = new_embed_type);
-    if let Some(select_ref) = select_ref.get_untracked() {
-        select_ref.set_selected_index(new_embed_type as i32);
-    };
-}
-
-/// Check that an url is valid and infer its type
-pub fn check_url_and_infer_type(
-    url: &Url,
-) -> LinkType {
-    if url.scheme() == "https" && url.domain().is_some() {
-        let mime_guess = from_path(url.as_str());
-        match mime_guess.first() {
-            Some(mime_guess) if mime_guess.type_() == mime::IMAGE => LinkType::Image,
-            Some(mime_guess) if mime_guess.type_() == mime::VIDEO => LinkType::Video,
-            _ => LinkType::Link,
-        }
-    } else {
-        LinkType::None
-    }
-}
-
-fn filter_attribute_values(attribute_value: &str, allowed_values: &[&str]) -> String {
-    attribute_value
-        .split(';')
-        .filter_map(|v| {
-            let mut parts = v.split(':').map(str::trim);
-            if let Some(key) = parts.next() {
-                if allowed_values.contains(&key) {
-                    return match parts.next() {
-                        Some(value) => Some(format!("{}:{}", key, value)),
-                        None => Some(key.to_string()),
-                    };
-                }
-            }
-            None
-        })
-        .collect::<Vec<String>>()
-        .join(";")
-}
-
-pub fn clean_html(
-    html: &str,
-) -> String {
-    log::debug!("Html: {}", html);
-
-    // Create a set of allowed iframe attributes
-    let iframe_attributes = HashSet::from(
-        [
-            "width",
-            "height",
-            "src",
-            "frameborder",
-            "allowfullscreen",
-            "scrollbar",
-            "allow",
-            "style",
-            "title",
-        ]
-    );
-
-    let clean_html = Builder::default()
-        .add_tags(["iframe"])
-        .add_tag_attributes("iframe", iframe_attributes)
-        .add_tag_attribute_values(
-            "iframe",
-            "referrerpolicy",
-            ["strict-origin", "strict-origin-when-cross-origin"]
-        ).attribute_filter(|element, attribute, value| {
-            match (element, attribute) {
-                ("iframe", "style") => {
-                    Some(filter_attribute_values(value, &["border", "min-width", "min-height, width, height"]).into())
-                }
-                ("iframe", "allow") => {
-                    Some(filter_attribute_values(value, &["encrypted-media", "picture-in-picture"]).into())
-                }
-                _ => Some(value.into())
-            }
-        })
-            .clean(html)
-            .to_string();
-    log::debug!("clean_html: {}", clean_html);
-    clean_html
-}
-
-/// Check the input `link`'s validity and returns Link and an optional title.
-/// If embed_type is EmbedType::Link, the link is always embedded as a simple link,
-/// otherwise the link type will be inferred using the oEmbed API or the file extension.
-/// If the type cannot be inferred, it will fallback to a link.
-pub async fn verify_link_and_get_embed(
-    embed_type: EmbedType,
-    link: &str,
-) -> (Link, Option<String>) {
-    match (embed_type, Url::parse(link)) {
-        (_, Err(_)) => (Link::default(), None),
-        (EmbedType::Link, Ok(url)) => (Link::new(LinkType::Link, Some(url.to_string()), None, None), None),
-        (_, Ok(url)) => {
-            match find_url_provider(url.as_str()) {
-                Some((_provider, endpoint)) => {
-                    // TODO check values for width and height
-                    let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
-                    log::debug!("Fetch oembed data: {endpoint}");
-                    match get_oembed_data(endpoint).await {
-                        Ok(oembed_data) => {
-                            let title = oembed_data.title;
-                            let thumbnail_url = oembed_data.thumbnail_url;
-                            let link = match oembed_data.oembed_type {
-                                OEmbedType::Link => Link::new(LinkType::Link, Some(url.to_string()), None, thumbnail_url),
-                                OEmbedType::Photo(photo) => Link::new(LinkType::Image, Some(photo.url), None, thumbnail_url),
-                                OEmbedType::Video(video) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&video.html)), thumbnail_url),
-                                OEmbedType::Rich(rich) => Link::new(LinkType::Rich, Some(url.to_string()), Some(clean_html(&rich.html)), thumbnail_url),
-                            };
-                            (link, title)
-                        },
-                        Err(e) => {
-                            log::debug!("Failed to get oembed data: {}", e);
-                            let inferred_type = check_url_and_infer_type(&url);
-                            let link = match inferred_type {
-                                LinkType::None => None,
-                                _ => Some(url.to_string()),
-                            };
-                            (Link::new(inferred_type, link, None, None), None)
-                        },
-                    }
-                },
-                None => {
-                    let inferred_type = check_url_and_infer_type(&url);
-                    let link = match inferred_type {
-                        LinkType::None => None,
-                        _ => Some(url.to_string()),
-                    };
-                    (Link::new(inferred_type, link, None, None), None)
-                },
-            }
-        },
-    }
-}
-
 #[server]
 pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<AppError>> {
     let mut oembed_data = fetch_api::<OEmbedReply>(&url)
@@ -607,6 +364,249 @@ pub fn HtmlEmbed(
     };
     view! {
         <div class=class inner_html=html/>
+    }
+}
+
+/// # Check if the `scheme` matches the given `url`
+///
+/// ```
+/// use crate::app::embed::url_matches_scheme;
+///
+/// assert_eq!(url_matches_scheme("https://www.youtube.com/watch?v=test", "https://*.youtube.com/watch*"), true);
+/// assert_eq!(url_matches_scheme("https://bsky.app/profile/test/post/testpost", "https://bsky.app/profile/*/post/*"), true);
+/// assert_eq!(url_matches_scheme("https://bsky.app/profile/test", "https://*.youtube.com/watch*"), false);
+/// ```
+pub fn url_matches_scheme(mut url: &str, scheme: &str) -> bool {
+    for (i, pattern) in scheme.split('*').enumerate() {
+        if pattern.is_empty() {
+            continue;
+        }
+
+        if let Some(index) = url.find(pattern) {
+            if i == 0 && index > 0 {
+                // the url should start with the first pattern
+                return false;
+            }
+            url = &url[(index + pattern.len())..];
+        } else {
+            return false;
+        }
+    }
+    scheme.ends_with('*') || url.is_empty()
+}
+
+/// Find the oEmbed provider and endpoint based on the URL using ShareSphere's providers.json
+pub fn find_url_provider(url: &str) -> Option<(&OEmbedProvider, &OEmbedEndpoint)> {
+    PROVIDERS.iter().find_map(|provider| {
+        provider.find_matching_endpoint(url).map(|endpoint| (provider, endpoint))
+    })
+}
+
+
+#[cfg(not(feature = "ssr"))]
+pub fn fetch_api<T>(
+    path: &str,
+) -> impl std::future::Future<Output = Option<T>> + Send + '_
+where
+    T: Serialize + DeserializeOwned,
+{
+    use leptos::prelude::on_cleanup;
+    use send_wrapper::SendWrapper;
+
+    SendWrapper::new(async move {
+        let abort_controller =
+            SendWrapper::new(web_sys::AbortController::new().ok());
+        let abort_signal = abort_controller.as_ref().map(|a| a.signal());
+
+        // abort in-flight requests if, e.g., we've navigated away from this page
+        on_cleanup(move || {
+            if let Some(abort_controller) = abort_controller.take() {
+                abort_controller.abort()
+            }
+        });
+
+        gloo_net::http::Request::get(path)
+            .abort_signal(abort_signal.as_ref())
+            .send()
+            .await
+            .map_err(|e| log::error!("API error {e}"))
+            .ok()?
+            .json()
+            .await
+            .map_err(|e| log::error!("Deserialize error {e}"))
+            .ok()
+    })
+}
+
+#[cfg(feature = "ssr")]
+pub async fn fetch_api<T>(path: &str) -> Option<T>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let client = Client::new();
+
+    // Configure headers, as some api provider require them
+    let mut headers = HeaderMap::new();
+    headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+    headers.insert(
+        USER_AGENT,
+        HeaderValue::from_static("Mozilla/5.0 (compatible; RustApp/1.0)"),
+    );
+
+    client.get(path)
+        .headers(headers)
+        .send()
+        .await
+        .map_err(|e| log::error!("Request error: {e}"))
+        .ok()?
+        .json()
+        .await
+        .map_err(|e| log::error!("Deserialize error: {e}"))
+        .ok()
+}
+
+/// Select the given `link_type` in the given `list_ref` node
+fn select_embed_type(
+    link_type: LinkType,
+    link_embed: RwSignal<EmbedType>,
+    select_ref: NodeRef<html::Select>
+) {
+    let new_embed_type = link_type.into();
+    link_embed.update_untracked(|embed_type| *embed_type = new_embed_type);
+    if let Some(select_ref) = select_ref.get_untracked() {
+        select_ref.set_selected_index(new_embed_type as i32);
+    };
+}
+
+/// Check that an url is valid and infer its type
+pub fn check_url_and_infer_type(
+    url: &Url,
+) -> LinkType {
+    if url.scheme() == "https" && url.domain().is_some() {
+        let mime_guess = from_path(url.as_str());
+        match mime_guess.first() {
+            Some(mime_guess) if mime_guess.type_() == mime::IMAGE => LinkType::Image,
+            Some(mime_guess) if mime_guess.type_() == mime::VIDEO => LinkType::Video,
+            _ => LinkType::Link,
+        }
+    } else {
+        LinkType::None
+    }
+}
+
+fn filter_attribute_values(attribute_value: &str, allowed_values: &[&str]) -> String {
+    attribute_value
+        .split(';')
+        .filter_map(|v| {
+            let mut parts = v.split(':').map(str::trim);
+            if let Some(key) = parts.next() {
+                if allowed_values.contains(&key) {
+                    return match parts.next() {
+                        Some(value) => Some(format!("{}:{}", key, value)),
+                        None => Some(key.to_string()),
+                    };
+                }
+            }
+            None
+        })
+        .collect::<Vec<String>>()
+        .join(";")
+}
+
+pub fn clean_html(
+    html: &str,
+) -> String {
+    log::debug!("Html: {}", html);
+
+    // Create a set of allowed iframe attributes
+    let iframe_attributes = HashSet::from(
+        [
+            "width",
+            "height",
+            "src",
+            "frameborder",
+            "allowfullscreen",
+            "scrollbar",
+            "allow",
+            "style",
+            "title",
+        ]
+    );
+
+    let clean_html = Builder::default()
+        .add_tags(["iframe"])
+        .add_tag_attributes("iframe", iframe_attributes)
+        .add_tag_attribute_values(
+            "iframe",
+            "referrerpolicy",
+            ["strict-origin", "strict-origin-when-cross-origin"]
+        ).attribute_filter(|element, attribute, value| {
+        match (element, attribute) {
+            ("iframe", "style") => {
+                Some(filter_attribute_values(value, &["border", "min-width", "min-height, width, height"]).into())
+            }
+            ("iframe", "allow") => {
+                Some(filter_attribute_values(value, &["encrypted-media", "picture-in-picture"]).into())
+            }
+            _ => Some(value.into())
+        }
+    })
+        .clean(html)
+        .to_string();
+    log::debug!("clean_html: {}", clean_html);
+    clean_html
+}
+
+/// Check the input `link`'s validity and returns Link and an optional title.
+/// If embed_type is EmbedType::Link, the link is always embedded as a simple link,
+/// otherwise the link type will be inferred using the oEmbed API or the file extension.
+/// If the type cannot be inferred, it will fallback to a link.
+pub async fn verify_link_and_get_embed(
+    embed_type: EmbedType,
+    link: &str,
+) -> (Link, Option<String>) {
+    match (embed_type, Url::parse(link)) {
+        (_, Err(_)) => (Link::default(), None),
+        (EmbedType::Link, Ok(url)) => (Link::new(LinkType::Link, Some(url.to_string()), None, None), None),
+        (_, Ok(url)) => {
+            match find_url_provider(url.as_str()) {
+                Some((_provider, endpoint)) => {
+                    // TODO check values for width and height
+                    let endpoint = format!("{}?url={url}&maxwidth=800&maxheight=600", endpoint.url);
+                    log::debug!("Fetch oembed data: {endpoint}");
+                    match get_oembed_data(endpoint).await {
+                        Ok(oembed_data) => {
+                            let title = oembed_data.title;
+                            let thumbnail_url = oembed_data.thumbnail_url;
+                            let link = match oembed_data.oembed_type {
+                                OEmbedType::Link => Link::new(LinkType::Link, Some(url.to_string()), None, thumbnail_url),
+                                OEmbedType::Photo(photo) => Link::new(LinkType::Image, Some(photo.url), None, thumbnail_url),
+                                OEmbedType::Video(video) => Link::new(LinkType::Video, Some(url.to_string()), Some(clean_html(&video.html)), thumbnail_url),
+                                OEmbedType::Rich(rich) => Link::new(LinkType::Rich, Some(url.to_string()), Some(clean_html(&rich.html)), thumbnail_url),
+                            };
+                            (link, title)
+                        },
+                        Err(e) => {
+                            log::debug!("Failed to get oembed data: {}", e);
+                            let inferred_type = check_url_and_infer_type(&url);
+                            let link = match inferred_type {
+                                LinkType::None => None,
+                                _ => Some(url.to_string()),
+                            };
+                            (Link::new(inferred_type, link, None, None), None)
+                        },
+                    }
+                },
+                None => {
+                    let inferred_type = check_url_and_infer_type(&url);
+                    let link = match inferred_type {
+                        LinkType::None => None,
+                        _ => Some(url.to_string()),
+                    };
+                    (Link::new(inferred_type, link, None, None), None)
+                },
+            }
+        },
     }
 }
 

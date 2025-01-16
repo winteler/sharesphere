@@ -11,7 +11,7 @@ use crate::errors::AppError;
 use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
-use crate::profile::{USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
+use crate::profile::{UserProfile, USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
 use crate::ranking::SortType;
 use crate::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX};
 use crate::sidebar::*;
@@ -181,7 +181,7 @@ pub fn App() -> impl IntoView {
                                 </ParentRoute>
                                 <Route path=StaticSegment("") view=SphereContents/>
                             </ParentRoute>
-                            <Route path=(StaticSegment(USER_ROUTE_PREFIX), ParamSegment(USER_ROUTE_PARAM_NAME)) view=Post/>
+                            <Route path=(StaticSegment(USER_ROUTE_PREFIX), ParamSegment(USER_ROUTE_PARAM_NAME)) view=UserProfile/>
                             <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
                             <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuardHome>
                                 <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>

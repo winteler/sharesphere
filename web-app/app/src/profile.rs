@@ -9,10 +9,16 @@ pub const USER_ROUTE_PARAM_NAME: &str = "username";
 #[component]
 pub fn UserProfile() -> impl IntoView {
     let params = use_params_map();
-    let post_id = get_username_memo(params);
+    let username = get_username_memo(params);
     view! {
-        <div>{move || post_id.get()}</div>
+        <div>{move || username.get()}</div>
     }
+}
+
+pub fn get_profile_path(
+    username: &str,
+) -> String {
+    format!("{USER_ROUTE_PREFIX}/{username}")
 }
 
 /// Get a memo returning the last valid user id from the url. Used to avoid triggering resources when leaving pages.

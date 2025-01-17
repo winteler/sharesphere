@@ -4,6 +4,8 @@ use leptos::prelude::*;
 use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::JsCast;
 use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
+use leptos_router::components::Form;
+use leptos_router::hooks::use_query_map;
 use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
@@ -45,6 +47,27 @@ pub fn ModalDialog(
             </div>
         </Show>
     }.into_any()
+}
+
+/// Component to update query parameter `query_param` with the value `title` upon clicking
+#[component]
+pub fn NavTab(
+    query_param: &'static str,
+    title: &'static str,
+) -> impl IntoView {
+    let query = use_query_map();
+    let tab_class = move || match query.read().get(title).unwrap_or_default() == title {
+        true => "w-full text-center p-1 rounded border border-1 border-base-content/20 bg-base-content/20",
+        false => "w-full text-center p-1 rounded border border-1 border-base-content/20",
+    };
+    view! {
+        <div>
+            <Form method="GET" action="">
+                <input type="search" class="hidden" name=query_param value=title/>
+                <button type="submit" class=tab_class>{title}</button>
+            </Form>
+        </div>
+    }
 }
 
 /// Component to create a dropdown based on a given strum::EnumIter

@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use leptos_router::params::ParamsMap;
+use crate::sidebar::HomeSidebar;
+use crate::widget::NavTab;
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -11,7 +13,27 @@ pub fn UserProfile() -> impl IntoView {
     let params = use_params_map();
     let username = get_username_memo(params);
     view! {
-        <div>{move || username.get()}</div>
+        <div class="flex flex-col gap-2 pt-2 px-2 w-full">
+            <UserProfileTabs/>
+            <div>{move || username.get()}</div>
+        </div>
+        <div class="max-2xl:hidden">
+            <HomeSidebar/>
+        </div>
+    }
+}
+
+/// Displays tabs to navigate the different parts of the user profile
+#[component]
+pub fn UserProfileTabs() -> impl IntoView {
+    let query_param = "tab";
+
+    view! {
+        <div class="w-full flex justify-stretch">
+            <NavTab query_param title="Posts"/>
+            <NavTab query_param title="Comments"/>
+            <NavTab query_param title="Settings"/>
+        </div>
     }
 }
 

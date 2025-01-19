@@ -56,17 +56,15 @@ pub fn NavTab(
     title: &'static str,
 ) -> impl IntoView {
     let query = use_query_map();
-    let tab_class = move || match query.read().get(title).unwrap_or_default() == title {
-        true => "w-full text-center p-1 rounded border border-1 border-base-content/20 bg-base-content/20",
-        false => "w-full text-center p-1 rounded border border-1 border-base-content/20",
+    let tab_class = move || match query.read().get(query_param).unwrap_or_default() == title {
+        true => "w-full text-center p-1 bg-base-content/20 hover:bg-base-content/50",
+        false => "w-full text-center p-1 hover:bg-base-content/50",
     };
     view! {
-        <div>
-            <Form method="GET" action="">
-                <input type="search" class="hidden" name=query_param value=title/>
-                <button type="submit" class=tab_class>{title}</button>
-            </Form>
-        </div>
+        <Form method="GET" action="">
+            <input type="search" class="hidden" name=query_param value=title/>
+            <button type="submit" class=tab_class>{title}</button>
+        </Form>
     }
 }
 

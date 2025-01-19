@@ -29,7 +29,7 @@ pub fn UserProfileTabs() -> impl IntoView {
     let query_param = "tab";
 
     view! {
-        <div class="w-full flex justify-stretch">
+        <div class="w-full grid grid-flow-col justify-stretch divide-x divide-base-content/20 border border-1 border-base-content/20">
             <NavTab query_param title="Posts"/>
             <NavTab query_param title="Comments"/>
             <NavTab query_param title="Settings"/>

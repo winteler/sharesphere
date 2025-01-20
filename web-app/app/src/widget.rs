@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::ev::{Event, SubmitEvent};
 use leptos::html;
 use leptos::prelude::*;
@@ -17,6 +18,10 @@ use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
+
+pub trait ToView {
+    fn to_view(self) -> AnyView;
+}
 
 /// Component that displays its children in a modal dialog
 #[component]
@@ -51,20 +56,86 @@ pub fn ModalDialog(
 
 /// Component to update query parameter `query_param` with the value `title` upon clicking
 #[component]
-pub fn NavTab(
+fn QueryTab(
     query_param: &'static str,
-    title: &'static str,
+    query_value: &'static str,
 ) -> impl IntoView {
     let query = use_query_map();
-    let tab_class = move || match query.read().get(query_param).unwrap_or_default() == title {
+    let tab_class = move || match query.read().get(query_param).unwrap_or_default() == query_value {
         true => "w-full text-center p-1 bg-base-content/20 hover:bg-base-content/50",
         false => "w-full text-center p-1 hover:bg-base-content/50",
     };
     view! {
         <Form method="GET" action="">
-            <input type="search" class="hidden" name=query_param value=title/>
-            <button type="submit" class=tab_class>{title}</button>
+            <input type="search" class="hidden" name=query_param value=query_value/>
+            <button type="submit" class=tab_class>{query_value}</button>
         </Form>
+    }
+}
+
+/// Component to display a QueryTab based on the input query_to_view_map
+#[component]
+fn QueryTabs<I, T>(
+    query_param: &'static str,
+    query_enum_iter: I,
+) -> impl IntoView
+where
+    I: IntoIterator<Item = T>,
+    T: std::str::FromStr + Into<&'static str> + IntoEnumIterator
+{
+    view! {
+        <div class="w-full grid grid-flow-col justify-stretch divide-x divide-base-content/20 border border-1 border-base-content/20">
+        {
+            query_enum_iter.into_iter().map(|enum_value| view! {
+                <QueryTab query_param query_value=enum_value.into()/>
+            }.into_any()).collect_view()
+        }
+        </div>
+    }.into_any()
+}
+
+/// Component to display views query parameter `query_param` with the value `title` upon clicking
+#[component]
+fn QueryShow<I, T>(
+    query_param: &'static str,
+    query_enum_iter: I,
+    #[prop(optional, into)]
+    default_view: ViewFn,
+) -> impl IntoView
+where
+    I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
+    T: std::str::FromStr + Into<&'static str> + Copy + IntoEnumIterator + ToView
+{
+    let query = use_query_map();
+    view! {
+        {
+            move || match &query_enum_iter.clone().into_iter().find(
+                |query_value| Into::<&str>::into(*query_value) == query.read().get(query_param).unwrap_or_default()
+            ) {
+                Some(query_value) => Either::Left(query_value.to_view()),
+                None => Either::Right(default_view.run()),
+            }
+        }
+    }.into_any()
+}
+
+/// Component to display views query parameter `query_param` with the value `title` upon clicking
+#[component]
+pub fn EnumQueryTabs<I, T>(
+    query_param: &'static str,
+    query_enum_iter: I,
+    #[prop(optional, into)]
+    default_view: ViewFn,
+) -> impl IntoView
+where
+    I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
+    T: std::str::FromStr + Into<&'static str> + Copy + IntoEnumIterator + ToView
+{
+    view! {
+        <div class="flex flex-col gap-2 pt-2 px-2 w-full">
+            <QueryTabs query_param query_enum_iter=query_enum_iter.clone()/>
+            <QueryShow query_param query_enum_iter default_view/>
+        </div>
     }
 }
 

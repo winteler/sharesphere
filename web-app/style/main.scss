@@ -3667,10 +3667,6 @@ html {
   list-style-type: disc;
 }
 
-.grid-flow-row {
-  grid-auto-flow: row;
-}
-
 .grid-flow-col {
   grid-auto-flow: column;
 }
@@ -3685,10 +3681,6 @@ html {
 
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.grid-rows-1 {
-  grid-template-rows: repeat(1, minmax(0, 1fr));
 }
 
 .flex-col {
@@ -4013,10 +4005,6 @@ html {
 .bg-yellow-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(234 179 8 / var(--tw-bg-opacity));
-}
-
-.bg-base-content\/50 {
-  background-color: hsl(var(--bc) / 0.5);
 }
 
 .bg-opacity-75 {

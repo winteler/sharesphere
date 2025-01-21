@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use const_format::concatcp;
@@ -22,16 +21,16 @@ use crate::form::LabeledFormCheckbox;
 use crate::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path, get_current_path};
-use crate::post::{get_post_path, get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo, CREATE_POST_SUFFIX};
+use crate::post::{add_sphere_info_to_post_vec, get_post_path, get_post_vec_by_sphere_name, PostBadgeList, PostWithSphereInfo, CREATE_POST_SUFFIX};
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::ranking::{ScoreIndicator, SortType};
 use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
 use crate::satellite::{get_satellite_path, get_satellite_vec_by_sphere_name, ActiveSatelliteList, CreateSatellite, DisableSatellite, Satellite, SatelliteState, UpdateSatellite};
 use crate::sidebar::SphereSidebar;
-use crate::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategory, SphereCategoryHeader};
+use crate::sphere_category::{get_sphere_category_header_map, get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategory};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
-use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
+use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -631,39 +630,15 @@ pub fn SphereContents() -> impl IntoView {
             post_vec.write().clear();
             is_loading.set(true);
             // TODO return map in resource directly?
-            let mut sphere_category_map = HashMap::<i64, SphereCategoryHeader>::new();
-            if let Ok(sphere_category_vec) = sphere_state.sphere_categories_resource.await {
-                for sphere_category in sphere_category_vec {
-                    sphere_category_map.insert(sphere_category.category_id, sphere_category.clone().into());
-                }
-            }
+            let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
             // TODO check no unnecessary loads
-
-            match get_post_vec_by_sphere_name(
+            let initial_load = get_post_vec_by_sphere_name(
                 sphere_name.get(),
                 sphere_state.category_id_filter.get(),
                 state.post_sort_type.get(),
-                0
-            ).await {
-                Ok(init_post_vec) => {
-                    post_vec.set(
-                        init_post_vec.into_iter().map(|post| {
-                            let category_id = match post.category_id {
-                                Some(category_id) => sphere_category_map.get(&category_id).cloned(),
-                                None => None,
-                            };
-                            PostWithSphereInfo::from_post(post, category_id, None)
-                        }).collect(),
-                    );
-                    if let Some(list_ref) = list_ref.get_untracked() {
-                        list_ref.set_scroll_top(0);
-                    }
-                },
-                Err(ref e) => {
-                    post_vec.update(|post_vec| post_vec.clear());
-                    load_error.set(Some(AppError::from(e)))
-                },
-            };
+                0,
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
             is_loading.set(false);
         }
     );
@@ -672,32 +647,15 @@ pub fn SphereContents() -> impl IntoView {
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
-                let mut sphere_category_map = HashMap::<i64, SphereCategoryHeader>::new();
-                if let Ok(sphere_category_vec) = sphere_state.sphere_categories_resource.await {
-                    for sphere_category in sphere_category_vec {
-                        sphere_category_map.insert(sphere_category.category_id, sphere_category.clone().into());
-                    }
-                }
+                let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
                 let num_post = post_vec.read_untracked().len();
-                match get_post_vec_by_sphere_name(
+                let additional_load = get_post_vec_by_sphere_name(
                     sphere_name.get_untracked(),
                     sphere_state.category_id_filter.get_untracked(),
                     state.post_sort_type.get_untracked(),
                     num_post
-                ).await {
-                    Ok(add_post_vec) => post_vec.update(|post_vec| {
-                        post_vec.extend(
-                            add_post_vec.into_iter().map(|post| {
-                                let category_id = match post.category_id {
-                                    Some(category_id) => sphere_category_map.get(&category_id).cloned(),
-                                    None => None,
-                                };
-                                PostWithSphereInfo::from_post(post, category_id, None)
-                            })
-                        )
-                    }),
-                    Err(e) => load_error.set(Some(AppError::from(e))),
-                }
+                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+                handle_additional_load(additional_load, post_vec, load_error);
                 is_loading.set(false);
             }
         }

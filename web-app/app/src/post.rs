@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
@@ -24,7 +25,7 @@ use crate::ranking::{SortType, Vote, VotePanel};
 use crate::satellite::SATELLITE_ROUTE_PREFIX;
 use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
-use crate::unpack::{ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
+use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -928,24 +929,8 @@ pub fn Post() -> impl IntoView {
     let _initial_comments_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            match get_post_comment_tree(
-                post_id.get(),
-                state.comment_sort_type.get(),
-                0,
-            ).await {
-                Ok(ref mut init_comment_vec) => {
-                    comment_vec.update(|comment_vec| {
-                        std::mem::swap(comment_vec, init_comment_vec);
-                    });
-                    if let Some(list_ref) = container_ref.get_untracked() {
-                        list_ref.set_scroll_top(0);
-                    }
-                },
-                Err(ref e) => {
-                    comment_vec.update(|comment_vec| comment_vec.clear());
-                    load_error.set(Some(AppError::from(e)))
-                },
-            };
+            let initial_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get(), 0).await;
+            handle_initial_load(initial_load, comment_vec, load_error, None);
             is_loading.set(false);
         }
     );
@@ -955,16 +940,8 @@ pub fn Post() -> impl IntoView {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
                 let num_post = comment_vec.read_untracked().len();
-                match get_post_comment_tree(
-                    post_id.get(),
-                    state.comment_sort_type.get_untracked(),
-                    num_post,
-                ).await {
-                    Ok(ref mut additional_comment_vec) => {
-                        comment_vec.update(|comment_vec| comment_vec.append(additional_comment_vec))
-                    },
-                    Err(ref e) => load_error.set(Some(AppError::from(e))),
-                }
+                let additional_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, comment_vec, load_error);
                 is_loading.set(false);
             }
         }
@@ -1515,6 +1492,20 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     })
 }
 
+pub fn add_sphere_info_to_post_vec(
+    post_vec: Vec<Post>, 
+    sphere_category_map: HashMap<i64, SphereCategoryHeader>,
+    sphere_icon_url: Option<String>,
+) -> Vec<PostWithSphereInfo> {
+    post_vec.into_iter().map(|post| {
+        let category_id = match post.category_id {
+            Some(category_id) => sphere_category_map.get(&category_id).cloned(),
+            None => None,
+        };
+        PostWithSphereInfo::from_post(post, category_id, sphere_icon_url.clone())
+    }).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::colors::Color;
@@ -1601,5 +1592,10 @@ mod tests {
         assert_eq!(PostSortType::Trending.to_string(), TRENDING_STR);
         assert_eq!(PostSortType::Best.to_string(), BEST_STR);
         assert_eq!(PostSortType::Recent.to_string(), RECENT_STR);
+    }
+
+    #[test]
+    fn test_add_sphere_info_to_post_vec() {
+        // TODO
     }
 }

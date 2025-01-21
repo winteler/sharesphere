@@ -4,11 +4,12 @@ use crate::icons::LoadingIcon;
 use leptos::prelude::*;
 use leptos::server_fn::error::ServerFnErrorErr;
 use std::sync::Arc;
+use leptos::html;
 
 #[component]
 pub fn Unpack<
-    T, 
-    V: IntoView + 'static, 
+    T,
+    V: IntoView + 'static,
     F: FnOnce(T) -> V + Send + Sync + 'static
 >(
     what: Option<Result<T, ServerFnError<AppError>>>,
@@ -205,4 +206,48 @@ pub fn ArcTransitionUnpack<
             </ErrorBoundary>
         </Transition>
     }.into_any()
+}
+
+pub fn handle_initial_load<T: Clone + Send + Sync + 'static>(
+    load_result: Result<Vec<T>, ServerFnError<AppError>>,
+    loaded_vec: RwSignal<Vec<T>>,
+    load_error: RwSignal<Option<AppError>>,
+    list_ref: Option<NodeRef<html::Ul>>,
+) {
+    match load_result {
+        Ok(init_vec) => {
+            loaded_vec.set(init_vec);
+            if let Some(Some(list_ref)) = list_ref.map(|list_ref| list_ref.get_untracked()) {
+                list_ref.set_scroll_top(0);
+            }
+        },
+        Err(ref e) => {
+            loaded_vec.write().clear();
+            load_error.set(Some(AppError::from(e)))
+        },
+    };
+}
+
+pub fn handle_additional_load<T: Clone + Send + Sync + 'static>(
+    mut load_result: Result<Vec<T>, ServerFnError<AppError>>,
+    loaded_vec: RwSignal<Vec<T>>,
+    load_error: RwSignal<Option<AppError>>,
+) {
+    match load_result {
+        Ok(ref mut additional_vec) => loaded_vec.update(|loaded_vec| loaded_vec.append(additional_vec)),
+        Err(ref e) => load_error.set(Some(AppError::from(e))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_handle_initial_load() {
+        // TODO
+    }
+
+    #[test]
+    fn test_handle_additional_load() {
+        // TODO
+    }
 }

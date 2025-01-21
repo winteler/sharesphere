@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
@@ -354,5 +355,25 @@ pub fn DeleteCategoryButton(
                 </button>
             </ActionForm>
         </AuthorizedShow>
+    }
+}
+
+pub fn get_sphere_category_header_map(
+    sphere_category_load: Result<Vec<SphereCategory>, ServerFnError<AppError>>
+) -> HashMap<i64, SphereCategoryHeader> {
+    let mut sphere_category_map = HashMap::<i64, SphereCategoryHeader>::new();
+    if let Ok(sphere_category_vec) = sphere_category_load {
+        for sphere_category in sphere_category_vec {
+            sphere_category_map.insert(sphere_category.category_id, sphere_category.clone().into());
+        }
+    }
+    sphere_category_map
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_get_sphere_category_header_map() {
+        // TODO
     }
 }

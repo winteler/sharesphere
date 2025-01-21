@@ -17,7 +17,7 @@ use crate::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent, S
 use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-use crate::unpack::ArcSuspenseUnpack;
+use crate::unpack::{handle_additional_load, handle_initial_load, ArcSuspenseUnpack};
 use crate::user::User;
 
 
@@ -302,23 +302,8 @@ fn DefaultHomePage() -> impl IntoView {
     let _initial_post_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            match get_sorted_post_vec(
-                state.post_sort_type.get(),
-                0
-            ).await {
-                Ok(ref mut init_post_vec) => {
-                    post_vec.update(|post_vec| {
-                        std::mem::swap(post_vec, init_post_vec);
-                    });
-                    if let Some(list_ref) = list_ref.get_untracked() {
-                        list_ref.set_scroll_top(0);
-                    }
-                },
-                Err(ref e) => {
-                    post_vec.update(|post_vec| post_vec.clear());
-                    load_error.set(Some(AppError::from(e)))
-                },
-            };
+            let initial_load = get_sorted_post_vec(state.post_sort_type.get(), 0).await;
+            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
             is_loading.set(false);
         }
     );
@@ -328,13 +313,8 @@ fn DefaultHomePage() -> impl IntoView {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
                 let num_post = post_vec.read_untracked().len();
-                match get_sorted_post_vec(
-                    state.post_sort_type.get_untracked(),
-                    num_post
-                ).await {
-                    Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
-                    Err(ref e) => load_error.set(Some(AppError::from(e))),
-                }
+                let additional_load = get_sorted_post_vec(state.post_sort_type.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, post_vec, load_error);
                 is_loading.set(false);
             }
         }
@@ -365,24 +345,8 @@ fn UserHomePage(user: User) -> impl IntoView {
     let _initial_post_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            match get_subscribed_post_vec(
-                user_id,
-                state.post_sort_type.get(),
-                0,
-            ).await {
-                Ok(ref mut init_post_vec) => {
-                    post_vec.update(|post_vec| {
-                        std::mem::swap(post_vec, init_post_vec);
-                    });
-                    if let Some(list_ref) = list_ref.get_untracked() {
-                        list_ref.set_scroll_top(0);
-                    }
-                },
-                Err(ref e) => {
-                    post_vec.update(|post_vec| post_vec.clear());
-                    load_error.set(Some(AppError::from(e)))
-                },
-            };
+            let initial_load = get_subscribed_post_vec(user_id, state.post_sort_type.get(), 0).await;
+            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
             is_loading.set(false);
         }
     );
@@ -392,14 +356,8 @@ fn UserHomePage(user: User) -> impl IntoView {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
                 let num_post = post_vec.read_untracked().len();
-                match get_subscribed_post_vec(
-                    user_id,
-                    state.post_sort_type.get_untracked(),
-                    num_post,
-                ).await {
-                    Ok(ref mut additional_post_vec) => post_vec.update(|post_vec| post_vec.append(additional_post_vec)),
-                    Err(ref e) => load_error.set(Some(AppError::from(e))),
-                }
+                let additional_load = get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, post_vec, load_error);
                 is_loading.set(false);
             }
         }

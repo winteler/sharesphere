@@ -372,8 +372,51 @@ pub fn get_sphere_category_header_map(
 
 #[cfg(test)]
 mod tests {
+    use server_fn::ServerFnError;
+    use crate::colors::Color;
+    use crate::errors::AppError;
+    use crate::sphere_category::{get_sphere_category_header_map, SphereCategory};
+
     #[test]
     fn test_get_sphere_category_header_map() {
-        // TODO
+        let category_1 = SphereCategory {
+            category_id: 0,
+            sphere_id: 0,
+            sphere_name: "a".to_string(),
+            category_name: "a".to_string(),
+            category_color: Color::None,
+            description: "".to_string(),
+            is_active: false,
+            creator_id: 0,
+            timestamp: Default::default(),
+            delete_timestamp: None,
+        };
+        let category_2 = SphereCategory {
+            category_id: 1,
+            sphere_id: 1,
+            sphere_name: "b".to_string(),
+            category_name: "b".to_string(),
+            category_color: Color::None,
+            description: "".to_string(),
+            is_active: false,
+            creator_id: 0,
+            timestamp: Default::default(),
+            delete_timestamp: None,
+        };
+        let sphere_category_vec = vec![
+            category_1.clone(),
+            category_2.clone(),
+        ];
+        
+        let category_map = get_sphere_category_header_map(Ok(sphere_category_vec));
+        
+        assert_eq!(category_map.len(), 2);
+        
+        assert_eq!(category_map.get(&category_1.category_id), Some(&category_1.into()));
+        assert_eq!(category_map.get(&category_2.category_id), Some(&category_2.into()));
+        
+        let empty_category_map = get_sphere_category_header_map(Err(ServerFnError::<AppError>::Request(String::from("test"))));
+        
+        assert_eq!(empty_category_map.len(), 0);
     }
 }

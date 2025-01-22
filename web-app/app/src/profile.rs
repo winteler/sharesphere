@@ -1,3 +1,4 @@
+use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map};
 use leptos_router::params::ParamsMap;
@@ -5,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use crate::errors::AppError;
-use crate::post::{PostWithSphereInfo};
+use crate::post::{PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
 use crate::sidebar::HomeSidebar;
 use crate::widget::{EnumQueryTabs, ToView};
@@ -15,6 +16,9 @@ use crate::{
     app::ssr::get_db_pool,
     post::{POST_BATCH_SIZE},
 };
+use crate::content::PostSortWidget;
+use crate::sphere::SpherePostMiniatures;
+use crate::unpack::{handle_additional_load, handle_initial_load};
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -59,7 +63,7 @@ pub mod ssr {
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
-                    p.creator_name = $1 AND
+                    p.creator_name = $1
                 ORDER BY {} DESC
                 LIMIT $2
                 OFFSET $3",
@@ -114,8 +118,45 @@ pub fn UserProfile() -> impl IntoView {
 /// Displays a user's posts
 #[component]
 pub fn UserPosts() -> impl IntoView {
+    let params = use_params_map();
+    let username = get_username_memo(params);
+    let sort_signal = RwSignal::new(SortType::Post(PostSortType::Hot));
+    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
+
+    let _initial_post_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let initial_load = get_user_post_vec(username.get(), sort_signal.get(), 0).await;
+            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let num_post = post_vec.read_untracked().len();
+                let additional_load = get_user_post_vec(username.get_untracked(), sort_signal.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, post_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
+
     view! {
-        <div>"Posts"</div>
+        <PostSortWidget sort_signal/>
+        <SpherePostMiniatures
+            post_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
+        />
     }
 }
 

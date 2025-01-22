@@ -241,13 +241,50 @@ pub fn handle_additional_load<T: Clone + Send + Sync + 'static>(
 
 #[cfg(test)]
 mod tests {
+    use leptos::prelude::{Owner, Read, RwSignal};
+    use server_fn::ServerFnError;
+    use crate::errors::AppError;
+    use crate::unpack::{handle_additional_load, handle_initial_load};
+
     #[test]
     fn test_handle_initial_load() {
-        // TODO
+        let owner = Owner::new();
+        owner.set();
+        let loaded_vec = RwSignal::new(Vec::new());
+        let load_error = RwSignal::new(None);
+        
+        handle_initial_load(Ok(vec![1, 2, 3]), loaded_vec, load_error, None);
+        assert_eq!(loaded_vec.read().as_slice(), &[1, 2, 3]);
+        assert_eq!(load_error.read(), None);
+
+        handle_initial_load(Ok(vec![4, 5, 6]), loaded_vec, load_error, None);
+        assert_eq!(loaded_vec.read().as_slice(), &[4, 5, 6]);
+        assert_eq!(load_error.read(), None);
+
+        let error = ServerFnError::<AppError>::Request(String::from("test"));
+        handle_initial_load(Err(error.clone()), loaded_vec, load_error, None);
+        assert!(loaded_vec.read().is_empty());
+        assert_eq!(load_error.read(), Some(AppError::from(error)));
     }
 
     #[test]
     fn test_handle_additional_load() {
-        // TODO
+        let owner = Owner::new();
+        owner.set();
+        let loaded_vec = RwSignal::new(Vec::new());
+        let load_error = RwSignal::new(None);
+
+        handle_additional_load(Ok(vec![1, 2, 3]), loaded_vec, load_error);
+        assert_eq!(loaded_vec.read().as_slice(), &[1, 2, 3]);
+        assert_eq!(load_error.read(), None);
+
+        handle_additional_load(Ok(vec![4, 5, 6]), loaded_vec, load_error);
+        assert_eq!(loaded_vec.read().as_slice(), &[1, 2, 3, 4, 5, 6]);
+        assert_eq!(load_error.read(), None);
+
+        let error = ServerFnError::<AppError>::Request(String::from("test"));
+        handle_additional_load(Err(error.clone()), loaded_vec, load_error);
+        assert_eq!(loaded_vec.read().as_slice(), &[1, 2, 3, 4, 5, 6]);
+        assert_eq!(load_error.read(), Some(AppError::from(error)));
     }
 }

@@ -6,10 +6,94 @@ use app::comment::Comment;
 use app::errors::AppError;
 use app::ranking::Vote;
 use bytes::Bytes;
+use float_cmp::approx_eq;
 use futures_util::stream::once;
 use multer::Multipart;
 use server_fn::codec::MultipartData;
 use sqlx::PgPool;
+use app::post::{Post, PostSortType, PostWithSphereInfo};
+
+pub const POST_SORT_TYPE_ARRAY: [PostSortType; 4] = [
+    PostSortType::Hot,
+    PostSortType::Trending,
+    PostSortType::Best,
+    PostSortType::Recent,
+];
+
+pub fn sort_post_vec(
+    post_vec: &mut [PostWithSphereInfo],
+    sort_type: PostSortType,
+) {
+    match sort_type {
+        PostSortType::Hot => post_vec.sort_by(|l, r| r.post.recommended_score.partial_cmp(&l.post.recommended_score).unwrap()),
+        PostSortType::Trending => post_vec.sort_by(|l, r| r.post.trending_score.partial_cmp(&l.post.trending_score).unwrap()),
+        PostSortType::Best => post_vec.sort_by(|l, r| r.post.score.partial_cmp(&l.post.score).unwrap()),
+        PostSortType::Recent => post_vec.sort_by(|l, r| r.post.create_timestamp.partial_cmp(&l.post.create_timestamp).unwrap()),
+    }
+}
+
+pub fn test_post_vec(
+    post_vec: &[PostWithSphereInfo],
+    expected_post_vec: &[PostWithSphereInfo],
+    sort_type: PostSortType,
+) {
+    assert_eq!(post_vec.len(), expected_post_vec.iter().len());
+    // Check that all expected post are present
+    for (i, expected_post) in expected_post_vec.iter().enumerate() {
+        let has_post = post_vec.contains(expected_post);
+        if !has_post {
+            println!("Missing expected post {i}: {:?}", expected_post);
+        }
+        assert!(has_post);
+
+    }
+    // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple posts
+    for (index, (post_with_info, expected_post_with_info)) in post_vec.iter().zip(expected_post_vec.iter()).enumerate() {
+        let post = &post_with_info.post;
+        let expected_post = &expected_post_with_info.post;
+        assert!(match sort_type {
+            PostSortType::Hot => post.recommended_score == expected_post.recommended_score,
+            PostSortType::Trending => post.trending_score == expected_post.trending_score,
+            PostSortType::Best => post.score == expected_post.score,
+            PostSortType::Recent => post.create_timestamp == expected_post.create_timestamp,
+        });
+        if index > 0 {
+            let previous_post = &post_vec[index - 1].post;
+            assert!(match sort_type {
+                PostSortType::Hot => post.recommended_score <= previous_post.recommended_score,
+                PostSortType::Trending => post.trending_score <= previous_post.trending_score,
+                PostSortType::Best => post.score <= previous_post.score,
+                PostSortType::Recent => post.create_timestamp <= previous_post.create_timestamp,
+            });
+        }
+    }
+}
+
+pub fn test_post_score(post: &Post) {
+    let second_delta = post
+        .scoring_timestamp
+        .signed_duration_since(post.create_timestamp)
+        .num_milliseconds();
+    let num_days_old = (post
+        .scoring_timestamp
+        .signed_duration_since(post.create_timestamp)
+        .num_milliseconds() as f64)
+        / 86400000.0;
+
+    println!(
+        "Scoring timestamp: {}, create timestamp: {}, second delta: {second_delta}, num_days_old: {num_days_old}",
+        post.scoring_timestamp,
+        post.create_timestamp,
+    );
+
+    let expected_recommended_score = (post.score as f64) * f64::powf(2.0, 3.0 * (2.0 - num_days_old));
+    let expected_trending_score = (post.score as f64) * f64::powf(2.0, 8.0 * (1.0 - num_days_old));
+
+    println!("Recommended: {}, expected: {}", post.recommended_score, expected_recommended_score);
+    assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score as f32, epsilon = f32::EPSILON, ulps = 5));
+    println!("Trending: {}, expected: {}", post.trending_score, expected_trending_score);
+    assert!(approx_eq!(f32, post.trending_score, expected_trending_score as f32, epsilon = f32::EPSILON, ulps = 5));
+}
 
 pub async fn get_comment_by_id(
     comment_id: i64,

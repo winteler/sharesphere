@@ -634,7 +634,7 @@ pub fn CommentBody(
 
 /// Component to encapsulate the widgets associated with each comment
 #[component]
-fn CommentWidgetBar(
+pub fn CommentWidgetBar(
     comment: RwSignal<Comment>,
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,

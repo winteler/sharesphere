@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use float_cmp::approx_eq;
 use rand::Rng;
 
 use app::colors::Color;
@@ -10,7 +9,7 @@ use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
 use app::post::ssr::{create_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
-use app::post::{ssr, Post, PostSortType, PostWithSphereInfo};
+use app::post::{ssr, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
@@ -24,84 +23,11 @@ use app::sphere::ssr::create_sphere;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
+use crate::utils::{sort_post_vec, test_post_score, test_post_vec, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
-
-pub fn sort_post_vec(
-    post_vec: &mut [PostWithSphereInfo],
-    sort_type: PostSortType,
-) {
-    match sort_type {
-        PostSortType::Hot => post_vec.sort_by(|l, r| r.post.recommended_score.partial_cmp(&l.post.recommended_score).unwrap()),
-        PostSortType::Trending => post_vec.sort_by(|l, r| r.post.trending_score.partial_cmp(&l.post.trending_score).unwrap()),
-        PostSortType::Best => post_vec.sort_by(|l, r| r.post.score.partial_cmp(&l.post.score).unwrap()),
-        PostSortType::Recent => post_vec.sort_by(|l, r| r.post.create_timestamp.partial_cmp(&l.post.create_timestamp).unwrap()),
-    }
-}
-
-pub fn test_post_vec(
-    post_vec: &[PostWithSphereInfo],
-    expected_post_vec: &[PostWithSphereInfo],
-    sort_type: PostSortType,
-) {
-    assert_eq!(post_vec.len(), expected_post_vec.iter().len());
-    // Check that all expected post are present
-    for (i, expected_post) in expected_post_vec.iter().enumerate() {
-        let has_post = post_vec.contains(expected_post);
-        if !has_post {
-            println!("Missing expected post {i}: {:?}", expected_post);
-        }
-        assert!(has_post);
-        
-    }
-    // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple posts
-    for (index, (post_with_info, expected_post_with_info)) in post_vec.iter().zip(expected_post_vec.iter()).enumerate() {
-        let post = &post_with_info.post;
-        let expected_post = &expected_post_with_info.post;
-        assert!(match sort_type {
-            PostSortType::Hot => post.recommended_score == expected_post.recommended_score,
-            PostSortType::Trending => post.trending_score == expected_post.trending_score,
-            PostSortType::Best => post.score == expected_post.score,
-            PostSortType::Recent => post.create_timestamp == expected_post.create_timestamp,
-        });
-        if index > 0 {
-            let previous_post = &post_vec[index - 1].post;
-            assert!(match sort_type {
-                PostSortType::Hot => post.recommended_score <= previous_post.recommended_score,
-                PostSortType::Trending => post.trending_score <= previous_post.trending_score,
-                PostSortType::Best => post.score <= previous_post.score,
-                PostSortType::Recent => post.create_timestamp <= previous_post.create_timestamp,
-            });
-        }
-    }
-}
-
-pub fn test_post_score(post: &Post) {
-    let second_delta = post
-        .scoring_timestamp
-        .signed_duration_since(post.create_timestamp)
-        .num_milliseconds();
-    let num_days_old = (post
-        .scoring_timestamp
-        .signed_duration_since(post.create_timestamp)
-        .num_milliseconds() as f64)
-        / 86400000.0;
-
-    println!(
-        "Scoring timestamp: {}, create timestamp: {}, second delta: {second_delta}, num_days_old: {num_days_old}",
-        post.scoring_timestamp,
-        post.create_timestamp,
-    );
-
-    let expected_recommended_score = (post.score as f64) * f64::powf(2.0, 3.0 * (2.0 - num_days_old));
-    let expected_trending_score = (post.score as f64) * f64::powf(2.0, 8.0 * (1.0 - num_days_old));
-
-    println!("Recommended: {}, expected: {}", post.recommended_score, expected_recommended_score);
-    assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score as f32, epsilon = f32::EPSILON, ulps = 5));
-    println!("Trending: {}, expected: {}", post.trending_score, expected_trending_score);
-    assert!(approx_eq!(f32, post.trending_score, expected_trending_score as f32, epsilon = f32::EPSILON, ulps = 5));
-}
+mod utils;
 
 #[tokio::test]
 async fn test_get_post_by_id() -> Result<(), AppError> {
@@ -436,14 +362,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     sphere::ssr::subscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
 
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
-
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = ssr::get_subscribed_post_vec(
             user.user_id,
             SortType::Post(sort_type),
@@ -565,14 +484,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Should create satellite post.");
 
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
-
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = ssr::get_sorted_post_vec(
             SortType::Post(sort_type),
             num_post as i64,
@@ -689,15 +601,8 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Should create satellite post.");
 
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
-
     let load_count = 15;
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         sort_post_vec(&mut expected_post_vec, sort_type);
         let post_vec = ssr::get_post_vec_by_sphere_name(
             sphere_name,
@@ -793,15 +698,8 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
         &user,
         &db_pool
     ).await.expect("Pinned post should be created");
-
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
     
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = ssr::get_post_vec_by_sphere_name(
             sphere_name,
             None,
@@ -881,14 +779,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         PostWithSphereInfo::from_post(category_post_2, Some(sphere_category.clone().into()), sphere.icon_url.clone()),
     ];
 
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
-
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         let category_post_vec = ssr::get_post_vec_by_sphere_name(
             sphere_name,
             Some(sphere_category.category_id),
@@ -974,15 +865,8 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Should create satellite 2 posts");
 
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
-
     let load_count = 15;
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         sort_post_vec(&mut expected_post_vec, sort_type);
         let post_vec = ssr::get_post_vec_by_satellite_id(
             satellite_1.satellite_id,
@@ -1088,16 +972,8 @@ async fn test_get_post_vec_by_satellite_id_with_pinned_post() -> Result<(), AppE
         &db_pool,
     ).await.expect("Should create satellite posts");
 
-
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
-
     let load_count = 15;
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = ssr::get_post_vec_by_satellite_id(
             satellite.satellite_id,
             None,
@@ -1197,14 +1073,7 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
         &db_pool,
     ).await.expect("Should create satellite 1 posts");
 
-    let post_sort_type_array = [
-        PostSortType::Hot,
-        PostSortType::Trending,
-        PostSortType::Best,
-        PostSortType::Recent,
-    ];
-
-    for sort_type in post_sort_type_array {
+    for sort_type in POST_SORT_TYPE_ARRAY {
         let category_post_vec = ssr::get_post_vec_by_satellite_id(
             satellite.satellite_id,
             Some(sphere_category.category_id),

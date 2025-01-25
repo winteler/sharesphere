@@ -15,10 +15,10 @@ use crate::form::IsPinnedCheckbox;
 use crate::icons::{AddCommentIcon, EditIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::navigation_bar::get_current_path;
-use crate::ranking::{SortType, Vote, VotePanel};
-use crate::sphere::SphereState;
+use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
+use crate::sphere::{SphereHeader, SphereState};
 use crate::unpack::ActionError;
-use crate::widget::{AuthorWidget, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -27,6 +27,7 @@ use crate::{
     post::ssr::increment_post_comment_count,
     ranking::{ssr::vote_on_content, VoteValue},
 };
+use crate::post::{get_post_path};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -68,6 +69,17 @@ pub struct CommentWithChildren {
     pub comment: Comment,
     pub vote: Option<Vote>,
     pub child_comments: Vec<CommentWithChildren>,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct CommentWithContext {
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub comment: Comment,
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub sphere_header: SphereHeader,
+    pub satellite_id: Option<i64>,
+    pub post_title: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -683,6 +695,84 @@ pub fn CommentWidgetBar(
             <TimeSinceEditWidget edit_timestamp/>
         </div>
     }.into_any()
+}
+
+/// Displays a comment with context (post title, sphere, score, etc.)
+#[component]
+pub fn CommentWithContext(
+    comment: CommentWithContext
+) -> impl IntoView {
+    let score = comment.comment.score;
+    let author = comment.comment.creator_name.clone();
+    let is_moderator = comment.comment.is_creator_moderator;
+    let timestamp = comment.comment.create_timestamp;
+    // TODO change path to show comment in post
+    let post_path = get_post_path(&comment.sphere_header.sphere_name, comment.satellite_id, comment.comment.post_id);
+    view! {
+        <a href=post_path>
+            <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
+                <CommentBody comment=comment.comment/>
+                <div class="flex gap-1">
+                    <SphereHeader sphere_header=comment.sphere_header/>
+                    <div class="pt-1 pb-1.5 text-sm">"-"</div>
+                    <div class="pt-1 pb-1.5 text-sm">{comment.post_title}</div>
+                </div>
+                <div class="flex gap-1">
+                    <ScoreIndicator score/>
+                    <AuthorWidget author is_moderator/>
+                    <TimeSinceWidget timestamp/>
+                </div>
+            </div>
+        </a>
+    }
+}
+
+/// Component to display a vector of comments and indicate when more need to be loaded
+#[component]
+pub fn CommentMiniatureList(
+    /// signal containing the posts to display
+    #[prop(into)]
+    comment_vec: Signal<Vec<CommentWithContext>>,
+    /// signal indicating new posts are being loaded
+    #[prop(into)]
+    is_loading: Signal<bool>,
+    /// signal containing an eventual loading error in order to display it
+    #[prop(into)]
+    load_error: Signal<Option<AppError>>,
+    /// signal to request loading additional posts
+    additional_load_count: RwSignal<i64>,
+    /// reference to the container of the posts in order to reset scroll position when context changes
+    list_ref: NodeRef<html::Ul>,
+) -> impl IntoView {
+    view! {
+        <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20"
+            on:scroll=move |_| match list_ref.get() {
+                Some(node_ref) => {
+                    if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
+                        additional_load_count.update(|value| *value += 1);
+                    }
+                },
+                None => log::error!("Sphere container 'ul' node failed to load."),
+            }
+            node_ref=list_ref
+        >
+            <For
+                // a function that returns the items we're iterating over; a signal is fine
+                each= move || comment_vec.get().into_iter().enumerate()
+                // a unique key for each item as a reference
+                key=|(_index, comment)| comment.comment.comment_id
+                // renders each item to a view
+                children=move |(_key, comment)| {
+                    view! {
+                        <li>
+                            <CommentWithContext comment/>
+                        </li>
+                    }
+                }
+            />
+            <LoadIndicators load_error is_loading/>
+        </ul>
+    }
 }
 
 /// Component to open the comment form

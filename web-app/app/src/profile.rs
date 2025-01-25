@@ -6,13 +6,12 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
-use crate::comment::{Comment, CommentBody, CommentSortType};
+use crate::comment::{CommentMiniatureList, CommentSortType, CommentWithContext};
 use crate::content::{CommentSortWidget, PostSortWidget};
 use crate::errors::AppError;
-use crate::post::{PostSortType, PostWithSphereInfo};
+use crate::post::{PostMiniatureList, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
 use crate::sidebar::HomeSidebar;
-use crate::sphere::SpherePostMiniatures;
 use crate::unpack::{handle_additional_load, handle_initial_load};
 use crate::widget::{EnumQueryTabs, ToView};
 
@@ -47,7 +46,7 @@ impl ToView for ProfileTabs {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-    use crate::comment::Comment;
+    use crate::comment::{CommentWithContext};
     use crate::errors::AppError;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinCategory;
@@ -91,11 +90,13 @@ pub mod ssr {
         limit: i64,
         offset: i64,
         db_pool: &PgPool,
-    ) -> leptos::error::Result<Vec<Comment>, AppError> {
-        let comment_vec = sqlx::query_as::<_, Comment>(
+    ) -> leptos::error::Result<Vec<CommentWithContext>, AppError> {
+        let comment_vec = sqlx::query_as::<_, CommentWithContext>(
             format!(
-                "SELECT * FROM comments
-                WHERE creator_name = $1
+                "SELECT c.*, s.sphere_name, s.icon_url, s.is_nsfw, p.satellite_id, p.title as post_title FROM comments c
+                JOIN posts p ON p.post_id = c.post_id
+                JOIN spheres s ON s.sphere_id = p.sphere_id
+                WHERE c.creator_name = $1
                 ORDER BY {} DESC
                 LIMIT $2
                 OFFSET $3",
@@ -138,7 +139,7 @@ pub async fn get_user_comment_vec(
     username: String,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Comment>, ServerFnError<AppError>> {
+) -> Result<Vec<CommentWithContext>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
 
     // TODO check if private profile
@@ -201,7 +202,7 @@ pub fn UserPosts() -> impl IntoView {
 
     view! {
         <PostSortWidget sort_signal/>
-        <SpherePostMiniatures
+        <PostMiniatureList
             post_vec
             is_loading
             load_error
@@ -246,14 +247,12 @@ pub fn UserComments() -> impl IntoView {
 
     view! {
         <CommentSortWidget sort_signal/>
-        <For
-            each= move || comment_vec.get().into_iter().enumerate()
-            key=|(_index, comment)| comment.comment_id
-            children=move |(_, comment)| {
-                view! {
-                    <CommentBody comment/>
-                }.into_any()
-            }
+        <CommentMiniatureList
+            comment_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
         />
     }
 }

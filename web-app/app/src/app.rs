@@ -321,7 +321,7 @@ fn DefaultHomePage() -> impl IntoView {
     );
 
     view! {
-        <SpherePostMiniatures
+        <PostMiniatureList
             post_vec=post_vec
             is_loading=is_loading
             load_error=load_error
@@ -364,7 +364,7 @@ fn UserHomePage(user: User) -> impl IntoView {
     );
 
     view! {
-        <SpherePostMiniatures
+        <PostMiniatureList
             post_vec
             is_loading
             load_error

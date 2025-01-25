@@ -21,12 +21,12 @@ use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
 use crate::icons::{EditIcon, LoadingIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
-use crate::ranking::{SortType, Vote, VotePanel};
+use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::satellite::SATELLITE_ROUTE_PREFIX;
 use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
 use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
-use crate::widget::{AuthorWidget, CommentCountWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentCountWidget, LoadIndicators, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -1070,6 +1070,78 @@ fn PostWidgetBar(
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
         </div>
+    }
+}
+
+/// Component to display a vector of sphere posts and indicate when more need to be loaded
+#[component]
+pub fn PostMiniatureList(
+    /// signal containing the posts to display
+    #[prop(into)]
+    post_vec: Signal<Vec<PostWithSphereInfo>>,
+    /// signal indicating new posts are being loaded
+    #[prop(into)]
+    is_loading: Signal<bool>,
+    /// signal containing an eventual loading error in order to display it
+    #[prop(into)]
+    load_error: Signal<Option<AppError>>,
+    /// signal to request loading additional posts
+    additional_load_count: RwSignal<i64>,
+    /// reference to the container of the posts in order to reset scroll position when context changes
+    list_ref: NodeRef<html::Ul>,
+    #[prop(default = true)]
+    show_sphere_header: bool,
+) -> impl IntoView {
+    view! {
+        <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20"
+            on:scroll=move |_| match list_ref.get() {
+                Some(node_ref) => {
+                    if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
+                        additional_load_count.update(|value| *value += 1);
+                    }
+                },
+                None => log::error!("Sphere container 'ul' node failed to load."),
+            }
+            node_ref=list_ref
+        >
+            <For
+                // a function that returns the items we're iterating over; a signal is fine
+                each= move || post_vec.get().into_iter().enumerate()
+                // a unique key for each item as a reference
+                key=|(_index, post)| post.post.post_id
+                // renders each item to a view
+                children=move |(_key, post_info)| {
+                    let post = post_info.post;
+                    let sphere_header = match show_sphere_header {
+                        true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
+                        false => None,
+                    };
+                    let post_path = get_post_path(&post.sphere_name, post.satellite_id, post.post_id);
+                    view! {
+                        <li>
+                            <a href=post_path>
+                                <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
+                                    <h2 class="card-title pl-1">{post.title.clone()}</h2>
+                                    <PostBadgeList
+                                        sphere_header
+                                        sphere_category=post_info.sphere_category
+                                        is_spoiler=post.is_spoiler
+                                        is_nsfw=post.is_nsfw
+                                    />
+                                    <div class="flex gap-1">
+                                        <ScoreIndicator score=post.score/>
+                                        <CommentCountWidget count=post.num_comments/>
+                                        <AuthorWidget author=post.creator_name.clone() is_moderator=post.is_creator_moderator/>
+                                        <TimeSinceWidget timestamp=post.create_timestamp/>
+                                    </div>
+                                </div>
+                            </a>
+                        </li>
+                    }
+                }
+            />
+            <LoadIndicators load_error is_loading/>
+        </ul>
     }
 }
 

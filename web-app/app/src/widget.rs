@@ -13,6 +13,7 @@ use crate::app::GlobalState;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
+use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
 
@@ -535,6 +536,28 @@ pub fn TitleCollapse<C: IntoView + 'static>(
             }
             </div>
         </div>
+    }
+}
+
+/// Component to display a loading indicator or error depending on the input signals
+#[component]
+pub fn LoadIndicators(
+    load_error: Signal<Option<AppError>>,
+    is_loading: Signal<bool>,
+) -> impl IntoView {
+    view! {
+        <Show when=move || load_error.read().is_some()>
+        {
+            let mut outside_errors = Errors::default();
+            outside_errors.insert_with_default_key(load_error.get().unwrap());
+            view! {
+                <li><div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div></li>
+            }
+        }
+        </Show>
+        <Show when=is_loading>
+            <li><LoadingIcon/></li>
+        </Show>
     }
 }
 

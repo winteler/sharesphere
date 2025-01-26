@@ -27,7 +27,7 @@ use crate::{
     post::ssr::increment_post_comment_count,
     ranking::{ssr::vote_on_content, VoteValue},
 };
-use crate::post::{get_post_path};
+use crate::post::{get_post_path, Post};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
@@ -86,6 +86,21 @@ pub struct CommentWithContext {
 pub enum CommentSortType {
     Best,
     Recent,
+}
+
+impl CommentWithContext {
+    pub fn from_comment(
+        comment: Comment,
+        sphere_header: SphereHeader,
+        post: &Post,
+    ) -> CommentWithContext {
+        CommentWithContext {
+            comment,
+            sphere_header,
+            satellite_id: post.satellite_id,
+            post_title: post.title.clone(),
+        }
+    }
 }
 
 impl fmt::Display for CommentSortType {

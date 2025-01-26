@@ -4,99 +4,17 @@ pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::comment;
 use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_sphere};
-use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
+use app::comment::{CommentSortType, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::post::ssr::get_post_by_id;
-use app::ranking::{SortType, Vote, VoteValue};
+use app::ranking::{SortType};
 use app::user::User;
+use crate::utils::{get_vote_from_comment_num, test_comment_vec};
 
 mod common;
 mod data_factory;
-
-fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
-    match comment_num % 3 {
-        0 => Some(VoteValue::Down),
-        1 => None,
-        _ => Some(VoteValue::Up),
-    }
-}
-
-fn test_comment_and_vote(
-    comment_with_children: &CommentWithChildren,
-    expected_user_id: i64,
-    expected_post_id: i64,
-) {
-    // Test current comment
-    assert_eq!(comment_with_children.comment.creator_id, expected_user_id);
-    assert_eq!(comment_with_children.comment.post_id, expected_post_id);
-
-    // Test associated vote
-    let comment_num = comment_with_children
-        .comment
-        .body
-        .parse::<usize>()
-        .expect("Comment number in body should be parsable.");
-    let expected_vote_value = get_vote_from_comment_num(comment_num);
-    if let Some(expected_vote_value) = expected_vote_value {
-        let vote: Vote = comment_with_children
-            .vote
-            .clone()
-            .expect(format!("Comment {comment_num} should have a vote.").as_str());
-        assert_eq!(vote.value, expected_vote_value);
-        assert_eq!(vote.user_id, expected_user_id);
-        assert_eq!(vote.post_id, expected_post_id);
-        assert_eq!(vote.comment_id, Some(comment_with_children.comment.comment_id));
-    } else {
-        assert!(comment_with_children.vote.is_none());
-    }
-}
-
-fn test_comment_vec(
-    comment_vec: &[CommentWithChildren],
-    sort_type: CommentSortType,
-    expected_parent_id: Option<i64>,
-    expected_user_id: i64,
-    expected_post_id: i64,
-) {
-    for (index, child_comment) in comment_vec.iter().enumerate() {
-        // Test that parent id is correct
-        assert_eq!(
-            child_comment.comment.parent_id,
-            expected_parent_id,
-        );
-        // Test that the child comments are correctly sorted
-        if index > 0 {
-            let previous_child_comment = comment_vec.get(index - 1);
-            assert!(previous_child_comment.is_some());
-            let previous_child_comment = previous_child_comment.unwrap();
-            assert!(previous_child_comment.comment.is_pinned || !child_comment.comment.is_pinned);
-            assert!(
-                (
-                    previous_child_comment.comment.is_pinned && !child_comment.comment.is_pinned
-                ) || match sort_type {
-                    CommentSortType::Best =>
-                        child_comment.comment.score <= previous_child_comment.comment.score,
-                    CommentSortType::Recent =>
-                        child_comment.comment.create_timestamp
-                            <= previous_child_comment.comment.create_timestamp,
-                }
-            );
-        }
-        test_comment_with_children(child_comment, sort_type, expected_user_id, expected_post_id);
-    }
-}
-
-fn test_comment_with_children(
-    comment_with_children: &CommentWithChildren,
-    sort_type: CommentSortType,
-    expected_user_id: i64,
-    expected_post_id: i64,
-) {
-    test_comment_and_vote(comment_with_children, expected_user_id, expected_post_id);
-    // Test child comments
-    test_comment_vec(&comment_with_children.child_comments, sort_type, Some(comment_with_children.comment.comment_id), expected_user_id, expected_post_id);
-}
+mod utils;
 
 #[tokio::test]
 async fn test_get_comment_by_id() -> Result<(), AppError> {
@@ -143,7 +61,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     let num_comments = 200;
     let mut rng = rand::thread_rng();
 
-    let post = create_post_with_comments(
+    let (post, _) = create_post_with_comments(
         sphere_name,
         "Post with comments",
         num_comments,
@@ -155,7 +73,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         (0..num_comments).map(get_vote_from_comment_num).collect(),
         &user,
         &db_pool
-    ).await?;
+    ).await;
 
     // reload user to refresh moderator permissions
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");

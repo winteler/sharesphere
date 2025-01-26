@@ -1,13 +1,15 @@
+use app::comment::{CommentSortType, CommentWithContext};
+use app::comment::ssr::create_comment;
 use app::embed::Link;
 use app::errors::AppError;
 use app::post::{PostWithSphereInfo};
 use app::post::ssr::create_post;
-use app::profile::ssr::{get_user_post_vec};
-use app::ranking::SortType;
+use app::profile::ssr::{get_user_comment_vec, get_user_post_vec};
+use app::ranking::{SortType, VoteValue};
 use app::satellite::ssr::create_satellite;
 
 use crate::common::{create_user, get_db_pool};
-use crate::data_factory::create_sphere_with_posts;
+use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts};
 use crate::utils::{sort_post_vec, test_post_vec, POST_SORT_TYPE_ARRAY};
 
 mod common;
@@ -100,4 +102,63 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
     }
     
     Ok(())
+}
+
+#[tokio::test]
+async fn test_get_user_comment_vec() {
+    let db_pool = get_db_pool().await;
+    let mut user_1 = create_user("1", &db_pool).await;
+    let mut user_2 = create_user("2", &db_pool).await;
+
+    let sphere1_name = "1";
+    let sphere2_name = "2";
+    let num_comments = 10usize;
+
+    let mut user_1_expected_comment_vec = Vec::new();
+    let (_, _, user_1_comment) = create_sphere_with_post_and_comment(sphere1_name, &mut user_1, &db_pool).await;
+    let (sphere_2, user_2_post, user_2_comment) = create_sphere_with_post_and_comment(sphere2_name, &mut user_2, &db_pool).await;
+
+    user_1_expected_comment_vec.push(user_1_comment);
+    user_1_expected_comment_vec.push(
+        create_comment(user_2_post.post_id, None, "user_1_comment", None, false, &user_1, &db_pool).await.expect(
+            "Should create comment in user_2_post"
+        ),
+    );
+    let (_, mut user_1_post_comment_vec) = create_post_with_comments(
+        sphere2_name,
+        "user_1_post",
+        num_comments,
+        (1..num_comments+1).map(|i| match i {
+            i if i > 2 && (i % 2 == 0) => Some((i%2+1) as i64),
+            _ => None,
+        }).collect(),
+        (0..(num_comments as i32)).collect(),
+        (0..num_comments).map(|i| match i {
+            i if i > 2 && (i % 2 == 0) => Some(VoteValue::Up),
+            _ => None,
+        }).collect(),
+        &user_1,
+        &db_pool
+    ).await;
+    user_1_expected_comment_vec.append(&mut user_1_post_comment_vec);
+
+    let user_2_comment_vec = get_user_comment_vec(
+        &user_2.username,
+        SortType::Comment(CommentSortType::Best),
+        num_comments as i64,
+        0,
+        &db_pool,
+    ).await.expect("Should get user 2 comments");
+
+    assert_eq!(user_2_comment_vec.len(), 1);
+    assert_eq!(
+        user_2_comment_vec.first(),
+        Some(&CommentWithContext::from_comment(
+            user_2_comment,
+            (&sphere_2).into(),
+            &user_2_post,
+        ))
+    );
+
+
 }

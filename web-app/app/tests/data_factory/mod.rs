@@ -232,7 +232,7 @@ pub async fn create_post_with_comments(
     vote_vec: Vec<Option<VoteValue>>,
     user: &User,
     db_pool: &PgPool,
-) -> Result<Post, AppError> {
+) -> (Post, Vec<Comment>) {
     let post = post::ssr::create_post(
         sphere_name,
         None,
@@ -246,9 +246,9 @@ pub async fn create_post_with_comments(
         None,
         user,
         db_pool,
-    ).await?;
+    ).await.expect("Post should be created");
 
-    let mut comment_id_vec = Vec::<i64>::new();
+    let mut comment_vec = Vec::new();
 
     for i in 0..num_comments {
         let parent_id = parent_index_vec.get(i).cloned().unwrap_or(None);
@@ -261,13 +261,10 @@ pub async fn create_post_with_comments(
             false,
             user,
             db_pool,
-        ).await?;
-
-        comment_id_vec.push(comment.comment_id);
-
+        ).await.expect("Comment should be created");
 
         if let Some(score) = score_vec.get(i) {
-            set_comment_score(comment.comment_id, *score, db_pool).await?;
+            set_comment_score(comment.comment_id, *score, db_pool).await.expect("Comment score should be set");
         }
 
         if let Some(Some(vote)) = vote_vec.get(i) {
@@ -278,11 +275,13 @@ pub async fn create_post_with_comments(
                 None,
                 user,
                 db_pool,
-            ).await?;
+            ).await.expect("Vote should be set");
         }
+
+        comment_vec.push(comment);
     }
 
-    Ok(post)
+    (post, comment_vec)
 }
 
 pub async fn set_post_score(

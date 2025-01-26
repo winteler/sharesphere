@@ -494,7 +494,7 @@ async fn populate_dev_db() -> Result<(), AppError> {
     let num_comments = 200;
     let mut rng = rand::thread_rng();
 
-    let post = create_post_with_comments(
+    let (post, _) = create_post_with_comments(
         sphere_name,
         "Post with comments",
         num_comments,
@@ -506,7 +506,7 @@ async fn populate_dev_db() -> Result<(), AppError> {
         (0..num_comments).map(|_| None).collect(),
         &test_user,
         &db_pool
-    ).await?;
+    ).await;
 
     set_post_score(post.post_id, 200, &db_pool).await?;
 

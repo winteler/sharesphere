@@ -2,9 +2,9 @@
 
 use std::convert::Infallible;
 
-use app::comment::Comment;
+use app::comment::{Comment, CommentSortType, CommentWithChildren};
 use app::errors::AppError;
-use app::ranking::Vote;
+use app::ranking::{Vote, VoteValue};
 use bytes::Bytes;
 use float_cmp::approx_eq;
 use futures_util::stream::once;
@@ -93,6 +93,90 @@ pub fn test_post_score(post: &Post) {
     assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score as f32, epsilon = f32::EPSILON, ulps = 5));
     println!("Trending: {}, expected: {}", post.trending_score, expected_trending_score);
     assert!(approx_eq!(f32, post.trending_score, expected_trending_score as f32, epsilon = f32::EPSILON, ulps = 5));
+}
+
+pub fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
+    match comment_num % 3 {
+        0 => Some(VoteValue::Down),
+        1 => None,
+        _ => Some(VoteValue::Up),
+    }
+}
+
+pub fn test_comment_and_vote(
+    comment_with_children: &CommentWithChildren,
+    expected_user_id: i64,
+    expected_post_id: i64,
+) {
+    // Test current comment
+    assert_eq!(comment_with_children.comment.creator_id, expected_user_id);
+    assert_eq!(comment_with_children.comment.post_id, expected_post_id);
+
+    // Test associated vote
+    let comment_num = comment_with_children
+        .comment
+        .body
+        .parse::<usize>()
+        .expect("Comment number in body should be parsable.");
+    let expected_vote_value = get_vote_from_comment_num(comment_num);
+    if let Some(expected_vote_value) = expected_vote_value {
+        let vote: Vote = comment_with_children
+            .vote
+            .clone()
+            .expect(format!("Comment {comment_num} should have a vote.").as_str());
+        assert_eq!(vote.value, expected_vote_value);
+        assert_eq!(vote.user_id, expected_user_id);
+        assert_eq!(vote.post_id, expected_post_id);
+        assert_eq!(vote.comment_id, Some(comment_with_children.comment.comment_id));
+    } else {
+        assert!(comment_with_children.vote.is_none());
+    }
+}
+
+pub fn test_comment_vec(
+    comment_vec: &[CommentWithChildren],
+    sort_type: CommentSortType,
+    expected_parent_id: Option<i64>,
+    expected_user_id: i64,
+    expected_post_id: i64,
+) {
+    for (index, child_comment) in comment_vec.iter().enumerate() {
+        // Test that parent id is correct
+        assert_eq!(
+            child_comment.comment.parent_id,
+            expected_parent_id,
+        );
+        // Test that the child comments are correctly sorted
+        if index > 0 {
+            let previous_child_comment = comment_vec.get(index - 1);
+            assert!(previous_child_comment.is_some());
+            let previous_child_comment = previous_child_comment.unwrap();
+            assert!(previous_child_comment.comment.is_pinned || !child_comment.comment.is_pinned);
+            assert!(
+                (
+                    previous_child_comment.comment.is_pinned && !child_comment.comment.is_pinned
+                ) || match sort_type {
+                    CommentSortType::Best =>
+                        child_comment.comment.score <= previous_child_comment.comment.score,
+                    CommentSortType::Recent =>
+                        child_comment.comment.create_timestamp
+                            <= previous_child_comment.comment.create_timestamp,
+                }
+            );
+        }
+        test_comment_with_children(child_comment, sort_type, expected_user_id, expected_post_id);
+    }
+}
+
+pub fn test_comment_with_children(
+    comment_with_children: &CommentWithChildren,
+    sort_type: CommentSortType,
+    expected_user_id: i64,
+    expected_post_id: i64,
+) {
+    test_comment_and_vote(comment_with_children, expected_user_id, expected_post_id);
+    // Test child comments
+    test_comment_vec(&comment_with_children.child_comments, sort_type, Some(comment_with_children.comment.comment_id), expected_user_id, expected_post_id);
 }
 
 pub async fn get_comment_by_id(

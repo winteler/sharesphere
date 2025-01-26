@@ -2,7 +2,7 @@
 
 use std::convert::Infallible;
 
-use app::comment::{Comment, CommentSortType, CommentWithChildren};
+use app::comment::{Comment, CommentSortType, CommentWithChildren, CommentWithContext};
 use app::errors::AppError;
 use app::ranking::{Vote, VoteValue};
 use bytes::Bytes;
@@ -18,6 +18,11 @@ pub const POST_SORT_TYPE_ARRAY: [PostSortType; 4] = [
     PostSortType::Trending,
     PostSortType::Best,
     PostSortType::Recent,
+];
+
+pub const COMMENT_SORT_TYPE_ARRAY: [CommentSortType; 2] = [
+    CommentSortType::Best,
+    CommentSortType::Recent,
 ];
 
 pub fn sort_post_vec(
@@ -95,6 +100,49 @@ pub fn test_post_score(post: &Post) {
     assert!(approx_eq!(f32, post.trending_score, expected_trending_score as f32, epsilon = f32::EPSILON, ulps = 5));
 }
 
+pub fn sort_comment_vec(
+    comment_vec: &mut [CommentWithContext],
+    sort_type: CommentSortType,
+) {
+    match sort_type {
+        CommentSortType::Best => comment_vec.sort_by(|l, r| r.comment.score.partial_cmp(&l.comment.score).unwrap()),
+        CommentSortType::Recent => comment_vec.sort_by(|l, r| r.comment.create_timestamp.partial_cmp(&l.comment.create_timestamp).unwrap()),
+    }
+}
+
+pub fn test_comment_vec(
+    comment_vec: &[CommentWithContext],
+    expected_comment_vec: &[CommentWithContext],
+    sort_type: CommentSortType,
+) {
+    assert_eq!(comment_vec.len(), expected_comment_vec.iter().len());
+    // Check that all expected comment are present
+    for (i, expected_comment) in expected_comment_vec.iter().enumerate() {
+        let has_comment = comment_vec.contains(expected_comment);
+        if !has_comment {
+            println!("Missing expected comment {i}: {:?}", expected_comment);
+        }
+        assert!(has_comment);
+
+    }
+    // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple comments
+    for (index, (comment_with_info, expected_comment_with_info)) in comment_vec.iter().zip(expected_comment_vec.iter()).enumerate() {
+        let comment = &comment_with_info.comment;
+        let expected_comment = &expected_comment_with_info.comment;
+        assert!(match sort_type {
+            CommentSortType::Best => comment.score == expected_comment.score,
+            CommentSortType::Recent => comment.create_timestamp == expected_comment.create_timestamp,
+        });
+        if index > 0 {
+            let previous_comment = &comment_vec[index - 1].comment;
+            assert!(match sort_type {
+                CommentSortType::Best => comment.score <= previous_comment.score,
+                CommentSortType::Recent => comment.create_timestamp <= previous_comment.create_timestamp,
+            });
+        }
+    }
+}
+
 pub fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
     match comment_num % 3 {
         0 => Some(VoteValue::Down),
@@ -133,7 +181,7 @@ pub fn test_comment_and_vote(
     }
 }
 
-pub fn test_comment_vec(
+pub fn test_comment_tree(
     comment_vec: &[CommentWithChildren],
     sort_type: CommentSortType,
     expected_parent_id: Option<i64>,
@@ -176,7 +224,7 @@ pub fn test_comment_with_children(
 ) {
     test_comment_and_vote(comment_with_children, expected_user_id, expected_post_id);
     // Test child comments
-    test_comment_vec(&comment_with_children.child_comments, sort_type, Some(comment_with_children.comment.comment_id), expected_user_id, expected_post_id);
+    test_comment_tree(&comment_with_children.child_comments, sort_type, Some(comment_with_children.comment.comment_id), expected_user_id, expected_post_id);
 }
 
 pub async fn get_comment_by_id(

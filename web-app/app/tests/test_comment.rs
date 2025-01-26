@@ -10,7 +10,7 @@ use app::errors::AppError;
 use app::post::ssr::get_post_by_id;
 use app::ranking::{SortType};
 use app::user::User;
-use crate::utils::{get_vote_from_comment_num, test_comment_vec};
+use crate::utils::{get_vote_from_comment_num, test_comment_tree, COMMENT_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -79,9 +79,8 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
     let pinned_comment = create_comment(post.post_id, None, "1", None, true, &user, &db_pool).await?;
 
-    let comment_sort_type_array = [CommentSortType::Best, CommentSortType::Recent];
-
-    for sort_type in comment_sort_type_array {
+    // TODO refactor to test similarly to posts
+    for sort_type in COMMENT_SORT_TYPE_ARRAY {
         let comment_tree = comment::ssr::get_post_comment_tree(
             post.post_id,
             SortType::Comment(sort_type),
@@ -94,7 +93,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         assert_eq!(comment_tree.is_empty(), false);
         assert_eq!(comment_tree[0].comment, pinned_comment);
 
-        test_comment_vec(&comment_tree, sort_type, None, user.user_id, post.post_id);
+        test_comment_tree(&comment_tree, sort_type, None, user.user_id, post.post_id);
         
         let offset_comment_tree = comment::ssr::get_post_comment_tree(
             post.post_id,
@@ -119,7 +118,7 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
                     init_load_last_comment.comment.create_timestamp >= offset_load_first_comment.comment.create_timestamp,
             }
         );
-        test_comment_vec(&offset_comment_tree, sort_type, None, user.user_id, post.post_id);
+        test_comment_tree(&offset_comment_tree, sort_type, None, user.user_id, post.post_id);
     }
 
     Ok(())

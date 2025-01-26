@@ -10,7 +10,7 @@ use app::satellite::ssr::create_satellite;
 
 use crate::common::{create_user, get_db_pool};
 use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts};
-use crate::utils::{sort_post_vec, test_post_vec, POST_SORT_TYPE_ARRAY};
+use crate::utils::{sort_comment_vec, sort_post_vec, test_comment_vec, test_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -115,16 +115,31 @@ async fn test_get_user_comment_vec() {
     let num_comments = 10usize;
 
     let mut user_1_expected_comment_vec = Vec::new();
-    let (_, _, user_1_comment) = create_sphere_with_post_and_comment(sphere1_name, &mut user_1, &db_pool).await;
+    let (sphere_1, user_1_post, user_1_comment) = create_sphere_with_post_and_comment(sphere1_name, &mut user_1, &db_pool).await;
     let (sphere_2, user_2_post, user_2_comment) = create_sphere_with_post_and_comment(sphere2_name, &mut user_2, &db_pool).await;
 
-    user_1_expected_comment_vec.push(user_1_comment);
+    user_1_expected_comment_vec.push(CommentWithContext::from_comment(
+        user_1_comment,
+        (&sphere_1).into(),
+        &user_1_post,
+    ));
+    let user_1_comment_2 = create_comment(
+        user_2_post.post_id,
+        None,
+        "user_1_comment",
+        None,
+        false,
+        &user_1,
+        &db_pool
+    ).await.expect("Should create comment in user_2_post");
     user_1_expected_comment_vec.push(
-        create_comment(user_2_post.post_id, None, "user_1_comment", None, false, &user_1, &db_pool).await.expect(
-            "Should create comment in user_2_post"
-        ),
+        CommentWithContext::from_comment(
+            user_1_comment_2,
+            (&sphere_2).into(),
+            &user_2_post,
+        )
     );
-    let (_, mut user_1_post_comment_vec) = create_post_with_comments(
+    let (user_1_post_2, user_1_post_comment_vec) = create_post_with_comments(
         sphere2_name,
         "user_1_post",
         num_comments,
@@ -140,7 +155,35 @@ async fn test_get_user_comment_vec() {
         &user_1,
         &db_pool
     ).await;
-    user_1_expected_comment_vec.append(&mut user_1_post_comment_vec);
+    user_1_expected_comment_vec.append(&mut user_1_post_comment_vec.into_iter().map(|comment|
+        CommentWithContext::from_comment(
+            comment,
+            (&sphere_2).into(),
+            &user_1_post_2,
+        )
+    ).collect());
+
+    for sort_type in COMMENT_SORT_TYPE_ARRAY {
+        println!("Sort comments by: {sort_type:?}");
+        let user_1_comment_vec_1 = get_user_comment_vec(
+            &user_1.username,
+            SortType::Comment(sort_type),
+            num_comments as i64,
+            0,
+            &db_pool
+        ).await.expect("First comment vec should be loaded");
+        let user_1_comment_vec_2 = get_user_comment_vec(
+            &user_1.username,
+            SortType::Comment(sort_type),
+            num_comments as i64,
+            num_comments as i64,
+            &db_pool
+        ).await.expect("Second post vec should be loaded");
+        sort_comment_vec(&mut user_1_expected_comment_vec, sort_type);
+        println!("Sorted comments: {user_1_comment_vec_1:?}");
+        test_comment_vec(&user_1_comment_vec_1, &user_1_expected_comment_vec[..num_comments], sort_type);
+        test_comment_vec(&user_1_comment_vec_2, &user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()], sort_type);
+    }
 
     let user_2_comment_vec = get_user_comment_vec(
         &user_2.username,
@@ -159,6 +202,4 @@ async fn test_get_user_comment_vec() {
             &user_2_post,
         ))
     );
-
-
 }

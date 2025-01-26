@@ -14,7 +14,7 @@ use app::sphere::Sphere;
 use app::sphere_category::SphereCategory;
 use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::User;
-use app::{comment, post, ranking, sphere, sphere_category};
+use app::{post, ranking, sphere, sphere_category};
 use app::embed::Link;
 
 pub async fn create_sphere_with_post(
@@ -253,7 +253,7 @@ pub async fn create_post_with_comments(
     for i in 0..num_comments {
         let parent_id = parent_index_vec.get(i).cloned().unwrap_or(None);
 
-        let comment = comment::ssr::create_comment(
+        let mut comment = create_comment(
             post.post_id,
             parent_id,
             i.to_string().as_str(),
@@ -262,10 +262,6 @@ pub async fn create_post_with_comments(
             user,
             db_pool,
         ).await.expect("Comment should be created");
-
-        if let Some(score) = score_vec.get(i) {
-            set_comment_score(comment.comment_id, *score, db_pool).await.expect("Comment score should be set");
-        }
 
         if let Some(Some(vote)) = vote_vec.get(i) {
             ranking::ssr::vote_on_content(
@@ -276,6 +272,10 @@ pub async fn create_post_with_comments(
                 user,
                 db_pool,
             ).await.expect("Vote should be set");
+        }
+
+        if let Some(score) = score_vec.get(i) {
+            comment = set_comment_score(comment.comment_id, *score, db_pool).await.expect("Comment score should be set");
         }
 
         comment_vec.push(comment);

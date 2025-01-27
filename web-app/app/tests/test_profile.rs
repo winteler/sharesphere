@@ -10,7 +10,7 @@ use app::satellite::ssr::create_satellite;
 
 use crate::common::{create_user, get_db_pool};
 use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts};
-use crate::utils::{sort_comment_vec, sort_post_vec, test_comment_vec, test_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
+use crate::utils::{sort_comment_vec, sort_post_vec, test_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -139,12 +139,12 @@ async fn test_get_user_comment_vec() {
             &user_2_post,
         )
     );
-    let (user_1_post_2, user_1_post_comment_vec) = create_post_with_comments(
+    let (user_1_post_2, user_1_post_comment_vec, _) = create_post_with_comments(
         sphere2_name,
         "user_1_post",
         num_comments,
-        (1..num_comments+1).map(|i| match i {
-            i if i > 2 && (i % 2 == 0) => Some((i%2+1) as i64),
+        (0..num_comments).map(|i| match i {
+            i if i > 1 && (i % 2 == 0) => Some(i%2),
             _ => None,
         }).collect(),
         (0..(num_comments as i32)).collect(),
@@ -180,9 +180,10 @@ async fn test_get_user_comment_vec() {
             &db_pool
         ).await.expect("Second post vec should be loaded");
         sort_comment_vec(&mut user_1_expected_comment_vec, sort_type);
-        println!("Sorted comments: {user_1_comment_vec_1:?}");
-        test_comment_vec(&user_1_comment_vec_1, &user_1_expected_comment_vec[..num_comments], sort_type);
-        test_comment_vec(&user_1_comment_vec_2, &user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()], sort_type);
+        assert_eq!(user_1_comment_vec_1, user_1_expected_comment_vec[..num_comments]);
+        assert_eq!(user_1_comment_vec_2, user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()]);
+        //test_comment_vec(&user_1_comment_vec_1, &user_1_expected_comment_vec[..num_comments], sort_type);
+        //test_comment_vec(&user_1_comment_vec_2, &user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()], sort_type);
     }
 
     let user_2_comment_vec = get_user_comment_vec(

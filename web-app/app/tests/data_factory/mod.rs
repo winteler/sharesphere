@@ -1,13 +1,14 @@
 #![allow(dead_code)]
 
+use std::collections::HashMap;
 use sqlx::PgPool;
 
 use app::colors::Color;
 use app::comment::ssr::create_comment;
-use app::comment::Comment;
+use app::comment::{Comment, CommentWithChildren};
 use app::errors::AppError;
 use app::post::{Post, PostWithSphereInfo};
-use app::ranking::VoteValue;
+use app::ranking::{Vote, VoteValue};
 use app::satellite::ssr::create_satellite;
 use app::satellite::Satellite;
 use app::sphere::Sphere;
@@ -227,12 +228,12 @@ pub async fn create_post_with_comments(
     sphere_name: &str,
     post_title: &str,
     num_comments: usize,
-    parent_index_vec: Vec<Option<i64>>,
+    parent_index_vec: Vec<Option<usize>>,
     score_vec: Vec<i32>,
-    vote_vec: Vec<Option<VoteValue>>,
+    vote_value_vec: Vec<Option<VoteValue>>,
     user: &User,
     db_pool: &PgPool,
-) -> (Post, Vec<Comment>) {
+) -> (Post, Vec<Comment>, Vec<Option<Vote>>) {
     let post = post::ssr::create_post(
         sphere_name,
         None,
@@ -249,9 +250,15 @@ pub async fn create_post_with_comments(
     ).await.expect("Post should be created");
 
     let mut comment_vec = Vec::new();
+    let mut vote_vec = Vec::new();
 
     for i in 0..num_comments {
-        let parent_id = parent_index_vec.get(i).cloned().unwrap_or(None);
+        let parent_index = parent_index_vec.get(i).cloned().unwrap_or(None);
+        let parent_id = parent_index.map(|parent_index| {
+            comment_vec.get(parent_index)
+                .map(|parent: &Comment| parent.comment_id)
+                .expect("Should retrieve parent comment id")
+        });
 
         let mut comment = create_comment(
             post.post_id,
@@ -263,15 +270,22 @@ pub async fn create_post_with_comments(
             db_pool,
         ).await.expect("Comment should be created");
 
-        if let Some(Some(vote)) = vote_vec.get(i) {
-            ranking::ssr::vote_on_content(
-                *vote,
+        if let Some(Some(vote_value)) = vote_value_vec.get(i) {
+            let vote = ranking::ssr::vote_on_content(
+                *vote_value,
                 post.post_id,
                 Some(comment.comment_id),
                 None,
                 user,
                 db_pool,
             ).await.expect("Vote should be set");
+
+            comment.score = match &vote {
+                Some(vote) if vote.value == VoteValue::Up => 1,
+                Some(vote) if vote.value == VoteValue::Down => -1,
+                _ => 0,
+            };
+            vote_vec.push(vote);
         }
 
         if let Some(score) = score_vec.get(i) {
@@ -281,7 +295,39 @@ pub async fn create_post_with_comments(
         comment_vec.push(comment);
     }
 
-    (post, comment_vec)
+    (post, comment_vec, vote_vec)
+}
+
+pub async fn create_post_with_comment_tree(
+    sphere_name: &str,
+    post_title: &str,
+    num_comments: usize,
+    parent_index_vec: Vec<Option<usize>>,
+    score_vec: Vec<i32>,
+    vote_value_vec: Vec<Option<VoteValue>>,
+    user: &User,
+    db_pool: &PgPool,
+) -> (Post, Vec<CommentWithChildren>) {
+    let (post, comment_vec, vote_vec) = create_post_with_comments(sphere_name, post_title, num_comments, parent_index_vec, score_vec, vote_value_vec, user, db_pool).await;
+    let mut comment_map: HashMap<i64, CommentWithChildren> = comment_vec.iter().enumerate().map(|(i, comment)| (comment.comment_id, CommentWithChildren {
+        comment: comment.clone(),
+        vote: vote_vec.get(i).cloned().unwrap_or(None),
+        child_comments: Vec::new()
+    })).collect();
+
+    let mut comment_tree = Vec::new();
+
+    for comment in comment_vec.iter().rev() {
+        let comment_with_children = comment_map.get(&comment.comment_id).expect("Comment should be in map").clone();
+        if let Some(parent_id) = comment_with_children.comment.parent_id {
+            let parent_comment = comment_map.get_mut(&parent_id).expect("Parent should be in map");
+            parent_comment.child_comments.push(comment_with_children);
+        } else {
+            comment_tree.push(comment_with_children);
+        }
+    };
+
+    (post, comment_tree)
 }
 
 pub async fn set_post_score(

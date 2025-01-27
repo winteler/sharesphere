@@ -494,12 +494,12 @@ async fn populate_dev_db() -> Result<(), AppError> {
     let num_comments = 200;
     let mut rng = rand::thread_rng();
 
-    let (post, _) = create_post_with_comments(
+    let (post, _, _) = create_post_with_comments(
         sphere_name,
         "Post with comments",
         num_comments,
-        (1..num_comments+1).map(|i| match i {
-            i if i > 2 && (i % 2 == 0) => Some(rng.gen_range(0..((i-1) as i64))+1),
+        (0..num_comments).map(|i| match i {
+            i if i > 1 && (i % 2 == 0) => Some(rng.gen_range(0..i-1)),
             _ => None,
         }).collect(),
         (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),

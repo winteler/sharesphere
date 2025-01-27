@@ -50,7 +50,6 @@ pub fn test_post_vec(
             println!("Missing expected post {i}: {:?}", expected_post);
         }
         assert!(has_post);
-
     }
     // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple posts
     for (index, (post_with_info, expected_post_with_info)) in post_vec.iter().zip(expected_post_vec.iter()).enumerate() {
@@ -107,6 +106,20 @@ pub fn sort_comment_vec(
     match sort_type {
         CommentSortType::Best => comment_vec.sort_by(|l, r| r.comment.score.partial_cmp(&l.comment.score).unwrap()),
         CommentSortType::Recent => comment_vec.sort_by(|l, r| r.comment.create_timestamp.partial_cmp(&l.comment.create_timestamp).unwrap()),
+    }
+}
+
+pub fn sort_comment_tree(
+    comment_vec: &mut [CommentWithChildren],
+    sort_type: CommentSortType,
+) {
+    match sort_type {
+        CommentSortType::Best => comment_vec.sort_by(|l, r| r.comment.score.partial_cmp(&l.comment.score).unwrap()),
+        CommentSortType::Recent => comment_vec.sort_by(|l, r| r.comment.create_timestamp.partial_cmp(&l.comment.create_timestamp).unwrap()),
+    }
+
+    for comment in comment_vec.iter_mut() {
+        sort_comment_tree(&mut comment.child_comments, sort_type);
     }
 }
 

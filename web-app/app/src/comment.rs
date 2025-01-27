@@ -127,9 +127,7 @@ pub mod ssr {
 
     use super::*;
 
-    #[derive(
-        Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize,
-    )]
+    #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
     pub struct CommentWithVote {
         #[sqlx(flatten)]
         pub comment: Comment,

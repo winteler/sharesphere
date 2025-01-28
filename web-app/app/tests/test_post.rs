@@ -370,8 +370,8 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
             0,
             &db_pool,
         ).await?;
-        sort_post_vec(&mut expected_post_vec, sort_type);
-        test_post_vec(&post_vec, &expected_post_vec, sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type, true);
+        test_post_vec(&post_vec, &expected_post_vec);
     }
 
     // test banned post are not returned
@@ -497,9 +497,9 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
             num_post as i64,
             &db_pool
         ).await.expect("Second post vec should be loaded");
-        sort_post_vec(&mut expected_post_vec, sort_type);
-        test_post_vec(&post_vec, &expected_post_vec[..num_post], sort_type);
-        test_post_vec(&second_post_vec, &expected_post_vec[num_post..2*num_post], sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type, true);
+        test_post_vec(&post_vec, &expected_post_vec[..num_post]);
+        test_post_vec(&second_post_vec, &expected_post_vec[num_post..2*num_post]);
     }
 
     // Moderate post, test that it is no longer in the result
@@ -568,6 +568,8 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         &db_pool
     ).await.expect("Post 1 with category should be created.");
 
+    let category_post_1 = set_post_score(category_post_1.post_id, -50, &db_pool).await.expect("Post score should be set.");
+
     expected_post_vec.push(PostWithSphereInfo::from_post(
         category_post_1,
         Some(sphere_category_2.clone().into()),
@@ -603,7 +605,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
 
     let load_count = 15;
     for sort_type in POST_SORT_TYPE_ARRAY {
-        sort_post_vec(&mut expected_post_vec, sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type, true);
         let post_vec = ssr::get_post_vec_by_sphere_name(
             sphere_name,
             None,
@@ -620,7 +622,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
             });
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        test_post_vec(&post_vec, &expected_post_vec[..load_count], sort_type);
+        test_post_vec(&post_vec, &expected_post_vec[..load_count]);
         
         let second_post_vec = ssr::get_post_vec_by_sphere_name(
             sphere_name,
@@ -637,7 +639,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
             });
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        test_post_vec(&second_post_vec, &expected_post_vec[load_count..(num_posts + 1)], sort_type);
+        test_post_vec(&second_post_vec, &expected_post_vec[load_count..(num_posts + 1)]);
     }
 
     user.admin_role = AdminRole::Admin;
@@ -792,8 +794,8 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
             let sphere_category = post.category_id.map(|_| sphere_category.clone().into());
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        sort_post_vec(&mut expected_post_vec, sort_type);
-        test_post_vec(&category_post_vec, &expected_post_vec, sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type, true);
+        test_post_vec(&category_post_vec, &expected_post_vec);
     }
 
     Ok(())
@@ -867,7 +869,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
 
     let load_count = 15;
     for sort_type in POST_SORT_TYPE_ARRAY {
-        sort_post_vec(&mut expected_post_vec, sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type, true);
         let post_vec = ssr::get_post_vec_by_satellite_id(
             satellite_1.satellite_id,
             None,
@@ -884,7 +886,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
 
-        test_post_vec(&post_vec, &expected_post_vec[..load_count], sort_type);
+        test_post_vec(&post_vec, &expected_post_vec[..load_count]);
 
         let second_post_vec = ssr::get_post_vec_by_satellite_id(
             satellite_1.satellite_id,
@@ -901,7 +903,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
             });
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        test_post_vec(&second_post_vec, &expected_post_vec[load_count..num_posts], sort_type);
+        test_post_vec(&second_post_vec, &expected_post_vec[load_count..num_posts]);
     }
 
     user.admin_role = AdminRole::Admin;
@@ -1086,8 +1088,8 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
             let sphere_category = post.category_id.map(|_| sphere_category.clone().into());
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        sort_post_vec(&mut expected_post_vec, sort_type);
-        test_post_vec(&category_post_vec, &expected_post_vec, sort_type);
+        sort_post_vec(&mut expected_post_vec, sort_type, true);
+        test_post_vec(&category_post_vec, &expected_post_vec);
     }
 
     Ok(())

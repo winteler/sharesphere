@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
+use std::cmp::Ordering;
 use std::convert::Infallible;
-
+use std::iter::zip;
 use app::comment::{Comment, CommentSortType, CommentWithChildren, CommentWithContext};
 use app::errors::AppError;
 use app::ranking::{Vote, VoteValue};
@@ -28,48 +29,31 @@ pub const COMMENT_SORT_TYPE_ARRAY: [CommentSortType; 2] = [
 pub fn sort_post_vec(
     post_vec: &mut [PostWithSphereInfo],
     sort_type: PostSortType,
+    consider_pinned: bool,
 ) {
-    match sort_type {
-        PostSortType::Hot => post_vec.sort_by(|l, r| r.post.recommended_score.partial_cmp(&l.post.recommended_score).unwrap()),
-        PostSortType::Trending => post_vec.sort_by(|l, r| r.post.trending_score.partial_cmp(&l.post.trending_score).unwrap()),
-        PostSortType::Best => post_vec.sort_by(|l, r| r.post.score.partial_cmp(&l.post.score).unwrap()),
-        PostSortType::Recent => post_vec.sort_by(|l, r| r.post.create_timestamp.partial_cmp(&l.post.create_timestamp).unwrap()),
-    }
+    post_vec.sort_by(|l, r| {
+        match (consider_pinned, l.post.is_pinned, r.post.is_pinned) {
+            (true, true, false) => Ordering::Less,
+            (true, false, true) => Ordering::Greater,
+            _ => match sort_type {
+                PostSortType::Hot => r.post.recommended_score.partial_cmp(&l.post.recommended_score).unwrap(),
+                PostSortType::Trending => r.post.trending_score.partial_cmp(&l.post.trending_score).unwrap(),
+                PostSortType::Best => r.post.score.partial_cmp(&l.post.score).unwrap(),
+                PostSortType::Recent => r.post.create_timestamp.partial_cmp(&l.post.create_timestamp).unwrap(),
+
+            }
+        }
+    });
 }
 
 pub fn test_post_vec(
     post_vec: &[PostWithSphereInfo],
     expected_post_vec: &[PostWithSphereInfo],
-    sort_type: PostSortType,
 ) {
-    assert_eq!(post_vec.len(), expected_post_vec.iter().len());
-    // Check that all expected post are present
-    for (i, expected_post) in expected_post_vec.iter().enumerate() {
-        let has_post = post_vec.contains(expected_post);
-        if !has_post {
-            println!("Missing expected post {i}: {:?}", expected_post);
-        }
-        assert!(has_post);
-    }
-    // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple posts
-    for (index, (post_with_info, expected_post_with_info)) in post_vec.iter().zip(expected_post_vec.iter()).enumerate() {
-        let post = &post_with_info.post;
-        let expected_post = &expected_post_with_info.post;
-        assert!(match sort_type {
-            PostSortType::Hot => post.recommended_score == expected_post.recommended_score,
-            PostSortType::Trending => post.trending_score == expected_post.trending_score,
-            PostSortType::Best => post.score == expected_post.score,
-            PostSortType::Recent => post.create_timestamp == expected_post.create_timestamp,
-        });
-        if index > 0 {
-            let previous_post = &post_vec[index - 1].post;
-            assert!(match sort_type {
-                PostSortType::Hot => post.recommended_score <= previous_post.recommended_score,
-                PostSortType::Trending => post.trending_score <= previous_post.trending_score,
-                PostSortType::Best => post.score <= previous_post.score,
-                PostSortType::Recent => post.create_timestamp <= previous_post.create_timestamp,
-            });
-        }
+    assert_eq!(post_vec.len(), expected_post_vec.len());
+    for (i, (post, expected_post)) in zip(post_vec, expected_post_vec).enumerate() {
+        println!("post#{}", i);
+        assert_eq!(post, expected_post);
     }
 }
 
@@ -99,63 +83,6 @@ pub fn test_post_score(post: &Post) {
     assert!(approx_eq!(f32, post.trending_score, expected_trending_score as f32, epsilon = f32::EPSILON, ulps = 5));
 }
 
-pub fn sort_comment_vec(
-    comment_vec: &mut [CommentWithContext],
-    sort_type: CommentSortType,
-) {
-    match sort_type {
-        CommentSortType::Best => comment_vec.sort_by(|l, r| r.comment.score.partial_cmp(&l.comment.score).unwrap()),
-        CommentSortType::Recent => comment_vec.sort_by(|l, r| r.comment.create_timestamp.partial_cmp(&l.comment.create_timestamp).unwrap()),
-    }
-}
-
-pub fn sort_comment_tree(
-    comment_vec: &mut [CommentWithChildren],
-    sort_type: CommentSortType,
-) {
-    match sort_type {
-        CommentSortType::Best => comment_vec.sort_by(|l, r| r.comment.score.partial_cmp(&l.comment.score).unwrap()),
-        CommentSortType::Recent => comment_vec.sort_by(|l, r| r.comment.create_timestamp.partial_cmp(&l.comment.create_timestamp).unwrap()),
-    }
-
-    for comment in comment_vec.iter_mut() {
-        sort_comment_tree(&mut comment.child_comments, sort_type);
-    }
-}
-
-pub fn test_comment_vec(
-    comment_vec: &[CommentWithContext],
-    expected_comment_vec: &[CommentWithContext],
-    sort_type: CommentSortType,
-) {
-    assert_eq!(comment_vec.len(), expected_comment_vec.iter().len());
-    // Check that all expected comment are present
-    for (i, expected_comment) in expected_comment_vec.iter().enumerate() {
-        let has_comment = comment_vec.contains(expected_comment);
-        if !has_comment {
-            println!("Missing expected comment {i}: {:?}", expected_comment);
-        }
-        assert!(has_comment);
-
-    }
-    // Check that the elements are sorted correctly, the exact ordering could be different if the sort value is identical for multiple comments
-    for (index, (comment_with_info, expected_comment_with_info)) in comment_vec.iter().zip(expected_comment_vec.iter()).enumerate() {
-        let comment = &comment_with_info.comment;
-        let expected_comment = &expected_comment_with_info.comment;
-        assert!(match sort_type {
-            CommentSortType::Best => comment.score == expected_comment.score,
-            CommentSortType::Recent => comment.create_timestamp == expected_comment.create_timestamp,
-        });
-        if index > 0 {
-            let previous_comment = &comment_vec[index - 1].comment;
-            assert!(match sort_type {
-                CommentSortType::Best => comment.score <= previous_comment.score,
-                CommentSortType::Recent => comment.create_timestamp <= previous_comment.create_timestamp,
-            });
-        }
-    }
-}
-
 pub fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
     match comment_num % 3 {
         0 => Some(VoteValue::Down),
@@ -164,80 +91,63 @@ pub fn get_vote_from_comment_num(comment_num: usize) -> Option<VoteValue> {
     }
 }
 
-pub fn test_comment_and_vote(
-    comment_with_children: &CommentWithChildren,
-    expected_user_id: i64,
-    expected_post_id: i64,
+pub fn sort_comment_vec(
+    comment_vec: &mut [CommentWithContext],
+    sort_type: CommentSortType,
+    consider_pinned: bool,
 ) {
-    // Test current comment
-    assert_eq!(comment_with_children.comment.creator_id, expected_user_id);
-    assert_eq!(comment_with_children.comment.post_id, expected_post_id);
+    comment_vec.sort_by(|l, r| {
+        match (consider_pinned, l.comment.is_pinned, r.comment.is_pinned) {
+            (true, true, false) => Ordering::Less,
+            (true, false, true) => Ordering::Greater,
+            _ => match sort_type {
+                CommentSortType::Best => r.comment.score.partial_cmp(&l.comment.score).unwrap(),
+                CommentSortType::Recent => r.comment.create_timestamp.partial_cmp(&l.comment.create_timestamp).unwrap(),
+            }
+        }
+    });
+}
 
-    // Test associated vote
-    let comment_num = comment_with_children
-        .comment
-        .body
-        .parse::<usize>()
-        .expect("Comment number in body should be parsable.");
-    let expected_vote_value = get_vote_from_comment_num(comment_num);
-    if let Some(expected_vote_value) = expected_vote_value {
-        let vote: Vote = comment_with_children
-            .vote
-            .clone()
-            .expect(format!("Comment {comment_num} should have a vote.").as_str());
-        assert_eq!(vote.value, expected_vote_value);
-        assert_eq!(vote.user_id, expected_user_id);
-        assert_eq!(vote.post_id, expected_post_id);
-        assert_eq!(vote.comment_id, Some(comment_with_children.comment.comment_id));
-    } else {
-        assert!(comment_with_children.vote.is_none());
+pub fn sort_comment_tree(
+    comment_vec: &mut [CommentWithChildren],
+    sort_type: CommentSortType,
+    consider_pinned: bool,
+) {
+    comment_vec.sort_by(|l, r| {
+        match (consider_pinned, l.comment.is_pinned, r.comment.is_pinned) {
+            (true, true, false) => Ordering::Less,
+            (true, false, true) => Ordering::Greater,
+            _ => match sort_type {
+                CommentSortType::Best => r.comment.score.partial_cmp(&l.comment.score).unwrap(),
+                CommentSortType::Recent => r.comment.create_timestamp.partial_cmp(&l.comment.create_timestamp).unwrap(),
+            }
+        }
+    });
+
+    for comment in comment_vec.iter_mut() {
+        sort_comment_tree(&mut comment.child_comments, sort_type, consider_pinned);
+    }
+}
+
+pub fn test_comment_vec(
+    comment_vec: &[CommentWithContext],
+    expected_comment_vec: &[CommentWithContext],
+) {
+    assert_eq!(comment_vec.len(), expected_comment_vec.len());
+    for (comment, expected_comment) in zip(comment_vec, expected_comment_vec) {
+        assert_eq!(comment, expected_comment);
     }
 }
 
 pub fn test_comment_tree(
     comment_vec: &[CommentWithChildren],
-    sort_type: CommentSortType,
-    expected_parent_id: Option<i64>,
-    expected_user_id: i64,
-    expected_post_id: i64,
+    expected_comment_vec: &[CommentWithChildren],
 ) {
-    for (index, child_comment) in comment_vec.iter().enumerate() {
-        // Test that parent id is correct
-        assert_eq!(
-            child_comment.comment.parent_id,
-            expected_parent_id,
-        );
-        // Test that the child comments are correctly sorted
-        if index > 0 {
-            let previous_child_comment = comment_vec.get(index - 1);
-            assert!(previous_child_comment.is_some());
-            let previous_child_comment = previous_child_comment.unwrap();
-            assert!(previous_child_comment.comment.is_pinned || !child_comment.comment.is_pinned);
-            assert!(
-                (
-                    previous_child_comment.comment.is_pinned && !child_comment.comment.is_pinned
-                ) || match sort_type {
-                    CommentSortType::Best =>
-                        child_comment.comment.score <= previous_child_comment.comment.score,
-                    CommentSortType::Recent =>
-                        child_comment.comment.create_timestamp
-                            <= previous_child_comment.comment.create_timestamp,
-                }
-            );
-        }
-        test_comment_with_children(child_comment, sort_type, expected_user_id, expected_post_id);
+    assert_eq!(comment_vec.len(), expected_comment_vec.len());
+    for (comment, expected_comment) in zip(comment_vec, expected_comment_vec) {
+        assert_eq!(comment, expected_comment);
+        test_comment_tree(&comment.child_comments, &expected_comment.child_comments);
     }
-}
-
-pub fn test_comment_with_children(
-    comment_with_children: &CommentWithChildren,
-    sort_type: CommentSortType,
-    expected_user_id: i64,
-    expected_post_id: i64,
-) {
-    test_comment_and_vote(comment_with_children, expected_user_id, expected_post_id);
-    // Test child comments
-    test_comment_tree(&comment_with_children.child_comments, sort_type, Some(comment_with_children.comment.comment_id), expected_user_id, expected_post_id);
 }
 
 pub async fn get_comment_by_id(

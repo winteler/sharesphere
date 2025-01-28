@@ -4,13 +4,13 @@ pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::comment;
 use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_sphere};
-use app::comment::{COMMENT_BATCH_SIZE};
+use app::comment::{CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::post::ssr::get_post_by_id;
 use app::ranking::{SortType};
 use app::user::User;
-use crate::utils::{get_vote_from_comment_num, sort_comment_tree, COMMENT_SORT_TYPE_ARRAY};
+use crate::utils::{get_vote_from_comment_num, sort_comment_tree, test_comment_tree, COMMENT_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -79,8 +79,14 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
     let pinned_comment = create_comment(post.post_id, None, "1", None, true, &user, &db_pool).await?;
 
-    // TODO refactor to test similarly to posts
+    expected_comment_tree.push(CommentWithChildren {
+        comment: pinned_comment.clone(),
+        vote: None,
+        child_comments: Vec::new(),
+    });
+
     for sort_type in COMMENT_SORT_TYPE_ARRAY {
+        println!("Sort type: {}", sort_type.to_string());
         let comment_tree = comment::ssr::get_post_comment_tree(
             post.post_id,
             SortType::Comment(sort_type),
@@ -93,10 +99,9 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         assert_eq!(comment_tree.is_empty(), false);
         assert_eq!(comment_tree[0].comment, pinned_comment);
 
-        sort_comment_tree(&mut expected_comment_tree, sort_type);
-        //test_comment_tree(&comment_tree, expected_comment_tree[..COMMENT_BATCH_SIZE], sort_type, None, user.user_id, post.post_id);
+        sort_comment_tree(&mut expected_comment_tree, sort_type, true);
+        test_comment_tree(&comment_tree, &expected_comment_tree[..(COMMENT_BATCH_SIZE as usize)]);
         assert_eq!(comment_tree, expected_comment_tree[..(COMMENT_BATCH_SIZE as usize)]);
-        
         let offset_comment_tree = comment::ssr::get_post_comment_tree(
             post.post_id,
             SortType::Comment(sort_type),
@@ -107,22 +112,6 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         ).await?;
 
         assert_eq!(offset_comment_tree, expected_comment_tree[(COMMENT_BATCH_SIZE as usize)..(2*COMMENT_BATCH_SIZE as usize)]);
-        
-        //assert_eq!(offset_comment_tree.is_empty(), false);
-        //
-        //let init_load_last_comment = comment_tree.last().expect("Initial comment tree should have at least one comment.");
-        //let offset_load_first_comment = offset_comment_tree.first().expect("Offset comment tree should have at least one comment.");
-        //assert!(
-        //    (
-        //        init_load_last_comment.comment.is_pinned && !offset_load_first_comment.comment.is_pinned
-        //    ) || match sort_type {
-        //        CommentSortType::Best =>
-        //            init_load_last_comment.comment.score >= offset_load_first_comment.comment.score,
-        //        CommentSortType::Recent =>
-        //            init_load_last_comment.comment.create_timestamp >= offset_load_first_comment.comment.create_timestamp,
-        //    }
-        //);
-        //test_comment_tree(&offset_comment_tree, expected_comment_tree[COMMENT_BATCH_SIZE..2*COMMENT_BATCH_SIZE], sort_type, None, user.user_id, post.post_id);
     }
 
     Ok(())

@@ -9,8 +9,8 @@ use app::ranking::{SortType, VoteValue};
 use app::satellite::ssr::create_satellite;
 
 use crate::common::{create_user, get_db_pool};
-use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts};
-use crate::utils::{sort_comment_vec, sort_post_vec, test_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
+use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts, set_comment_score};
+use crate::utils::{sort_comment_vec, sort_post_vec, test_comment_vec, test_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -87,8 +87,8 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
             0,
             &db_pool,
         ).await?;
-        sort_post_vec(&mut user_1_expected_post_vec, sort_type);
-        test_post_vec(&user_1_post_vec, &user_1_expected_post_vec, sort_type);
+        sort_post_vec(&mut user_1_expected_post_vec, sort_type, false);
+        test_post_vec(&user_1_post_vec, &user_1_expected_post_vec);
 
         let user_2_post_vec = get_user_post_vec(
             &user_2.username,
@@ -97,8 +97,8 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
             0,
             &db_pool,
         ).await?;
-        sort_post_vec(&mut user_2_expected_post_vec, sort_type);
-        test_post_vec(&user_2_post_vec, &user_2_expected_post_vec, sort_type);
+        sort_post_vec(&mut user_2_expected_post_vec, sort_type, false);
+        test_post_vec(&user_2_post_vec, &user_2_expected_post_vec);
     }
     
     Ok(())
@@ -118,6 +118,7 @@ async fn test_get_user_comment_vec() {
     let (sphere_1, user_1_post, user_1_comment) = create_sphere_with_post_and_comment(sphere1_name, &mut user_1, &db_pool).await;
     let (sphere_2, user_2_post, user_2_comment) = create_sphere_with_post_and_comment(sphere2_name, &mut user_2, &db_pool).await;
 
+    let user_1_comment = set_comment_score(user_1_comment.comment_id, 50, &db_pool).await.expect("Should set comment score");
     user_1_expected_comment_vec.push(CommentWithContext::from_comment(
         user_1_comment,
         (&sphere_1).into(),
@@ -132,6 +133,7 @@ async fn test_get_user_comment_vec() {
         &user_1,
         &db_pool
     ).await.expect("Should create comment in user_2_post");
+    let user_1_comment_2 = set_comment_score(user_1_comment_2.comment_id, -50, &db_pool).await.expect("Should set comment score");
     user_1_expected_comment_vec.push(
         CommentWithContext::from_comment(
             user_1_comment_2,
@@ -179,11 +181,11 @@ async fn test_get_user_comment_vec() {
             num_comments as i64,
             &db_pool
         ).await.expect("Second post vec should be loaded");
-        sort_comment_vec(&mut user_1_expected_comment_vec, sort_type);
+        sort_comment_vec(&mut user_1_expected_comment_vec, sort_type, false);
+        test_comment_vec(&user_1_comment_vec_1, &user_1_expected_comment_vec[..num_comments]);
+        test_comment_vec(&user_1_comment_vec_2, &user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()]);
         assert_eq!(user_1_comment_vec_1, user_1_expected_comment_vec[..num_comments]);
         assert_eq!(user_1_comment_vec_2, user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()]);
-        //test_comment_vec(&user_1_comment_vec_1, &user_1_expected_comment_vec[..num_comments], sort_type);
-        //test_comment_vec(&user_1_comment_vec_2, &user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()], sort_type);
     }
 
     let user_2_comment_vec = get_user_comment_vec(

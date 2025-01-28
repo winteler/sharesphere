@@ -286,6 +286,8 @@ pub async fn create_post_with_comments(
                 _ => 0,
             };
             vote_vec.push(vote);
+        } else {
+            vote_vec.push(None);
         }
 
         if let Some(score) = score_vec.get(i) {
@@ -358,7 +360,8 @@ pub async fn set_comment_score(
         comment_id,
     )
         .fetch_one(db_pool)
-        .await?;
+        .await
+        .expect("Should set comment score");
 
     Ok(comment)
 }

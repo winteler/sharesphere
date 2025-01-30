@@ -9,8 +9,8 @@ use app::ranking::{SortType, VoteValue};
 use app::satellite::ssr::create_satellite;
 
 use crate::common::{create_user, get_db_pool};
-use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts, set_comment_score};
-use crate::utils::{sort_comment_vec, sort_post_vec, test_comment_vec, test_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
+use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts, set_comment_score, set_post_score};
+use crate::utils::{sort_comment_vec, sort_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -51,6 +51,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         &user_1,
         &db_pool,
     ).await.expect("Should create satellite post");
+    let satellite_post = set_post_score(satellite_post.post_id, -1, &db_pool).await.expect("Should set post score");
     user_1_expected_post_vec.push(PostWithSphereInfo::from_post(satellite_post, None, None));
 
     let (_, _, mut user_2_expected_post_vec) = create_sphere_with_posts(
@@ -77,6 +78,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         &user_1,
         &db_pool,
     ).await.expect("Should create satellite post");
+    let sphere_2_post = set_post_score(sphere_2_post.post_id, -2, &db_pool).await.expect("Should set post score");
     user_1_expected_post_vec.push(PostWithSphereInfo::from_post(sphere_2_post, None, None));
     
     for sort_type in POST_SORT_TYPE_ARRAY {
@@ -88,7 +90,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
             &db_pool,
         ).await?;
         sort_post_vec(&mut user_1_expected_post_vec, sort_type, false);
-        test_post_vec(&user_1_post_vec, &user_1_expected_post_vec);
+        assert_eq!(user_1_post_vec, user_1_expected_post_vec);
 
         let user_2_post_vec = get_user_post_vec(
             &user_2.username,
@@ -98,7 +100,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
             &db_pool,
         ).await?;
         sort_post_vec(&mut user_2_expected_post_vec, sort_type, false);
-        test_post_vec(&user_2_post_vec, &user_2_expected_post_vec);
+        assert_eq!(user_2_post_vec, user_2_expected_post_vec);
     }
     
     Ok(())
@@ -182,8 +184,6 @@ async fn test_get_user_comment_vec() {
             &db_pool
         ).await.expect("Second post vec should be loaded");
         sort_comment_vec(&mut user_1_expected_comment_vec, sort_type, false);
-        test_comment_vec(&user_1_comment_vec_1, &user_1_expected_comment_vec[..num_comments]);
-        test_comment_vec(&user_1_comment_vec_2, &user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()]);
         assert_eq!(user_1_comment_vec_1, user_1_expected_comment_vec[..num_comments]);
         assert_eq!(user_1_comment_vec_2, user_1_expected_comment_vec[num_comments..user_1_expected_comment_vec.len()]);
     }

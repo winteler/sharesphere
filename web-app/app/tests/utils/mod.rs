@@ -46,13 +46,13 @@ pub fn sort_post_vec(
     });
 }
 
+/// Helper function to help identify the difference between two post vectors
 pub fn test_post_vec(
     post_vec: &[PostWithSphereInfo],
     expected_post_vec: &[PostWithSphereInfo],
 ) {
     assert_eq!(post_vec.len(), expected_post_vec.len());
-    for (i, (post, expected_post)) in zip(post_vec, expected_post_vec).enumerate() {
-        println!("post#{}", i);
+    for (post, expected_post) in zip(post_vec, expected_post_vec) {
         assert_eq!(post, expected_post);
     }
 }
@@ -129,6 +129,8 @@ pub fn sort_comment_tree(
     }
 }
 
+/// Helper function to help identify the difference between two comment vectors
+
 pub fn test_comment_vec(
     comment_vec: &[CommentWithContext],
     expected_comment_vec: &[CommentWithContext],
@@ -138,6 +140,8 @@ pub fn test_comment_vec(
         assert_eq!(comment, expected_comment);
     }
 }
+
+/// Helper function to help identify the difference between two comment trees
 
 pub fn test_comment_tree(
     comment_vec: &[CommentWithChildren],

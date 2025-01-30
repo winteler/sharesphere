@@ -23,7 +23,7 @@ use app::sphere::ssr::create_sphere;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
-use crate::utils::{sort_post_vec, test_post_score, test_post_vec, POST_SORT_TYPE_ARRAY};
+use crate::utils::{sort_post_vec, test_post_score, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -371,7 +371,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
             &db_pool,
         ).await?;
         sort_post_vec(&mut expected_post_vec, sort_type, true);
-        test_post_vec(&post_vec, &expected_post_vec);
+        assert_eq!(post_vec, expected_post_vec);
     }
 
     // test banned post are not returned
@@ -434,7 +434,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         sphere2_name,
         None,
         num_post,
-        Some((0..num_post).map(|i| i as i32).collect()),
+        Some((0..num_post).map(|i| (i + num_post) as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
         &mut user,
         &db_pool,
@@ -498,8 +498,8 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
             &db_pool
         ).await.expect("Second post vec should be loaded");
         sort_post_vec(&mut expected_post_vec, sort_type, true);
-        test_post_vec(&post_vec, &expected_post_vec[..num_post]);
-        test_post_vec(&second_post_vec, &expected_post_vec[num_post..2*num_post]);
+        assert_eq!(post_vec, expected_post_vec[..num_post]);
+        assert_eq!(second_post_vec, expected_post_vec[num_post..2*num_post]);
     }
 
     // Moderate post, test that it is no longer in the result
@@ -622,7 +622,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
             });
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        test_post_vec(&post_vec, &expected_post_vec[..load_count]);
+        assert_eq!(post_vec, expected_post_vec[..load_count]);
         
         let second_post_vec = ssr::get_post_vec_by_sphere_name(
             sphere_name,
@@ -639,7 +639,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
             });
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        test_post_vec(&second_post_vec, &expected_post_vec[load_count..(num_posts + 1)]);
+        assert_eq!(second_post_vec, expected_post_vec[load_count..(num_posts + 1)]);
     }
 
     user.admin_role = AdminRole::Admin;
@@ -795,7 +795,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
         sort_post_vec(&mut expected_post_vec, sort_type, true);
-        test_post_vec(&category_post_vec, &expected_post_vec);
+        assert_eq!(category_post_vec, expected_post_vec);
     }
 
     Ok(())
@@ -886,7 +886,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
 
-        test_post_vec(&post_vec, &expected_post_vec[..load_count]);
+        assert_eq!(post_vec, expected_post_vec[..load_count]);
 
         let second_post_vec = ssr::get_post_vec_by_satellite_id(
             satellite_1.satellite_id,
@@ -903,7 +903,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
             });
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
-        test_post_vec(&second_post_vec, &expected_post_vec[load_count..num_posts]);
+        assert_eq!(second_post_vec, expected_post_vec[load_count..num_posts]);
     }
 
     user.admin_role = AdminRole::Admin;
@@ -1089,7 +1089,7 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
             PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
         }).collect();
         sort_post_vec(&mut expected_post_vec, sort_type, true);
-        test_post_vec(&category_post_vec, &expected_post_vec);
+        assert_eq!(category_post_vec, expected_post_vec);
     }
 
     Ok(())

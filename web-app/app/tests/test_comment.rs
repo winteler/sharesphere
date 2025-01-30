@@ -10,7 +10,7 @@ use app::errors::AppError;
 use app::post::ssr::get_post_by_id;
 use app::ranking::{SortType};
 use app::user::User;
-use crate::utils::{get_vote_from_comment_num, sort_comment_tree, test_comment_tree, COMMENT_SORT_TYPE_ARRAY};
+use crate::utils::{get_vote_from_comment_num, sort_comment_tree, COMMENT_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -100,7 +100,6 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
         assert_eq!(comment_tree[0].comment, pinned_comment);
 
         sort_comment_tree(&mut expected_comment_tree, sort_type, true);
-        test_comment_tree(&comment_tree, &expected_comment_tree[..(COMMENT_BATCH_SIZE as usize)]);
         assert_eq!(comment_tree, expected_comment_tree[..(COMMENT_BATCH_SIZE as usize)]);
         let offset_comment_tree = comment::ssr::get_post_comment_tree(
             post.post_id,

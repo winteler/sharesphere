@@ -206,75 +206,8 @@ pub mod ssr {
         Ok(sphere)
     }
 
-    pub async fn get_post_comment_tree(
-        post_id: i64,
-        sort_type: SortType,
-        user_id: Option<i64>,
-        limit: i64,
-        offset: i64,
-        db_pool: &PgPool,
-    ) -> Result<Vec<CommentWithChildren>, AppError> {
-        if post_id < 1 {
-            return Err(AppError::new("Invalid post id."));
-        }
-
-        let sort_column = sort_type.to_order_by_code();
-
-        let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
-            format!(
-                "WITH RECURSIVE comment_tree AS (
-                (
-                    SELECT c.*,
-                           v.vote_id,
-                           v.user_id as vote_user_id,
-                           v.post_id as vote_post_id,
-                           v.comment_id as vote_comment_id,
-                           v.value,
-                           v.timestamp as vote_timestamp,
-                           1 AS depth,
-                           ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
-                    FROM comments c
-                    LEFT JOIN votes v
-                    ON v.comment_id = c.comment_id AND
-                       v.user_id = $1
-                    WHERE
-                        c.post_id = $2 AND
-                        c.parent_id IS NULL
-                    ORDER BY c.is_pinned DESC, c.{sort_column} DESC
-                    LIMIT $3
-                    OFFSET $4
-                )
-                UNION ALL
-                (
-                    SELECT n.*,
-                           vr.vote_id,
-                           vr.user_id as vote_user_id,
-                           vr.post_id as vote_post_id,
-                           vr.comment_id as vote_comment_id,
-                           vr.value,
-                           vr.timestamp as vote_timestamp,
-                           r.depth + 1,
-                           r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
-                    FROM comment_tree r
-                    JOIN comments n ON n.parent_id = r.comment_id
-                    LEFT JOIN votes vr
-                    ON vr.comment_id = n.comment_id AND
-                       vr.user_id = $1
-                )
-            )
-            SELECT * FROM comment_tree
-            ORDER BY path DESC"
-            )
-                .as_str(),
-        )
-            .bind(user_id)
-            .bind(post_id)
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(db_pool)
-            .await?;
-
-        let mut comment_tree = Vec::<CommentWithChildren>::new();
+    fn process_comment_tree(comment_with_vote_vec: Vec<CommentWithVote>) -> Vec<CommentWithChildren> {
+        let mut comment_tree = Vec::new();
         let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
         for comment_with_vote in comment_with_vote_vec {
             let mut current = comment_with_vote.into_comment_with_children();
@@ -305,6 +238,159 @@ pub mod ssr {
                 comment_tree.push(current);
             }
         }
+
+        comment_tree
+    }
+
+    pub async fn get_post_comment_tree(
+        post_id: i64,
+        sort_type: SortType,
+        user_id: Option<i64>,
+        limit: i64,
+        offset: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<CommentWithChildren>, AppError> {
+        if post_id < 1 {
+            return Err(AppError::new("Invalid post id."));
+        }
+
+        let sort_column = sort_type.to_order_by_code();
+
+        let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
+            format!(
+                "WITH RECURSIVE comment_tree AS (
+                    (
+                        SELECT c.*,
+                               v.vote_id,
+                               v.user_id as vote_user_id,
+                               v.post_id as vote_post_id,
+                               v.comment_id as vote_comment_id,
+                               v.value,
+                               v.timestamp as vote_timestamp,
+                               1 AS depth,
+                               ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
+                        FROM comments c
+                        LEFT JOIN votes v
+                        ON v.comment_id = c.comment_id AND
+                           v.user_id = $1
+                        WHERE
+                            c.post_id = $2 AND
+                            c.parent_id IS NULL
+                        ORDER BY c.is_pinned DESC, c.{sort_column} DESC
+                        LIMIT $3
+                        OFFSET $4
+                    )
+                    UNION ALL
+                    (
+                        SELECT n.*,
+                               vr.vote_id,
+                               vr.user_id as vote_user_id,
+                               vr.post_id as vote_post_id,
+                               vr.comment_id as vote_comment_id,
+                               vr.value,
+                               vr.timestamp as vote_timestamp,
+                               r.depth + 1,
+                               r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
+                        FROM comment_tree r
+                        JOIN comments n ON n.parent_id = r.comment_id
+                        LEFT JOIN votes vr
+                        ON vr.comment_id = n.comment_id AND
+                           vr.user_id = $1
+                    )
+                )
+                SELECT * FROM comment_tree
+                ORDER BY path DESC"
+            )
+                .as_str(),
+        )
+            .bind(user_id)
+            .bind(post_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool)
+            .await?;
+
+        let comment_tree = process_comment_tree(comment_with_vote_vec);
+
+        Ok(comment_tree)
+    }
+
+    /// Retrieves the comment tree of `comment_id`'s parent, itself and its children
+    pub async fn get_comment_tree_by_id(
+        comment_id: i64,
+        sort_type: SortType,
+        user_id: Option<i64>,
+        limit: i64,
+        offset: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<CommentWithChildren>, AppError> {
+        if comment_id < 1 {
+            return Err(AppError::new("Invalid comment id."));
+        }
+
+        let sort_column = sort_type.to_order_by_code();
+
+        let comment_with_vote_vec = sqlx::query_as::<_, CommentWithVote>(
+            format!(
+                "WITH RECURSIVE comment_tree AS (
+                    (
+                        SELECT c.*,
+                               v.vote_id,
+                               v.user_id as vote_user_id,
+                               v.post_id as vote_post_id,
+                               v.comment_id as vote_comment_id,
+                               v.value,
+                               v.timestamp as vote_timestamp,
+                               1 AS depth,
+                               ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
+                        FROM comments c
+                        LEFT JOIN votes v
+                        ON v.comment_id = c.comment_id AND
+                           v.user_id = $1
+                        WHERE
+                            c.comment_id = $2
+                        ORDER BY c.is_pinned DESC, c.{sort_column} DESC
+                    )
+                    UNION ALL
+                    (
+                        SELECT n.*,
+                               vr.vote_id,
+                               vr.user_id as vote_user_id,
+                               vr.post_id as vote_post_id,
+                               vr.comment_id as vote_comment_id,
+                               vr.value,
+                               vr.timestamp as vote_timestamp,
+                               r.depth + 1,
+                               r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
+                        FROM comment_tree r
+                        JOIN comments n ON n.parent_id = r.comment_id
+                        LEFT JOIN votes vr
+                        ON vr.comment_id = n.comment_id AND
+                           vr.user_id = $1
+                    )
+                )
+                SELECT * FROM comments c1
+                WHERE c1.comment_id = (
+                    SELECT c2.parent_id
+                    FROM comments c2
+                    WHERE comment_id = $2
+                )
+                UNION ALL (
+                    SELECT * FROM comment_tree
+                    ORDER BY path DESC
+                    LIMIT $3
+                    OFFSET $4
+                )"
+            ).as_str(),
+        )
+            .bind(user_id)
+            .bind(comment_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool)
+            .await?;
+
+        let comment_tree = process_comment_tree(comment_with_vote_vec);
 
         Ok(comment_tree)
     }

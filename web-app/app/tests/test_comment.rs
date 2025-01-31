@@ -3,8 +3,8 @@ use rand::Rng;
 pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::comment;
-use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_sphere};
-use app::comment::{CommentWithChildren, COMMENT_BATCH_SIZE};
+use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree};
+use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::post::ssr::get_post_by_id;
@@ -114,6 +114,89 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     }
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_get_comment_tree_by_id() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (_, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
+
+    let comment_1 = create_comment(
+        post.post_id, None, "1", None, false, &user, &db_pool
+    ).await.expect("Should create comment 1");
+
+    let comment_2 = create_comment(
+        post.post_id, None, "2", None, false, &user, &db_pool
+    ).await.expect("Should create comment 2");
+
+    let comment_1_1 = create_comment(
+        post.post_id, Some(comment_1.comment_id), "1_1", None, false, &user, &db_pool
+    ).await.expect("Should create comment 1_1");
+
+    let comment_1_2 = create_comment(
+        post.post_id, Some(comment_1.comment_id), "1_2", None, false, &user, &db_pool
+    ).await.expect("Should create comment 1_2");
+    let comment_1_2 = set_comment_score(comment_1_2.comment_id, 1, &db_pool).await.expect("Should set comment 1_2 score");
+
+    let comment_1_2_1 = create_comment(
+        post.post_id, Some(comment_1_2.comment_id), "1_2_1", None, false, &user, &db_pool
+    ).await.expect("Should create comment 1_2_1");
+
+    let full_comment_tree = get_post_comment_tree(
+        post.post_id,
+        SortType::Comment(CommentSortType::Best),
+        Some(user.user_id),
+        COMMENT_BATCH_SIZE,
+        0,
+        &db_pool
+    ).await.expect("Should get full comment tree");
+
+    let expected_comment_1_tree = full_comment_tree.iter().find(
+        |comment | comment.comment == comment_1
+    ).expect("Should find comment 1");
+
+    let expected_comment_2_tree = full_comment_tree.iter().find(
+        |comment | comment.comment == comment_2
+    ).expect("Should find comment 2");
+
+    let mut expected_comment_1_1_tree = expected_comment_1_tree.clone();
+    expected_comment_1_1_tree.child_comments = expected_comment_1_1_tree.child_comments.into_iter().filter(|comment| comment.comment == comment_1_1).collect();
+
+    let mut expected_comment_1_2_tree = expected_comment_1_tree.clone();
+    expected_comment_1_2_tree.child_comments = expected_comment_1_2_tree.child_comments.into_iter().filter(|comment| comment.comment == comment_1_2).collect();
+
+    let expected_comment_1_2_1_tree = expected_comment_1_tree.child_comments.iter().find(
+        |comment | comment.comment == comment_1_2
+    ).expect("Should find comment 1_2");
+
+    for sort_type in COMMENT_SORT_TYPE_ARRAY {
+        let comment_1_tree = get_comment_tree_by_id(
+            comment_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+        ).await.expect("Should get comment 1 tree");
+        assert_eq!(comment_1_tree, *expected_comment_1_tree);
+
+        let comment_2_tree = get_comment_tree_by_id(
+            comment_2.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+        ).await.expect("Should get comment 2 tree");
+        assert_eq!(comment_2_tree, *expected_comment_2_tree);
+
+        let comment_1_1_tree = get_comment_tree_by_id(
+            comment_1_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+        ).await.expect("Should get comment 1_1 tree");
+        assert_eq!(comment_1_1_tree, expected_comment_1_1_tree);
+
+        let comment_1_2_tree = get_comment_tree_by_id(
+            comment_1_2.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+        ).await.expect("Should get comment 1_2 tree");
+        assert_eq!(comment_1_2_tree, expected_comment_1_2_tree);
+
+        let comment_1_2_1_tree = get_comment_tree_by_id(
+            comment_1_2_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+        ).await.expect("Should get comment 1_2_1 tree");
+        assert_eq!(comment_1_2_1_tree, *expected_comment_1_2_1_tree);
+    }
 }
 
 #[tokio::test]

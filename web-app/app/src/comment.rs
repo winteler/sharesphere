@@ -323,7 +323,7 @@ pub mod ssr {
         limit: i64,
         offset: i64,
         db_pool: &PgPool,
-    ) -> Result<Vec<CommentWithChildren>, AppError> {
+    ) -> Result<CommentWithChildren, AppError> {
         if comment_id < 1 {
             return Err(AppError::new("Invalid comment id."));
         }
@@ -369,7 +369,19 @@ pub mod ssr {
                            vr.user_id = $1
                     )
                 )
-                SELECT * FROM comments c1
+                SELECT c1.*,
+                       v.vote_id,
+                       v.user_id as vote_user_id,
+                       v.post_id as vote_post_id,
+                       v.comment_id as vote_comment_id,
+                       v.value,
+                       v.timestamp as vote_timestamp,
+                       0 as depth,
+                       ARRAY[(c1.is_pinned, c1.{sort_column}, c1.comment_id)] AS path
+                FROM comments c1
+                LEFT JOIN votes v
+                    ON v.comment_id = c1.comment_id AND
+                       v.user_id = $1
                 WHERE c1.comment_id = (
                     SELECT c2.parent_id
                     FROM comments c2
@@ -392,7 +404,11 @@ pub mod ssr {
 
         let comment_tree = process_comment_tree(comment_with_vote_vec);
 
-        Ok(comment_tree)
+        if comment_tree.len() > 1 {
+            return Err(AppError::new(format!("Comment tree for comment {comment_id} should have a single root element.")));
+        }
+
+        comment_tree.into_iter().next().ok_or(AppError::new(format!("No comment tree found for comment {comment_id}")))
     }
 
     pub async fn create_comment(

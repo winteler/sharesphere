@@ -2,6 +2,7 @@ use std::fmt;
 
 use leptos::html;
 use leptos::prelude::*;
+use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
@@ -216,9 +217,7 @@ pub mod ssr {
     ) -> Vec<CommentWithChildren> {
         let mut comment_tree = Vec::new();
         let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
-        println!("Process comment tree.");
         for comment_with_vote in comment_with_vote_vec {
-            println!("comment: {}, body: {}, parent: {:?}", comment_with_vote.comment.comment_id, comment_with_vote.comment.body, comment_with_vote.comment.parent_id);
             let mut current = comment_with_vote.into_comment_with_children();
 
             if let Some((top_parent_id, child_comments)) = stack.last_mut() {
@@ -678,8 +677,7 @@ pub fn CommentSection(
     additional_load_count: RwSignal<i32>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let query = use_query_map();
-    let query_comment_id = move || match query.read().get(COMMENT_ID_QUERY_PARAM) {
+    let query_comment_id = move || match use_query_map().read().get(COMMENT_ID_QUERY_PARAM) {
         Some(comment_id_string) => comment_id_string.parse::<i64>().ok(),
         None => None,
     };
@@ -809,6 +807,10 @@ pub fn CommentBox(
     depth: usize,
     ranking: usize,
 ) -> impl IntoView {
+    let is_query_comment = move || match use_query_map().read().get(COMMENT_ID_QUERY_PARAM) {
+        Some(query_comment_id) => query_comment_id.parse::<i64>().is_ok_and(|query_comment_id| query_comment_id == comment_with_children.comment.comment_id),
+        None => false,
+    };
     let comment = RwSignal::new(comment_with_children.comment);
     let child_comments = RwSignal::new(comment_with_children.child_comments);
     let maximize = RwSignal::new(true);
@@ -838,14 +840,16 @@ pub fn CommentBox(
                 </Show>
             </div>
             <div class="flex flex-col gap-1">
-                <Show when=maximize>
-                    <CommentBody comment/>
-                </Show>
-                <CommentWidgetBar
-                    comment=comment
-                    vote=comment_with_children.vote
-                    child_comments
-                />
+                <div class="flex flex-col gap-1 p-1 rounded" class=(["border", "border-1", "border-base-content/50"], is_query_comment)>
+                    <Show when=maximize>
+                        <CommentBody comment/>
+                    </Show>
+                    <CommentWidgetBar
+                        comment=comment
+                        vote=comment_with_children.vote
+                        child_comments
+                    />
+                </div>
                 <div
                     class="flex flex-col"
                     class:hidden=move || !*maximize.read()
@@ -888,7 +892,7 @@ pub fn CommentBody(
                     />
                 }.into_any(),
                 _ => view! {
-                    <div class="pl-2">
+                    <div class="pl-2 text-left">
                         <ContentBody 
                             body=comment.body.clone()
                             is_markdown=comment.markdown_body.is_some()
@@ -962,11 +966,12 @@ pub fn CommentWithContext(
     let author = comment.comment.creator_name.clone();
     let is_moderator = comment.comment.is_creator_moderator;
     let timestamp = comment.comment.create_timestamp;
-    // TODO change path to show comment in post
+
     let post_path = get_post_path(&comment.sphere_header.sphere_name, comment.satellite_id, comment.comment.post_id);
     view! {
-        <a href=post_path>
-            <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
+        <Form method="GET" action=post_path>
+            <input name=COMMENT_ID_QUERY_PARAM value=comment.comment.comment_id class="hidden"/>
+            <button class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                 <CommentBody comment=comment.comment/>
                 <div class="flex gap-1">
                     <SphereHeader sphere_header=comment.sphere_header/>
@@ -978,8 +983,8 @@ pub fn CommentWithContext(
                     <AuthorWidget author is_moderator/>
                     <TimeSinceWidget timestamp/>
                 </div>
-            </div>
-        </a>
+            </button>
+        </Form>
     }
 }
 

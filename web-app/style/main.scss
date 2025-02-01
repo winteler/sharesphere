@@ -3870,6 +3870,10 @@ html {
   border-color: hsl(var(--bc) / 0.2);
 }
 
+.border-base-content\/50 {
+  border-color: hsl(var(--bc) / 0.5);
+}
+
 .border-primary {
   --tw-border-opacity: 1;
   border-color: hsl(var(--p) / var(--tw-border-opacity));

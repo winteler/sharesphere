@@ -11,21 +11,20 @@ use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
-use crate::comment::{get_post_comment_tree, CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
+use crate::comment::{CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
-use crate::content::{CommentSortWidget, Content, ContentBody};
+use crate::content::{Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::embed::{Embed, EmbedPreview, EmbedType, Link, LinkType};
-use crate::error_template::ErrorTemplate;
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::icons::{EditIcon, LoadingIcon};
+use crate::icons::{EditIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::satellite::SATELLITE_ROUTE_PREFIX;
 use crate::sphere::{get_matching_sphere_header_vec, SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
-use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
+use crate::unpack::{ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, LoadIndicators, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -921,31 +920,9 @@ pub fn Post() -> impl IntoView {
     let comment_vec = RwSignal::new(Vec::<CommentWithChildren>::with_capacity(
         COMMENT_BATCH_SIZE as usize,
     ));
-    let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
-    let load_error = RwSignal::new(None);
+    let additional_load_count = RwSignal::new(0);
     let container_ref = NodeRef::<html::Div>::new();
-
-    let _initial_comments_resource = LocalResource::new(
-        move || async move {
-            is_loading.set(true);
-            let initial_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get(), 0).await;
-            handle_initial_load(initial_load, comment_vec, load_error, None);
-            is_loading.set(false);
-        }
-    );
-
-    let _additional_comments_resource = LocalResource::new(
-        move || async move {
-            if additional_load_count.get() > 0 {
-                is_loading.set(true);
-                let num_post = comment_vec.read_untracked().len();
-                let additional_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, comment_vec, load_error);
-                is_loading.set(false);
-            }
-        }
-    );
 
     view! {
         <div
@@ -978,20 +955,7 @@ pub fn Post() -> impl IntoView {
                     </div>
                 </div>
             </ArcTransitionUnpack>
-            <CommentSortWidget sort_signal=state.comment_sort_type/>
-            <CommentSection comment_vec/>
-            <Show when=move || load_error.read().is_some()>
-            {
-                let mut outside_errors = Errors::default();
-                outside_errors.insert_with_default_key(load_error.get().unwrap());
-                view! {
-                    <div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div>
-                }.into_any()
-            }
-            </Show>
-            <Show when=is_loading>
-                <LoadingIcon/>
-            </Show>
+            <CommentSection post_id comment_vec is_loading additional_load_count/>
         </div>
     }.into_any()
 }

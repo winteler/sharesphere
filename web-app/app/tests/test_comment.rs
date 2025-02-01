@@ -173,27 +173,27 @@ async fn test_get_comment_tree_by_id() {
 
     for sort_type in COMMENT_SORT_TYPE_ARRAY {
         let comment_1_tree = get_comment_tree_by_id(
-            comment_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+            comment_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), &db_pool
         ).await.expect("Should get comment 1 tree");
         assert_eq!(comment_1_tree, *expected_comment_1_tree);
 
         let comment_2_tree = get_comment_tree_by_id(
-            comment_2.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+            comment_2.comment_id, SortType::Comment(sort_type), Some(user.user_id), &db_pool
         ).await.expect("Should get comment 2 tree");
         assert_eq!(comment_2_tree, *expected_comment_2_tree);
 
         let comment_1_1_tree = get_comment_tree_by_id(
-            comment_1_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+            comment_1_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), &db_pool
         ).await.expect("Should get comment 1_1 tree");
         assert_eq!(comment_1_1_tree, expected_comment_1_1_tree);
 
         let comment_1_2_tree = get_comment_tree_by_id(
-            comment_1_2.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+            comment_1_2.comment_id, SortType::Comment(sort_type), Some(user.user_id), &db_pool
         ).await.expect("Should get comment 1_2 tree");
         assert_eq!(comment_1_2_tree, expected_comment_1_2_tree);
 
         let comment_1_2_1_tree = get_comment_tree_by_id(
-            comment_1_2_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), COMMENT_BATCH_SIZE, 0, &db_pool
+            comment_1_2_1.comment_id, SortType::Comment(sort_type), Some(user.user_id), &db_pool
         ).await.expect("Should get comment 1_2_1 tree");
         assert_eq!(comment_1_2_1_tree, *expected_comment_1_2_1_tree);
     }

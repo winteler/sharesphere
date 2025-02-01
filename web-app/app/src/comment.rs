@@ -2,23 +2,27 @@ use std::fmt;
 
 use leptos::html;
 use leptos::prelude::*;
+use leptos_router::hooks::use_query_map;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
 use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
-use crate::content::{Content, ContentBody};
+use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::errors::AppError;
+use crate::error_template::ErrorTemplate;
 use crate::form::IsPinnedCheckbox;
-use crate::icons::{AddCommentIcon, EditIcon};
+use crate::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::navigation_bar::get_current_path;
+use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
-use crate::unpack::ActionError;
+use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
 use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -27,8 +31,8 @@ use crate::{
     post::ssr::increment_post_comment_count,
     ranking::{ssr::vote_on_content, VoteValue},
 };
-use crate::post::{get_post_path, Post};
 
+pub const COMMENT_ID_QUERY_PARAM: &str = "comment_id";
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
 const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
@@ -243,7 +247,7 @@ pub mod ssr {
                 comment_tree.push(current);
             }
         }
-        
+
         // Handle comment trees that do not start from a root comment
         if allow_partial_tree && comment_tree.is_empty() && stack.len() == 1 {
             let (_, partial_comment_tree) = stack.into_iter().next().unwrap();
@@ -332,8 +336,6 @@ pub mod ssr {
         comment_id: i64,
         sort_type: SortType,
         user_id: Option<i64>,
-        limit: i64,
-        offset: i64,
         db_pool: &PgPool,
     ) -> Result<CommentWithChildren, AppError> {
         if comment_id < 1 {
@@ -386,7 +388,6 @@ pub mod ssr {
                     SELECT * FROM comment_tree
                     ORDER BY path DESC
                     LIMIT $3
-                    OFFSET $4
                 ) AS filtered_comment_tree
                 UNION ALL (
                     SELECT
@@ -413,8 +414,7 @@ pub mod ssr {
         )
             .bind(user_id)
             .bind(comment_id)
-            .bind(limit)
-            .bind(offset)
+            .bind(COMMENT_BATCH_SIZE)
             .fetch_all(db_pool)
             .await?;
 
@@ -574,8 +574,27 @@ pub async fn get_post_comment_tree(
         COMMENT_BATCH_SIZE,
         num_already_loaded as i64,
         &db_pool,
-    )
-    .await?;
+    ).await?;
+
+    Ok(comment_tree)
+}
+
+#[server]
+pub async fn get_comment_tree_by_id(
+    comment_id: i64,
+    sort_type: SortType,
+) -> Result<CommentWithChildren, ServerFnError<AppError>> {
+    let user_id = match get_user().await {
+        Ok(Some(user)) => Some(user.user_id),
+        _ => None,
+    };
+    let db_pool = get_db_pool()?;
+    let comment_tree = ssr::get_comment_tree_by_id(
+        comment_id,
+        sort_type,
+        user_id,
+        &db_pool,
+    ).await?;
 
     Ok(comment_tree)
 }
@@ -653,8 +672,63 @@ pub async fn edit_comment(
 #[component]
 pub fn CommentSection(
     #[prop(into)]
-    comment_vec: Signal<Vec<CommentWithChildren>>
+    post_id: Signal<i64>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    is_loading: RwSignal<bool>,
+    additional_load_count: RwSignal<i32>,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let query = use_query_map();
+    let query_comment_id = move || match query.read().get(COMMENT_ID_QUERY_PARAM) {
+        Some(comment_id_string) => comment_id_string.parse::<i64>().ok(),
+        None => None,
+    };
+
+    view! {
+        <CommentSortWidget sort_signal=state.comment_sort_type/>
+        { move || {
+            match query_comment_id() {
+                Some(comment_id) => view! { <CommentTree comment_id comment_vec is_loading/> }.into_any(),
+                None => view! { <CommentTreeVec post_id comment_vec is_loading additional_load_count/> }.into_any(),
+            }
+        }}
+    }.into_any()
+}
+
+/// Component displaying a vector of comment trees
+#[component]
+pub fn CommentTreeVec(
+    #[prop(into)]
+    post_id: Signal<i64>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    is_loading: RwSignal<bool>,
+    additional_load_count: RwSignal<i32>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+
+    let load_error = RwSignal::new(None);
+
+    let _initial_comments_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let initial_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get(), 0).await;
+            handle_initial_load(initial_load, comment_vec, load_error, None);
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_comments_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let num_post = comment_vec.read_untracked().len();
+                let additional_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, comment_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
+
     view! {
         <div class="flex flex-col h-fit">
             <For
@@ -674,6 +748,57 @@ pub fn CommentSection(
                 }
             />
         </div>
+        <Show when=move || load_error.read().is_some()>
+        {
+            let mut outside_errors = Errors::default();
+            outside_errors.insert_with_default_key(load_error.get().unwrap());
+            view! {
+                <div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div>
+            }.into_any()
+        }
+        </Show>
+        <Show when=is_loading>
+            <LoadingIcon/>
+        </Show>
+    }.into_any()
+}
+
+/// Component displaying a comment's tree
+#[component]
+pub fn CommentTree(
+    #[prop(into)]
+    comment_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    is_loading: RwSignal<bool>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+
+    let load_error = RwSignal::new(None);
+
+    let _comment_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let comment_tree = get_comment_tree_by_id(comment_id, state.comment_sort_type.get()).await;
+            handle_initial_load(comment_tree.map(|comment| vec![comment]), comment_vec, load_error, None);
+            is_loading.set(false);
+        }
+    );
+
+    view! {
+
+        { move || comment_vec.read().first().map(|comment| view! {
+                <div class="flex flex-col h-fit">
+                    <CommentBox
+                        comment_with_children=comment.clone()
+                        depth=0
+                        ranking=0
+                    />
+                </div>
+            })
+        }
+        <Show when=is_loading>
+            <LoadingIcon/>
+        </Show>
     }.into_any()
 }
 

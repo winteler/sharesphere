@@ -209,7 +209,9 @@ pub mod ssr {
     fn process_comment_tree(comment_with_vote_vec: Vec<CommentWithVote>) -> Vec<CommentWithChildren> {
         let mut comment_tree = Vec::new();
         let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
+        println!("Process comment tree.");
         for comment_with_vote in comment_with_vote_vec {
+            println!("comment: {}, body: {}, parent: {:?}", comment_with_vote.comment.comment_id, comment_with_vote.comment.body, comment_with_vote.comment.parent_id);
             let mut current = comment_with_vote.into_comment_with_children();
 
             if let Some((top_parent_id, child_comments)) = stack.last_mut() {
@@ -260,15 +262,16 @@ pub mod ssr {
             format!(
                 "WITH RECURSIVE comment_tree AS (
                     (
-                        SELECT c.*,
-                               v.vote_id,
-                               v.user_id as vote_user_id,
-                               v.post_id as vote_post_id,
-                               v.comment_id as vote_comment_id,
-                               v.value,
-                               v.timestamp as vote_timestamp,
-                               1 AS depth,
-                               ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
+                        SELECT
+                            c.*,
+                            v.vote_id,
+                            v.user_id as vote_user_id,
+                            v.post_id as vote_post_id,
+                            v.comment_id as vote_comment_id,
+                            v.value,
+                            v.timestamp as vote_timestamp,
+                            1 AS depth,
+                            ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
                         FROM comments c
                         LEFT JOIN votes v
                         ON v.comment_id = c.comment_id AND
@@ -280,17 +283,17 @@ pub mod ssr {
                         LIMIT $3
                         OFFSET $4
                     )
-                    UNION ALL
-                    (
-                        SELECT n.*,
-                               vr.vote_id,
-                               vr.user_id as vote_user_id,
-                               vr.post_id as vote_post_id,
-                               vr.comment_id as vote_comment_id,
-                               vr.value,
-                               vr.timestamp as vote_timestamp,
-                               r.depth + 1,
-                               r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
+                    UNION ALL (
+                        SELECT
+                            n.*,
+                            vr.vote_id,
+                            vr.user_id as vote_user_id,
+                            vr.post_id as vote_post_id,
+                            vr.comment_id as vote_comment_id,
+                            vr.value,
+                            vr.timestamp as vote_timestamp,
+                            r.depth + 1,
+                            r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
                         FROM comment_tree r
                         JOIN comments n ON n.parent_id = r.comment_id
                         LEFT JOIN votes vr
@@ -334,15 +337,16 @@ pub mod ssr {
             format!(
                 "WITH RECURSIVE comment_tree AS (
                     (
-                        SELECT c.*,
-                               v.vote_id,
-                               v.user_id as vote_user_id,
-                               v.post_id as vote_post_id,
-                               v.comment_id as vote_comment_id,
-                               v.value,
-                               v.timestamp as vote_timestamp,
-                               1 AS depth,
-                               ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
+                        SELECT
+                            c.*,
+                            v.vote_id,
+                            v.user_id as vote_user_id,
+                            v.post_id as vote_post_id,
+                            v.comment_id as vote_comment_id,
+                            v.value,
+                            v.timestamp as vote_timestamp,
+                            1 AS depth,
+                            ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
                         FROM comments c
                         LEFT JOIN votes v
                         ON v.comment_id = c.comment_id AND
@@ -351,17 +355,17 @@ pub mod ssr {
                             c.comment_id = $2
                         ORDER BY c.is_pinned DESC, c.{sort_column} DESC
                     )
-                    UNION ALL
-                    (
-                        SELECT n.*,
-                               vr.vote_id,
-                               vr.user_id as vote_user_id,
-                               vr.post_id as vote_post_id,
-                               vr.comment_id as vote_comment_id,
-                               vr.value,
-                               vr.timestamp as vote_timestamp,
-                               r.depth + 1,
-                               r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
+                    UNION ALL (
+                        SELECT
+                            n.*,
+                            vr.vote_id,
+                            vr.user_id as vote_user_id,
+                            vr.post_id as vote_post_id,
+                            vr.comment_id as vote_comment_id,
+                            vr.value,
+                            vr.timestamp as vote_timestamp,
+                            r.depth + 1,
+                            r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
                         FROM comment_tree r
                         JOIN comments n ON n.parent_id = r.comment_id
                         LEFT JOIN votes vr
@@ -369,29 +373,32 @@ pub mod ssr {
                            vr.user_id = $1
                     )
                 )
-                SELECT c1.*,
-                       v.vote_id,
-                       v.user_id as vote_user_id,
-                       v.post_id as vote_post_id,
-                       v.comment_id as vote_comment_id,
-                       v.value,
-                       v.timestamp as vote_timestamp,
-                       0 as depth,
-                       ARRAY[(c1.is_pinned, c1.{sort_column}, c1.comment_id)] AS path
-                FROM comments c1
-                LEFT JOIN votes v
-                    ON v.comment_id = c1.comment_id AND
-                       v.user_id = $1
-                WHERE c1.comment_id = (
-                    SELECT c2.parent_id
-                    FROM comments c2
-                    WHERE comment_id = $2
-                )
-                UNION ALL (
+                SELECT * FROM (
                     SELECT * FROM comment_tree
                     ORDER BY path DESC
                     LIMIT $3
                     OFFSET $4
+                )
+                UNION ALL (
+                    SELECT
+                        c1.*,
+                        v.vote_id,
+                        v.user_id as vote_user_id,
+                        v.post_id as vote_post_id,
+                        v.comment_id as vote_comment_id,
+                        v.value,
+                        v.timestamp as vote_timestamp,
+                        0 as depth,
+                        ARRAY[(c1.is_pinned, c1.{sort_column}, c1.comment_id)] AS path
+                    FROM comments c1
+                    LEFT JOIN votes v
+                        ON v.comment_id = c1.comment_id AND
+                           v.user_id = $1
+                    WHERE c1.comment_id = (
+                        SELECT c2.parent_id
+                        FROM comments c2
+                        WHERE comment_id = $2
+                    )
                 )"
             ).as_str(),
         )

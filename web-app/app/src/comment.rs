@@ -206,7 +206,10 @@ pub mod ssr {
         Ok(sphere)
     }
 
-    fn process_comment_tree(comment_with_vote_vec: Vec<CommentWithVote>) -> Vec<CommentWithChildren> {
+    fn process_comment_tree(
+        comment_with_vote_vec: Vec<CommentWithVote>,
+        allow_partial_tree: bool,
+    ) -> Vec<CommentWithChildren> {
         let mut comment_tree = Vec::new();
         let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
         println!("Process comment tree.");
@@ -239,6 +242,12 @@ pub mod ssr {
             } else {
                 comment_tree.push(current);
             }
+        }
+        
+        // Handle comment trees that do not start from a root comment
+        if allow_partial_tree && comment_tree.is_empty() && stack.len() == 1 {
+            let (_, partial_comment_tree) = stack.into_iter().next().unwrap();
+            comment_tree = partial_comment_tree;
         }
 
         comment_tree
@@ -313,7 +322,7 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let comment_tree = process_comment_tree(comment_with_vote_vec);
+        let comment_tree = process_comment_tree(comment_with_vote_vec, false);
 
         Ok(comment_tree)
     }
@@ -378,7 +387,7 @@ pub mod ssr {
                     ORDER BY path DESC
                     LIMIT $3
                     OFFSET $4
-                )
+                ) AS filtered_comment_tree
                 UNION ALL (
                     SELECT
                         c1.*,
@@ -409,7 +418,7 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let comment_tree = process_comment_tree(comment_with_vote_vec);
+        let comment_tree = process_comment_tree(comment_with_vote_vec, true);
 
         if comment_tree.len() > 1 {
             return Err(AppError::new(format!("Comment tree for comment {comment_id} should have a single root element.")));

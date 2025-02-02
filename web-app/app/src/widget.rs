@@ -6,7 +6,8 @@ use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::JsCast;
 use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
 use leptos_router::components::Form;
-use leptos_router::hooks::use_query_map;
+use leptos_router::hooks::{use_navigate, use_query_map};
+use leptos_router::NavigateOptions;
 use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
@@ -16,6 +17,7 @@ use crate::constants::{
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
+use crate::profile::get_profile_path;
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -170,11 +172,21 @@ pub fn AuthorWidget(
     author: String,
     is_moderator: bool,
 ) -> impl IntoView {
+    let navigate = use_navigate();
     let state = expect_context::<GlobalState>();
+    let author_profile_path = get_profile_path(&author);
+    let aria_label = format!("Navigate to user {}'s profile with path {}", author, author_profile_path);
     let author = StoredValue::new(author);
 
     view! {
-        <div class="flex px-1 gap-1.5 items-center text-sm">
+        <button
+            class="flex p-1 rounded gap-1.5 items-center text-sm hover:bg-base-content/20"
+            on:click=move |ev| {
+                ev.prevent_default();
+                navigate(author_profile_path.as_str(), NavigateOptions::default());
+            }
+            aria-label=aria_label
+        >
             { move || if is_moderator {
                     view! { <ModeratorAuthorIcon/> }.into_any()
                 } else {
@@ -193,7 +205,7 @@ pub fn AuthorWidget(
                 }
             }
             {author.get_value()}
-        </div>
+        </button>
     }.into_any()
 }
 

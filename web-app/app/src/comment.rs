@@ -773,6 +773,7 @@ pub fn CommentTree(
 
     let load_error = RwSignal::new(None);
 
+    // we set a signal with a local resource instead of using the resource directly to reuse the components from the ordinary comment tree
     let _comment_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
@@ -783,7 +784,11 @@ pub fn CommentTree(
     );
 
     view! {
-
+        <Form method="GET" action="">
+            <button class="p-2 mt-2 rounded hover:bg-base-content/20 font-semibold">
+                "Single comment tree view. Back to post."
+            </button>
+        </Form>
         { move || comment_vec.read().first().map(|comment| view! {
                 <div class="flex flex-col h-fit">
                     <CommentBox
@@ -840,7 +845,7 @@ pub fn CommentBox(
                 </Show>
             </div>
             <div class="flex flex-col gap-1">
-                <div class="flex flex-col gap-1 p-1 rounded" class=(["border", "border-1", "border-base-content/50"], is_query_comment)>
+                <div class="flex flex-col gap-1 p-1 rounded" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
                     <Show when=maximize>
                         <CommentBody comment/>
                     </Show>

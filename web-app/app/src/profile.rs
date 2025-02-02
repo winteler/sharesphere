@@ -21,6 +21,7 @@ use crate::{
     comment::COMMENT_BATCH_SIZE,
     post::{POST_BATCH_SIZE},
 };
+use crate::icons::UserIcon;
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -159,8 +160,16 @@ pub async fn get_user_comment_vec(
 /// Displays a user's profile
 #[component]
 pub fn UserProfile() -> impl IntoView {
+    let params = use_params_map();
+    let username = get_username_memo(params);
     view! {
-        <EnumQueryTabs query_param=PROFILE_TAB_QUERY_PARAM query_enum_iter=ProfileTabs::iter() default_view=move || view! { <UserPosts/> }/>
+        <div class="flex flex-col w-full">
+            <div class="p-2 flex items-center gap-1 text-2xl font-bold">
+                <UserIcon/>
+                {move || username.get()}
+            </div>
+            <EnumQueryTabs query_param=PROFILE_TAB_QUERY_PARAM query_enum_iter=ProfileTabs::iter() default_view=move || view! { <UserPosts/> }/>
+        </div>
         <div class="max-2xl:hidden">
             <HomeSidebar/>
         </div>

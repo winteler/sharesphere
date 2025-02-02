@@ -488,7 +488,7 @@ pub fn SphereHeaderLink(
     let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
     view! {
         <button
-            class="px-1 rounded-full hover:bg-base-content/20"
+            class="px-2 rounded-full hover:bg-base-content/20"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(sphere_path.as_str(), NavigateOptions::default());

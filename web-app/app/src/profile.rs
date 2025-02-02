@@ -21,7 +21,8 @@ use crate::{
     comment::COMMENT_BATCH_SIZE,
     post::{POST_BATCH_SIZE},
 };
-use crate::icons::UserIcon;
+use crate::app::GlobalState;
+use crate::icons::{LoadingIcon, UserIcon};
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -29,6 +30,12 @@ pub const PROFILE_TAB_QUERY_PARAM: &str = "tab";
 
 #[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum ProfileTabs {
+    Posts,
+    Comments,
+}
+
+#[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum SelfProfileTabs {
     Posts,
     Comments,
     Settings,
@@ -39,7 +46,16 @@ impl ToView for ProfileTabs {
         match self {
             ProfileTabs::Posts => view! { <UserPosts/> }.into_any(),
             ProfileTabs::Comments => view! { <UserComments/> }.into_any(),
-            ProfileTabs::Settings => view! { <UserSettings/> }.into_any(),
+        }
+    }
+}
+
+impl ToView for SelfProfileTabs {
+    fn to_view(self) -> AnyView {
+        match self {
+            SelfProfileTabs::Posts => view! { <UserPosts/> }.into_any(),
+            SelfProfileTabs::Comments => view! { <UserComments/> }.into_any(),
+            SelfProfileTabs::Settings => view! { <UserSettings/> }.into_any(),
         }
     }
 }
@@ -160,15 +176,37 @@ pub async fn get_user_comment_vec(
 /// Displays a user's profile
 #[component]
 pub fn UserProfile() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let params = use_params_map();
-    let username = get_username_memo(params);
+    let query_username = get_username_memo(params);
     view! {
         <div class="flex flex-col w-full">
             <div class="p-2 flex items-center gap-1 text-2xl font-bold">
                 <UserIcon/>
-                {move || username.get()}
+                {move || query_username.get()}
             </div>
-            <EnumQueryTabs query_param=PROFILE_TAB_QUERY_PARAM query_enum_iter=ProfileTabs::iter() default_view=move || view! { <UserPosts/> }/>
+            <Transition fallback=move || view! {  <LoadingIcon/> }>
+            { 
+                move || Suspend::new(async move { 
+                    match state.user.await {
+                        Ok(Some(user)) if user.username == query_username.get() => view! { 
+                            <EnumQueryTabs 
+                                query_param=PROFILE_TAB_QUERY_PARAM 
+                                query_enum_iter=SelfProfileTabs::iter() 
+                                default_view=move || view! { <UserPosts/> }
+                            /> 
+                        }.into_any(),
+                        _ => view! { 
+                            <EnumQueryTabs 
+                                query_param=PROFILE_TAB_QUERY_PARAM 
+                                query_enum_iter=ProfileTabs::iter() 
+                                default_view=move || view! { <UserPosts/> }
+                            /> 
+                        }.into_any(),
+                    }
+                })
+            }
+            </Transition>
         </div>
         <div class="max-2xl:hidden">
             <HomeSidebar/>

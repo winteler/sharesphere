@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::common::{create_user, get_db_pool};
 use app::errors::AppError;
+use app::role::AdminRole;
 use app::user;
 use app::user::ssr::create_or_update_user;
 use app::user::User;
@@ -19,9 +20,7 @@ async fn test_get_matching_username_set() -> Result<(), AppError> {
             create_user(
                 i.to_string().as_str(),
                 &db_pool,
-            )
-                .await
-                .username
+            ).await.username
         );
     }
 
@@ -41,9 +40,7 @@ async fn test_get_matching_username_set() -> Result<(), AppError> {
             create_user(
                 i.to_string().as_str(),
                 &db_pool,
-            )
-                .await
-                .username
+            ).await.username
         );
     }
 
@@ -67,12 +64,18 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(user.oidc_id, oidc_id);
     assert_eq!(user.username, username);
     assert_eq!(user.email, email);
+    assert_eq!(user.admin_role, AdminRole::None);
+    assert_eq!(user.hide_nsfw, false);
+    assert_eq!(user.seconds_hide_spoiler, None);
 
     let loaded_user = User::get(user.user_id, &db_pool).await.expect("Should get user");
     assert_eq!(loaded_user.user_id, user.user_id);
     assert_eq!(loaded_user.oidc_id, user.oidc_id);
     assert_eq!(loaded_user.username, user.username);
     assert_eq!(loaded_user.email, user.email);
+    assert_eq!(loaded_user.admin_role, user.admin_role);
+    assert_eq!(loaded_user.hide_nsfw, user.hide_nsfw);
+    assert_eq!(loaded_user.seconds_hide_spoiler, user.seconds_hide_spoiler);
 
     Ok(())
 }

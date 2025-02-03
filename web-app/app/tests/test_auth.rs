@@ -65,6 +65,14 @@ async fn test_user_get() -> Result<(), AppError> {
 
     let result_user = User::get(test_user.user_id, &db_pool).await.expect("result_user should be available in DB.");
 
+    assert_eq!(result_user.user_id, test_user.user_id);
+    assert_eq!(result_user.oidc_id, test_user.oidc_id);
+    assert_eq!(result_user.username, test_user.username);
+    assert_eq!(result_user.email, test_user.email);
+    assert_eq!(result_user.admin_role, test_user.admin_role);
+    assert_eq!(result_user.hide_nsfw, test_user.hide_nsfw);
+    assert_eq!(result_user.seconds_hide_spoiler, test_user.seconds_hide_spoiler);
+    
     assert_eq!(result_user.check_permissions(&sphere_a.sphere_name, PermissionLevel::Moderate), Ok(()));
     assert_eq!(result_user.check_permissions(&sphere_b.sphere_name, PermissionLevel::Moderate), Ok(()));
     assert_eq!(result_user.check_permissions(&sphere_c.sphere_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));

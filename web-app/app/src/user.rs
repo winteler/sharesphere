@@ -5,6 +5,7 @@ use std::collections::{BTreeSet, HashMap};
 
 #[cfg(feature = "ssr")]
 use crate::app::ssr::get_db_pool;
+use crate::auth::ssr::check_user;
 use crate::errors::AppError;
 use crate::role::{AdminRole, PermissionLevel};
 
@@ -24,6 +25,8 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub admin_role: AdminRole,
+    pub hide_nsfw: bool,
+    pub seconds_hide_spoiler: Option<i32>,
     pub permission_by_sphere_map: HashMap<String, PermissionLevel>,
     pub ban_status: BanStatus,
     pub ban_status_by_sphere_map: HashMap<String, BanStatus>,
@@ -51,6 +54,8 @@ impl Default for User {
             username: String::default(),
             email: String::default(),
             admin_role: AdminRole::None,
+            hide_nsfw: false,
+            seconds_hide_spoiler: None,
             permission_by_sphere_map: HashMap::new(),
             ban_status: BanStatus::None,
             ban_status_by_sphere_map: HashMap::new(),
@@ -130,7 +135,7 @@ pub mod ssr {
     use crate::role::UserSphereRole;
     use crate::sphere_management::UserBan;
     use async_trait::async_trait;
-
+    use crate::auth::ssr::reload_user;
     use super::*;
 
     #[derive(sqlx::FromRow, Clone, Debug, PartialEq)]
@@ -140,6 +145,8 @@ pub mod ssr {
         pub username: String,
         pub email: String,
         pub admin_role: AdminRole,
+        pub hide_nsfw: bool,
+        pub seconds_hide_spoiler: Option<i32>,
         pub timestamp: chrono::DateTime<chrono::Utc>,
         pub is_deleted: bool,
     }
@@ -210,6 +217,8 @@ pub mod ssr {
                 username: self.username,
                 email: self.email,
                 admin_role: self.admin_role,
+                hide_nsfw: self.hide_nsfw,
+                seconds_hide_spoiler: self.seconds_hide_spoiler,
                 permission_by_sphere_map,
                 ban_status: global_ban_status,
                 ban_status_by_sphere_map,
@@ -363,6 +372,28 @@ pub mod ssr {
         Ok(sql_user)
     }
 
+    pub async fn set_user_preferences(
+        hide_nsfw: bool,
+        seconds_hide_spoiler: Option<i32>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            "UPDATE users SET
+            hide_nsfw = $1,
+            seconds_hide_spoiler = $2
+            WHERE user_id = $3",
+            hide_nsfw,
+            seconds_hide_spoiler,
+            user.user_id,
+        )
+            .execute(db_pool)
+            .await?;
+
+        reload_user(user.user_id)?;
+        Ok(())
+    }
+
     async fn load_user_sphere_role_vec(
         user_id: i64,
         db_pool: &PgPool,
@@ -410,6 +441,8 @@ pub mod ssr {
                 username: String::from("b"),
                 email: String::from("c"),
                 admin_role: AdminRole::None,
+                hide_nsfw: false,
+                seconds_hide_spoiler: None,
                 timestamp: chrono::DateTime::from_timestamp_nanos(0),
                 is_deleted: false,
             };
@@ -527,6 +560,17 @@ pub mod ssr {
             assert_eq!(user_2.ban_status, BanStatus::Until(future_timestamp));
         }
     }
+}
+
+#[server]
+pub async fn set_user_preferences(
+    hide_nsfw: bool,
+    seconds_hide_spoilers: Option<i32>,
+) -> Result<(), ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let user = check_user().await?;
+    ssr::set_user_preferences(hide_nsfw, seconds_hide_spoilers, &user, &db_pool).await?;
+    Ok(())
 }
 
 #[server]

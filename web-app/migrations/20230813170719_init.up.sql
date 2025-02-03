@@ -4,6 +4,8 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     admin_role TEXT NOT NULL DEFAULT 'None' CHECK (admin_role IN ('None', 'Moderator', 'Admin')),
+    hide_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
+    seconds_hide_spoiler INT,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (user_id, username)

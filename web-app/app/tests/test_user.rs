@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
-use crate::common::{create_user, get_db_pool};
+use crate::common::{create_test_user, create_user, get_db_pool};
 use app::errors::AppError;
 use app::role::AdminRole;
 use app::user;
-use app::user::ssr::create_or_update_user;
+use app::user::ssr::{create_or_update_user, set_user_preferences};
 use app::user::User;
 
 mod common;
@@ -52,7 +52,7 @@ async fn test_get_matching_username_set() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_create_user() -> Result<(), AppError> {
+async fn test_create_or_update_user() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
 
     let oidc_id = "a";
@@ -66,7 +66,7 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(user.email, email);
     assert_eq!(user.admin_role, AdminRole::None);
     assert_eq!(user.hide_nsfw, false);
-    assert_eq!(user.seconds_hide_spoiler, None);
+    assert_eq!(user.days_hide_spoiler, None);
 
     let loaded_user = User::get(user.user_id, &db_pool).await.expect("Should get user");
     assert_eq!(loaded_user.user_id, user.user_id);
@@ -75,7 +75,36 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(loaded_user.email, user.email);
     assert_eq!(loaded_user.admin_role, user.admin_role);
     assert_eq!(loaded_user.hide_nsfw, user.hide_nsfw);
-    assert_eq!(loaded_user.seconds_hide_spoiler, user.seconds_hide_spoiler);
+    assert_eq!(loaded_user.days_hide_spoiler, user.days_hide_spoiler);
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_set_user_preferences() {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+    
+    set_user_preferences(true, None, &user, &db_pool).await.expect("Should set user preferences");
+    let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.hide_nsfw, true);
+    assert_eq!(user.days_hide_spoiler, None);
+
+    set_user_preferences(false, Some(1), &user, &db_pool).await.expect("Should set user preferences");
+    let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.hide_nsfw, false);
+    assert_eq!(user.days_hide_spoiler, Some(1));
+
+    set_user_preferences(true, Some(10), &user, &db_pool).await.expect("Should set user preferences");
+    let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.hide_nsfw, true);
+    assert_eq!(user.days_hide_spoiler, Some(10));
+
+    set_user_preferences(false, None, &user, &db_pool).await.expect("Should set user preferences");
+    let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.hide_nsfw, false);
+    assert_eq!(user.days_hide_spoiler, None);
+
+    assert!(set_user_preferences(false, Some(0), &user, &db_pool).await.is_err());
+    assert!(set_user_preferences(true, Some(-1), &user, &db_pool).await.is_err());
 }

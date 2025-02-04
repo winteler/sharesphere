@@ -12,7 +12,7 @@ use crate::errors::AppError;
 use crate::post::{PostMiniatureList, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
 use crate::sidebar::HomeSidebar;
-use crate::unpack::{handle_additional_load, handle_initial_load};
+use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
 use crate::widget::{EnumQueryTabs, ToView};
 
 #[cfg(feature = "ssr")]
@@ -22,7 +22,9 @@ use crate::{
     post::{POST_BATCH_SIZE},
 };
 use crate::app::GlobalState;
+use crate::form::LabeledFormCheckbox;
 use crate::icons::{LoadingIcon, UserIcon};
+use crate::user::SetUserPreferences;
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -180,7 +182,7 @@ pub fn UserProfile() -> impl IntoView {
     let params = use_params_map();
     let query_username = get_username_memo(params);
     view! {
-        <div class="flex flex-col w-full">
+        <div class="flex flex-col w-full items-center">
             <div class="p-2 flex items-center gap-1 text-2xl font-bold">
                 <UserIcon/>
                 {move || query_username.get()}
@@ -307,11 +309,42 @@ pub fn UserComments() -> impl IntoView {
 /// Displays a user's settings
 #[component]
 pub fn UserSettings() -> impl IntoView {
-    let params = use_params_map();
-    let username = get_username_memo(params);
+    let state = expect_context::<GlobalState>();
+    let set_preferences_action = ServerAction::<SetUserPreferences>::new();
+
     view! {
         <div>"Settings"</div>
-        <div>{move || username.get()}</div>
+        <Suspense fallback=move || view! {  <LoadingIcon/> }>
+        {
+            move || Suspend::new(async move {
+                let (hide_nsfw, days_hide_spoiler) = match state.user.await {
+                    Ok(Some(user)) => (user.hide_nsfw, user.days_hide_spoiler.unwrap_or_default()),
+                    _ => (false, 0),
+                };
+                view! {
+                    <ActionForm action=set_preferences_action attr:class="flex flex-col gap-3 w-3/4 2xl:w-1/3">
+                        <LabeledFormCheckbox name="hide_nsfw" label="Hide NSFW" value=hide_nsfw/>
+                        <div class="flex justify-between items-center">
+                            "Hide spoilers duration (days)"
+                            <input
+                                type="number"
+                                min="0"
+                                max="999"
+                                name="days_hide_spoilers"
+                                class="input input-bordered input-primary no-spinner text-right w-16"
+                                autocomplete="off"
+                                value=days_hide_spoiler
+                            />
+                        </div>
+                        <button type="submit" class="btn btn-active btn-secondary">
+                            "Publish"
+                        </button>
+                    </ActionForm>
+                    <ActionError action=set_preferences_action.into()/>
+                }
+            })
+        }
+        </Suspense>
     }
 }
 

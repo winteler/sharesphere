@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use rand::Rng;
-
+use sqlx::PgPool;
 use app::colors::Color;
 use app::comment::ssr::create_comment;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
 use app::post::ssr::{create_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
-use app::post::{ssr, PostSortType, PostWithSphereInfo};
+use app::post::{ssr, Post, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
@@ -19,6 +19,7 @@ use app::sphere_category::ssr::set_sphere_category;
 use app::user::User;
 use app::{post, sphere};
 use app::embed::{Link, LinkType};
+use app::sphere::Sphere;
 use app::sphere::ssr::create_sphere;
 
 pub use crate::common::*;
@@ -28,6 +29,55 @@ use crate::utils::{sort_post_vec, test_post_score, POST_SORT_TYPE_ARRAY};
 mod common;
 mod data_factory;
 mod utils;
+
+async fn create_sphere_with_filter_posts(
+    sphere_name: &str,
+    num_post: usize,
+    user: &mut User,
+    db_pool: &PgPool
+) -> (Sphere, Vec<PostWithSphereInfo>, Post, Post) {
+    let (sphere, _, mut base_post_vec) = create_sphere_with_posts(
+        sphere_name,
+        None,
+        num_post,
+        Some((0..num_post).map(|i| (i + 2) as i32).collect()),
+        Vec::new(),
+        user,
+        &db_pool,
+    ).await.expect("sphere with posts should be created.");
+
+    let nsfw_post = create_post(
+        &sphere.sphere_name,
+        None,
+        "nsfw",
+        "hello",
+        None,
+        Link::default(),
+        false,
+        true,
+        false,
+        None,
+        user,
+        &db_pool,
+    ).await.expect("nsfw_post should be created.");
+
+    let spoiler_post = create_post(
+        &sphere.sphere_name,
+        None,
+        "nsfw",
+        "hello",
+        None,
+        Link::default(),
+        false,
+        true,
+        false,
+        None,
+        user,
+        &db_pool,
+    ).await.expect("nsfw_post should be created.");
+
+    (sphere, base_post_vec, spoiler_post, nsfw_post)
+}
 
 #[tokio::test]
 async fn test_get_post_by_id() -> Result<(), AppError> {
@@ -356,6 +406,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
+        None,
         &db_pool,
     ).await?;
     assert!(post_vec.is_empty());
@@ -368,6 +419,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
             SortType::Post(sort_type),
             num_post as i64,
             0,
+            None,
             &db_pool,
         ).await?;
         sort_post_vec(&mut expected_post_vec, sort_type, true);
@@ -390,6 +442,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
+        None,
         &db_pool,
     ).await?;
     let moderated_post = PostWithSphereInfo::from_post(moderated_post, None, None);
@@ -402,6 +455,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
+        None,
         &db_pool,
     ).await?;
     assert!(post_vec.is_empty());
@@ -489,12 +543,14 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
             SortType::Post(sort_type),
             num_post as i64,
             0,
+            None,
             &db_pool
         ).await.expect("First post vec should be loaded");
         let second_post_vec = ssr::get_sorted_post_vec(
             SortType::Post(sort_type),
             num_post as i64,
             num_post as i64,
+            None,
             &db_pool
         ).await.expect("Second post vec should be loaded");
         sort_post_vec(&mut expected_post_vec, sort_type, true);
@@ -513,11 +569,25 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Post should be moderated.");
 
-    let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Hot), num_post as i64, 0, &db_pool).await?;
+    let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Hot), num_post as i64, 0, None, &db_pool).await?;
     let moderated_post = PostWithSphereInfo::from_post(moderated_post, None, None);
     assert!(!post_vec.contains(&moderated_post));
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_get_sorted_post_vec_with_filters() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let num_post = 10;
+    let (_sphere, _post_vec, _spoiler_post, _nsfw_post) = create_sphere_with_filter_posts(
+        "sphere",
+        num_post,
+        &mut user,
+        &db_pool,
+    ).await;
 }
 
 #[tokio::test]
@@ -612,6 +682,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
             SortType::Post(sort_type),
             load_count as i64,
             0,
+            None,
             &db_pool,
         ).await.expect("First post vec should be loaded");
         
@@ -630,6 +701,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
             SortType::Post(sort_type),
             load_count as i64,
             load_count as i64,
+            None,
             &db_pool,
         ).await?;
 
@@ -659,6 +731,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         SortType::Post(PostSortType::Hot),
         num_posts as i64,
         0,
+        None,
         &db_pool,
     ).await?;
 
@@ -708,6 +781,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
             SortType::Post(sort_type),
             partial_load_num_post as i64,
             0,
+            None,
             &db_pool,
         ).await?;
 
@@ -788,6 +862,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
             SortType::Post(sort_type),
             num_posts as i64,
             0,
+            None,
             &db_pool,
         ).await?;
         let category_post_vec: Vec<PostWithSphereInfo> = category_post_vec.into_iter().map(|post| {
@@ -876,6 +951,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
             SortType::Post(sort_type),
             load_count as i64,
             0,
+            None,
             &db_pool,
         ).await.expect("First post vec should be loaded");
 
@@ -894,6 +970,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
             SortType::Post(sort_type),
             load_count as i64,
             load_count as i64,
+            None,
             &db_pool,
         ).await?;
 
@@ -923,6 +1000,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
         SortType::Post(PostSortType::Hot),
         num_posts as i64,
         0,
+        None,
         &db_pool,
     ).await?;
 
@@ -982,6 +1060,7 @@ async fn test_get_post_vec_by_satellite_id_with_pinned_post() -> Result<(), AppE
             SortType::Post(sort_type),
             load_count as i64,
             0,
+            None,
             &db_pool,
         ).await.expect("First post vec should be loaded");
 
@@ -1082,6 +1161,7 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
             SortType::Post(sort_type),
             num_posts as i64,
             0,
+            None,
             &db_pool,
         ).await?;
         let category_post_vec: Vec<PostWithSphereInfo> = category_post_vec.into_iter().map(|post| {

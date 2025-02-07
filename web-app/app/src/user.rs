@@ -1,15 +1,17 @@
-use leptos::{prelude::ServerFnError, server};
-use serde::{Deserialize, Serialize};
 use std::cmp::max;
 use std::collections::{BTreeSet, HashMap};
+use std::default::Default;
 
+use leptos::{prelude::ServerFnError, server};
+use serde::{Deserialize, Serialize};
+
+use crate::errors::AppError;
+use crate::role::{AdminRole, PermissionLevel};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
 };
-use crate::errors::AppError;
-use crate::role::{AdminRole, PermissionLevel};
 
 pub const USER_FETCH_LIMIT: i64 = 20;
 
@@ -27,13 +29,20 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub admin_role: AdminRole,
-    pub hide_nsfw: bool,
     pub days_hide_spoiler: Option<i32>,
+    pub show_nsfw: bool,
     pub permission_by_sphere_map: HashMap<String, PermissionLevel>,
     pub ban_status: BanStatus,
     pub ban_status_by_sphere_map: HashMap<String, BanStatus>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub is_deleted: bool,
+}
+
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UserPostFilters {
+    pub days_hide_spoiler: Option<i32>,
+    pub show_nsfw: bool,
 }
 
 impl BanStatus {
@@ -56,7 +65,7 @@ impl Default for User {
             username: String::default(),
             email: String::default(),
             admin_role: AdminRole::None,
-            hide_nsfw: false,
+            show_nsfw: true,
             days_hide_spoiler: None,
             permission_by_sphere_map: HashMap::new(),
             ban_status: BanStatus::None,
@@ -121,6 +130,22 @@ impl User {
             _ => Ok(())
         }
     }
+
+    pub fn get_posts_filter(&self) -> UserPostFilters {
+        UserPostFilters {
+            days_hide_spoiler: self.days_hide_spoiler,
+            show_nsfw: self.show_nsfw,
+        }
+    }
+}
+
+impl Default for UserPostFilters {
+    fn default() -> Self {
+        UserPostFilters {
+            days_hide_spoiler: None,
+            show_nsfw: true,
+        }
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -146,7 +171,7 @@ pub mod ssr {
         pub username: String,
         pub email: String,
         pub admin_role: AdminRole,
-        pub hide_nsfw: bool,
+        pub show_nsfw: bool,
         pub days_hide_spoiler: Option<i32>,
         pub timestamp: chrono::DateTime<chrono::Utc>,
         pub is_deleted: bool,
@@ -218,7 +243,7 @@ pub mod ssr {
                 username: self.username,
                 email: self.email,
                 admin_role: self.admin_role,
-                hide_nsfw: self.hide_nsfw,
+                show_nsfw: self.show_nsfw,
                 days_hide_spoiler: self.days_hide_spoiler,
                 permission_by_sphere_map,
                 ban_status: global_ban_status,
@@ -374,17 +399,17 @@ pub mod ssr {
     }
 
     pub async fn set_user_preferences(
-        hide_nsfw: bool,
+        show_nsfw: bool,
         days_hide_spoiler: Option<i32>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
         sqlx::query!(
             "UPDATE users SET
-            hide_nsfw = $1,
+            show_nsfw = $1,
             days_hide_spoiler = $2
             WHERE user_id = $3",
-            hide_nsfw,
+            show_nsfw,
             days_hide_spoiler,
             user.user_id,
         )
@@ -440,7 +465,7 @@ pub mod ssr {
                 username: String::from("b"),
                 email: String::from("c"),
                 admin_role: AdminRole::None,
-                hide_nsfw: false,
+                show_nsfw: true,
                 days_hide_spoiler: None,
                 timestamp: chrono::DateTime::from_timestamp_nanos(0),
                 is_deleted: false,
@@ -563,7 +588,7 @@ pub mod ssr {
 
 #[server]
 pub async fn set_user_preferences(
-    hide_nsfw: bool,
+    show_nsfw: bool,
     days_hide_spoilers: u32,
 ) -> Result<(), ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
@@ -573,7 +598,7 @@ pub async fn set_user_preferences(
         x if x > 0 => Some(x as i32),
         _ => None,
     };
-    ssr::set_user_preferences(hide_nsfw, days_hide_spoilers, &user, &db_pool).await?;
+    ssr::set_user_preferences(show_nsfw, days_hide_spoilers, &user, &db_pool).await?;
     reload_user(user.user_id)?;
     Ok(())
 }

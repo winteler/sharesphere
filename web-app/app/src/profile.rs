@@ -317,13 +317,13 @@ pub fn UserSettings() -> impl IntoView {
         <Suspense fallback=move || view! {  <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
-                let (hide_nsfw, days_hide_spoiler) = match state.user.await {
-                    Ok(Some(user)) => (user.hide_nsfw, user.days_hide_spoiler.unwrap_or_default()),
+                let (show_nsfw, days_hide_spoiler) = match state.user.await {
+                    Ok(Some(user)) => (user.show_nsfw, user.days_hide_spoiler.unwrap_or_default()),
                     _ => (false, 0),
                 };
                 view! {
                     <ActionForm action=set_preferences_action attr:class="flex flex-col gap-3 w-3/4 2xl:w-1/3">
-                        <LabeledFormCheckbox name="hide_nsfw" label="Hide NSFW" value=hide_nsfw/>
+                        <LabeledFormCheckbox name="show_nsfw" label="Hide NSFW" value=show_nsfw/>
                         <div class="flex justify-between items-center">
                             "Hide spoilers duration (days)"
                             <input

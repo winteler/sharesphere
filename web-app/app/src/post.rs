@@ -320,8 +320,10 @@ pub mod ssr {
         sort_type: SortType,
         limit: i64,
         offset: i64,
+        user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
+        let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT p.* FROM posts p
@@ -330,15 +332,23 @@ pub mod ssr {
                     s.sphere_name = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
                     p.moderator_id IS NULL AND
-                    p.satellite_id IS NULL
+                    p.satellite_id IS NULL AND
+                    (
+                        $3 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $3)
+                    ) AND
+                    (
+                        $4 OR NOT p.is_nsfw
+                    )
                 ORDER BY p.is_pinned DESC, {} DESC
-                LIMIT $3
-                OFFSET $4",
+                LIMIT $5
+                OFFSET $6",
                 sort_type.to_order_by_code(),
             ).as_str(),
         )
             .bind(sphere_name)
             .bind(sphere_category_id)
+            .bind(posts_filters.days_hide_spoiler)
+            .bind(posts_filters.show_nsfw)
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -353,8 +363,10 @@ pub mod ssr {
         sort_type: SortType,
         limit: i64,
         offset: i64,
+        user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
+        let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
                 "SELECT p.* FROM posts p
@@ -362,15 +374,23 @@ pub mod ssr {
                 WHERE
                     s.satellite_id = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
-                    p.moderator_id IS NULL
+                    p.moderator_id IS NULL AND
+                    (
+                        $3 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $3)
+                    ) AND
+                    (
+                        $4 OR NOT p.is_nsfw
+                    )
                 ORDER BY p.is_pinned DESC, {} DESC
-                LIMIT $3
-                OFFSET $4",
+                LIMIT $5
+                OFFSET $6",
                 sort_type.to_order_by_code(),
             ).as_str(),
         )
             .bind(satellite_id)
             .bind(sphere_category_id)
+            .bind(posts_filters.days_hide_spoiler)
+            .bind(posts_filters.show_nsfw)
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -383,8 +403,13 @@ pub mod ssr {
         sort_type: SortType,
         limit: i64,
         offset: i64,
+        user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
+        let (days_hide_spoiler, show_nsfw) = match user {
+            Some(user) => (user.days_hide_spoiler, user.show_nsfw),
+            None => (None, false),
+        };
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
                 "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
@@ -393,14 +418,21 @@ pub mod ssr {
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
                     p.moderator_id IS NULL AND
-                    NOT p.is_nsfw AND
-                    p.satellite_id IS NULL
+                    p.satellite_id IS NULL AND
+                    (
+                        $1 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $1)
+                    ) AND
+                    (
+                        $2 OR NOT p.is_nsfw
+                    )
                 ORDER BY {} DESC
-                LIMIT $1
-                OFFSET $2",
+                LIMIT $3
+                OFFSET $4",
                 sort_type.to_order_by_code(),
             ).as_str()
         )
+            .bind(days_hide_spoiler)
+            .bind(show_nsfw)
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -416,8 +448,10 @@ pub mod ssr {
         sort_type: SortType,
         limit: i64,
         offset: i64,
+        user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
+        let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
                 "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
@@ -429,15 +463,23 @@ pub mod ssr {
                         SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
                     ) AND
                     p.moderator_id IS NULL AND
-                    p.satellite_id IS NULL
+                    p.satellite_id IS NULL AND
+                    (
+                        $2 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
+                    ) AND
+                    (
+                        $3 OR NOT p.is_nsfw
+                    )
                 ORDER BY {} DESC
-                LIMIT $2
-                OFFSET $3",
+                LIMIT $4
+                OFFSET $5",
                 sort_type.to_order_by_code(),
             )
             .as_str(),
         )
             .bind(user_id)
+            .bind(posts_filters.days_hide_spoiler)
+            .bind(posts_filters.show_nsfw)
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -741,12 +783,14 @@ pub async fn get_sorted_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
+    let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_sorted_post_vec(
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
+        user.as_ref(),
         &db_pool,
     ).await?;
 
@@ -759,6 +803,7 @@ pub async fn get_subscribed_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
+    let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_subscribed_post_vec(
@@ -766,6 +811,7 @@ pub async fn get_subscribed_post_vec(
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
+        user.as_ref(),
         &db_pool,
     ).await?;
 
@@ -779,6 +825,7 @@ pub async fn get_post_vec_by_sphere_name(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<Post>, ServerFnError<AppError>> {
+    let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_sphere_name(
         sphere_name.as_str(),
@@ -786,6 +833,7 @@ pub async fn get_post_vec_by_sphere_name(
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
+        user.as_ref(),
         &db_pool,
     ).await?;
     Ok(post_vec)
@@ -798,6 +846,7 @@ pub async fn get_post_vec_by_satellite_id(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<Post>, ServerFnError<AppError>> {
+    let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_satellite_id(
         satellite_id,
@@ -805,6 +854,7 @@ pub async fn get_post_vec_by_satellite_id(
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
+        user.as_ref(),
         &db_pool,
     )
         .await?;

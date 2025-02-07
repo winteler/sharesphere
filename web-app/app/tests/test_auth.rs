@@ -70,7 +70,7 @@ async fn test_user_get() -> Result<(), AppError> {
     assert_eq!(result_user.username, test_user.username);
     assert_eq!(result_user.email, test_user.email);
     assert_eq!(result_user.admin_role, test_user.admin_role);
-    assert_eq!(result_user.hide_nsfw, test_user.hide_nsfw);
+    assert_eq!(result_user.show_nsfw, test_user.show_nsfw);
     assert_eq!(result_user.days_hide_spoiler, test_user.days_hide_spoiler);
     
     assert_eq!(result_user.check_permissions(&sphere_a.sphere_name, PermissionLevel::Moderate), Ok(()));

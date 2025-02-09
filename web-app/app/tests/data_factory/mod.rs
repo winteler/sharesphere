@@ -348,6 +348,25 @@ pub async fn set_post_score(
     Ok(post)
 }
 
+pub async fn set_post_timestamp(
+    post_id: i64,
+    day_offset: i64,
+    db_pool: &PgPool,
+) -> Result<Post, AppError> {
+    let post = sqlx::query_as::<_, Post>(
+        "UPDATE posts
+        SET create_timestamp = create_timestamp + (INTERVAL '1 day' * $1), 
+        scoring_timestamp = CURRENT_TIMESTAMP 
+        WHERE post_id = $2 RETURNING *",
+    )
+        .bind(day_offset)
+        .bind(post_id)
+        .fetch_one(db_pool)
+        .await?;
+
+    Ok(post)
+}
+
 pub async fn set_comment_score(
     comment_id: i64,
     score: i32,

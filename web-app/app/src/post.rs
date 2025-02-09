@@ -420,7 +420,7 @@ pub mod ssr {
                     p.moderator_id IS NULL AND
                     p.satellite_id IS NULL AND
                     (
-                        $1 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $1)
+                        $1 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $1)
                     ) AND
                     (
                         $2 OR NOT p.is_nsfw

@@ -9,7 +9,7 @@ use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
 use app::post::ssr::{create_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
-use app::post::{ssr, Post, PostSortType, PostWithSphereInfo};
+use app::post::{ssr, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
 use app::role::AdminRole;
@@ -35,22 +35,54 @@ async fn create_sphere_with_filter_posts(
     num_post: usize,
     user: &mut User,
     db_pool: &PgPool
-) -> (Sphere, Vec<PostWithSphereInfo>, Post, Post) {
-    let (sphere, _, mut base_post_vec) = create_sphere_with_posts(
+) -> (Sphere, Vec<PostWithSphereInfo>, PostWithSphereInfo, PostWithSphereInfo, PostWithSphereInfo) {
+    let (sphere, _, base_post_vec) = create_sphere_with_posts(
         sphere_name,
         None,
         num_post,
-        Some((0..num_post).map(|i| (i + 2) as i32).collect()),
+        Some((0..num_post).map(|i| (i + 3) as i32).collect()),
         Vec::new(),
         user,
         &db_pool,
     ).await.expect("sphere with posts should be created.");
 
+    let new_spoiler_post = create_post(
+        &sphere.sphere_name,
+        None,
+        "new_spoiler",
+        "a",
+        None,
+        Link::default(),
+        true,
+        false,
+        false,
+        None,
+        user,
+        db_pool,
+    ).await.expect("new spoiler post should be created.");
+    
+    let day_old_spoiler_post = create_post(
+        &sphere.sphere_name,
+        None,
+        "old_spoiler",
+        "a",
+        None,
+        Link::default(),
+        true,
+        false,
+        false,
+        None,
+        user,
+        db_pool,
+    ).await.expect("old spoiler post should be created.");
+    let day_old_spoiler_post = set_post_timestamp(day_old_spoiler_post.post_id, -2, db_pool).await.expect("old spoiler timestamp should be set.");
+    let day_old_spoiler_post = set_post_score(day_old_spoiler_post.post_id, 1, db_pool).await.expect("old spoiler score should be set.");
+
     let nsfw_post = create_post(
         &sphere.sphere_name,
         None,
         "nsfw",
-        "hello",
+        "a",
         None,
         Link::default(),
         false,
@@ -58,25 +90,17 @@ async fn create_sphere_with_filter_posts(
         false,
         None,
         user,
-        &db_pool,
+        db_pool,
     ).await.expect("nsfw_post should be created.");
+    let nsfw_post = set_post_score(nsfw_post.post_id, 2, db_pool).await.expect("nsfw_post score should be set.");
 
-    let spoiler_post = create_post(
-        &sphere.sphere_name,
-        None,
-        "nsfw",
-        "hello",
-        None,
-        Link::default(),
-        false,
-        true,
-        false,
-        None,
-        user,
-        &db_pool,
-    ).await.expect("nsfw_post should be created.");
-
-    (sphere, base_post_vec, spoiler_post, nsfw_post)
+    (
+        sphere, 
+        base_post_vec,
+        PostWithSphereInfo::from_post(new_spoiler_post, None, None),
+        PostWithSphereInfo::from_post(day_old_spoiler_post, None, None),
+        PostWithSphereInfo::from_post(nsfw_post, None, None),
+    )
 }
 
 #[tokio::test]
@@ -582,12 +606,63 @@ async fn test_get_sorted_post_vec_with_filters() {
     let mut user = create_test_user(&db_pool).await;
 
     let num_post = 10;
-    let (_sphere, _post_vec, _spoiler_post, _nsfw_post) = create_sphere_with_filter_posts(
+    let (_sphere, post_vec, new_spoiler_post, old_spoiler_post, nsfw_post) = create_sphere_with_filter_posts(
         "sphere",
         num_post,
         &mut user,
         &db_pool,
     ).await;
+    
+    let mut no_filter_expected_post = post_vec.clone();
+    no_filter_expected_post.push(new_spoiler_post.clone());
+    no_filter_expected_post.push(old_spoiler_post.clone());
+    no_filter_expected_post.push(nsfw_post.clone());
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let post_vec = ssr::get_sorted_post_vec(
+            SortType::Post(sort_type), 
+            (num_post + 3) as i64, 
+            0, 
+            Some(&user), 
+            &db_pool
+        ).await.expect("Post vec should be loaded");
+        sort_post_vec(&mut no_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, no_filter_expected_post);
+    }
+
+    user.days_hide_spoiler = Some(1);
+    user.show_nsfw = false;
+    let mut one_day_spoiler_filter_expected_post = post_vec.clone();
+    one_day_spoiler_filter_expected_post.push(old_spoiler_post.clone());
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let post_vec = ssr::get_sorted_post_vec(
+            SortType::Post(sort_type),
+            (num_post + 3) as i64,
+            0,
+            Some(&user),
+            &db_pool
+        ).await.expect("Post vec should be loaded");
+        sort_post_vec(&mut one_day_spoiler_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, one_day_spoiler_filter_expected_post);
+    }
+
+    user.days_hide_spoiler = Some(3);
+    user.show_nsfw = true;
+    let mut three_day_spoiler_filter_expected_post = post_vec.clone();
+    three_day_spoiler_filter_expected_post.push(nsfw_post.clone());
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let post_vec = ssr::get_sorted_post_vec(
+            SortType::Post(sort_type),
+            (num_post + 3) as i64,
+            0,
+            Some(&user),
+            &db_pool
+        ).await.expect("Post vec should be loaded");
+        sort_post_vec(&mut three_day_spoiler_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, three_day_spoiler_filter_expected_post);
+    }
 }
 
 #[tokio::test]

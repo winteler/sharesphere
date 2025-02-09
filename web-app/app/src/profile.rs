@@ -182,33 +182,35 @@ pub fn UserProfile() -> impl IntoView {
     let params = use_params_map();
     let query_username = get_username_memo(params);
     view! {
-        <div class="flex flex-col w-full items-center">
-            <div class="p-2 flex items-center gap-1 text-2xl font-bold">
-                <UserIcon/>
-                {move || query_username.get()}
+        <div class="w-full flex justify-center">
+            <div class="w-full 2xl:w-2/3 flex flex-col max-2xl:items-center">
+                <div class="p-2 flex items-center gap-1 text-2xl font-bold">
+                    <UserIcon/>
+                    {move || query_username.get()}
+                </div>
+                <Transition fallback=move || view! {  <LoadingIcon/> }>
+                { 
+                    move || Suspend::new(async move { 
+                        match state.user.await {
+                            Ok(Some(user)) if user.username == query_username.get() => view! { 
+                                <EnumQueryTabs 
+                                    query_param=PROFILE_TAB_QUERY_PARAM 
+                                    query_enum_iter=SelfProfileTabs::iter() 
+                                    default_view=move || view! { <UserPosts/> }
+                                /> 
+                            }.into_any(),
+                            _ => view! { 
+                                <EnumQueryTabs 
+                                    query_param=PROFILE_TAB_QUERY_PARAM 
+                                    query_enum_iter=ProfileTabs::iter() 
+                                    default_view=move || view! { <UserPosts/> }
+                                /> 
+                            }.into_any(),
+                        }
+                    })
+                }
+                </Transition>
             </div>
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-            { 
-                move || Suspend::new(async move { 
-                    match state.user.await {
-                        Ok(Some(user)) if user.username == query_username.get() => view! { 
-                            <EnumQueryTabs 
-                                query_param=PROFILE_TAB_QUERY_PARAM 
-                                query_enum_iter=SelfProfileTabs::iter() 
-                                default_view=move || view! { <UserPosts/> }
-                            /> 
-                        }.into_any(),
-                        _ => view! { 
-                            <EnumQueryTabs 
-                                query_param=PROFILE_TAB_QUERY_PARAM 
-                                query_enum_iter=ProfileTabs::iter() 
-                                default_view=move || view! { <UserPosts/> }
-                            /> 
-                        }.into_any(),
-                    }
-                })
-            }
-            </Transition>
         </div>
         <div class="max-2xl:hidden">
             <HomeSidebar/>
@@ -313,7 +315,6 @@ pub fn UserSettings() -> impl IntoView {
     let set_preferences_action = ServerAction::<SetUserPreferences>::new();
 
     view! {
-        <div>"Settings"</div>
         <Suspense fallback=move || view! {  <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
@@ -322,7 +323,7 @@ pub fn UserSettings() -> impl IntoView {
                     _ => (false, 0),
                 };
                 view! {
-                    <ActionForm action=set_preferences_action attr:class="flex flex-col gap-3 w-3/4 2xl:w-1/3">
+                    <ActionForm action=set_preferences_action attr:class="self-center flex flex-col gap-3 w-3/4 2xl:w-1/2">
                         <LabeledFormCheckbox name="show_nsfw" label="Hide NSFW" value=show_nsfw/>
                         <div class="flex justify-between items-center">
                             "Hide spoilers duration (days)"

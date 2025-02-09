@@ -3512,6 +3512,10 @@ html {
   width: 25%;
 }
 
+.w-3\/4 {
+  width: 75%;
+}
+
 .w-3\/5 {
   width: 60%;
 }
@@ -3583,14 +3587,6 @@ html {
 
 .w-screen {
   width: 100vw;
-}
-
-.w-3\/4 {
-  width: 75%;
-}
-
-.w-10 {
-  width: 2.5rem;
 }
 
 .min-w-6 {
@@ -3789,6 +3785,10 @@ html {
 
 .self-center {
   align-self: center;
+}
+
+.justify-self-center {
+  justify-self: center;
 }
 
 .overflow-auto {
@@ -4495,6 +4495,10 @@ textarea::-webkit-scrollbar {
     display: none;
   }
 
+  .\32xl\:w-1\/3 {
+    width: 33.333333%;
+  }
+
   .\32xl\:w-1\/4 {
     width: 25%;
   }
@@ -4507,8 +4511,12 @@ textarea::-webkit-scrollbar {
     width: 40%;
   }
 
-  .\32xl\:w-1\/3 {
-    width: 33.333333%;
+  .\32xl\:w-1\/2 {
+    width: 50%;
+  }
+
+  .\32xl\:w-2 {
+    width: 0.5rem;
   }
 
   .\32xl\:grid-cols-4 {

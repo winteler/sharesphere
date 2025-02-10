@@ -334,7 +334,7 @@ pub mod ssr {
                     p.moderator_id IS NULL AND
                     p.satellite_id IS NULL AND
                     (
-                        $3 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $3)
+                        $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $3)
                     ) AND
                     (
                         $4 OR NOT p.is_nsfw
@@ -376,7 +376,7 @@ pub mod ssr {
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
                     p.moderator_id IS NULL AND
                     (
-                        $3 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $3)
+                        $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $3)
                     ) AND
                     (
                         $4 OR NOT p.is_nsfw
@@ -465,7 +465,7 @@ pub mod ssr {
                     p.moderator_id IS NULL AND
                     p.satellite_id IS NULL AND
                     (
-                        $2 IS NULL OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
+                        $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $2)
                     ) AND
                     (
                         $3 OR NOT p.is_nsfw

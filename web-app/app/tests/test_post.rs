@@ -952,6 +952,100 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
 }
 
 #[tokio::test]
+async fn test_get_post_vec_by_sphere_name_with_filters() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let num_post = 10;
+    let (sphere, post_vec, new_spoiler_post, old_spoiler_post, nsfw_post) = create_sphere_with_filter_posts(
+        "sphere",
+        num_post,
+        &mut user,
+        &db_pool,
+    ).await;
+    
+    let _ = create_sphere_with_posts(
+        "sphere_2",
+        None,
+        num_post,
+        None,
+        Vec::new(),
+        &mut user,
+        &db_pool,
+    ).await.expect("Sphere 2 with posts should be created");
+
+    let mut no_filter_expected_post = post_vec.clone();
+    no_filter_expected_post.push(new_spoiler_post.clone());
+    no_filter_expected_post.push(old_spoiler_post.clone());
+    no_filter_expected_post.push(nsfw_post.clone());
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let post_vec: Vec<PostWithSphereInfo> = ssr::get_post_vec_by_sphere_name(
+            &sphere.sphere_name,
+            None,
+            SortType::Post(sort_type),
+            (num_post + 3) as i64,
+            0,
+            Some(&user),
+            &db_pool,
+        )
+            .await
+            .expect("Should load posts by sphere name")
+            .into_iter()
+            .map(|post| PostWithSphereInfo::from_post(post, None, None)).collect();
+        
+        sort_post_vec(&mut no_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, no_filter_expected_post);
+    }
+
+    user.days_hide_spoiler = Some(1);
+    user.show_nsfw = false;
+    let mut one_day_spoiler_filter_expected_post = post_vec.clone();
+    one_day_spoiler_filter_expected_post.push(old_spoiler_post.clone());
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let post_vec: Vec<PostWithSphereInfo> = ssr::get_post_vec_by_sphere_name(
+            &sphere.sphere_name,
+            None,
+            SortType::Post(sort_type),
+            (num_post + 3) as i64,
+            0,
+            Some(&user),
+            &db_pool,
+        )
+            .await
+            .expect("Should load posts by sphere name")
+            .into_iter()
+            .map(|post| PostWithSphereInfo::from_post(post, None, None)).collect();
+        sort_post_vec(&mut one_day_spoiler_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, one_day_spoiler_filter_expected_post);
+    }
+
+    user.days_hide_spoiler = Some(3);
+    user.show_nsfw = true;
+    let mut three_day_spoiler_filter_expected_post = post_vec.clone();
+    three_day_spoiler_filter_expected_post.push(nsfw_post.clone());
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let post_vec: Vec<PostWithSphereInfo> = ssr::get_post_vec_by_sphere_name(
+            &sphere.sphere_name,
+            None,
+            SortType::Post(sort_type),
+            (num_post + 3) as i64,
+            0,
+            Some(&user),
+            &db_pool,
+        )
+            .await
+            .expect("Should load posts by sphere name")
+            .into_iter()
+            .map(|post| PostWithSphereInfo::from_post(post, None, None)).collect();
+        sort_post_vec(&mut three_day_spoiler_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, three_day_spoiler_filter_expected_post);
+    }
+}
+
+#[tokio::test]
 async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;

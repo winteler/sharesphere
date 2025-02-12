@@ -47,7 +47,10 @@ pub mod ssr {
     use crate::user::User;
     use axum_session_sqlx::SessionPgPool;
     use openidconnect::core::CoreTokenResponse;
-    use openidconnect::{NonceVerifier, RequestTokenError};
+    use openidconnect::{AdditionalProviderMetadata, NonceVerifier, RequestTokenError};
+    use reqwest::Client;
+    use serde::{Deserialize, Serialize};
+    use serde_json::Value;
     use sqlx::PgPool;
 
     pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
@@ -55,14 +58,22 @@ pub mod ssr {
     /// A no-op NonceVerifier implementation.
     struct NoNonceVerifier;
 
+    #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+    pub struct AccountProviderMetadata
+    {
+        pub account_metadata: String,
+    }
+
     impl NonceVerifier for NoNonceVerifier {
         fn verify(self, _nonce: Option<&openidconnect::Nonce>) -> std::result::Result<(), String> {
             Ok(())
         }
     }
 
-    pub fn get_issuer_url() -> Result<oidc::IssuerUrl, AppError> {
-        Ok(oidc::IssuerUrl::new(env::var(OIDC_ISSUER_URL_ENV)?)?)
+    impl AdditionalProviderMetadata for AccountProviderMetadata {}
+
+    pub fn get_issuer_url() -> Result<String, AppError> {
+        Ok(env::var(OIDC_ISSUER_URL_ENV)?)
     }
 
     pub fn get_client_id() -> Result<oidc::ClientId, AppError> {
@@ -90,7 +101,7 @@ pub mod ssr {
 
     pub async fn get_auth_client() -> Result<oidc::core::CoreClient, AppError> {
         let redirect_url = get_auth_redirect()?;
-        let issuer_url = get_issuer_url()?;
+        let issuer_url = oidc::IssuerUrl::new(get_issuer_url()?)?;
 
         let provider_metadata =
             oidc::core::CoreProviderMetadata::discover_async(issuer_url.clone(), async_http_client)
@@ -289,6 +300,20 @@ pub mod ssr {
         leptos_axum::redirect(auth_url.as_ref());
         Ok(())
     }
+
+    pub async fn redirect_to_user_account() -> Result<(), AppError> {
+        let issuer_url = get_issuer_url()?;
+        let client = Client::new();
+        // Fetch the discovery endpoint data
+        let response = client.get(&issuer_url).send().await.map_err(AppError::new)?.json::<Value>().await.map_err(AppError::new)?;
+
+        // Obtain the account service url from it
+        let account_service_url = response.get("account-service").and_then(|v| v.as_str()).ok_or(AppError::new("Account-service missing from provider"))?;
+
+        // Redirect to the user account page
+        leptos_axum::redirect(account_service_url);
+        Ok(())
+    }
 }
 
 #[server]
@@ -303,6 +328,12 @@ pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError<A
     ssr::redirect_to_auth_provider(redirect_url).await?;
 
     Ok(None)
+}
+
+#[server]
+pub async fn redirect_to_user_account() -> Result<(), ServerFnError<AppError>> {
+    ssr::redirect_to_user_account().await?;
+    Ok(())
 }
 
 #[server]
@@ -355,7 +386,11 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError<AppEr
     let id_token = token_response.id_token().ok_or(AppError::AuthenticationError(String::from("Id token missing.")))?;
 
     let logout_provider_metadata =
-        oidc::ProviderMetadataWithLogout::discover_async(ssr::get_issuer_url()?, async_http_client)
+        oidc::ProviderMetadataWithLogout::discover_async(
+            oidc::IssuerUrl::new(
+                ssr::get_issuer_url()?
+            ).map_err(|e| AppError::new(e))?, async_http_client
+        )
             .await
             .map_err(AppError::from)?;
 

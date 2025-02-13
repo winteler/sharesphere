@@ -301,7 +301,7 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn redirect_to_user_account() -> Result<(), AppError> {
+    pub async fn navigate_to_user_account() -> Result<(), AppError> {
         let issuer_url = get_issuer_url()?;
         let client = Client::new();
         // Fetch the discovery endpoint data
@@ -331,8 +331,8 @@ pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError<A
 }
 
 #[server]
-pub async fn redirect_to_user_account() -> Result<(), ServerFnError<AppError>> {
-    ssr::redirect_to_user_account().await?;
+pub async fn navigate_to_user_account() -> Result<(), ServerFnError<AppError>> {
+    ssr::navigate_to_user_account().await?;
     Ok(())
 }
 

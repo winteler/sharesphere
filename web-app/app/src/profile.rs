@@ -22,8 +22,9 @@ use crate::{
     post::{POST_BATCH_SIZE},
 };
 use crate::app::GlobalState;
+use crate::auth::NavigateToUserAccount;
 use crate::form::LabeledFormCheckbox;
-use crate::icons::{LoadingIcon, UserIcon};
+use crate::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
 use crate::user::SetUserPreferences;
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
@@ -315,38 +316,55 @@ pub fn UserSettings() -> impl IntoView {
     let set_preferences_action = ServerAction::<SetUserPreferences>::new();
 
     view! {
-        <Suspense fallback=move || view! {  <LoadingIcon/> }>
-        {
-            move || Suspend::new(async move {
-                let (show_nsfw, days_hide_spoiler) = match state.user.await {
-                    Ok(Some(user)) => (user.show_nsfw, user.days_hide_spoiler.unwrap_or_default()),
-                    _ => (false, 0),
-                };
-                view! {
-                    <ActionForm action=set_preferences_action attr:class="self-center flex flex-col gap-3 w-3/4 2xl:w-1/2">
-                        <LabeledFormCheckbox name="show_nsfw" label="Hide NSFW" value=show_nsfw/>
-                        <div class="flex justify-between items-center">
-                            "Hide spoilers duration (days)"
-                            <input
-                                type="number"
-                                min="0"
-                                max="999"
-                                name="days_hide_spoilers"
-                                class="input input-bordered input-primary no-spinner text-right w-16"
-                                autocomplete="off"
-                                value=days_hide_spoiler
-                            />
-                        </div>
-                        <button type="submit" class="btn btn-active btn-secondary">
-                            "Publish"
-                        </button>
-                    </ActionForm>
-                    <ActionError action=set_preferences_action.into()/>
-                }
-            })
-        }
-        </Suspense>
+        <div class="self-center flex flex-col gap-3 w-3/4 2xl:w-1/2">
+            <Suspense fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || Suspend::new(async move {
+                    let (show_nsfw, days_hide_spoiler) = match state.user.await {
+                        Ok(Some(user)) => (user.show_nsfw, user.days_hide_spoiler.unwrap_or_default()),
+                        _ => (false, 0),
+                    };
+                    view! {
+                        <ActionForm action=set_preferences_action attr:class="flex flex-col gap-3">
+                            <LabeledFormCheckbox name="show_nsfw" label="Hide NSFW" value=show_nsfw/>
+                            <div class="flex justify-between items-center">
+                                "Hide spoilers duration (days)"
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="999"
+                                    name="days_hide_spoilers"
+                                    class="input input-bordered input-primary no-spinner text-right w-16"
+                                    autocomplete="off"
+                                    value=days_hide_spoiler
+                                />
+                            </div>
+                            <button type="submit" class="btn btn-secondary">
+                                "Save"
+                            </button>
+                        </ActionForm>
+                        <ActionError action=set_preferences_action.into()/>
+                    }
+                })
+            }
+            </Suspense>
+            <UserAccountButton/>
+        </div>
     }
+}
+
+/// Button to navigate to the user's account on the OIDC provider
+#[component]
+pub fn UserAccountButton() -> impl IntoView {
+    let navigate_to_account_action = ServerAction::<NavigateToUserAccount>::new();
+    view! {
+        <ActionForm action=navigate_to_account_action attr:class="flex justify-center items-center">
+            <button type="submit" class="btn btn-primary flex">
+                <UserSettingsIcon/>
+                "Account"
+            </button>
+        </ActionForm>
+    }.into_any()
 }
 
 pub fn get_profile_path(

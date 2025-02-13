@@ -425,3 +425,10 @@ pub fn UserIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoVi
         <img src="/svg/user.svg" class=class/>
     }
 }
+
+#[component]
+pub fn UserSettingsIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/user_settings.svg" class=class/>
+    }
+}

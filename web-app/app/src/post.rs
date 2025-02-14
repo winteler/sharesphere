@@ -11,7 +11,7 @@ use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
-use crate::comment::{CommentButton, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
+use crate::comment::{CommentButton, CommentButtonWithCount, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
@@ -1074,8 +1074,7 @@ fn PostWidgetBar(
                 score=post.post.score
                 vote=post.vote.clone()
             />
-            <CommentCountWidget count=post.post.num_comments/>
-            <CommentButton post_id=post.post.post_id comment_vec/>
+            <CommentButtonWithCount post_id=post.post.post_id comment_vec count=post.post.num_comments/>
             <EditPostButton author_id=post.post.creator_id post=StoredValue::new(post.post.clone())/>
             <ModeratePostButton post_id=post.post.post_id/>
             <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>

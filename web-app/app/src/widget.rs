@@ -180,7 +180,7 @@ pub fn AuthorWidget(
 
     view! {
         <button
-            class="flex p-1 rounded gap-1.5 items-center text-sm hover:bg-base-content/20"
+            class="flex p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-content/20"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(author_profile_path.as_str(), NavigateOptions::default());

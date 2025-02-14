@@ -1,5 +1,5 @@
 use std::fmt;
-
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
@@ -1046,19 +1046,20 @@ pub fn CommentMiniatureList(
 pub fn CommentButton(
     post_id: i64,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
-    #[prop(default = None)] parent_comment_id: Option<i64>,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = move || match show_dialog.get() {
-        true => "btn btn-circle btn-sm btn-primary",
-        false => "btn btn-circle btn-sm btn-ghost",
+        true => "p-2 rounded-full bg-primary hover:bg-base-content/20 active:scale-95 transition duration-250",
+        false => "p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250",
     };
 
     view! {
         <div>
             <LoginGuardButton
-                login_button_class="btn btn-circle btn-ghost btn-sm"
-                login_button_content=move || view! { <AddCommentIcon/> }.into_any()
+                login_button_class="p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250"
+                login_button_content=move || view! { <AddCommentIcon/> }
                 redirect_path_fn=&get_current_path
                 let:_user
             >
@@ -1069,6 +1070,54 @@ pub fn CommentButton(
                     on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
                 >
                     <AddCommentIcon/>
+                </button>
+            </LoginGuardButton>
+            <CommentDialog
+                post_id
+                parent_comment_id
+                comment_vec
+                show_dialog
+            />
+        </div>
+    }.into_any()
+}
+
+/// Component to open the comment form and indicate comment count
+#[component]
+pub fn CommentButtonWithCount(
+    post_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    count: i32,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+) -> impl IntoView {
+    let show_dialog = RwSignal::new(false);
+    let button_content = move || view! {
+        <div class="w-fit flex gap-1.5 items-center text-sm px-1">
+            <AddCommentIcon/>
+            {count}
+        </div>
+    };
+    let comment_button_class = move || match show_dialog.get() {
+        true => "p-1.5 rounded-full bg-primary hover:bg-base-content/20 active:scale-95 transition duration-250",
+        false => "p-1.5 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250",
+    };
+
+    view! {
+        <div>
+            <LoginGuardButton
+                login_button_class="p-1.5 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250"
+                login_button_content=button_content
+                redirect_path_fn=&get_current_path
+                let:_user
+            >
+                <button
+                    class=comment_button_class
+                    aria-expanded=move || show_dialog.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                >
+                    {button_content}
                 </button>
             </LoginGuardButton>
             <CommentDialog

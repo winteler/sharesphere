@@ -11,12 +11,14 @@ use leptos_router::NavigateOptions;
 use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
+use crate::auth::LoginGuardButton;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
+use crate::navigation_bar::get_current_path;
 use crate::profile::get_profile_path;
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
@@ -164,6 +166,35 @@ where
         }
         </select>
     }.into_any()
+}
+
+/// Component to display a button toggling a signal and requiring to be authentified
+#[component]
+pub fn ToggleLoginButton(
+    toggle_signal: RwSignal<bool>,
+    #[prop(into)]
+    button_class: Signal<&'static str>,
+    #[prop(into)]
+    button_content: ViewFn,
+) -> impl IntoView {
+    let button_content = StoredValue::new(button_content);
+    view! {
+        <LoginGuardButton
+            login_button_class=button_class.get_untracked()
+            login_button_content=button_content.get_value()
+            redirect_path_fn=&get_current_path
+            let:_user
+        >
+            <button
+                class=button_class
+                aria-expanded=move || toggle_signal.get().to_string()
+                aria-haspopup="dialog"
+                on:click=move |_| toggle_signal.update(|show: &mut bool| *show = !*show)
+            >
+                { move || button_content.with_value(|button_content| button_content.run()) }
+            </button>
+        </LoginGuardButton>
+    }
 }
 
 /// Component to display the author of a post or comment

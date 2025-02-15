@@ -11,7 +11,7 @@ use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
-use crate::comment::{CommentButton, CommentButtonWithCount, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
+use crate::comment::{CommentButtonWithCount, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
 use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};

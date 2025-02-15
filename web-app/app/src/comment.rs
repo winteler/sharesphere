@@ -1,5 +1,4 @@
 use std::fmt;
-use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
@@ -8,7 +7,6 @@ use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
 use crate::app::GlobalState;
-use crate::auth::LoginGuardButton;
 use crate::constants::{BEST_STR, RECENT_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
@@ -17,12 +15,11 @@ use crate::error_template::ErrorTemplate;
 use crate::form::IsPinnedCheckbox;
 use crate::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
-use crate::navigation_bar::get_current_path;
 use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, ToggleLoginButton};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -1050,28 +1047,18 @@ pub fn CommentButton(
     parent_comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
-    let comment_button_class = move || match show_dialog.get() {
+    let comment_button_class = Signal::derive(move || match show_dialog.get() {
         true => "p-2 rounded-full bg-primary hover:bg-base-content/20 active:scale-95 transition duration-250",
         false => "p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250",
-    };
+    });
 
     view! {
         <div>
-            <LoginGuardButton
-                login_button_class="p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250"
-                login_button_content=move || view! { <AddCommentIcon/> }
-                redirect_path_fn=&get_current_path
-                let:_user
-            >
-                <button
-                    class=comment_button_class
-                    aria-expanded=move || show_dialog.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                >
-                    <AddCommentIcon/>
-                </button>
-            </LoginGuardButton>
+            <ToggleLoginButton
+                toggle_signal=show_dialog
+                button_class=comment_button_class
+                button_content=move || view! { <AddCommentIcon/> }
+            />
             <CommentDialog
                 post_id
                 parent_comment_id
@@ -1092,34 +1079,23 @@ pub fn CommentButtonWithCount(
     parent_comment_id: Option<i64>,
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
-    let button_content = move || view! {
-        <div class="w-fit flex gap-1.5 items-center text-sm px-1">
-            <AddCommentIcon/>
-            {count}
-        </div>
-    };
-    let comment_button_class = move || match show_dialog.get() {
+    let comment_button_class = Signal::derive(move || match show_dialog.get() {
         true => "p-1.5 rounded-full bg-primary hover:bg-base-content/20 active:scale-95 transition duration-250",
         false => "p-1.5 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250",
-    };
+    });
 
     view! {
         <div>
-            <LoginGuardButton
-                login_button_class="p-1.5 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250"
-                login_button_content=button_content
-                redirect_path_fn=&get_current_path
-                let:_user
-            >
-                <button
-                    class=comment_button_class
-                    aria-expanded=move || show_dialog.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-                >
-                    {button_content}
-                </button>
-            </LoginGuardButton>
+            <ToggleLoginButton
+                toggle_signal=show_dialog
+                button_class=comment_button_class
+                button_content= move || view! {
+                    <div class="w-fit flex gap-1.5 items-center text-sm px-1">
+                        <AddCommentIcon/>
+                        {count}
+                    </div>
+                }
+            />
             <CommentDialog
                 post_id
                 parent_comment_id

@@ -5,7 +5,6 @@ use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
-
 use crate::app::GlobalState;
 use crate::constants::{BEST_STR, RECENT_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
@@ -1058,6 +1057,7 @@ pub fn CommentButton(
                 toggle_signal=show_dialog
                 button_class=comment_button_class
                 button_content=move || view! { <AddCommentIcon/> }
+                button_action=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
             />
             <CommentDialog
                 post_id
@@ -1095,6 +1095,7 @@ pub fn CommentButtonWithCount(
                         {count}
                     </div>
                 }
+                button_action=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
             />
             <CommentDialog
                 post_id

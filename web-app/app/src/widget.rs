@@ -1,5 +1,5 @@
 use leptos::either::Either;
-use leptos::ev::{Event, SubmitEvent};
+use leptos::ev::{Event, SubmitEvent, MouseEvent};
 use leptos::html;
 use leptos::prelude::*;
 use leptos::wasm_bindgen::closure::Closure;
@@ -170,14 +170,18 @@ where
 
 /// Component to display a button toggling a signal and requiring to be authentified
 #[component]
-pub fn ToggleLoginButton(
+pub fn ToggleLoginButton<F>(
     toggle_signal: RwSignal<bool>,
     #[prop(into)]
     button_class: Signal<&'static str>,
     #[prop(into)]
     button_content: ViewFn,
-) -> impl IntoView {
+    button_action: F,
+) -> impl IntoView
+where
+    F: Fn(MouseEvent) -> () + Clone + Send + Sync + 'static {
     let button_content = StoredValue::new(button_content);
+    let button_action = StoredValue::new(button_action);
     view! {
         <LoginGuardButton
             login_button_class=button_class.get_untracked()
@@ -189,7 +193,7 @@ pub fn ToggleLoginButton(
                 class=button_class
                 aria-expanded=move || toggle_signal.get().to_string()
                 aria-haspopup="dialog"
-                on:click=move |_| toggle_signal.update(|show: &mut bool| *show = !*show)
+                on:click=button_action.get_value()
             >
                 { move || button_content.with_value(|button_content| button_content.run()) }
             </button>

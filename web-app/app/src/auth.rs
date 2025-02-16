@@ -1,5 +1,4 @@
 use std::env;
-
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 use leptos_router::params::Params;
@@ -9,7 +8,7 @@ use openidconnect as oidc;
 use openidconnect::reqwest::*;
 #[cfg(feature = "ssr")]
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
-
+use web_sys::MouseEvent;
 use crate::app::GlobalState;
 use crate::errors::AppError;
 use crate::icons::LoadingIcon;
@@ -21,6 +20,7 @@ use crate::{
     constants::SITE_ROOT,
     user::ssr::{create_or_update_user, SqlUser}
 };
+use crate::navigation_bar::get_current_path;
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_ADDR";
@@ -416,9 +416,8 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError<AppEr
     Ok(())
 }
 
-/// Component to guard a component requiring a login. If the user is logged in, a simple button with the given class and
-/// children will be rendered. Otherwise, it will be replaced by a form/button with the same appearance redirecting to a
-/// login screen.
+/// Guard for a component requiring a login. If the user is logged in, the children of this component will be rendered
+/// Otherwise, it will be replaced by a form/button with the same appearance redirecting to a login screen.
 #[component]
 pub fn LoginGuardButton<
     F: Fn(&User) -> IV + Clone + Send + Sync + 'static,
@@ -453,11 +452,51 @@ pub fn LoginGuardButton<
     }.into_any()
 }
 
+/// Login guarded button component. If the user is logged in, a button with the given class and action will be rendered.
+/// Otherwise, the button will redirect the user to a login screen.
+#[component]
+pub fn LoginGuardedButton<A, IV>(
+    #[prop(into)]
+    button_class: Signal<&'static str>,
+    button_action: A,
+    children: TypedChildrenFn<IV>,
+) -> impl IntoView
+where
+    A: Fn(MouseEvent) -> () + Clone + Send + Sync + 'static,
+    IV: IntoView + 'static
+{
+    let state = expect_context::<GlobalState>();
+    let children = StoredValue::new(children.into_inner());
+    let button_action = StoredValue::new(button_action);
+    view! {
+        <Transition fallback=move || view! { <LoadingIcon/> }>
+        {
+            move || Suspend::new(async move {
+                let children = children.get_value();
+                match &state.user.await {
+                    Ok(Some(_)) => view! {
+                        <button
+                            class=button_class
+                            aria-haspopup="dialog"
+                            on:click=button_action.get_value()
+                        >
+                            {children()}
+                        </button>
+                    }.into_any(),
+                    _ => view! { <LoginButton class=button_class redirect_path_fn=&get_current_path>{children()}</LoginButton> }.into_any(),
+                }
+            })
+        }
+        </Transition>
+    }
+}
+
 #[component]
 fn LoginButton<
     F: Fn(RwSignal<String>) + Send + Sync + 'static
 >(
-    class: &'static str,
+    #[prop(into)]
+    class: Signal<&'static str>,
     redirect_path_fn: &'static F,
     children: Children,
 ) -> impl IntoView {

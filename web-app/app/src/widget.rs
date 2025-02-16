@@ -1,5 +1,5 @@
 use leptos::either::Either;
-use leptos::ev::{Event, SubmitEvent, MouseEvent};
+use leptos::ev::{Event, SubmitEvent};
 use leptos::html;
 use leptos::prelude::*;
 use leptos::wasm_bindgen::closure::Closure;
@@ -11,14 +11,13 @@ use leptos_router::NavigateOptions;
 use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
-use crate::auth::LoginGuardButton;
+use crate::auth::{LoginGuardedButton};
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
-use crate::navigation_bar::get_current_path;
 use crate::profile::get_profile_path;
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
@@ -168,36 +167,26 @@ where
     }.into_any()
 }
 
-/// Component to display a button toggling a signal and requiring to be authentified
+/// Component to display a button opening a modal dialog if the user
+/// is authenticated and redirecting to a login page otherwise
 #[component]
-pub fn ToggleLoginButton<F>(
-    toggle_signal: RwSignal<bool>,
+pub fn OpenModalButton<IV>(
+    show_dialog: RwSignal<bool>,
     #[prop(into)]
     button_class: Signal<&'static str>,
-    #[prop(into)]
-    button_content: ViewFn,
-    button_action: F,
+    children: TypedChildrenFn<IV>,
 ) -> impl IntoView
 where
-    F: Fn(MouseEvent) -> () + Clone + Send + Sync + 'static {
-    let button_content = StoredValue::new(button_content);
-    let button_action = StoredValue::new(button_action);
+    IV: IntoView + 'static
+{
     view! {
-        <LoginGuardButton
-            login_button_class=button_class.get_untracked()
-            login_button_content=button_content.get_value()
-            redirect_path_fn=&get_current_path
-            let:_user
-        >
-            <button
-                class=button_class
-                aria-expanded=move || toggle_signal.get().to_string()
-                aria-haspopup="dialog"
-                on:click=button_action.get_value()
-            >
-                { move || button_content.with_value(|button_content| button_content.run()) }
-            </button>
-        </LoginGuardButton>
+        <LoginGuardedButton
+            button_class
+            button_action=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+            children
+            attr:aria-expanded=move || show_dialog.get().to_string()
+            attr:aria-haspopup="dialog"
+        />
     }
 }
 

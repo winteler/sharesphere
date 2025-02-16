@@ -18,7 +18,7 @@ use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, ToggleLoginButton};
+use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, OpenModalButton, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -1053,12 +1053,12 @@ pub fn CommentButton(
 
     view! {
         <div>
-            <ToggleLoginButton
-                toggle_signal=show_dialog
+            <OpenModalButton
+                show_dialog
                 button_class=comment_button_class
-                button_content=move || view! { <AddCommentIcon/> }
-                button_action=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-            />
+            >
+                <AddCommentIcon/>
+            </OpenModalButton>
             <CommentDialog
                 post_id
                 parent_comment_id
@@ -1086,17 +1086,15 @@ pub fn CommentButtonWithCount(
 
     view! {
         <div>
-            <ToggleLoginButton
-                toggle_signal=show_dialog
+            <OpenModalButton
+                show_dialog
                 button_class=comment_button_class
-                button_content= move || view! {
-                    <div class="w-fit flex gap-1.5 items-center text-sm px-1">
-                        <AddCommentIcon/>
-                        {count}
-                    </div>
-                }
-                button_action=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-            />
+            >
+                <div class="w-fit flex gap-1.5 items-center text-sm px-1">
+                    <AddCommentIcon/>
+                    {count}
+                </div>
+            </OpenModalButton>
             <CommentDialog
                 post_id
                 parent_comment_id

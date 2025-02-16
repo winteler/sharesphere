@@ -472,7 +472,7 @@ where
         <Transition fallback=move || view! { <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
-                let children = children.get_value();
+                let children_view = children.with_value(|children| children());
                 match &state.user.await {
                     Ok(Some(_)) => view! {
                         <button
@@ -480,10 +480,10 @@ where
                             aria-haspopup="dialog"
                             on:click=button_action.get_value()
                         >
-                            {children()}
+                            {children_view}
                         </button>
                     }.into_any(),
-                    _ => view! { <LoginButton class=button_class redirect_path_fn=&get_current_path>{children()}</LoginButton> }.into_any(),
+                    _ => view! { <LoginButton class=button_class redirect_path_fn=&get_current_path>{children_view}</LoginButton> }.into_any(),
                 }
             })
         }

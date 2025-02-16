@@ -12,14 +12,14 @@ use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
-use crate::auth::LoginGuardButton;
+use crate::auth::{LoginGuardButton, LoginGuardedButton};
 use crate::content::PostSortWidget;
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
 use crate::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
-use crate::navigation_bar::{get_create_post_path, get_current_path};
+use crate::navigation_bar::{get_create_post_path};
 use crate::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostMiniatureList, PostWithSphereInfo, CREATE_POST_SUFFIX};
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::ranking::{SortType};
@@ -703,31 +703,26 @@ pub fn SphereToolbar(
             </div>
             <div class="flex gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
-                    <A href=manage_path.clone() attr:class="btn btn-circle btn-ghost">
+                    <A href=manage_path attr:class="btn btn-circle btn-ghost">
                         <SettingsIcon class="h-5 w-5"/>
                     </A>
                 </AuthorizedShow>
                 <div class="tooltip" data-tip="Join">
-                    <LoginGuardButton
-                        login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <SubscribedIcon class="h-6 w-6" show_color=is_subscribed/> }.into_any()
-                        redirect_path_fn=&get_current_path
-                        let:_user
+                    <LoginGuardedButton
+                        button_class="btn btn-circle btn-ghost"
+                        button_action=move |_| {
+                            is_subscribed.update(|value| {
+                                *value = !*value;
+                                if *value {
+                                    state.subscribe_action.dispatch(Subscribe { sphere_id });
+                                } else {
+                                    state.unsubscribe_action.dispatch(Unsubscribe { sphere_id });
+                                }
+                            })
+                        }
                     >
-                        <button type="submit" class="btn btn-circle btn-ghost" on:click=move |_| {
-                                is_subscribed.update(|value| {
-                                    *value = !*value;
-                                    if *value {
-                                        state.subscribe_action.dispatch(Subscribe { sphere_id });
-                                    } else {
-                                        state.unsubscribe_action.dispatch(Unsubscribe { sphere_id });
-                                    }
-                                })
-                            }
-                        >
-                            <SubscribedIcon class="h-6 w-6" show_color=is_subscribed/>
-                        </button>
-                    </LoginGuardButton>
+                        <SubscribedIcon class="h-6 w-6" show_color=is_subscribed/>
+                    </LoginGuardedButton>
                 </div>
                 <div class="tooltip" data-tip="New">
                     <LoginGuardButton

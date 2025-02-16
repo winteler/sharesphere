@@ -18,7 +18,7 @@ use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, OpenModalButton, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -1053,12 +1053,12 @@ pub fn CommentButton(
 
     view! {
         <div>
-            <OpenModalButton
+            <LoginGuardedOpenModalButton
                 show_dialog
                 button_class=comment_button_class
             >
                 <AddCommentIcon/>
-            </OpenModalButton>
+            </LoginGuardedOpenModalButton>
             <CommentDialog
                 post_id
                 parent_comment_id
@@ -1086,7 +1086,7 @@ pub fn CommentButtonWithCount(
 
     view! {
         <div>
-            <OpenModalButton
+            <LoginGuardedOpenModalButton
                 show_dialog
                 button_class=comment_button_class
             >
@@ -1094,7 +1094,7 @@ pub fn CommentButtonWithCount(
                     <AddCommentIcon/>
                     {count}
                 </div>
-            </OpenModalButton>
+            </LoginGuardedOpenModalButton>
             <CommentDialog
                 post_id
                 parent_comment_id

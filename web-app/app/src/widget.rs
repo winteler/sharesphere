@@ -170,7 +170,7 @@ where
 /// Component to display a button opening a modal dialog if the user
 /// is authenticated and redirecting to a login page otherwise
 #[component]
-pub fn OpenModalButton<IV>(
+pub fn LoginGuardedOpenModalButton<IV>(
     show_dialog: RwSignal<bool>,
     #[prop(into)]
     button_class: Signal<&'static str>,

@@ -2,11 +2,10 @@
 use crate::app::ssr::get_db_pool;
 #[cfg(feature = "ssr")]
 use crate::auth::ssr::check_user;
-use crate::auth::LoginGuardButton;
+use crate::auth::{LoginGuardedButton};
 use crate::comment::CommentSortType;
 use crate::errors::AppError;
 use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
-use crate::navigation_bar::get_current_path;
 use crate::post::PostSortType;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -40,12 +39,10 @@ pub struct Vote {
 
 impl From<i16> for VoteValue {
     fn from(value: i16) -> VoteValue {
-        if value > 0 {
-            VoteValue::Up
-        } else if value == 0 {
-            VoteValue::None
-        } else {
-            VoteValue::Down
+        match value {
+            1..=i16::MAX => VoteValue::Up,
+            0 => VoteValue::None,
+            i16::MIN..=-1_i16 => VoteValue::Down,
         }
     }
 }
@@ -372,55 +369,41 @@ pub fn VotePanel(
 
     view! {
         <div class="flex items-center gap-1">
-            <LoginGuardButton
-                login_button_class="p-1 rounded-full hover:bg-success"
-                login_button_content=move || view! { <PlusIcon/> }.into_any()
-                redirect_path_fn=&get_current_path
-                let:_user
+            <LoginGuardedButton
+                button_class=get_vote_button_css(vote, true)
+                button_action=move |_| {
+                    on_content_vote(
+                        vote,
+                        vote_id,
+                        score,
+                        post_id,
+                        comment_id,
+                        initial_score,
+                        vote_action,
+                        true
+                    );
+                }
             >
-                <button
-                    class=get_vote_button_css(vote, true)
-                    on:click=move |_| {
-                        on_content_vote(
-                            vote,
-                            vote_id,
-                            score,
-                            post_id,
-                            comment_id,
-                            initial_score,
-                            vote_action,
-                            true
-                        );
-                    }
-                >
-                    <PlusIcon/>
-                </button>
-            </LoginGuardButton>
+                <PlusIcon/>
+            </LoginGuardedButton>
             <DynScoreIndicator score=score/>
-            <LoginGuardButton
-                login_button_class="p-1 rounded-full hover:bg-error"
-                login_button_content=move || view! { <MinusIcon/> }.into_any()
-                redirect_path_fn=&get_current_path
-                let:_user
+            <LoginGuardedButton
+                button_class=get_vote_button_css(vote, false)
+                button_action=move |_| {
+                    on_content_vote(
+                        vote,
+                        vote_id,
+                        score,
+                        post_id,
+                        comment_id,
+                        initial_score,
+                        vote_action,
+                        false
+                    );
+                }
             >
-                <button
-                    class=get_vote_button_css(vote, false)
-                    on:click=move |_| {
-                        on_content_vote(
-                            vote,
-                            vote_id,
-                            score,
-                            post_id,
-                            comment_id,
-                            initial_score,
-                            vote_action,
-                            false
-                        );
-                    }
-                >
-                    <MinusIcon/>
-                </button>
-            </LoginGuardButton>
+                <MinusIcon/>
+            </LoginGuardedButton>
         </div>
     }.into_any()
 }
@@ -450,19 +433,18 @@ pub fn on_content_vote(
 }
 
 // Function to obtain the css classes of a vote button
-pub fn get_vote_button_css(vote: RwSignal<VoteValue>, is_upvote: bool) -> impl Fn() -> String {
-    let (button_css, activated_value) = match is_upvote {
-        true => ("bg-success", VoteValue::Up),
-        false => ("bg-error", VoteValue::Down),
+pub fn get_vote_button_css(vote: RwSignal<VoteValue>, is_upvote: bool) -> Signal<&'static str> {
+    let activated_value = match is_upvote {
+        true => VoteValue::Up,
+        false => VoteValue::Down,
     };
 
-    move || {
-        if vote.get() == activated_value {
-            format!("p-1 rounded-full {button_css}")
-        } else {
-            format!("p-1 rounded-full hover:{button_css}")
-        }
-    }
+    Signal::derive(move || match (is_upvote, vote.get() == activated_value) {
+        (true, true) => "p-1 rounded-full bg-success",
+        (true, false) => "p-1 rounded-full hover:bg-success",
+        (false, true) => "p-1 rounded-full bg-error",
+        (false, false) => "p-1 rounded-full hover:bg-error",
+    })
 }
 
 pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {

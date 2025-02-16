@@ -95,10 +95,10 @@ pub fn NavigationBar() -> impl IntoView
 pub fn UserMenu() -> impl IntoView {
     view! {
         <LoginGuardButton
-                login_button_class="btn btn-ghost btn-circle rounded-full"
-                login_button_content=move || view! { <UserIcon/> }.into_any()
-                redirect_path_fn=&get_current_path
-                let:user
+            login_button_class="btn btn-ghost btn-circle rounded-full"
+            login_button_content=move || view! { <UserIcon/> }.into_any()
+            redirect_path_fn=&get_current_path
+            let:user
         >
             <LoggedInMenu user=user.clone()/>
         </LoginGuardButton>

@@ -125,7 +125,11 @@ impl User {
             Some(ban_status) if ban_status.is_active() => match ban_status {
                 BanStatus::Until(timestamp) => Err(AppError::SphereBanUntil(*timestamp)),
                 BanStatus::Permanent => Err(AppError::PermanentSphereBan),
-                BanStatus::None => Err(AppError::InternalServerError(String::from("User with sphere BanStatus::None despite ban_status.is_active == true"))), // should never happen
+                BanStatus::None => Err(
+                    AppError::InternalServerError(
+                        String::from("User with sphere BanStatus::None despite ban_status.is_active == true")
+                    )
+                ), // should never happen
             },
             _ => Ok(())
         }
@@ -827,13 +831,15 @@ mod tests {
     fn test_user_check_can_publish_on_sphere() {
         let past_timestamp = chrono::DateTime::from_timestamp_nanos(0);
         let future_timestamp = chrono::offset::Utc::now().add(Days::new(1));
-        let mut user = User::default();
-        user.ban_status_by_sphere_map = HashMap::from([
-            (String::from("a"), BanStatus::None),
-            (String::from("b"), BanStatus::Until(past_timestamp)),
-            (String::from("c"), BanStatus::Until(future_timestamp)),
-            (String::from("d"), BanStatus::Permanent),
-        ]);
+        let mut user = User {
+            ban_status_by_sphere_map: HashMap::from([
+                (String::from("a"), BanStatus::None),
+                (String::from("b"), BanStatus::Until(past_timestamp)),
+                (String::from("c"), BanStatus::Until(future_timestamp)),
+                (String::from("d"), BanStatus::Permanent),
+            ]),
+            ..Default::default()
+        };
         assert_eq!(user.check_can_publish_on_sphere("a"), Ok(()));
         assert_eq!(user.check_can_publish_on_sphere("b"), Ok(()));
         assert_eq!(user.check_can_publish_on_sphere("c"), Err(AppError::SphereBanUntil(future_timestamp)));
@@ -853,5 +859,37 @@ mod tests {
         assert_eq!(user.check_can_publish_on_sphere("b"), Err(AppError::PermanentGlobalBan));
         assert_eq!(user.check_can_publish_on_sphere("c"), Err(AppError::PermanentGlobalBan));
         assert_eq!(user.check_can_publish_on_sphere("d"), Err(AppError::PermanentGlobalBan));
+    }
+
+    #[test]
+    fn test_user_get_posts_filter() {
+        let mut user = User::default();
+        let user_post_filters = user.get_posts_filter();
+        assert_eq!(user_post_filters.show_nsfw, true);
+        assert_eq!(user_post_filters.days_hide_spoiler, None);
+
+        let days_hide_spoiler = Some(14);
+        user.days_hide_spoiler = days_hide_spoiler;
+        let user_post_filters = user.get_posts_filter();
+        assert_eq!(user_post_filters.show_nsfw, true);
+        assert_eq!(user_post_filters.days_hide_spoiler, days_hide_spoiler);
+        
+        user.show_nsfw = false;
+        let user_post_filters = user.get_posts_filter();
+        assert_eq!(user_post_filters.show_nsfw, false);
+        assert_eq!(user_post_filters.days_hide_spoiler, days_hide_spoiler);
+
+        user.days_hide_spoiler = None;
+        user.show_nsfw = true;
+        let user_post_filters = user.get_posts_filter();
+        assert_eq!(user_post_filters.show_nsfw, true);
+        assert_eq!(user_post_filters.days_hide_spoiler, None);
+    }
+    
+    #[test]
+    fn test_user_post_filters_default() {
+        let default_post_filters = UserPostFilters::default();
+        assert_eq!(default_post_filters.days_hide_spoiler, None);
+        assert_eq!(default_post_filters.show_nsfw, true);
     }
 }

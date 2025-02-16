@@ -25,6 +25,7 @@ use std::env;
 use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
+use app::post::ssr::update_post_scores;
 
 mod fallback;
 mod state;
@@ -32,6 +33,7 @@ mod state;
 pub const SESSION_KEY_ENV : &str = "SESSION_KEY";
 pub const SESSION_DB_KEY_ENV : &str = "SESSION_DB_KEY";
 pub const USER_LOCK_CACHE_SIZE_ENV : &str = "USER_LOCK_CACHE_SIZE";
+pub const POST_SCORE_UPDATE_INTERVAL_S_ENV : &str = "POST_SCORE_UPDATE_INTERVAL_S";
 
 pub fn get_session_key() -> Key {
     match env::var(SESSION_KEY_ENV) {
@@ -118,6 +120,25 @@ async fn server_fn_handler(
      handler(app_state, req).await.into_response()
  }
 
+async fn update_post_scores_loop(db_pool: PgPool) {
+    let default_interval_seconds = 5 * 60;
+    let wait_interval_seconds = match env::var(POST_SCORE_UPDATE_INTERVAL_S_ENV) {
+        Ok(wait_interval_string) => wait_interval_string.parse().unwrap_or(default_interval_seconds),
+        _ => default_interval_seconds,
+    };
+    let interval = tokio::time::Duration::from_secs(wait_interval_seconds); // 5 minutes
+
+    loop {
+        let result = update_post_scores(&db_pool).await;
+        if let Err(e) = result {
+            log::error!("Failed to updated posts' ranking timestamps with error: {e}");
+        } else {
+            log::info!("Successfully updated posts' ranking timestamps");
+        }
+        tokio::time::sleep(interval).await;
+    }
+}
+
 #[tokio::main]
 async fn main() {
     simple_logger::init_with_level(log::Level::Info).expect("Should be able to initialize logging.");
@@ -126,6 +147,9 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber).expect("setting tracing default failed");
 
     let pool = create_db_pool().await.expect("Failed to create db pool");
+
+    // Start a task to periodically update post scores
+    tokio::spawn(update_post_scores_loop(pool.clone()));
 
     let session_config = SessionConfig::default()
         .with_table_name("sessions")

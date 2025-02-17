@@ -18,10 +18,10 @@ use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
 use crate::rule::SphereRulesPanel;
 use crate::satellite::SatellitePanel;
+use crate::search::get_matching_username_set;
 use crate::sphere::{Sphere, SphereState};
 use crate::sphere_category::SphereCategoriesDialog;
 use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
-use crate::user::get_matching_username_set;
 use crate::widget::{EnumDropdown, ModalDialog, SphereImageForm};
 #[cfg(feature = "ssr")]
 use crate::{

@@ -20,6 +20,7 @@ pub mod ranking;
 pub mod role;
 pub mod rule;
 pub mod satellite;
+pub mod search;
 pub mod sidebar;
 pub mod sphere;
 pub mod sphere_category;
@@ -27,3 +28,4 @@ pub mod sphere_management;
 pub mod unpack;
 pub mod user;
 pub mod widget;
+

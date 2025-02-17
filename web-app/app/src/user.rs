@@ -1,5 +1,5 @@
 use std::cmp::max;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{HashMap};
 use std::default::Default;
 
 use leptos::{prelude::ServerFnError, server};
@@ -355,28 +355,6 @@ pub mod ssr {
         }
     }
 
-    pub async fn get_matching_username_set(
-        username_prefix: &str,
-        limit: i64,
-        db_pool: &PgPool,
-    ) -> Result<BTreeSet<String>, AppError> {
-        let username_vec = sqlx::query!(
-            "SELECT username FROM users WHERE username LIKE $1 ORDER BY username LIMIT $2",
-            format!("{username_prefix}%"),
-            limit,
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        let mut username_set = BTreeSet::<String>::new();
-
-        for row in username_vec {
-            username_set.insert(row.username);
-        }
-
-        Ok(username_set)
-    }
-
     pub async fn create_or_update_user(
         oidc_id: &str,
         username: &str,
@@ -605,15 +583,6 @@ pub async fn set_user_preferences(
     ssr::set_user_preferences(show_nsfw, days_hide_spoilers, &user, &db_pool).await?;
     reload_user(user.user_id)?;
     Ok(())
-}
-
-#[server]
-pub async fn get_matching_username_set(
-    username_prefix: String,
-) -> Result<BTreeSet<String>, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let username_set = ssr::get_matching_username_set(&username_prefix, USER_FETCH_LIMIT, &db_pool).await?;
-    Ok(username_set)
 }
 
 #[cfg(test)]

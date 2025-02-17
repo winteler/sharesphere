@@ -184,26 +184,6 @@ pub mod ssr {
         }
     }
 
-    pub async fn get_matching_sphere_header_vec(
-        sphere_prefix: &str,
-        limit: i64,
-        db_pool: &PgPool,
-    ) -> Result<Vec<SphereHeader>, AppError> {
-        let sphere_header_vec = sqlx::query_as!(
-            SphereHeader,
-            "SELECT sphere_name, icon_url, is_nsfw
-            FROM spheres
-            WHERE sphere_name LIKE $1
-            ORDER BY sphere_name LIMIT $2",
-            format!("{sphere_prefix}%"),
-            limit,
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        Ok(sphere_header_vec)
-    }
-
     pub async fn get_popular_sphere_headers(
         limit: i64,
         db_pool: &PgPool,
@@ -352,19 +332,6 @@ pub async fn get_sphere_by_name(sphere_name: String) -> Result<Sphere, ServerFnE
     let db_pool = get_db_pool()?;
     let sphere = ssr::get_sphere_by_name(&sphere_name, &db_pool).await?;
     Ok(sphere)
-}
-
-#[server]
-pub async fn get_matching_sphere_header_vec(
-    sphere_prefix: String,
-) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let sphere_header_vec = ssr::get_matching_sphere_header_vec(
-        &sphere_prefix,
-        SPHERE_FETCH_LIMIT,
-        &db_pool
-    ).await?;
-    Ok(sphere_header_vec)
 }
 
 #[server]

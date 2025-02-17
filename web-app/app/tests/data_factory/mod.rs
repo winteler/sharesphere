@@ -372,12 +372,11 @@ pub async fn set_comment_score(
     score: i32,
     db_pool: &PgPool,
 ) -> Result<Comment, AppError> {
-    let comment = sqlx::query_as!(
-        Comment,
+    let comment = sqlx::query_as::<_, Comment>(
         "UPDATE comments SET score = $1 WHERE comment_id = $2 RETURNING *",
-        score,
-        comment_id,
     )
+        .bind(score)
+        .bind(comment_id)
         .fetch_one(db_pool)
         .await
         .expect("Should set comment score");

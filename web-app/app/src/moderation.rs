@@ -34,14 +34,15 @@ pub struct ModerationInfo {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use sqlx::PgPool;
+    
     use crate::comment::Comment;
     use crate::errors::AppError;
     use crate::post::Post;
     use crate::role::{AdminRole, PermissionLevel};
     use crate::sphere_management::{ssr::is_user_sphere_moderator, UserBan};
     use crate::user::User;
-    use sqlx::PgPool;
-
+    
     pub async fn moderate_post(
         post_id: i64,
         rule_id: i64,
@@ -108,8 +109,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         let comment = if user.check_admin_role(AdminRole::Moderator).is_ok() {
-            sqlx::query_as!(
-                Comment,
+            sqlx::query_as::<_, Comment>(
                 "UPDATE comments SET
                     moderator_message = $1,
                     infringed_rule_id = $2,
@@ -120,18 +120,17 @@ pub mod ssr {
                 WHERE
                     comment_id = $5
                 RETURNING *",
-                moderator_message,
-                rule_id,
-                user.user_id,
-                user.username,
-                comment_id,
             )
+                .bind(moderator_message)
+                .bind(rule_id)
+                .bind(user.user_id)
+                .bind(user.username.clone())
+                .bind(comment_id)
                 .fetch_one(db_pool)
                 .await?
         } else {
             // check if the user has at least the moderate permission for this sphere
-            sqlx::query_as!(
-                Comment,
+            sqlx::query_as::<_, Comment>(
                 "UPDATE comments c SET
                     moderator_message = $1,
                     infringed_rule_id = $2,
@@ -149,12 +148,12 @@ pub mod ssr {
                             r.user_id = $3
                     )
                 RETURNING *",
-                moderator_message,
-                rule_id,
-                user.user_id,
-                user.username,
-                comment_id,
             )
+                .bind(moderator_message)
+                .bind(rule_id)
+                .bind(user.user_id)
+                .bind(user.username.clone())
+                .bind(comment_id)
                 .fetch_one(db_pool)
                 .await?
         };

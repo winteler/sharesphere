@@ -133,7 +133,7 @@ async fn update_post_scores_loop(db_pool: PgPool) {
         if let Err(e) = result {
             log::error!("Failed to updated posts' ranking timestamps with error: {e}");
         } else {
-            log::info!("Successfully updated posts' ranking timestamps");
+            log::debug!("Successfully updated posts' ranking timestamps");
         }
         tokio::time::sleep(interval).await;
     }

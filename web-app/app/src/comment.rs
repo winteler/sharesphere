@@ -176,12 +176,11 @@ pub mod ssr {
         comment_id: i64,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        let comment = sqlx::query_as!(
-            Comment,
+        let comment = sqlx::query_as::<_, Comment>(
             "SELECT * FROM comments
             WHERE comment_id = $1",
-            comment_id
         )
+            .bind(comment_id)
             .fetch_one(db_pool)
             .await?;
 
@@ -439,20 +438,19 @@ pub mod ssr {
         if is_pinned {
             user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
-        let comment = sqlx::query_as!(
-            Comment,
+        let comment = sqlx::query_as::<_, Comment>(
             "INSERT INTO comments (
                 body, markdown_body, parent_id, post_id, is_pinned, creator_id, creator_name, is_creator_moderator
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
-            comment,
-            markdown_comment,
-            parent_comment_id,
-            post_id,
-            is_pinned,
-            user.user_id,
-            user.username,
-            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate).is_ok(),
         )
+            .bind(comment)
+            .bind(markdown_comment)
+            .bind(parent_comment_id)
+            .bind(post_id)
+            .bind(is_pinned)
+            .bind(user.user_id)
+            .bind(user.username.clone())
+            .bind(user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate).is_ok())
             .fetch_one(db_pool)
             .await?;
 
@@ -473,8 +471,7 @@ pub mod ssr {
             let sphere = get_comment_sphere(comment_id, &db_pool).await?;
             user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
-        let comment = sqlx::query_as!(
-            Comment,
+        let comment = sqlx::query_as::<_, Comment>(
             "UPDATE comments SET
                 body = $1,
                 markdown_body = $2,
@@ -484,14 +481,14 @@ pub mod ssr {
                 comment_id = $4 AND
                 creator_id = $5
             RETURNING *",
-            comment_body,
-            comment_markdown_body,
-            is_pinned,
-            comment_id,
-            user.user_id,
         )
-        .fetch_one(db_pool)
-        .await?;
+            .bind(comment_body)
+            .bind(comment_markdown_body)
+            .bind(is_pinned)
+            .bind(comment_id)
+            .bind(user.user_id)
+            .fetch_one(db_pool)
+            .await?;
 
         Ok(comment)
     }

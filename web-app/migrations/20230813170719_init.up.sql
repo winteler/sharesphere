@@ -121,6 +121,9 @@ CREATE TABLE posts (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     markdown_body TEXT,
+    document TSVECTOR GENERATED ALWAYS AS (
+        to_tsvector('english', title || ' ' || coalesce(markdown_body, body))
+    ) STORED,
     link_type SMALLINT NOT NULL CHECK (link_type IN (-1, 0, 1, 2, 3)),
     link_url TEXT,
     link_embed TEXT,
@@ -158,10 +161,15 @@ CREATE TABLE posts (
     CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
 );
 
+CREATE INDEX post_document_idx ON posts USING GIN (document);
+
 CREATE TABLE comments (
     comment_id BIGSERIAL PRIMARY KEY,
     body TEXT NOT NULL,
     markdown_body TEXT,
+    document TSVECTOR GENERATED ALWAYS AS (
+        to_tsvector('simple', coalesce(markdown_body, body))
+    ) STORED,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     moderator_message TEXT,
     infringed_rule_id BIGINT REFERENCES rules (rule_id),
@@ -179,6 +187,8 @@ CREATE TABLE comments (
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ
 );
+
+CREATE INDEX comment_document_idx ON comments USING GIN (document);
 
 CREATE TABLE votes (
     vote_id BIGSERIAL PRIMARY KEY,

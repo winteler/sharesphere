@@ -68,10 +68,10 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
-            "SELECT * FROM (
-                SELECT *, ts_rank(document, to_tsquery('simple', $1)) AS rank
+            "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url FROM (
+                SELECT *, ts_rank(document, plainto_tsquery('simple', $1)) AS rank
                 FROM posts
-                WHERE document @@ to_tsquery('simple', $1)
+                WHERE document @@ plainto_tsquery('simple', $1)
                 ORDER BY rank DESC
             ) p
             JOIN spheres s on s.sphere_id = p.sphere_id
@@ -92,9 +92,9 @@ pub mod ssr {
     ) -> Result<Vec<CommentWithContext>, AppError> {
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
             "SELECT c.*, s.sphere_name, s.icon_url, s.is_nsfw, p.satellite_id, p.title as post_title FROM (
-                SELECT *, ts_rank(document, to_tsquery('simple', $1)) AS rank
+                SELECT *, ts_rank(document, plainto_tsquery('simple', $1)) AS rank
                 FROM comments
-                WHERE document @@ to_tsquery('simple', $1)
+                WHERE document @@ plainto_tsquery('simple', $1)
                 ORDER BY rank DESC
             ) c
             JOIN posts p ON p.post_id = c.post_id

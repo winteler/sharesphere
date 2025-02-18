@@ -224,6 +224,33 @@ pub async fn create_sphere_with_satellite_vec(
     Ok((sphere, satellite_vec))
 }
 
+pub async fn create_simple_post(
+    sphere_name: &str,
+    satellite_id: Option<i64>,
+    post_title: &str,
+    post_body: &str,
+    post_markdown_body: Option<&str>,
+    user: &User,
+    db_pool: &PgPool,
+) -> PostWithSphereInfo {
+    let post = post::ssr::create_post(
+        sphere_name,
+        satellite_id,
+        post_title,
+        post_body,
+        post_markdown_body,
+        Link::default(),
+        false,
+        false,
+        false,
+        None,
+        user,
+        db_pool,
+    ).await.expect("Post should be created");
+    
+    PostWithSphereInfo::from_post(post, None, None)
+}
+
 pub async fn create_post_with_comments(
     sphere_name: &str,
     post_title: &str,

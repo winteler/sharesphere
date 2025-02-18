@@ -122,7 +122,7 @@ CREATE TABLE posts (
     body TEXT NOT NULL,
     markdown_body TEXT,
     document TSVECTOR GENERATED ALWAYS AS (
-        to_tsvector('english', title || ' ' || coalesce(markdown_body, body))
+        to_tsvector('simple', title || ' ' || coalesce(markdown_body, body))
     ) STORED,
     link_type SMALLINT NOT NULL CHECK (link_type IN (-1, 0, 1, 2, 3)),
     link_url TEXT,

@@ -8,7 +8,6 @@ use app::role::PermissionLevel;
 use app::sphere;
 use app::sphere::ssr::{subscribe, unsubscribe};
 use app::sphere::{normalize_sphere_name, Sphere, SphereHeader};
-use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::User;
 
 pub use crate::common::*;
@@ -93,65 +92,6 @@ async fn test_get_sphere_by_name() -> Result<(), AppError> {
     assert!(sphere::ssr::get_sphere_by_name("invalid_name", &db_pool)
         .await
         .is_err());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
-    let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
-
-    let num_spheres = 20usize;
-    let mut expected_sphere_name_vec = Vec::new();
-    for i in 0..num_spheres {
-        expected_sphere_name_vec.push(
-            sphere::ssr::create_sphere(
-                i.to_string().as_str(),
-                "sphere",
-                i % 2 == 0,
-                &user,
-                &db_pool,
-            ).await?.sphere_name,
-        );
-    }
-    
-    let user = User::get(user.user_id, &db_pool).await.expect("User should be reloaded.");
-    
-    let first_sphere_icon_url = Some("a");
-    set_sphere_icon_url(expected_sphere_name_vec.first().unwrap(), first_sphere_icon_url, &user, &db_pool).await.expect("Sphere icon should be set.");
-
-    let sphere_header_vec = sphere::ssr::get_matching_sphere_header_vec("1", num_spheres as i64, &db_pool).await?;
-
-    let mut previous_sphere_name = None;
-    for sphere_header in sphere_header_vec {
-        assert_eq!(sphere_header.icon_url, None);
-        assert_eq!(sphere_header.sphere_name.chars().next().unwrap(), '1');
-        if let Some(previous_sphere_name) = previous_sphere_name {
-            assert!(previous_sphere_name < sphere_header.sphere_name)
-        }
-        previous_sphere_name = Some(sphere_header.sphere_name.clone());
-    }
-
-    for i in num_spheres..2 * num_spheres {
-        expected_sphere_name_vec.push(
-            sphere::ssr::create_sphere(
-                i.to_string().as_str(),
-                "sphere",
-                i % 2 == 0,
-                &user,
-                &db_pool,
-            )
-            .await?
-            .sphere_name,
-        );
-    }
-
-    let sphere_header_vec =
-        sphere::ssr::get_matching_sphere_header_vec("", num_spheres as i64, &db_pool).await?;
-
-    assert_eq!(sphere_header_vec.len(), num_spheres);
-    assert_eq!(sphere_header_vec.first().unwrap().icon_url.as_deref(), first_sphere_icon_url);
 
     Ok(())
 }

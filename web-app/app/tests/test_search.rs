@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 use app::errors::AppError;
-use app::search::ssr::{get_matching_sphere_header_vec, get_matching_username_set, search_post};
+use app::search::ssr::{get_matching_sphere_header_vec, get_matching_username_set, search_comment, search_post};
 use app::{sphere};
+use app::comment::CommentWithContext;
+use app::comment::ssr::create_comment;
+use app::sphere::SphereHeader;
 use app::sphere::ssr::create_sphere;
 use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::User;
@@ -123,7 +126,7 @@ async fn test_search_post() {
     let post_1 = create_simple_post(&sphere_1.sphere_name, None, "One apple a day", "keeps the doctor away.", None, &user, &db_pool).await;
     let post_2 = create_simple_post(&sphere_1.sphere_name, None, "Bonjour", "Adieu.", None, &user, &db_pool).await;
     let post_3 = create_simple_post(&sphere_1.sphere_name, None, "Et re-bonjour", "À la prochaine.", None, &user, &db_pool).await;
-    let post_4 = create_simple_post(&sphere_2.sphere_name, None, "Guten morgen", "Wie geht's?", None, &user, &db_pool).await;
+    let post_4 = create_simple_post(&sphere_2.sphere_name, None, "Guten morgen", "xml_body", Some("# Wie geht's?"), &user, &db_pool).await;
 
     let no_match_post_vec = search_post("no match", &db_pool).await.expect("No match search should run");
     assert!(no_match_post_vec.is_empty());
@@ -140,4 +143,74 @@ async fn test_search_post() {
     let geht_post_vec = search_post("geht", &db_pool).await.expect("Geht search should run");
     assert_eq!(geht_post_vec.len(), 1);
     assert_eq!(geht_post_vec.first(), Some(&post_4));
+}
+
+#[tokio::test]
+async fn test_search_comment() {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+
+    let sphere_1 = create_sphere("1", "1", false, &user, &db_pool).await.expect("Sphere 1 should be created.");
+    let sphere_2 = create_sphere("2", "2", false, &user, &db_pool).await.expect("Sphere 2 should be created.");
+    
+    let sphere_1_header = SphereHeader::new(sphere_1.sphere_name.clone(), sphere_1.icon_url, sphere_1.is_nsfw);
+    let sphere_2_header = SphereHeader::new(sphere_2.sphere_name.clone(), sphere_2.icon_url, sphere_2.is_nsfw);
+
+    let post_1 = create_simple_post(&sphere_1.sphere_name, None, "1", "1", None, &user, &db_pool).await;
+    let post_2 = create_simple_post(&sphere_2.sphere_name, None, "2", "2", None, &user, &db_pool).await;
+    
+    let comment_1 = create_comment(
+        post_1.post.post_id, 
+        None, 
+        "Hello there", 
+        None, 
+        false, 
+        &user, 
+        &db_pool
+    ).await.expect("hello comment should be created.");
+    let comment_2 = create_comment(
+        post_1.post.post_id, 
+        Some(comment_1.comment_id), 
+        "Général Kenobi !", 
+        None, 
+        false, 
+        &user, &db_pool
+    ).await.expect("Général comment should be created.");
+    let comment_3 = create_comment(
+        post_2.post.post_id,
+        None,
+        "En général, on dit un pain au chocolat.",
+        None,
+        false,
+        &user, &db_pool
+    ).await.expect("Général comment 2 should be created.");
+    let comment_4 = create_comment(
+        post_2.post.post_id, None, 
+        "xml_body", 
+        Some(" **Es ist eine Falle!**"), 
+        false, 
+        &user, 
+        &db_pool
+    ).await.expect("Falle comment should be created.");
+    
+    let comment_1 = CommentWithContext::from_comment(comment_1, sphere_1_header.clone(), &post_1.post);
+    let comment_2 = CommentWithContext::from_comment(comment_2, sphere_1_header, &post_1.post);
+    let comment_3 = CommentWithContext::from_comment(comment_3, sphere_2_header.clone(), &post_2.post);
+    let comment_4 = CommentWithContext::from_comment(comment_4, sphere_2_header, &post_2.post);
+
+    let no_match_comment_vec = search_comment("no match", &db_pool).await.expect("No match search should run");
+    assert!(no_match_comment_vec.is_empty());
+
+    let hello_comment_vec = search_comment("hello", &db_pool).await.expect("Hello search should run");
+    assert_eq!(hello_comment_vec.len(), 1);
+    assert_eq!(hello_comment_vec.first(), Some(&comment_1));
+
+    let general_comment_vec = search_comment("général", &db_pool).await.expect("General search should run");
+    assert_eq!(general_comment_vec.len(), 2);
+    assert_eq!(general_comment_vec.first(), Some(&comment_2));
+    assert_eq!(general_comment_vec.get(1), Some(&comment_3));
+
+    let falle_comment_vec = search_comment("Falle", &db_pool).await.expect("Falle search should run");
+    assert_eq!(falle_comment_vec.len(), 1);
+    assert_eq!(falle_comment_vec.first(), Some(&comment_4));
 }

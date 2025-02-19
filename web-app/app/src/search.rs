@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-use leptos::server;
+use leptos::{component, server, IntoView};
 use server_fn::ServerFnError;
 use crate::errors::AppError;
 use crate::sphere::{SphereHeader};
@@ -10,6 +10,8 @@ use crate::{
     sphere::SPHERE_FETCH_LIMIT,
     user::USER_FETCH_LIMIT,
 };
+use crate::comment::CommentWithContext;
+use crate::post::PostWithSphereInfo;
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
@@ -63,7 +65,7 @@ pub mod ssr {
         Ok(sphere_header_vec)
     }
 
-    pub async fn search_post(
+    pub async fn search_posts(
         search_query: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
@@ -86,7 +88,7 @@ pub mod ssr {
         Ok(post_vec)
     }
 
-    pub async fn search_comment(
+    pub async fn search_comments(
         search_query: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<CommentWithContext>, AppError> {
@@ -128,4 +130,22 @@ pub async fn get_matching_sphere_header_vec(
         &db_pool
     ).await?;
     Ok(sphere_header_vec)
+}
+
+#[server]
+pub async fn search_posts(
+    search_query: String,
+) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let post_vec = ssr::search_posts(&search_query, &db_pool).await?;
+    Ok(post_vec)
+}
+
+#[server]
+pub async fn search_comments(
+    search_query: String,
+) -> Result<Vec<CommentWithContext>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let comment_vec = ssr::search_comments(&search_query, &db_pool).await?;
+    Ok(comment_vec)
 }

@@ -7,6 +7,7 @@ use crate::constants::SITE_ROOT;
 use crate::icons::*;
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::profile::get_profile_path;
+use crate::search::SearchButton;
 use crate::sphere::*;
 use crate::user::User;
 
@@ -73,17 +74,7 @@ pub fn NavigationBar() -> impl IntoView
                 </div>
             </div>
             <div class="navbar-end gap-1">
-                <div class="join max-2xl:hidden">
-                    <div>
-                        <div>
-                            <input class="input join-item input-md" placeholder="Search"/>
-                        </div>
-                    </div>
-                    <button class="btn join-item button-md"><MagnifierIcon/></button>
-                </div>
-                <button class="btn btn-ghost btn-circle 2xl:hidden">
-                    <MagnifierIcon/>
-                </button>
+                <SearchButton/>
                 <PlusMenu/>
                 <UserMenu/>
             </div>

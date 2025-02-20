@@ -1,8 +1,17 @@
 use std::collections::BTreeSet;
-use leptos::{component, server, IntoView};
-use server_fn::ServerFnError;
+use leptos::html;
+use leptos::prelude::*;
+use leptos_use::on_click_outside;
+use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
+
+use crate::comment::CommentWithContext;
 use crate::errors::AppError;
+use crate::icons::MagnifierIcon;
+use crate::post::PostWithSphereInfo;
 use crate::sphere::{SphereHeader};
+use crate::widget::{EnumSignalTabs, ModalDialog, ToView};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -10,8 +19,26 @@ use crate::{
     sphere::SPHERE_FETCH_LIMIT,
     user::USER_FETCH_LIMIT,
 };
-use crate::comment::CommentWithContext;
-use crate::post::PostWithSphereInfo;
+
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum SearchType {
+    #[default]
+    Sphere,
+    Posts,
+    Comments,
+    User,
+}
+
+impl ToView for SearchType {
+    fn to_view(self) -> AnyView {
+        match self {
+            SearchType::Sphere => view! { <SearchSphere/> }.into_any(),
+            SearchType::Posts => view! { <SearchPost/> }.into_any(),
+            SearchType::Comments => view! { <SearchComment/> }.into_any(),
+            SearchType::User => view! { <SearchUser/> }.into_any(),
+        }
+    }
+}
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
@@ -148,4 +175,85 @@ pub async fn search_comments(
     let db_pool = get_db_pool()?;
     let comment_vec = ssr::search_comments(&search_query, &db_pool).await?;
     Ok(comment_vec)
+}
+
+/// Button to open the search dialog
+#[component]
+pub fn SearchButton() -> impl IntoView
+{
+    let show_dialog = RwSignal::new(false);
+    let modal_ref = NodeRef::<html::Div>::new();
+    let _ = on_click_outside(modal_ref, move |_| show_dialog.set(false));
+    view! {
+        <button
+            class="btn btn-ghost btn-circle"
+            on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+            attr:aria-expanded=move || show_dialog.get().to_string()
+            attr:aria-haspopup="dialog"
+        >
+            <MagnifierIcon/>
+        </button>
+        <ModalDialog show_dialog modal_ref>
+            <Search/>
+        </ModalDialog>
+    }
+}
+
+/// Component to search spheres, posts, comments and users
+#[component]
+pub fn Search() -> impl IntoView
+{
+    let search_type = RwSignal::new(SearchType::Sphere);
+    view! {
+        <EnumSignalTabs
+            enum_signal=search_type
+            enum_iter=SearchType::iter()
+        />
+    }
+}
+
+#[component]
+pub fn SearchSphere() -> impl IntoView
+{
+    view! {
+        <div>"Sphere"</div>
+    }
+}
+
+#[component]
+pub fn SearchPost() -> impl IntoView
+{
+    view! {
+        <div>"Post"</div>
+    }
+}
+
+#[component]
+pub fn SearchComment() -> impl IntoView
+{
+    view! {
+        <div>"Comment"</div>
+    }
+}
+
+#[component]
+pub fn SearchUser() -> impl IntoView
+{
+    view! {
+        <div>"User"</div>
+    }
+}
+
+/// Form for the search dialog
+#[component]
+pub fn SearchForm() -> impl IntoView
+{
+
+}
+
+/// Component to display the result of the search
+#[component]
+pub fn SearchResult() -> impl IntoView
+{
+
 }

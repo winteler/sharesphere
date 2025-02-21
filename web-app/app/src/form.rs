@@ -26,13 +26,13 @@ pub fn LabeledFormCheckbox(
     /// Name of the input in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
     /// Label of the checkbox
-    #[prop(default = "")]
+    #[prop(optional)]
     label: &'static str,
-    #[prop(default = false)]
+    #[prop(optional)]
     value: bool,
-    #[prop(default = false)]
+    #[prop(optional)]
     disabled: bool,
-    #[prop(default = "")]
+    #[prop(optional)]
     class: &'static str,
 ) -> impl IntoView {
     let is_checked = RwSignal::new(value);
@@ -48,6 +48,32 @@ pub fn LabeledFormCheckbox(
                     checked=is_checked
                     disabled=disabled
                     on:click=move |_| is_checked.update(|value| *value = !*value)
+                />
+            </label>
+        </div>
+    }
+}
+
+/// Component for a boolean checkbox with a label updating a signal
+#[component]
+pub fn LabeledSignalCheckbox(
+    label: &'static str,
+    value: RwSignal<bool>,
+    #[prop(optional)]
+    disabled: bool,
+    #[prop(optional)]
+    class: &'static str,
+) -> impl IntoView {
+    view! {
+        <div class=class>
+            <label class="cursor-pointer label p-0">
+                <span class="label-text">{label}</span>
+                <input
+                    type="checkbox"
+                    class="checkbox checkbox-primary"
+                    checked=value
+                    disabled=disabled
+                    on:click=move |_| value.update(|value| *value = !*value)
                 />
             </label>
         </div>

@@ -1,16 +1,18 @@
 use std::collections::BTreeSet;
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::on_click_outside;
+use leptos_use::{on_click_outside, signal_debounced};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
 use crate::comment::CommentWithContext;
 use crate::errors::AppError;
+use crate::form::LabeledSignalCheckbox;
 use crate::icons::MagnifierIcon;
 use crate::post::PostWithSphereInfo;
-use crate::sphere::{SphereHeader};
+use crate::sphere::{SphereHeader, SphereLinkList};
+use crate::unpack::TransitionUnpack;
 use crate::widget::{EnumSignalTabs, ModalDialog, ToView};
 
 #[cfg(feature = "ssr")]
@@ -29,6 +31,14 @@ pub enum SearchType {
     User,
 }
 
+#[derive(Clone, Debug)]
+struct SearchState {
+    pub search_input: RwSignal<String>,
+    pub search_input_debounced: Signal<String>,
+    pub show_spoiler: RwSignal<bool>,
+    pub show_nsfw: RwSignal<bool>,
+}
+
 impl ToView for SearchType {
     fn to_view(self) -> AnyView {
         match self {
@@ -36,6 +46,18 @@ impl ToView for SearchType {
             SearchType::Posts => view! { <SearchPost/> }.into_any(),
             SearchType::Comments => view! { <SearchComment/> }.into_any(),
             SearchType::User => view! { <SearchUser/> }.into_any(),
+        }
+    }
+}
+
+impl Default for SearchState {
+    fn default() -> Self {
+        let search_input = RwSignal::new(String::new());
+        SearchState {
+            search_input,
+            search_input_debounced: signal_debounced(search_input, 500.0),
+            show_spoiler: RwSignal::new(false),
+            show_nsfw: RwSignal::new(false),
         }
     }
 }
@@ -50,30 +72,9 @@ pub mod ssr {
     use crate::post::ssr::PostJoinCategory;
     use crate::sphere::SphereHeader;
 
-    pub async fn get_matching_username_set(
-        username_prefix: &str,
-        limit: i64,
-        db_pool: &PgPool,
-    ) -> Result<BTreeSet<String>, AppError> {
-        let username_vec = sqlx::query!(
-            "SELECT username FROM users WHERE username LIKE $1 ORDER BY username LIMIT $2",
-            format!("{username_prefix}%"),
-            limit,
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        let mut username_set = BTreeSet::<String>::new();
-
-        for row in username_vec {
-            username_set.insert(row.username);
-        }
-
-        Ok(username_set)
-    }
-
     pub async fn get_matching_sphere_header_vec(
         sphere_prefix: &str,
+        show_nsfw: bool,
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
@@ -81,9 +82,12 @@ pub mod ssr {
             SphereHeader,
             "SELECT sphere_name, icon_url, is_nsfw
             FROM spheres
-            WHERE sphere_name LIKE $1
-            ORDER BY sphere_name LIMIT $2",
+            WHERE
+                sphere_name LIKE $1 AND
+                ($2 OR NOT is_nsfw)
+            ORDER BY sphere_name LIMIT $3",
             format!("{sphere_prefix}%"),
+            show_nsfw,
             limit,
         )
             .fetch_all(db_pool)
@@ -135,24 +139,39 @@ pub mod ssr {
 
         Ok(comment_vec)
     }
-}
 
-#[server]
-pub async fn get_matching_username_set(
-    username_prefix: String,
-) -> Result<BTreeSet<String>, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let username_set = ssr::get_matching_username_set(&username_prefix, USER_FETCH_LIMIT, &db_pool).await?;
-    Ok(username_set)
+    pub async fn get_matching_username_set(
+        username_prefix: &str,
+        limit: i64,
+        db_pool: &PgPool,
+    ) -> Result<BTreeSet<String>, AppError> {
+        let username_vec = sqlx::query!(
+            "SELECT username FROM users WHERE username LIKE $1 ORDER BY username LIMIT $2",
+            format!("{username_prefix}%"),
+            limit,
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        let mut username_set = BTreeSet::<String>::new();
+
+        for row in username_vec {
+            username_set.insert(row.username);
+        }
+
+        Ok(username_set)
+    }
 }
 
 #[server]
 pub async fn get_matching_sphere_header_vec(
     sphere_prefix: String,
+    show_nsfw: bool,
 ) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let sphere_header_vec = ssr::get_matching_sphere_header_vec(
         &sphere_prefix,
+        show_nsfw,
         SPHERE_FETCH_LIMIT,
         &db_pool
     ).await?;
@@ -177,6 +196,15 @@ pub async fn search_comments(
     Ok(comment_vec)
 }
 
+#[server]
+pub async fn get_matching_username_set(
+    username_prefix: String,
+) -> Result<BTreeSet<String>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let username_set = ssr::get_matching_username_set(&username_prefix, USER_FETCH_LIMIT, &db_pool).await?;
+    Ok(username_set)
+}
+
 /// Button to open the search dialog
 #[component]
 pub fn SearchButton() -> impl IntoView
@@ -184,6 +212,7 @@ pub fn SearchButton() -> impl IntoView
     let show_dialog = RwSignal::new(false);
     let modal_ref = NodeRef::<html::Div>::new();
     let _ = on_click_outside(modal_ref, move |_| show_dialog.set(false));
+    provide_context(SearchState::default());
     view! {
         <button
             class="btn btn-ghost btn-circle"
@@ -193,7 +222,11 @@ pub fn SearchButton() -> impl IntoView
         >
             <MagnifierIcon/>
         </button>
-        <ModalDialog show_dialog modal_ref>
+        <ModalDialog 
+            show_dialog 
+            modal_ref
+            class="w-full max-w-xl"
+        >
             <Search/>
         </ModalDialog>
     }
@@ -205,18 +238,37 @@ pub fn Search() -> impl IntoView
 {
     let search_type = RwSignal::new(SearchType::Sphere);
     view! {
-        <EnumSignalTabs
-            enum_signal=search_type
-            enum_iter=SearchType::iter()
-        />
+        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Search"</div>
+            <EnumSignalTabs
+                enum_signal=search_type
+                enum_iter=SearchType::iter()
+            />
+        </div>
     }
 }
 
 #[component]
 pub fn SearchSphere() -> impl IntoView
 {
+    let search_state = expect_context::<SearchState>();
+    let search_sphere_resource = Resource::new(
+        move || (search_state.search_input_debounced.get(), search_state.show_nsfw.get()),
+        move |(search_input, show_nsfw)| async move {
+            match search_input.is_empty() {
+               true => Ok(Vec::new()),
+               false => get_matching_sphere_header_vec(search_input, show_nsfw).await,
+            }
+        }
+    );
     view! {
-        <div>"Sphere"</div>
+        <SearchForm
+            show_spoiler_checkbox=false
+            show_nsfw_checkbox=true
+        />
+        <TransitionUnpack resource=search_sphere_resource let:sphere_header_vec>
+            <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
+        </TransitionUnpack>
     }
 }
 
@@ -224,7 +276,10 @@ pub fn SearchSphere() -> impl IntoView
 pub fn SearchPost() -> impl IntoView
 {
     view! {
-        <div>"Post"</div>
+        <SearchForm
+            show_spoiler_checkbox=true
+            show_nsfw_checkbox=true
+        />
     }
 }
 
@@ -232,7 +287,10 @@ pub fn SearchPost() -> impl IntoView
 pub fn SearchComment() -> impl IntoView
 {
     view! {
-        <div>"Comment"</div>
+        <SearchForm
+            show_spoiler_checkbox=false
+            show_nsfw_checkbox=false
+        />
     }
 }
 
@@ -240,20 +298,50 @@ pub fn SearchComment() -> impl IntoView
 pub fn SearchUser() -> impl IntoView
 {
     view! {
-        <div>"User"</div>
+        <SearchForm
+            show_spoiler_checkbox=false
+            show_nsfw_checkbox=true
+        />
     }
 }
 
 /// Form for the search dialog
 #[component]
-pub fn SearchForm() -> impl IntoView
-{
+pub fn SearchForm(
+    show_spoiler_checkbox: bool,
+    show_nsfw_checkbox: bool,
+) -> impl IntoView {
+    let search_state = expect_context::<SearchState>();
+    let input_ref = NodeRef::<html::Input>::new();
+    Effect::new(move || {
+        if let Some(input_ref) = input_ref.get() {
+            input_ref.focus().ok();
+        } else {
+            log::info!("Missing input ref");
+        }
+    });
 
-}
-
-/// Component to display the result of the search
-#[component]
-pub fn SearchResult() -> impl IntoView
-{
-
+    view! {
+        <input
+            type="text"
+            placeholder="Search"
+            class="input input-bordered input-primary h-input_m"
+            value=search_state.search_input
+            autofocus
+            on:input=move |ev| search_state.search_input.set(event_target_value(&ev))
+            node_ref=input_ref
+        />
+        { match show_spoiler_checkbox {
+            true => Some(view! {
+                <LabeledSignalCheckbox label="Spoiler" value=search_state.show_spoiler/>
+            }),
+            false => None,
+        }}
+         { match show_nsfw_checkbox {
+            true => Some(view! {
+                <LabeledSignalCheckbox label="NSFW" value=search_state.show_nsfw/>
+            }),
+            false => None,
+        }}
+    }
 }

@@ -1233,9 +1233,7 @@ pub fn PostForm(
             value=title_input
             autofocus
             autocomplete="off"
-            on:input=move |ev| {
-                title_input.set(event_target_value(&ev));
-            }
+            on:input=move |ev| title_input.set(event_target_value(&ev))
         />
         <FormMarkdownEditor
             name="body"
@@ -1352,7 +1350,7 @@ pub fn CreatePost() -> impl IntoView {
 
     let matching_spheres_resource = Resource::new(
         move || sphere_name_debounced.get(),
-        move |sphere_prefix| get_matching_sphere_header_vec(sphere_prefix),
+        move |sphere_prefix| get_matching_sphere_header_vec(sphere_prefix, true),
     );
 
     let category_vec_resource = Resource::new(

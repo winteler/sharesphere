@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 use app::errors::AppError;
 use app::search::ssr::{get_matching_sphere_header_vec, get_matching_username_set, search_comments, search_posts};
-use app::{sphere};
 use app::comment::CommentWithContext;
 use app::comment::ssr::create_comment;
 use app::sphere::SphereHeader;
@@ -66,10 +65,10 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
     let mut expected_sphere_name_vec = Vec::new();
     for i in 0..num_spheres {
         expected_sphere_name_vec.push(
-            sphere::ssr::create_sphere(
+            create_sphere(
                 i.to_string().as_str(),
                 "sphere",
-                i % 2 == 0,
+                i % 2 == 1,
                 &user,
                 &db_pool,
             ).await?.sphere_name,
@@ -81,7 +80,7 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
     let first_sphere_icon_url = Some("a");
     set_sphere_icon_url(expected_sphere_name_vec.first().unwrap(), first_sphere_icon_url, &user, &db_pool).await.expect("Sphere icon should be set.");
 
-    let sphere_header_vec = get_matching_sphere_header_vec("1", num_spheres as i64, &db_pool).await?;
+    let sphere_header_vec = get_matching_sphere_header_vec("1", true, num_spheres as i64, &db_pool).await?;
 
     let mut previous_sphere_name = None;
     for sphere_header in sphere_header_vec {
@@ -95,7 +94,7 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
 
     for i in num_spheres..2 * num_spheres {
         expected_sphere_name_vec.push(
-            sphere::ssr::create_sphere(
+            create_sphere(
                 i.to_string().as_str(),
                 "sphere",
                 i % 2 == 0,
@@ -107,10 +106,11 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
         );
     }
 
-    let sphere_header_vec = get_matching_sphere_header_vec("", num_spheres as i64, &db_pool).await?;
+    let sphere_header_vec = get_matching_sphere_header_vec("", false, num_spheres as i64, &db_pool).await?;
 
     assert_eq!(sphere_header_vec.len(), num_spheres);
     assert_eq!(sphere_header_vec.first().unwrap().icon_url.as_deref(), first_sphere_icon_url);
+    assert!(sphere_header_vec.iter().all(|sphere_header| !sphere_header.is_nsfw));
 
     Ok(())
 }

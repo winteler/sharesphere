@@ -1,14 +1,15 @@
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
-use crate::sphere::{get_popular_sphere_headers, get_sphere_path, get_subscribed_sphere_headers, SphereHeader, SphereState};
+use crate::sphere::SphereLinkList;
+use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers, SphereHeader, SphereState};
 use crate::sphere_category::SphereCategoryBadge;
 use crate::unpack::TransitionUnpack;
 use crate::widget::{Collapse, TitleCollapse};
 
-/// Component to display a list of sphere links
+/// Component to display a collapsable list of sphere links
 #[component]
-pub fn SphereLinkList(
+pub fn SphereLinkListCollapse(
     title: &'static str,
     sphere_header_vec: Vec<SphereHeader>
 ) -> impl IntoView {
@@ -17,20 +18,7 @@ pub fn SphereLinkList(
     }
     view! {
         <TitleCollapse title=title>
-            <ul class="flex flex-col pt-1 pl-1">
-            {
-                sphere_header_vec.iter().map(|sphere_header| {
-                    let sphere_path = get_sphere_path(&sphere_header.sphere_name);
-                    view! {
-                        <li class="px-2 rounded hover:bg-base-content/20">
-                            <a href=sphere_path>
-                                <SphereHeader sphere_header=sphere_header.clone()/>
-                            </a>
-                        </li>
-                    }
-                }).collect_view()
-            }
-            </ul>
+            <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
         </TitleCollapse>
     }.into_any()
 }
@@ -60,7 +48,7 @@ pub fn LeftSidebar() -> impl IntoView {
         <div class="flex flex-col justify-start w-60 h-full pl-2 pt-2 max-2xl:bg-base-300">
             <div>
                 <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
-                    <SphereLinkList
+                    <SphereLinkListCollapse
                         title="Subscribed"
                         sphere_header_vec=sphere_header_vec.clone()
                     />
@@ -68,7 +56,7 @@ pub fn LeftSidebar() -> impl IntoView {
             </div>
             <div>
                 <TransitionUnpack resource=popular_sphere_vec_resource let:sphere_header_vec>
-                    <SphereLinkList
+                    <SphereLinkListCollapse
                         title="Popular"
                         sphere_header_vec=sphere_header_vec.clone()
                     />

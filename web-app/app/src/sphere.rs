@@ -467,6 +467,32 @@ pub fn SphereHeaderLink(
     }
 }
 
+/// Component to display a collapsable list of sphere links
+#[component]
+pub fn SphereLinkList(
+    sphere_header_vec: Vec<SphereHeader>
+) -> impl IntoView {
+    if sphere_header_vec.is_empty() {
+        return ().into_any()
+    }
+    view! {
+        <ul class="flex flex-col pt-1 pl-1">
+        {
+            sphere_header_vec.into_iter().map(|sphere_header| {
+                let sphere_path = get_sphere_path(&sphere_header.sphere_name);
+                view! {
+                    <li class="px-2 rounded hover:bg-base-content/20">
+                        <a href=sphere_path>
+                            <SphereHeader sphere_header=sphere_header/>
+                        </a>
+                    </li>
+                }
+            }).collect_view()
+        }
+        </ul>
+    }.into_any()
+}
+
 /// Component to display a sphere's banner
 #[component]
 pub fn SphereBanner() -> impl IntoView {

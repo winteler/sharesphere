@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use leptos::html;
 use leptos::prelude::*;
 use leptos_use::{signal_debounced};
 use serde::{Deserialize, Serialize};
@@ -11,7 +12,7 @@ use crate::form::LabeledSignalCheckbox;
 use crate::post::PostWithSphereInfo;
 use crate::sphere::{SphereHeader, SphereLinkList};
 use crate::unpack::TransitionUnpack;
-use crate::widget::{EnumSignalTabs, ToView};
+use crate::widget::{EnumQueryTabs, ToView};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -22,6 +23,7 @@ use crate::{
 use crate::sidebar::HomeSidebar;
 
 pub const SEARCH_ROUTE: &str = "/search";
+pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum SearchType {
@@ -211,13 +213,12 @@ pub async fn get_matching_username_set(
 pub fn Search() -> impl IntoView
 {
     provide_context(SearchState::default());
-    let search_type = RwSignal::new(SearchType::Sphere);
     view! {
         <div class="w-full flex justify-center">
-            <div class="w-full 2xl:w-2/3 flex flex-col max-2xl:items-center">
-                <EnumSignalTabs
-                    enum_signal=search_type
-                    enum_iter=SearchType::iter()
+            <div class="w-full 2xl:w-2/3 flex flex-col">
+                <EnumQueryTabs
+                    query_param=SEARCH_TAB_QUERY_PARAM
+                    query_enum_iter=SearchType::iter()
                 />
             </div>
         </div>
@@ -233,15 +234,24 @@ pub fn SearchSphereWithContext() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
     view! {
-        <SearchSphere search_state/>
+        <SearchSphere search_state show_nsfw=true/>
     }
 }
 
 #[component]
 pub fn SearchSphere(
-    search_state: SearchState
+    search_state: SearchState,
+    #[prop(optional)]
+    show_nsfw: bool,
+    #[prop(default = "w-3/4 2xl:w-1/2")]
+    class: &'static str,
+    #[prop(default = "w-full")]
+    form_class: &'static str,
+    #[prop(default = true)]
+    autofocus: bool,
 ) -> impl IntoView
 {
+    let class = format!("flex flex-col gap-2 self-center {class}");
     let search_sphere_resource = Resource::new(
         move || (search_state.search_input_debounced.get(), search_state.show_nsfw.get()),
         move |(search_input, show_nsfw)| async move {
@@ -252,14 +262,18 @@ pub fn SearchSphere(
         }
     );
     view! {
-        <SearchForm
-            search_state
-            show_spoiler_checkbox=false
-            show_nsfw_checkbox=true
-        />
-        <TransitionUnpack resource=search_sphere_resource let:sphere_header_vec>
-            <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
-        </TransitionUnpack>
+        <div class=class>
+            <SearchForm
+                search_state
+                show_spoiler_checkbox=false
+                show_nsfw_checkbox=show_nsfw
+                class=form_class
+                autofocus
+            />
+            <TransitionUnpack resource=search_sphere_resource let:sphere_header_vec>
+                <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
+            </TransitionUnpack>
+        </div>
     }
 }
 
@@ -308,27 +322,41 @@ pub fn SearchForm(
     search_state: SearchState,
     show_spoiler_checkbox: bool,
     show_nsfw_checkbox: bool,
+    #[prop(default = "w-3/4 2xl:w-1/2")]
+    class: &'static str,
+    #[prop(default = true)]
+    autofocus: bool,
 ) -> impl IntoView {
+    let input_ref = NodeRef::<html::Input>::new();
+    if autofocus {
+        Effect::new(move || if let Some(input) = input_ref.get() {
+            input.focus().ok();
+        });
+    }
+    let class = format!("flex flex-col gap-2 self-center {class}");
     view! {
-        <input
-            type="text"
-            placeholder="Search"
-            class="input input-bordered input-primary"
-            value=search_state.search_input
-            autofocus
-            on:input=move |ev| search_state.search_input.set(event_target_value(&ev))
-        />
-        { match show_spoiler_checkbox {
-            true => Some(view! {
-                <LabeledSignalCheckbox label="Spoiler" value=search_state.show_spoiler class="pl-1"/>
-            }),
-            false => None,
-        }}
-         { match show_nsfw_checkbox {
-            true => Some(view! {
-                <LabeledSignalCheckbox label="NSFW" value=search_state.show_nsfw class="pl-1"/>
-            }),
-            false => None,
-        }}
+        <div class=class>
+            <input
+                type="text"
+                placeholder="Search"
+                class="input input-bordered input-primary"
+                value=search_state.search_input
+                autofocus=autofocus
+                on:input=move |ev| search_state.search_input.set(event_target_value(&ev))
+                node_ref=input_ref
+            />
+            { match show_spoiler_checkbox {
+                true => Some(view! {
+                    <LabeledSignalCheckbox label="Spoiler" value=search_state.show_spoiler class="pl-1"/>
+                }),
+                false => None,
+            }}
+             { match show_nsfw_checkbox {
+                true => Some(view! {
+                    <LabeledSignalCheckbox label="NSFW" value=search_state.show_nsfw class="pl-1"/>
+                }),
+                false => None,
+            }}
+        </div>
     }
 }

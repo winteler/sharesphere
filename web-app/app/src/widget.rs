@@ -105,12 +105,10 @@ where
 fn QueryShow<I, T>(
     query_param: &'static str,
     query_enum_iter: I,
-    #[prop(optional, into)]
-    default_view: ViewFn,
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
-    T: std::str::FromStr + Into<&'static str> + Copy + IntoEnumIterator + ToView
+    T: std::str::FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + ToView
 {
     let query = use_query_map();
     view! {
@@ -119,7 +117,7 @@ where
                 |query_value| Into::<&str>::into(*query_value) == query.read().get(query_param).unwrap_or_default()
             ) {
                 Some(query_value) => Either::Left(query_value.to_view()),
-                None => Either::Right(default_view.run()),
+                None => Either::Right(T::default().to_view()),
             }
         }
     }.into_any()
@@ -131,84 +129,15 @@ where
 pub fn EnumQueryTabs<I, T>(
     query_param: &'static str,
     query_enum_iter: I,
-    #[prop(optional, into)]
-    default_view: ViewFn,
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
-    T: std::str::FromStr + Into<&'static str> + Copy + IntoEnumIterator + ToView
+    T: std::str::FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + ToView
 {
     view! {
-        <div class="flex flex-col gap-2 pt-2 px-2 w-full max-2xl:items-center">
+        <div class="flex flex-col gap-3 pt-2 px-2 w-full">
             <QueryTabs query_param query_enum_iter=query_enum_iter.clone()/>
-            <QueryShow query_param query_enum_iter default_view/>
-        </div>
-    }
-}
-
-/// Tab component displaying the str corresponding to `value` and updating signal upon click.
-/// Highlighted style when `signal` == `value`.
-#[component]
-fn SignalTab<T>(
-    signal: RwSignal<T>,
-    value: T,
-) -> impl IntoView
-where
-    T: Copy + Into<&'static str> + PartialEq + Send + Sync + 'static
-{
-    let tab_class = move || match signal.read() == value {
-        true => "w-full text-center p-1 bg-base-content/20 hover:bg-base-content/50",
-        false => "w-full text-center p-1 hover:bg-base-content/50",
-    };
-    view! {
-        <button class=tab_class on:click=move |_| signal.set(value)>
-            {value.into()}
-        </button>
-    }
-}
-
-/// Component to display the view of the enum selected by the query parameter `query_param`
-#[component]
-fn EnumSignalShow<I, T>(
-    enum_signal: RwSignal<T>,
-    enum_iter: I,
-) -> impl IntoView
-where
-    I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
-    T: Copy + Default + IntoEnumIterator + PartialEq + ToView  + Send + Sync + 'static
-{
-    view! {
-        {
-            move || match &enum_iter.clone().into_iter().find(
-                |enum_value| *enum_value == *enum_signal.read()
-            ) {
-                Some(enum_value) => Either::Left(enum_value.to_view()),
-                None => Either::Right(T::default().to_view()),
-            }
-        }
-    }.into_any()
-}
-
-/// Component to display views query parameter `query_param` with the value `title` upon clicking
-#[component]
-pub fn EnumSignalTabs<I, T>(
-    enum_signal: RwSignal<T>,
-    enum_iter: I,
-) -> impl IntoView
-where
-    I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
-    T: std::str::FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + PartialEq + ToView  + Send + Sync + 'static
-{
-    view! {
-        <div class="flex flex-col gap-2 pt-2 px-2 w-full max-2xl:items-center">
-            <div class="w-full grid grid-flow-col justify-stretch divide-x divide-base-content/20 border border-1 border-base-content/20">
-                {
-                    enum_iter.clone().into_iter().map(|enum_value| view! {
-                        <SignalTab signal=enum_signal value=enum_value/>
-                    }.into_any()).collect_view()
-                }
-            </div>
-            <EnumSignalShow enum_signal enum_iter/>
+            <QueryShow query_param query_enum_iter/>
         </div>
     }
 }

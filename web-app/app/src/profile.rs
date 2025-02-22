@@ -31,14 +31,16 @@ pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
 pub const PROFILE_TAB_QUERY_PARAM: &str = "tab";
 
-#[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum ProfileTabs {
+    #[default]
     Posts,
     Comments,
 }
 
-#[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum SelfProfileTabs {
+    #[default]
     Posts,
     Comments,
     Settings,
@@ -196,15 +198,13 @@ pub fn UserProfile() -> impl IntoView {
                             Ok(Some(user)) if user.username == query_username.get() => view! { 
                                 <EnumQueryTabs 
                                     query_param=PROFILE_TAB_QUERY_PARAM 
-                                    query_enum_iter=SelfProfileTabs::iter() 
-                                    default_view=move || view! { <UserPosts/> }
+                                    query_enum_iter=SelfProfileTabs::iter()
                                 /> 
                             }.into_any(),
                             _ => view! { 
                                 <EnumQueryTabs 
                                     query_param=PROFILE_TAB_QUERY_PARAM 
-                                    query_enum_iter=ProfileTabs::iter() 
-                                    default_view=move || view! { <UserPosts/> }
+                                    query_enum_iter=ProfileTabs::iter()
                                 /> 
                             }.into_any(),
                         }

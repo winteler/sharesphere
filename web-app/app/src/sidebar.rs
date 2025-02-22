@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
+use crate::search::{SearchSphere, SearchState};
 use crate::sphere::SphereLinkList;
 use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers, SphereHeader, SphereState};
 use crate::sphere_category::SphereCategoryBadge;
@@ -11,13 +12,15 @@ use crate::widget::{Collapse, TitleCollapse};
 #[component]
 pub fn SphereLinkListCollapse(
     title: &'static str,
-    sphere_header_vec: Vec<SphereHeader>
+    sphere_header_vec: Vec<SphereHeader>,
+    #[prop(default = true)]
+    is_open: bool,
 ) -> impl IntoView {
     if sphere_header_vec.is_empty() {
         return ().into_any()
     }
     view! {
-        <TitleCollapse title=title>
+        <TitleCollapse title=title is_open>
             <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
         </TitleCollapse>
     }.into_any()
@@ -27,6 +30,7 @@ pub fn SphereLinkListCollapse(
 #[component]
 pub fn LeftSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let search_state = SearchState::default();
     let subscribed_sphere_vec_resource = Resource::new(
         move || {
             (
@@ -59,8 +63,12 @@ pub fn LeftSidebar() -> impl IntoView {
                     <SphereLinkListCollapse
                         title="Popular"
                         sphere_header_vec=sphere_header_vec.clone()
+                        is_open=false
                     />
                 </TransitionUnpack>
+            </div>
+            <div class="flex flex-col gap-2 pt-4">
+                <SearchSphere search_state/>
             </div>
         </div>
     }

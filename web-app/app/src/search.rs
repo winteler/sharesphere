@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
-use leptos::html;
 use leptos::prelude::*;
-use leptos_use::{on_click_outside, signal_debounced};
+use leptos_use::{signal_debounced};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
@@ -9,11 +8,10 @@ use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use crate::comment::CommentWithContext;
 use crate::errors::AppError;
 use crate::form::LabeledSignalCheckbox;
-use crate::icons::MagnifierIcon;
 use crate::post::PostWithSphereInfo;
 use crate::sphere::{SphereHeader, SphereLinkList};
 use crate::unpack::TransitionUnpack;
-use crate::widget::{EnumSignalTabs, ModalDialog, ToView};
+use crate::widget::{EnumSignalTabs, ToView};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -21,6 +19,9 @@ use crate::{
     sphere::SPHERE_FETCH_LIMIT,
     user::USER_FETCH_LIMIT,
 };
+use crate::sidebar::HomeSidebar;
+
+pub const SEARCH_ROUTE: &str = "/search";
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum SearchType {
@@ -32,7 +33,7 @@ pub enum SearchType {
 }
 
 #[derive(Clone, Debug)]
-struct SearchState {
+pub struct SearchState {
     pub search_input: RwSignal<String>,
     pub search_input_debounced: Signal<String>,
     pub show_spoiler: RwSignal<bool>,
@@ -42,7 +43,7 @@ struct SearchState {
 impl ToView for SearchType {
     fn to_view(self) -> AnyView {
         match self {
-            SearchType::Sphere => view! { <SearchSphere/> }.into_any(),
+            SearchType::Sphere => view! { <SearchSphereWithContext/> }.into_any(),
             SearchType::Posts => view! { <SearchPost/> }.into_any(),
             SearchType::Comments => view! { <SearchComment/> }.into_any(),
             SearchType::User => view! { <SearchUser/> }.into_any(),
@@ -205,53 +206,42 @@ pub async fn get_matching_username_set(
     Ok(username_set)
 }
 
-/// Button to open the search dialog
-#[component]
-pub fn SearchButton() -> impl IntoView
-{
-    let show_dialog = RwSignal::new(false);
-    let modal_ref = NodeRef::<html::Div>::new();
-    let _ = on_click_outside(modal_ref, move |_| show_dialog.set(false));
-    provide_context(SearchState::default());
-    view! {
-        <button
-            class="btn btn-ghost btn-circle"
-            on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
-            attr:aria-expanded=move || show_dialog.get().to_string()
-            attr:aria-haspopup="dialog"
-        >
-            <MagnifierIcon/>
-        </button>
-        <ModalDialog 
-            show_dialog 
-            modal_ref
-            class="w-full max-w-xl"
-        >
-            <Search/>
-        </ModalDialog>
-    }
-}
-
 /// Component to search spheres, posts, comments and users
 #[component]
 pub fn Search() -> impl IntoView
 {
+    provide_context(SearchState::default());
     let search_type = RwSignal::new(SearchType::Sphere);
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Search"</div>
-            <EnumSignalTabs
-                enum_signal=search_type
-                enum_iter=SearchType::iter()
-            />
+        <div class="w-full flex justify-center">
+            <div class="w-full 2xl:w-2/3 flex flex-col max-2xl:items-center">
+                <EnumSignalTabs
+                    enum_signal=search_type
+                    enum_iter=SearchType::iter()
+                />
+            </div>
+        </div>
+        <div class="max-2xl:hidden">
+            <HomeSidebar/>
         </div>
     }
 }
 
+/// Component to search spheres, uses the SearchState from the context to get user input
 #[component]
-pub fn SearchSphere() -> impl IntoView
+pub fn SearchSphereWithContext() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
+    view! {
+        <SearchSphere search_state/>
+    }
+}
+
+#[component]
+pub fn SearchSphere(
+    search_state: SearchState
+) -> impl IntoView
+{
     let search_sphere_resource = Resource::new(
         move || (search_state.search_input_debounced.get(), search_state.show_nsfw.get()),
         move |(search_input, show_nsfw)| async move {
@@ -263,6 +253,7 @@ pub fn SearchSphere() -> impl IntoView
     );
     view! {
         <SearchForm
+            search_state
             show_spoiler_checkbox=false
             show_nsfw_checkbox=true
         />
@@ -275,8 +266,10 @@ pub fn SearchSphere() -> impl IntoView
 #[component]
 pub fn SearchPost() -> impl IntoView
 {
+    let search_state = expect_context::<SearchState>();
     view! {
         <SearchForm
+            search_state
             show_spoiler_checkbox=true
             show_nsfw_checkbox=true
         />
@@ -286,8 +279,10 @@ pub fn SearchPost() -> impl IntoView
 #[component]
 pub fn SearchComment() -> impl IntoView
 {
+    let search_state = expect_context::<SearchState>();
     view! {
         <SearchForm
+            search_state
             show_spoiler_checkbox=false
             show_nsfw_checkbox=false
         />
@@ -297,8 +292,10 @@ pub fn SearchComment() -> impl IntoView
 #[component]
 pub fn SearchUser() -> impl IntoView
 {
+    let search_state = expect_context::<SearchState>();
     view! {
         <SearchForm
+            search_state
             show_spoiler_checkbox=false
             show_nsfw_checkbox=true
         />
@@ -308,38 +305,28 @@ pub fn SearchUser() -> impl IntoView
 /// Form for the search dialog
 #[component]
 pub fn SearchForm(
+    search_state: SearchState,
     show_spoiler_checkbox: bool,
     show_nsfw_checkbox: bool,
 ) -> impl IntoView {
-    let search_state = expect_context::<SearchState>();
-    let input_ref = NodeRef::<html::Input>::new();
-    Effect::new(move || {
-        if let Some(input_ref) = input_ref.get() {
-            input_ref.focus().ok();
-        } else {
-            log::info!("Missing input ref");
-        }
-    });
-
     view! {
         <input
             type="text"
             placeholder="Search"
-            class="input input-bordered input-primary h-input_m"
+            class="input input-bordered input-primary"
             value=search_state.search_input
             autofocus
             on:input=move |ev| search_state.search_input.set(event_target_value(&ev))
-            node_ref=input_ref
         />
         { match show_spoiler_checkbox {
             true => Some(view! {
-                <LabeledSignalCheckbox label="Spoiler" value=search_state.show_spoiler/>
+                <LabeledSignalCheckbox label="Spoiler" value=search_state.show_spoiler class="pl-1"/>
             }),
             false => None,
         }}
          { match show_nsfw_checkbox {
             true => Some(view! {
-                <LabeledSignalCheckbox label="NSFW" value=search_state.show_nsfw/>
+                <LabeledSignalCheckbox label="NSFW" value=search_state.show_nsfw class="pl-1"/>
             }),
             false => None,
         }}

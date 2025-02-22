@@ -137,13 +137,12 @@ pub mod ssr {
     use crate::user::User;
 
     pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
-        let sphere = sqlx::query_as!(
-            Sphere,
-            "SELECT * FROM spheres WHERE sphere_name = $1",
-            sphere_name
+        let sphere = sqlx::query_as::<_, Sphere>(
+            "SELECT * FROM spheres WHERE sphere_name = $1"
         )
-        .fetch_one(db_pool)
-        .await?;
+            .bind(sphere_name)
+            .fetch_one(db_pool)
+            .await?;
 
         Ok(sphere)
     }
@@ -241,14 +240,13 @@ pub mod ssr {
             ));
         }
 
-        let sphere = sqlx::query_as!(
-            Sphere,
-            "INSERT INTO spheres (sphere_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4) RETURNING *",
-            name,
-            description,
-            is_nsfw,
-            user.user_id,
+        let sphere = sqlx::query_as::<_, Sphere>(
+            "INSERT INTO spheres (sphere_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4) RETURNING *"
         )
+            .bind(name)
+            .bind(description)
+            .bind(is_nsfw)
+            .bind(user.user_id)
             .fetch_one(db_pool)
             .await?;
 
@@ -264,12 +262,11 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Sphere, AppError> {
         user.check_permissions(sphere_name, PermissionLevel::Manage)?;
-        let sphere = sqlx::query_as!(
-            Sphere,
-            "UPDATE spheres SET description = $1, timestamp = CURRENT_TIMESTAMP WHERE sphere_name = $2 RETURNING *",
-            description,
-            sphere_name,
+        let sphere = sqlx::query_as::<_, Sphere>(
+            "UPDATE spheres SET description = $1, timestamp = CURRENT_TIMESTAMP WHERE sphere_name = $2 RETURNING *"
         )
+            .bind(description)
+            .bind(sphere_name)
             .fetch_one(db_pool)
             .await?;
 

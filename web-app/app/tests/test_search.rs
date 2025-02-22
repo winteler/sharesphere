@@ -80,7 +80,7 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
     let first_sphere_icon_url = Some("a");
     set_sphere_icon_url(expected_sphere_name_vec.first().unwrap(), first_sphere_icon_url, &user, &db_pool).await.expect("Sphere icon should be set.");
 
-    let sphere_header_vec = get_matching_sphere_header_vec("1", true, num_spheres as i64, &db_pool).await?;
+    let sphere_header_vec = get_matching_sphere_header_vec("1", num_spheres as i64, &db_pool).await?;
 
     let mut previous_sphere_name = None;
     for sphere_header in sphere_header_vec {
@@ -106,11 +106,10 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
         );
     }
 
-    let sphere_header_vec = get_matching_sphere_header_vec("", false, num_spheres as i64, &db_pool).await?;
+    let sphere_header_vec = get_matching_sphere_header_vec("", num_spheres as i64, &db_pool).await?;
 
     assert_eq!(sphere_header_vec.len(), num_spheres);
     assert_eq!(sphere_header_vec.first().unwrap().icon_url.as_deref(), first_sphere_icon_url);
-    assert!(sphere_header_vec.iter().all(|sphere_header| !sphere_header.is_nsfw));
 
     Ok(())
 }
@@ -128,19 +127,19 @@ async fn test_search_post() {
     let post_3 = create_simple_post(&sphere_1.sphere_name, None, "Et re-bonjour", "À la prochaine.", None, &user, &db_pool).await;
     let post_4 = create_simple_post(&sphere_2.sphere_name, None, "Guten morgen", "xml_body", Some("# Wie geht's?"), &user, &db_pool).await;
 
-    let no_match_post_vec = search_posts("no match", &db_pool).await.expect("No match search should run");
+    let no_match_post_vec = search_posts("no match", true, true, &db_pool).await.expect("No match search should run");
     assert!(no_match_post_vec.is_empty());
     
-    let apple_post_vec = search_posts("apple", &db_pool).await.expect("Apple search should run");
+    let apple_post_vec = search_posts("apple", true, true, &db_pool).await.expect("Apple search should run");
     assert_eq!(apple_post_vec.len(), 1);
     assert_eq!(apple_post_vec.first(), Some(&post_1));
 
-    let bonjour_post_vec = search_posts("bonjour", &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", true, true, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 2);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
 
-    let geht_post_vec = search_posts("geht", &db_pool).await.expect("Geht search should run");
+    let geht_post_vec = search_posts("geht", true, true, &db_pool).await.expect("Geht search should run");
     assert_eq!(geht_post_vec.len(), 1);
     assert_eq!(geht_post_vec.first(), Some(&post_4));
 }

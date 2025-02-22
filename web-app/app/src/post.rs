@@ -301,14 +301,13 @@ pub mod ssr {
         post_id: i64,
         db_pool: &PgPool,
     ) -> Result<Sphere, AppError> {
-        let sphere = sqlx::query_as!(
-            Sphere,
+        let sphere = sqlx::query_as::<_, Sphere>(
             "SELECT s.*
             FROM spheres s
             JOIN posts p on p.sphere_id = s.sphere_id
-            WHERE p.post_id = $1",
-            post_id
+            WHERE p.post_id = $1"
         )
+            .bind(post_id)
             .fetch_one(db_pool)
             .await?;
 
@@ -1350,7 +1349,7 @@ pub fn CreatePost() -> impl IntoView {
 
     let matching_spheres_resource = Resource::new(
         move || sphere_name_debounced.get(),
-        move |sphere_prefix| get_matching_sphere_header_vec(sphere_prefix, true),
+        move |sphere_prefix| get_matching_sphere_header_vec(sphere_prefix),
     );
 
     let category_vec_resource = Resource::new(

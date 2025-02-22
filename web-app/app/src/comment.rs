@@ -120,7 +120,7 @@ pub mod ssr {
 
     use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
     use crate::errors::AppError;
-    use crate::post::ssr::get_post_sphere;
+    use crate::post::ssr::{get_post_sphere};
     use crate::ranking::VoteValue;
     use crate::role::PermissionLevel;
     use crate::sphere::Sphere;
@@ -191,15 +191,14 @@ pub mod ssr {
         comment_id: i64,
         db_pool: &PgPool,
     ) -> Result<Sphere, AppError> {
-        let sphere = sqlx::query_as!(
-            Sphere,
+        let sphere = sqlx::query_as::<_, Sphere>(
             "SELECT s.*
             FROM spheres s
             JOIN posts p on p.sphere_id = s.sphere_id
             JOIN comments c on c.post_id = p.post_id
-            WHERE c.comment_id = $1",
-            comment_id
+            WHERE c.comment_id = $1"
         )
+            .bind(comment_id)
             .fetch_one(db_pool)
             .await?;
 

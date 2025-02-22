@@ -110,13 +110,12 @@ pub mod ssr {
     }
 
     pub async fn get_satellite_sphere(satellite_id: i64, db_pool: &PgPool) -> Result<Sphere, AppError> {
-        let sphere = sqlx::query_as!(
-            Sphere,
+        let sphere = sqlx::query_as::<_, Sphere>(
             "SELECT s.* FROM spheres s
             JOIN satellites sa ON sa.sphere_id = s.sphere_id
-            WHERE sa.satellite_id = $1",
-            satellite_id
+            WHERE sa.satellite_id = $1"
         )
+            .bind(satellite_id)
             .fetch_one(db_pool)
             .await?;
 

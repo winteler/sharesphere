@@ -77,7 +77,6 @@ pub mod ssr {
 
     pub async fn get_matching_sphere_header_vec(
         sphere_prefix: &str,
-        show_nsfw: bool,
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
@@ -85,12 +84,9 @@ pub mod ssr {
             SphereHeader,
             "SELECT sphere_name, icon_url, is_nsfw
             FROM spheres
-            WHERE
-                sphere_name LIKE $1 AND
-                ($2 OR NOT is_nsfw)
-            ORDER BY sphere_name LIMIT $3",
+            WHERE sphere_name LIKE $1
+            ORDER BY sphere_name LIMIT $2",
             format!("{sphere_prefix}%"),
-            show_nsfw,
             limit,
         )
             .fetch_all(db_pool)
@@ -99,21 +95,51 @@ pub mod ssr {
         Ok(sphere_header_vec)
     }
 
+    pub async fn search_spheres(
+        search_query: &str,
+        show_nsfw: bool,
+        db_pool: &PgPool,
+    ) -> Result<Vec<SphereHeader>, AppError> {
+        let sphere_vec = sqlx::query_as::<_, SphereHeader>(
+            "SELECT s.sphere_name, s.icon_url, s.is_nsfw FROM (
+                SELECT *, ts_rank(sphere_document, plainto_tsquery('simple', $1)) AS rank
+                FROM spheres
+                WHERE
+                    sphere_document @@ plainto_tsquery('simple', $1) AND
+                    ($2 OR NOT is_nsfw)
+                ORDER BY rank DESC, num_members DESC
+            ) s"
+        )
+            .bind(search_query)
+            .bind(show_nsfw)
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(sphere_vec)
+    }
+
     pub async fn search_posts(
         search_query: &str,
+        show_spoilers: bool,
+        show_nsfw: bool,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url FROM (
-                SELECT *, ts_rank(document, plainto_tsquery('simple', $1)) AS rank
+                SELECT *, ts_rank(post_document, plainto_tsquery('simple', $1)) AS rank
                 FROM posts
-                WHERE document @@ plainto_tsquery('simple', $1)
-                ORDER BY rank DESC
+                WHERE
+                    post_document @@ plainto_tsquery('simple', $1) AND
+                    ($2 OR NOT is_spoiler) AND
+                    ($3 OR NOT is_nsfw)
+                ORDER BY rank DESC, score DESC
             ) p
             JOIN spheres s on s.sphere_id = p.sphere_id
             LEFT JOIN sphere_categories c on c.category_id = p.category_id"
         )
             .bind(search_query)
+            .bind(show_spoilers)
+            .bind(show_nsfw)
             .fetch_all(db_pool)
             .await?;
 
@@ -128,10 +154,10 @@ pub mod ssr {
     ) -> Result<Vec<CommentWithContext>, AppError> {
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
             "SELECT c.*, s.sphere_name, s.icon_url, s.is_nsfw, p.satellite_id, p.title as post_title FROM (
-                SELECT *, ts_rank(document, plainto_tsquery('simple', $1)) AS rank
+                SELECT *, ts_rank(comment_document, plainto_tsquery('simple', $1)) AS rank
                 FROM comments
-                WHERE document @@ plainto_tsquery('simple', $1)
-                ORDER BY rank DESC
+                WHERE comment_document @@ plainto_tsquery('simple', $1)
+                ORDER BY rank DESC, score DESC
             ) c
             JOIN posts p ON p.post_id = c.post_id
             JOIN spheres s ON s.sphere_id = p.sphere_id"
@@ -169,12 +195,10 @@ pub mod ssr {
 #[server]
 pub async fn get_matching_sphere_header_vec(
     sphere_prefix: String,
-    show_nsfw: bool,
 ) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let sphere_header_vec = ssr::get_matching_sphere_header_vec(
         &sphere_prefix,
-        show_nsfw,
         SPHERE_FETCH_LIMIT,
         &db_pool
     ).await?;
@@ -182,11 +206,23 @@ pub async fn get_matching_sphere_header_vec(
 }
 
 #[server]
+pub async fn search_spheres(
+    search_query: String,
+    show_nsfw: bool,
+) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, &db_pool).await?;
+    Ok(sphere_header_vec)
+}
+
+#[server]
 pub async fn search_posts(
     search_query: String,
+    show_spoilers: bool,
+    show_nsfw: bool,
 ) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let post_vec = ssr::search_posts(&search_query, &db_pool).await?;
+    let post_vec = ssr::search_posts(&search_query, show_spoilers, show_nsfw, &db_pool).await?;
     Ok(post_vec)
 }
 
@@ -257,7 +293,7 @@ pub fn SearchSphere(
         move |(search_input, show_nsfw)| async move {
             match search_input.is_empty() {
                true => Ok(Vec::new()),
-               false => get_matching_sphere_header_vec(search_input, show_nsfw).await,
+               false => search_spheres(search_input, show_nsfw).await,
             }
         }
     );

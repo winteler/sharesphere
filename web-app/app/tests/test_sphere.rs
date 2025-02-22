@@ -21,17 +21,16 @@ async fn set_sphere_num_members(
     num_members: i32,
     db_pool: &PgPool,
 ) -> Result<Sphere, AppError> {
-    let sphere = sqlx::query_as!(
-        Sphere,
+    let sphere = sqlx::query_as::<_, Sphere>(
         "UPDATE spheres
         SET num_members = $1
         WHERE sphere_id = $2
-        RETURNING *",
-        num_members,
-        sphere_id
+        RETURNING *"
     )
-    .fetch_one(db_pool)
-    .await?;
+        .bind(num_members)
+        .bind(sphere_id)
+        .fetch_one(db_pool)
+        .await?;
 
     Ok(sphere)
 }

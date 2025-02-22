@@ -3,6 +3,7 @@ CREATE TABLE users (
     oidc_id TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
+    is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     admin_role TEXT NOT NULL DEFAULT 'None' CHECK (admin_role IN ('None', 'Moderator', 'Admin')),
     days_hide_spoiler INT CHECK (days_hide_spoiler > 0),
     show_nsfw BOOLEAN NOT NULL DEFAULT TRUE,
@@ -18,6 +19,9 @@ CREATE TABLE spheres (
             REPLACE(LOWER(sphere_name), '-', '_')
         ) STORED,
     description TEXT NOT NULL,
+    sphere_document TSVECTOR GENERATED ALWAYS AS (
+        to_tsvector('simple', sphere_name || ' ' || description)
+    ) STORED,
     is_nsfw BOOLEAN NOT NULL,
     is_banned BOOLEAN NOT NULL DEFAULT FALSE,
     icon_url TEXT,
@@ -121,7 +125,7 @@ CREATE TABLE posts (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     markdown_body TEXT,
-    document TSVECTOR GENERATED ALWAYS AS (
+    post_document TSVECTOR GENERATED ALWAYS AS (
         to_tsvector('simple', title || ' ' || coalesce(markdown_body, body))
     ) STORED,
     link_type SMALLINT NOT NULL CHECK (link_type IN (-1, 0, 1, 2, 3)),
@@ -161,13 +165,13 @@ CREATE TABLE posts (
     CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
 );
 
-CREATE INDEX post_document_idx ON posts USING GIN (document);
+CREATE INDEX post_document_idx ON posts USING GIN (post_document);
 
 CREATE TABLE comments (
     comment_id BIGSERIAL PRIMARY KEY,
     body TEXT NOT NULL,
     markdown_body TEXT,
-    document TSVECTOR GENERATED ALWAYS AS (
+    comment_document TSVECTOR GENERATED ALWAYS AS (
         to_tsvector('simple', coalesce(markdown_body, body))
     ) STORED,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
@@ -188,7 +192,7 @@ CREATE TABLE comments (
     edit_timestamp TIMESTAMPTZ
 );
 
-CREATE INDEX comment_document_idx ON comments USING GIN (document);
+CREATE INDEX comment_document_idx ON comments USING GIN (comment_document);
 
 CREATE TABLE votes (
     vote_id BIGSERIAL PRIMARY KEY,

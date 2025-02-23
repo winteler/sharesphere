@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 use app::errors::AppError;
-use app::search::ssr::{get_matching_sphere_header_vec, get_matching_username_set, search_comments, search_posts};
+use app::search::ssr::{get_matching_sphere_header_vec, get_matching_username_set, search_comments, search_posts, search_spheres};
 use app::comment::CommentWithContext;
 use app::comment::ssr::create_comment;
 use app::sphere::SphereHeader;
@@ -115,7 +115,60 @@ async fn test_get_matching_sphere_header_vec() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_search_post() {
+async fn test_search_spheres() {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+
+    let sphere_1 = create_sphere(
+        "music",
+        "The place to share your favorite music!",
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Sphere 1 should be created.");
+    let sphere_2 = create_sphere(
+        "classical_music",
+        "The place to share classical music!",
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Sphere 2 should be created.");
+    let sphere_3 = create_sphere(
+        "classicalMusic",
+        "The real place to share classical music!",
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Sphere 3 should be created.");
+    let sphere_4 = create_sphere(
+        "gastronomie",
+        "Pour partager les meilleures saveurs.",
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Sphere 4 should be created.");
+
+    let sphere_1_header = SphereHeader::from(&sphere_1);
+    let sphere_2_header = SphereHeader::from(&sphere_2);
+    let sphere_3_header = SphereHeader::from(&sphere_3);
+    let sphere_4_header = SphereHeader::from(&sphere_4);
+
+    let no_match_sphere_vec = search_spheres("no match", true, 10, 0, &db_pool).await.expect("No match search should run");
+    assert!(no_match_sphere_vec.is_empty());
+
+    let music_sphere_vec = search_spheres("music", true, 10, 0, &db_pool).await.expect("Music search should run");
+    assert_eq!(music_sphere_vec.len(), 3);
+    assert_eq!(music_sphere_vec.first(), Some(&sphere_1_header));
+    assert_eq!(music_sphere_vec.get(1), Some(&sphere_2_header));
+    assert_eq!(music_sphere_vec.get(2), Some(&sphere_3_header));
+
+    let saveurs_sphere_vec = search_spheres("meilleures saveurs", true, 10, 0, &db_pool).await.expect("Saveurs search should run");
+    assert_eq!(saveurs_sphere_vec.len(), 1);
+    assert_eq!(saveurs_sphere_vec.first(), Some(&sphere_4_header));
+}
+
+#[tokio::test]
+async fn test_search_posts() {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 
@@ -129,7 +182,7 @@ async fn test_search_post() {
 
     let no_match_post_vec = search_posts("no match", true, true, &db_pool).await.expect("No match search should run");
     assert!(no_match_post_vec.is_empty());
-    
+
     let apple_post_vec = search_posts("apple", true, true, &db_pool).await.expect("Apple search should run");
     assert_eq!(apple_post_vec.len(), 1);
     assert_eq!(apple_post_vec.first(), Some(&post_1));
@@ -145,7 +198,7 @@ async fn test_search_post() {
 }
 
 #[tokio::test]
-async fn test_search_comment() {
+async fn test_search_comments() {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
 

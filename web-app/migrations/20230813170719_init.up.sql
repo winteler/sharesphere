@@ -1,3 +1,16 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE OR REPLACE FUNCTION normalize_sphere_name(text) RETURNS text
+AS 'select LOWER(
+       REGEXP_REPLACE(
+           REGEXP_REPLACE($1, ''([a-z])([A-Z])'', ''\1, \2'', ''g''),
+           ''[-_]'', '' '', ''g''
+       )
+   );'
+    LANGUAGE SQL
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;
+
 CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
     oidc_id TEXT UNIQUE NOT NULL,
@@ -16,11 +29,11 @@ CREATE TABLE spheres (
     sphere_id BIGSERIAL PRIMARY KEY,
     sphere_name TEXT UNIQUE NOT NULL,
     normalized_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
-            REPLACE(LOWER(sphere_name), '-', '_')
-        ) STORED,
+        normalize_sphere_name(sphere_name)
+    ) STORED,
     description TEXT NOT NULL,
-    sphere_document TSVECTOR GENERATED ALWAYS AS (
-        to_tsvector('simple', sphere_name || ' ' || description)
+    sphere_document tsvector GENERATED ALWAYS AS (
+        to_tsvector('simple', description)
     ) STORED,
     is_nsfw BOOLEAN NOT NULL,
     is_banned BOOLEAN NOT NULL DEFAULT FALSE,
@@ -32,6 +45,9 @@ CREATE TABLE spheres (
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (sphere_id, sphere_name)
 );
+
+CREATE INDEX sphere_document_idx ON spheres USING GIN (sphere_document);
+CREATE INDEX sphere_trigram_idx ON spheres USING GIN (normalized_sphere_name gin_trgm_ops);
 
 CREATE TABLE satellites (
     satellite_id BIGSERIAL PRIMARY KEY,
@@ -125,8 +141,9 @@ CREATE TABLE posts (
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     markdown_body TEXT,
-    post_document TSVECTOR GENERATED ALWAYS AS (
-        to_tsvector('simple', title || ' ' || coalesce(markdown_body, body))
+    post_document tsvector GENERATED ALWAYS AS (
+        setweight(to_tsvector('simple', sphere_name), 'A') ||
+        setweight(to_tsvector('simple', coalesce(markdown_body, body)), 'B')
     ) STORED,
     link_type SMALLINT NOT NULL CHECK (link_type IN (-1, 0, 1, 2, 3)),
     link_url TEXT,

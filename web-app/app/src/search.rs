@@ -98,20 +98,50 @@ pub mod ssr {
     pub async fn search_spheres(
         search_query: &str,
         show_nsfw: bool,
+        limit: i64,
+        offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_vec = sqlx::query_as::<_, SphereHeader>(
-            "SELECT s.sphere_name, s.icon_url, s.is_nsfw FROM (
-                SELECT *, ts_rank(sphere_document, plainto_tsquery('simple', $1)) AS rank
-                FROM spheres
-                WHERE
-                    sphere_document @@ plainto_tsquery('simple', $1) AND
-                    ($2 OR NOT is_nsfw)
-                ORDER BY rank DESC, num_members DESC
-            ) s"
+            "WITH title_search AS (
+                    SELECT *, 0.5 as rank
+                    FROM spheres
+                    WHERE
+                        normalized_sphere_name LIKE normalize_sphere_name($1 || '%') AND
+                        ($2 OR NOT is_nsfw)
+                    UNION
+                    SELECT *, word_similarity(normalized_sphere_name, normalize_sphere_name($1)) as rank
+                    FROM spheres
+                    WHERE
+                        word_similarity(normalized_sphere_name, normalize_sphere_name($1)) > 0.3 AND
+                        ($2 OR NOT is_nsfw)
+                ),
+                description_search AS (
+                    SELECT *, ts_rank(sphere_document, plainto_tsquery('simple', $1)) as rank
+                    FROM spheres
+                    WHERE
+                        sphere_document @@ plainto_tsquery('simple', $1) AND
+                        ($2 OR NOT is_nsfw)
+                )
+                SELECT ts.sphere_name, ts.icon_url, ts.is_nsfw
+                FROM (
+                    SELECT * FROM title_search
+                    ORDER BY rank DESC
+                ) ts
+                UNION
+                SELECT d.sphere_name, d.icon_url, d.is_nsfw FROM (
+                    SELECT *
+                    FROM description_search
+                    WHERE rank > 0.01
+                    ORDER BY rank DESC, num_members DESC
+                ) d
+                LIMIT $3
+                OFFSET $4"
         )
             .bind(search_query)
             .bind(show_nsfw)
+            .bind(limit)
+            .bind(offset)
             .fetch_all(db_pool)
             .await?;
 
@@ -211,7 +241,7 @@ pub async fn search_spheres(
     show_nsfw: bool,
 ) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, &db_pool).await?;
+    let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, SPHERE_FETCH_LIMIT, 0, &db_pool).await?;
     Ok(sphere_header_vec)
 }
 

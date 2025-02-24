@@ -103,38 +103,39 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_vec = sqlx::query_as::<_, SphereHeader>(
-            "WITH title_search AS (
+            "WITH search AS (
                     SELECT *, 0.5 as rank
                     FROM spheres
                     WHERE
                         normalized_sphere_name LIKE normalize_sphere_name($1 || '%') AND
                         ($2 OR NOT is_nsfw)
-                    UNION
-                    SELECT *, word_similarity(normalized_sphere_name, normalize_sphere_name($1)) as rank
-                    FROM spheres
-                    WHERE
-                        word_similarity(normalized_sphere_name, normalize_sphere_name($1)) > 0.3 AND
-                        ($2 OR NOT is_nsfw)
-                ),
-                description_search AS (
-                    SELECT *, ts_rank(sphere_document, plainto_tsquery('simple', $1)) as rank
-                    FROM spheres
-                    WHERE
-                        sphere_document @@ plainto_tsquery('simple', $1) AND
-                        ($2 OR NOT is_nsfw)
+                    UNION ALL
+                    SELECT ws.*
+                    FROM (
+                        SELECT *, word_similarity(normalized_sphere_name, normalize_sphere_name($1)) as rank
+                        FROM spheres
+                        WHERE $2 OR NOT is_nsfw
+                    ) ws
+                    WHERE rank > 0.3
+                    UNION ALL
+                    SELECT ts.*
+                    FROM (
+                        SELECT *, ts_rank(sphere_document, plainto_tsquery('simple', $1)) as rank
+                        FROM spheres
+                        WHERE
+                            sphere_document @@ plainto_tsquery('simple', $1) AND
+                            ($2 OR NOT is_nsfw)
+                    ) ts
+                    WHERE rank > 0.01
                 )
                 SELECT ts.sphere_name, ts.icon_url, ts.is_nsfw
                 FROM (
-                    SELECT * FROM title_search
-                    ORDER BY rank DESC
-                ) ts
-                UNION
-                SELECT d.sphere_name, d.icon_url, d.is_nsfw FROM (
-                    SELECT *
-                    FROM description_search
-                    WHERE rank > 0.01
+                    SELECT * FROM (
+                        SELECT DISTINCT ON (sphere_name) * FROM search
+                        ORDER BY sphere_name, rank DESC, num_members DESC
+                    ) ts_distinct
                     ORDER BY rank DESC, num_members DESC
-                ) d
+                ) ts
                 LIMIT $3
                 OFFSET $4"
         )

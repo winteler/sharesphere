@@ -1,5 +1,4 @@
 use rand::Rng;
-use sqlx::PgPool;
 
 use app::app::ssr::create_db_pool;
 use app::errors::AppError;
@@ -7,7 +6,7 @@ use app::errors::AppError::InsufficientPrivileges;
 use app::role::PermissionLevel;
 use app::sphere;
 use app::sphere::ssr::{subscribe, unsubscribe};
-use app::sphere::{normalize_sphere_name, Sphere, SphereHeader};
+use app::sphere::{SphereHeader};
 use app::user::User;
 
 pub use crate::common::*;
@@ -15,25 +14,6 @@ pub use crate::data_factory::*;
 
 mod common;
 mod data_factory;
-
-async fn set_sphere_num_members(
-    sphere_id: i64,
-    num_members: i32,
-    db_pool: &PgPool,
-) -> Result<Sphere, AppError> {
-    let sphere = sqlx::query_as::<_, Sphere>(
-        "UPDATE spheres
-        SET num_members = $1
-        WHERE sphere_id = $2
-        RETURNING *"
-    )
-        .bind(num_members)
-        .bind(sphere_id)
-        .fetch_one(db_pool)
-        .await?;
-
-    Ok(sphere)
-}
 
 #[tokio::test]
 async fn test_is_sphere_available() -> Result<(), AppError> {
@@ -262,7 +242,7 @@ async fn test_create_sphere() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
-    let sphere_name = "A1-";
+    let sphere_name = "camelCase_snake_case123-";
     let sphere_description = "a";
     let sphere = sphere::ssr::create_sphere(
         sphere_name,
@@ -273,7 +253,7 @@ async fn test_create_sphere() -> Result<(), AppError> {
     ).await.expect("Should be possible to create sphere.");
 
     assert_eq!(sphere.sphere_name, sphere_name);
-    assert_eq!(sphere.normalized_sphere_name, normalize_sphere_name(sphere_name));
+    assert_eq!(sphere.normalized_sphere_name, "camel|case snake case123 ");
     assert_eq!(sphere.creator_id, test_user.user_id);
     assert_eq!(sphere.description, sphere_description);
     assert_eq!(sphere.is_nsfw, false);
@@ -291,7 +271,7 @@ async fn test_create_sphere() -> Result<(), AppError> {
             .is_err()
     );
     assert!(
-        sphere::ssr::create_sphere("a1_", "a", false, &test_user, &db_pool)
+        sphere::ssr::create_sphere("camelCase-snake-case123-", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );

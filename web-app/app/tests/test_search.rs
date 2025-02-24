@@ -8,11 +8,10 @@ use app::sphere::ssr::create_sphere;
 use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::User;
 use crate::common::{create_test_user, create_user, get_db_pool};
-use crate::data_factory::create_simple_post;
+use crate::data_factory::{create_simple_post, set_sphere_num_members};
 
 mod common;
 mod data_factory;
-
 
 #[tokio::test]
 async fn test_get_matching_username_set() -> Result<(), AppError> {
@@ -136,7 +135,7 @@ async fn test_search_spheres() {
     let sphere_3 = create_sphere(
         "classicalMusic",
         "The real place to share classical music!",
-        false,
+        true,
         &user,
         &db_pool
     ).await.expect("Sphere 3 should be created.");
@@ -147,6 +146,8 @@ async fn test_search_spheres() {
         &user,
         &db_pool
     ).await.expect("Sphere 4 should be created.");
+
+    let sphere_2 = set_sphere_num_members(sphere_2.sphere_id, 1, &db_pool).await.expect("Sphere 2 num_members should be set.");
 
     let sphere_1_header = SphereHeader::from(&sphere_1);
     let sphere_2_header = SphereHeader::from(&sphere_2);
@@ -162,7 +163,17 @@ async fn test_search_spheres() {
     assert_eq!(music_sphere_vec.get(1), Some(&sphere_2_header));
     assert_eq!(music_sphere_vec.get(2), Some(&sphere_3_header));
 
-    let saveurs_sphere_vec = search_spheres("meilleures saveurs", true, 10, 0, &db_pool).await.expect("Saveurs search should run");
+    let music_sphere_vec = search_spheres("music", false, 10, 0, &db_pool).await.expect("Music search should run");
+    assert_eq!(music_sphere_vec.len(), 2);
+    assert_eq!(music_sphere_vec.first(), Some(&sphere_1_header));
+    assert_eq!(music_sphere_vec.get(1), Some(&sphere_2_header));
+
+    let music_sphere_vec = search_spheres("music", true, 10, 1, &db_pool).await.expect("Music search should run");
+    assert_eq!(music_sphere_vec.len(), 2);
+    assert_eq!(music_sphere_vec.first(), Some(&sphere_2_header));
+    assert_eq!(music_sphere_vec.get(1), Some(&sphere_3_header));
+
+    let saveurs_sphere_vec = search_spheres("saveurs", true, 10, 0, &db_pool).await.expect("Saveurs search should run");
     assert_eq!(saveurs_sphere_vec.len(), 1);
     assert_eq!(saveurs_sphere_vec.first(), Some(&sphere_4_header));
 }

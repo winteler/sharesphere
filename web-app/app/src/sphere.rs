@@ -133,7 +133,7 @@ pub mod ssr {
     use crate::errors::AppError::InternalServerError;
     use crate::role::ssr::set_user_sphere_role;
     use crate::role::PermissionLevel;
-    use crate::sphere::{is_valid_sphere_name, normalize_sphere_name, Sphere, SphereHeader, SphereWithUserInfo};
+    use crate::sphere::{is_valid_sphere_name, Sphere, SphereHeader, SphereWithUserInfo};
     use crate::user::User;
 
     pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
@@ -170,8 +170,8 @@ pub mod ssr {
 
     pub async fn is_sphere_available(sphere_name: &str, db_pool: &PgPool) -> Result<bool, AppError> {
         let sphere_exist = sqlx::query!(
-            "SELECT sphere_id FROM spheres WHERE normalized_sphere_name = $1",
-            normalize_sphere_name(sphere_name),
+            "SELECT sphere_id FROM spheres WHERE normalized_sphere_name = normalize_sphere_name($1)",
+            sphere_name,
         )
         .fetch_one(db_pool)
         .await;
@@ -917,18 +917,6 @@ pub fn CreateSphere() -> impl IntoView {
             <ActionError action=state.create_sphere_action.into()/>
         </div>
     }
-}
-
-/// # Normalizes a sphere's name by making it lowercase and replacing '-' by '_'.
-/// # Normalization is used to ensure sphere names are sufficiently different.
-///
-/// ```
-/// use app::sphere::normalize_sphere_name;
-///
-/// assert_eq!(normalize_sphere_name("Test 123-"), "test 123_");
-/// ```
-pub fn normalize_sphere_name(name: &str) -> String {
-    name.to_lowercase().replace("-", "_")
 }
 
 /// # Returns whether a sphere name is valid. Valid characters are ascii alphanumeric, '-' and '_'

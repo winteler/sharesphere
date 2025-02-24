@@ -359,6 +359,22 @@ pub async fn create_post_with_comment_tree(
     (post, comment_tree)
 }
 
+pub async fn set_sphere_num_members(
+    sphere_id: i64,
+    num_members: i32,
+    db_pool: &PgPool,
+) -> Result<Sphere, AppError> {
+    let sphere = sqlx::query_as::<_, Sphere>(
+        "UPDATE spheres SET num_members = $1, timestamp = CURRENT_TIMESTAMP WHERE sphere_id = $2 RETURNING *",
+    )
+        .bind(num_members)
+        .bind(sphere_id)
+        .fetch_one(db_pool)
+        .await?;
+
+    Ok(sphere)
+}
+
 pub async fn set_post_score(
     post_id: i64,
     score: i32,

@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE OR REPLACE FUNCTION normalize_sphere_name(text) RETURNS text
 AS 'select LOWER(
        REGEXP_REPLACE(
-           REGEXP_REPLACE($1, ''([a-z])([A-Z])'', ''\1, \2'', ''g''),
+           REGEXP_REPLACE($1, ''([a-z])([A-Z])'', ''\1|\2'', ''g''),
            ''[-_]'', '' '', ''g''
        )
    );'
@@ -142,7 +142,7 @@ CREATE TABLE posts (
     body TEXT NOT NULL,
     markdown_body TEXT,
     post_document tsvector GENERATED ALWAYS AS (
-        setweight(to_tsvector('simple', sphere_name), 'A') ||
+        setweight(to_tsvector('simple', title), 'A') ||
         setweight(to_tsvector('simple', coalesce(markdown_body, body)), 'B')
     ) STORED,
     link_type SMALLINT NOT NULL CHECK (link_type IN (-1, 0, 1, 2, 3)),

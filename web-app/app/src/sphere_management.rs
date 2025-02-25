@@ -515,7 +515,7 @@ pub fn PermissionLevelForm(
             if username.is_empty() {
                 Ok(BTreeSet::<String>::default())
             } else {
-                get_matching_username_set(username).await
+                get_matching_username_set(username, false).await
             }
         },
     );

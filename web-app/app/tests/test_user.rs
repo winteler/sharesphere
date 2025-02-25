@@ -1,7 +1,7 @@
 use crate::common::{create_test_user, get_db_pool};
 use app::errors::AppError;
 use app::role::AdminRole;
-use app::user::ssr::{create_or_update_user, set_user_preferences};
+use app::user::ssr::{create_or_update_user, set_user_settings};
 use app::user::User;
 
 mod common;
@@ -36,30 +36,34 @@ async fn test_create_or_update_user() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_set_user_preferences() {
+async fn test_set_user_settings() {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
     
-    set_user_preferences(true, None, &user, &db_pool).await.expect("Should set user preferences");
+    set_user_settings(true, true, None, &user, &db_pool).await.expect("Should set user settings");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.is_nsfw, true);
     assert_eq!(user.show_nsfw, true);
     assert_eq!(user.days_hide_spoiler, None);
 
-    set_user_preferences(false, Some(1), &user, &db_pool).await.expect("Should set user preferences");
+    set_user_settings(true, false, Some(1), &user, &db_pool).await.expect("Should set user settings");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.is_nsfw, true);
     assert_eq!(user.show_nsfw, false);
     assert_eq!(user.days_hide_spoiler, Some(1));
 
-    set_user_preferences(true, Some(10), &user, &db_pool).await.expect("Should set user preferences");
+    set_user_settings(false, true, Some(10), &user, &db_pool).await.expect("Should set user settings");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.is_nsfw, false);
     assert_eq!(user.show_nsfw, true);
     assert_eq!(user.days_hide_spoiler, Some(10));
 
-    set_user_preferences(false, None, &user, &db_pool).await.expect("Should set user preferences");
+    set_user_settings(false, false, None, &user, &db_pool).await.expect("Should set user preferences");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(user.is_nsfw, false);
     assert_eq!(user.show_nsfw, false);
     assert_eq!(user.days_hide_spoiler, None);
 
-    assert!(set_user_preferences(false, Some(0), &user, &db_pool).await.is_err());
-    assert!(set_user_preferences(true, Some(-1), &user, &db_pool).await.is_err());
+    assert!(set_user_settings(false, false, Some(0), &user, &db_pool).await.is_err());
+    assert!(set_user_settings(false, true, Some(-1), &user, &db_pool).await.is_err());
 }

@@ -3,9 +3,13 @@ use app::errors::AppError;
 use app::search::ssr::{get_matching_sphere_header_vec, get_matching_username_set, search_comments, search_posts, search_spheres};
 use app::comment::CommentWithContext;
 use app::comment::ssr::create_comment;
+use app::embed::Link;
+use app::post::PostWithSphereInfo;
+use app::post::ssr::create_post;
 use app::sphere::SphereHeader;
 use app::sphere::ssr::create_sphere;
 use app::sphere_management::ssr::set_sphere_icon_url;
+use app::user::ssr::set_user_settings;
 use app::user::User;
 use crate::common::{create_test_user, create_user, get_db_pool};
 use crate::data_factory::{create_simple_post, set_sphere_num_members};
@@ -28,7 +32,7 @@ async fn test_get_matching_username_set() -> Result<(), AppError> {
         );
     }
 
-    let username_set = get_matching_username_set("1", num_users as i64, &db_pool).await?;
+    let username_set = get_matching_username_set("1", false, num_users as i64, &db_pool).await?;
 
     let mut previous_username = None;
     for username in username_set {
@@ -48,9 +52,18 @@ async fn test_get_matching_username_set() -> Result<(), AppError> {
         );
     }
 
-    let username_set = get_matching_username_set("", num_users as i64, &db_pool).await?;
+    let username_set = get_matching_username_set("", false, num_users as i64, &db_pool).await?;
 
     assert_eq!(username_set.len(), num_users);
+
+    let nsfw_user = create_user("nsfw", &db_pool).await;
+    set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
+
+    let username_set = get_matching_username_set("nsfw", true, num_users as i64, &db_pool).await?;
+    assert!(username_set.is_empty());
+    let username_set = get_matching_username_set("nsfw", false, num_users as i64, &db_pool).await?;
+    assert_eq!(username_set.len(), 1);
+    assert_eq!(username_set.first(), Some(&nsfw_user.username));
 
     Ok(())
 }
@@ -189,7 +202,42 @@ async fn test_search_posts() {
     let post_1 = create_simple_post(&sphere_1.sphere_name, None, "One apple a day", "keeps the doctor away.", None, &user, &db_pool).await;
     let post_2 = create_simple_post(&sphere_1.sphere_name, None, "Bonjour", "Adieu.", None, &user, &db_pool).await;
     let post_3 = create_simple_post(&sphere_1.sphere_name, None, "Et re-bonjour", "À la prochaine.", None, &user, &db_pool).await;
-    let post_4 = create_simple_post(&sphere_2.sphere_name, None, "Guten morgen", "xml_body", Some("# Wie geht's?"), &user, &db_pool).await;
+    let post_4 = PostWithSphereInfo::from_post(
+        create_post(
+            &sphere_2.sphere_name,
+            None,
+            "Salutations",
+            "ça veut dire bonjour.",
+            None,
+            Link::default(),
+            true,
+            false,
+            false,
+            None,
+            &user,
+            &db_pool
+        ).await.expect("Sphere 4 should be created."),
+        None,
+        None,
+    );
+    let post_5 = PostWithSphereInfo::from_post(
+        create_post(
+            &sphere_2.sphere_name, None,
+            "Qu'entendez-vous par là?",
+            "Me souhaitez vous le bonjour ou constatez vous que c’est une bonne journée, que je le veuille ou non, ou encore que c’est une journée où il faut être bon ?",
+            None,
+            Link::default(),
+            false,
+            true,
+            false,
+            None,
+            &user,
+            &db_pool
+        ).await.expect("Sphere 5 should be created."),
+        None,
+        None,
+    );
+    let post_6 = create_simple_post(&sphere_2.sphere_name, None, "Guten morgen", "xml_body", Some("# Wie geht's?"), &user, &db_pool).await;
 
     let no_match_post_vec = search_posts("no match", true, true, &db_pool).await.expect("No match search should run");
     assert!(no_match_post_vec.is_empty());
@@ -199,13 +247,32 @@ async fn test_search_posts() {
     assert_eq!(apple_post_vec.first(), Some(&post_1));
 
     let bonjour_post_vec = search_posts("bonjour", true, true, &db_pool).await.expect("Bonjour search should run");
+    assert_eq!(bonjour_post_vec.len(), 4);
+    assert_eq!(bonjour_post_vec.first(), Some(&post_2));
+    assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
+    assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
+    assert_eq!(bonjour_post_vec.get(3), Some(&post_5));
+
+    let bonjour_post_vec = search_posts("bonjour", false, true, &db_pool).await.expect("Bonjour search should run");
+    assert_eq!(bonjour_post_vec.len(), 3);
+    assert_eq!(bonjour_post_vec.first(), Some(&post_2));
+    assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
+    assert_eq!(bonjour_post_vec.get(2), Some(&post_5));
+
+    let bonjour_post_vec = search_posts("bonjour", true, false, &db_pool).await.expect("Bonjour search should run");
+    assert_eq!(bonjour_post_vec.len(), 3);
+    assert_eq!(bonjour_post_vec.first(), Some(&post_2));
+    assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
+    assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
+
+    let bonjour_post_vec = search_posts("bonjour", false, false, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 2);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
 
     let geht_post_vec = search_posts("geht", true, true, &db_pool).await.expect("Geht search should run");
     assert_eq!(geht_post_vec.len(), 1);
-    assert_eq!(geht_post_vec.first(), Some(&post_4));
+    assert_eq!(geht_post_vec.first(), Some(&post_6));
 }
 
 #[tokio::test]

@@ -202,12 +202,19 @@ pub mod ssr {
 
     pub async fn get_matching_username_set(
         username_prefix: &str,
+        filter_nsfw: bool,
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<BTreeSet<String>, AppError> {
         let username_vec = sqlx::query!(
-            "SELECT username FROM users WHERE username LIKE $1 ORDER BY username LIMIT $2",
+            "SELECT username
+            FROM users
+            WHERE
+                username LIKE $1 AND
+                ($2 OR NOT is_nsfw)
+            ORDER BY username LIMIT $3",
             format!("{username_prefix}%"),
+            !filter_nsfw,
             limit,
         )
             .fetch_all(db_pool)
@@ -269,9 +276,10 @@ pub async fn search_comments(
 #[server]
 pub async fn get_matching_username_set(
     username_prefix: String,
+    filter_nsfw: bool,
 ) -> Result<BTreeSet<String>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let username_set = ssr::get_matching_username_set(&username_prefix, USER_FETCH_LIMIT, &db_pool).await?;
+    let username_set = ssr::get_matching_username_set(&username_prefix, filter_nsfw, USER_FETCH_LIMIT, &db_pool).await?;
     Ok(username_set)
 }
 

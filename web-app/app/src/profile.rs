@@ -25,7 +25,7 @@ use crate::app::GlobalState;
 use crate::auth::NavigateToUserAccount;
 use crate::form::LabeledFormCheckbox;
 use crate::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
-use crate::user::SetUserPreferences;
+use crate::user::SetUserSettings;
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -313,20 +313,21 @@ pub fn UserComments() -> impl IntoView {
 #[component]
 pub fn UserSettings() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let set_preferences_action = ServerAction::<SetUserPreferences>::new();
+    let set_preferences_action = ServerAction::<SetUserSettings>::new();
 
     view! {
         <div class="self-center flex flex-col gap-3 w-3/4 2xl:w-1/2">
             <Suspense fallback=move || view! {  <LoadingIcon/> }>
             {
                 move || Suspend::new(async move {
-                    let (show_nsfw, days_hide_spoiler) = match state.user.await {
-                        Ok(Some(user)) => (user.show_nsfw, user.days_hide_spoiler.unwrap_or_default()),
-                        _ => (false, 0),
+                    let (is_nsfw, show_nsfw, days_hide_spoiler) = match state.user.await {
+                        Ok(Some(user)) => (user.is_nsfw, user.show_nsfw, user.days_hide_spoiler.unwrap_or_default()),
+                        _ => (false, false, 0),
                     };
                     view! {
                         <ActionForm action=set_preferences_action attr:class="flex flex-col gap-3">
-                            <LabeledFormCheckbox name="show_nsfw" label="Hide NSFW" value=show_nsfw/>
+                            <LabeledFormCheckbox name="is_nsfw" label="NSFW profile" value=is_nsfw/>
+                            <LabeledFormCheckbox name="show_nsfw" label="Show NSFW" value=show_nsfw/>
                             <div class="flex justify-between items-center">
                                 "Hide spoilers duration (days)"
                                 <input

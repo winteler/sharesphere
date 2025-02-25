@@ -384,7 +384,8 @@ pub mod ssr {
         Ok(sql_user)
     }
 
-    pub async fn set_user_preferences(
+    pub async fn set_user_settings(
+        is_nsfw: bool,
         show_nsfw: bool,
         days_hide_spoiler: Option<i32>,
         user: &User,
@@ -392,9 +393,11 @@ pub mod ssr {
     ) -> Result<(), AppError> {
         sqlx::query!(
             "UPDATE users SET
-            show_nsfw = $1,
-            days_hide_spoiler = $2
-            WHERE user_id = $3",
+            is_nsfw = $1,
+            show_nsfw = $2,
+            days_hide_spoiler = $3
+            WHERE user_id = $4",
+            is_nsfw,
             show_nsfw,
             days_hide_spoiler,
             user.user_id,
@@ -574,7 +577,8 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn set_user_preferences(
+pub async fn set_user_settings(
+    is_nsfw: bool,
     show_nsfw: bool,
     days_hide_spoilers: u32,
 ) -> Result<(), ServerFnError<AppError>> {
@@ -585,7 +589,7 @@ pub async fn set_user_preferences(
         x if x > 0 => Some(x as i32),
         _ => None,
     };
-    ssr::set_user_preferences(show_nsfw, days_hide_spoilers, &user, &db_pool).await?;
+    ssr::set_user_settings(is_nsfw, show_nsfw, days_hide_spoilers, &user, &db_pool).await?;
     reload_user(user.user_id)?;
     Ok(())
 }

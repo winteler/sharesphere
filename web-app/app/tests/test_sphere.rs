@@ -253,7 +253,7 @@ async fn test_create_sphere() -> Result<(), AppError> {
     ).await.expect("Should be possible to create sphere.");
 
     assert_eq!(sphere.sphere_name, sphere_name);
-    assert_eq!(sphere.normalized_sphere_name, "camel|case snake case123 ");
+    assert_eq!(sphere.normalized_sphere_name, "camelcase_snake_case123_");
     assert_eq!(sphere.creator_id, test_user.user_id);
     assert_eq!(sphere.description, sphere_description);
     assert_eq!(sphere.is_nsfw, false);
@@ -272,6 +272,16 @@ async fn test_create_sphere() -> Result<(), AppError> {
     );
     assert!(
         sphere::ssr::create_sphere("camelCase-snake-case123-", "a", false, &test_user, &db_pool)
+            .await
+            .is_err()
+    );
+    assert!(
+        sphere::ssr::create_sphere("camelcase_snake_case123-", "a", false, &test_user, &db_pool)
+            .await
+            .is_err()
+    );
+    assert!(
+        sphere::ssr::create_sphere("camelCase_Snake_Case123-", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );

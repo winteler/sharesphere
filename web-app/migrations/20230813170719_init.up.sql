@@ -1,12 +1,18 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-CREATE OR REPLACE FUNCTION normalize_sphere_name(text) RETURNS text
+CREATE OR REPLACE FUNCTION format_for_search(text) RETURNS text
 AS 'select LOWER(
        REGEXP_REPLACE(
            REGEXP_REPLACE($1, ''([a-z])([A-Z])'', ''\1|\2'', ''g''),
            ''[-_]'', '' '', ''g''
        )
    );'
+    LANGUAGE SQL
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;
+
+CREATE OR REPLACE FUNCTION normalize_sphere_name(text) RETURNS text
+AS 'select REPLACE(LOWER($1), ''-'', ''_'');'
     LANGUAGE SQL
     IMMUTABLE
     RETURNS NULL ON NULL INPUT;
@@ -31,6 +37,9 @@ CREATE TABLE spheres (
     normalized_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
         normalize_sphere_name(sphere_name)
     ) STORED,
+    search_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
+        format_for_search(sphere_name)
+        ) STORED,
     description TEXT NOT NULL,
     sphere_document tsvector GENERATED ALWAYS AS (
         to_tsvector('simple', description)
@@ -47,7 +56,7 @@ CREATE TABLE spheres (
 );
 
 CREATE INDEX sphere_document_idx ON spheres USING GIN (sphere_document);
-CREATE INDEX sphere_trigram_idx ON spheres USING GIN (normalized_sphere_name gin_trgm_ops);
+CREATE INDEX sphere_trigram_idx ON spheres USING GIN (search_sphere_name gin_trgm_ops);
 
 CREATE TABLE satellites (
     satellite_id BIGSERIAL PRIMARY KEY,

@@ -107,12 +107,12 @@ pub mod ssr {
                     SELECT *, 0.5 as rank
                     FROM spheres
                     WHERE
-                        normalized_sphere_name LIKE normalize_sphere_name($1 || '%') AND
+                        normalized_sphere_name LIKE format_for_search($1 || '%') AND
                         ($2 OR NOT is_nsfw)
                     UNION ALL
                     SELECT ws.*
                     FROM (
-                        SELECT *, word_similarity(normalized_sphere_name, normalize_sphere_name($1)) as rank
+                        SELECT *, word_similarity(normalized_sphere_name, format_for_search($1)) as rank
                         FROM spheres
                         WHERE $2 OR NOT is_nsfw
                     ) ws

@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_router::components::Form;
 use leptos_use::{signal_debounced};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -9,9 +9,10 @@ use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use crate::comment::CommentWithContext;
 use crate::errors::AppError;
 use crate::form::LabeledSignalCheckbox;
+use crate::icons::MagnifierIcon;
 use crate::post::PostWithSphereInfo;
 use crate::sphere::{SphereHeader, SphereLinkList};
-use crate::unpack::TransitionUnpack;
+use crate::unpack::{ArcTransitionUnpack, TransitionUnpack};
 use crate::widget::{EnumQueryTabs, ToView};
 
 #[cfg(feature = "ssr")]
@@ -21,6 +22,7 @@ use crate::{
     user::USER_FETCH_LIMIT,
 };
 use crate::sidebar::HomeSidebar;
+use crate::user::{UserHeader, UserHeaderLink};
 
 pub const SEARCH_ROUTE: &str = "/search";
 pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
@@ -67,13 +69,13 @@ impl Default for SearchState {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::collections::BTreeSet;
     use sqlx::PgPool;
     use crate::comment::CommentWithContext;
     use crate::errors::AppError;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinCategory;
     use crate::sphere::SphereHeader;
+    use crate::user::UserHeader;
 
     pub async fn get_matching_sphere_header_vec(
         sphere_prefix: &str,
@@ -200,33 +202,29 @@ pub mod ssr {
         Ok(comment_vec)
     }
 
-    pub async fn get_matching_username_set(
+    pub async fn get_matching_user_header_vec(
         username_prefix: &str,
-        filter_nsfw: bool,
+        show_nsfw: bool,
         limit: i64,
         db_pool: &PgPool,
-    ) -> Result<BTreeSet<String>, AppError> {
-        let username_vec = sqlx::query!(
-            "SELECT username
+    ) -> Result<Vec<UserHeader>, AppError> {
+        let user_header_vec = sqlx::query_as!(
+            UserHeader,
+            "SELECT username, is_nsfw
             FROM users
             WHERE
                 username LIKE $1 AND
-                ($2 OR NOT is_nsfw)
+                ($2 OR NOT is_nsfw) AND
+                NOT is_deleted
             ORDER BY username LIMIT $3",
             format!("{username_prefix}%"),
-            !filter_nsfw,
+            show_nsfw,
             limit,
         )
             .fetch_all(db_pool)
             .await?;
 
-        let mut username_set = BTreeSet::<String>::new();
-
-        for row in username_vec {
-            username_set.insert(row.username);
-        }
-
-        Ok(username_set)
+        Ok(user_header_vec)
     }
 }
 
@@ -274,13 +272,28 @@ pub async fn search_comments(
 }
 
 #[server]
-pub async fn get_matching_username_set(
+pub async fn get_matching_user_header_vec(
     username_prefix: String,
-    filter_nsfw: bool,
-) -> Result<BTreeSet<String>, ServerFnError<AppError>> {
+    show_nsfw: bool,
+) -> Result<Vec<UserHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let username_set = ssr::get_matching_username_set(&username_prefix, filter_nsfw, USER_FETCH_LIMIT, &db_pool).await?;
-    Ok(username_set)
+    let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, USER_FETCH_LIMIT, &db_pool).await?;
+    Ok(user_header_vec)
+}
+
+/// Button to navigate to the search page
+#[component]
+pub fn SearchButton() -> impl IntoView
+{
+    let tab: &'static str = SearchType::default().into();
+    view! {
+        <Form method="GET" action=SEARCH_ROUTE>
+            <input name=SEARCH_TAB_QUERY_PARAM value=tab class="hidden"/>
+            <button class="btn btn-ghost btn-circle">
+                <MagnifierIcon/>
+            </button>
+        </Form>
+    }
 }
 
 /// Component to search spheres, posts, comments and users
@@ -382,12 +395,32 @@ pub fn SearchComment() -> impl IntoView
 pub fn SearchUser() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
+    let search_user_resource = Resource::new(
+        move || (search_state.search_input_debounced.get(), search_state.show_nsfw.get()),
+        move |(search_input, show_nsfw)| async move {
+            match search_input.is_empty() {
+                true => Ok(Vec::new()),
+                false => get_matching_user_header_vec(search_input, show_nsfw).await,
+            }
+        }
+    );
     view! {
         <SearchForm
             search_state
             show_spoiler_checkbox=false
             show_nsfw_checkbox=true
         />
+        <ArcTransitionUnpack resource=search_user_resource let:user_header_vec>
+            <div class="flex flex-col gap-2 self-center w-full">
+                <For
+                    each= move || (*user_header_vec).clone().into_iter()
+                    key=|user_header| user_header.username.clone()
+                    let(user_header)
+                >
+                    <UserHeaderLink user_header/>
+                </For>
+            </div>
+        </ArcTransitionUnpack>
     }
 }
 

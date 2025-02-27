@@ -1118,12 +1118,9 @@ pub fn PostMiniatureList(
             node_ref=list_ref
         >
             <For
-                // a function that returns the items we're iterating over; a signal is fine
-                each= move || post_vec.get().into_iter().enumerate()
-                // a unique key for each item as a reference
-                key=|(_index, post)| post.post.post_id
-                // renders each item to a view
-                children=move |(_key, post_info)| {
+                each= move || post_vec.get().into_iter()
+                key=|post| post.post.post_id
+                children=move |post_info| {
                     let post = post_info.post;
                     let sphere_header = match show_sphere_header {
                         true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),

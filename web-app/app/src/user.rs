@@ -2,7 +2,7 @@ use std::cmp::max;
 use std::collections::{HashMap};
 use std::default::Default;
 
-use leptos::{prelude::ServerFnError, server};
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::AppError;
@@ -12,6 +12,8 @@ use crate::{
     app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
 };
+use crate::icons::{NsfwIcon, UserIcon};
+use crate::profile::get_profile_path;
 
 pub const USER_FETCH_LIMIT: i64 = 20;
 
@@ -39,6 +41,11 @@ pub struct User {
     pub is_deleted: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UserHeader {
+    pub username: String,
+    pub is_nsfw: bool,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UserPostFilters {
@@ -592,6 +599,38 @@ pub async fn set_user_settings(
     ssr::set_user_settings(is_nsfw, show_nsfw, days_hide_spoilers, &user, &db_pool).await?;
     reload_user(user.user_id)?;
     Ok(())
+}
+
+/// Component to display a user header
+#[component]
+pub fn UserHeaderWidget(
+    user_header: UserHeader,
+) -> impl IntoView {
+    view! {
+        <div class="flex gap-1.5 items-center text-sm">
+            <UserIcon/>
+            {user_header.username}
+            {
+                match user_header.is_nsfw {
+                    true => Some(view! { <NsfwIcon/> }),
+                    false => None,
+                }
+            }
+        </div>
+    }.into_any()
+}
+
+/// Component to display a user header and redirect to his profile upon click
+#[component]
+pub fn UserHeaderLink(
+    user_header: UserHeader,
+) -> impl IntoView {
+    let user_profile_path = get_profile_path(&user_header.username);
+    view! {
+        <a href=user_profile_path class="w-full h-fit p-2 rounded hover:bg-base-content/20">
+            <UserHeaderWidget user_header/>
+        </a>
+    }.into_any()
 }
 
 #[cfg(test)]

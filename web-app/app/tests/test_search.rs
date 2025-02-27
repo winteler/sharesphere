@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 use app::errors::AppError;
-use app::search::ssr::{get_matching_sphere_header_vec, get_matching_username_set, search_comments, search_posts, search_spheres};
+use app::search::ssr::{get_matching_sphere_header_vec, get_matching_user_header_vec, search_comments, search_posts, search_spheres};
 use app::comment::CommentWithContext;
 use app::comment::ssr::create_comment;
 use app::embed::Link;
@@ -10,7 +10,7 @@ use app::sphere::SphereHeader;
 use app::sphere::ssr::create_sphere;
 use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::ssr::set_user_settings;
-use app::user::User;
+use app::user::{User, UserHeader};
 use crate::common::{create_test_user, create_user, get_db_pool};
 use crate::data_factory::{create_simple_post, set_sphere_num_members};
 
@@ -18,7 +18,7 @@ mod common;
 mod data_factory;
 
 #[tokio::test]
-async fn test_get_matching_username_set() -> Result<(), AppError> {
+async fn test_get_matching_user_header_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
 
     let num_users = 20usize;
@@ -32,15 +32,16 @@ async fn test_get_matching_username_set() -> Result<(), AppError> {
         );
     }
 
-    let username_set = get_matching_username_set("1", false, num_users as i64, &db_pool).await?;
+    let user_header_vec = get_matching_user_header_vec("1", false, num_users as i64, &db_pool).await?;
 
     let mut previous_username = None;
-    for username in username_set {
-        assert_eq!(username.chars().next().unwrap(), '1');
+    for user_header in user_header_vec {
+        assert_eq!(user_header.username.chars().next().unwrap(), '1');
+        assert_eq!(user_header.is_nsfw, false);
         if let Some(previous_username) = previous_username {
-            assert!(previous_username < username)
+            assert!(previous_username < user_header.username)
         }
-        previous_username = Some(username);
+        previous_username = Some(user_header.username);
     }
 
     for i in num_users..2 * num_users {
@@ -52,18 +53,22 @@ async fn test_get_matching_username_set() -> Result<(), AppError> {
         );
     }
 
-    let username_set = get_matching_username_set("", false, num_users as i64, &db_pool).await?;
+    let user_header_vec = get_matching_user_header_vec("", false, num_users as i64, &db_pool).await?;
 
-    assert_eq!(username_set.len(), num_users);
+    assert_eq!(user_header_vec.len(), num_users);
 
     let nsfw_user = create_user("nsfw", &db_pool).await;
+    let nsfw_header_vec = UserHeader {
+        username: nsfw_user.username,
+        is_nsfw: nsfw_user.is_nsfw,
+    };
     set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
 
-    let username_set = get_matching_username_set("nsfw", true, num_users as i64, &db_pool).await?;
-    assert!(username_set.is_empty());
-    let username_set = get_matching_username_set("nsfw", false, num_users as i64, &db_pool).await?;
-    assert_eq!(username_set.len(), 1);
-    assert_eq!(username_set.first(), Some(&nsfw_user.username));
+    let user_header_vec = get_matching_user_header_vec("nsfw", true, num_users as i64, &db_pool).await?;
+    assert!(user_header_vec.is_empty());
+    let user_header_vec = get_matching_user_header_vec("nsfw", false, num_users as i64, &db_pool).await?;
+    assert_eq!(user_header_vec.len(), 1);
+    assert_eq!(user_header_vec.first(), Some(&nsfw_header_vec));
 
     Ok(())
 }

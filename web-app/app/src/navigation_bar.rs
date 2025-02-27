@@ -7,7 +7,7 @@ use crate::constants::SITE_ROOT;
 use crate::icons::*;
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::profile::get_profile_path;
-use crate::search::{SEARCH_ROUTE};
+use crate::search::{SearchButton};
 use crate::sphere::*;
 use crate::user::User;
 
@@ -74,12 +74,7 @@ pub fn NavigationBar() -> impl IntoView
                 </div>
             </div>
             <div class="navbar-end gap-1">
-                <a
-                    class="btn btn-ghost btn-circle"
-                    href=SEARCH_ROUTE
-                >
-                    <MagnifierIcon/>
-                </a>
+                <SearchButton/>
                 <PlusMenu/>
                 <UserMenu/>
             </div>

@@ -852,11 +852,8 @@ pub fn CommentBox(
                     class:hidden=move || !*maximize.read()
                 >
                     <For
-                        // a function that returns the items we're iterating over; a signal is fine
                         each= move || child_comments.get().into_iter().enumerate()
-                        // a unique key for each item as a reference
                         key=|(_index, comment)| comment.comment.comment_id
-                        // renders each item to a view
                         children=move |(index, comment_with_children)| {
                             view! {
                                 <CommentBox
@@ -1015,19 +1012,14 @@ pub fn CommentMiniatureList(
             node_ref=list_ref
         >
             <For
-                // a function that returns the items we're iterating over; a signal is fine
-                each= move || comment_vec.get().into_iter().enumerate()
-                // a unique key for each item as a reference
-                key=|(_index, comment)| comment.comment.comment_id
-                // renders each item to a view
-                children=move |(_key, comment)| {
-                    view! {
-                        <li>
-                            <CommentWithContext comment/>
-                        </li>
-                    }
-                }
-            />
+                each= move || comment_vec.get().into_iter()
+                key=|comment| comment.comment.comment_id
+                let(comment)
+            >
+                <li>
+                    <CommentWithContext comment/>
+                </li>
+            </For>
             <LoadIndicators load_error is_loading/>
         </ul>
     }

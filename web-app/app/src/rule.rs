@@ -299,9 +299,9 @@ pub fn SphereRulesPanel() -> impl IntoView {
                         </div>
                     </div>
                     <For
-                        each= move || (*sphere_rule_vec).clone().into_iter().enumerate()
-                        key=|(_index, rule)| rule.rule_id
-                        children=move |(_, rule)| {
+                        each= move || (*sphere_rule_vec).clone().into_iter()
+                        key=|rule| rule.rule_id
+                        children=move |rule| {
                             let rule = StoredValue::new(rule);
                             let show_edit_form = RwSignal::new(false);
                             view! {

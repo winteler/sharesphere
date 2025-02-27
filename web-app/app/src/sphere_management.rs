@@ -6,7 +6,6 @@ use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 use server_fn::codec::{MultipartData, MultipartFormData};
-use std::collections::BTreeSet;
 use std::sync::Arc;
 use strum::IntoEnumIterator;
 
@@ -18,7 +17,7 @@ use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
 use crate::rule::SphereRulesPanel;
 use crate::satellite::SatellitePanel;
-use crate::search::get_matching_username_set;
+use crate::search::get_matching_user_header_vec;
 use crate::sphere::{Sphere, SphereState};
 use crate::sphere_category::SphereCategoriesDialog;
 use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
@@ -513,9 +512,9 @@ pub fn PermissionLevelForm(
         move || username_debounced.get(),
         move |username| async {
             if username.is_empty() {
-                Ok(BTreeSet::<String>::default())
+                Ok(Vec::new())
             } else {
-                get_matching_username_set(username, false).await
+                get_matching_user_header_vec(username, false).await
             }
         },
     );
@@ -544,16 +543,16 @@ pub fn PermissionLevelForm(
                             prop:value=username_input
                         />
                         <Show when=move || !username_input.read().is_empty()>
-                            <ArcTransitionUnpack resource=matching_user_resource let:username_set>
+                            <ArcTransitionUnpack resource=matching_user_resource let:user_header_vec>
                                 <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
                                     <For
-                                        each= move || (*username_set).clone().into_iter().enumerate()
-                                        key=|(_index, username)| username.clone()
-                                        let:child
+                                        each= move || (*user_header_vec).clone().into_iter()
+                                        key=|user_header| user_header.username.clone()
+                                        let(user_header)
                                     >
                                         <li>
-                                            <button type="button" value=child.1.clone() on:click=move |ev| username_input.set(event_target_value(&ev))>
-                                                {child.1.clone()}
+                                            <button type="button" value=user_header.username on:click=move |ev| username_input.set(event_target_value(&ev))>
+                                                {user_header.username.clone()}
                                             </button>
                                         </li>
                                     </For>
@@ -612,29 +611,29 @@ pub fn BanPanel() -> impl IntoView {
                 </div>
                 <ArcTransitionUnpack resource=banned_users_resource let:banned_user_vec>
                     <For
-                        each= move || (*banned_user_vec).clone().into_iter().enumerate()
-                        key=|(_index, ban)| (ban.user_id, ban.until_timestamp)
-                        let:child
+                        each= move || (*banned_user_vec).clone().into_iter()
+                        key=|ban| (ban.user_id, ban.until_timestamp)
+                        let(user_ban)
                     >
                         <div class="flex">
-                            <div class="w-2/5 px-6">{child.1.username}</div>
+                            <div class="w-2/5 px-6">{user_ban.username}</div>
                             <div class="w-2/5 px-6">{
-                                match child.1.until_timestamp {
+                                match user_ban.until_timestamp {
                                     Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
                                     None => String::from("Permanent"),
                                 }
                             }</div>
                             <div class="w-1/5 flex justify-end gap-1">
                                 <BanInfoButton
-                                    post_id=child.1.post_id
-                                    comment_id=child.1.comment_id
+                                    post_id=user_ban.post_id
+                                    comment_id=user_ban.comment_id
                                 />
                                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Ban>
                                     <ActionForm action=unban_action>
                                         <input
                                             name="ban_id"
                                             class="hidden"
-                                            value=child.1.ban_id
+                                            value=user_ban.ban_id
                                         />
                                         <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                                             <DeleteIcon/>

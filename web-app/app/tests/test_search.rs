@@ -21,7 +21,7 @@ mod data_factory;
 async fn test_get_matching_user_header_vec() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
 
-    let num_users = 20usize;
+    let num_users = 10usize;
     let mut expected_username_set = BTreeSet::<String>::new();
     for i in 0..num_users {
         expected_username_set.insert(

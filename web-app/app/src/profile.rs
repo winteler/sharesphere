@@ -187,7 +187,7 @@ pub fn UserProfile() -> impl IntoView {
     view! {
         <div class="w-full flex justify-center">
             <div class="w-full 2xl:w-2/3 flex flex-col max-2xl:items-center">
-                <div class="p-2 flex items-center gap-1 text-2xl font-bold">
+                <div class="p-2 pt-4 flex items-center gap-1 text-2xl font-bold">
                     <UserIcon/>
                     {move || query_username.get()}
                 </div>
@@ -289,8 +289,11 @@ pub fn UserComments() -> impl IntoView {
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
-                let num_post = comment_vec.read_untracked().len();
-                let additional_load = get_user_comment_vec(username.get_untracked(), sort_signal.get_untracked(), num_post).await;
+                let additional_load = get_user_comment_vec(
+                    username.get_untracked(),
+                    sort_signal.get_untracked(),
+                    comment_vec.read_untracked().len(),
+                ).await;
                 handle_additional_load(additional_load, comment_vec, load_error);
                 is_loading.set(false);
             }

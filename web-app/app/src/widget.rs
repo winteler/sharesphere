@@ -135,7 +135,7 @@ where
     T: std::str::FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + ToView
 {
     view! {
-        <div class="flex flex-col gap-3 pt-2 px-2 w-full">
+        <div class="flex flex-col gap-4 pt-2 px-2 w-full h-full">
             <QueryTabs query_param query_enum_iter=query_enum_iter.clone()/>
             <QueryShow query_param query_enum_iter/>
         </div>

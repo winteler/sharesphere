@@ -473,7 +473,7 @@ pub fn SphereLinkList(
         return ().into_any()
     }
     view! {
-        <ul class="flex flex-col pt-1 pl-1">
+        <ul class="flex flex-col p-1">
         {
             sphere_header_vec.into_iter().map(|sphere_header| {
                 let sphere_path = get_sphere_path(&sphere_header.sphere_name);

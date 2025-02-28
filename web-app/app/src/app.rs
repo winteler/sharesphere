@@ -264,7 +264,7 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col flex-1 w-full overflow-y-auto  pt-2 px-2 gap-2">
+        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2">
             <div
                 class="flex-none bg-cover bg-center bg-no-repeat bg-[url('/banner.jpg')] rounded w-full h-40 flex items-center justify-center"
             >

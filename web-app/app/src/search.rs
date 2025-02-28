@@ -6,23 +6,24 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
-use crate::comment::CommentWithContext;
+use crate::comment::{CommentMiniatureList, CommentWithContext};
 use crate::errors::AppError;
 use crate::form::LabeledSignalCheckbox;
 use crate::icons::MagnifierIcon;
-use crate::post::PostWithSphereInfo;
+use crate::post::{PostMiniatureList, PostWithSphereInfo};
+use crate::sidebar::HomeSidebar;
 use crate::sphere::{SphereHeader, SphereLinkList};
-use crate::unpack::{ArcTransitionUnpack, TransitionUnpack};
+use crate::unpack::{handle_additional_load, handle_initial_load, ArcTransitionUnpack, TransitionUnpack};
+use crate::user::{UserHeader, UserHeaderLink};
 use crate::widget::{EnumQueryTabs, ToView};
 
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
+    comment::COMMENT_BATCH_SIZE,
+    post::POST_BATCH_SIZE,
     sphere::SPHERE_FETCH_LIMIT,
-    user::USER_FETCH_LIMIT,
 };
-use crate::sidebar::HomeSidebar;
-use crate::user::{UserHeader, UserHeaderLink};
 
 pub const SEARCH_ROUTE: &str = "/search";
 pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
@@ -69,13 +70,14 @@ impl Default for SearchState {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use std::cmp::min;
     use sqlx::PgPool;
     use crate::comment::CommentWithContext;
     use crate::errors::AppError;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinCategory;
     use crate::sphere::SphereHeader;
-    use crate::user::UserHeader;
+    use crate::user::{UserHeader, USER_FETCH_LIMIT};
 
     pub async fn get_matching_sphere_header_vec(
         sphere_prefix: &str,
@@ -155,6 +157,8 @@ pub mod ssr {
         search_query: &str,
         show_spoilers: bool,
         show_nsfw: bool,
+        limit: i64,
+        offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
@@ -164,8 +168,11 @@ pub mod ssr {
                 WHERE
                     post_document @@ plainto_tsquery('simple', $1) AND
                     ($2 OR NOT is_spoiler) AND
-                    ($3 OR NOT is_nsfw)
+                    ($3 OR NOT is_nsfw) AND
+                    moderator_id IS NULL
                 ORDER BY rank DESC, score DESC
+                LIMIT $4
+                OFFSET $5
             ) p
             JOIN spheres s on s.sphere_id = p.sphere_id
             LEFT JOIN sphere_categories c on c.category_id = p.category_id"
@@ -173,6 +180,8 @@ pub mod ssr {
             .bind(search_query)
             .bind(show_spoilers)
             .bind(show_nsfw)
+            .bind(limit)
+            .bind(offset)
             .fetch_all(db_pool)
             .await?;
 
@@ -183,19 +192,25 @@ pub mod ssr {
 
     pub async fn search_comments(
         search_query: &str,
+        limit: i64,
+        offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<CommentWithContext>, AppError> {
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
             "SELECT c.*, s.sphere_name, s.icon_url, s.is_nsfw, p.satellite_id, p.title as post_title FROM (
                 SELECT *, ts_rank(comment_document, plainto_tsquery('simple', $1)) AS rank
                 FROM comments
-                WHERE comment_document @@ plainto_tsquery('simple', $1)
+                WHERE
+                    comment_document @@ plainto_tsquery('simple', $1) AND
+                    moderator_id IS NULL
                 ORDER BY rank DESC, score DESC
             ) c
             JOIN posts p ON p.post_id = c.post_id
             JOIN spheres s ON s.sphere_id = p.sphere_id"
         )
             .bind(search_query)
+            .bind(limit)
+            .bind(offset)
             .fetch_all(db_pool)
             .await?;
 
@@ -219,7 +234,7 @@ pub mod ssr {
             ORDER BY username LIMIT $3",
             format!("{username_prefix}%"),
             show_nsfw,
-            limit,
+            min(limit, USER_FETCH_LIMIT),
         )
             .fetch_all(db_pool)
             .await?;
@@ -245,9 +260,10 @@ pub async fn get_matching_sphere_header_vec(
 pub async fn search_spheres(
     search_query: String,
     show_nsfw: bool,
+    num_already_loaded: usize,
 ) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, SPHERE_FETCH_LIMIT, 0, &db_pool).await?;
+    let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, SPHERE_FETCH_LIMIT, num_already_loaded as i64, &db_pool).await?;
     Ok(sphere_header_vec)
 }
 
@@ -256,18 +272,20 @@ pub async fn search_posts(
     search_query: String,
     show_spoilers: bool,
     show_nsfw: bool,
+    num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let post_vec = ssr::search_posts(&search_query, show_spoilers, show_nsfw, &db_pool).await?;
+    let post_vec = ssr::search_posts(&search_query, show_spoilers, show_nsfw, POST_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(post_vec)
 }
 
 #[server]
 pub async fn search_comments(
     search_query: String,
+    num_already_loaded: usize,
 ) -> Result<Vec<CommentWithContext>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let comment_vec = ssr::search_comments(&search_query, &db_pool).await?;
+    let comment_vec = ssr::search_comments(&search_query,COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(comment_vec)
 }
 
@@ -275,9 +293,10 @@ pub async fn search_comments(
 pub async fn get_matching_user_header_vec(
     username_prefix: String,
     show_nsfw: bool,
+    load_count: usize,
 ) -> Result<Vec<UserHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, USER_FETCH_LIMIT, &db_pool).await?;
+    let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, load_count as i64, &db_pool).await?;
     Ok(user_header_vec)
 }
 
@@ -331,7 +350,7 @@ pub fn SearchSphere(
     search_state: SearchState,
     #[prop(optional)]
     show_nsfw: bool,
-    #[prop(default = "w-3/4 2xl:w-1/2")]
+    #[prop(default = "gap-4 w-3/4 2xl:w-1/2")]
     class: &'static str,
     #[prop(default = "w-full")]
     form_class: &'static str,
@@ -339,13 +358,13 @@ pub fn SearchSphere(
     autofocus: bool,
 ) -> impl IntoView
 {
-    let class = format!("flex flex-col gap-2 self-center {class}");
+    let class = format!("flex flex-col self-center {class}");
     let search_sphere_resource = Resource::new(
         move || (search_state.search_input_debounced.get(), search_state.show_nsfw.get()),
         move |(search_input, show_nsfw)| async move {
             match search_input.is_empty() {
                true => Ok(Vec::new()),
-               false => search_spheres(search_input, show_nsfw).await,
+               false => search_spheres(search_input, show_nsfw, 0).await,
             }
         }
     );
@@ -359,7 +378,9 @@ pub fn SearchSphere(
                 autofocus
             />
             <TransitionUnpack resource=search_sphere_resource let:sphere_header_vec>
-                <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
+                <div class="bg-base-200 rounded">
+                    <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
+                </div>
             </TransitionUnpack>
         </div>
     }
@@ -369,11 +390,53 @@ pub fn SearchSphere(
 pub fn SearchPost() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
+    let post_vec = RwSignal::new(Vec::new());
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
+
+    let _initial_post_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let initial_load = search_posts(
+                search_state.search_input_debounced.get(),
+                search_state.show_spoiler.get(),
+                search_state.show_nsfw.get(),
+                0,
+            ).await;
+            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let additional_load = search_posts(
+                    search_state.search_input_debounced.get(),
+                    search_state.show_spoiler.get(),
+                    search_state.show_nsfw.get(),
+                    post_vec.read_untracked().len(),
+                ).await;
+                handle_additional_load(additional_load, post_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
     view! {
         <SearchForm
             search_state
             show_spoiler_checkbox=true
             show_nsfw_checkbox=true
+        />
+        <PostMiniatureList
+            post_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
         />
     }
 }
@@ -382,11 +445,49 @@ pub fn SearchPost() -> impl IntoView
 pub fn SearchComment() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
+    let comment_vec = RwSignal::new(Vec::new());
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
+
+    let _initial_comment_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let initial_load = search_comments(
+                search_state.search_input_debounced.get(),
+                0,
+            ).await;
+            handle_initial_load(initial_load, comment_vec, load_error, Some(list_ref));
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_comment_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let additional_load = search_comments(
+                    search_state.search_input_debounced.get_untracked(),
+                    comment_vec.read_untracked().len()
+                ).await;
+                handle_additional_load(additional_load, comment_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
     view! {
         <SearchForm
             search_state
             show_spoiler_checkbox=false
             show_nsfw_checkbox=false
+        />
+        <CommentMiniatureList
+            comment_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
         />
     }
 }
@@ -400,7 +501,7 @@ pub fn SearchUser() -> impl IntoView
         move |(search_input, show_nsfw)| async move {
             match search_input.is_empty() {
                 true => Ok(Vec::new()),
-                false => get_matching_user_header_vec(search_input, show_nsfw).await,
+                false => get_matching_user_header_vec(search_input, show_nsfw, 50).await,
             }
         }
     );
@@ -411,15 +512,20 @@ pub fn SearchUser() -> impl IntoView
             show_nsfw_checkbox=true
         />
         <ArcTransitionUnpack resource=search_user_resource let:user_header_vec>
-            <div class="flex flex-col gap-2 self-center w-full">
-                <For
-                    each= move || (*user_header_vec).clone().into_iter()
-                    key=|user_header| user_header.username.clone()
-                    let(user_header)
-                >
-                    <UserHeaderLink user_header/>
-                </For>
-            </div>
+        { match user_header_vec.is_empty() {
+            true => None,
+            false => Some(view! {
+                <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded w-3/4 2xl:w-1/2 ">
+                    <For
+                        each= move || (*user_header_vec).clone().into_iter()
+                        key=|user_header| user_header.username.clone()
+                        let(user_header)
+                    >
+                        <UserHeaderLink user_header/>
+                    </For>
+                </div>
+            })
+        }}
         </ArcTransitionUnpack>
     }
 }

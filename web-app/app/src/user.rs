@@ -15,7 +15,7 @@ use crate::{
 use crate::icons::{NsfwIcon, UserIcon};
 use crate::profile::get_profile_path;
 
-pub const USER_FETCH_LIMIT: i64 = 20;
+pub const USER_FETCH_LIMIT: i64 = 100;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum BanStatus {

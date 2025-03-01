@@ -36,6 +36,7 @@ use crate::{
     auth::ssr::reload_user,
     auth::{get_user, ssr::check_user},
 };
+use crate::widget::LoadIndicators;
 
 pub const CREATE_SPHERE_SUFFIX: &str = "/sphere";
 pub const CREATE_SPHERE_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_SPHERE_SUFFIX);
@@ -466,16 +467,14 @@ pub fn SphereHeaderLink(
 
 /// Component to display a collapsable list of sphere links
 #[component]
-pub fn SphereLinkList(
+pub fn SphereLinkItems(
     sphere_header_vec: Vec<SphereHeader>
 ) -> impl IntoView {
-    if sphere_header_vec.is_empty() {
-        return ().into_any()
-    }
     view! {
-        <ul class="flex flex-col p-1">
-        {
-            sphere_header_vec.into_iter().map(|sphere_header| {
+        <For
+            each= move || sphere_header_vec.clone().into_iter()
+            key=|sphere_header| sphere_header.sphere_name.clone()
+            children=move |sphere_header| {
                 let sphere_path = get_sphere_path(&sphere_header.sphere_name);
                 view! {
                     <li class="px-2 rounded hover:bg-base-content/20">
@@ -484,9 +483,59 @@ pub fn SphereLinkList(
                         </a>
                     </li>
                 }
-            }).collect_view()
-        }
+            }
+        />
+    }
+}
+
+/// Component to display a collapsable list of sphere links
+#[component]
+pub fn SphereLinkList(
+    sphere_header_vec: Vec<SphereHeader>
+) -> impl IntoView {
+    if sphere_header_vec.is_empty() {
+        return ().into_any()
+    }
+    view! {
+        <ul class="flex flex-col p-1">
+            <SphereLinkItems sphere_header_vec/>
         </ul>
+    }.into_any()
+}
+
+/// Component to display a collapsable list of sphere links
+#[component]
+pub fn InfiniteSphereLinkList(
+    /// signal containing the sphere headers to display
+    #[prop(into)]
+    sphere_header_vec: Signal<Vec<SphereHeader>>,
+    #[prop(into)]
+    is_loading: Signal<bool>,
+    /// signal containing an eventual loading error in order to display it
+    #[prop(into)]
+    load_error: Signal<Option<AppError>>,
+    /// signal to request loading additional sphere headers
+    additional_load_count: RwSignal<i64>,
+    /// reference to the container of the sphere headers in order to reset scroll position when context changes
+    list_ref: NodeRef<html::Ul>,
+) -> impl IntoView {
+    view! {
+        <Show when=move || !sphere_header_vec.read().is_empty()>
+            <ul class="flex flex-col overflow-y-auto w-full p-1"
+                on:scroll=move |_| match list_ref.get() {
+                    Some(node_ref) => {
+                        if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
+                            additional_load_count.update(|value| *value += 1);
+                        }
+                    },
+                    None => log::error!("Sphere container 'ul' node failed to load."),
+                }
+                node_ref=list_ref
+            >
+                <SphereLinkItems sphere_header_vec=sphere_header_vec.get()/>
+            </ul>
+            <LoadIndicators load_error is_loading/>
+        </Show>
     }.into_any()
 }
 

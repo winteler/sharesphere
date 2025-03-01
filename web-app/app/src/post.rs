@@ -1113,7 +1113,7 @@ pub fn PostMiniatureList(
                         additional_load_count.update(|value| *value += 1);
                     }
                 },
-                None => log::error!("Sphere container 'ul' node failed to load."),
+                None => log::error!("Post container 'ul' node failed to load."),
             }
             node_ref=list_ref
         >

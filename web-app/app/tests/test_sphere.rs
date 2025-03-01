@@ -5,8 +5,9 @@ use app::errors::AppError;
 use app::errors::AppError::InsufficientPrivileges;
 use app::role::PermissionLevel;
 use app::sphere;
-use app::sphere::ssr::{subscribe, unsubscribe};
+use app::sphere::ssr::{create_sphere, subscribe, unsubscribe};
 use app::sphere::{SphereHeader};
+use app::user::ssr::set_user_settings;
 use app::user::User;
 
 pub use crate::common::*;
@@ -402,6 +403,9 @@ async fn populate_dev_db() -> Result<(), AppError> {
     let db_pool = create_db_pool().await.expect("DB pool should be available.");
     let mut test_user = create_test_user(&db_pool).await;
 
+    let nsfw_user = create_user("nsfw", &db_pool).await;
+    set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
+
     let sphere_name = "test";
     let num_posts = 500usize;
 
@@ -416,8 +420,7 @@ async fn populate_dev_db() -> Result<(), AppError> {
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &mut test_user,
         &db_pool,
-    )
-    .await?;
+    ).await?;
 
     // generate post with many comment
     let num_comments = 200;
@@ -438,6 +441,15 @@ async fn populate_dev_db() -> Result<(), AppError> {
     ).await;
 
     set_post_score(post.post_id, 200, &db_pool).await?;
+
+    // create nsfw sphere
+    create_sphere("nsfw", "hot_stuff", true, &nsfw_user, &db_pool).await?;
+
+    // create other test spheres
+    let num_spheres = 50;
+    for i in 0..num_spheres {
+        create_sphere(&format!("test-{i}"), &format!("Test sphere n°{i}"), false, &test_user, &db_pool).await?;
+    }
 
     Ok(())
 }

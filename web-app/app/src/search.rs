@@ -12,8 +12,8 @@ use crate::form::LabeledSignalCheckbox;
 use crate::icons::MagnifierIcon;
 use crate::post::{PostMiniatureList, PostWithSphereInfo};
 use crate::sidebar::HomeSidebar;
-use crate::sphere::{SphereHeader, SphereLinkList};
-use crate::unpack::{handle_additional_load, handle_initial_load, ArcTransitionUnpack, TransitionUnpack};
+use crate::sphere::{InfiniteSphereLinkList, SphereHeader};
+use crate::unpack::{handle_additional_load, handle_initial_load, ArcTransitionUnpack};
 use crate::user::{UserHeader, UserHeaderLink};
 use crate::widget::{EnumQueryTabs, ToView};
 
@@ -359,12 +359,36 @@ pub fn SearchSpheres(
 ) -> impl IntoView
 {
     let class = format!("flex flex-col self-center {class}");
-    let search_sphere_resource = Resource::new(
-        move || (search_state.search_input_debounced.get(), search_state.show_nsfw.get()),
-        move |(search_input, show_nsfw)| async move {
-            match search_input.is_empty() {
-               true => Ok(Vec::new()),
-               false => search_spheres(search_input, show_nsfw, 0).await,
+
+    let sphere_header_vec = RwSignal::new(Vec::new());
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
+
+    let _initial_sphere_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let search_input = search_state.search_input_debounced.get();
+            let show_nsfw = search_state.show_nsfw.get();
+            let initial_load = match search_input.is_empty() {
+                true => Ok(Vec::new()),
+                false => search_spheres(search_input, show_nsfw, 0).await,
+            };
+            handle_initial_load(initial_load, sphere_header_vec, load_error, Some(list_ref));
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_sphere_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let search_input = search_state.search_input_debounced.get_untracked();
+                let show_nsfw = search_state.show_nsfw.get_untracked();
+                let additional_load = search_spheres(search_input, show_nsfw, 0).await;
+                handle_additional_load(additional_load, sphere_header_vec, load_error);
+                is_loading.set(false);
             }
         }
     );
@@ -377,11 +401,15 @@ pub fn SearchSpheres(
                 class=form_class
                 autofocus
             />
-            <TransitionUnpack resource=search_sphere_resource let:sphere_header_vec>
-                <div class="bg-base-200 rounded">
-                    <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
-                </div>
-            </TransitionUnpack>
+            <div class="bg-base-200 rounded">
+                <InfiniteSphereLinkList
+                    sphere_header_vec
+                    is_loading
+                    load_error
+                    additional_load_count
+                    list_ref
+                />
+            </div>
         </div>
     }
 }

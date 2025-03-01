@@ -985,18 +985,18 @@ pub fn CommentWithContext(
 /// Component to display a vector of comments and indicate when more need to be loaded
 #[component]
 pub fn CommentMiniatureList(
-    /// signal containing the posts to display
+    /// signal containing the comments to display
     #[prop(into)]
     comment_vec: Signal<Vec<CommentWithContext>>,
-    /// signal indicating new posts are being loaded
+    /// signal indicating new comments are being loaded
     #[prop(into)]
     is_loading: Signal<bool>,
     /// signal containing an eventual loading error in order to display it
     #[prop(into)]
     load_error: Signal<Option<AppError>>,
-    /// signal to request loading additional posts
+    /// signal to request loading additional comments
     additional_load_count: RwSignal<i64>,
-    /// reference to the container of the posts in order to reset scroll position when context changes
+    /// reference to the container of the comments in order to reset scroll position when context changes
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {
     view! {
@@ -1007,7 +1007,7 @@ pub fn CommentMiniatureList(
                         additional_load_count.update(|value| *value += 1);
                     }
                 },
-                None => log::error!("Sphere container 'ul' node failed to load."),
+                None => log::error!("Comment container 'ul' node failed to load."),
             }
             node_ref=list_ref
         >

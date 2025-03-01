@@ -58,15 +58,15 @@ async fn test_get_matching_user_header_vec() -> Result<(), AppError> {
     assert_eq!(user_header_vec.len(), num_users);
 
     let nsfw_user = create_user("nsfw", &db_pool).await;
+    set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
     let nsfw_header_vec = UserHeader {
         username: nsfw_user.username,
-        is_nsfw: nsfw_user.is_nsfw,
+        is_nsfw: true,
     };
-    set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
 
-    let user_header_vec = get_matching_user_header_vec("nsfw", true, num_users as i64, &db_pool).await?;
-    assert!(user_header_vec.is_empty());
     let user_header_vec = get_matching_user_header_vec("nsfw", false, num_users as i64, &db_pool).await?;
+    assert!(user_header_vec.is_empty());
+    let user_header_vec = get_matching_user_header_vec("nsfw", true, num_users as i64, &db_pool).await?;
     assert_eq!(user_header_vec.len(), 1);
     assert_eq!(user_header_vec.first(), Some(&nsfw_header_vec));
 
@@ -244,38 +244,38 @@ async fn test_search_posts() {
     );
     let post_6 = create_simple_post(&sphere_2.sphere_name, None, "Guten morgen", "xml_body", Some("# Wie geht's?"), &user, &db_pool).await;
 
-    let no_match_post_vec = search_posts("no match", true, true, &db_pool).await.expect("No match search should run");
+    let no_match_post_vec = search_posts("no match", true, true, 10, 0, &db_pool).await.expect("No match search should run");
     assert!(no_match_post_vec.is_empty());
 
-    let apple_post_vec = search_posts("apple", true, true, &db_pool).await.expect("Apple search should run");
+    let apple_post_vec = search_posts("apple", true, true, 10, 0, &db_pool).await.expect("Apple search should run");
     assert_eq!(apple_post_vec.len(), 1);
     assert_eq!(apple_post_vec.first(), Some(&post_1));
 
-    let bonjour_post_vec = search_posts("bonjour", true, true, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", true, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 4);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
     assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
     assert_eq!(bonjour_post_vec.get(3), Some(&post_5));
 
-    let bonjour_post_vec = search_posts("bonjour", false, true, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", false, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 3);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
     assert_eq!(bonjour_post_vec.get(2), Some(&post_5));
 
-    let bonjour_post_vec = search_posts("bonjour", true, false, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", true, false, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 3);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
     assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
 
-    let bonjour_post_vec = search_posts("bonjour", false, false, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", false, false, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 2);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
 
-    let geht_post_vec = search_posts("geht", true, true, &db_pool).await.expect("Geht search should run");
+    let geht_post_vec = search_posts("geht", true, true, 10, 0, &db_pool).await.expect("Geht search should run");
     assert_eq!(geht_post_vec.len(), 1);
     assert_eq!(geht_post_vec.first(), Some(&post_6));
 }
@@ -333,19 +333,19 @@ async fn test_search_comments() {
     let comment_3 = CommentWithContext::from_comment(comment_3, sphere_2_header.clone(), &post_2.post);
     let comment_4 = CommentWithContext::from_comment(comment_4, sphere_2_header, &post_2.post);
 
-    let no_match_comment_vec = search_comments("no match", &db_pool).await.expect("No match search should run");
+    let no_match_comment_vec = search_comments("no match", 10, 0, &db_pool).await.expect("No match search should run");
     assert!(no_match_comment_vec.is_empty());
 
-    let hello_comment_vec = search_comments("hello", &db_pool).await.expect("Hello search should run");
+    let hello_comment_vec = search_comments("hello", 10, 0, &db_pool).await.expect("Hello search should run");
     assert_eq!(hello_comment_vec.len(), 1);
     assert_eq!(hello_comment_vec.first(), Some(&comment_1));
 
-    let general_comment_vec = search_comments("général", &db_pool).await.expect("General search should run");
+    let general_comment_vec = search_comments("général", 10, 0, &db_pool).await.expect("General search should run");
     assert_eq!(general_comment_vec.len(), 2);
     assert_eq!(general_comment_vec.first(), Some(&comment_2));
     assert_eq!(general_comment_vec.get(1), Some(&comment_3));
 
-    let falle_comment_vec = search_comments("Falle", &db_pool).await.expect("Falle search should run");
+    let falle_comment_vec = search_comments("Falle", 10, 0, &db_pool).await.expect("Falle search should run");
     assert_eq!(falle_comment_vec.len(), 1);
     assert_eq!(falle_comment_vec.first(), Some(&comment_4));
 }

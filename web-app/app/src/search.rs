@@ -31,10 +31,10 @@ pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum SearchType {
     #[default]
-    Sphere,
+    Spheres,
     Posts,
     Comments,
-    User,
+    Users,
 }
 
 #[derive(Clone, Debug)]
@@ -48,10 +48,10 @@ pub struct SearchState {
 impl ToView for SearchType {
     fn to_view(self) -> AnyView {
         match self {
-            SearchType::Sphere => view! { <SearchSphereWithContext/> }.into_any(),
-            SearchType::Posts => view! { <SearchPost/> }.into_any(),
-            SearchType::Comments => view! { <SearchComment/> }.into_any(),
-            SearchType::User => view! { <SearchUser/> }.into_any(),
+            SearchType::Spheres => view! { <SearchSpheresWithContext/> }.into_any(),
+            SearchType::Posts => view! { <SearchPosts/> }.into_any(),
+            SearchType::Comments => view! { <SearchComments/> }.into_any(),
+            SearchType::Users => view! { <SearchUsers/> }.into_any(),
         }
     }
 }
@@ -337,16 +337,16 @@ pub fn Search() -> impl IntoView
 
 /// Component to search spheres, uses the SearchState from the context to get user input
 #[component]
-pub fn SearchSphereWithContext() -> impl IntoView
+pub fn SearchSpheresWithContext() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
     view! {
-        <SearchSphere search_state show_nsfw=true/>
+        <SearchSpheres search_state show_nsfw=true/>
     }
 }
 
 #[component]
-pub fn SearchSphere(
+pub fn SearchSpheres(
     search_state: SearchState,
     #[prop(optional)]
     show_nsfw: bool,
@@ -387,7 +387,7 @@ pub fn SearchSphere(
 }
 
 #[component]
-pub fn SearchPost() -> impl IntoView
+pub fn SearchPosts() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
     let post_vec = RwSignal::new(Vec::new());
@@ -442,7 +442,7 @@ pub fn SearchPost() -> impl IntoView
 }
 
 #[component]
-pub fn SearchComment() -> impl IntoView
+pub fn SearchComments() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
     let comment_vec = RwSignal::new(Vec::new());
@@ -493,7 +493,7 @@ pub fn SearchComment() -> impl IntoView
 }
 
 #[component]
-pub fn SearchUser() -> impl IntoView
+pub fn SearchUsers() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
     let search_user_resource = Resource::new(

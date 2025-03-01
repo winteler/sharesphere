@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use crate::app::GlobalState;
-use crate::search::{SearchSphere, SearchState};
+use crate::search::{SearchSpheres, SearchState};
 use crate::sphere::SphereLinkList;
 use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers, SphereHeader, SphereState};
 use crate::sphere_category::SphereCategoryBadge;
@@ -68,7 +68,7 @@ pub fn LeftSidebar() -> impl IntoView {
                 </TransitionUnpack>
             </div>
             <div class="flex flex-col gap-2 pt-4">
-                <SearchSphere search_state class="w-full gap-2" autofocus=false/>
+                <SearchSpheres search_state class="w-full gap-2" autofocus=false/>
             </div>
         </div>
     }

@@ -406,6 +406,12 @@ async fn populate_dev_db() -> Result<(), AppError> {
     let nsfw_user = create_user("nsfw", &db_pool).await;
     set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
 
+    let num_users = 50;
+
+    for i in 0..num_users {
+        create_user(&format!("test-{i}"), &db_pool).await;
+    }
+
     let sphere_name = "test";
     let num_posts = 500usize;
 

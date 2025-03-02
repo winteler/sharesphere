@@ -63,7 +63,7 @@ pub fn LeftSidebar() -> impl IntoView {
                     is_open=false
                 />
             </TransitionUnpack>
-            <div class="flex flex-col gap-2 pt-4 max-h-128">
+            <div class="flex flex-col gap-2 pt-4 max-h-124">
                 <SearchSpheres search_state class="w-full gap-2" autofocus=false/>
             </div>
         </div>

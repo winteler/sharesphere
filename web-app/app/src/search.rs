@@ -545,7 +545,7 @@ pub fn SearchUsers() -> impl IntoView
         { match user_header_vec.is_empty() {
             true => None,
             false => Some(view! {
-                <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded w-3/4 2xl:w-1/2 ">
+                <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded overflow-y-auto max-h-full w-3/4 2xl:w-1/2 ">
                     <For
                         each= move || (*user_header_vec).clone().into_iter()
                         key=|user_header| user_header.username.clone()

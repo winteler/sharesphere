@@ -12,6 +12,7 @@ module.exports = {
         textarea_m: "10rem",
       },
       spacing: {
+        '124': '31rem',
         '128': '32rem',
         '160': '40rem',
       }

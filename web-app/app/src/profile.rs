@@ -25,7 +25,6 @@ use crate::app::GlobalState;
 use crate::auth::NavigateToUserAccount;
 use crate::form::LabeledFormCheckbox;
 use crate::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
-use crate::user::SetUserSettings;
 
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -316,7 +315,6 @@ pub fn UserComments() -> impl IntoView {
 #[component]
 pub fn UserSettings() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let set_preferences_action = ServerAction::<SetUserSettings>::new();
 
     view! {
         <div class="self-center flex flex-col gap-3 w-3/4 2xl:w-1/2">
@@ -328,7 +326,7 @@ pub fn UserSettings() -> impl IntoView {
                         _ => (false, false, 0),
                     };
                     view! {
-                        <ActionForm action=set_preferences_action attr:class="flex flex-col gap-3">
+                        <ActionForm action=state.set_settings_action attr:class="flex flex-col gap-3">
                             <LabeledFormCheckbox name="is_nsfw" label="NSFW profile" value=is_nsfw/>
                             <LabeledFormCheckbox name="show_nsfw" label="Show NSFW" value=show_nsfw/>
                             <div class="flex justify-between items-center">
@@ -347,7 +345,7 @@ pub fn UserSettings() -> impl IntoView {
                                 "Save"
                             </button>
                         </ActionForm>
-                        <ActionError action=set_preferences_action.into()/>
+                        <ActionError action=state.set_settings_action.into()/>
                     }
                 })
             }

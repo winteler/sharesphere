@@ -25,7 +25,7 @@ CREATE TABLE users (
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     admin_role TEXT NOT NULL DEFAULT 'None' CHECK (admin_role IN ('None', 'Moderator', 'Admin')),
     days_hide_spoiler INT CHECK (days_hide_spoiler > 0),
-    show_nsfw BOOLEAN NOT NULL DEFAULT TRUE,
+    show_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (user_id, username)

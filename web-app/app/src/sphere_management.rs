@@ -514,7 +514,7 @@ pub fn PermissionLevelForm(
             if username.is_empty() {
                 Ok(Vec::new())
             } else {
-                get_matching_user_header_vec(username, false, 20).await
+                get_matching_user_header_vec(username, Some(true), 20).await
             }
         },
     );

@@ -20,6 +20,7 @@ use crate::widget::{EnumQueryTabs, ToView};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
+    auth::get_user,
     comment::COMMENT_BATCH_SIZE,
     post::POST_BATCH_SIZE,
 };
@@ -41,7 +42,6 @@ pub struct SearchState {
     pub search_input: RwSignal<String>,
     pub search_input_debounced: Signal<String>,
     pub show_spoiler: RwSignal<bool>,
-    pub show_nsfw: RwSignal<bool>,
 }
 
 impl ToView for SearchType {
@@ -62,7 +62,6 @@ impl Default for SearchState {
             search_input,
             search_input_debounced: signal_debounced(search_input, 500.0),
             show_spoiler: RwSignal::new(false),
-            show_nsfw: RwSignal::new(false),
         }
     }
 }
@@ -260,11 +259,11 @@ pub async fn get_matching_sphere_header_vec(
 #[server]
 pub async fn search_spheres(
     search_query: String,
-    show_nsfw: bool,
     load_count: usize,
     num_already_loaded: usize,
 ) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
+    let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, load_count as i64, num_already_loaded as i64, &db_pool).await?;
     Ok(sphere_header_vec)
 }
@@ -273,10 +272,10 @@ pub async fn search_spheres(
 pub async fn search_posts(
     search_query: String,
     show_spoilers: bool,
-    show_nsfw: bool,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
+    let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let post_vec = ssr::search_posts(&search_query, show_spoilers, show_nsfw, POST_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(post_vec)
 }
@@ -294,10 +293,11 @@ pub async fn search_comments(
 #[server]
 pub async fn get_matching_user_header_vec(
     username_prefix: String,
-    show_nsfw: bool,
+    show_nsfw: Option<bool>,
     load_count: usize,
 ) -> Result<Vec<UserHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
+    let show_nsfw = show_nsfw.unwrap_or_default() || get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, load_count as i64, &db_pool).await?;
     Ok(user_header_vec)
 }
@@ -343,15 +343,13 @@ pub fn SearchSpheresWithContext() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
     view! {
-        <SearchSpheres search_state show_nsfw=true/>
+        <SearchSpheres search_state/>
     }
 }
 
 #[component]
 pub fn SearchSpheres(
     search_state: SearchState,
-    #[prop(optional)]
-    show_nsfw: bool,
     #[prop(default = "gap-4 w-3/4 2xl:w-1/2")]
     class: &'static str,
     #[prop(default = "w-full")]
@@ -373,10 +371,9 @@ pub fn SearchSpheres(
         move || async move {
             is_loading.set(true);
             let search_input = search_state.search_input_debounced.get();
-            let show_nsfw = search_state.show_nsfw.get();
             let initial_load = match search_input.is_empty() {
                 true => Ok(Vec::new()),
-                false => search_spheres(search_input, show_nsfw, num_fetch_sphere, 0).await,
+                false => search_spheres(search_input, num_fetch_sphere, 0).await,
             };
             handle_initial_load(initial_load, sphere_header_vec, load_error, Some(list_ref));
             is_loading.set(false);
@@ -389,8 +386,7 @@ pub fn SearchSpheres(
                 is_loading.set(true);
                 let sphere_count = sphere_header_vec.read_untracked().len();
                 let search_input = search_state.search_input_debounced.get_untracked();
-                let show_nsfw = search_state.show_nsfw.get_untracked();
-                let additional_load = search_spheres(search_input, show_nsfw, num_fetch_sphere, sphere_count).await;
+                let additional_load = search_spheres(search_input, num_fetch_sphere, sphere_count).await;
                 handle_additional_load(additional_load, sphere_header_vec, load_error);
                 is_loading.set(false);
             }
@@ -401,7 +397,6 @@ pub fn SearchSpheres(
             <SearchForm
                 search_state
                 show_spoiler_checkbox=false
-                show_nsfw_checkbox=show_nsfw
                 class=form_class
                 autofocus
             />
@@ -431,13 +426,15 @@ pub fn SearchPosts() -> impl IntoView
     let _initial_post_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            let initial_load = search_posts(
-                search_state.search_input_debounced.get(),
-                search_state.show_spoiler.get(),
-                search_state.show_nsfw.get(),
-                0,
-            ).await;
-            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
+            let search_input = search_state.search_input_debounced.get();
+            if !search_input.is_empty() {
+                let initial_load = search_posts(
+                    search_state.search_input_debounced.get(),
+                    search_state.show_spoiler.get(),
+                    0,
+                ).await;
+                handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
+            }
             is_loading.set(false);
         }
     );
@@ -449,7 +446,6 @@ pub fn SearchPosts() -> impl IntoView
                 let additional_load = search_posts(
                     search_state.search_input_debounced.get(),
                     search_state.show_spoiler.get(),
-                    search_state.show_nsfw.get(),
                     post_vec.read_untracked().len(),
                 ).await;
                 handle_additional_load(additional_load, post_vec, load_error);
@@ -461,7 +457,6 @@ pub fn SearchPosts() -> impl IntoView
         <SearchForm
             search_state
             show_spoiler_checkbox=true
-            show_nsfw_checkbox=true
         />
         <PostMiniatureList
             post_vec
@@ -486,11 +481,14 @@ pub fn SearchComments() -> impl IntoView
     let _initial_comment_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            let initial_load = search_comments(
-                search_state.search_input_debounced.get(),
-                0,
-            ).await;
-            handle_initial_load(initial_load, comment_vec, load_error, Some(list_ref));
+            let search_input = search_state.search_input_debounced.get();
+            if !search_input.is_empty() {
+                let initial_load = search_comments(
+                    search_state.search_input_debounced.get(),
+                    0,
+                ).await;
+                handle_initial_load(initial_load, comment_vec, load_error, Some(list_ref));
+            }
             is_loading.set(false);
         }
     );
@@ -512,7 +510,6 @@ pub fn SearchComments() -> impl IntoView
         <SearchForm
             search_state
             show_spoiler_checkbox=false
-            show_nsfw_checkbox=false
         />
         <CommentMiniatureList
             comment_vec
@@ -529,11 +526,11 @@ pub fn SearchUsers() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
     let search_user_resource = Resource::new(
-        move || (search_state.search_input_debounced.get(), search_state.show_nsfw.get()),
-        move |(search_input, show_nsfw)| async move {
+        move || search_state.search_input_debounced.get(),
+        move |search_input| async move {
             match search_input.is_empty() {
                 true => Ok(Vec::new()),
-                false => get_matching_user_header_vec(search_input, show_nsfw, 50).await,
+                false => get_matching_user_header_vec(search_input, None,50).await,
             }
         }
     );
@@ -541,7 +538,6 @@ pub fn SearchUsers() -> impl IntoView
         <SearchForm
             search_state
             show_spoiler_checkbox=false
-            show_nsfw_checkbox=true
         />
         <ArcTransitionUnpack resource=search_user_resource let:user_header_vec>
         { match user_header_vec.is_empty() {
@@ -567,7 +563,6 @@ pub fn SearchUsers() -> impl IntoView
 pub fn SearchForm(
     search_state: SearchState,
     show_spoiler_checkbox: bool,
-    show_nsfw_checkbox: bool,
     #[prop(default = "w-3/4 2xl:w-1/2")]
     class: &'static str,
     #[prop(default = true)]
@@ -594,12 +589,6 @@ pub fn SearchForm(
             { match show_spoiler_checkbox {
                 true => Some(view! {
                     <LabeledSignalCheckbox label="Spoiler" value=search_state.show_spoiler class="pl-1"/>
-                }),
-                false => None,
-            }}
-             { match show_nsfw_checkbox {
-                true => Some(view! {
-                    <LabeledSignalCheckbox label="NSFW" value=search_state.show_nsfw class="pl-1"/>
                 }),
                 false => None,
             }}

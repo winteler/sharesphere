@@ -19,7 +19,7 @@ use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
 use crate::unpack::{handle_additional_load, handle_initial_load, ArcSuspenseUnpack};
-use crate::user::User;
+use crate::user::{SetUserSettings, User};
 
 
 pub const PUBLISH_ROUTE: &str = "/publish";
@@ -28,6 +28,7 @@ pub const PUBLISH_ROUTE: &str = "/publish";
 pub struct GlobalState {
     pub login_action: ServerAction<Login>,
     pub logout_action: ServerAction<EndSession>,
+    pub set_settings_action: ServerAction<SetUserSettings>,
     pub subscribe_action: ServerAction<Subscribe>,
     pub unsubscribe_action: ServerAction<Unsubscribe>,
     pub edit_post_action: ServerAction<EditPost>,
@@ -42,9 +43,11 @@ impl Default for GlobalState {
     fn default() -> Self {
         let logout_action = ServerAction::<EndSession>::new();
         let create_sphere_action = ServerAction::<CreateSphere>::new();
+        let set_settings_action = ServerAction::<SetUserSettings>::new();
         Self {
             login_action: ServerAction::<Login>::new(),
             logout_action,
+            set_settings_action,
             subscribe_action: ServerAction::<Subscribe>::new(),
             unsubscribe_action: ServerAction::<Unsubscribe>::new(),
             edit_post_action: ServerAction::<EditPost>::new(),
@@ -57,6 +60,7 @@ impl Default for GlobalState {
                     (
                         logout_action.version().get(),
                         create_sphere_action.version().get(),
+                        set_settings_action.version().get(),
                     )
                 },
                 move |_| get_user(),

@@ -17,6 +17,7 @@ use crate::constants::{
 };
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
+use crate::form::LabeledSignalCheckbox;
 use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
 use crate::profile::get_profile_path;
 
@@ -593,6 +594,36 @@ pub fn LoadIndicators(
         <Show when=is_loading>
             <li><LoadingIcon/></li>
         </Show>
+    }
+}
+
+/// Component to display a checkbox to enable or disable NSFW results.
+/// If the user is not logged in or has disabled NSFW in his settings, the checkbox is hidden and deactivated.
+#[component]
+pub fn NsfwCheckbox(
+    show_nsfw: RwSignal<bool>,
+    #[prop(default = "NSFW")]
+    label: &'static str,
+    #[prop(default = "pl-1")]
+    class: &'static str,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    view! {
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+        {
+            move || Suspend::new(async move {
+                match state.user.await {
+                    Ok(Some(user)) if user.show_nsfw => Some(view! {
+                        <LabeledSignalCheckbox label value=show_nsfw class=class/>
+                    }),
+                    _ => {
+                        show_nsfw.set(false);
+                        None
+                    },
+                }
+            })
+        }
+        </Transition>
     }
 }
 

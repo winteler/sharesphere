@@ -49,25 +49,21 @@ pub fn LeftSidebar() -> impl IntoView {
     );
 
     view! {
-        <div class="flex flex-col justify-start w-60 h-full pl-2 pt-2 max-2xl:bg-base-300">
-            <div>
-                <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
-                    <SphereLinkListCollapse
-                        title="Subscribed"
-                        sphere_header_vec=sphere_header_vec.clone()
-                    />
-                </TransitionUnpack>
-            </div>
-            <div>
-                <TransitionUnpack resource=popular_sphere_vec_resource let:sphere_header_vec>
-                    <SphereLinkListCollapse
-                        title="Popular"
-                        sphere_header_vec=sphere_header_vec.clone()
-                        is_open=false
-                    />
-                </TransitionUnpack>
-            </div>
-            <div class="flex flex-col gap-2 pt-4">
+        <div class="flex flex-col justify-start w-60 h-full h-min-0 overflow-y-auto p-2 max-2xl:bg-base-300">
+            <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
+                <SphereLinkListCollapse
+                    title="Subscribed"
+                    sphere_header_vec=sphere_header_vec.clone()
+                />
+            </TransitionUnpack>
+            <TransitionUnpack resource=popular_sphere_vec_resource let:popular_sphere_header_vec>
+                <SphereLinkListCollapse
+                    title="Popular"
+                    sphere_header_vec=popular_sphere_header_vec.clone()
+                    is_open=false
+                />
+            </TransitionUnpack>
+            <div class="flex flex-col gap-2 pt-4 max-h-128">
                 <SearchSpheres search_state class="w-full gap-2" autofocus=false/>
             </div>
         </div>

@@ -43,7 +43,7 @@ pub const CREATE_SPHERE_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_SPHERE_SUF
 pub const SPHERE_ROUTE_PREFIX: &str = "/spheres";
 pub const SPHERE_ROUTE_PARAM_NAME: &str = "sphere_name";
 
-pub const SPHERE_FETCH_LIMIT: i64 = 20;
+pub const SPHERE_FETCH_LIMIT: usize = 100;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -347,7 +347,7 @@ pub async fn get_subscribed_sphere_headers() -> Result<Vec<SphereHeader>, Server
 #[server]
 pub async fn get_popular_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let sphere_header_vec = ssr::get_popular_sphere_headers(SPHERE_FETCH_LIMIT, &db_pool).await?;
+    let sphere_header_vec = ssr::get_popular_sphere_headers(20, &db_pool).await?;
     Ok(sphere_header_vec)
 }
 
@@ -521,7 +521,7 @@ pub fn InfiniteSphereLinkList(
 ) -> impl IntoView {
     view! {
         <Show when=move || !sphere_header_vec.read().is_empty()>
-            <ul class="flex flex-col overflow-y-auto w-full p-1"
+            <ul class="flex flex-col overflow-y-auto max-h-full w-full  p-1"
                 on:scroll=move |_| match list_ref.get() {
                     Some(node_ref) => {
                         if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {

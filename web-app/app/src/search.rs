@@ -22,7 +22,6 @@ use crate::{
     app::ssr::get_db_pool,
     comment::COMMENT_BATCH_SIZE,
     post::POST_BATCH_SIZE,
-    sphere::SPHERE_FETCH_LIMIT,
 };
 
 pub const SEARCH_ROUTE: &str = "/search";
@@ -76,7 +75,7 @@ pub mod ssr {
     use crate::errors::AppError;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinCategory;
-    use crate::sphere::SphereHeader;
+    use crate::sphere::{SphereHeader, SPHERE_FETCH_LIMIT};
     use crate::user::{UserHeader, USER_FETCH_LIMIT};
 
     pub async fn get_matching_sphere_header_vec(
@@ -145,7 +144,7 @@ pub mod ssr {
         )
             .bind(search_query)
             .bind(show_nsfw)
-            .bind(limit)
+            .bind(min(limit, SPHERE_FETCH_LIMIT as i64))
             .bind(offset)
             .fetch_all(db_pool)
             .await?;
@@ -250,7 +249,7 @@ pub async fn get_matching_sphere_header_vec(
     let db_pool = get_db_pool()?;
     let sphere_header_vec = ssr::get_matching_sphere_header_vec(
         &sphere_prefix,
-        SPHERE_FETCH_LIMIT,
+        10,
         &db_pool
     ).await?;
     Ok(sphere_header_vec)
@@ -260,10 +259,11 @@ pub async fn get_matching_sphere_header_vec(
 pub async fn search_spheres(
     search_query: String,
     show_nsfw: bool,
+    load_count: usize,
     num_already_loaded: usize,
 ) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, SPHERE_FETCH_LIMIT, num_already_loaded as i64, &db_pool).await?;
+    let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, load_count as i64, num_already_loaded as i64, &db_pool).await?;
     Ok(sphere_header_vec)
 }
 
@@ -285,7 +285,7 @@ pub async fn search_comments(
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithContext>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let comment_vec = ssr::search_comments(&search_query,COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
+    let comment_vec = ssr::search_comments(&search_query, COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(comment_vec)
 }
 
@@ -358,13 +358,14 @@ pub fn SearchSpheres(
     autofocus: bool,
 ) -> impl IntoView
 {
-    let class = format!("flex flex-col self-center {class}");
+    let class = format!("flex flex-col self-center min-h-0 {class}");
 
     let sphere_header_vec = RwSignal::new(Vec::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
+    let num_fetch_sphere = 50;
 
     let _initial_sphere_resource = LocalResource::new(
         move || async move {
@@ -373,7 +374,7 @@ pub fn SearchSpheres(
             let show_nsfw = search_state.show_nsfw.get();
             let initial_load = match search_input.is_empty() {
                 true => Ok(Vec::new()),
-                false => search_spheres(search_input, show_nsfw, 0).await,
+                false => search_spheres(search_input, show_nsfw, num_fetch_sphere, 0).await,
             };
             handle_initial_load(initial_load, sphere_header_vec, load_error, Some(list_ref));
             is_loading.set(false);
@@ -384,9 +385,10 @@ pub fn SearchSpheres(
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
+                let sphere_count = sphere_header_vec.read_untracked().len();
                 let search_input = search_state.search_input_debounced.get_untracked();
                 let show_nsfw = search_state.show_nsfw.get_untracked();
-                let additional_load = search_spheres(search_input, show_nsfw, 0).await;
+                let additional_load = search_spheres(search_input, show_nsfw, num_fetch_sphere, sphere_count).await;
                 handle_additional_load(additional_load, sphere_header_vec, load_error);
                 is_loading.set(false);
             }
@@ -401,7 +403,7 @@ pub fn SearchSpheres(
                 class=form_class
                 autofocus
             />
-            <div class="bg-base-200 rounded">
+            <div class="bg-base-200 rounded min-h-0 max-h-full">
                 <InfiniteSphereLinkList
                     sphere_header_vec
                     is_loading

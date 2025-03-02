@@ -548,14 +548,14 @@ pub fn TitleCollapse<C: IntoView + 'static>(
     let show_children = RwSignal::new(is_open);
     let children_class = move || match show_children.get() {
         true => "transition duration-500 opacity-100 visible",
-        false => "opacity-0 invisible h-0",
+        false => "opacity-0 invisible h-0 max-h-0 overflow-hidden",
     };
     let arrow_class = Signal::derive(move || match show_children.get() {
         true => "h-3 w-3 transition duration-200",
         false => "h-3 w-3 transition duration-200 rotate-180",
     });
     view! {
-        <div class="flex flex-col">
+        <div class="flex flex-col flex-shrink-0 relative">
             <button
                 class="p-1 rounded-md hover:bg-base-content/20"
                 on:click=move |_| show_children.update(|value| *value = !*value)

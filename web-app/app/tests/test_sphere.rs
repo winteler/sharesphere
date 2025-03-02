@@ -446,7 +446,7 @@ async fn populate_dev_db() -> Result<(), AppError> {
     create_sphere("nsfw", "hot_stuff", true, &nsfw_user, &db_pool).await?;
 
     // create other test spheres
-    let num_spheres = 50;
+    let num_spheres = 100;
     for i in 0..num_spheres {
         create_sphere(&format!("test-{i}"), &format!("Test sphere n°{i}"), false, &test_user, &db_pool).await?;
     }

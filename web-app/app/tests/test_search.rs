@@ -165,7 +165,9 @@ async fn test_search_spheres() {
         &db_pool
     ).await.expect("Sphere 4 should be created.");
 
-    let sphere_2 = set_sphere_num_members(sphere_2.sphere_id, 1, &db_pool).await.expect("Sphere 2 num_members should be set.");
+    let sphere_1 = set_sphere_num_members(sphere_1.sphere_id, 3, &db_pool).await.expect("Sphere 1 num_members should be set.");
+    let sphere_2 = set_sphere_num_members(sphere_2.sphere_id, 2, &db_pool).await.expect("Sphere 2 num_members should be set.");
+    let sphere_3 = set_sphere_num_members(sphere_3.sphere_id, 1, &db_pool).await.expect("Sphere 3 num_members should be set.");
 
     let sphere_1_header = SphereHeader::from(&sphere_1);
     let sphere_2_header = SphereHeader::from(&sphere_2);
@@ -180,6 +182,10 @@ async fn test_search_spheres() {
     assert_eq!(music_sphere_vec.first(), Some(&sphere_1_header));
     assert_eq!(music_sphere_vec.get(1), Some(&sphere_2_header));
     assert_eq!(music_sphere_vec.get(2), Some(&sphere_3_header));
+
+    let music_sphere_vec = search_spheres("music", true, 1, 1, &db_pool).await.expect("Music search should run");
+    assert_eq!(music_sphere_vec.len(), 1);
+    assert_eq!(music_sphere_vec.first(), Some(&sphere_2_header));
 
     let music_sphere_vec = search_spheres("music", false, 10, 0, &db_pool).await.expect("Music search should run");
     assert_eq!(music_sphere_vec.len(), 2);
@@ -258,6 +264,11 @@ async fn test_search_posts() {
     assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
     assert_eq!(bonjour_post_vec.get(3), Some(&post_5));
 
+    let bonjour_post_vec = search_posts("bonjour", true, true, 2, 1, &db_pool).await.expect("Bonjour search should run");
+    assert_eq!(bonjour_post_vec.len(), 2);
+    assert_eq!(bonjour_post_vec.first(), Some(&post_3));
+    assert_eq!(bonjour_post_vec.get(1), Some(&post_4));
+
     let bonjour_post_vec = search_posts("bonjour", false, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 3);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
@@ -320,6 +331,14 @@ async fn test_search_comments() {
         &user, &db_pool
     ).await.expect("Général comment 2 should be created.");
     let comment_4 = create_comment(
+        post_2.post.post_id,
+        Some(comment_3.comment_id),
+        "Non en général, on dit une chocolatine.",
+        None,
+        false,
+        &user, &db_pool
+    ).await.expect("Général comment 3 should be created.");
+    let comment_5 = create_comment(
         post_2.post.post_id, None, 
         "xml_body", 
         Some(" **Es ist eine Falle!**"), 
@@ -331,7 +350,8 @@ async fn test_search_comments() {
     let comment_1 = CommentWithContext::from_comment(comment_1, sphere_1_header.clone(), &post_1.post);
     let comment_2 = CommentWithContext::from_comment(comment_2, sphere_1_header, &post_1.post);
     let comment_3 = CommentWithContext::from_comment(comment_3, sphere_2_header.clone(), &post_2.post);
-    let comment_4 = CommentWithContext::from_comment(comment_4, sphere_2_header, &post_2.post);
+    let comment_4 = CommentWithContext::from_comment(comment_4, sphere_2_header.clone(), &post_2.post);
+    let comment_5 = CommentWithContext::from_comment(comment_5, sphere_2_header, &post_2.post);
 
     let no_match_comment_vec = search_comments("no match", 10, 0, &db_pool).await.expect("No match search should run");
     assert!(no_match_comment_vec.is_empty());
@@ -341,11 +361,16 @@ async fn test_search_comments() {
     assert_eq!(hello_comment_vec.first(), Some(&comment_1));
 
     let general_comment_vec = search_comments("général", 10, 0, &db_pool).await.expect("General search should run");
-    assert_eq!(general_comment_vec.len(), 2);
+    assert_eq!(general_comment_vec.len(), 3);
     assert_eq!(general_comment_vec.first(), Some(&comment_2));
     assert_eq!(general_comment_vec.get(1), Some(&comment_3));
+    assert_eq!(general_comment_vec.get(2), Some(&comment_4));
+
+    let general_comment_vec = search_comments("général", 1, 1, &db_pool).await.expect("General search should run");
+    assert_eq!(general_comment_vec.len(), 1);
+    assert_eq!(general_comment_vec.first(), Some(&comment_3));
 
     let falle_comment_vec = search_comments("Falle", 10, 0, &db_pool).await.expect("Falle search should run");
     assert_eq!(falle_comment_vec.len(), 1);
-    assert_eq!(falle_comment_vec.first(), Some(&comment_4));
+    assert_eq!(falle_comment_vec.first(), Some(&comment_5));
 }

@@ -203,6 +203,8 @@ pub mod ssr {
                     comment_document @@ plainto_tsquery('simple', $1) AND
                     moderator_id IS NULL
                 ORDER BY rank DESC, score DESC
+                LIMIT $2
+                OFFSET $3
             ) c
             JOIN posts p ON p.post_id = c.post_id
             JOIN spheres s ON s.sphere_id = p.sphere_id"

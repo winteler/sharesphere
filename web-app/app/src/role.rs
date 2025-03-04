@@ -7,7 +7,7 @@ use strum_macros::{Display, EnumString, IntoStaticStr};
 
 use crate::app::GlobalState;
 use crate::errors::AppError;
-use crate::unpack::ArcSuspenseUnpack;
+use crate::unpack::{SuspenseUnpack};
 #[cfg(feature = "ssr")]
 use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, user::ssr::SqlUser};
 
@@ -280,16 +280,16 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
     let state = expect_context::<GlobalState>();
     let children = StoredValue::new(children.into_inner());
     view! {
-        <ArcSuspenseUnpack resource=state.user let:user>
-            <Show when=move || match &*user {
-                Some(user) => user.check_permissions(&sphere_name.read(), permission_level).is_ok(),
-                None => false,
-            }>
-            {
-                children.with_value(|children| children())
+        <SuspenseUnpack resource=state.user let:user>
+        {
+            match user {
+                Some(user) if user.check_permissions(&sphere_name.read(), permission_level).is_ok() => {
+                    Some(children.with_value(|children| children()))
+                },
+                _ => None,
             }
-            </Show>
-        </ArcSuspenseUnpack>
+        }
+        </SuspenseUnpack>
     }.into_any()
 }
 

@@ -18,7 +18,7 @@ use crate::search::{Search, SEARCH_ROUTE};
 use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-use crate::unpack::{handle_additional_load, handle_initial_load, ArcSuspenseUnpack};
+use crate::unpack::{handle_additional_load, handle_initial_load, SuspenseUnpack};
 use crate::user::{SetUserSettings, User};
 
 
@@ -222,17 +222,14 @@ fn LoginGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <ArcSuspenseUnpack resource=state.user let:user>
+        <SuspenseUnpack resource=state.user let:user>
         {
-            match *user {
-                Some(ref user) => {
-                    log::debug!("Login guard, current user: {user:?}");
-                    view! { <Outlet/> }.into_any()
-                },
+            match user {
+                Some(_) => view! { <Outlet/> }.into_any(),
                 None => view! { <LoginWindow/> }.into_any(),
             }
         }
-        </ArcSuspenseUnpack>
+        </SuspenseUnpack>
     }
 }
 

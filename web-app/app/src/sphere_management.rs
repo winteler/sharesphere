@@ -6,7 +6,6 @@ use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 use server_fn::codec::{MultipartData, MultipartFormData};
-use std::sync::Arc;
 use strum::IntoEnumIterator;
 
 use crate::app::{GlobalState, LoginWindow};
@@ -20,7 +19,7 @@ use crate::satellite::SatellitePanel;
 use crate::search::get_matching_user_header_vec;
 use crate::sphere::{Sphere, SphereState};
 use crate::sphere_category::SphereCategoriesDialog;
-use crate::unpack::{ArcSuspenseUnpack, ArcTransitionUnpack, SuspenseUnpack};
+use crate::unpack::{SuspenseUnpack, TransitionUnpack};
 use crate::widget::{EnumDropdown, ModalDialog, SphereImageForm};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -351,9 +350,9 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
             // TODO add overflow-y-auto max-h-full?
             <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
                 <div class="text-xl text-center">"Sphere description"</div>
-                <ArcSuspenseUnpack resource=sphere_state.sphere_resource let:sphere>
+                <SuspenseUnpack resource=sphere_state.sphere_resource let:sphere>
                     <SphereDescriptionForm sphere=sphere/>
-                </ArcSuspenseUnpack>
+                </SuspenseUnpack>
             </div>
         </AuthorizedShow>
     }
@@ -361,8 +360,8 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
 
 /// Form to edit a sphere's description
 #[component]
-pub fn SphereDescriptionForm(
-    sphere: Arc<Sphere>,
+pub fn SphereDescriptionForm<'a>(
+    sphere: &'a Sphere,
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let textarea_ref = NodeRef::<html::Textarea>::new();
@@ -459,36 +458,34 @@ pub fn ModeratorPanel() -> impl IntoView {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Moderators"</div>
-            <ArcTransitionUnpack resource=sphere_state.sphere_roles_resource let:sphere_role_vec>
-                <div class="flex flex-col gap-1">
-                    <div class="flex gap-1 border-b border-base-content/20">
-                        <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
-                        <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
-                    </div>
-                    <For
-                        each= move || (*sphere_role_vec).clone().into_iter().enumerate()
-                        key=|(_index, role)| (role.user_id, role.permission_level)
-                        children=move |(index, role)| {
-                            let username = StoredValue::new(role.username);
-                            view! {
-                                <div
-                                    class="flex gap-1 py-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
-                                    on:click=move |_| {
-                                        username_input.set(username.get_value());
-                                        match select_ref.get_untracked() {
-                                            Some(select_ref) => select_ref.set_selected_index(index as i32),
-                                            None => log::error!("Form permission level select failed to load."),
-                                        };
-                                    }
-                                >
-                                    <div class="w-2/5 px-4 select-none">{username.get_value()}</div>
-                                    <div class="w-2/5 px-4 select-none">{role.permission_level.to_string()}</div>
-                                </div>
-                            }
-                        }
-                    />
+            <div class="flex flex-col gap-1">
+                <div class="flex gap-1 border-b border-base-content/20">
+                    <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
+                    <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
                 </div>
-            </ArcTransitionUnpack>
+                <TransitionUnpack resource=sphere_state.sphere_roles_resource let:sphere_role_vec>
+                {
+                    sphere_role_vec.iter().enumerate().map(|(index, role)| {
+                        let username = role.username.clone();
+                        view! {
+                            <div
+                                class="flex gap-1 py-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                on:click=move |_| {
+                                    username_input.set(username.clone());
+                                    match select_ref.get_untracked() {
+                                        Some(select_ref) => select_ref.set_selected_index(index as i32),
+                                        None => log::error!("Form permission level select failed to load."),
+                                    };
+                                }
+                            >
+                                <div class="w-2/5 px-4 select-none">{role.username.clone()}</div>
+                                <div class="w-2/5 px-4 select-none">{role.permission_level.to_string()}</div>
+                            </div>
+                        }
+                    }).collect_view()
+                }
+                </TransitionUnpack>
+            </div>
             <PermissionLevelForm
                 sphere_name
                 username_input
@@ -543,21 +540,30 @@ pub fn PermissionLevelForm(
                             prop:value=username_input
                         />
                         <Show when=move || !username_input.read().is_empty()>
-                            <ArcTransitionUnpack resource=matching_user_resource let:user_header_vec>
-                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
-                                    <For
-                                        each= move || (*user_header_vec).clone().into_iter()
-                                        key=|user_header| user_header.username.clone()
-                                        let(user_header)
-                                    >
-                                        <li>
-                                            <button type="button" value=user_header.username on:click=move |ev| username_input.set(event_target_value(&ev))>
-                                                {user_header.username.clone()}
-                                            </button>
-                                        </li>
-                                    </For>
-                                </ul>
-                            </ArcTransitionUnpack>
+                            <TransitionUnpack resource=matching_user_resource let:user_header_vec>
+                            {
+                                let user_header_vec = user_header_vec.clone();
+                                view ! {
+                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
+                                        <For
+                                            each=move || user_header_vec.clone().into_iter()
+                                            key=|user_header| user_header.username.clone()
+                                            let(user_header)
+                                        >
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    value=user_header.username
+                                                    on:click=move |ev| username_input.set(event_target_value(&ev))
+                                                >
+                                                    {user_header.username.clone()}
+                                                </button>
+                                            </li>
+                                        </For>
+                                    </ul>
+                                }
+                            }
+                            </TransitionUnpack>
                         </Show>
                     </div>
                     <EnumDropdown
@@ -609,41 +615,41 @@ pub fn BanPanel() -> impl IntoView {
                         <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
                     </div>
                 </div>
-                <ArcTransitionUnpack resource=banned_users_resource let:banned_user_vec>
-                    <For
-                        each= move || (*banned_user_vec).clone().into_iter()
-                        key=|ban| (ban.user_id, ban.until_timestamp)
-                        let(user_ban)
-                    >
-                        <div class="flex">
-                            <div class="w-2/5 px-6">{user_ban.username}</div>
-                            <div class="w-2/5 px-6">{
-                                match user_ban.until_timestamp {
-                                    Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
-                                    None => String::from("Permanent"),
-                                }
-                            }</div>
-                            <div class="w-1/5 flex justify-end gap-1">
-                                <BanInfoButton
-                                    post_id=user_ban.post_id
-                                    comment_id=user_ban.comment_id
-                                />
-                                <AuthorizedShow sphere_name permission_level=PermissionLevel::Ban>
-                                    <ActionForm action=unban_action>
-                                        <input
-                                            name="ban_id"
-                                            class="hidden"
-                                            value=user_ban.ban_id
-                                        />
-                                        <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
-                                            <DeleteIcon/>
-                                        </button>
-                                    </ActionForm>
-                                </AuthorizedShow>
+                <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
+                {
+                    banned_user_vec.iter().map(|user_ban| {
+                        let duration_string = match user_ban.until_timestamp {
+                            Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
+                            None => String::from("Permanent"),
+                        };
+                        let ban_id = user_ban.ban_id;
+                        view! {
+                            <div class="flex">
+                                <div class="w-2/5 px-6">{user_ban.username.clone()}</div>
+                                <div class="w-2/5 px-6">{duration_string}</div>
+                                <div class="w-1/5 flex justify-end gap-1">
+                                    <BanInfoButton
+                                        post_id=user_ban.post_id
+                                        comment_id=user_ban.comment_id
+                                    />
+                                    <AuthorizedShow sphere_name permission_level=PermissionLevel::Ban>
+                                        <ActionForm action=unban_action>
+                                            <input
+                                                name="ban_id"
+                                                class="hidden"
+                                                value=ban_id
+                                            />
+                                            <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                                                <DeleteIcon/>
+                                            </button>
+                                        </ActionForm>
+                                    </AuthorizedShow>
+                                </div>
                             </div>
-                        </div>
-                    </For>
-                </ArcTransitionUnpack>
+                        }
+                    }).collect_view()
+                }
+                </TransitionUnpack>
             </div>
         </div>
     }
@@ -675,7 +681,7 @@ pub fn BanInfoButton(
                 );
                 view! {
                     <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
-                        <ArcSuspenseUnpack resource=ban_detail_resource let:moderation_info>
+                        <SuspenseUnpack resource=ban_detail_resource let:moderation_info>
                             <ModerationInfoDialog moderation_info/>
                             <button
                                 type="button"
@@ -684,7 +690,7 @@ pub fn BanInfoButton(
                             >
                                 "Close"
                             </button>
-                        </ArcSuspenseUnpack>
+                        </SuspenseUnpack>
                     </div>
                 }
             }

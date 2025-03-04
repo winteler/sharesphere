@@ -2,7 +2,6 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::app::GlobalState;
 use crate::comment::Comment;
@@ -15,7 +14,7 @@ use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::rule::get_rule_by_id;
 use crate::rule::Rule;
 use crate::sphere::SphereState;
-use crate::unpack::{ActionError, ArcSuspenseUnpack, ArcTransitionUnpack};
+use crate::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons};
 #[cfg(feature = "ssr")]
 use crate::{
@@ -532,7 +531,7 @@ pub fn RuleSelect(
                 class="select select-bordered"
                 name=name
             >
-                <ArcTransitionUnpack resource=sphere_state.sphere_rules_resource let:rules_vec>
+                <TransitionUnpack resource=sphere_state.sphere_rules_resource let:rules_vec>
                 {
                     rules_vec.iter().map(|rule| {
                         view! {
@@ -542,7 +541,7 @@ pub fn RuleSelect(
                         }
                     }).collect_view()
                 }
-                </ArcTransitionUnpack>
+                </TransitionUnpack>
             </select>
         </div>
     }.into_any()
@@ -673,16 +672,16 @@ pub fn ContentModerationInfo(
     );
 
     view! {
-        <ArcSuspenseUnpack resource=mod_info_resource let:moderation_info>
+        <SuspenseUnpack resource=mod_info_resource let:moderation_info>
             <ModerationInfoDialog moderation_info/>
-        </ArcSuspenseUnpack>
+        </SuspenseUnpack>
     }
 }
 
 /// Component to display the details of a moderation instance
 #[component]
-pub fn ModerationInfoDialog(
-    moderation_info: Arc<ModerationInfo>,
+pub fn ModerationInfoDialog<'a>(
+    moderation_info: &'a ModerationInfo,
 ) -> impl IntoView {
     view! {
         <div class="flex flex-col gap-3">

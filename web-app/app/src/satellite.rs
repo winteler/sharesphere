@@ -17,7 +17,7 @@ use crate::ranking::SortType;
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::{get_sphere_with_user_info, SphereState, SphereToolbar, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_header_map, get_sphere_category_vec};
-use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, ArcSuspenseUnpack, SuspenseUnpack, TransitionUnpack};
+use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons, TagsWidget};
 
 #[cfg(feature = "ssr")]
@@ -429,13 +429,13 @@ pub fn SatelliteContent() -> impl IntoView {
                 />
             </div>
         </TransitionUnpack>
-        <ArcSuspenseUnpack resource=sphere_with_sub_resource let:sphere>
+        <SuspenseUnpack resource=sphere_with_sub_resource let:sphere>
             <SphereToolbar
                 sphere
                 sort_signal
                 category_id_signal
             />
-        </ArcSuspenseUnpack>
+        </SuspenseUnpack>
         <PostMiniatureList
             post_vec
             is_loading

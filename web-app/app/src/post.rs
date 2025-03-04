@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::Arc;
 
 use const_format::concatcp;
 use leptos::html;
@@ -25,7 +24,7 @@ use crate::satellite::SATELLITE_ROUTE_PREFIX;
 use crate::search::get_matching_sphere_header_vec;
 use crate::sphere::{SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
-use crate::unpack::{ActionError, ArcTransitionUnpack, SuspenseUnpack, TransitionUnpack};
+use crate::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
 use crate::widget::{AuthorWidget, CommentCountWidget, LoadIndicators, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
@@ -987,7 +986,7 @@ pub fn Post() -> impl IntoView {
             }
             node_ref=container_ref
         >
-            <ArcTransitionUnpack resource=post_resource let:post_with_info>
+            <TransitionUnpack resource=post_resource let:post_with_info>
                 <div class="card">
                     <div class="card-body">
                         <div class="flex flex-col gap-2">
@@ -1004,7 +1003,7 @@ pub fn Post() -> impl IntoView {
                         </div>
                     </div>
                 </div>
-            </ArcTransitionUnpack>
+            </TransitionUnpack>
             <CommentSection post_id comment_vec is_loading additional_load_count/>
         </div>
     }.into_any()
@@ -1062,8 +1061,8 @@ pub fn PostBody(post: Post) -> impl IntoView {
 
 /// Component to encapsulate the widgets associated with each post
 #[component]
-fn PostWidgetBar(
-    post: Arc<PostWithInfo>,
+fn PostWidgetBar<'a>(
+    post: &'a PostWithInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     view! {

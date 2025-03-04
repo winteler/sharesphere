@@ -603,13 +603,13 @@ pub async fn set_user_settings(
 
 /// Component to display a user header
 #[component]
-pub fn UserHeaderWidget(
-    user_header: UserHeader,
+pub fn UserHeaderWidget<'a>(
+    user_header: &'a UserHeader,
 ) -> impl IntoView {
     view! {
         <div class="flex gap-1.5 items-center text-sm">
             <UserIcon/>
-            {user_header.username}
+            {user_header.username.clone()}
             {
                 match user_header.is_nsfw {
                     true => Some(view! { <NsfwIcon/> }),
@@ -622,8 +622,8 @@ pub fn UserHeaderWidget(
 
 /// Component to display a user header and redirect to his profile upon click
 #[component]
-pub fn UserHeaderLink(
-    user_header: UserHeader,
+pub fn UserHeaderLink<'a>(
+    user_header: &'a UserHeader,
 ) -> impl IntoView {
     let user_profile_path = get_profile_path(&user_header.username);
     view! {

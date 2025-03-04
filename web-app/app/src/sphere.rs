@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use const_format::concatcp;
 use leptos::either::Either;
 use leptos::html;
@@ -29,7 +27,7 @@ use crate::satellite::{get_satellite_path, get_satellite_vec_by_sphere_name, Act
 use crate::sidebar::SphereSidebar;
 use crate::sphere_category::{get_sphere_category_header_map, get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategory};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
-use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, ArcSuspenseUnpack, ArcTransitionUnpack, TransitionUnpack};
+use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::get_db_pool,
@@ -619,7 +617,7 @@ pub fn SphereBanner() -> impl IntoView {
 
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
-            <ArcTransitionUnpack resource=sphere_state.sphere_resource let:sphere>
+            <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
             {
                 let sphere_banner_class = format!(
                     "flex-none bg-cover bg-center bg-no-repeat bg-[url('{}')] rounded w-full h-40 flex items-center justify-center",
@@ -637,7 +635,7 @@ pub fn SphereBanner() -> impl IntoView {
                     </a>
                 }.into_any()
             }
-            </ArcTransitionUnpack>
+            </TransitionUnpack>
             <Outlet/>
         </div>
         <div class="max-2xl:hidden">
@@ -700,13 +698,13 @@ pub fn SphereContents() -> impl IntoView {
 
     view! {
         <ActiveSatelliteList/>
-        <ArcSuspenseUnpack resource=sphere_with_sub_resource let:sphere>
+        <SuspenseUnpack resource=sphere_with_sub_resource let:sphere>
             <SphereToolbar
                 sphere
                 sort_signal=state.post_sort_type
                 category_id_signal=sphere_state.category_id_filter
             />
-        </ArcSuspenseUnpack>
+        </SuspenseUnpack>
         <PostMiniatureList
             post_vec
             is_loading
@@ -720,8 +718,8 @@ pub fn SphereContents() -> impl IntoView {
 
 /// Component to display the sphere toolbar
 #[component]
-pub fn SphereToolbar(
-    sphere: Arc<SphereWithUserInfo>,
+pub fn SphereToolbar<'a>(
+    sphere: &'a SphereWithUserInfo,
     sort_signal: RwSignal<SortType>,
     category_id_signal: RwSignal<Option<i64>>
 ) -> impl IntoView {

@@ -9,7 +9,7 @@ use crate::errors::AppError;
 use crate::icons::{DeleteIcon, EditIcon, PlusIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::SphereState;
-use crate::unpack::ArcTransitionUnpack;
+use crate::unpack::{TransitionUnpack};
 use crate::widget::{ModalDialog, ModalFormButtons};
 
 #[cfg(feature = "ssr")]
@@ -289,49 +289,54 @@ pub fn SphereRulesPanel() -> impl IntoView {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
             <div class="text-xl text-center">"Rules"</div>
-            <ArcTransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
-                <div class="flex flex-col gap-1">
-                    <div class="border-b border-base-content/20 pl-1">
-                        <div class="w-5/6 flex gap-1">
-                            <div class="w-1/12 py-2 font-bold">"N°"</div>
-                            <div class="w-5/12 py-2 font-bold">"Title"</div>
-                            <div class="w-6/12 py-2 font-bold">"Description"</div>
-                        </div>
+            <div class="flex flex-col gap-1">
+                <div class="border-b border-base-content/20 pl-1">
+                    <div class="w-5/6 flex gap-1">
+                        <div class="w-1/12 py-2 font-bold">"N°"</div>
+                        <div class="w-5/12 py-2 font-bold">"Title"</div>
+                        <div class="w-6/12 py-2 font-bold">"Description"</div>
                     </div>
-                    <For
-                        each= move || (*sphere_rule_vec).clone().into_iter()
-                        key=|rule| rule.rule_id
-                        children=move |rule| {
-                            let rule = StoredValue::new(rule);
-                            let show_edit_form = RwSignal::new(false);
-                            view! {
-                                <div class="flex gap-1 justify-between rounded pl-1">
-                                    <div class="w-5/6 flex gap-1">
-                                        <div class="w-1/12 select-none">{rule.get_value().priority}</div>
-                                        <div class="w-5/12 select-none">{rule.get_value().title}</div>
-                                        <div class="w-6/12 select-none">{rule.get_value().description}</div>
-                                    </div>
-                                    <div class="flex gap-1 justify-end">
-                                        <button
-                                            class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
-                                            on:click=move |_| show_edit_form.update(|value| *value = !*value)
-                                        >
-                                            <EditIcon/>
-                                        </button>
-                                        <DeleteRuleButton rule/>
-                                    </div>
-                                </div>
-                                <ModalDialog
-                                    class="w-full max-w-xl"
-                                    show_dialog=show_edit_form
-                                >
-                                    <EditRuleForm rule show_form=show_edit_form/>
-                                </ModalDialog>
-                            }
-                        }
-                    />
                 </div>
-            </ArcTransitionUnpack>
+                <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
+                {
+                    let sphere_rule_vec = sphere_rule_vec.clone();
+                    view! {
+                        <For
+                            each=move || sphere_rule_vec.clone().into_iter()
+                            key=|rule| rule.rule_id
+                            children=move |rule| {
+                                let rule = StoredValue::new(rule);
+                                let show_edit_form = RwSignal::new(false);
+                                view! {
+                                    <div class="flex gap-1 justify-between rounded pl-1">
+                                        <div class="w-5/6 flex gap-1">
+                                            <div class="w-1/12 select-none">{rule.get_value().priority}</div>
+                                            <div class="w-5/12 select-none">{rule.get_value().title}</div>
+                                            <div class="w-6/12 select-none">{rule.get_value().description}</div>
+                                        </div>
+                                        <div class="flex gap-1 justify-end">
+                                            <button
+                                                class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+                                                on:click=move |_| show_edit_form.update(|value| *value = !*value)
+                                            >
+                                                <EditIcon/>
+                                            </button>
+                                            <DeleteRuleButton rule/>
+                                        </div>
+                                    </div>
+                                    <ModalDialog
+                                        class="w-full max-w-xl"
+                                        show_dialog=show_edit_form
+                                    >
+                                        <EditRuleForm rule show_form=show_edit_form/>
+                                    </ModalDialog>
+                                }
+                            }
+                        />
+                    }
+                }
+                </TransitionUnpack>
+            </div>
             <CreateRuleForm/>
         </div>
     }

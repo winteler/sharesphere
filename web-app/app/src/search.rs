@@ -13,7 +13,7 @@ use crate::icons::MagnifierIcon;
 use crate::post::{PostMiniatureList, PostWithSphereInfo};
 use crate::sidebar::HomeSidebar;
 use crate::sphere::{InfiniteSphereLinkList, SphereHeader};
-use crate::unpack::{handle_additional_load, handle_initial_load, ArcTransitionUnpack};
+use crate::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
 use crate::user::{UserHeader, UserHeaderLink};
 use crate::widget::{EnumQueryTabs, ToView};
 
@@ -539,22 +539,21 @@ pub fn SearchUsers() -> impl IntoView
             search_state
             show_spoiler_checkbox=false
         />
-        <ArcTransitionUnpack resource=search_user_resource let:user_header_vec>
+        <TransitionUnpack resource=search_user_resource let:user_header_vec>
         { match user_header_vec.is_empty() {
             true => None,
-            false => Some(view! {
-                <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded overflow-y-auto max-h-full w-3/4 2xl:w-1/2 ">
-                    <For
-                        each= move || (*user_header_vec).clone().into_iter()
-                        key=|user_header| user_header.username.clone()
-                        let(user_header)
-                    >
-                        <UserHeaderLink user_header/>
-                    </For>
-                </div>
-            })
+            false => {
+                let user_header_link_list = user_header_vec.iter().map(|user_header| view! {
+                    <UserHeaderLink user_header/>
+                }).collect_view();
+                Some(view! {
+                    <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded overflow-y-auto max-h-full w-3/4 2xl:w-1/2 ">
+                        {user_header_link_list}
+                    </div>
+                })
+            }
         }}
-        </ArcTransitionUnpack>
+        </TransitionUnpack>
     }
 }
 

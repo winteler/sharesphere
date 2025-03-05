@@ -538,10 +538,9 @@ async fn test_get_subscribed_post_vec_with_filters() {
         &db_pool,
     ).await.expect("Sphere 3 with posts should be created");
 
-    let mut no_filter_expected_post = post_vec.clone();
-    no_filter_expected_post.push(new_spoiler_post.clone());
-    no_filter_expected_post.push(old_spoiler_post.clone());
-    no_filter_expected_post.push(nsfw_post.clone());
+    let mut default_filter_expected_post = post_vec.clone();
+    default_filter_expected_post.push(new_spoiler_post.clone());
+    default_filter_expected_post.push(old_spoiler_post.clone());
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = ssr::get_subscribed_post_vec(
@@ -555,8 +554,8 @@ async fn test_get_subscribed_post_vec_with_filters() {
             .await
             .expect("Should load subscribed posts.");
 
-        sort_post_vec(&mut no_filter_expected_post, sort_type, true);
-        assert_eq!(post_vec, no_filter_expected_post);
+        sort_post_vec(&mut default_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, default_filter_expected_post);
     }
 
     user.days_hide_spoiler = Some(1);
@@ -727,10 +726,9 @@ async fn test_get_sorted_post_vec_with_filters() {
         &db_pool,
     ).await;
     
-    let mut no_filter_expected_post = post_vec.clone();
-    no_filter_expected_post.push(new_spoiler_post.clone());
-    no_filter_expected_post.push(old_spoiler_post.clone());
-    no_filter_expected_post.push(nsfw_post.clone());
+    let mut default_filter_expected_post = post_vec.clone();
+    default_filter_expected_post.push(new_spoiler_post.clone());
+    default_filter_expected_post.push(old_spoiler_post.clone());
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = ssr::get_sorted_post_vec(
@@ -740,8 +738,8 @@ async fn test_get_sorted_post_vec_with_filters() {
             Some(&user), 
             &db_pool
         ).await.expect("Post vec should be loaded");
-        sort_post_vec(&mut no_filter_expected_post, sort_type, true);
-        assert_eq!(post_vec, no_filter_expected_post);
+        sort_post_vec(&mut default_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, default_filter_expected_post);
     }
 
     user.days_hide_spoiler = Some(1);
@@ -1089,10 +1087,9 @@ async fn test_get_post_vec_by_sphere_name_with_filters() {
         &db_pool,
     ).await.expect("Sphere 2 with posts should be created");
 
-    let mut no_filter_expected_post = post_vec.clone();
-    no_filter_expected_post.push(new_spoiler_post.clone());
-    no_filter_expected_post.push(old_spoiler_post.clone());
-    no_filter_expected_post.push(nsfw_post.clone());
+    let mut default_filter_expected_post = post_vec.clone();
+    default_filter_expected_post.push(new_spoiler_post.clone());
+    default_filter_expected_post.push(old_spoiler_post.clone());
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = ssr::get_post_vec_by_sphere_name(
@@ -1109,8 +1106,8 @@ async fn test_get_post_vec_by_sphere_name_with_filters() {
             .into_iter()
             .map(|post| PostWithSphereInfo::from_post(post, None, None)).collect();
         
-        sort_post_vec(&mut no_filter_expected_post, sort_type, true);
-        assert_eq!(post_vec, no_filter_expected_post);
+        sort_post_vec(&mut default_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, default_filter_expected_post);
     }
 
     user.days_hide_spoiler = Some(1);
@@ -1524,10 +1521,9 @@ async fn test_get_post_vec_by_satellite_id_with_filters() {
         &db_pool,
     ).await.expect("Sphere 2 with posts should be created");
 
-    let mut no_filter_expected_post = post_vec.clone();
-    no_filter_expected_post.push(new_spoiler_post.clone());
-    no_filter_expected_post.push(old_spoiler_post.clone());
-    no_filter_expected_post.push(nsfw_post.clone());
+    let mut default_filter_expected_post = post_vec.clone();
+    default_filter_expected_post.push(new_spoiler_post.clone());
+    default_filter_expected_post.push(old_spoiler_post.clone());
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = ssr::get_post_vec_by_satellite_id(
@@ -1544,8 +1540,8 @@ async fn test_get_post_vec_by_satellite_id_with_filters() {
             .into_iter()
             .map(|post| PostWithSphereInfo::from_post(post, None, None)).collect();
 
-        sort_post_vec(&mut no_filter_expected_post, sort_type, true);
-        assert_eq!(post_vec, no_filter_expected_post);
+        sort_post_vec(&mut default_filter_expected_post, sort_type, true);
+        assert_eq!(post_vec, default_filter_expected_post);
     }
 
     user.days_hide_spoiler = Some(1);
@@ -2182,12 +2178,12 @@ async fn test_post_scores() -> Result<(), AppError> {
 
     let (_, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // wait to have a meaningful impact of elapsed time on the score
     tokio::time::sleep(Duration::from_secs(2)).await;
 
-    set_post_score(post.post_id, rng.gen_range(-100..101), &db_pool).await?;
+    set_post_score(post.post_id, rng.random_range(-100..101), &db_pool).await?;
 
     let post_with_vote = post::ssr::get_post_with_info_by_id(post.post_id, Some(&user), &db_pool).await?;
 

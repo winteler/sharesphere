@@ -20,7 +20,7 @@ async fn test_create_or_update_user() -> Result<(), AppError> {
     assert_eq!(user.username, username);
     assert_eq!(user.email, email);
     assert_eq!(user.admin_role, AdminRole::None);
-    assert_eq!(user.show_nsfw, true);
+    assert_eq!(user.show_nsfw, false);
     assert_eq!(user.days_hide_spoiler, None);
 
     let loaded_user = User::get(user.user_id, &db_pool).await.expect("Should get user");

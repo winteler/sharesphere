@@ -415,14 +415,14 @@ async fn populate_dev_db() -> Result<(), AppError> {
     let sphere_name = "test";
     let num_posts = 500usize;
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // generate sphere with many posts
     let (_sphere, _, _sphere_post_vec) = create_sphere_with_posts(
         sphere_name,
         None,
         num_posts,
-        Some((0..num_posts).map(|_| rng.gen_range(-100..101)).collect()),
+        Some((0..num_posts).map(|_| rng.random_range(-100..101)).collect()),
         (0..num_posts).map(|i| (i % 2) == 0).collect(),
         &mut test_user,
         &db_pool,
@@ -430,17 +430,16 @@ async fn populate_dev_db() -> Result<(), AppError> {
 
     // generate post with many comment
     let num_comments = 200;
-    let mut rng = rand::thread_rng();
 
     let (post, _, _) = create_post_with_comments(
         sphere_name,
         "Post with comments",
         num_comments,
         (0..num_comments).map(|i| match i {
-            i if i > 1 && (i % 2 == 0) => Some(rng.gen_range(0..i-1)),
+            i if i > 1 && (i % 2 == 0) => Some(rng.random_range(0..i-1)),
             _ => None,
         }).collect(),
-        (0..num_comments).map(|_| rng.gen_range(-100..101)).collect(),
+        (0..num_comments).map(|_| rng.random_range(-100..101)).collect(),
         (0..num_comments).map(|_| None).collect(),
         &test_user,
         &db_pool

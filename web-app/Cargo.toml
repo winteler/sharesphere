@@ -27,7 +27,7 @@ console_log = "1"
 chrono = { version = "0.4.38", features = [ "alloc", "serde" ] }
 http = "1"
 log = "0.4.20"
-lru = "0.12.5"
+lru = "0.13.0"
 serde = { version = "*", features = ["derive"] }
 simple_logger = "5.0.0"
 sqlx = { version = "0.8.2", features = [ "chrono", "postgres", "runtime-tokio", "tls-rustls" ] }

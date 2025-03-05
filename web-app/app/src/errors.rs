@@ -118,7 +118,7 @@ impl From<&ServerFnError<AppError>> for AppError {
 mod ssr {
     use sqlx;
     use std::io::Error;
-
+    use openidconnect::SignatureVerificationError;
     use crate::errors::AppError;
 
     impl From<sqlx::Error> for AppError {
@@ -154,9 +154,21 @@ mod ssr {
         }
     }
 
+    impl From<openidconnect::ConfigurationError> for AppError {
+        fn from(error: openidconnect::ConfigurationError) -> Self {
+            AppError::AuthenticationError(error.to_string())
+        }
+    }
+
     impl From<openidconnect::SigningError> for AppError {
         fn from(error: openidconnect::SigningError) -> Self {
             AppError::AuthenticationError(error.to_string())
+        }
+    }
+
+    impl From<SignatureVerificationError> for AppError {
+        fn from(value: SignatureVerificationError) -> Self {
+            AppError::AuthenticationError(value.to_string())
         }
     }
 
@@ -178,7 +190,13 @@ mod ssr {
         }
     }
 
-    impl From<std::io::Error> for AppError {
+    impl From<reqwest::Error> for AppError {
+        fn from(value: reqwest::Error) -> Self {
+            AppError::InternalServerError(value.to_string())
+        }
+    }
+
+    impl From<Error> for AppError {
         fn from(value: Error) -> Self {
             AppError::InternalServerError(value.to_string())
         }

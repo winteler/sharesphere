@@ -5,22 +5,24 @@ use leptos_router::params::Params;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
-use openidconnect::reqwest::*;
+use openidconnect::reqwest;
 #[cfg(feature = "ssr")]
 use openidconnect::{OAuth2TokenResponse, TokenResponse};
 use web_sys::MouseEvent;
 use crate::app::GlobalState;
 use crate::errors::AppError;
 use crate::icons::LoadingIcon;
+use crate::navigation_bar::get_current_path;
 use crate::unpack::SuspenseUnpack;
 use crate::user::User;
+
 #[cfg(feature = "ssr")]
 use crate::{
     app::ssr::{get_db_pool, get_session},
+    auth::ssr::get_auth_http_client,
     constants::SITE_ROOT,
     user::ssr::{create_or_update_user, SqlUser}
 };
-use crate::navigation_bar::get_current_path;
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_ADDR";
@@ -46,12 +48,21 @@ pub mod ssr {
     use crate::errors::AppError;
     use crate::user::User;
     use axum_session_sqlx::SessionPgPool;
-    use openidconnect::core::CoreTokenResponse;
-    use openidconnect::{AdditionalProviderMetadata, NonceVerifier, RequestTokenError};
+    use openidconnect::core::{CoreTokenResponse, CoreProviderMetadata};
+    use openidconnect::{AdditionalProviderMetadata, EndpointMaybeSet, EndpointNotSet, EndpointSet, NonceVerifier, RequestTokenError};
     use reqwest::Client;
     use serde::{Deserialize, Serialize};
     use serde_json::Value;
     use sqlx::PgPool;
+
+    type OidcCoreClient = openidconnect::core::CoreClient<
+        EndpointSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointMaybeSet,
+        EndpointMaybeSet
+    >;
 
     pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
@@ -99,13 +110,21 @@ pub mod ssr {
         Ok(oidc::PostLogoutRedirectUrl::new(String::from("http://") + get_base_url()?.as_str())?)
     }
 
-    pub async fn get_auth_client() -> Result<oidc::core::CoreClient, AppError> {
+    pub fn get_auth_http_client() -> Result<Client, AppError> {
+        let http_client = reqwest::ClientBuilder::new()
+            // Following redirects opens the client up to SSRF vulnerabilities.
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .map_err(AppError::from)?;
+
+        Ok(http_client)
+    }
+
+    pub async fn get_auth_client(http_client: &Client) -> Result<OidcCoreClient, AppError> {
         let redirect_url = get_auth_redirect()?;
         let issuer_url = oidc::IssuerUrl::new(get_issuer_url()?)?;
 
-        let provider_metadata =
-            oidc::core::CoreProviderMetadata::discover_async(issuer_url.clone(), async_http_client)
-                .await?;
+        let provider_metadata = CoreProviderMetadata::discover_async(issuer_url.clone(), http_client).await?;
 
         // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL
         // and token URL.
@@ -153,7 +172,8 @@ pub mod ssr {
 
             let id_token = token_response.id_token().ok_or(AppError::new("Id token missing."))?;
 
-            let client = get_auth_client().await?;
+            let http_client = get_auth_http_client()?;
+            let client = get_auth_client(&http_client).await?;
 
             let claims = match get_nonce(&auth_session) {
                 Some(nonce) => id_token.claims(&client.id_token_verifier(), &nonce),
@@ -165,8 +185,8 @@ pub mod ssr {
                     auth_session.session.remove(NONCE_KEY);
                     let refresh_token = token_response.refresh_token().ok_or(AppError::new("Error getting refresh token."))?;
                     let token_response = client
-                        .exchange_refresh_token(refresh_token)
-                        .request_async(async_http_client)
+                        .exchange_refresh_token(refresh_token)?
+                        .request_async(&http_client)
                         .await;
 
                     match token_response {
@@ -220,7 +240,7 @@ pub mod ssr {
     pub async fn process_token_response(
         token_response: CoreTokenResponse,
         auth_session: AuthSession,
-        client: oidc::core::CoreClient,
+        client: OidcCoreClient,
     ) -> Result<SqlUser, AppError> {
         // Extract the ID token claims after verifying its authenticity and nonce.
         let id_token = token_response
@@ -232,6 +252,7 @@ pub mod ssr {
             None => id_token.claims(&client.id_token_verifier(), NoNonceVerifier),
         };
 
+        let id_token_verifier = client.id_token_verifier();
         let claims = match claims {
             Ok(claims) => claims,
             Err(e) => {
@@ -244,7 +265,8 @@ pub mod ssr {
         if let Some(expected_access_token_hash) = claims.access_token_hash() {
             let actual_access_token_hash = oidc::AccessTokenHash::from_token(
                 token_response.access_token(),
-                &id_token.signing_alg()?,
+                id_token.signing_alg()?,
+                id_token.signing_key(&id_token_verifier)?,
             )?;
             if actual_access_token_hash != *expected_access_token_hash {
                 return Err(AppError::new("Invalid access token"));
@@ -276,7 +298,7 @@ pub mod ssr {
     }
 
     pub async fn redirect_to_auth_provider(redirect_url: String) -> Result<(), AppError> {
-        let client = get_auth_client().await?;
+        let client = get_auth_client(&get_auth_http_client()?).await?;
 
         // Generate the full authorization URL.
         let (auth_url, _csrf_token, nonce) = client
@@ -304,6 +326,7 @@ pub mod ssr {
     pub async fn navigate_to_user_account() -> Result<(), AppError> {
         let issuer_url = get_issuer_url()?;
         let client = Client::new();
+        // TODO check if possible with openidconnect 0.4
         // Fetch the discovery endpoint data
         let response = client.get(&issuer_url).send().await.map_err(AppError::new)?.json::<Value>().await.map_err(AppError::new)?;
 
@@ -349,12 +372,14 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError<Ap
         .get(REDIRECT_URL_KEY)
         .unwrap_or(String::from(SITE_ROOT));
 
-    let client = ssr::get_auth_client().await?;
+    let http_client = get_auth_http_client()?;
+    let client = ssr::get_auth_client(&http_client).await?;
 
     // Now you can exchange it for an access token and ID token.
     let token_response = client
         .exchange_code(oidc::AuthorizationCode::new(auth_code))
-        .request_async(async_http_client)
+        .map_err(AppError::from)?
+        .request_async(&http_client)
         .await
         .map_err(AppError::from)?;
 
@@ -389,7 +414,8 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError<AppEr
         oidc::ProviderMetadataWithLogout::discover_async(
             oidc::IssuerUrl::new(
                 ssr::get_issuer_url()?
-            ).map_err(|e| AppError::new(e))?, async_http_client
+            ).map_err(|e| AppError::new(e))?,
+            &get_auth_http_client()?
         )
             .await
             .map_err(AppError::from)?;

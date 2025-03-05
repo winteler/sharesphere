@@ -59,14 +59,14 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     ).await?;
 
     let num_comments = 200;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let (post, mut expected_comment_tree) = create_post_with_comment_tree(
         sphere_name,
         "Post with comments",
         num_comments,
         (0..num_comments).map(|i| match i {
-            i if i > 1 && (i % 2 == 0) => Some(rng.gen_range(0..i-1)),
+            i if i > 1 && (i % 2 == 0) => Some(rng.random_range(0..i-1)),
             _ => None,
         }).collect(),
         (0..num_comments).map(|i| (i as i32) - (num_comments as i32)/2).collect(),

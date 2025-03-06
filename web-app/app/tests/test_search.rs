@@ -257,36 +257,36 @@ async fn test_search_posts() {
     assert_eq!(apple_post_vec.len(), 1);
     assert_eq!(apple_post_vec.first(), Some(&post_1));
 
-    let bonjour_post_vec = search_posts("bonjour", true, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", None, true, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 4);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
     assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
     assert_eq!(bonjour_post_vec.get(3), Some(&post_5));
 
-    let bonjour_post_vec = search_posts("bonjour", true, true, 2, 1, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", None, true, true, 2, 1, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 2);
     assert_eq!(bonjour_post_vec.first(), Some(&post_3));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_4));
 
-    let bonjour_post_vec = search_posts("bonjour", false, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", None, false, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 3);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
     assert_eq!(bonjour_post_vec.get(2), Some(&post_5));
 
-    let bonjour_post_vec = search_posts("bonjour", true, false, 10, 0, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", None, true, false, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 3);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
     assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
 
-    let bonjour_post_vec = search_posts("bonjour", false, false, 10, 0, &db_pool).await.expect("Bonjour search should run");
+    let bonjour_post_vec = search_posts("bonjour", None, false, false, 10, 0, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 2);
     assert_eq!(bonjour_post_vec.first(), Some(&post_2));
     assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
 
-    let geht_post_vec = search_posts("geht", true, true, 10, 0, &db_pool).await.expect("Geht search should run");
+    let geht_post_vec = search_posts("geht", None, true, true, 10, 0, &db_pool).await.expect("Geht search should run");
     assert_eq!(geht_post_vec.len(), 1);
     assert_eq!(geht_post_vec.first(), Some(&post_6));
 }
@@ -353,24 +353,24 @@ async fn test_search_comments() {
     let comment_4 = CommentWithContext::from_comment(comment_4, sphere_2_header.clone(), &post_2.post);
     let comment_5 = CommentWithContext::from_comment(comment_5, sphere_2_header, &post_2.post);
 
-    let no_match_comment_vec = search_comments("no match", 10, 0, &db_pool).await.expect("No match search should run");
+    let no_match_comment_vec = search_comments("no match", None, 10, 0, &db_pool).await.expect("No match search should run");
     assert!(no_match_comment_vec.is_empty());
 
-    let hello_comment_vec = search_comments("hello", 10, 0, &db_pool).await.expect("Hello search should run");
+    let hello_comment_vec = search_comments("hello", None, 10, 0, &db_pool).await.expect("Hello search should run");
     assert_eq!(hello_comment_vec.len(), 1);
     assert_eq!(hello_comment_vec.first(), Some(&comment_1));
 
-    let general_comment_vec = search_comments("général", 10, 0, &db_pool).await.expect("General search should run");
+    let general_comment_vec = search_comments("général", None, 10, 0, &db_pool).await.expect("General search should run");
     assert_eq!(general_comment_vec.len(), 3);
     assert_eq!(general_comment_vec.first(), Some(&comment_2));
     assert_eq!(general_comment_vec.get(1), Some(&comment_3));
     assert_eq!(general_comment_vec.get(2), Some(&comment_4));
 
-    let general_comment_vec = search_comments("général", 1, 1, &db_pool).await.expect("General search should run");
+    let general_comment_vec = search_comments("général", None, 1, 1, &db_pool).await.expect("General search should run");
     assert_eq!(general_comment_vec.len(), 1);
     assert_eq!(general_comment_vec.first(), Some(&comment_3));
 
-    let falle_comment_vec = search_comments("Falle", 10, 0, &db_pool).await.expect("Falle search should run");
+    let falle_comment_vec = search_comments("Falle", None, 10, 0, &db_pool).await.expect("Falle search should run");
     assert_eq!(falle_comment_vec.len(), 1);
     assert_eq!(falle_comment_vec.first(), Some(&comment_5));
 }

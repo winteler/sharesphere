@@ -12,7 +12,7 @@ use crate::form::LabeledSignalCheckbox;
 use crate::icons::MagnifierIcon;
 use crate::post::{PostMiniatureList, PostWithSphereInfo};
 use crate::sidebar::HomeSidebar;
-use crate::sphere::{InfiniteSphereLinkList, SphereHeader};
+use crate::sphere::{InfiniteSphereLinkList, SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
 use crate::user::{UserHeader, UserHeaderLink};
 use crate::widget::{EnumQueryTabs, ToView};
@@ -37,6 +37,13 @@ pub enum SearchType {
     Users,
 }
 
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum SphereSearchType {
+    #[default]
+    Posts,
+    Comments,
+}
+
 #[derive(Clone, Debug)]
 pub struct SearchState {
     pub search_input: RwSignal<String>,
@@ -51,6 +58,15 @@ impl ToView for SearchType {
             SearchType::Posts => view! { <SearchPosts/> }.into_any(),
             SearchType::Comments => view! { <SearchComments/> }.into_any(),
             SearchType::Users => view! { <SearchUsers/> }.into_any(),
+        }
+    }
+}
+
+impl ToView for SphereSearchType {
+    fn to_view(self) -> AnyView {
+        match self {
+            SphereSearchType::Posts => view! { <SearchPosts/> }.into_any(),
+            SphereSearchType::Comments => view! { <SearchComments/> }.into_any(),
         }
     }
 }
@@ -153,6 +169,7 @@ pub mod ssr {
 
     pub async fn search_posts(
         search_query: &str,
+        sphere_name: Option<&str>,
         show_spoilers: bool,
         show_nsfw: bool,
         limit: i64,
@@ -165,17 +182,19 @@ pub mod ssr {
                 FROM posts
                 WHERE
                     post_document @@ plainto_tsquery('simple', $1) AND
-                    ($2 OR NOT is_spoiler) AND
-                    ($3 OR NOT is_nsfw) AND
+                    ($2 IS NULL OR sphere_name = $2) AND
+                    ($3 OR NOT is_spoiler) AND
+                    ($4 OR NOT is_nsfw) AND
                     moderator_id IS NULL
                 ORDER BY rank DESC, score DESC
-                LIMIT $4
-                OFFSET $5
+                LIMIT $5
+                OFFSET $6
             ) p
             JOIN spheres s on s.sphere_id = p.sphere_id
             LEFT JOIN sphere_categories c on c.category_id = p.category_id"
         )
             .bind(search_query)
+            .bind(sphere_name)
             .bind(show_spoilers)
             .bind(show_nsfw)
             .bind(limit)
@@ -190,25 +209,28 @@ pub mod ssr {
 
     pub async fn search_comments(
         search_query: &str,
+        sphere_name: Option<&str>,
         limit: i64,
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<CommentWithContext>, AppError> {
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
-            "SELECT c.*, s.sphere_name, s.icon_url, s.is_nsfw, p.satellite_id, p.title as post_title FROM (
-                SELECT *, ts_rank(comment_document, plainto_tsquery('simple', $1)) AS rank
-                FROM comments
+            "SELECT cp.*, s.sphere_name, s.icon_url, s.is_nsfw FROM (
+                SELECT c.*, p.sphere_id, p.satellite_id, p.title as post_title, ts_rank(comment_document, plainto_tsquery('simple', $1)) AS rank
+                FROM comments c
+                JOIN posts p ON p.post_id = c.post_id
                 WHERE
                     comment_document @@ plainto_tsquery('simple', $1) AND
-                    moderator_id IS NULL
+                    moderator_id IS NULL AND
+                    ($2 IS NULL OR p.sphere_name = $2)
                 ORDER BY rank DESC, score DESC
-                LIMIT $2
-                OFFSET $3
-            ) c
-            JOIN posts p ON p.post_id = c.post_id
-            JOIN spheres s ON s.sphere_id = p.sphere_id"
+                LIMIT $3
+                OFFSET $4
+            ) cp
+            JOIN spheres s ON s.sphere_id = cp.sphere_id"
         )
             .bind(search_query)
+            .bind(sphere_name)
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -271,22 +293,24 @@ pub async fn search_spheres(
 #[server]
 pub async fn search_posts(
     search_query: String,
+    sphere_name: Option<String>,
     show_spoilers: bool,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
-    let post_vec = ssr::search_posts(&search_query, show_spoilers, show_nsfw, POST_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
+    let post_vec = ssr::search_posts(&search_query, sphere_name.as_deref(), show_spoilers, show_nsfw, POST_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(post_vec)
 }
 
 #[server]
 pub async fn search_comments(
     search_query: String,
+    sphere_name: Option<String>,
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithContext>, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
-    let comment_vec = ssr::search_comments(&search_query, COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
+    let comment_vec = ssr::search_comments(&search_query, sphere_name.as_deref(), COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(comment_vec)
 }
 
@@ -333,6 +357,23 @@ pub fn Search() -> impl IntoView
         </div>
         <div class="max-2xl:hidden">
             <HomeSidebar/>
+        </div>
+    }
+}
+
+/// Component to search posts, comments in a sphere
+#[component]
+pub fn SphereSearch() -> impl IntoView
+{
+    provide_context(SearchState::default());
+    view! {
+        <div class="w-full flex justify-center">
+            <div class="w-full 2xl:w-2/3 flex flex-col">
+                <EnumQueryTabs
+                    query_param=SEARCH_TAB_QUERY_PARAM
+                    query_enum_iter=SphereSearchType::iter()
+                />
+            </div>
         </div>
     }
 }
@@ -417,6 +458,8 @@ pub fn SearchSpheres(
 pub fn SearchPosts() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
+    let sphere_state = use_context::<SphereState>();
+
     let post_vec = RwSignal::new(Vec::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
@@ -430,6 +473,7 @@ pub fn SearchPosts() -> impl IntoView
             if !search_input.is_empty() {
                 let initial_load = search_posts(
                     search_state.search_input_debounced.get(),
+                    sphere_state.map(|sphere_state| sphere_state.sphere_name.get()),
                     search_state.show_spoiler.get(),
                     0,
                 ).await;
@@ -445,6 +489,7 @@ pub fn SearchPosts() -> impl IntoView
                 is_loading.set(true);
                 let additional_load = search_posts(
                     search_state.search_input_debounced.get(),
+                    sphere_state.map(|sphere_state| sphere_state.sphere_name.get()),
                     search_state.show_spoiler.get(),
                     post_vec.read_untracked().len(),
                 ).await;
@@ -472,6 +517,8 @@ pub fn SearchPosts() -> impl IntoView
 pub fn SearchComments() -> impl IntoView
 {
     let search_state = expect_context::<SearchState>();
+    let sphere_state = use_context::<SphereState>();
+
     let comment_vec = RwSignal::new(Vec::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
@@ -485,6 +532,7 @@ pub fn SearchComments() -> impl IntoView
             if !search_input.is_empty() {
                 let initial_load = search_comments(
                     search_state.search_input_debounced.get(),
+                    sphere_state.map(|sphere_state| sphere_state.sphere_name.get()),
                     0,
                 ).await;
                 handle_initial_load(initial_load, comment_vec, load_error, Some(list_ref));
@@ -499,6 +547,7 @@ pub fn SearchComments() -> impl IntoView
                 is_loading.set(true);
                 let additional_load = search_comments(
                     search_state.search_input_debounced.get_untracked(),
+                    sphere_state.map(|sphere_state| sphere_state.sphere_name.get()),
                     comment_vec.read_untracked().len()
                 ).await;
                 handle_additional_load(additional_load, comment_vec, load_error);

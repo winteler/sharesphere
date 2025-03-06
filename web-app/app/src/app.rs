@@ -14,7 +14,7 @@ use crate::post::*;
 use crate::profile::{UserProfile, USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
 use crate::ranking::SortType;
 use crate::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX};
-use crate::search::{Search, SEARCH_ROUTE};
+use crate::search::{Search, SphereSearch, SEARCH_ROUTE};
 use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
@@ -184,6 +184,7 @@ pub fn App() -> impl IntoView {
                                 <ParentRoute path=StaticSegment(MANAGE_SPHERE_ROUTE) view=SphereCockpitGuard>
                                     <Route path=StaticSegment("") view=SphereCockpit/>
                                 </ParentRoute>
+                                <Route path=StaticSegment(SEARCH_ROUTE) view=SphereSearch/>
                                 <Route path=StaticSegment("") view=SphereContents/>
                             </ParentRoute>
                             <Route path=(StaticSegment(USER_ROUTE_PREFIX), ParamSegment(USER_ROUTE_PARAM_NAME)) view=UserProfile/>

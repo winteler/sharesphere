@@ -34,6 +34,7 @@ use crate::{
     auth::ssr::reload_user,
     auth::{get_user, ssr::check_user},
 };
+use crate::search::SphereSearchButton;
 use crate::widget::LoadIndicators;
 
 pub const CREATE_SPHERE_SUFFIX: &str = "/sphere";
@@ -744,6 +745,7 @@ pub fn SphereToolbar<'a>(
                         <SettingsIcon class="h-5 w-5"/>
                     </A>
                 </AuthorizedShow>
+                <SphereSearchButton/>
                 <div class="tooltip" data-tip="Join">
                     <LoginGuardedButton
                         button_class="btn btn-circle btn-ghost"

@@ -12,7 +12,7 @@ use crate::form::LabeledSignalCheckbox;
 use crate::icons::MagnifierIcon;
 use crate::post::{PostMiniatureList, PostWithSphereInfo};
 use crate::sidebar::HomeSidebar;
-use crate::sphere::{InfiniteSphereLinkList, SphereHeader, SphereState};
+use crate::sphere::{get_sphere_path, InfiniteSphereLinkList, SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
 use crate::user::{UserHeader, UserHeaderLink};
 use crate::widget::{EnumQueryTabs, ToView};
@@ -341,6 +341,23 @@ pub fn SearchButton() -> impl IntoView
     }
 }
 
+/// Button to navigate to the search page of a sphere
+#[component]
+pub fn SphereSearchButton() -> impl IntoView
+{
+    let sphere_state = expect_context::<SphereState>();
+    let tab: &'static str = SphereSearchType::default().into();
+    let route = move || format!("{}{}", get_sphere_path(sphere_state.sphere_name.read_untracked().as_str()), SEARCH_ROUTE);
+    view! {
+        <Form method="GET" action=route>
+            <input name=SEARCH_TAB_QUERY_PARAM value=tab class="hidden"/>
+            <button class="btn btn-ghost btn-circle">
+                <MagnifierIcon/>
+            </button>
+        </Form>
+    }
+}
+
 /// Component to search spheres, posts, comments and users
 #[component]
 pub fn Search() -> impl IntoView
@@ -368,7 +385,7 @@ pub fn SphereSearch() -> impl IntoView
     provide_context(SearchState::default());
     view! {
         <div class="w-full flex justify-center">
-            <div class="w-full 2xl:w-2/3 flex flex-col">
+            <div class="w-full flex flex-col">
                 <EnumQueryTabs
                     query_param=SEARCH_TAB_QUERY_PARAM
                     query_enum_iter=SphereSearchType::iter()
@@ -470,15 +487,16 @@ pub fn SearchPosts() -> impl IntoView
         move || async move {
             is_loading.set(true);
             let search_input = search_state.search_input_debounced.get();
-            if !search_input.is_empty() {
-                let initial_load = search_posts(
+            let initial_load = match search_input.is_empty() {
+                true => Ok(Vec::new()),
+                false => search_posts(
                     search_state.search_input_debounced.get(),
                     sphere_state.map(|sphere_state| sphere_state.sphere_name.get()),
                     search_state.show_spoiler.get(),
                     0,
-                ).await;
-                handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
-            }
+                ).await,
+            };
+            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
             is_loading.set(false);
         }
     );
@@ -529,14 +547,15 @@ pub fn SearchComments() -> impl IntoView
         move || async move {
             is_loading.set(true);
             let search_input = search_state.search_input_debounced.get();
-            if !search_input.is_empty() {
-                let initial_load = search_comments(
+            let initial_load = match search_input.is_empty() {
+                true => Ok(Vec::new()),
+                false => search_comments(
                     search_state.search_input_debounced.get(),
                     sphere_state.map(|sphere_state| sphere_state.sphere_name.get()),
                     0,
-                ).await;
-                handle_initial_load(initial_load, comment_vec, load_error, Some(list_ref));
-            }
+                ).await,
+            };
+            handle_initial_load(initial_load, comment_vec, load_error, Some(list_ref));
             is_loading.set(false);
         }
     );

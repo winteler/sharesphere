@@ -264,6 +264,16 @@ async fn test_search_posts() {
     assert_eq!(bonjour_post_vec.get(2), Some(&post_4));
     assert_eq!(bonjour_post_vec.get(3), Some(&post_5));
 
+    let bonjour_post_vec = search_posts("bonjour", Some(&sphere_1.sphere_name), true, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
+    assert_eq!(bonjour_post_vec.len(), 2);
+    assert_eq!(bonjour_post_vec.first(), Some(&post_2));
+    assert_eq!(bonjour_post_vec.get(1), Some(&post_3));
+
+    let bonjour_post_vec = search_posts("bonjour", Some(&sphere_2.sphere_name), true, true, 10, 0, &db_pool).await.expect("Bonjour search should run");
+    assert_eq!(bonjour_post_vec.len(), 2);
+    assert_eq!(bonjour_post_vec.first(), Some(&post_4));
+    assert_eq!(bonjour_post_vec.get(1), Some(&post_5));
+
     let bonjour_post_vec = search_posts("bonjour", None, true, true, 2, 1, &db_pool).await.expect("Bonjour search should run");
     assert_eq!(bonjour_post_vec.len(), 2);
     assert_eq!(bonjour_post_vec.first(), Some(&post_3));
@@ -365,6 +375,15 @@ async fn test_search_comments() {
     assert_eq!(general_comment_vec.first(), Some(&comment_2));
     assert_eq!(general_comment_vec.get(1), Some(&comment_3));
     assert_eq!(general_comment_vec.get(2), Some(&comment_4));
+
+    let general_comment_vec = search_comments("général", Some(&sphere_1.sphere_name), 10, 0, &db_pool).await.expect("General search should run");
+    assert_eq!(general_comment_vec.len(), 1);
+    assert_eq!(general_comment_vec.first(), Some(&comment_2));
+
+    let general_comment_vec = search_comments("général", Some(&sphere_2.sphere_name), 10, 0, &db_pool).await.expect("General search should run");
+    assert_eq!(general_comment_vec.len(), 2);
+    assert_eq!(general_comment_vec.first(), Some(&comment_3));
+    assert_eq!(general_comment_vec.get(1), Some(&comment_4));
 
     let general_comment_vec = search_comments("général", None, 1, 1, &db_pool).await.expect("General search should run");
     assert_eq!(general_comment_vec.len(), 1);

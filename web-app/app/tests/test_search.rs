@@ -250,10 +250,10 @@ async fn test_search_posts() {
     );
     let post_6 = create_simple_post(&sphere_2.sphere_name, None, "Guten morgen", "xml_body", Some("# Wie geht's?"), &user, &db_pool).await;
 
-    let no_match_post_vec = search_posts("no match", true, true, 10, 0, &db_pool).await.expect("No match search should run");
+    let no_match_post_vec = search_posts("no match", None,true, true, 10, 0, &db_pool).await.expect("No match search should run");
     assert!(no_match_post_vec.is_empty());
 
-    let apple_post_vec = search_posts("apple", true, true, 10, 0, &db_pool).await.expect("Apple search should run");
+    let apple_post_vec = search_posts("apple", None, true, true, 10, 0, &db_pool).await.expect("Apple search should run");
     assert_eq!(apple_post_vec.len(), 1);
     assert_eq!(apple_post_vec.first(), Some(&post_1));
 

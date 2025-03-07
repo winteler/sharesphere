@@ -221,7 +221,7 @@ pub mod ssr {
                 JOIN posts p ON p.post_id = c.post_id
                 WHERE
                     comment_document @@ plainto_tsquery('simple', $1) AND
-                    moderator_id IS NULL AND
+                    c.moderator_id IS NULL AND
                     ($2 IS NULL OR p.sphere_name = $2)
                 ORDER BY rank DESC, score DESC
                 LIMIT $3

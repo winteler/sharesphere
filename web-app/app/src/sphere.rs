@@ -532,8 +532,8 @@ pub fn InfiniteSphereLinkList(
                 node_ref=list_ref
             >
                 <SphereLinkItems sphere_header_vec=sphere_header_vec.get()/>
+                <LoadIndicators load_error is_loading/>
             </ul>
-            <LoadIndicators load_error is_loading/>
         </Show>
     }.into_any()
 }

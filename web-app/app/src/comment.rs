@@ -18,7 +18,7 @@ use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -811,6 +811,7 @@ pub fn CommentBox(
     let comment = RwSignal::new(comment_with_children.comment);
     let child_comments = RwSignal::new(comment_with_children.child_comments);
     let maximize = RwSignal::new(true);
+    let is_pinned = Signal::derive(move || comment.read().is_pinned);
     let sidebar_css = move || {
         if *maximize.read() {
             "p-0.5 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
@@ -841,6 +842,7 @@ pub fn CommentBox(
                     <Show when=maximize>
                         <CommentBody comment/>
                     </Show>
+                    <IsPinnedWidget is_pinned/>
                     <CommentWidgetBar
                         comment=comment
                         vote=comment_with_children.vote
@@ -921,7 +923,7 @@ pub fn CommentWidgetBar(
     let content = Signal::derive(move || Content::Comment(comment.get()));
     let is_moderator_comment = comment.read_untracked().is_creator_moderator;
     view! {
-        <div class="flex gap-1">
+        <div class="flex gap-1 items-center">
             <VotePanel
                 post_id
                 comment_id=Some(comment_id)
@@ -960,6 +962,7 @@ pub fn CommentWithContext(
     let author = comment.comment.creator_name.clone();
     let is_moderator = comment.comment.is_creator_moderator;
     let timestamp = comment.comment.create_timestamp;
+    let is_pinned = comment.comment.is_pinned;
 
     let post_path = get_post_path(&comment.sphere_header.sphere_name, comment.satellite_id, comment.comment.post_id);
     view! {
@@ -967,10 +970,11 @@ pub fn CommentWithContext(
             <input name=COMMENT_ID_QUERY_PARAM value=comment.comment.comment_id class="hidden"/>
             <button class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
                 <CommentBody comment=comment.comment/>
-                <div class="flex gap-1">
+                <div class="flex gap-1 items-center">
                     <SphereHeader sphere_header=comment.sphere_header/>
                     <div class="pt-1 pb-1.5 text-sm">"-"</div>
                     <div class="pt-1 pb-1.5 text-sm">{comment.post_title}</div>
+                    <IsPinnedWidget is_pinned/>
                 </div>
                 <div class="flex gap-1">
                     <ScoreIndicator score/>

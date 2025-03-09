@@ -315,6 +315,13 @@ pub fn PauseIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoV
 }
 
 #[component]
+pub fn PinnedIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/pin.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn PlayIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/play.svg" class=class/>

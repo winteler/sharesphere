@@ -998,6 +998,7 @@ pub fn Post() -> impl IntoView {
                                 sphere_category=post_with_info.sphere_category.clone()
                                 is_spoiler=post_with_info.post.is_spoiler
                                 is_nsfw=post_with_info.post.is_nsfw
+                                is_pinned=post_with_info.post.is_pinned
                             />
                             <PostWidgetBar post=post_with_info comment_vec/>
                         </div>
@@ -1016,10 +1017,11 @@ pub fn PostBadgeList(
     sphere_category: Option<SphereCategoryHeader>,
     is_spoiler: bool,
     is_nsfw: bool,
+    is_pinned: bool,
 ) -> impl IntoView {
-    match (sphere_header, sphere_category, is_spoiler, is_nsfw) {
-        (None, None, false, false) => None,
-        (sphere_header, sphere_category, is_spoiler, is_nsfw) => Some(view! {
+    match (sphere_header, sphere_category, is_spoiler, is_nsfw, is_pinned) {
+        (None, None, false, false, false) => None,
+        (sphere_header, sphere_category, is_spoiler, is_nsfw, is_pinned) => Some(view! {
             <div class="flex gap-2 items-center">
             {
                 sphere_header.map(|sphere_header| view! { <SphereHeaderLink sphere_header/> })
@@ -1027,7 +1029,7 @@ pub fn PostBadgeList(
             {
                 sphere_category.map(|category_header| view! { <SphereCategoryBadge category_header/> })
             }
-            <TagsWidget is_spoiler is_nsfw/>
+            <TagsWidget is_spoiler is_nsfw is_pinned/>
             </div>
         })
     }
@@ -1136,6 +1138,7 @@ pub fn PostMiniatureList(
                                         sphere_category=post_info.sphere_category
                                         is_spoiler=post.is_spoiler
                                         is_nsfw=post.is_nsfw
+                                        is_pinned=post.is_pinned
                                     />
                                     <div class="flex gap-1">
                                         <ScoreIndicator score=post.score/>

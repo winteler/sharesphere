@@ -18,7 +18,7 @@ use crate::constants::{
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::form::LabeledSignalCheckbox;
-use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
 use crate::profile::get_profile_path;
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
@@ -264,11 +264,27 @@ pub fn ModeratorWidget(
     }.into_any()
 }
 
+/// Component to conditionally display a pin icon
+#[component]
+pub fn IsPinnedWidget(
+    #[prop(into)]
+    is_pinned: Signal<bool>,
+) -> impl IntoView {
+    view! {
+        { move || match is_pinned.get() {
+            true => Some(view! { <div class="px-1"><PinnedIcon/></div>}),
+            false => None
+        }}
+    }
+}
+
 /// Component to display a content's tags (spoiler, nsfw, ...)
 #[component]
 pub fn TagsWidget(
     is_nsfw: bool,
     is_spoiler: bool,
+    #[prop(default = false)]
+    is_pinned: bool,
 ) -> impl IntoView {
     view! {
         <div class="flex gap-1">
@@ -284,6 +300,7 @@ pub fn TagsWidget(
                 false => None
             }
         }
+        <IsPinnedWidget is_pinned/>
         </div>
     }
 }

@@ -76,6 +76,7 @@ pub struct Post {
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub scoring_timestamp: chrono::DateTime<chrono::Utc>,
+    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 // TODO try with flatten on option
@@ -1627,6 +1628,7 @@ mod tests {
             create_timestamp: Default::default(),
             edit_timestamp: None,
             scoring_timestamp: Default::default(),
+            delete_timestamp: None,
         }
     }
 

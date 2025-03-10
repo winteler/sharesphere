@@ -252,7 +252,7 @@ pub mod ssr {
             WHERE
                 username LIKE $1 AND
                 ($2 OR NOT is_nsfw) AND
-                NOT is_deleted
+                delete_timestamp IS NULL
             ORDER BY username LIMIT $3",
             format!("{username_prefix}%"),
             show_nsfw,

@@ -1638,6 +1638,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.num_comments, 0);
     assert_eq!(post_1.is_pinned, false);
     assert_eq!(post_1.score, 0);
+    assert_eq!(post_1.delete_timestamp, None);
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
@@ -1693,6 +1694,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.num_comments, 0);
     assert_eq!(post_2.is_pinned, true);
     assert_eq!(post_2.score, 0);
+    assert_eq!(post_2.delete_timestamp, None);
 
     let nsfw_post_title = "1";
     let nsfw_post_body = "test";
@@ -1739,6 +1741,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(nsfw_post.num_comments, 0);
     assert_eq!(nsfw_post.is_pinned, false);
     assert_eq!(nsfw_post.score, 0);
+    assert_eq!(nsfw_post.delete_timestamp, None);
 
     let post_1_with_info = get_post_with_info_by_id(post_1.post_id, None, &db_pool).await.expect("Should be able to load post 1.");
 
@@ -1809,6 +1812,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.num_comments, 0);
     assert_eq!(post.is_pinned, false);
     assert_eq!(post.score, 0);
+    assert_eq!(post.delete_timestamp, None);
 
     let (sphere_2, satellite_2) = create_sphere_with_satellite(
         "2",
@@ -1863,6 +1867,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.num_comments, 0);
     assert_eq!(post.is_pinned, true);
     assert_eq!(post.score, 0);
+    assert_eq!(post.delete_timestamp, None);
 
     // cannot create post for non-existent satellite
     assert!(
@@ -1957,6 +1962,7 @@ async fn test_update_post() -> Result<(), AppError> {
         updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
         updated_post.create_timestamp == post.create_timestamp
     );
+    assert_eq!(updated_post.delete_timestamp, None);
 
     let nsfw_sphere_post = create_post(
         &nsfw_sphere.sphere_name,
@@ -2003,6 +2009,7 @@ async fn test_update_post() -> Result<(), AppError> {
             updated_nsfw_post.edit_timestamp.unwrap() > updated_nsfw_post.create_timestamp &&
             updated_nsfw_post.create_timestamp == nsfw_sphere_post.create_timestamp
     );
+    assert_eq!(updated_nsfw_post.delete_timestamp, None);
 
     Ok(())
 }
@@ -2073,6 +2080,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
             updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
             updated_post.create_timestamp == post.create_timestamp
     );
+    assert_eq!(updated_post.delete_timestamp, None);
 
     let (sphere_2, satellite_2) = create_sphere_with_satellite(
         "2",
@@ -2125,6 +2133,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
             updated_post.edit_timestamp.unwrap() > updated_post.create_timestamp &&
             updated_post.create_timestamp == post.create_timestamp
     );
+    assert_eq!(updated_post.delete_timestamp, None);
 
     Ok(())
 }

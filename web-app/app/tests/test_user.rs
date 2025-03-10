@@ -22,6 +22,7 @@ async fn test_create_or_update_user() -> Result<(), AppError> {
     assert_eq!(user.admin_role, AdminRole::None);
     assert_eq!(user.show_nsfw, false);
     assert_eq!(user.days_hide_spoiler, None);
+    assert_eq!(user.delete_timestamp, None);
 
     let loaded_user = User::get(user.user_id, &db_pool).await.expect("Should get user");
     assert_eq!(loaded_user.user_id, user.user_id);
@@ -31,6 +32,7 @@ async fn test_create_or_update_user() -> Result<(), AppError> {
     assert_eq!(loaded_user.admin_role, user.admin_role);
     assert_eq!(loaded_user.show_nsfw, user.show_nsfw);
     assert_eq!(loaded_user.days_hide_spoiler, user.days_hide_spoiler);
+    assert_eq!(loaded_user.delete_timestamp, None);
 
     Ok(())
 }

@@ -227,6 +227,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(comment.score, 0);
     assert_eq!(comment.score_minus, 0);
     assert_eq!(comment.edit_timestamp, None);
+    assert_eq!(comment.delete_timestamp, None);
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
@@ -258,6 +259,7 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(child_comment.score, 0);
     assert_eq!(child_comment.score_minus, 0);
     assert_eq!(child_comment.edit_timestamp, None);
+    assert_eq!(child_comment.delete_timestamp, None);
 
     let post = get_post_by_id(post.post_id, &db_pool).await.expect("Should get post.");
     assert_eq!(post.num_comments, 2);
@@ -290,6 +292,7 @@ async fn test_update_comment() -> Result<(), AppError> {
             updated_comment.edit_timestamp.unwrap() > updated_comment.create_timestamp &&
             updated_comment.create_timestamp == comment.create_timestamp
     );
+    assert_eq!(updated_comment.delete_timestamp, None);
 
     Ok(())
 }

@@ -38,7 +38,7 @@ pub struct User {
     pub ban_status: BanStatus,
     pub ban_status_by_sphere_map: HashMap<String, BanStatus>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub is_deleted: bool,
+    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -80,7 +80,7 @@ impl Default for User {
             ban_status: BanStatus::None,
             ban_status_by_sphere_map: HashMap::new(),
             timestamp: chrono::DateTime::default(),
-            is_deleted: false,
+            delete_timestamp: None,
         }
     }
 }
@@ -188,7 +188,7 @@ pub mod ssr {
         pub show_nsfw: bool,
         pub days_hide_spoiler: Option<i32>,
         pub timestamp: chrono::DateTime<chrono::Utc>,
-        pub is_deleted: bool,
+        pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
 
     impl SqlUser {
@@ -264,7 +264,7 @@ pub mod ssr {
                 ban_status: global_ban_status,
                 ban_status_by_sphere_map,
                 timestamp: self.timestamp,
-                is_deleted: self.is_deleted,
+                delete_timestamp: self.delete_timestamp,
             }
         }
     }
@@ -465,7 +465,7 @@ pub mod ssr {
                 show_nsfw: true,
                 days_hide_spoiler: None,
                 timestamp: chrono::DateTime::from_timestamp_nanos(0),
-                is_deleted: false,
+                delete_timestamp: None,
             };
             let user_sphere_role_vec = vec![
                 UserSphereRole {
@@ -550,7 +550,7 @@ pub mod ssr {
             assert_eq!(user_1.email, "c");
             assert_eq!(user_1.admin_role, AdminRole::None);
             assert_eq!(user_1.timestamp, chrono::DateTime::from_timestamp_nanos(0));
-            assert_eq!(user_1.is_deleted, false);
+            assert_eq!(user_1.delete_timestamp, None);
             assert_eq!(user_1.permission_by_sphere_map[&String::from("0")], PermissionLevel::Moderate);
             assert_eq!(user_1.permission_by_sphere_map[&String::from("1")], PermissionLevel::Lead);
             assert_eq!(user_1.ban_status, BanStatus::None);

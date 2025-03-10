@@ -27,7 +27,7 @@ CREATE TABLE users (
     days_hide_spoiler INT CHECK (days_hide_spoiler > 0),
     show_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    delete_timestamp TIMESTAMPTZ,
     UNIQUE (user_id, username)
 );
 
@@ -186,6 +186,7 @@ CREATE TABLE posts (
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,
     scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delete_timestamp TIMESTAMPTZ,
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL,
     CONSTRAINT valid_satellite FOREIGN KEY (sphere_id, satellite_id) REFERENCES satellites (sphere_id, satellite_id),
     CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
@@ -215,7 +216,8 @@ CREATE TABLE comments (
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    edit_timestamp TIMESTAMPTZ
+    edit_timestamp TIMESTAMPTZ,
+    delete_timestamp TIMESTAMPTZ
 );
 
 CREATE INDEX comment_document_idx ON comments USING GIN (comment_document);

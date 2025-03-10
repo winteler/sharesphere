@@ -63,6 +63,7 @@ pub struct Comment {
     pub score_minus: i32,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]

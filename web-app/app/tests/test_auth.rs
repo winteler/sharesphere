@@ -215,7 +215,7 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(sql_user_1.username, user_1_value);
     assert_eq!(sql_user_1.email, user_1_value);
     assert_eq!(sql_user_1.admin_role, AdminRole::None);
-    assert_eq!(sql_user_1.is_deleted, false);
+    assert_eq!(sql_user_1.delete_timestamp, None);
 
     // test cannot create user with duplicate username or email
     let user_2_value = "2";
@@ -227,7 +227,7 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(sql_user_2.username, user_2_value);
     assert_eq!(sql_user_2.email, user_2_value);
     assert_eq!(sql_user_2.admin_role, AdminRole::None);
-    assert_eq!(sql_user_2.is_deleted, false);
+    assert_eq!(sql_user_2.delete_timestamp, None);
 
     let user_1 = User::get(sql_user_1.user_id, &db_pool).await.expect("Should be able to get user 1");
     assert_eq!(user_1.user_id, sql_user_1.user_id);
@@ -235,7 +235,7 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(user_1.username, sql_user_1.username);
     assert_eq!(user_1.email, sql_user_1.email);
     assert_eq!(user_1.admin_role, sql_user_1.admin_role);
-    assert_eq!(user_1.is_deleted, sql_user_1.is_deleted);
+    assert_eq!(user_1.delete_timestamp, sql_user_1.delete_timestamp);
 
     let user_1_updated_value = "3";
     let sql_user_1_updated = app::user::ssr::create_or_update_user(
@@ -248,7 +248,7 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(sql_user_1_updated.username, user_1_updated_value);
     assert_eq!(sql_user_1_updated.email, user_1_updated_value);
     assert_eq!(sql_user_1_updated.admin_role, AdminRole::None);
-    assert_eq!(sql_user_1_updated.is_deleted, false);
+    assert_eq!(sql_user_1_updated.delete_timestamp, None);
 
     Ok(())
 }

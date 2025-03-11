@@ -9,7 +9,6 @@ pub mod editor;
 pub mod embed;
 pub mod errors;
 pub mod error_template;
-pub mod footer;
 pub mod form;
 pub mod icons;
 pub mod moderation;

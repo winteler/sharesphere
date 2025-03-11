@@ -7,7 +7,7 @@ use app::comment::ssr::create_comment;
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
 use app::moderation::ssr::moderate_post;
-use app::post::ssr::{create_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
+use app::post::ssr::{create_post, delete_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
 use app::post::{ssr, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
@@ -2136,6 +2136,63 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(updated_post.delete_timestamp, None);
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_delete_post() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let sphere_name = "sphere";
+    create_sphere_with_satellite(
+        sphere_name,
+        "satellite",
+        false,
+        true,
+        &mut user,
+        &db_pool,
+    ).await.expect("Should create sphere");
+
+    let post = create_post(
+        sphere_name,
+        None,
+        "post",
+        "body",
+        Some("markdown_body"),
+        Link::new(
+            LinkType::Rich,
+            Some(String::from("link")),
+            Some(String::from("embed")),
+            Some(String::from("thumbnail")),
+        ),
+        true,
+        true,
+        true,
+        None,
+        &user,
+        &db_pool,
+    ).await.expect("Should create post");
+
+    let deleted_post = delete_post(
+        post.post_id,
+        &user,
+        &db_pool
+    ).await.expect("Should delete post");
+
+    assert_eq!(deleted_post.post_id, deleted_post.post_id);
+    assert_eq!(deleted_post.satellite_id, deleted_post.satellite_id);
+    assert_eq!(deleted_post.body, "");
+    assert_eq!(deleted_post.markdown_body, None);
+    assert_eq!(deleted_post.link, Link::default());
+    assert!(
+        deleted_post.edit_timestamp.is_some() &&
+            deleted_post.edit_timestamp.unwrap() > deleted_post.create_timestamp &&
+            deleted_post.create_timestamp == post.create_timestamp
+    );
+    assert!(
+        deleted_post.delete_timestamp.is_some() &&
+            deleted_post.delete_timestamp.unwrap() > deleted_post.create_timestamp
+    );
 }
 
 #[tokio::test]

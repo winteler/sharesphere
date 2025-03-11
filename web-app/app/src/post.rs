@@ -649,6 +649,39 @@ pub mod ssr {
         Ok(post)
     }
 
+    pub async fn delete_post(
+        post_id: i64,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Post, AppError> {
+        let deleted_post = sqlx::query_as::<_, Post>(
+            "UPDATE posts SET
+                title = '',
+                body = '',
+                markdown_body = NULL,
+                link_type = -1,
+                link_url = NULL,
+                link_embed = NULL,
+                link_thumbnail_url = NULL,
+                is_nsfw = false,
+                is_spoiler = false,
+                is_pinned = false,
+                category_id = NULL,
+                edit_timestamp = CURRENT_TIMESTAMP,
+                delete_timestamp = CURRENT_TIMESTAMP
+            WHERE
+                post_id = $1 AND
+                creator_id = $2
+            RETURNING *",
+        )
+            .bind(post_id)
+            .bind(user.user_id)
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(deleted_post)
+    }
+
     pub async fn increment_post_comment_count(
         post_id: i64,
         db_pool: &PgPool,

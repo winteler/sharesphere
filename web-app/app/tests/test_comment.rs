@@ -3,7 +3,7 @@ use rand::Rng;
 pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::comment;
-use app::comment::ssr::{create_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree};
+use app::comment::ssr::{create_comment, delete_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree};
 use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
@@ -295,4 +295,66 @@ async fn test_update_comment() -> Result<(), AppError> {
     assert_eq!(updated_comment.delete_timestamp, None);
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_delete_comment() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (_sphere, post, parent_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+
+    let comment = create_comment(
+        post.post_id,
+        Some(parent_comment.comment_id),
+        "comment",
+        Some("markdown_comment"),
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Comment should be created.");
+
+    let deleted_comment = delete_comment(
+        comment.comment_id,
+        &user,
+        &db_pool
+    ).await.expect("Should deleted comment.");
+
+    assert_eq!(deleted_comment.comment_id, comment.comment_id);
+    assert_eq!(deleted_comment.parent_id, comment.parent_id);
+    assert_eq!(deleted_comment.post_id, comment.post_id);
+    assert_eq!(deleted_comment.body, "");
+    assert_eq!(deleted_comment.markdown_body, None);
+    assert_eq!(deleted_comment.is_pinned, false);
+    assert!(
+        deleted_comment.edit_timestamp.is_some() &&
+            deleted_comment.edit_timestamp.unwrap() > deleted_comment.create_timestamp &&
+            deleted_comment.create_timestamp == comment.create_timestamp
+    );
+    assert!(
+        deleted_comment.delete_timestamp.is_some() &&
+            deleted_comment.delete_timestamp.unwrap() > deleted_comment.create_timestamp
+    );
+
+    let deleted_parent_comment = delete_comment(
+        parent_comment.comment_id,
+        &user,
+        &db_pool
+    ).await.expect("Should delete parent comment.");
+
+    assert_eq!(deleted_parent_comment.comment_id, parent_comment.comment_id);
+    assert_eq!(deleted_parent_comment.parent_id, None);
+    assert_eq!(deleted_parent_comment.post_id, parent_comment.post_id);
+    assert_eq!(deleted_parent_comment.body, "");
+    assert_eq!(deleted_parent_comment.markdown_body, None);
+    assert_eq!(deleted_parent_comment.is_pinned, false);
+    assert!(
+        deleted_parent_comment.edit_timestamp.is_some() &&
+            deleted_parent_comment.edit_timestamp.unwrap() > deleted_parent_comment.create_timestamp &&
+            deleted_parent_comment.create_timestamp == parent_comment.create_timestamp
+    );
+    assert!(
+        deleted_parent_comment.delete_timestamp.is_some() &&
+            deleted_parent_comment.delete_timestamp.unwrap() > deleted_parent_comment.create_timestamp
+    );
 }

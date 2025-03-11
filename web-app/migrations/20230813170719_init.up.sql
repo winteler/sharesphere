@@ -164,7 +164,7 @@ CREATE TABLE posts (
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
     sphere_id BIGINT NOT NULL,
     sphere_name TEXT NOT NULL,
-    satellite_id BIGINT REFERENCES satellites (satellite_id),
+    satellite_id BIGINT,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
     is_creator_moderator BOOLEAN NOT NULL,
@@ -188,7 +188,7 @@ CREATE TABLE posts (
     scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL,
-    CONSTRAINT valid_satellite FOREIGN KEY (sphere_id, satellite_id) REFERENCES satellites (sphere_id, satellite_id),
+    CONSTRAINT valid_satellite FOREIGN KEY (sphere_id, satellite_id) REFERENCES satellites (sphere_id, satellite_id) MATCH SIMPLE,
     CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
 );
 

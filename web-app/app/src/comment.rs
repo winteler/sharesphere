@@ -493,6 +493,31 @@ pub mod ssr {
         Ok(comment)
     }
 
+    pub async fn delete_comment(
+        comment_id: i64,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Comment, AppError> {
+        let deleted_comment = sqlx::query_as::<_, Comment>(
+            "UPDATE comments SET
+                body = '',
+                markdown_body = NULL,
+                is_pinned = false,
+                edit_timestamp = CURRENT_TIMESTAMP,
+                delete_timestamp = CURRENT_TIMESTAMP
+            WHERE
+                comment_id = $1 AND
+                creator_id = $2
+            RETURNING *",
+        )
+            .bind(comment_id)
+            .bind(user.user_id)
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(deleted_comment)
+    }
+
     #[cfg(test)]
     mod tests {
         use crate::comment::ssr::CommentWithVote;

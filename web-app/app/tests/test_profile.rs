@@ -2,14 +2,14 @@ use app::comment::{CommentSortType, CommentWithContext};
 use app::comment::ssr::create_comment;
 use app::embed::Link;
 use app::errors::AppError;
-use app::post::{PostWithSphereInfo};
+use app::post::{PostSortType, PostWithSphereInfo};
 use app::post::ssr::create_post;
 use app::profile::ssr::{get_user_comment_vec, get_user_post_vec};
 use app::ranking::{SortType, VoteValue};
 use app::satellite::ssr::create_satellite;
 
 use crate::common::{create_user, get_db_pool};
-use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts, set_comment_score, set_post_score};
+use crate::data_factory::{create_post_with_comments, create_sphere_with_post_and_comment, create_sphere_with_posts, get_moderated_and_deleted_comments, get_moderated_and_deleted_posts, set_comment_score, set_post_score};
 use crate::utils::{sort_comment_vec, sort_post_vec, COMMENT_SORT_TYPE_ARRAY, POST_SORT_TYPE_ARRAY};
 
 mod common;
@@ -102,6 +102,17 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         sort_post_vec(&mut user_2_expected_post_vec, sort_type, false);
         assert_eq!(user_2_post_vec, user_2_expected_post_vec);
     }
+
+    let (moderated_post, deleted_post) = get_moderated_and_deleted_posts(sphere1_name, &user_1, &db_pool).await;
+    let post_vec = get_user_post_vec(
+        &user_1.username,
+        SortType::Post(PostSortType::Recent),
+        num_post as i64,
+        0,
+        &db_pool,
+    ).await.expect("Should get user_post vec");
+    assert!(!post_vec.contains(&moderated_post));
+    assert!(!post_vec.contains(&deleted_post));
     
     Ok(())
 }
@@ -205,4 +216,23 @@ async fn test_get_user_comment_vec() {
             &user_2_post,
         ))
     );
+
+    let (moderated_comment, deleted_comment) = get_moderated_and_deleted_comments(&user_1_post, &user_1, &db_pool).await;
+    let comment_vec = get_user_comment_vec(
+        &user_1.username,
+        SortType::Comment(CommentSortType::Recent),
+        num_comments as i64,
+        0,
+        &db_pool,
+    ).await.expect("Should get user 1 comments");
+    assert!(!comment_vec.contains(&CommentWithContext::from_comment(
+        moderated_comment,
+        (&sphere_1).into(),
+        &user_1_post,
+    )));
+    assert!(!comment_vec.contains(&CommentWithContext::from_comment(
+        deleted_comment,
+        (&sphere_1).into(),
+        &user_1_post,
+    )));
 }

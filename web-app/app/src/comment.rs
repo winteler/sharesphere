@@ -479,7 +479,9 @@ pub mod ssr {
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
                 comment_id = $4 AND
-                creator_id = $5
+                creator_id = $5 AND
+                moderator_id IS NULL AND
+                delete_timestamp IS NULL
             RETURNING *",
         )
             .bind(comment_body)
@@ -503,11 +505,13 @@ pub mod ssr {
                 body = '',
                 markdown_body = NULL,
                 is_pinned = false,
+                creator_name = '',
                 edit_timestamp = CURRENT_TIMESTAMP,
                 delete_timestamp = CURRENT_TIMESTAMP
             WHERE
                 comment_id = $1 AND
-                creator_id = $2
+                creator_id = $2 AND
+                moderator_id IS NULL
             RETURNING *",
         )
             .bind(comment_id)

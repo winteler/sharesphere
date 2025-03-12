@@ -126,13 +126,15 @@ pub mod ssr {
                     FROM spheres
                     WHERE
                         normalized_sphere_name LIKE format_for_search($1 || '%') AND
-                        ($2 OR NOT is_nsfw)
+                        ($2 OR NOT is_nsfw) AND
+                        NOT is_banned
                     UNION ALL
                     SELECT ws.*
                     FROM (
                         SELECT *, word_similarity(normalized_sphere_name, format_for_search($1)) as rank
                         FROM spheres
-                        WHERE $2 OR NOT is_nsfw
+                        WHERE $2 OR NOT is_nsfw AND
+                        NOT is_banned
                     ) ws
                     WHERE rank > 0.3
                     UNION ALL
@@ -142,7 +144,8 @@ pub mod ssr {
                         FROM spheres
                         WHERE
                             sphere_document @@ plainto_tsquery('simple', $1) AND
-                            ($2 OR NOT is_nsfw)
+                            ($2 OR NOT is_nsfw) AND
+                            NOT is_banned
                     ) ts
                     WHERE rank > 0.01
                 )
@@ -185,7 +188,8 @@ pub mod ssr {
                     ($2 IS NULL OR sphere_name = $2) AND
                     ($3 OR NOT is_spoiler) AND
                     ($4 OR NOT is_nsfw) AND
-                    moderator_id IS NULL
+                    moderator_id IS NULL AND
+                    delete_timestamp IS NULL
                 ORDER BY rank DESC, score DESC
                 LIMIT $5
                 OFFSET $6
@@ -222,6 +226,7 @@ pub mod ssr {
                 WHERE
                     comment_document @@ plainto_tsquery('simple', $1) AND
                     c.moderator_id IS NULL AND
+                    c.delete_timestamp IS NULL AND
                     ($2 IS NULL OR p.sphere_name = $2)
                 ORDER BY rank DESC, score DESC
                 LIMIT $3

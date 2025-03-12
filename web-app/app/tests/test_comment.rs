@@ -3,11 +3,11 @@ use rand::Rng;
 pub use crate::common::*;
 pub use crate::data_factory::*;
 use app::comment;
-use app::comment::ssr::{create_comment, delete_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree};
+use app::comment::ssr::{create_comment, delete_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree, update_comment};
 use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
-use app::post::ssr::get_post_by_id;
+use app::post::ssr::{get_post_by_id};
 use app::ranking::{SortType};
 use app::user::User;
 use crate::utils::{get_vote_from_comment_num, sort_comment_tree, COMMENT_SORT_TYPE_ARRAY};
@@ -272,11 +272,11 @@ async fn test_update_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (_sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (_, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let updated_markdown_body = "# Here is a comment with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");
-    let updated_comment = comment::ssr::update_comment(
+    let updated_comment = update_comment(
         comment.comment_id,
         &updated_html_body,
         Some(updated_markdown_body),
@@ -294,6 +294,43 @@ async fn test_update_comment() -> Result<(), AppError> {
     );
     assert_eq!(updated_comment.delete_timestamp, None);
 
+    // Cannot update moderated comment
+    let moderated_comment = get_moderated_comment(&post, &user, &db_pool).await;
+    assert_eq!(
+        update_comment(
+            moderated_comment.comment_id,
+            &updated_html_body,
+            Some(updated_markdown_body),
+            false,
+            &user,
+            &db_pool
+        ).await,
+        Err(AppError::NotFound),
+    );
+
+    // Cannot update deleted comment
+    let comment = create_comment(
+        post.post_id,
+        None,
+        "update",
+        None,
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Comment should be created.");
+    delete_comment(comment.comment_id, &user, &db_pool).await.expect("Comment should be deleted.");
+    assert_eq!(
+        update_comment(
+            comment.comment_id,
+            &updated_html_body,
+            Some(updated_markdown_body),
+            false,
+            &user,
+            &db_pool
+        ).await,
+        Err(AppError::NotFound),
+    );
+
     Ok(())
 }
 
@@ -302,7 +339,7 @@ async fn test_delete_comment() {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (_sphere, post, parent_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (_, post, parent_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let comment = create_comment(
         post.post_id,
@@ -325,6 +362,8 @@ async fn test_delete_comment() {
     assert_eq!(deleted_comment.post_id, comment.post_id);
     assert_eq!(deleted_comment.body, "");
     assert_eq!(deleted_comment.markdown_body, None);
+    assert_eq!(deleted_comment.creator_id, user.user_id);
+    assert_eq!(deleted_comment.creator_name, "");
     assert_eq!(deleted_comment.is_pinned, false);
     assert!(
         deleted_comment.edit_timestamp.is_some() &&
@@ -347,6 +386,8 @@ async fn test_delete_comment() {
     assert_eq!(deleted_parent_comment.post_id, parent_comment.post_id);
     assert_eq!(deleted_parent_comment.body, "");
     assert_eq!(deleted_parent_comment.markdown_body, None);
+    assert_eq!(deleted_comment.creator_id, user.user_id);
+    assert_eq!(deleted_comment.creator_name, "");
     assert_eq!(deleted_parent_comment.is_pinned, false);
     assert!(
         deleted_parent_comment.edit_timestamp.is_some() &&
@@ -356,5 +397,15 @@ async fn test_delete_comment() {
     assert!(
         deleted_parent_comment.delete_timestamp.is_some() &&
             deleted_parent_comment.delete_timestamp.unwrap() > deleted_parent_comment.create_timestamp
+    );
+
+    let moderated_comment = get_moderated_comment(&post, &user, &db_pool).await;
+    assert_eq!(
+        delete_comment(
+            moderated_comment.comment_id,
+            &user,
+            &db_pool
+        ).await,
+        Err(AppError::NotFound),
     );
 }

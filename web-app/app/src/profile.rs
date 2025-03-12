@@ -87,7 +87,9 @@ pub mod ssr {
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
-                    p.creator_name = $1
+                    p.creator_name = $1 AND
+                    p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL
                 ORDER BY {} DESC
                 LIMIT $2
                 OFFSET $3",
@@ -117,7 +119,10 @@ pub mod ssr {
                 "SELECT c.*, s.sphere_name, s.icon_url, s.is_nsfw, p.satellite_id, p.title as post_title FROM comments c
                 JOIN posts p ON p.post_id = c.post_id
                 JOIN spheres s ON s.sphere_id = p.sphere_id
-                WHERE c.creator_name = $1
+                WHERE
+                    c.creator_name = $1 AND
+                    c.moderator_id IS NULL AND
+                    c.delete_timestamp IS NULL
                 ORDER BY {} DESC
                 LIMIT $2
                 OFFSET $3",

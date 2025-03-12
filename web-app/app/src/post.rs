@@ -332,6 +332,7 @@ pub mod ssr {
                     s.sphere_name = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
                     p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL AND
                     p.satellite_id IS NULL AND
                     (
                         $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $3)
@@ -375,6 +376,7 @@ pub mod ssr {
                     s.satellite_id = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
                     p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL AND
                     (
                         $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $3)
                     ) AND
@@ -418,6 +420,7 @@ pub mod ssr {
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
                     p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL AND
                     p.satellite_id IS NULL AND
                     (
                         $1 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $1)
@@ -463,6 +466,7 @@ pub mod ssr {
                         SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
                     ) AND
                     p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL AND
                     p.satellite_id IS NULL AND
                     (
                         $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $2)
@@ -627,7 +631,9 @@ pub mod ssr {
                 edit_timestamp = CURRENT_TIMESTAMP
             WHERE
                 post_id = $12 AND
-                creator_id = $13
+                creator_id = $13 AND
+                moderator_id IS NULL AND
+                delete_timestamp IS NULL
             RETURNING *",
         )
             .bind(post_title)
@@ -667,11 +673,13 @@ pub mod ssr {
                 is_spoiler = false,
                 is_pinned = false,
                 category_id = NULL,
+                creator_name = '',
                 edit_timestamp = CURRENT_TIMESTAMP,
                 delete_timestamp = CURRENT_TIMESTAMP
             WHERE
                 post_id = $1 AND
-                creator_id = $2
+                creator_id = $2 AND
+                moderator_id IS NULL
             RETURNING *",
         )
             .bind(post_id)

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use sqlx::PgPool;
 
 use app::colors::Color;
-use app::comment::ssr::create_comment;
+use app::comment::ssr::{create_comment, delete_comment};
 use app::comment::{Comment, CommentWithChildren};
 use app::errors::AppError;
 use app::post::{Post, PostWithSphereInfo};
@@ -17,6 +17,9 @@ use app::sphere_management::ssr::set_sphere_icon_url;
 use app::user::User;
 use app::{post, ranking, sphere, sphere_category};
 use app::embed::Link;
+use app::moderation::ssr::{moderate_comment, moderate_post};
+use app::post::ssr::delete_post;
+use app::rule::ssr::add_rule;
 
 pub async fn create_sphere_with_post(
     sphere_name: &str,
@@ -357,6 +360,65 @@ pub async fn create_post_with_comment_tree(
     };
 
     (post, comment_tree)
+}
+
+/// creates, moderates and returns a post. Expects `user` to have management rights on `sphere_name`
+pub async fn get_moderated_post(sphere_name: &str, user: &User, db_pool: &PgPool) -> PostWithSphereInfo {
+    let rule = add_rule(Some(sphere_name), 0, "1", "2", &user, &db_pool).await.expect("Should add rule");
+    let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
+    let post = moderate_post(post.post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
+    PostWithSphereInfo::from_post(post, None, None)
+}
+
+/// creates, deletes and returns a post.
+pub async fn get_deleted_post(sphere_name: &str, user: &User, db_pool: &PgPool) -> PostWithSphereInfo {
+    let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
+    let post = delete_post(post.post.post_id, &user, &db_pool).await.expect("Post should be deleted.");
+    PostWithSphereInfo::from_post(post, None, None)
+}
+
+/// creates, moderates/deletes and returns two posts. Expects `user` to have management rights on `sphere_name`
+pub async fn get_moderated_and_deleted_posts(sphere_name: &str, user: &User, db_pool: &PgPool) -> (PostWithSphereInfo, PostWithSphereInfo) {
+    let moderated_post = get_moderated_post(sphere_name, user, db_pool).await;
+    let deleted_post = get_deleted_post(sphere_name, user, db_pool).await;
+    (moderated_post, deleted_post)
+}
+
+/// creates, moderates and returns a comment. Expects `user` to have management rights on `sphere_name`
+pub async fn get_moderated_comment(post: &Post, user: &User, db_pool: &PgPool) -> Comment {
+    let rule = add_rule(Some(&post.sphere_name), 0, "1", "2", &user, &db_pool).await.expect("Should add rule");
+    let comment = create_comment(
+        post.post_id,
+        None,
+        "a",
+        None,
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Comment should be created.");
+    let comment = moderate_comment(comment.comment_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate comment.");
+    comment
+}
+
+/// creates, deletes and returns a comment.
+pub async fn get_deleted_comment(post: &Post, user: &User, db_pool: &PgPool) -> Comment {
+    let comment = create_comment(
+        post.post_id,
+        None,
+        "a",
+        None,
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Comment should be created.");
+    let comment = delete_comment(comment.comment_id, &user, &db_pool).await.expect("Comment should be deleted.");
+    comment
+}
+
+pub async fn get_moderated_and_deleted_comments(post: &Post, user: &User, db_pool: &PgPool) -> (Comment, Comment) {
+    let moderated_comment = get_moderated_comment(post, user, db_pool).await;
+    let deleted_comment = get_deleted_comment(post, user, db_pool).await;
+    (moderated_comment, deleted_comment)
 }
 
 pub async fn set_sphere_num_members(

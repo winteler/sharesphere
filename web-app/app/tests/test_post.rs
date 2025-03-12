@@ -3,10 +3,10 @@ use std::time::Duration;
 use rand::Rng;
 use sqlx::PgPool;
 use app::colors::Color;
-use app::comment::ssr::create_comment;
+use app::comment::ssr::{create_comment};
 use app::editor::get_styled_html_from_markdown;
 use app::errors::AppError;
-use app::moderation::ssr::moderate_post;
+use app::moderation::ssr::{moderate_post};
 use app::post::ssr::{create_post, delete_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_with_info_by_id, update_post, update_post_scores};
 use app::post::{ssr, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
@@ -16,7 +16,7 @@ use app::rule::ssr::add_rule;
 use app::satellite::ssr::create_satellite;
 use app::sphere_category::ssr::set_sphere_category;
 use app::user::User;
-use app::{post, sphere};
+use app::{sphere};
 use app::embed::{Link, LinkType};
 use app::satellite::Satellite;
 use app::sphere::Sphere;
@@ -694,20 +694,11 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         assert_eq!(second_post_vec, expected_post_vec[num_post..2*num_post]);
     }
 
-    // Moderate post, test that it is no longer in the result
-    user.admin_role = AdminRole::Admin;
-    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
-    let moderated_post = moderate_post(
-        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
-        rule.rule_id,
-        "test",
-        &user,
-        &db_pool,
-    ).await.expect("Post should be moderated.");
-
-    let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Hot), num_post as i64, 0, None, &db_pool).await?;
-    let moderated_post = PostWithSphereInfo::from_post(moderated_post, None, None);
+    // Check that moderated and deleted posts are not returned
+    let (moderated_post, deleted_post) = get_moderated_and_deleted_posts(sphere1_name, &user, &db_pool).await;
+    let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Recent), num_post as i64, 0, None, &db_pool).await?;
     assert!(!post_vec.contains(&moderated_post));
+    assert!(!post_vec.contains(&deleted_post));
 
     Ok(())
 }
@@ -1896,36 +1887,18 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_update_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let user = create_test_user(&db_pool).await;
+    let mut user = create_test_user(&db_pool).await;
 
-    let sphere_name = "sphere";
-    create_sphere(
-        sphere_name,
+    let (sphere, post) = create_sphere_with_post(
         "sphere",
-        false,
-        &user,
+        &mut user,
         &db_pool,
-    ).await?;
+    ).await;
     
     let nsfw_sphere = create_sphere(
         "nsfw",
         "nsfw",
         true,
-        &user,
-        &db_pool,
-    ).await?;
-
-    let post = create_post(
-        sphere_name,
-        None,
-        "post",
-        "body",
-        None,
-        Link::default(),
-        false,
-        false,
-        false,
-        None,
         &user,
         &db_pool,
     ).await?;
@@ -2010,6 +1983,45 @@ async fn test_update_post() -> Result<(), AppError> {
             updated_nsfw_post.create_timestamp == nsfw_sphere_post.create_timestamp
     );
     assert_eq!(updated_nsfw_post.delete_timestamp, None);
+
+    // Cannot update moderator post
+    let rule = add_rule(Some(&sphere.sphere_name), 0, "1", "2", &user, &db_pool).await.expect("Should add rule");
+    moderate_post(post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
+    assert_eq!(
+        update_post(
+            post.post_id,
+            updated_title,
+            &updated_html_body,
+            Some(updated_markdown_body),
+            Link::default(),
+            false,
+            false,
+            false,
+            None,
+            &user,
+            &db_pool
+        ).await,
+        Err(AppError::NotFound),
+    );
+
+    // Cannot update deleted post
+    delete_post(updated_nsfw_post.post_id, &user, &db_pool).await.expect("Post should be deleted.");
+    assert_eq!(
+        update_post(
+            nsfw_sphere_post.post_id,
+            updated_title,
+            &updated_html_body,
+            Some(updated_markdown_body),
+            Link::default(),
+            false,
+            false,
+            false,
+            None,
+            &user,
+            &db_pool
+        ).await,
+        Err(AppError::NotFound),
+    );
 
     Ok(())
 }
@@ -2184,6 +2196,11 @@ async fn test_delete_post() {
     assert_eq!(deleted_post.body, "");
     assert_eq!(deleted_post.markdown_body, None);
     assert_eq!(deleted_post.link, Link::default());
+    assert_eq!(deleted_post.creator_id, user.user_id);
+    assert_eq!(deleted_post.creator_name, "");
+    assert_eq!(deleted_post.is_spoiler, false);
+    assert_eq!(deleted_post.is_nsfw, false);
+    assert_eq!(deleted_post.is_pinned, false);
     assert!(
         deleted_post.edit_timestamp.is_some() &&
             deleted_post.edit_timestamp.unwrap() > deleted_post.create_timestamp &&
@@ -2192,6 +2209,18 @@ async fn test_delete_post() {
     assert!(
         deleted_post.delete_timestamp.is_some() &&
             deleted_post.delete_timestamp.unwrap() > deleted_post.create_timestamp
+    );
+
+    let rule = add_rule(Some(sphere_name), 0, "1", "2", &user, &db_pool).await.expect("Should add rule");
+    let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
+    let post = moderate_post(post.post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
+    assert_eq!(
+        delete_post(
+            post.post_id,
+            &user,
+            &db_pool
+        ).await,
+        Err(AppError::NotFound),
     );
 }
 
@@ -2251,7 +2280,7 @@ async fn test_post_scores() -> Result<(), AppError> {
 
     set_post_score(post.post_id, rng.random_range(-100..101), &db_pool).await?;
 
-    let post_with_vote = post::ssr::get_post_with_info_by_id(post.post_id, Some(&user), &db_pool).await?;
+    let post_with_vote = get_post_with_info_by_id(post.post_id, Some(&user), &db_pool).await?;
 
     test_post_score(&post_with_vote.post);
     Ok(())

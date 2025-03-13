@@ -11,7 +11,6 @@ use app::post::ssr::{create_post, delete_post, get_post_by_id, get_post_inherite
 use app::post::{ssr, PostSortType, PostWithSphereInfo};
 use app::ranking::ssr::vote_on_content;
 use app::ranking::{SortType, VoteValue};
-use app::role::AdminRole;
 use app::rule::ssr::add_rule;
 use app::satellite::ssr::create_satellite;
 use app::sphere_category::ssr::set_sphere_category;

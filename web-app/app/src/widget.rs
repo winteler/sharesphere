@@ -8,6 +8,7 @@ use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_navigate, use_query_map};
 use leptos_router::NavigateOptions;
+use leptos_use::on_click_outside;
 use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
@@ -18,7 +19,7 @@ use crate::constants::{
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::form::LabeledSignalCheckbox;
-use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
 use crate::profile::get_profile_path;
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
@@ -43,13 +44,13 @@ pub fn ModalDialog(
     view! {
         <Show when=show_dialog>
             <div
-                class="relative z-10"
+                class="relative z-20"
                 aria-labelledby="modal-title"
                 role="dialog"
                 aria-modal="true"
             >
                 <div class="fixed inset-0 bg-base-200 bg-opacity-75 transition-opacity"></div>
-                <div class="fixed inset-0 z-10 w-screen overflow-auto">
+                <div class="fixed inset-0 z-20 w-screen overflow-auto">
                     <div class="flex min-h-full justify-center items-center">
                         <div class=dialog_class node_ref=modal_ref>
                             {children()}
@@ -164,6 +165,46 @@ where
             enum_iter.into_iter().map(|enum_val| view! {<option>{enum_val.into()}</option>}.into_any()).collect_view()
         }
         </select>
+    }.into_any()
+}
+
+/// Component to display a button with a three-dot icon opening a menu displaying the children of the component when clicked
+#[component]
+pub fn DotMenu<C: IntoView + 'static>(
+    children: TypedChildrenFn<C>,
+) -> impl IntoView {
+    let show_menu = RwSignal::new(false);
+    let dropdown_ref = NodeRef::<html::Div>::new();
+    let _ = on_click_outside(dropdown_ref, move |_| show_menu.set(false));
+
+    let button_class = move || match show_menu.get() {
+        true => "btn btn-circle btn-sm btn-primary",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
+
+    let children = StoredValue::new(children.into_inner());
+
+    view! {
+        <div
+            class="h-full relative"
+            node_ref=dropdown_ref
+        >
+            <button
+                class=button_class
+                on:click= move |_| show_menu.update(|value| *value = !*value)
+            >
+                <DotMenuIcon/>
+            </button>
+            <Show when=show_menu>
+                <div class="absolute z-10 origin-bottom-left">
+                    <div class="bg-base-200 shadow rounded mt-1 p-1 w-fit">
+                    {
+                        children.with_value(|children| children())
+                    }
+                    </div>
+                </div>
+            </Show>
+        </div>
     }.into_any()
 }
 
@@ -487,7 +528,7 @@ pub fn ModalFormButtons(
                 class="btn btn-active btn-secondary"
                 disabled=disable_publish
             >
-                "Publish"
+                "Submit"
             </button>
         </div>
     }

@@ -11,7 +11,7 @@ use crate::content::ContentBody;
 use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::LabeledFormCheckbox;
-use crate::icons::{DeleteIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
+use crate::icons::{CrossIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
 use crate::post::{add_sphere_info_to_post_vec, get_post_vec_by_satellite_id, CreatePost, PostForm, PostMiniatureList, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
 use crate::role::{AuthorizedShow, PermissionLevel};
@@ -650,7 +650,7 @@ pub fn DisableSatelliteButton(
                     value=satellite_id
                 />
                 <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
-                    <DeleteIcon/>
+                    <CrossIcon/>
                 </button>
             </ActionForm>
         </AuthorizedShow>

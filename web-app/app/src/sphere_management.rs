@@ -11,7 +11,7 @@ use strum::IntoEnumIterator;
 use crate::app::{GlobalState, LoginWindow};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::{AppError, ErrorDisplay};
-use crate::icons::{DeleteIcon, MagnifierIcon, SaveIcon};
+use crate::icons::{CrossIcon, MagnifierIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
 use crate::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
 use crate::rule::SphereRulesPanel;
@@ -640,7 +640,7 @@ pub fn BanPanel() -> impl IntoView {
                                                 value=ban_id
                                             />
                                             <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
-                                                <DeleteIcon/>
+                                                <CrossIcon/>
                                             </button>
                                         </ActionForm>
                                     </AuthorizedShow>

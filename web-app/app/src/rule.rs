@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
-use crate::icons::{DeleteIcon, EditIcon, PlusIcon};
+use crate::icons::{CrossIcon, EditIcon, PlusIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::SphereState;
 use crate::unpack::{TransitionUnpack};
@@ -366,7 +366,7 @@ pub fn DeleteRuleButton(
                     value=rule.with_value(|rule| rule.priority)
                 />
                 <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
-                    <DeleteIcon/>
+                    <CrossIcon/>
                 </button>
             </ActionForm>
         </AuthorizedShow>

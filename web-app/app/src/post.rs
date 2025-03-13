@@ -17,7 +17,7 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::embed::{Embed, EmbedPreview, EmbedType, Link, LinkType};
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::icons::{EditIcon};
+use crate::icons::{DeleteIcon, EditIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::satellite::SATELLITE_ROUTE_PREFIX;
@@ -25,7 +25,7 @@ use crate::search::get_matching_sphere_header_vec;
 use crate::sphere::{SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
 use crate::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
-use crate::widget::{AuthorWidget, CommentCountWidget, LoadIndicators, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentCountWidget, DotMenu, LoadIndicators, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -992,6 +992,18 @@ pub async fn edit_post(
     Ok(post)
 }
 
+#[server]
+pub async fn delete_post(
+    post_id: i64,
+) -> Result<(), ServerFnError<AppError>> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::delete_post(post_id, &user, &db_pool).await?;
+
+    Ok(())
+}
+
 /// Component to display a content
 #[component]
 pub fn Post() -> impl IntoView {
@@ -1001,8 +1013,13 @@ pub fn Post() -> impl IntoView {
     let post_id = get_post_id_memo(params);
 
     let post_resource = Resource::new(
-        move || (post_id.get(), state.edit_post_action.version().get(), sphere_state.moderate_post_action.version().get()),
-        move |(post_id, _, _)| {
+        move || (
+            post_id.get(),
+            state.edit_post_action.version().get(),
+            state.delete_post_action.version().get(),
+            sphere_state.moderate_post_action.version().get()
+        ),
+        move |(post_id, _, _, _)| {
             log::debug!("Load data for post: {post_id}");
             get_post_with_info_by_id(post_id)
         },
@@ -1109,6 +1126,8 @@ fn PostWidgetBar<'a>(
     post: &'a PostWithInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
+    let post_id = post.post.post_id;
+    let author_id = post.post.creator_id;
     view! {
         <div class="flex gap-1 content-center">
             <VotePanel
@@ -1117,14 +1136,17 @@ fn PostWidgetBar<'a>(
                 score=post.post.score
                 vote=post.vote.clone()
             />
-            <CommentButtonWithCount post_id=post.post.post_id comment_vec count=post.post.num_comments/>
-            <EditPostButton author_id=post.post.creator_id post=StoredValue::new(post.post.clone())/>
-            <ModeratePostButton post_id=post.post.post_id/>
+            <CommentButtonWithCount post_id comment_vec count=post.post.num_comments/>
+            <EditPostButton author_id post=StoredValue::new(post.post.clone())/>
+            <ModeratePostButton post_id/>
             <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
             <ModeratorWidget moderator=post.post.moderator_name.clone()/>
             <ModerationInfoButton content=Content::Post(post.post.clone())/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
+            <DotMenu>
+                <DeletePostButton post_id author_id/>
+            </DotMenu>
         </div>
     }
 }
@@ -1230,6 +1252,59 @@ pub fn EditPostButton(
                     post=post.get_value()
                     show_dialog
                 />
+            </div>
+        </Show>
+    }
+}
+
+/// Component to delete a post
+#[component]
+pub fn DeletePostButton(
+    post_id: i64,
+    author_id: i64,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let show_form = RwSignal::new(false);
+    let show_button = move || match &(*state.user.read()) {
+        Some(Ok(Some(user))) => user.user_id == author_id,
+        _ => false,
+    };
+    let edit_button_class = move || match show_form.get() {
+        true => "btn btn-circle btn-sm btn-error",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
+    view! {
+        <Show when=show_button>
+            <div>
+                <button
+                    class=edit_button_class
+                    aria-expanded=move || show_form.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)
+                >
+                    <DeleteIcon/>
+                </button>
+                <ModalDialog
+                    class="w-full flex justify-center"
+                    show_dialog=show_form
+                >
+                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
+                        <div class="text-center font-bold text-2xl">"Delete your post"</div>
+                        <ActionForm action=state.delete_post_action>
+                            <input
+                                type="text"
+                                name="post_id"
+                                class="hidden"
+                                value=post_id
+                            />
+                            <ModalFormButtons
+                                disable_publish=false
+                                show_form
+                            />
+                        </ActionForm>
+                        <ActionError action=state.delete_post_action.into()/>
+                    </div>
+                </ModalDialog>
             </div>
         </Show>
     }

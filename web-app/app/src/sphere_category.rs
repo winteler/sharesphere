@@ -8,7 +8,7 @@ use crate::colors::{Color, ColorIndicator, ColorSelect};
 use crate::editor::{FormTextEditor, TextareaData};
 use crate::errors::AppError;
 use crate::form::FormCheckbox;
-use crate::icons::{DeleteIcon, PauseIcon, PlayIcon, SaveIcon};
+use crate::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
 use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::SphereState;
 use crate::unpack::TransitionUnpack;
@@ -351,7 +351,7 @@ pub fn DeleteCategoryButton(
                     value=category_name.get_value()
                 />
                 <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
-                    <DeleteIcon/>
+                    <CrossIcon/>
                 </button>
             </ActionForm>
         </AuthorizedShow>

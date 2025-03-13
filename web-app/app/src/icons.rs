@@ -74,9 +74,23 @@ pub fn CommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl Int
 }
 
 #[component]
-pub fn DeleteIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn CrossIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/cross.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn DeleteIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/delete.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn DotMenuIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/dot_menu.svg" class=class/>
     }
 }
 

@@ -452,7 +452,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     ).await?;
     assert!(post_vec.is_empty());
 
-    sphere::ssr::subscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
+    subscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = ssr::get_subscribed_post_vec(
@@ -467,27 +467,20 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         assert_eq!(post_vec, expected_post_vec);
     }
 
-    // test banned post are not returned
-    user.admin_role = AdminRole::Admin;
-    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
-    let moderated_post = moderate_post(
-        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
-        rule.rule_id,
-        "test",
-        &user,
-        &db_pool,
-    ).await.expect("Post should be moderated.");
+    // Check that moderated and deleted posts are not returned
+    let (moderated_post, deleted_post) = get_moderated_and_deleted_posts(sphere1_name, &user, &db_pool).await;
 
     let post_vec = ssr::get_subscribed_post_vec(
         user.user_id,
-        SortType::Post(PostSortType::Hot),
+        SortType::Post(PostSortType::Recent),
         num_post as i64,
         0,
         None,
         &db_pool,
     ).await?;
-    let moderated_post = PostWithSphereInfo::from_post(moderated_post, None, None);
+
     assert!(!post_vec.contains(&moderated_post));
+    assert!(!post_vec.contains(&deleted_post));
 
     // test no posts are returned after unsubscribing
     sphere::ssr::unsubscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
@@ -696,7 +689,9 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
 
     // Check that moderated and deleted posts are not returned
     let (moderated_post, deleted_post) = get_moderated_and_deleted_posts(sphere1_name, &user, &db_pool).await;
+
     let post_vec = ssr::get_sorted_post_vec(SortType::Post(PostSortType::Recent), num_post as i64, 0, None, &db_pool).await?;
+
     assert!(!post_vec.contains(&moderated_post));
     assert!(!post_vec.contains(&deleted_post));
 
@@ -892,16 +887,8 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         assert_eq!(second_post_vec, expected_post_vec[load_count..(num_posts + 1)]);
     }
 
-    user.admin_role = AdminRole::Admin;
-
-    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
-    let moderated_post = moderate_post(
-        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
-        rule.rule_id,
-        "test",
-        &user,
-        &db_pool,
-    ).await.expect("Post should be moderated.");
+    // Check that moderated and deleted posts are not returned
+    let (moderated_post, deleted_post) = get_moderated_and_deleted_posts(sphere_name, &user, &db_pool).await;
 
     let post_vec = ssr::get_post_vec_by_sphere_name(
         sphere_name,
@@ -913,7 +900,8 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         &db_pool,
     ).await?;
 
-    assert!(!post_vec.contains(&moderated_post));
+    assert!(!post_vec.contains(&moderated_post.post));
+    assert!(!post_vec.contains(&deleted_post.post));
 
     Ok(())
 }
@@ -1254,17 +1242,8 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
         }).collect();
         assert_eq!(second_post_vec, expected_post_vec[load_count..num_posts]);
     }
-
-    user.admin_role = AdminRole::Admin;
-
-    let rule = add_rule(None, 0, "test", "test", &user, &db_pool).await.expect("Rule should be added.");
-    let moderated_post = moderate_post(
-        expected_post_vec.first().expect("First post should be accessible.").post.post_id,
-        rule.rule_id,
-        "test",
-        &user,
-        &db_pool,
-    ).await.expect("Post should be moderated.");
+    // Check that moderated and deleted posts are not returned
+    let (moderated_post, deleted_post) = get_moderated_and_deleted_posts(sphere_name, &user, &db_pool).await;
 
     let post_vec = ssr::get_post_vec_by_satellite_id(
         satellite_1.satellite_id,
@@ -1276,7 +1255,8 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
         &db_pool,
     ).await?;
 
-    assert!(!post_vec.contains(&moderated_post));
+    assert!(!post_vec.contains(&moderated_post.post));
+    assert!(!post_vec.contains(&deleted_post.post));
 
     Ok(())
 }

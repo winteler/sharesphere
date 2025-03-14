@@ -12,13 +12,13 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::errors::AppError;
 use crate::error_template::ErrorTemplate;
 use crate::form::IsPinnedCheckbox;
-use crate::icons::{AddCommentIcon, EditIcon, LoadingIcon};
+use crate::icons::{AddCommentIcon, DeleteIcon, EditIcon, LoadingIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget};
+use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -689,6 +689,23 @@ pub async fn edit_comment(
     Ok(comment)
 }
 
+#[server]
+pub async fn delete_comment(
+    comment_id: i64,
+) -> Result<(), ServerFnError<AppError>> {
+    log::trace!("Edit comment {comment_id}");
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::delete_comment(
+        comment_id,
+        &user,
+        &db_pool,
+    ).await?;
+
+    Ok(())
+}
+
 /// Comment section component
 #[component]
 pub fn CommentSection(
@@ -979,6 +996,9 @@ pub fn CommentWidgetBar(
             <ModeratorWidget moderator/>
             <TimeSinceWidget timestamp/>
             <TimeSinceEditWidget edit_timestamp/>
+            <DotMenu>
+                <DeleteCommentButton comment_id author_id comment/>
+            </DotMenu>
         </div>
     }.into_any()
 }
@@ -1251,6 +1271,74 @@ pub fn EditCommentButton(
                 </div>
             </Show>
         </Suspense>
+    }
+}
+
+/// Component to delete a comment
+#[component]
+pub fn DeleteCommentButton(
+    comment_id: i64,
+    author_id: i64,
+    comment: RwSignal<Comment>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let show_form = RwSignal::new(false);
+    let show_button = move || match &(*state.user.read()) {
+        Some(Ok(Some(user))) => user.user_id == author_id,
+        _ => false,
+    };
+    let edit_button_class = move || match show_form.get() {
+        true => "btn btn-circle btn-sm btn-error",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
+
+    let delete_comment_action = ServerAction::<DeleteComment>::new();
+    let delete_comment_result = delete_comment_action.value();
+
+    Effect::new(move |_| {
+        if let Some(Ok(deleted_comment)) = delete_comment_action.get() {
+            comment.update(|comment| {
+                comment.body = String::from("Deleted.");
+                comment.creator_name = String::from("Deleted.");
+            });
+            show_form.set(false);
+        }
+    });
+
+    view! {
+        <Show when=show_button>
+            <div>
+                <button
+                    class=edit_button_class
+                    aria-expanded=move || show_form.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)
+                >
+                    <DeleteIcon/>
+                </button>
+                <ModalDialog
+                    class="w-full flex justify-center"
+                    show_dialog=show_form
+                >
+                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
+                        <div class="text-center font-bold text-2xl">"Delete your comment"</div>
+                        <ActionForm action=delete_comment_action>
+                            <input
+                                type="text"
+                                name="comment_id"
+                                class="hidden"
+                                value=comment_id
+                            />
+                            <ModalFormButtons
+                                disable_publish=false
+                                show_form
+                            />
+                        </ActionForm>
+                        <ActionError action=delete_comment_action.into()/>
+                    </div>
+                </ModalDialog>
+            </div>
+        </Show>
     }
 }
 

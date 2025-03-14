@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use const_format::concatcp;
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map, use_query_map};
@@ -11,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::{GlobalState, PUBLISH_ROUTE};
 use crate::comment::{CommentButtonWithCount, CommentSection, CommentWithChildren, COMMENT_BATCH_SIZE};
-use crate::constants::{BEST_STR, HOT_STR, RECENT_STR, TRENDING_STR};
+use crate::constants::{BEST_STR, DELETED_MESSAGE, HOT_STR, RECENT_STR, TRENDING_STR};
 use crate::content::{Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::embed::{Embed, EmbedPreview, EmbedType, Link, LinkType};
@@ -107,6 +108,12 @@ pub enum PostSortType {
     Trending,
     Best,
     Recent,
+}
+
+impl Post {
+    pub fn is_active(&self) -> bool {
+        self.delete_timestamp.is_none() && self.moderator_id.is_none()
+    }
 }
 
 impl PostWithSphereInfo {
@@ -1034,7 +1041,7 @@ pub fn Post() -> impl IntoView {
 
     view! {
         <div
-            class="flex flex-col content-start gap-1 overflow-y-auto"
+            class="grow flex flex-col content-start gap-1 overflow-y-auto"
             on:scroll=move |_| match container_ref.get() {
                 Some(node_ref) => {
                     if !is_loading.get_untracked() && node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() {
@@ -1049,8 +1056,13 @@ pub fn Post() -> impl IntoView {
                 <div class="card">
                     <div class="card-body">
                         <div class="flex flex-col gap-2">
-                            <h2 class="card-title">{post_with_info.post.title.clone()}</h2>
-                            <PostBody post=post_with_info.post.clone()/>
+                            <h2 class="card-title">
+                            { match post_with_info.post.is_active() {
+                                true => post_with_info.post.title.clone(),
+                                false => DELETED_MESSAGE.to_string()
+                            }}
+                            </h2>
+                            <PostBody post=&post_with_info.post/>
                             <Embed link=post_with_info.post.link.clone()/>
                             <PostBadgeList
                                 sphere_header=None
@@ -1096,13 +1108,19 @@ pub fn PostBadgeList(
 
 /// Displays the body of a post
 #[component]
-pub fn PostBody(post: Post) -> impl IntoView {
+pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
 
     view! {
         <div class="pb-2">
         {
-            match (&post.moderator_message, &post.infringed_rule_title) {
-                (Some(moderator_message), Some(infringed_rule_title)) => view! { 
+            match (&post.delete_timestamp, &post.moderator_message, &post.infringed_rule_title) {
+                (Some(_), _, _) => view! {
+                    <ContentBody
+                        body=DELETED_MESSAGE.to_string()
+                        is_markdown=false
+                    />
+                }.into_any(),
+                (None, Some(moderator_message), Some(infringed_rule_title)) => view! {
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
@@ -1128,25 +1146,41 @@ fn PostWidgetBar<'a>(
 ) -> impl IntoView {
     let post_id = post.post.post_id;
     let author_id = post.post.creator_id;
+    let is_active = post.post.is_active();
     view! {
         <div class="flex gap-1 content-center">
-            <VotePanel
-                post_id=post.post.post_id
-                comment_id=None
-                score=post.post.score
-                vote=post.vote.clone()
-            />
+            { match is_active {
+                true => Either::Left(view! {
+                    <VotePanel
+                        post_id=post.post.post_id
+                        comment_id=None
+                        score=post.post.score
+                        vote=post.vote.clone()
+                    />
+                }),
+                false => Either::Right(view! {
+                    <ScoreIndicator score=post.post.score/>
+                }),
+            }}
             <CommentButtonWithCount post_id comment_vec count=post.post.num_comments/>
-            <EditPostButton author_id post=StoredValue::new(post.post.clone())/>
-            <ModeratePostButton post_id/>
-            <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
+            {
+                is_active.then_some(view!{
+                    <EditPostButton author_id post=StoredValue::new(post.post.clone())/>
+                    <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
+                    <ModeratePostButton post_id/>
+                })
+            }
             <ModeratorWidget moderator=post.post.moderator_name.clone()/>
             <ModerationInfoButton content=Content::Post(post.post.clone())/>
             <TimeSinceWidget timestamp=post.post.create_timestamp/>
             <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
-            <DotMenu>
-                <DeletePostButton post_id author_id/>
-            </DotMenu>
+            {
+                is_active.then_some(view!{
+                    <DotMenu>
+                        <DeletePostButton post_id author_id/>
+                    </DotMenu>
+                })
+            }
         </div>
     }
 }
@@ -1290,6 +1324,7 @@ pub fn DeletePostButton(
                 >
                     <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
                         <div class="text-center font-bold text-2xl">"Delete your post"</div>
+                        <div class="text-center font-bold text-xl">"This cannot be undone."</div>
                         <ActionForm action=state.delete_post_action>
                             <input
                                 type="text"

@@ -19,3 +19,4 @@ pub const BEST_ORDER_BY_COLUMN: &str = "score";
 pub const RECENT_ORDER_BY_COLUMN: &str = "create_timestamp";
 pub const SITE_ROOT: &str = "/";
 pub const IMAGE_TYPE: &str = "image/";
+pub const DELETED_MESSAGE: &str = "Deleted";

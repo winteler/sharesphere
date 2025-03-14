@@ -313,7 +313,7 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
         <div class="w-fit flex rounded-btn px-1 gap-1 items-center">
             <ScoreIcon/>
-            <div class="min-w-6 text-sm">
+            <div class="text-sm">
                 {score}
             </div>
         </div>

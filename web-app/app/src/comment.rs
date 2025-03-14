@@ -1,4 +1,5 @@
 use std::fmt;
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
@@ -6,7 +7,7 @@ use leptos_router::hooks::use_query_map;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 use crate::app::GlobalState;
-use crate::constants::{BEST_STR, RECENT_STR};
+use crate::constants::{BEST_STR, DELETED_MESSAGE, RECENT_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::errors::AppError;
@@ -88,6 +89,12 @@ pub struct CommentWithContext {
 pub enum CommentSortType {
     Best,
     Recent,
+}
+
+impl Comment {
+    pub fn is_active(&self) -> bool {
+        self.delete_timestamp.is_none() && self.moderator_id.is_none()
+    }
 }
 
 impl CommentWithContext {
@@ -927,8 +934,20 @@ pub fn CommentBody(
 ) -> impl IntoView {
     view! {
         {
-            move || comment.with(|comment| match (&comment.moderator_message, &comment.infringed_rule_title) {
-                (Some(moderator_message), Some(infringed_rule_title)) => view! {
+            move || comment.with(|comment| match (
+                &comment.delete_timestamp,
+                &comment.moderator_message,
+                &comment.infringed_rule_title
+            ) {
+                (Some(_), _, _) => view! {
+                    <div class="pl-2 text-left">
+                        <ContentBody
+                            body=String::from(DELETED_MESSAGE)
+                            is_markdown=false
+                        />
+                    </div>
+                }.into_any(),
+                (None, Some(moderator_message), Some(infringed_rule_title)) => view! {
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
@@ -954,6 +973,7 @@ pub fn CommentWidgetBar(
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
+    let vote = vote;
     let (comment_id, post_id, score, author_id, author) =
         comment.with_untracked(|comment| {
             (
@@ -968,37 +988,52 @@ pub fn CommentWidgetBar(
     let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
     let moderator = Signal::derive(move || comment.read().moderator_name.clone());
     let content = Signal::derive(move || Content::Comment(comment.get()));
+    let is_active = Signal::derive(move || comment.read().is_active());
     let is_moderator_comment = comment.read_untracked().is_creator_moderator;
     view! {
         <div class="flex gap-1 items-center">
-            <VotePanel
-                post_id
-                comment_id=Some(comment_id)
-                score
-                vote
-            />
+            { move || match is_active.get() {
+                true => Either::Left(view! {
+                    <VotePanel
+                        post_id
+                        comment_id=Some(comment_id)
+                        score
+                        vote=vote.clone()
+                    />
+                }),
+                false => Either::Right(view! {
+                    <ScoreIndicator score/>
+                }),
+            }}
             <CommentButton
                 post_id
                 comment_vec=child_comments
                 parent_comment_id=Some(comment_id)
             />
-            <EditCommentButton
-                comment_id
-                author_id
-                comment
-            />
-            <ModerateCommentButton
-                comment_id
-                comment
-            />
+            {
+                move || is_active.get().then_some(view! {
+                    <EditCommentButton
+                        comment_id
+                        author_id
+                        comment
+                    />
+                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
+                    <ModerateCommentButton
+                        comment_id
+                        comment
+                    />
+                })
+            }
             <ModerationInfoButton content/>
-            <AuthorWidget author is_moderator=is_moderator_comment/>
             <ModeratorWidget moderator/>
             <TimeSinceWidget timestamp/>
             <TimeSinceEditWidget edit_timestamp/>
-            <DotMenu>
-                <DeleteCommentButton comment_id author_id comment/>
-            </DotMenu>
+            { move || is_active.get().then_some(view!{
+                    <DotMenu>
+                        <DeleteCommentButton comment_id author_id comment/>
+                    </DotMenu>
+                })
+            }
         </div>
     }.into_any()
 }
@@ -1293,13 +1328,11 @@ pub fn DeleteCommentButton(
     };
 
     let delete_comment_action = ServerAction::<DeleteComment>::new();
-    let delete_comment_result = delete_comment_action.value();
 
     Effect::new(move |_| {
-        if let Some(Ok(deleted_comment)) = delete_comment_action.get() {
+        if let Some(Ok(_)) = delete_comment_action.value().get() {
             comment.update(|comment| {
-                comment.body = String::from("Deleted.");
-                comment.creator_name = String::from("Deleted.");
+                comment.delete_timestamp = Some(chrono::Utc::now());
             });
             show_form.set(false);
         }
@@ -1322,6 +1355,7 @@ pub fn DeleteCommentButton(
                 >
                     <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
                         <div class="text-center font-bold text-2xl">"Delete your comment"</div>
+                        <div class="text-center font-bold text-xl">"This cannot be undone."</div>
                         <ActionForm action=delete_comment_action>
                             <input
                                 type="text"

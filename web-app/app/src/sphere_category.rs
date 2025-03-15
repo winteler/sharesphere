@@ -209,7 +209,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere categories"</div>
                 <div class="flex flex-col">
                     <div class="border-b border-base-content/20 pl-2">
@@ -233,7 +233,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                         class="flex justify-between items-center"
                                     >
                                         <div
-                                            class="w-5/6 flex items-center gap-1 p-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                            class="w-5/6 flex items-center gap-1 p-1 rounded-sm hover:bg-base-content/20 active:scale-95 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
                                                 color_input.set(color);
@@ -350,7 +350,7 @@ pub fn DeleteCategoryButton(
                     class="hidden"
                     value=category_name.get_value()
                 />
-                <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                <button class="p-1 rounded-xs bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                     <CrossIcon/>
                 </button>
             </ActionForm>

@@ -428,7 +428,7 @@ pub fn ModeratePostDialog(
             class="w-full max-w-xl"
             show_dialog
         >
-            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                 <div class="text-center font-bold text-2xl">"Moderate a post"</div>
                 <ActionForm action=sphere_state.moderate_post_action>
                     <div class="flex flex-col gap-3 w-full">
@@ -489,7 +489,7 @@ pub fn ModerateCommentDialog(
             class="w-full max-w-xl"
             show_dialog
         >
-            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                 <div class="text-center font-bold text-2xl">"Moderate a comment"</div>
                 <ActionForm action=moderate_comment_action>
                     <div class="flex flex-col gap-3 w-full">
@@ -629,11 +629,11 @@ pub fn ModerationInfoButton(
                     class="w-full max-w-xl"
                     show_dialog
                 >
-                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+                    <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                         <ContentModerationInfo content=content/>
                         <button
                             type="button"
-                            class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                            class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-95 transition duration-250"
                             on:click=move |_| show_dialog.set(false)
                         >
                             "Close"

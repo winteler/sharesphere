@@ -252,7 +252,7 @@ pub fn LoginWindow() -> impl IntoView {
                     <p class="pb-4">"Please login to access this page."</p>
                     <ActionForm action=state.login_action>
                         <input type="text" name="redirect_url" class="hidden" value=current_path/>
-                        <button type="submit" class="btn btn-primary btn-wide rounded" on:click=move |_| get_current_path(current_path)>
+                        <button type="submit" class="btn btn-primary btn-wide rounded-sm" on:click=move |_| get_current_path(current_path)>
                             "Login"
                         </button>
                     </ActionForm>
@@ -270,9 +270,9 @@ fn HomePage() -> impl IntoView {
     view! {
         <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2">
             <div
-                class="flex-none bg-cover bg-center bg-no-repeat bg-[url('/banner.jpg')] rounded w-full h-40 flex items-center justify-center"
+                class="flex-none bg-cover bg-center bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-40 flex items-center justify-center"
             >
-                <div class="p-3 backdrop-blur bg-black/50 rounded-sm flex justify-center gap-3">
+                <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
                     <LogoIcon class="h-12 w-12"/>
                     <span class="text-4xl select-none">"ShareSphere"</span>
                 </div>

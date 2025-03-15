@@ -357,7 +357,7 @@ pub fn SatelliteHeader(
     view! {
         <a
             href=satellite_link
-            class="p-2 border border-1 border-base-content/20 rounded hover:bg-base-content/20 flex flex-col gap-1"
+            class="p-2 border border-1 border-base-content/20 rounded-sm hover:bg-base-content/20 flex flex-col gap-1"
         >
             {satellite_name}
             <TagsWidget is_spoiler=is_spoiler is_nsfw=is_nsfw/>
@@ -570,7 +570,7 @@ pub fn SatellitePanel() -> impl IntoView {
     );
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Satellites"</div>
             <div class="flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
@@ -588,7 +588,7 @@ pub fn SatellitePanel() -> impl IntoView {
                         let satellite_link = get_satellite_path(&satellite.sphere_name, satellite.satellite_id);
                         let satellite = satellite.clone();
                         view! {
-                            <div class="flex gap-1 justify-between rounded pl-1">
+                            <div class="flex gap-1 justify-between rounded-sm pl-1">
                                 <div class="w-5/6 flex gap-1">
                                     <div class="w-3/6 select-none">{satellite_name}</div>
                                     <div class="w-20 flex justify-center items-center">
@@ -607,7 +607,7 @@ pub fn SatellitePanel() -> impl IntoView {
                                 </div>
                                 <div class="flex gap-1 justify-end">
                                     <button
-                                        class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+                                        class="h-fit p-1 text-sm bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
                                         on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                     >
                                         <EditIcon/>
@@ -649,7 +649,7 @@ pub fn DisableSatelliteButton(
                     class="hidden"
                     value=satellite_id
                 />
-                <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                <button class="p-1 rounded-xs bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                     <CrossIcon/>
                 </button>
             </ActionForm>
@@ -691,7 +691,7 @@ pub fn EditSatelliteForm(
     });
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Edit a satellite"</div>
             <ActionForm action=sphere_state.update_satellite_action>
                 <input
@@ -736,7 +736,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
 
     view! {
         <button
-            class="self-end p-1 bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+            class="self-end p-1 bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <PlusIcon/>
@@ -745,7 +745,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
             class="w-full max-w-xl"
             show_dialog
         >
-            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Add a satellite"</div>
                 <ActionForm
                     action=sphere_state.create_satellite_action

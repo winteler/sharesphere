@@ -287,7 +287,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Rules"</div>
             <div class="flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
@@ -308,7 +308,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                 let rule = StoredValue::new(rule);
                                 let show_edit_form = RwSignal::new(false);
                                 view! {
-                                    <div class="flex gap-1 justify-between rounded pl-1">
+                                    <div class="flex gap-1 justify-between rounded-sm pl-1">
                                         <div class="w-5/6 flex gap-1">
                                             <div class="w-1/12 select-none">{rule.get_value().priority}</div>
                                             <div class="w-5/12 select-none">{rule.get_value().title}</div>
@@ -316,7 +316,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                         </div>
                                         <div class="flex gap-1 justify-end">
                                             <button
-                                                class="h-fit p-1 text-sm bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+                                                class="h-fit p-1 text-sm bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                             >
                                                 <EditIcon/>
@@ -365,7 +365,7 @@ pub fn DeleteRuleButton(
                     class="hidden"
                     value=rule.with_value(|rule| rule.priority)
                 />
-                <button class="p-1 rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                <button class="p-1 rounded-xs bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                     <CrossIcon/>
                 </button>
             </ActionForm>
@@ -401,7 +401,7 @@ pub fn EditRuleForm(
     });
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Edit a rule"</div>
             <ActionForm action=sphere_state.update_rule_action>
                 <input
@@ -452,7 +452,7 @@ pub fn CreateRuleForm() -> impl IntoView {
 
     view! {
         <button
-            class="self-end p-1 bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+            class="self-end p-1 bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <PlusIcon/>
@@ -461,7 +461,7 @@ pub fn CreateRuleForm() -> impl IntoView {
             class="w-full max-w-xl"
             show_dialog
         >
-            <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+            <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Add a rule"</div>
                 <ActionForm
                     action=sphere_state.add_rule_action

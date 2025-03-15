@@ -348,7 +348,7 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere description"</div>
                 <SuspenseUnpack resource=sphere_state.sphere_resource let:sphere>
                     <SphereDescriptionForm sphere=sphere/>
@@ -410,7 +410,7 @@ pub fn SphereIconDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere icon"</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
@@ -433,7 +433,7 @@ pub fn SphereBannerDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere banner"</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
@@ -456,7 +456,7 @@ pub fn ModeratorPanel() -> impl IntoView {
 
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded">
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Moderators"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex gap-1 border-b border-base-content/20">
@@ -469,7 +469,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                         let username = role.username.clone();
                         view! {
                             <div
-                                class="flex gap-1 py-1 rounded hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                class="flex gap-1 py-1 rounded-sm hover:bg-base-content/20 active:scale-95 transition duration-250"
                                 on:click=move |_| {
                                     username_input.set(username.clone());
                                     match select_ref.get_untracked() {
@@ -544,7 +544,7 @@ pub fn PermissionLevelForm(
                             {
                                 let user_header_vec = user_header_vec.clone();
                                 view ! {
-                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-2/5">
+                                    <ul tabindex="0" class="dropdown-content z-1 menu p-2 shadow-sm bg-base-200 rounded-box w-2/5">
                                         <For
                                             each=move || user_header_vec.clone().into_iter()
                                             key=|user_header| user_header.username.clone()
@@ -601,7 +601,7 @@ pub fn BanPanel() -> impl IntoView {
 
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded">
+        <div class="shrink-0 flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Banned users"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">
@@ -639,7 +639,7 @@ pub fn BanPanel() -> impl IntoView {
                                                 class="hidden"
                                                 value=ban_id
                                             />
-                                            <button class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                                            <button class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-90 transition duration-250">
                                                 <CrossIcon/>
                                             </button>
                                         </ActionForm>
@@ -665,7 +665,7 @@ pub fn BanInfoButton(
 
     view! {
         <button
-            class="p-1 h-full bg-secondary rounded-sm hover:bg-secondary/75 active:scale-90 transition duration-250"
+            class="p-1 h-full bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <MagnifierIcon/>
@@ -680,12 +680,12 @@ pub fn BanInfoButton(
                     move |_| get_moderation_info(post_id, comment_id)
                 );
                 view! {
-                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+                    <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                         <SuspenseUnpack resource=ban_detail_resource let:moderation_info>
                             <ModerationInfoDialog moderation_info/>
                             <button
                                 type="button"
-                                class="p-1 h-full rounded-sm bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                                class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-95 transition duration-250"
                                 on:click=move |_| show_dialog.set(false)
                             >
                                 "Close"

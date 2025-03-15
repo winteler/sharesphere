@@ -46,7 +46,7 @@ pub fn ModalDialog(
     modal_ref: NodeRef<html::Div>,
 ) -> impl IntoView {
     let dialog_class =
-        move || format!("relative transform overflow-visible rounded transition-all {class}");
+        move || format!("relative transform overflow-visible rounded-sm transition-all {class}");
     view! {
         <Show when=show_dialog>
             <div
@@ -203,7 +203,7 @@ pub fn DotMenu<C: IntoView + 'static>(
             </button>
             <Show when=show_menu>
                 <div class="absolute z-10 origin-bottom-left">
-                    <div class="bg-base-200 shadow rounded mt-1 p-1 w-fit">
+                    <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 w-fit">
                     {
                         children.with_value(|children| children())
                     }
@@ -477,7 +477,7 @@ pub fn SphereImageForm(
                 type="file"
                 name=IMAGE_FILE_PARAM
                 accept="image/*"
-                class="file-input file-input-bordered file-input-primary w-full rounded-sm"
+                class="file-input file-input-bordered file-input-primary w-full rounded-xs"
                 on:change=on_file_change
             />
             <Show when=move || !preview_url.read().is_empty()>
@@ -557,7 +557,7 @@ where
                     class="w-full flex justify-center"
                     show_dialog=show_form
                 >
-                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
+                    <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-5 w-96">
                         <div class="text-center font-bold text-2xl">{title}</div>
                         <div class="text-center font-bold text-xl">"This cannot be undone."</div>
                         <ActionForm action=delete_action>
@@ -688,7 +688,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
         false => "h-3 w-3 transition duration-200 rotate-180",
     });
     view! {
-        <div class="flex flex-col flex-shrink-0 relative">
+        <div class="flex flex-col shrink-0 relative">
             <button
                 class="p-1 rounded-md hover:bg-base-content/20"
                 on:click=move |_| show_children.update(|value| *value = !*value)

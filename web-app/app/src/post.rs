@@ -1081,31 +1081,6 @@ pub fn Post() -> impl IntoView {
     }.into_any()
 }
 
-/// Component to display a post's sphere, its category and whether it's a spoiler/NSFW
-#[component]
-pub fn PostBadgeList(
-    sphere_header: Option<SphereHeader>,
-    sphere_category: Option<SphereCategoryHeader>,
-    is_spoiler: bool,
-    is_nsfw: bool,
-    is_pinned: bool,
-) -> impl IntoView {
-    match (sphere_header, sphere_category, is_spoiler, is_nsfw, is_pinned) {
-        (None, None, false, false, false) => None,
-        (sphere_header, sphere_category, is_spoiler, is_nsfw, is_pinned) => Some(view! {
-            <div class="flex gap-2 items-center">
-            {
-                sphere_header.map(|sphere_header| view! { <SphereHeaderLink sphere_header/> })
-            }
-            {
-                sphere_category.map(|category_header| view! { <SphereCategoryBadge category_header/> })
-            }
-            <TagsWidget is_spoiler is_nsfw is_pinned/>
-            </div>
-        })
-    }
-}
-
 /// Displays the body of a post
 #[component]
 pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
@@ -1136,6 +1111,31 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
         }
         </div>
     }.into_any()
+}
+
+/// Component to display a post's sphere, its category and whether it's a spoiler/NSFW
+#[component]
+pub fn PostBadgeList(
+    sphere_header: Option<SphereHeader>,
+    sphere_category: Option<SphereCategoryHeader>,
+    is_spoiler: bool,
+    is_nsfw: bool,
+    is_pinned: bool,
+) -> impl IntoView {
+    match (sphere_header, sphere_category, is_spoiler, is_nsfw, is_pinned) {
+        (None, None, false, false, false) => None,
+        (sphere_header, sphere_category, is_spoiler, is_nsfw, is_pinned) => Some(view! {
+            <div class="flex gap-2 items-center">
+            {
+                sphere_header.map(|sphere_header| view! { <SphereHeaderLink sphere_header/> })
+            }
+            {
+                sphere_category.map(|category_header| view! { <SphereCategoryBadge category_header/> })
+            }
+            <TagsWidget is_spoiler is_nsfw is_pinned/>
+            </div>
+        })
+    }
 }
 
 /// Component to encapsulate the widgets associated with each post
@@ -1229,7 +1229,7 @@ pub fn PostMiniatureList(
                     view! {
                         <li>
                             <a href=post_path>
-                                <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
+                                <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-content/20">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
                                     <PostBadgeList
                                         sphere_header
@@ -1490,7 +1490,7 @@ pub fn CreatePost() -> impl IntoView {
                             }
                             prop:value=sphere_name_input
                         />
-                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-sm w-full">
+                        <ul tabindex="0" class="dropdown-content z-1 menu p-2 shadow-sm bg-base-200 rounded-xs w-full">
                             <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
                             {
                                 match sphere_header_vec.first() {
@@ -1616,7 +1616,7 @@ pub fn EditPostForm(
     );
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3 w-4/5 2xl:w-2/5">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-4/5 2xl:w-2/5">
             <div class="text-center font-bold text-2xl">"Edit your post"</div>
             <ActionForm action=state.edit_post_action>
                 <div class="flex flex-col gap-3 w-full">

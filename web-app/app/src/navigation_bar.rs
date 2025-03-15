@@ -108,7 +108,7 @@ pub fn LoggedInMenu(
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
                 <UserIcon/>
             </label>
-            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-200 rounded-sm w-52">
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-1 p-2 shadow-sm bg-base-200 rounded-xs w-52">
                 <li><a href=get_profile_path(&user.username)>"Profile"</a></li>
                 <li>
                     <ActionForm action=state.logout_action attr:class="flex">
@@ -134,7 +134,7 @@ pub fn PlusMenu() -> impl IntoView {
             <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
                 <PlusIcon class="h-6 w-6"/>
             </label>
-            <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded">
+            <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded-sm">
                 <li>
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }.into_any()

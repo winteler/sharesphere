@@ -108,11 +108,11 @@ pub fn ColorSelect(
                 </div>
                 <Show when=show_dropdown>
                     <div class="absolute z-40 origin-bottom-left">
-                        <div class="grid grid-cols-3 gap-1 shadow bg-base-100 rounded mt-1 w-28">
+                        <div class="grid grid-cols-3 gap-1 shadow-sm bg-base-100 rounded-sm mt-1 w-28">
                         { move || {
                             Color::iter().map(|color: Color| {
                                 view! {
-                                    <div class="w-fit rounded hover:bg-base-content/20" on:click=move |_| {
+                                    <div class="w-fit rounded-sm hover:bg-base-content/20" on:click=move |_| {
                                         color_input.set(color);
                                         show_dropdown.set(false);
                                     }>

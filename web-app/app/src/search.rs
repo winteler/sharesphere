@@ -463,7 +463,7 @@ pub fn SearchSpheres(
                 class=form_class
                 autofocus
             />
-            <div class="bg-base-200 rounded min-h-0 max-h-full">
+            <div class="bg-base-200 rounded-sm min-h-0 max-h-full">
                 <InfiniteSphereLinkList
                     sphere_header_vec
                     is_loading
@@ -620,7 +620,7 @@ pub fn SearchUsers() -> impl IntoView
                     <UserHeaderLink user_header/>
                 }).collect_view();
                 Some(view! {
-                    <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded overflow-y-auto max-h-full w-3/4 2xl:w-1/2 ">
+                    <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded-sm overflow-y-auto max-h-full w-3/4 2xl:w-1/2 ">
                         {user_header_link_list}
                     </div>
                 })

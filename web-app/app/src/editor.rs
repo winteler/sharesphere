@@ -73,7 +73,7 @@ pub mod ssr {
                         b"table" => elem.push_attribute(("class", "table")),
                         b"blockquote" => elem.push_attribute((
                             "class",
-                            "w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600",
+                            "w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600",
                         )),
                         _ => (),
                     }
@@ -174,7 +174,7 @@ pub fn FormTextEditor(
     #[prop(default = "w-full")]
     class: &'static str,
 ) -> impl IntoView {
-    let class = format!("group max-w-full p-2 border border-primary rounded-sm bg-base-100 {class}");
+    let class = format!("group max-w-full p-2 border border-primary rounded-xs bg-base-100 {class}");
 
     view! {
         <div class=class>
@@ -186,7 +186,7 @@ pub fn FormTextEditor(
                     id=name
                     name=name
                     placeholder=placeholder
-                    class="w-full bg-base-100 resize-none box-border outline-none border-none"
+                    class="w-full bg-base-100 resize-none box-border outline-hidden border-none"
                     on:input=move |ev| {
                         data.set_content.set(event_target_value(&ev));
                     }
@@ -239,7 +239,7 @@ pub fn FormMarkdownEditor(
 
     view! {
         <div class="flex flex-col gap-2">
-            <div class="group w-full max-w-full p-2 border border-primary rounded-sm">
+            <div class="group w-full max-w-full p-2 border border-primary rounded-xs">
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for=name class="sr-only">
                         {placeholder}
@@ -248,7 +248,7 @@ pub fn FormMarkdownEditor(
                         id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full resize-none box-border bg-base-100 p-1 rounded-sm outline-none"
+                        class="w-full resize-none box-border bg-base-100 p-1 rounded-xs outline-hidden"
                         autofocus
                         on:input=move |ev| {
                             data.set_content.set(event_target_value(&ev));
@@ -292,7 +292,7 @@ pub fn FormMarkdownEditor(
             </div>
             <Show when=is_markdown_mode>
                 <TransitionUnpack resource=render_markdown_resource let:markdown_as_html>
-                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-sm bg-base-100 break-words"
+                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-xs bg-base-100 break-words"
                         inner_html={markdown_as_html.clone()}
                     />
                 </TransitionUnpack>
@@ -371,7 +371,7 @@ pub fn HelpButton() -> impl IntoView {
             <Show when=show_help>
                 <div class="relative z-30">
                     <div
-                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-128 bg-base-200/90 rounded"
+                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-128 bg-base-200/90 rounded-sm"
                         node_ref=modal_ref
                     >
                         <div class="relative flex flex-col gap-2 leading-snug text-justify text-sm">
@@ -548,7 +548,7 @@ mod tests {
         );
         assert_eq!(
             style_html_user_content("<blockquote></blockquote>")?,
-            r#"<blockquote class="w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600"></blockquote>"#
+            r#"<blockquote class="w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600"></blockquote>"#
         );
         assert_eq!(style_html_user_content("<hr/>")?, r#"<hr class="my-2"/>"#);
         assert_eq!(
@@ -627,7 +627,7 @@ mod tests {
             > We can also do blockquotes
         "#};
         let expected_html = indoc! {r#"
-            <blockquote class="w-fit p-1 my-1 border-s-4 rounded border-slate-400 bg-slate-600">
+            <blockquote class="w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600">
             <p>We can also do blockquotes</p>
             </blockquote>
         "#};

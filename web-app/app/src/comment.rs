@@ -831,7 +831,7 @@ pub fn CommentTree(
 
     view! {
         <Form method="GET" action="">
-            <button class="p-2 mt-2 rounded hover:bg-base-content/20 font-semibold">
+            <button class="p-2 mt-2 rounded-sm hover:bg-base-content/20 font-semibold">
                 "Single comment tree view. Back to post."
             </button>
         </Form>
@@ -868,9 +868,9 @@ pub fn CommentBox(
     let is_pinned = Signal::derive(move || comment.read().is_pinned);
     let sidebar_css = move || {
         if *maximize.read() {
-            "p-0.5 rounded hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
+            "p-0.5 rounded-sm hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
         } else {
-            "p-0.5 rounded hover:bg-base-content/20 flex flex-col justify-center items-center"
+            "p-0.5 rounded-sm hover:bg-base-content/20 flex flex-col justify-center items-center"
         }
     };
     let color_bar_css = format!(
@@ -892,7 +892,7 @@ pub fn CommentBox(
                 </Show>
             </div>
             <div class="flex flex-col gap-1">
-                <div class="flex flex-col gap-1 p-1 rounded" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
+                <div class="flex flex-col gap-1 p-1 rounded-sm" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
                     <Show when=maximize>
                         <CommentBody comment/>
                     </Show>
@@ -1053,7 +1053,7 @@ pub fn CommentWithContext(
     view! {
         <Form method="GET" action=post_path>
             <input name=COMMENT_ID_QUERY_PARAM value=comment.comment.comment_id class="hidden"/>
-            <button class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded hover:bg-base-content/20">
+            <button class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-content/20">
                 <CommentBody comment=comment.comment/>
                 <div class="flex gap-1 items-center">
                     <SphereHeader sphere_header=comment.sphere_header/>
@@ -1157,28 +1157,26 @@ pub fn CommentButtonWithCount(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "p-1.5 rounded-full bg-primary hover:bg-base-content/20 active:scale-95 transition duration-250",
-        false => "p-1.5 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250",
+        true => "p-1.5 rounded-full bg-primary hover:bg-ghost active:scale-95 transition duration-250",
+        false => "p-1.5 rounded-full hover:bg-ghost active:scale-95 transition duration-250",
     });
 
     view! {
-        <div>
-            <LoginGuardedOpenModalButton
-                show_dialog
-                button_class=comment_button_class
-            >
-                <div class="w-fit flex gap-1.5 items-center text-sm px-1">
-                    <AddCommentIcon/>
-                    {count}
-                </div>
-            </LoginGuardedOpenModalButton>
-            <CommentDialog
-                post_id
-                parent_comment_id
-                comment_vec
-                show_dialog
-            />
-        </div>
+        <LoginGuardedOpenModalButton
+            show_dialog
+            button_class=comment_button_class
+        >
+            <div class="w-fit flex gap-1.5 items-center text-sm px-1">
+                <AddCommentIcon/>
+                {count}
+            </div>
+        </LoginGuardedOpenModalButton>
+        <CommentDialog
+            post_id
+            parent_comment_id
+            comment_vec
+            show_dialog
+        />
     }.into_any()
 }
 
@@ -1234,7 +1232,7 @@ pub fn CommentForm(
     });
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Share a comment"</div>
             <ActionForm action=create_comment_action>
                 <div class="flex flex-col gap-3 w-full">
@@ -1394,7 +1392,7 @@ pub fn EditCommentForm(
     });
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-3">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Edit your comment"</div>
             <ActionForm action=edit_comment_action>
                 <div class="flex flex-col gap-3 w-full">

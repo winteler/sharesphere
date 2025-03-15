@@ -13,13 +13,13 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::errors::AppError;
 use crate::error_template::ErrorTemplate;
 use crate::form::IsPinnedCheckbox;
-use crate::icons::{AddCommentIcon, DeleteIcon, EditIcon, LoadingIcon};
+use crate::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
 use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu};
+use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, DeleteButton};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -1316,17 +1316,6 @@ pub fn DeleteCommentButton(
     author_id: i64,
     comment: RwSignal<Comment>,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let show_form = RwSignal::new(false);
-    let show_button = move || match &(*state.user.read()) {
-        Some(Ok(Some(user))) => user.user_id == author_id,
-        _ => false,
-    };
-    let edit_button_class = move || match show_form.get() {
-        true => "btn btn-circle btn-sm btn-error",
-        false => "btn btn-circle btn-sm btn-ghost",
-    };
-
     let delete_comment_action = ServerAction::<DeleteComment>::new();
 
     Effect::new(move |_| {
@@ -1334,45 +1323,17 @@ pub fn DeleteCommentButton(
             comment.update(|comment| {
                 comment.delete_timestamp = Some(chrono::Utc::now());
             });
-            show_form.set(false);
         }
     });
 
     view! {
-        <Show when=show_button>
-            <div>
-                <button
-                    class=edit_button_class
-                    aria-expanded=move || show_form.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)
-                >
-                    <DeleteIcon/>
-                </button>
-                <ModalDialog
-                    class="w-full flex justify-center"
-                    show_dialog=show_form
-                >
-                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
-                        <div class="text-center font-bold text-2xl">"Delete your comment"</div>
-                        <div class="text-center font-bold text-xl">"This cannot be undone."</div>
-                        <ActionForm action=delete_comment_action>
-                            <input
-                                type="text"
-                                name="comment_id"
-                                class="hidden"
-                                value=comment_id
-                            />
-                            <ModalFormButtons
-                                disable_publish=false
-                                show_form
-                            />
-                        </ActionForm>
-                        <ActionError action=delete_comment_action.into()/>
-                    </div>
-                </ModalDialog>
-            </div>
-        </Show>
+        <DeleteButton
+            title="Delete Comment"
+            id=comment_id
+            id_name="comment_id"
+            author_id
+            delete_action=delete_comment_action
+        />
     }
 }
 

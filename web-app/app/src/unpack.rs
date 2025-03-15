@@ -22,7 +22,7 @@ pub fn Unpack<
 }
 
 pub fn action_has_error<
-    T: Clone + Send + Sync + 'static,
+    T: Send + Sync + 'static,
     A: Send + Sync + 'static,
 >(
     action: Action<A, Result<T, ServerFnError<AppError>>>
@@ -33,7 +33,7 @@ pub fn action_has_error<
 /// Component to render a server action's error
 #[component]
 pub fn ActionError<
-    T: Clone + Send + Sync + 'static,
+    T: Send + Sync + 'static,
     A: Send + Sync + 'static,
 >(
     action: Action<A, Result<T, ServerFnError<AppError>>>

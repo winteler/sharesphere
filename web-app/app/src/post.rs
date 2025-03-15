@@ -18,7 +18,7 @@ use crate::editor::{FormMarkdownEditor, TextareaData};
 use crate::embed::{Embed, EmbedPreview, EmbedType, Link, LinkType};
 use crate::errors::AppError;
 use crate::form::{IsPinnedCheckbox, LabeledFormCheckbox};
-use crate::icons::{DeleteIcon, EditIcon};
+use crate::icons::{EditIcon};
 use crate::moderation::{ModeratePostButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::satellite::SATELLITE_ROUTE_PREFIX;
@@ -26,7 +26,7 @@ use crate::search::get_matching_sphere_header_vec;
 use crate::sphere::{SphereCategoryDropdown, SphereHeader, SphereHeaderLink, SphereState, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_vec, SphereCategory, SphereCategoryBadge, SphereCategoryHeader};
 use crate::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
-use crate::widget::{AuthorWidget, CommentCountWidget, DotMenu, LoadIndicators, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
+use crate::widget::{AuthorWidget, CommentCountWidget, DeleteButton, DotMenu, LoadIndicators, ModalDialog, ModalFormButtons, ModeratorWidget, TagsWidget, TimeSinceEditWidget, TimeSinceWidget};
 
 #[cfg(feature = "ssr")]
 use crate::{
@@ -1298,50 +1298,14 @@ pub fn DeletePostButton(
     author_id: i64,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let show_form = RwSignal::new(false);
-    let show_button = move || match &(*state.user.read()) {
-        Some(Ok(Some(user))) => user.user_id == author_id,
-        _ => false,
-    };
-    let edit_button_class = move || match show_form.get() {
-        true => "btn btn-circle btn-sm btn-error",
-        false => "btn btn-circle btn-sm btn-ghost",
-    };
     view! {
-        <Show when=show_button>
-            <div>
-                <button
-                    class=edit_button_class
-                    aria-expanded=move || show_form.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)
-                >
-                    <DeleteIcon/>
-                </button>
-                <ModalDialog
-                    class="w-full flex justify-center"
-                    show_dialog=show_form
-                >
-                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
-                        <div class="text-center font-bold text-2xl">"Delete your post"</div>
-                        <div class="text-center font-bold text-xl">"This cannot be undone."</div>
-                        <ActionForm action=state.delete_post_action>
-                            <input
-                                type="text"
-                                name="post_id"
-                                class="hidden"
-                                value=post_id
-                            />
-                            <ModalFormButtons
-                                disable_publish=false
-                                show_form
-                            />
-                        </ActionForm>
-                        <ActionError action=state.delete_post_action.into()/>
-                    </div>
-                </ModalDialog>
-            </div>
-        </Show>
+        <DeleteButton
+            title="Delete Post"
+            id=post_id
+            id_name="post_id"
+            author_id
+            delete_action=state.delete_post_action
+        />
     }
 }
 

@@ -9,6 +9,11 @@ use leptos_router::components::Form;
 use leptos_router::hooks::{use_navigate, use_query_map};
 use leptos_router::NavigateOptions;
 use leptos_use::on_click_outside;
+use serde::de::DeserializeOwned;
+use server_fn::client::Client;
+use server_fn::codec::PostUrl;
+use server_fn::request::ClientReq;
+use server_fn::ServerFn;
 use strum::IntoEnumIterator;
 
 use crate::app::GlobalState;
@@ -19,8 +24,9 @@ use crate::constants::{
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::form::LabeledSignalCheckbox;
-use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, DeleteIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
 use crate::profile::get_profile_path;
+use crate::unpack::ActionError;
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -505,6 +511,74 @@ pub fn SphereImageForm(
     }
 }
 
+/// Component to render a delete button
+#[component]
+pub fn DeleteButton<A>(
+    title: &'static str,
+    id: i64,
+    id_name: &'static str,
+    author_id: i64,
+    delete_action: ServerAction<A>
+) -> impl IntoView
+where
+    A: DeserializeOwned
+    + ServerFn<InputEncoding = PostUrl, Error = AppError>
+    + Clone
+    + Send
+    + Sync
+    + 'static,
+    <<A::Client as Client<A::Error>>::Request as ClientReq<
+        A::Error,
+    >>::FormData: From<FormData>,
+    A::Output: Send + Sync + 'static,
+{
+    let state = expect_context::<GlobalState>();
+    let show_form = RwSignal::new(false);
+    let show_button = move || match &(*state.user.read()) {
+        Some(Ok(Some(user))) => user.user_id == author_id,
+        _ => false,
+    };
+    let edit_button_class = move || match show_form.get() {
+        true => "btn btn-circle btn-sm btn-error",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
+    view! {
+        <Show when=show_button>
+            <div>
+                <button
+                    class=edit_button_class
+                    aria-expanded=move || show_form.get().to_string()
+                    aria-haspopup="dialog"
+                    on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)
+                >
+                    <DeleteIcon/>
+                </button>
+                <ModalDialog
+                    class="w-full flex justify-center"
+                    show_dialog=show_form
+                >
+                    <div class="bg-base-100 shadow-xl p-3 rounded-sm flex flex-col gap-5 w-96">
+                        <div class="text-center font-bold text-2xl">{title}</div>
+                        <div class="text-center font-bold text-xl">"This cannot be undone."</div>
+                        <ActionForm action=delete_action>
+                            <input
+                                name=id_name
+                                class="hidden"
+                                value=id
+                            />
+                            <ModalFormButtons
+                                disable_publish=false
+                                show_form
+                            />
+                        </ActionForm>
+                        <ActionError action=delete_action.into()/>
+                    </div>
+                </ModalDialog>
+            </div>
+        </Show>
+    }
+}
+
 /// Component to render cancel and publish buttons for a modal Form
 #[component]
 pub fn ModalFormButtons(
@@ -525,7 +599,7 @@ pub fn ModalFormButtons(
             </button>
             <button
                 type="submit"
-                class="btn btn-active btn-secondary"
+                class="btn btn-secondary"
                 disabled=disable_publish
             >
                 "Submit"

@@ -357,7 +357,7 @@ pub fn SatelliteHeader(
     view! {
         <a
             href=satellite_link
-            class="p-2 border border-1 border-base-content/20 rounded-sm hover:bg-base-content/20 flex flex-col gap-1"
+            class="p-2 border border-1 border-base-content/20 rounded-sm hover:bg-base-200 flex flex-col gap-1"
         >
             {satellite_name}
             <TagsWidget is_spoiler=is_spoiler is_nsfw=is_nsfw/>
@@ -500,7 +500,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
                             category_vec_resource
                         />
                     </SuspenseUnpack>
-                    <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
+                    <button type="submit" class="btn btn-secondary" disabled=move || {
                         title_input.read().is_empty() ||
                         (
                             body_data.content.read().is_empty() &&
@@ -600,7 +600,7 @@ pub fn SatellitePanel() -> impl IntoView {
                                     }
                                     </div>
                                     <div class="w-20 flex justify-center items-center">
-                                        <a href=satellite_link class="p-2 rounded-full hover:bg-base-content/20">
+                                        <a href=satellite_link class="p-2 rounded-full hover:bg-base-200">
                                             <LinkIcon/>
                                         </a>
                                     </div>

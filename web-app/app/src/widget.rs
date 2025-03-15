@@ -55,7 +55,7 @@ pub fn ModalDialog(
                 role="dialog"
                 aria-modal="true"
             >
-                <div class="fixed inset-0 bg-base-200 bg-opacity-75 transition-opacity"></div>
+                <div class="fixed inset-0 bg-base-200/75 transition-opacity"></div>
                 <div class="fixed inset-0 z-20 w-screen overflow-auto">
                     <div class="flex min-h-full justify-center items-center">
                         <div class=dialog_class node_ref=modal_ref>
@@ -164,7 +164,7 @@ where
     view! {
         <select
             name=name
-            class="select select-bordered w-fit"
+            class="select w-fit"
             node_ref=select_ref
         >
         {
@@ -251,7 +251,7 @@ pub fn AuthorWidget(
 
     view! {
         <button
-            class="flex p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-content/20"
+            class="flex p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-200"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(author_profile_path.as_str(), NavigateOptions::default());
@@ -477,7 +477,7 @@ pub fn SphereImageForm(
                 type="file"
                 name=IMAGE_FILE_PARAM
                 accept="image/*"
-                class="file-input file-input-bordered file-input-primary w-full rounded-xs"
+                class="file-input file-input-primary w-full rounded-xs"
                 on:change=on_file_change
             />
             <Show when=move || !preview_url.read().is_empty()>
@@ -648,7 +648,7 @@ where
     view! {
         <div class="flex flex-col">
             <button
-                class="p-1 rounded-md hover:bg-base-content/20"
+                class="p-1 rounded-md hover:bg-base-200"
                 on:click=move |_| show_children.update(|value| *value = !*value)
             >
                 <div class="flex justify-between items-center">
@@ -690,7 +690,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
     view! {
         <div class="flex flex-col shrink-0 relative">
             <button
-                class="p-1 rounded-md hover:bg-base-content/20"
+                class="p-1 rounded-md hover:bg-base-200"
                 on:click=move |_| show_children.update(|value| *value = !*value)
             >
                 <div class="flex justify-between items-center">

@@ -233,7 +233,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                         class="flex justify-between items-center"
                                     >
                                         <div
-                                            class="w-5/6 flex items-center gap-1 p-1 rounded-sm hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                            class="w-5/6 flex items-center gap-1 p-1 rounded-sm hover:bg-base-200 active:scale-95 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
                                                 color_input.set(color);
@@ -298,7 +298,7 @@ pub fn SetCategoryForm(
                             name="category_name"
                             placeholder="Category"
                             autocomplete="off"
-                            class="input input-bordered input-primary w-3/12"
+                            class="input input-primary w-3/12"
                             on:input=move |ev| {
                                 category_input.set(event_target_value(&ev));
                             }

@@ -1229,7 +1229,7 @@ pub fn PostMiniatureList(
                     view! {
                         <li>
                             <a href=post_path>
-                                <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-content/20">
+                                <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-200">
                                     <h2 class="card-title pl-1">{post.title.clone()}</h2>
                                     <PostBadgeList
                                         sphere_header
@@ -1343,7 +1343,7 @@ pub fn PostForm(
             type="text"
             name="title"
             placeholder="Title"
-            class="input input-bordered input-primary h-input_m"
+            class="input input-primary w-full"
             value=title_input
             autofocus
             autocomplete="off"
@@ -1389,7 +1389,7 @@ pub fn LinkForm(
                 <span class="label-text w-fit">"Link"</span>
                 <select
                     name="embed_type"
-                    class="select select-bordered h-input_m w-fit"
+                    class="select w-fit"
                     node_ref=select_ref
                 >
                     <option
@@ -1421,7 +1421,7 @@ pub fn LinkForm(
                     type="text"
                     name="link"
                     placeholder="Link"
-                    class="input input-bordered input-primary h-input_m grow"
+                    class="input input-primary grow"
                     value=link_input
                     autofocus
                     autocomplete="off"
@@ -1484,7 +1484,7 @@ pub fn CreatePost() -> impl IntoView {
                             name="sphere"
                             placeholder="Sphere"
                             autocomplete="off"
-                            class="input input-bordered input-primary w-full h-input_m"
+                            class="input input-primary w-full"
                             on:input=move |ev| {
                                 sphere_name_input.set(event_target_value(&ev).to_lowercase());
                             }
@@ -1530,7 +1530,7 @@ pub fn CreatePost() -> impl IntoView {
                         is_parent_nsfw=is_sphere_nsfw
                         category_vec_resource
                     />
-                    <button type="submit" class="btn btn-active btn-secondary" disabled=move || {
+                    <button type="submit" class="btn btn-secondary" disabled=move || {
                         !is_sphere_selected.get() ||
                         title_input.read().is_empty() ||
                         (

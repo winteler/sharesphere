@@ -652,7 +652,7 @@ pub fn SearchForm(
             <input
                 type="text"
                 placeholder="Search"
-                class="input input-bordered input-primary"
+                class="input input-primary w-full"
                 value=search_state.search_input
                 autofocus=autofocus
                 on:input=move |ev| search_state.search_input.set(event_target_value(&ev))

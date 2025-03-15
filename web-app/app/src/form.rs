@@ -40,8 +40,8 @@ pub fn LabeledFormCheckbox(
     view! {
         <div class=class>
             <input type="text" name=name value=is_checked_string class="hidden"/>
-            <label class="cursor-pointer label p-0">
-                <span class="label-text">{label}</span>
+            <label class="cursor-pointer flex justify-between">
+                <span class="label">{label}</span>
                 <input
                     type="checkbox"
                     class="checkbox checkbox-primary"
@@ -66,8 +66,8 @@ pub fn LabeledSignalCheckbox(
 ) -> impl IntoView {
     view! {
         <div class=class>
-            <label class="cursor-pointer label p-0">
-                <span class="label-text">{label}</span>
+            <label class="cursor-pointer flex justify-between">
+                <span class="label">{label}</span>
                 <input
                     type="checkbox"
                     class="checkbox checkbox-primary"

@@ -500,7 +500,7 @@ pub fn RuleInputs(
                 name="priority"
                 placeholder="N°"
                 autocomplete="off"
-                class="input input-bordered input-primary no-spinner px-1 w-1/12"
+                class="input input-primary no-spinner px-1 w-1/12"
                 value=priority
                 on:input=move |ev| priority.set(event_target_value(&ev))
             />

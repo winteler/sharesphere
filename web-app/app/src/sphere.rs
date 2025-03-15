@@ -320,6 +320,7 @@ pub mod ssr {
 #[server]
 pub async fn is_sphere_available(sphere_name: String) -> Result<bool, ServerFnError<AppError>> {
     let db_pool = get_db_pool()?;
+    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
     let sphere_existence = ssr::is_sphere_available(&sphere_name, &db_pool).await?;
     Ok(sphere_existence)
 }
@@ -452,7 +453,7 @@ pub fn SphereHeaderLink(
     let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
     view! {
         <button
-            class="px-2 rounded-full hover:bg-base-content/20"
+            class="px-2 rounded-full hover:bg-base-200"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(sphere_path.as_str(), NavigateOptions::default());
@@ -476,7 +477,7 @@ pub fn SphereLinkItems(
             children=move |sphere_header| {
                 let sphere_path = get_sphere_path(&sphere_header.sphere_name);
                 view! {
-                    <li class="px-2 rounded-sm hover:bg-base-content/20">
+                    <li class="px-2 rounded-sm hover:bg-base-200">
                         <a href=sphere_path>
                             <SphereHeader sphere_header=sphere_header/>
                         </a>
@@ -813,8 +814,8 @@ pub fn SphereCategoryDropdown(
 ) -> impl IntoView {
     let is_selected = RwSignal::new(init_category_id.is_some());
     let select_class = move || match is_selected.get() {
-        true => "select select-bordered w-fit",
-        false => "select select-bordered w-fit text-gray-400",
+        true => "select w-fit",
+        false => "select w-fit text-gray-400",
     };
     
     view! {
@@ -911,14 +912,14 @@ pub fn CreateSphere() -> impl IntoView {
                             name="sphere_name"
                             placeholder="Name"
                             autocomplete="off"
-                            class="input input-bordered input-primary h-input_m flex-none w-3/5"
+                            class="input input-primary flex-none w-3/5"
                             autofocus
                             on:input=move |ev| {
                                 sphere_name.set(event_target_value(&ev));
                             }
                             prop:value=sphere_name
                         />
-                        <Suspense fallback=move || view! { <LoadingIcon/> }>
+                        <Suspense fallback=move || view! { <LoadingIcon class="h-7 w-7"/> }>
                         {
                             move || is_sphere_available.map(|result| match result {
                                 None | Some(Ok(true)) => {
@@ -928,7 +929,7 @@ pub fn CreateSphere() -> impl IntoView {
                                 Some(Ok(false)) => {
                                     is_name_taken.set(true);
                                     view! {
-                                        <div class="alert alert-error h-input_m flex items-center justify-center">
+                                        <div class="alert alert-error flex items-center justify-center">
                                             <span class="font-semibold">"Unavailable"</span>
                                         </div>
                                     }.into_any()
@@ -937,7 +938,7 @@ pub fn CreateSphere() -> impl IntoView {
                                     log::error!("Error while checking sphere existence: {e}");
                                     is_name_taken.set(true);
                                     view! {
-                                        <div class="alert alert-error h-input_l flex items-center justify-center">
+                                        <div class="alert alert-error h-fit py-2 flex items-center justify-center">
                                             <InternalErrorIcon class="h-16 w-16"/>
                                             <span class="font-semibold">"Server error"</span>
                                         </div>
@@ -947,7 +948,7 @@ pub fn CreateSphere() -> impl IntoView {
 
                         }
                         </Suspense>
-                        <div class="alert alert-error h-input_m flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
+                        <div class="alert alert-error flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
                             <InternalErrorIcon class="h-16 w-16"/>
                             <span>"Only alphanumeric characters."</span>
                         </div>
@@ -959,7 +960,7 @@ pub fn CreateSphere() -> impl IntoView {
                     />
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                     <Suspense fallback=move || view! { <LoadingIcon/> }>
-                        <button type="submit" class="btn btn-active btn-secondary" disabled=are_inputs_invalid>"Create"</button>
+                        <button type="submit" class="btn btn-secondary" disabled=are_inputs_invalid>"Create"</button>
                     </Suspense>
                 </div>
             </ActionForm>

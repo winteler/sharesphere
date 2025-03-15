@@ -341,7 +341,7 @@ pub fn UserSettings() -> impl IntoView {
                                     min="0"
                                     max="999"
                                     name="days_hide_spoilers"
-                                    class="input input-bordered input-primary no-spinner text-right w-16"
+                                    class="input input-primary no-spinner text-right w-16"
                                     autocomplete="off"
                                     value=days_hide_spoiler
                                 />

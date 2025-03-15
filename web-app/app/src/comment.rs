@@ -831,7 +831,7 @@ pub fn CommentTree(
 
     view! {
         <Form method="GET" action="">
-            <button class="p-2 mt-2 rounded-sm hover:bg-base-content/20 font-semibold">
+            <button class="p-2 mt-2 rounded-sm hover:bg-base-200 font-semibold">
                 "Single comment tree view. Back to post."
             </button>
         </Form>
@@ -868,9 +868,9 @@ pub fn CommentBox(
     let is_pinned = Signal::derive(move || comment.read().is_pinned);
     let sidebar_css = move || {
         if *maximize.read() {
-            "p-0.5 rounded-sm hover:bg-base-content/20 flex flex-col justify-start items-center gap-1"
+            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-start items-center gap-1"
         } else {
-            "p-0.5 rounded-sm hover:bg-base-content/20 flex flex-col justify-center items-center"
+            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-center items-center"
         }
     };
     let color_bar_css = format!(
@@ -1053,7 +1053,7 @@ pub fn CommentWithContext(
     view! {
         <Form method="GET" action=post_path>
             <input name=COMMENT_ID_QUERY_PARAM value=comment.comment.comment_id class="hidden"/>
-            <button class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-content/20">
+            <button class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-200">
                 <CommentBody comment=comment.comment/>
                 <div class="flex gap-1 items-center">
                     <SphereHeader sphere_header=comment.sphere_header/>
@@ -1124,8 +1124,8 @@ pub fn CommentButton(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "p-2 rounded-full bg-primary hover:bg-base-content/20 active:scale-95 transition duration-250",
-        false => "p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250",
+        true => "p-2 rounded-full bg-primary hover:bg-base-200 active:scale-95 transition duration-250",
+        false => "p-2 rounded-full hover:bg-base-200 active:scale-95 transition duration-250",
     });
 
     view! {
@@ -1157,8 +1157,8 @@ pub fn CommentButtonWithCount(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "p-1.5 rounded-full bg-primary hover:bg-ghost active:scale-95 transition duration-250",
-        false => "p-1.5 rounded-full hover:bg-ghost active:scale-95 transition duration-250",
+        true => "p-1.5 rounded-full bg-primary hover:bg-base-200 active:scale-95 transition duration-250",
+        false => "p-1.5 rounded-full hover:bg-base-200 active:scale-95 transition duration-250",
     });
 
     view! {

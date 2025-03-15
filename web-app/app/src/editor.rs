@@ -218,7 +218,7 @@ pub fn FormMarkdownEditor(
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
     let markdown_button_class = move || match is_markdown_mode.get() {
         true => "h-full content-center p-2 rounded-md bg-success",
-        false => "h-full content-center p-2 rounded-md hover:bg-base-content/20",
+        false => "h-full content-center p-2 rounded-md hover:bg-base-200",
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -314,7 +314,7 @@ pub fn FormatButton(
     view! {
         <button
             type="button"
-            class="p-2 rounded-md hover:bg-base-content/20"
+            class="p-2 rounded-md hover:bg-base-200"
             on:click=move |_| {
                 if let Some(textarea_ref) = data.textarea_ref.get_untracked() {
                     let selection_start = textarea_ref.selection_start();
@@ -394,7 +394,7 @@ pub fn HelpButton() -> impl IntoView {
             </Show>
             <button
                 type="button"
-                class="p-2 rounded-full hover:bg-base-content/20"
+                class="p-2 rounded-full hover:bg-base-200"
                 on:click=move |_| show_help.set(true)
             >
                 <HelpIcon/>

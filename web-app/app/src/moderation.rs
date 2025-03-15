@@ -528,7 +528,7 @@ pub fn RuleSelect(
         <div class="flex items-center justify-between w-full">
             <span class="text-xl font-semibold">"Infringed rule:"</span>
             <select
-                class="select select-bordered"
+                class="select"
                 name=name
             >
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:rules_vec>
@@ -565,7 +565,7 @@ pub fn BanMenu() -> impl IntoView {
             <div class="flex items-center justify-between w-full">
                 <span class="text-xl font-semibold">"Ban duration (days):"</span>
                 <select
-                    class="select select-bordered"
+                    class="select"
                     on:change=move |ev| {
                         let value = event_target_value(&ev);
                         if let Ok(num_days_banned) = value.parse::<i32>() {

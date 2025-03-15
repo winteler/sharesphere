@@ -469,7 +469,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                         let username = role.username.clone();
                         view! {
                             <div
-                                class="flex gap-1 py-1 rounded-sm hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                class="flex gap-1 py-1 rounded-sm hover:bg-base-200 active:scale-95 transition duration-250"
                                 on:click=move |_| {
                                     username_input.set(username.clone());
                                     match select_ref.get_untracked() {
@@ -533,7 +533,7 @@ pub fn PermissionLevelForm(
                             name="username"
                             placeholder="Username"
                             autocomplete="off"
-                            class="input input-bordered input-primary w-full"
+                            class="input input-primary w-full"
                             on:input=move |ev| {
                                 username_input.set(event_target_value(&ev).to_lowercase());
                             }
@@ -607,7 +607,7 @@ pub fn BanPanel() -> impl IntoView {
                 <div class="flex flex-col border-b border-base-content/20">
                     <div class="flex">
                         <input
-                            class="input input-bordered input-primary px-6 w-2/5"
+                            class="input input-primary px-6 w-2/5"
                             placeholder="Username"
                             value=username_input
                             on:input=move |ev| username_input.set(event_target_value(&ev))

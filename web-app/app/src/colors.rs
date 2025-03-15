@@ -100,7 +100,7 @@ pub fn ColorSelect(
             {label_view}
             <div class="h-full relative">
                 <div
-                    class="h-full flex items-center gap-2 pr-2 border border-primary bg-base-100 hover:bg-base-content/20"
+                    class="h-full flex items-center gap-2 pr-2 border border-primary bg-base-100 hover:bg-base-200"
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
                     <ColorIndicator color=color_input/>
@@ -112,7 +112,7 @@ pub fn ColorSelect(
                         { move || {
                             Color::iter().map(|color: Color| {
                                 view! {
-                                    <div class="w-fit rounded-sm hover:bg-base-content/20" on:click=move |_| {
+                                    <div class="w-fit rounded-sm hover:bg-base-200" on:click=move |_| {
                                         color_input.set(color);
                                         show_dropdown.set(false);
                                     }>

@@ -18,24 +18,4 @@ module.exports = {
       }
     },
   },
-  daisyui: {
-    themes: [
-      {
-        mytheme: {
-          "primary": "#009de5",
-          "secondary": "#15803d",
-          "accent": "#b4ffb0",
-          "neutral": "#ffffff",
-          "base-100": "#0e3044",
-          "info": "#77b3ff",
-          "success": "#22c55e",
-          "warning": "#facc15",
-          "error": "#dc2424",
-        },
-      },
-    ],
-  },
-  plugins: [
-    require('daisyui'),
-  ],
 }

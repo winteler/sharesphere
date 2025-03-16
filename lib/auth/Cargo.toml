@@ -1,13 +1,12 @@
 [package]
-name = "sharesphere_core"
+name = "sharesphere_auth"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sharesphere_utils = { path = "../sharesphere_utils", default-features = false}
-sharesphere_auth = { path = "../sharesphere_auth", default-features = false}
+sharesphere_utils = { path = "../utils", default-features = false}
 
 leptos.workspace = true
 leptos_meta.workspace = true
@@ -56,8 +55,7 @@ indoc = "2.0.5"
 default = []
 hydrate = [
     "leptos/hydrate",
-    "sharesphere_utils/hydrate",
-    "sharesphere_auth/hydrate",
+    "sharesphere_utils/hydrate"
 ]
 ssr = [
     "leptos/ssr",
@@ -65,7 +63,6 @@ ssr = [
     "leptos_router/ssr",
     "leptos-use/ssr",
     "sharesphere_utils/ssr",
-    "sharesphere_auth/ssr",
     "dep:anyhow",
     "dep:async-trait",
     "dep:axum_session",

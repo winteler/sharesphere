@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    "sharesphere_utils",
-    "sharesphere_auth",
-    "sharesphere_core",
-    "sharesphere_app",
+    "lib/utils",
+    "lib/auth",
+    "lib/core",
+    "lib/app",
     "frontend",
     "server",
 ]

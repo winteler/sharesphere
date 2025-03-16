@@ -1,6 +1,3 @@
-use leptos::prelude::{window, RwSignal, Update};
-use crate::constants::SITE_ROOT;
-
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use anyhow::Context;
@@ -9,7 +6,9 @@ pub mod ssr {
     use std::sync::Arc;
     use axum_session_sqlx::SessionPgPool;
     use leptos::prelude::use_context;
-    use crate::errors::AppError;
+
+    use utils::errors::AppError;
+
     use crate::user::ssr::UserLockCache;
     use crate::user::User;
 
@@ -36,16 +35,4 @@ pub mod ssr {
             .await
             .with_context(|| "Failed to connect to DB")
     }
-}
-
-pub fn get_current_url(url: RwSignal<String>) {
-    let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));
-    log::debug!("Current url: {url_str}");
-    url.update(|value| *value = url_str);
-}
-
-pub fn get_current_path(path: RwSignal<String>) {
-    let path_str = window().location().pathname().unwrap_or(String::from(SITE_ROOT));
-    log::debug!("Current path: {path_str}");
-    path.update(|value | *value = path_str);
 }

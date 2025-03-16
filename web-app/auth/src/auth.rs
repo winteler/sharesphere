@@ -11,17 +11,22 @@ use {
     openidconnect::{reqwest, OAuth2TokenResponse, TokenResponse},
 };
 
-use crate::errors::AppError;
-use crate::icons::LoadingIcon;
-use crate::unpack::SuspenseUnpack;
+use utils::errors::AppError;
+use utils::icons::LoadingIcon;
+use utils::unpack::SuspenseUnpack;
+use utils::routes::get_current_path;
+
 use crate::user::{User, UserState};
-use crate::utils::get_current_path;
 
 #[cfg(feature = "ssr")]
-use crate::{
-    auth::ssr::get_auth_http_client,
-    constants::SITE_ROOT,
-    utils::ssr::get_session,
+use {
+    utils::{
+        constants::SITE_ROOT,
+    },
+    crate::{
+        auth::ssr::get_auth_http_client,
+        session::ssr::get_session,
+    }
 };
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
@@ -43,17 +48,19 @@ pub struct OAuthParams {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use super::*;
-    use crate::utils::ssr::{get_db_pool, get_session, get_user_lock_cache, AuthSession};
-    use crate::errors::AppError;
-    use crate::user::User;
     use openidconnect::core::{CoreTokenResponse, CoreProviderMetadata};
     use openidconnect::{AdditionalProviderMetadata, EndpointMaybeSet, EndpointNotSet, EndpointSet, NonceVerifier, RequestTokenError};
     use reqwest::Client;
     use serde::{Deserialize, Serialize};
     use serde_json::Value;
 
+    use utils::errors::AppError;
+
+    use crate::session::ssr::{get_db_pool, get_session, get_user_lock_cache, AuthSession};
+    use crate::user::User;
     use crate::user::ssr::{create_or_update_user, SqlUser};
+
+    use super::*;
 
     type OidcCoreClient = openidconnect::core::CoreClient<
         EndpointSet,

@@ -29,7 +29,7 @@ use crate::sphere_category::SphereCategoriesDialog;
 #[cfg(feature = "ssr")]
 use utils::{
     auth::ssr::{check_user, reload_user},
-    utils::ssr::get_db_pool,
+    routes::ssr::get_db_pool,
 };
 use utils::user::UserBan;
 

@@ -13,7 +13,7 @@ use crate::post::PostSortType;
 #[cfg(feature = "ssr")]
 use {
     utils::{
-        utils::ssr::get_db_pool,
+        routes::ssr::get_db_pool,
         auth::ssr::check_user,
     },
 };

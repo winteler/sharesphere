@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "core"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 utils = { path = "../utils", default-features = false}
 auth = { path = "../auth", default-features = false}
+
 leptos.workspace = true
 leptos_meta.workspace = true
 leptos_router.workspace = true
@@ -26,33 +27,37 @@ log.workspace = true
 lru = { workspace = true, optional = true }
 serde.workspace = true
 sqlx = { workspace = true, optional = true }
+thiserror.workspace = true
 tokio = { workspace = true, optional = true }
 web-sys.workspace = true
 
 async-trait = { version = "*", optional = true }
 
+ammonia = "4"
 const_format = "0.2.33"
+gloo-net = { version = "0.6.0", features = ["http"] }
 infer = { version = "0.19.0", optional = true }
+lazy_static = "1.5.0"
 markdown = { version = "1.0.0-alpha.20", optional = true }
+mime_guess = "2.0.5"
 quick-xml = { version = "0.37.1", optional = true }
 openidconnect = { version = "4.0.0", optional = true }
 reqwest = { version = "0.12.12", features = ["json"], optional = true }
+send_wrapper = { version = "0.6.0", features = ["futures"] }
+serde_json = "1.0.128"
 strum = "0.27.1"
 strum_macros = "0.27.1"
+url = "*"
 
 [dev-dependencies]
-bytes = "1.7.1"
-float-cmp = "0.10.0"
-futures-util = "0.3.30"
-multer = "3.1.0"
-rand = "0.9.0"
+indoc = "2.0.5"
 
 [features]
 default = []
 hydrate = [
     "leptos/hydrate",
     "utils/hydrate",
-    "auth/hydrate"
+    "auth/hydrate",
 ]
 ssr = [
     "leptos/ssr",

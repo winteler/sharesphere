@@ -18,7 +18,7 @@ use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
 
-use utils::utils::ssr::{create_db_pool, AuthSession};
+use utils::routes::ssr::{create_db_pool, AuthSession};
 use utils::user::ssr::UserLockCache;
 use utils::user::User;
 

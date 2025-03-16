@@ -24,7 +24,7 @@ use crate::sidebar::HomeSidebar;
 #[cfg(feature = "ssr")]
 use {
     utils::{
-        utils::ssr::get_db_pool,
+        routes::ssr::get_db_pool,
     },
     crate::{
         comment::COMMENT_BATCH_SIZE,
@@ -32,7 +32,6 @@ use {
     }
 };
 
-pub const USER_ROUTE_PARAM_NAME: &str = "username";
 pub const PROFILE_TAB_QUERY_PARAM: &str = "tab";
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -392,16 +391,4 @@ pub fn UserHeaderLink<'a>(
             <UserHeaderWidget user_header/>
         </a>
     }.into_any()
-}
-
-/// Get a memo returning the last valid user id from the url. Used to avoid triggering resources when leaving pages.
-pub fn get_username_memo(params: Memo<ParamsMap>) -> Memo<String> {
-    Memo::new(move |current_username: Option<&String>| {
-        if let Some(new_username) = params.read().get_str(USER_ROUTE_PARAM_NAME) {
-            new_username.to_string()
-        } else {
-            log::trace!("Could not find new user id, reuse current user id: {current_username:?}");
-            current_username.cloned().unwrap_or_default()
-        }
-    })
 }

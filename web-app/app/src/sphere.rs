@@ -37,33 +37,14 @@ use {
     utils::{
         auth::ssr::reload_user,
         auth::{get_user, ssr::check_user},
-        utils::ssr::get_db_pool,
+        routes::ssr::get_db_pool,
     },
 };
 
 pub const CREATE_SPHERE_SUFFIX: &str = "/sphere";
 pub const CREATE_SPHERE_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_SPHERE_SUFFIX);
-pub const SPHERE_ROUTE_PREFIX: &str = "/spheres";
-pub const SPHERE_ROUTE_PARAM_NAME: &str = "sphere_name";
 
 pub const SPHERE_FETCH_LIMIT: usize = 100;
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct Sphere {
-    pub sphere_id: i64,
-    pub sphere_name: String,
-    pub normalized_sphere_name: String,
-    pub description: String,
-    pub is_nsfw: bool,
-    pub is_banned: bool,
-    pub icon_url: Option<String>,
-    pub banner_url: Option<String>,
-    pub num_members: i32,
-    pub creator_id: i64,
-    pub create_timestamp: chrono::DateTime<chrono::Utc>,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-}
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -88,29 +69,6 @@ pub struct SphereHeader {
     pub sphere_name: String,
     pub icon_url: Option<String>,
     pub is_nsfw: bool,
-}
-
-#[derive(Copy, Clone)]
-pub struct SphereState {
-    pub sphere_name: Memo<String>,
-    pub category_id_filter: RwSignal<Option<i64>>,
-    pub permission_level: Signal<PermissionLevel>,
-    pub sphere_resource: Resource<Result<Sphere, ServerFnError<AppError>>>,
-    pub satellite_vec_resource: Resource<Result<Vec<Satellite>, ServerFnError<AppError>>>,
-    pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
-    pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, ServerFnError<AppError>>>,
-    pub sphere_rules_resource: Resource<Result<Vec<Rule>, ServerFnError<AppError>>>,
-    pub create_satellite_action: ServerAction<CreateSatellite>,
-    pub update_satellite_action: ServerAction<UpdateSatellite>,
-    pub disable_satellite_action: ServerAction<DisableSatellite>,
-    pub moderate_post_action: ServerAction<ModeratePost>,
-    pub update_sphere_desc_action: ServerAction<UpdateSphereDescription>,
-    pub set_sphere_category_action: ServerAction<SetSphereCategory>,
-    pub delete_sphere_category_action: ServerAction<DeleteSphereCategory>,
-    pub set_sphere_role_action: ServerAction<SetUserSphereRole>,
-    pub add_rule_action: ServerAction<AddRule>,
-    pub update_rule_action: ServerAction<UpdateRule>,
-    pub remove_rule_action: ServerAction<RemoveRule>,
 }
 
 impl From<&Sphere> for SphereHeader {
@@ -985,19 +943,6 @@ pub fn CreateSphere() -> impl IntoView {
 /// ```
 pub fn is_valid_sphere_name(name: &str) -> bool {
     name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-}
-
-/// # Returns the path to a sphere given its name
-///
-/// ```
-/// use app::sphere::get_sphere_path;
-///
-/// assert_eq!(get_sphere_path("test"), "/spheres/test");
-/// ```
-pub fn get_sphere_path(
-    sphere_name: &str,
-) -> String {
-    format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}")
 }
 
 /// Get the current sphere name from the path. When the current path does not contain a sphere, returns the last valid sphere. Used to avoid sending a request when leaving a page

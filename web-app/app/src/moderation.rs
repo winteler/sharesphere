@@ -22,7 +22,7 @@ use crate::sphere::SphereState;
 use {
     utils::{
         auth::ssr::{check_user, reload_user},
-        utils::ssr::get_db_pool,
+        routes::ssr::get_db_pool,
     },
     crate::{
         comment::ssr::{get_comment_by_id, get_comment_sphere},

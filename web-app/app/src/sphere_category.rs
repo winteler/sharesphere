@@ -17,7 +17,7 @@ use crate::sphere::SphereState;
 #[cfg(feature = "ssr")]
 use utils::{
     auth::ssr::check_user,
-    utils::ssr::get_db_pool,
+    routes::ssr::get_db_pool,
 };
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -25,21 +25,6 @@ use utils::{
 pub struct SphereCategoryHeader {
     pub category_name: String,
     pub category_color: Color,
-}
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct SphereCategory {
-    pub category_id: i64,
-    pub sphere_id: i64,
-    pub sphere_name: String,
-    pub category_name: String,
-    pub category_color: Color,
-    pub description: String,
-    pub is_active: bool,
-    pub creator_id: i64,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 impl From<SphereCategory> for SphereCategoryHeader {

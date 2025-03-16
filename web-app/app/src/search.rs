@@ -23,7 +23,7 @@ use crate::sphere::{get_sphere_path, InfiniteSphereLinkList, SphereHeader, Spher
 use {
     utils::{
         auth::get_user,
-        utils::ssr::get_db_pool,
+        routes::ssr::get_db_pool,
     },
     crate::{
         comment::COMMENT_BATCH_SIZE,

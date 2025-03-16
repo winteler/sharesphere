@@ -4,47 +4,12 @@ use leptos_router::components::Form;
 use utils::auth::LoginGuardButton;
 use utils::icons::*;
 use utils::user::{get_profile_path, User};
-use utils::utils::{get_current_path, get_current_url};
+use utils::routes::{get_current_path, get_current_url};
 
 use crate::app::GlobalState;
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::search::{SearchButton};
 use crate::sphere::*;
-
-/// # Extract the sphere name from the current path, if it exists
-///
-/// ```
-/// use crate::app::navigation_bar::get_sphere_from_path;
-///
-/// assert_eq!(get_sphere_from_path("test"), None);
-/// assert_eq!(get_sphere_from_path("/spheres/test"), Some(String::from("test")));
-/// ```
-pub fn get_sphere_from_path(path: &str) -> Option<String> {
-    if path.starts_with(SPHERE_ROUTE_PREFIX) {
-        let mut path_part_it = path.split("/");
-        Some(String::from(path_part_it.nth(2).unwrap_or("")))
-    } else {
-        None
-    }
-}
-
-pub fn get_sphere_name(sphere_name: RwSignal<String>) {
-    let path = window().location().pathname().unwrap_or_default();
-    sphere_name.update(|name| *name = get_sphere_from_path(&path).unwrap_or_default());
-}
-
-pub fn get_create_post_path(create_post_route: RwSignal<String>) {
-    let path = window().location().pathname().unwrap_or_default();
-    log::debug!("Current path: {path}");
-
-    let current_sphere = get_sphere_from_path(&path);
-
-    if let Some(sphere_name) = current_sphere {
-        create_post_route.set(format!("{CREATE_POST_ROUTE}?{CREATE_POST_SPHERE_QUERY_PARAM}={sphere_name}"));
-    } else {
-        create_post_route.set(String::from(CREATE_POST_ROUTE));
-    };
-}
 
 /// Navigation bar component
 #[component]

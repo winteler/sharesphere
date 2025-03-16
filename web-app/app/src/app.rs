@@ -9,7 +9,7 @@ use utils::errors::AppError;
 use utils::icons::*;
 use utils::unpack::{handle_additional_load, handle_initial_load, SuspenseUnpack};
 use utils::user::{SetUserSettings, User, UserState, USER_ROUTE_PREFIX};
-use utils::utils::get_current_path;
+use utils::routes::get_current_path;
 
 use crate::comment::CommentSortType;
 use crate::content::PostSortWidget;
@@ -22,9 +22,6 @@ use crate::search::{Search, SphereSearch, SEARCH_ROUTE};
 use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-
-
-pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {

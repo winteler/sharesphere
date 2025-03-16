@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["utils", "app", "frontend", "server", "services"]
+members = ["utils", "auth", "core", "app", "frontend", "server", "services"]
 
 # need to be applied only to wasm build
 [profile.release]

@@ -5,18 +5,18 @@ use std::default::Default;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use utils::errors::AppError;
+use utils::icons::{NsfwIcon, UserIcon};
+
 use crate::auth::Login;
-use crate::errors::AppError;
-use crate::icons::{NsfwIcon, UserIcon};
 use crate::role::{AdminRole, PermissionLevel};
 
 #[cfg(feature = "ssr")]
 use crate::{
     auth::ssr::{check_user, reload_user},
-    utils::ssr::get_db_pool
+    session::ssr::get_db_pool
 };
 
-pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_FETCH_LIMIT: i64 = 100;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -196,7 +196,8 @@ pub mod ssr {
     use sqlx::PgPool;
     use tokio::sync::Mutex;
 
-    use crate::errors::AppError;
+    use utils::errors::AppError;
+
     use crate::role::ssr::get_user_sphere_role;
     use crate::role::UserSphereRole;
 
@@ -643,12 +644,6 @@ pub fn UserHeaderWidget<'a>(
             }
         </div>
     }.into_any()
-}
-
-pub fn get_profile_path(
-    username: &str,
-) -> String {
-    format!("{USER_ROUTE_PREFIX}/{username}")
 }
 
 #[cfg(test)]

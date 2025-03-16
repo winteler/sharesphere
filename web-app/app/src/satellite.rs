@@ -27,33 +27,12 @@ use {
     utils::{
         auth::ssr::check_user,
         editor::ssr::get_html_and_markdown_bodies,
-        utils::ssr::get_db_pool,
+        routes::ssr::get_db_pool,
     },
     crate::{
         satellite::ssr::get_active_satellite_vec_by_sphere_name
     },
 };
-
-
-pub const SATELLITE_ROUTE_PREFIX: &str = "/satellites";
-pub const SATELLITE_ROUTE_PARAM_NAME: &str = "satellite_id";
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct Satellite {
-    pub satellite_id: i64,
-    pub satellite_name: String,
-    pub sphere_id: i64,
-    pub sphere_name: String,
-    pub body: String,
-    pub markdown_body: Option<String>,
-    pub is_nsfw: bool,
-    pub is_spoiler: bool,
-    pub num_posts: i32,
-    pub creator_id: i64,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub disable_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-}
 
 #[derive(Copy, Clone)]
 pub struct SatelliteState {
@@ -805,36 +784,4 @@ pub fn SatelliteInputs(
             <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
         </div>
     }
-}
-
-/// # Returns the path to a satellite given its id and sphere name
-///
-/// ```
-/// use app::satellite::get_satellite_path;
-///
-/// assert_eq!(get_satellite_path("test", 1), "/spheres/test/satellites/1");
-/// ```
-pub fn get_satellite_path(
-    sphere_name: &str,
-    satellite_id: i64
-) -> String {
-    format!("{SPHERE_ROUTE_PREFIX}/{}{SATELLITE_ROUTE_PREFIX}/{}", sphere_name, satellite_id)
-}
-
-/// Get a memo returning the last valid satellite_id from the url. Used to avoid triggering resources when leaving pages
-pub fn get_satellite_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
-    Memo::new(move |current_satellite_id: Option<&i64>| {
-        if let Some(new_satellite_id_str) = params.read().get_str(SATELLITE_ROUTE_PARAM_NAME) {
-            if let Ok(new_satellite_id) = new_satellite_id_str.parse::<i64>() {
-                log::trace!("Current satellite id: {current_satellite_id:?}, new satellite id: {new_satellite_id}");
-                new_satellite_id
-            } else {
-                log::trace!("Could not parse new satellite id: {new_satellite_id_str}, reuse current satellite id: {current_satellite_id:?}");
-                current_satellite_id.cloned().unwrap_or_default()
-            }
-        } else {
-            log::trace!("Could not find new satellite id, reuse current satellite id: {current_satellite_id:?}");
-            current_satellite_id.cloned().unwrap_or_default()
-        }
-    })
 }

@@ -1,6 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["utils", "auth", "core", "app", "frontend", "server", "services"]
+members = [
+    "sharesphere_utils",
+    "sharesphere_auth",
+    "sharesphere_core",
+    "sharesphere_app",
+    "frontend",
+    "server",
+]
 
 # need to be applied only to wasm build
 [profile.release]

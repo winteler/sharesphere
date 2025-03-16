@@ -6,8 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-utils = { path = "../utils", default-features = false, features = ["ssr"] }
-app = { path = "../app", default-features = false, features = ["ssr"] }
+sharesphere_utils = { path = "../sharesphere_utils", default-features = false, features = ["ssr"] }
+sharesphere_auth = { path = "../sharesphere_auth", default-features = false, features = ["ssr"] }
+sharesphere_app = { path = "../sharesphere_app", default-features = false, features = ["ssr"] }
 leptos = { workspace = true, features = [ "ssr" ]}
 leptos_axum.workspace = true
 

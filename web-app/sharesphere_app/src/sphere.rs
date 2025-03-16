@@ -1,0 +1,918 @@
+use const_format::concatcp;
+use leptos::either::Either;
+use leptos::html;
+use leptos::prelude::*;
+use leptos_router::components::{Form, Outlet, A};
+use leptos_router::hooks::{use_navigate, use_params_map};
+use leptos_router::NavigateOptions;
+use leptos_use::{signal_debounced, use_textarea_autosize};
+use serde::{Deserialize, Serialize};
+
+use sharesphere_utils::editor::{FormTextEditor, TextareaData};
+use sharesphere_utils::errors::AppError;
+use sharesphere_utils::form::LabeledFormCheckbox;
+use sharesphere_utils::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
+use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE};
+use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
+use sharesphere_utils::widget::LoadIndicators;
+
+use sharesphere_auth::auth::{LoginGuardButton, LoginGuardedButton};
+use sharesphere_auth::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole};
+
+use sharesphere_core::moderation::ModeratePost;
+use sharesphere_core::rule::{AddRule, RemoveRule, UpdateRule};
+use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, UpdateSatellite};
+use sharesphere_core::sphere::{Sphere, SphereState, UpdateSphereDescription};
+use sharesphere_core::sphere_category::{DeleteSphereCategory, SetSphereCategory, SphereCategory};
+
+use crate::app::{GlobalState};
+use crate::content::PostSortWidget;
+use crate::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostMiniatureList, PostWithSphereInfo};
+use crate::ranking::{SortType};
+use crate::rule::{get_sphere_rule_vec};
+use crate::satellite::{get_satellite_vec_by_sphere_name, ActiveSatelliteList, SatelliteState};
+use crate::search::SphereSearchButton;
+use crate::sidebar::SphereSidebar;
+use crate::sphere_category::{get_sphere_category_header_map, get_sphere_category_vec};
+use crate::sphere_management::MANAGE_SPHERE_ROUTE;
+
+#[cfg(feature = "ssr")]
+use {
+    sharesphere_auth::{
+        auth::{get_user, ssr::check_user, ssr::reload_user},
+        session::ssr::get_db_pool,
+    },
+};
+
+pub const CREATE_SPHERE_SUFFIX: &str = "/sphere";
+pub const CREATE_SPHERE_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_SPHERE_SUFFIX);
+
+pub const SPHERE_FETCH_LIMIT: usize = 100;
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct SphereSubscription {
+    pub subscription_id: i64,
+    pub user_id: i64,
+    pub sphere_id: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct SphereWithUserInfo {
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub sphere: Sphere,
+    pub subscription_id: Option<i64>,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct SphereHeader {
+    pub sphere_name: String,
+    pub icon_url: Option<String>,
+    pub is_nsfw: bool,
+}
+
+impl From<&Sphere> for SphereHeader {
+    fn from(sphere: &Sphere) -> Self {
+        Self::new(sphere.sphere_name.clone(), sphere.icon_url.clone(), sphere.is_nsfw)
+    }
+}
+
+impl SphereHeader {
+    pub fn new(sphere_name: String, icon_url: Option<String>, is_nsfw: bool) -> Self {
+        Self {
+            sphere_name,
+            icon_url,
+            is_nsfw,
+        }
+    }
+}
+
+#[cfg(feature = "ssr")]
+pub mod ssr {
+    use sqlx::PgPool;
+
+    use sharesphere_utils::errors::AppError;
+    use sharesphere_utils::errors::AppError::InternalServerError;
+    use sharesphere_auth::role::ssr::set_user_sphere_role;
+    use sharesphere_auth::role::PermissionLevel;
+    use sharesphere_auth::user::User;
+
+    use crate::sphere::{is_valid_sphere_name, Sphere, SphereHeader, SphereWithUserInfo};
+
+    pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
+        let sphere = sqlx::query_as::<_, Sphere>(
+            "SELECT * FROM spheres WHERE sphere_name = $1"
+        )
+            .bind(sphere_name)
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(sphere)
+    }
+
+    pub async fn get_sphere_with_user_info(
+        sphere_name: &str,
+        user_id: Option<i64>,
+        db_pool: &PgPool,
+    ) -> Result<SphereWithUserInfo, AppError> {
+        let sphere = sqlx::query_as::<_, SphereWithUserInfo>(
+            "SELECT s.*, sub.subscription_id
+            FROM spheres s
+            LEFT JOIN sphere_subscriptions sub ON
+                sub.sphere_id = s.sphere_id AND
+                sub.user_id = $1
+            WHERE s.sphere_name = $2",
+        )
+            .bind(user_id)
+            .bind(sphere_name)
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(sphere)
+    }
+
+    pub async fn is_sphere_available(sphere_name: &str, db_pool: &PgPool) -> Result<bool, AppError> {
+        let sphere_exist = sqlx::query!(
+            "SELECT sphere_id FROM spheres WHERE normalized_sphere_name = normalize_sphere_name($1)",
+            sphere_name,
+        )
+        .fetch_one(db_pool)
+        .await;
+
+        match sphere_exist {
+            Ok(_) => Ok(false),
+            Err(sqlx::error::Error::RowNotFound) => Ok(true),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn get_popular_sphere_headers(
+        limit: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<SphereHeader>, AppError> {
+        let sphere_header_vec = sqlx::query_as!(
+            SphereHeader,
+            "SELECT sphere_name, icon_url, is_nsfw
+            FROM spheres
+            where NOT is_nsfw
+            ORDER BY num_members DESC, sphere_name LIMIT $1",
+            limit
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(sphere_header_vec)
+    }
+
+    pub async fn get_subscribed_sphere_headers(
+        user_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<SphereHeader>, AppError> {
+        let sphere_header_vec = sqlx::query_as!(
+            SphereHeader,
+            "SELECT s.sphere_name, s.icon_url, s.is_nsfw 
+            FROM spheres s
+            JOIN sphere_subscriptions sub ON
+                s.sphere_id = sub.sphere_id AND
+                sub.user_id = $1
+            ORDER BY sphere_name",
+            user_id,
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(sphere_header_vec)
+    }
+
+    pub async fn create_sphere(
+        name: &str,
+        description: &str,
+        is_nsfw: bool,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Sphere, AppError> {
+        user.check_can_publish()?;
+        if name.is_empty() {
+            return Err(AppError::new("Cannot create Sphere with empty name."));
+        }
+
+        if !is_valid_sphere_name(&name)
+        {
+            return Err(AppError::new(
+                "Sphere name can only contain alphanumeric lowercase characters.",
+            ));
+        }
+
+        let sphere = sqlx::query_as::<_, Sphere>(
+            "INSERT INTO spheres (sphere_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4) RETURNING *"
+        )
+            .bind(name)
+            .bind(description)
+            .bind(is_nsfw)
+            .bind(user.user_id)
+            .fetch_one(db_pool)
+            .await?;
+
+        set_user_sphere_role(user.user_id, &sphere.sphere_name, PermissionLevel::Lead, user, &db_pool).await?;
+
+        Ok(sphere)
+    }
+
+    pub async fn subscribe(sphere_id: i64, user_id: i64, db_pool: &PgPool) -> Result<(), AppError> {
+        sqlx::query!(
+            "INSERT INTO sphere_subscriptions (user_id, sphere_id) VALUES ($1, $2)",
+            user_id,
+            sphere_id
+        )
+            .execute(db_pool)
+            .await?;
+
+        sqlx::query!(
+            "UPDATE spheres SET num_members = num_members + 1 WHERE sphere_id = $1",
+            sphere_id
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn unsubscribe(sphere_id: i64, user_id: i64, db_pool: &PgPool) -> Result<(), AppError> {
+        let deleted_rows = sqlx::query!(
+            "DELETE FROM sphere_subscriptions WHERE user_id = $1 AND sphere_id = $2",
+            user_id,
+            sphere_id,
+        )
+            .execute(db_pool)
+            .await?
+            .rows_affected();
+
+        if deleted_rows != 1 {
+            return Err(InternalServerError(format!("Expected one subscription deleted, got {deleted_rows} instead.")))
+        }
+
+        sqlx::query!(
+            "UPDATE spheres SET num_members = num_members - 1 WHERE sphere_id = $1",
+            sphere_id
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+}
+
+#[server]
+pub async fn is_sphere_available(sphere_name: String) -> Result<bool, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+    let sphere_existence = ssr::is_sphere_available(&sphere_name, &db_pool).await?;
+    Ok(sphere_existence)
+}
+
+#[server]
+pub async fn get_sphere_by_name(sphere_name: String) -> Result<Sphere, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let sphere = ssr::get_sphere_by_name(&sphere_name, &db_pool).await?;
+    Ok(sphere)
+}
+
+#[server]
+pub async fn get_subscribed_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    match get_user().await {
+        Ok(Some(user)) => {
+            let sphere_name_vec = ssr::get_subscribed_sphere_headers(user.user_id, &db_pool).await?;
+            Ok(sphere_name_vec)
+        }
+        _ => Ok(Vec::new()),
+    }
+}
+
+#[server]
+pub async fn get_popular_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let sphere_header_vec = ssr::get_popular_sphere_headers(20, &db_pool).await?;
+    Ok(sphere_header_vec)
+}
+
+#[server]
+pub async fn get_sphere_with_user_info(
+    sphere_name: String,
+) -> Result<SphereWithUserInfo, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let user_id = match get_user().await {
+        Ok(Some(user)) => Some(user.user_id),
+        _ => None,
+    };
+
+    let sphere_content = ssr::get_sphere_with_user_info(sphere_name.as_str(), user_id, &db_pool).await?;
+
+    Ok(sphere_content)
+}
+
+#[server]
+pub async fn create_sphere(
+    sphere_name: String,
+    description: String,
+    is_nsfw: bool,
+) -> Result<(), ServerFnError<AppError>> {
+    log::trace!("Create Sphere '{sphere_name}', {description}, {is_nsfw}");
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    let new_sphere_path = get_sphere_path(&sphere_name);
+
+    let sphere = ssr::create_sphere(
+        sphere_name.as_str(),
+        description.as_str(),
+        is_nsfw,
+        &user,
+        &db_pool,
+    ).await?;
+    
+    ssr::subscribe(sphere.sphere_id, user.user_id, &db_pool).await?;
+
+    reload_user(user.user_id)?;
+
+    // Redirect to the new sphere
+    leptos_axum::redirect(&new_sphere_path);
+    Ok(())
+}
+
+#[server]
+pub async fn subscribe(sphere_id: i64) -> Result<(), ServerFnError<AppError>> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::subscribe(sphere_id, user.user_id, &db_pool).await?;
+
+    Ok(())
+}
+
+#[server]
+pub async fn unsubscribe(sphere_id: i64) -> Result<(), ServerFnError<AppError>> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::unsubscribe(sphere_id, user.user_id, &db_pool).await?;
+    Ok(())
+}
+
+/// Component to display a sphere's header
+#[component]
+pub fn SphereHeader(
+    sphere_header: SphereHeader
+) -> impl IntoView {
+    view! {
+        <div
+            class="w-fit flex gap-1.5 items-center"
+        >
+            <SphereIcon icon_url=sphere_header.icon_url class="h-5 w-5"/>
+            <span class="pt-1 pb-1.5 text-sm">{sphere_header.sphere_name}</span>
+        </div>
+    }
+}
+
+/// Component to display a sphere's header a navigate to it upon clicking
+#[component]
+pub fn SphereHeaderLink(
+    sphere_header: SphereHeader
+) -> impl IntoView {
+    // use navigate and prevent default to handle case where sphere header is in another <a>
+    let navigate = use_navigate();
+    let sphere_path = get_sphere_path(&sphere_header.sphere_name);
+    let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
+    view! {
+        <button
+            class="px-2 rounded-full hover:bg-base-300"
+            on:click=move |ev| {
+                ev.prevent_default();
+                navigate(sphere_path.as_str(), NavigateOptions::default());
+            }
+            aria-label=aria_label
+        >
+            <SphereHeader sphere_header/>
+        </button>
+    }
+}
+
+/// Component to display a collapsable list of sphere links
+#[component]
+pub fn SphereLinkItems(
+    sphere_header_vec: Vec<SphereHeader>
+) -> impl IntoView {
+    view! {
+        <For
+            each= move || sphere_header_vec.clone().into_iter()
+            key=|sphere_header| sphere_header.sphere_name.clone()
+            children=move |sphere_header| {
+                let sphere_path = get_sphere_path(&sphere_header.sphere_name);
+                view! {
+                    <li class="px-2 rounded-sm hover:bg-base-200">
+                        <a href=sphere_path>
+                            <SphereHeader sphere_header=sphere_header/>
+                        </a>
+                    </li>
+                }
+            }
+        />
+    }
+}
+
+/// Component to display a collapsable list of sphere links
+#[component]
+pub fn SphereLinkList(
+    sphere_header_vec: Vec<SphereHeader>
+) -> impl IntoView {
+    if sphere_header_vec.is_empty() {
+        return ().into_any()
+    }
+    view! {
+        <ul class="flex flex-col p-1">
+            <SphereLinkItems sphere_header_vec/>
+        </ul>
+    }.into_any()
+}
+
+/// Component to display a collapsable list of sphere links
+#[component]
+pub fn InfiniteSphereLinkList(
+    /// signal containing the sphere headers to display
+    #[prop(into)]
+    sphere_header_vec: Signal<Vec<SphereHeader>>,
+    #[prop(into)]
+    is_loading: Signal<bool>,
+    /// signal containing an eventual loading error in order to display it
+    #[prop(into)]
+    load_error: Signal<Option<AppError>>,
+    /// signal to request loading additional sphere headers
+    additional_load_count: RwSignal<i64>,
+    /// reference to the container of the sphere headers in order to reset scroll position when context changes
+    list_ref: NodeRef<html::Ul>,
+) -> impl IntoView {
+    view! {
+        <Show when=move || !sphere_header_vec.read().is_empty()>
+            <ul class="flex flex-col overflow-y-auto max-h-full w-full  p-1"
+                on:scroll=move |_| match list_ref.get() {
+                    Some(node_ref) => {
+                        if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
+                            additional_load_count.update(|value| *value += 1);
+                        }
+                    },
+                    None => log::error!("Sphere container 'ul' node failed to load."),
+                }
+                node_ref=list_ref
+            >
+                <SphereLinkItems sphere_header_vec=sphere_header_vec.get()/>
+                <LoadIndicators load_error is_loading/>
+            </ul>
+        </Show>
+    }.into_any()
+}
+
+/// Component to display a sphere's banner
+#[component]
+pub fn SphereBanner() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let sphere_name = get_sphere_name_memo(use_params_map());
+    let create_satellite_action = ServerAction::<CreateSatellite>::new();
+    let update_satellite_action = ServerAction::<UpdateSatellite>::new();
+    let disable_satellite_action = ServerAction::<DisableSatellite>::new();
+    let update_sphere_desc_action = ServerAction::<UpdateSphereDescription>::new();
+    let set_sphere_category_action = ServerAction::<SetSphereCategory>::new();
+    let delete_sphere_category_action = ServerAction::<DeleteSphereCategory>::new();
+    let set_sphere_role_action = ServerAction::<SetUserSphereRole>::new();
+    let add_rule_action = ServerAction::<AddRule>::new();
+    let update_rule_action = ServerAction::<UpdateRule>::new();
+    let remove_rule_action = ServerAction::<RemoveRule>::new();
+    let sphere_state = SphereState {
+        sphere_name,
+        category_id_filter: RwSignal::new(None),
+        permission_level: Signal::derive(
+            move || match &(*state.user.read()) {
+                Some(Ok(Some(user))) => user.get_sphere_permission_level(&*sphere_name.read()),
+                _ => PermissionLevel::None,
+            }
+        ),
+        sphere_resource: Resource::new(
+            move || (
+                sphere_name.get(),
+                update_sphere_desc_action.version().get(),
+                state.sphere_reload_signal.get(),
+            ),
+            move |(sphere_name, _, _)| get_sphere_by_name(sphere_name)
+        ),
+        satellite_vec_resource: Resource::new(
+            move || (
+                sphere_name.get(),
+                create_satellite_action.version().get(),
+                update_satellite_action.version().get(),
+                disable_satellite_action.version().get(),
+            ),
+            move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, true)
+        ),
+        sphere_categories_resource: Resource::new(
+            move || (
+                sphere_name.get(),
+                set_sphere_category_action.version().get(),
+                delete_sphere_category_action.version().get()
+            ),
+            move |(sphere_name, _, _)| get_sphere_category_vec(sphere_name)
+        ),
+        sphere_roles_resource: Resource::new(
+            move || (sphere_name.get(), set_sphere_role_action.version().get()),
+            move |(sphere_name, _)| get_sphere_role_vec(sphere_name),
+        ),
+        sphere_rules_resource: Resource::new(
+            move || (
+                sphere_name.get(),
+                add_rule_action.version().get(),
+                update_rule_action.version().get(),
+                remove_rule_action.version().get()
+            ),
+            move |(sphere_name, _, _, _)| get_sphere_rule_vec(sphere_name),
+        ),
+        create_satellite_action,
+        update_satellite_action,
+        disable_satellite_action,
+        moderate_post_action: ServerAction::<ModeratePost>::new(),
+        update_sphere_desc_action,
+        set_sphere_category_action,
+        delete_sphere_category_action,
+        set_sphere_role_action,
+        add_rule_action,
+        update_rule_action,
+        remove_rule_action,
+    };
+    provide_context(sphere_state);
+
+    let sphere_path = move || get_sphere_path(&sphere_name.get());
+
+    view! {
+        <div class="flex flex-col gap-2 pt-2 px-2 w-full">
+            <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
+            {
+                let sphere_banner_class = format!(
+                    "flex-none bg-cover bg-center bg-no-repeat bg-[url('{}')] rounded-sm w-full h-40 flex items-center justify-center",
+                    sphere.banner_url.clone().unwrap_or(String::from("/banner.jpg"))
+                );
+                view! {
+                    <a
+                        href=sphere_path()
+                        class=sphere_banner_class
+                    >
+                        <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
+                            <SphereIcon icon_url=sphere.icon_url.clone() class="h-12 w-12"/>
+                            <span class="text-4xl">{sphere_state.sphere_name.get()}</span>
+                        </div>
+                    </a>
+                }.into_any()
+            }
+            </TransitionUnpack>
+            <Outlet/>
+        </div>
+        <div class="max-2xl:hidden">
+            <SphereSidebar/>
+        </div>
+    }.into_any()
+}
+
+/// Component to display a sphere's contents
+#[component]
+pub fn SphereContents() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let sphere_state = expect_context::<SphereState>();
+    let sphere_name = expect_context::<SphereState>().sphere_name;
+    let additional_load_count = RwSignal::new(0);
+    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let is_loading = RwSignal::new(false);
+    let load_error = RwSignal::new(None);
+    let list_ref = NodeRef::<html::Ul>::new();
+    let sphere_with_sub_resource = Resource::new(
+        move || (sphere_name(),),
+        move |(sphere_name,)| get_sphere_with_user_info(sphere_name),
+    );
+
+    let _initial_post_resource = LocalResource::new(
+        move || async move {
+            post_vec.write().clear();
+            is_loading.set(true);
+            // TODO return map in resource directly?
+            let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
+            // TODO check no unnecessary loads
+            let initial_load = get_post_vec_by_sphere_name(
+                sphere_name.get(),
+                sphere_state.category_id_filter.get(),
+                state.post_sort_type.get(),
+                0,
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
+                let num_post = post_vec.read_untracked().len();
+                let additional_load = get_post_vec_by_sphere_name(
+                    sphere_name.get_untracked(),
+                    sphere_state.category_id_filter.get_untracked(),
+                    state.post_sort_type.get_untracked(),
+                    num_post
+                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+                handle_additional_load(additional_load, post_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
+
+    view! {
+        <ActiveSatelliteList/>
+        <SuspenseUnpack resource=sphere_with_sub_resource let:sphere>
+            <SphereToolbar
+                sphere
+                sort_signal=state.post_sort_type
+                category_id_signal=sphere_state.category_id_filter
+            />
+        </SuspenseUnpack>
+        <PostMiniatureList
+            post_vec
+            is_loading
+            load_error
+            additional_load_count
+            list_ref
+            show_sphere_header=false
+        />
+    }.into_any()
+}
+
+/// Component to display the sphere toolbar
+#[component]
+pub fn SphereToolbar<'a>(
+    sphere: &'a SphereWithUserInfo,
+    sort_signal: RwSignal<SortType>,
+    category_id_signal: RwSignal<Option<i64>>
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let sphere_state = expect_context::<SphereState>();
+    let satellite_state = use_context::<SatelliteState>();
+    let category_vec_resource = sphere_state.sphere_categories_resource;
+    let sphere_id = sphere.sphere.sphere_id;
+    let sphere_name = RwSignal::new(sphere.sphere.sphere_name.clone());
+    let is_subscribed = RwSignal::new(sphere.subscription_id.is_some());
+    let manage_path = move || get_sphere_path(&sphere_name.get()) + MANAGE_SPHERE_ROUTE;
+
+    view! {
+        <div class="flex w-full justify-between content-center">
+            <div class="flex w-full gap-2">
+                <PostSortWidget sort_signal/>
+                <SphereCategoryDropdown category_vec_resource category_id_signal=Some(category_id_signal)/>
+            </div>
+            <div class="flex gap-1">
+                <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
+                    <A href=manage_path attr:class="btn btn-circle btn-ghost">
+                        <SettingsIcon class="h-5 w-5"/>
+                    </A>
+                </AuthorizedShow>
+                <SphereSearchButton/>
+                <div class="tooltip" data-tip="Join">
+                    <LoginGuardedButton
+                        button_class="btn btn-circle btn-ghost"
+                        button_action=move |_| {
+                            is_subscribed.update(|value| {
+                                *value = !*value;
+                                if *value {
+                                    state.subscribe_action.dispatch(Subscribe { sphere_id });
+                                } else {
+                                    state.unsubscribe_action.dispatch(Unsubscribe { sphere_id });
+                                }
+                            })
+                        }
+                    >
+                        <SubscribedIcon class="h-6 w-6" show_color=is_subscribed/>
+                    </LoginGuardedButton>
+                </div>
+                <div class="tooltip" data-tip="New">
+                    <LoginGuardButton
+                        login_button_class="btn btn-circle btn-ghost"
+                        login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }.into_any()
+                        redirect_path_fn=&get_create_post_path
+                        let:_user
+                    >
+                    { move || match satellite_state {
+                        Some(satellite_state) => {
+                            let create_post_link = get_satellite_path(
+                                &*sphere_state.sphere_name.read(),
+                                satellite_state.satellite_id.get()
+                            ) + PUBLISH_ROUTE + CREATE_POST_SUFFIX;
+                            Either::Left(view! {
+                                <a href=create_post_link class="btn btn-circle btn-ghost">
+                                    <PlusIcon class="h-6 w-6"/>
+                                </a>
+                            })
+                        }
+                        None => Either::Right(view! {
+                            <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
+                                <input type="text" name=CREATE_POST_SPHERE_QUERY_PARAM class="hidden" value=sphere_name/>
+                                <button type="submit" class="btn btn-circle btn-ghost">
+                                    <PlusIcon class="h-6 w-6"/>
+                                </button>
+                            </Form>
+                        }),
+                    }}
+                    </LoginGuardButton>
+                </div>
+            </div>
+        </div>
+    }.into_any()
+}
+
+/// Dialog to select a sphere category
+#[component]
+pub fn SphereCategoryDropdown(
+    category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    #[prop(default = None)]
+    init_category_id: Option<i64>,
+    #[prop(default = None)]
+    category_id_signal: Option<RwSignal<Option<i64>>>,
+    #[prop(default = true)]
+    show_inactive: bool,
+    #[prop(default = "")]
+    name: &'static str,
+) -> impl IntoView {
+    let is_selected = RwSignal::new(init_category_id.is_some());
+    let select_class = move || match is_selected.get() {
+        true => "select w-fit",
+        false => "select w-fit text-gray-400",
+    };
+    
+    view! {
+        <TransitionUnpack resource=category_vec_resource let:sphere_category_vec>
+        {
+            if sphere_category_vec.is_empty() || (!show_inactive && !sphere_category_vec.iter().any(|sphere_category| sphere_category.is_active)) {
+                log::debug!("No category to display.");
+                return ().into_any()
+            }
+            view! {
+                <select 
+                    name=name 
+                    class=select_class
+                    on:click=move |ev| {
+                        let selected = event_target_value(&ev);
+                        is_selected.set(!selected.is_empty());
+                        if let Some(category_id_signal) = category_id_signal {
+                            match selected.parse::<i64>() {
+                                Ok(category_id) => category_id_signal.set(Some(category_id)),
+                                _ => category_id_signal.set(None),
+                            };
+                        };
+                    }
+                >
+                    <option selected=init_category_id.is_none() value="" class="text-gray-400">"Category"</option>
+                    {
+                        sphere_category_vec.iter().map(|sphere_category| {
+                            let is_selected = init_category_id.is_some_and(|category_id| category_id == sphere_category.category_id);
+                            match show_inactive || sphere_category.is_active {
+                                true => Some(view! {
+                                    <option
+                                        class="text-white"
+                                        selected=is_selected
+                                        value=sphere_category.category_id
+                                    >
+                                        {sphere_category.category_name.clone()}
+                                    </option>
+                                }),
+                                false => None,
+                            }
+                        }).collect_view()
+                    }
+                </select>
+            }.into_any()
+        }
+        </TransitionUnpack>
+    }
+}
+
+/// Component to create new spheres
+#[component]
+pub fn CreateSphere() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+
+    let sphere_name = RwSignal::new(String::new());
+    let sphere_name_debounced: Signal<String> = signal_debounced(sphere_name, 250.0);
+    let is_sphere_available = Resource::new(
+        move || sphere_name_debounced.get(),
+        move |sphere_name| async {
+            if sphere_name.is_empty() {
+                None
+            } else {
+                Some(is_sphere_available(sphere_name).await)
+            }
+        },
+    );
+
+    let is_name_taken = RwSignal::new(false);
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let textarea_autosize = use_textarea_autosize(textarea_ref);
+    let description_data = TextareaData {
+        content: textarea_autosize.content,
+        set_content: textarea_autosize.set_content,
+        textarea_ref,
+    };
+    let is_name_empty = move || sphere_name.read().is_empty();
+    let is_name_alphanumeric =
+        move || is_valid_sphere_name(&sphere_name.read());
+    let are_inputs_invalid = Memo::new(move |_| {
+        is_name_empty()
+            || is_name_taken.get()
+            || !is_name_alphanumeric()
+            || description_data.content.read().is_empty()
+    });
+
+    view! {
+        <div class="w-4/5 2xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+            <ActionForm action=state.create_sphere_action>
+                <div class="flex flex-col gap-2 w-full">
+                    <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>
+                    <div class="h-full flex gap-2">
+                        <input
+                            type="text"
+                            name="sphere_name"
+                            placeholder="Name"
+                            autocomplete="off"
+                            class="input input-primary flex-none w-3/5"
+                            autofocus
+                            on:input=move |ev| {
+                                sphere_name.set(event_target_value(&ev));
+                            }
+                            prop:value=sphere_name
+                        />
+                        <Suspense fallback=move || view! { <LoadingIcon class="h-7 w-7"/> }>
+                        {
+                            move || is_sphere_available.map(|result| match result {
+                                None | Some(Ok(true)) => {
+                                    is_name_taken.set(false);
+                                    view! {}.into_any()
+                                },
+                                Some(Ok(false)) => {
+                                    is_name_taken.set(true);
+                                    view! {
+                                        <div class="alert alert-error flex items-center justify-center">
+                                            <span class="font-semibold">"Unavailable"</span>
+                                        </div>
+                                    }.into_any()
+                                },
+                                Some(Err(e)) => {
+                                    log::error!("Error while checking sphere existence: {e}");
+                                    is_name_taken.set(true);
+                                    view! {
+                                        <div class="alert alert-error h-fit py-2 flex items-center justify-center">
+                                            <InternalErrorIcon class="h-16 w-16"/>
+                                            <span class="font-semibold">"Server error"</span>
+                                        </div>
+                                    }.into_any()
+                                },
+                            })
+
+                        }
+                        </Suspense>
+                        <div class="alert alert-error flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
+                            <InternalErrorIcon class="h-16 w-16"/>
+                            <span>"Only alphanumeric characters."</span>
+                        </div>
+                    </div>
+                    <FormTextEditor
+                        name="description"
+                        placeholder="Description"
+                        data=description_data
+                    />
+                    <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
+                    <Suspense fallback=move || view! { <LoadingIcon/> }>
+                        <button type="submit" class="btn btn-secondary" disabled=are_inputs_invalid>"Create"</button>
+                    </Suspense>
+                </div>
+            </ActionForm>
+            <ActionError action=state.create_sphere_action.into()/>
+        </div>
+    }
+}
+
+/// # Returns whether a sphere name is valid. Valid characters are ascii alphanumeric, '-' and '_'
+///
+/// ```
+/// use sharesphere_app::sphere::is_valid_sphere_name;
+///
+/// assert_eq!(is_valid_sphere_name("-Abc123_"), true);
+/// assert_eq!(is_valid_sphere_name(" name"), false);
+/// assert_eq!(is_valid_sphere_name("name%"), false);
+/// ```
+pub fn is_valid_sphere_name(name: &str) -> bool {
+    name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}

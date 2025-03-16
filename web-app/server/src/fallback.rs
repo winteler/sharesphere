@@ -9,8 +9,8 @@ use leptos::view;
 use tower::util::ServiceExt;
 use tower_http::services::ServeDir;
 
-use utils::error_template::ErrorTemplate;
-use utils::errors::AppError;
+use sharesphere_utils::error_template::ErrorTemplate;
+use sharesphere_utils::errors::AppError;
 
 pub async fn file_and_error_handler(
     uri: Uri,

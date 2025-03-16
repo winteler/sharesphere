@@ -18,11 +18,11 @@ use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
 
-use utils::routes::ssr::{create_db_pool, AuthSession};
-use utils::user::ssr::UserLockCache;
-use utils::user::User;
+use sharesphere_auth::session::ssr::{create_db_pool, AuthSession};
+use sharesphere_auth::user::ssr::UserLockCache;
+use sharesphere_auth::user::User;
 
-use app::{
+use sharesphere_app::{
     app::*,
     post::ssr::update_post_scores,
 };

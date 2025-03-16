@@ -3,12 +3,12 @@ use leptos::prelude::*;
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{Collapse, TitleCollapse};
 
-use sharesphere_core::sphere::SphereState;
+use sharesphere_core::sphere::{SphereHeader, SphereState};
 
 use crate::app::GlobalState;
 use crate::search::{SearchSpheres, SearchState};
 use crate::sphere::SphereLinkList;
-use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers, SphereHeader};
+use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers};
 use crate::sphere_category::SphereCategoryBadge;
 
 /// Component to display a collapsable list of sphere links

@@ -21,7 +21,7 @@ use sharesphere_utils::widget::{CommentCountWidget, DotMenu, LoadIndicators, Mod
 use sharesphere_auth::role::IsPinnedCheckbox;
 
 use sharesphere_core::post::Post;
-use sharesphere_core::sphere::SphereState;
+use sharesphere_core::sphere::{SphereHeader, SphereState};
 use sharesphere_core::sphere_category::SphereCategory;
 
 use crate::app::{GlobalState};

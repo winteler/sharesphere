@@ -22,7 +22,7 @@ use sharesphere_auth::role::{get_sphere_role_vec, AuthorizedShow, PermissionLeve
 use sharesphere_core::moderation::ModeratePost;
 use sharesphere_core::rule::{AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, UpdateSatellite};
-use sharesphere_core::sphere::{Sphere, SphereState, UpdateSphereDescription};
+use sharesphere_core::sphere::{Sphere, SphereHeader, SphereState, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{DeleteSphereCategory, SetSphereCategory, SphereCategory};
 
 use crate::app::{GlobalState};
@@ -64,30 +64,6 @@ pub struct SphereWithUserInfo {
     #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub sphere: Sphere,
     pub subscription_id: Option<i64>,
-}
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct SphereHeader {
-    pub sphere_name: String,
-    pub icon_url: Option<String>,
-    pub is_nsfw: bool,
-}
-
-impl From<&Sphere> for SphereHeader {
-    fn from(sphere: &Sphere) -> Self {
-        Self::new(sphere.sphere_name.clone(), sphere.icon_url.clone(), sphere.is_nsfw)
-    }
-}
-
-impl SphereHeader {
-    pub fn new(sphere_name: String, icon_url: Option<String>, is_nsfw: bool) -> Self {
-        Self {
-            sphere_name,
-            icon_url,
-            is_nsfw,
-        }
-    }
 }
 
 #[cfg(feature = "ssr")]

@@ -18,13 +18,12 @@ use sharesphere_auth::role::IsPinnedCheckbox;
 
 use sharesphere_core::comment::Comment;
 use sharesphere_core::post::Post;
-use sharesphere_core::sphere::{SphereState};
+use sharesphere_core::sphere::{SphereState, SphereHeader};
 
 use crate::app::GlobalState;
 use crate::content::{CommentSortWidget, Content, ContentBody};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
-use crate::sphere::{SphereHeader};
 
 #[cfg(feature = "ssr")]
 use {
@@ -42,6 +41,7 @@ use {
 };
 use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
 use sharesphere_utils::routes::get_post_path;
+use crate::sphere::SphereHeader;
 
 pub const COMMENT_ID_QUERY_PARAM: &str = "comment_id";
 pub const COMMENT_BATCH_SIZE: i64 = 50;

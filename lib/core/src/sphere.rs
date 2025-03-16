@@ -35,6 +35,14 @@ pub struct Sphere {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct SphereHeader {
+    pub sphere_name: String,
+    pub icon_url: Option<String>,
+    pub is_nsfw: bool,
+}
+
 #[derive(Copy, Clone)]
 pub struct SphereState {
     pub sphere_name: Memo<String>,
@@ -56,6 +64,22 @@ pub struct SphereState {
     pub add_rule_action: ServerAction<AddRule>,
     pub update_rule_action: ServerAction<UpdateRule>,
     pub remove_rule_action: ServerAction<RemoveRule>,
+}
+
+impl From<&Sphere> for SphereHeader {
+    fn from(sphere: &Sphere) -> Self {
+        Self::new(sphere.sphere_name.clone(), sphere.icon_url.clone(), sphere.is_nsfw)
+    }
+}
+
+impl SphereHeader {
+    pub fn new(sphere_name: String, icon_url: Option<String>, is_nsfw: bool) -> Self {
+        Self {
+            sphere_name,
+            icon_url,
+            is_nsfw,
+        }
+    }
 }
 
 #[cfg(feature = "ssr")]

@@ -14,13 +14,13 @@ use sharesphere_utils::widget::{EnumQueryTabs, ToView};
 
 use sharesphere_auth::user::{UserHeader};
 
-use sharesphere_core::sphere::SphereState;
+use sharesphere_core::sphere::{SphereHeader, SphereState};
 
 use crate::comment::{CommentMiniatureList, CommentWithContext};
 use crate::post::{PostMiniatureList, PostWithSphereInfo};
 use crate::profile::UserHeaderLink;
 use crate::sidebar::HomeSidebar;
-use crate::sphere::{InfiniteSphereLinkList, SphereHeader};
+use crate::sphere::{InfiniteSphereLinkList};
 
 #[cfg(feature = "ssr")]
 use {
@@ -100,11 +100,12 @@ pub mod ssr {
 
     use sharesphere_utils::errors::AppError;
     use sharesphere_auth::user::{UserHeader, USER_FETCH_LIMIT};
+    use sharesphere_core::sphere::SphereHeader;
 
     use crate::comment::CommentWithContext;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinCategory;
-    use crate::sphere::{SphereHeader, SPHERE_FETCH_LIMIT};
+    use crate::sphere::{SPHERE_FETCH_LIMIT};
 
     pub async fn get_matching_sphere_header_vec(
         sphere_prefix: &str,

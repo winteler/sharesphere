@@ -3,10 +3,10 @@
 use std::env;
 use std::sync::Mutex;
 
+use sharesphere_auth::user::ssr::create_or_update_user;
+use sharesphere_auth::user::User;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
-
-use sharesphere_utils::user::User;
 
 pub const TEST_DB_URL_ENV: &str = "TEST_DATABASE_URL";
 static DB_NUM: Mutex<i32> = Mutex::new(0);
@@ -63,7 +63,7 @@ pub async fn create_user(
     test_id: &str,
     db_pool: &PgPool
 ) -> User {
-    let sql_user = sharesphere_utils::user::ssr::create_or_update_user(test_id, test_id, test_id, db_pool)
+    let sql_user = create_or_update_user(test_id, test_id, test_id, db_pool)
         .await
         .expect("Should be possible to create user.");
     User::get(sql_user.user_id, db_pool).await.expect("New user should be available in DB.")

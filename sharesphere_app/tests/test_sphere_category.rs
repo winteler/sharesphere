@@ -1,11 +1,12 @@
 use crate::common::{create_user, get_db_pool};
-use sharesphere_utils::colors::Color;
-use sharesphere_utils::embed::{Link};
-use sharesphere_utils::errors::AppError;
 use sharesphere_app::post::ssr::create_post;
 use sharesphere_app::sphere::ssr::create_sphere;
-use sharesphere_app::sphere_category::ssr::{delete_sphere_category, get_sphere_category_vec, set_sphere_category, CATEGORY_NOT_DELETED_STR};
-use sharesphere_utils::user::User;
+use sharesphere_app::sphere_category::ssr::get_sphere_category_vec;
+use sharesphere_auth::user::User;
+use sharesphere_core::sphere_category::ssr::{delete_sphere_category, set_sphere_category, CATEGORY_NOT_DELETED_STR};
+use sharesphere_utils::colors::Color;
+use sharesphere_utils::embed::Link;
+use sharesphere_utils::errors::AppError;
 
 mod common;
 mod data_factory;

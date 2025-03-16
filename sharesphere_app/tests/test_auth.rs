@@ -1,15 +1,16 @@
 use chrono::Days;
 use std::ops::Add;
 
-use sharesphere_utils::errors::AppError;
-use sharesphere_app::moderation::ssr::ban_user_from_sphere;
-use sharesphere_utils::role::ssr::set_user_sphere_role;
-use sharesphere_utils::role::{AdminRole, PermissionLevel};
-use sharesphere_utils::user::{ssr::SqlUser, User};
-use sharesphere_app::{rule, sphere};
-
 use crate::common::{create_user, get_db_pool};
 use crate::data_factory::create_sphere_with_post;
+use sharesphere_app::sphere;
+use sharesphere_auth::role::ssr::set_user_sphere_role;
+use sharesphere_auth::role::{AdminRole, PermissionLevel};
+use sharesphere_auth::user::ssr::{create_or_update_user, SqlUser};
+use sharesphere_auth::user::User;
+use sharesphere_core::moderation::ssr::ban_user_from_sphere;
+use sharesphere_core::rule::ssr::add_rule;
+use sharesphere_utils::errors::AppError;
 
 mod common;
 mod data_factory;
@@ -20,7 +21,7 @@ async fn test_sql_user_get_by_username() -> Result<(), AppError> {
     let oidc_id = "id";
     let username = "username";
     let email = "user@user.com";
-    let user = sharesphere_utils::user::ssr::create_or_update_user(oidc_id, username, email, &db_pool).await.expect("Sql user should be created");
+    let user = create_or_update_user(oidc_id, username, email, &db_pool).await.expect("Sql user should be created");
     let sql_user = SqlUser::get_by_username(&user.username, &db_pool).await?;
 
     assert_eq!(sql_user.user_id, user.user_id);
@@ -41,7 +42,7 @@ async fn test_user_get() -> Result<(), AppError> {
     admin.admin_role = AdminRole::Admin;
 
     // Create common rule to enable bans
-    let rule = rule::ssr::add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(None, 0, "test", "test", &admin, &db_pool).await.expect("Rule should be added.");
 
     let (sphere_a, _post_a) = create_sphere_with_post("a", &mut creator_user, &db_pool).await;
     let (sphere_b, _post_b) = create_sphere_with_post("b", &mut creator_user, &db_pool).await;
@@ -210,7 +211,7 @@ async fn test_user_check_can_set_user_sphere_role() -> Result<(), AppError> {
 async fn test_create_user() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user_1_value = "1";
-    let sql_user_1 = sharesphere_utils::user::ssr::create_or_update_user(user_1_value, user_1_value, user_1_value, &db_pool).await.expect("Sql user 1 should be created");
+    let sql_user_1 = create_or_update_user(user_1_value, user_1_value, user_1_value, &db_pool).await.expect("Sql user 1 should be created");
     assert_eq!(sql_user_1.oidc_id, user_1_value);
     assert_eq!(sql_user_1.username, user_1_value);
     assert_eq!(sql_user_1.email, user_1_value);
@@ -219,10 +220,10 @@ async fn test_create_user() -> Result<(), AppError> {
 
     // test cannot create user with duplicate username or email
     let user_2_value = "2";
-    assert!(utils::user::ssr::create_or_update_user(user_2_value, user_1_value, user_2_value, &db_pool).await.is_err());
-    assert!(utils::user::ssr::create_or_update_user(user_2_value, user_2_value, user_1_value, &db_pool).await.is_err());
+    assert!(create_or_update_user(user_2_value, user_1_value, user_2_value, &db_pool).await.is_err());
+    assert!(create_or_update_user(user_2_value, user_2_value, user_1_value, &db_pool).await.is_err());
 
-    let sql_user_2 = sharesphere_utils::user::ssr::create_or_update_user(user_2_value, user_2_value, user_2_value, &db_pool).await.expect("Sql user 2 should be created");
+    let sql_user_2 = create_or_update_user(user_2_value, user_2_value, user_2_value, &db_pool).await.expect("Sql user 2 should be created");
     assert_eq!(sql_user_2.oidc_id, user_2_value);
     assert_eq!(sql_user_2.username, user_2_value);
     assert_eq!(sql_user_2.email, user_2_value);
@@ -238,7 +239,7 @@ async fn test_create_user() -> Result<(), AppError> {
     assert_eq!(user_1.delete_timestamp, sql_user_1.delete_timestamp);
 
     let user_1_updated_value = "3";
-    let sql_user_1_updated = sharesphere_utils::user::ssr::create_or_update_user(
+    let sql_user_1_updated = create_or_update_user(
         user_1_value,
         user_1_updated_value,
         user_1_updated_value,

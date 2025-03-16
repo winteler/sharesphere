@@ -1,9 +1,11 @@
-use crate::common::{create_user, get_db_pool};
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::role::AdminRole;
-use sharesphere_app::rule::ssr::{add_rule, get_sphere_rule_vec, load_rule_by_id, remove_rule, update_rule};
+use sharesphere_app::rule::ssr::{get_sphere_rule_vec, load_rule_by_id};
 use sharesphere_app::sphere::ssr::create_sphere;
-use sharesphere_utils::user::User;
+use sharesphere_auth::role::AdminRole;
+use sharesphere_auth::user::User;
+use sharesphere_core::rule::ssr::{add_rule, remove_rule, update_rule};
+use sharesphere_utils::errors::AppError;
+
+use crate::common::{create_user, get_db_pool};
 
 mod common;
 mod data_factory;

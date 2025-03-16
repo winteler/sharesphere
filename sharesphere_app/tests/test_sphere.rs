@@ -1,14 +1,15 @@
 use rand::Rng;
 
-use sharesphere_app::app::ssr::create_db_pool;
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::errors::AppError::InsufficientPrivileges;
-use sharesphere_utils::role::PermissionLevel;
 use sharesphere_app::sphere;
 use sharesphere_app::sphere::ssr::{create_sphere, subscribe, unsubscribe};
-use sharesphere_app::sphere::{SphereHeader};
-use sharesphere_utils::user::ssr::set_user_settings;
-use sharesphere_utils::user::User;
+use sharesphere_app::sphere::SphereHeader;
+use sharesphere_auth::role::PermissionLevel;
+use sharesphere_auth::session::ssr::create_db_pool;
+use sharesphere_auth::user::ssr::set_user_settings;
+use sharesphere_auth::user::User;
+use sharesphere_core::sphere::ssr::update_sphere_description;
+use sharesphere_utils::errors::AppError;
+use sharesphere_utils::errors::AppError::InsufficientPrivileges;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;
@@ -321,7 +322,7 @@ async fn test_update_sphere_description() -> Result<(), AppError> {
 
     let updated_description = "second";
     assert_eq!(
-        sphere::ssr::update_sphere_description(
+        update_sphere_description(
             &sphere.sphere_name,
             updated_description,
             &ordinary_user,
@@ -329,7 +330,7 @@ async fn test_update_sphere_description() -> Result<(), AppError> {
         ).await,
         Err(InsufficientPrivileges),
     );
-    let updated_sphere = sphere::ssr::update_sphere_description(
+    let updated_sphere = update_sphere_description(
         &sphere.sphere_name,
         updated_description,
         &lead,

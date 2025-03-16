@@ -1,8 +1,9 @@
-use crate::common::{create_test_user, get_db_pool};
+use sharesphere_auth::role::AdminRole;
+use sharesphere_auth::user::ssr::{create_or_update_user, set_user_settings};
+use sharesphere_auth::user::User;
 use sharesphere_utils::errors::AppError;
-use sharesphere_utils::role::AdminRole;
-use sharesphere_utils::user::ssr::{create_or_update_user, set_user_settings};
-use sharesphere_utils::user::User;
+
+use crate::common::{create_test_user, get_db_pool};
 
 mod common;
 

@@ -1,6 +1,6 @@
-use sharesphere_utils::errors::AppError;
 use sharesphere_app::ranking::VoteValue;
 use sharesphere_app::{post, ranking};
+use sharesphere_utils::errors::AppError;
 
 use crate::common::*;
 use crate::data_factory::{create_sphere_with_post, create_sphere_with_post_and_comment};

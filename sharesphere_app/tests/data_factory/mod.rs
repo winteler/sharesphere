@@ -1,32 +1,36 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
-use sqlx::PgPool;
-
-use sharesphere_app::colors::Color;
 use sharesphere_app::comment::ssr::{create_comment, delete_comment};
-use sharesphere_app::comment::{Comment, CommentWithChildren};
-use sharesphere_app::errors::AppError;
-use sharesphere_app::post::{Post, PostWithSphereInfo};
+use sharesphere_app::comment::CommentWithChildren;
+use sharesphere_app::moderation::ssr::moderate_comment;
+use sharesphere_app::post::ssr::{create_post, delete_post};
+use sharesphere_app::post::PostWithSphereInfo;
+use sharesphere_app::ranking::ssr::vote_on_content;
 use sharesphere_app::ranking::{Vote, VoteValue};
-use sharesphere_app::satellite::ssr::create_satellite;
-use sharesphere_app::satellite::Satellite;
-use sharesphere_app::sphere::Sphere;
-use sharesphere_app::sphere_category::SphereCategory;
+use sharesphere_app::sphere::ssr::create_sphere;
 use sharesphere_app::sphere_management::ssr::set_sphere_icon_url;
-use sharesphere_utils::user::User;
-use sharesphere_app::{post, ranking, sphere, sphere_category};
-use sharesphere_app::embed::Link;
-use sharesphere_app::moderation::ssr::{moderate_comment, moderate_post};
-use sharesphere_app::post::ssr::delete_post;
-use sharesphere_app::rule::ssr::add_rule;
+use sharesphere_auth::user::User;
+use sharesphere_core::comment::Comment;
+use sharesphere_core::moderation::ssr::moderate_post;
+use sharesphere_core::post::Post;
+use sharesphere_core::rule::ssr::add_rule;
+use sharesphere_core::satellite::ssr::create_satellite;
+use sharesphere_core::satellite::Satellite;
+use sharesphere_core::sphere::Sphere;
+use sharesphere_core::sphere_category::ssr::set_sphere_category;
+use sharesphere_core::sphere_category::SphereCategory;
+use sharesphere_utils::colors::Color;
+use sharesphere_utils::embed::Link;
+use sharesphere_utils::errors::AppError;
+use sqlx::PgPool;
+use std::collections::HashMap;
 
 pub async fn create_sphere_with_post(
     sphere_name: &str,
     user: &mut User,
     db_pool: &PgPool,
 ) -> (Sphere, Post) {
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -36,7 +40,7 @@ pub async fn create_sphere_with_post(
 
     *user = User::get(user.user_id, db_pool).await.expect("Should reload user.");
 
-    let post = post::ssr::create_post(
+    let post = create_post(
         sphere_name,
         None,
         "post",
@@ -75,7 +79,7 @@ pub async fn create_sphere_with_posts(
     user: &mut User,
     db_pool: &PgPool,
 ) -> Result<(Sphere, SphereCategory, Vec<PostWithSphereInfo>), AppError> {
-    let mut sphere = sphere::ssr::create_sphere(
+    let mut sphere = create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -88,7 +92,7 @@ pub async fn create_sphere_with_posts(
     set_sphere_icon_url(sphere_name, sphere_icon_url, user, db_pool).await.expect("Should set icon url.");
     sphere.icon_url = sphere_icon_url.map(|x| x.to_string());
 
-    let sphere_category = sphere_category::ssr::set_sphere_category(
+    let sphere_category = set_sphere_category(
         sphere_name,
         "create_posts",
         Color::Blue,
@@ -129,7 +133,7 @@ pub async fn create_posts(
             (Some(has_category), Some(sphere_category)) if *has_category => Some(sphere_category.category_id),
             _ => None,
         };
-        let mut post = post::ssr::create_post(
+        let mut post = create_post(
             &sphere.sphere_name,
             satellite_id,
             i.to_string().as_str(),
@@ -168,7 +172,7 @@ pub async fn create_sphere_with_satellite(
     user: &mut User,
     db_pool: &PgPool,
 ) -> Result<(Sphere, Satellite), AppError> {
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -198,7 +202,7 @@ pub async fn create_sphere_with_satellite_vec(
     user: &mut User,
     db_pool: &PgPool,
 ) -> Result<(Sphere, Vec<Satellite>), AppError> {
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -236,7 +240,7 @@ pub async fn create_simple_post(
     user: &User,
     db_pool: &PgPool,
 ) -> PostWithSphereInfo {
-    let post = post::ssr::create_post(
+    let post = create_post(
         sphere_name,
         satellite_id,
         post_title,
@@ -264,7 +268,7 @@ pub async fn create_post_with_comments(
     user: &User,
     db_pool: &PgPool,
 ) -> (Post, Vec<Comment>, Vec<Option<Vote>>) {
-    let post = post::ssr::create_post(
+    let post = create_post(
         sphere_name,
         None,
         post_title,
@@ -301,7 +305,7 @@ pub async fn create_post_with_comments(
         ).await.expect("Comment should be created");
 
         if let Some(Some(vote_value)) = vote_value_vec.get(i) {
-            let vote = ranking::ssr::vote_on_content(
+            let vote = vote_on_content(
                 *vote_value,
                 post.post_id,
                 Some(comment.comment_id),

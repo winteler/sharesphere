@@ -1,22 +1,12 @@
 #![recursion_limit = "256"]
 pub mod app;
-pub mod auth;
 pub mod comment;
-pub mod colors;
-pub mod constants;
 pub mod content;
-pub mod editor;
-pub mod embed;
-pub mod errors;
-pub mod error_template;
-pub mod form;
-pub mod icons;
 pub mod moderation;
 pub mod navigation_bar;
 pub mod post;
 pub mod profile;
 pub mod ranking;
-pub mod role;
 pub mod rule;
 pub mod satellite;
 pub mod search;
@@ -24,7 +14,4 @@ pub mod sidebar;
 pub mod sphere;
 pub mod sphere_category;
 pub mod sphere_management;
-pub mod unpack;
-pub mod user;
-pub mod widget;
 

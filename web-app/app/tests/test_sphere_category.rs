@@ -1,11 +1,11 @@
 use crate::common::{create_user, get_db_pool};
-use app::colors::Color;
-use app::embed::{Link};
-use app::errors::AppError;
+use utils::colors::Color;
+use utils::embed::{Link};
+use utils::errors::AppError;
 use app::post::ssr::create_post;
 use app::sphere::ssr::create_sphere;
 use app::sphere_category::ssr::{delete_sphere_category, get_sphere_category_vec, set_sphere_category, CATEGORY_NOT_DELETED_STR};
-use app::user::User;
+use utils::user::User;
 
 mod common;
 mod data_factory;

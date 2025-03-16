@@ -1,9 +1,9 @@
 use crate::common::{create_user, get_db_pool};
-use app::errors::AppError;
-use app::role::AdminRole;
+use utils::errors::AppError;
+use utils::role::AdminRole;
 use app::rule::ssr::{add_rule, get_sphere_rule_vec, load_rule_by_id, remove_rule, update_rule};
 use app::sphere::ssr::create_sphere;
-use app::user::User;
+use utils::user::User;
 
 mod common;
 mod data_factory;

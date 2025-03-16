@@ -2,26 +2,26 @@ use std::env;
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 use leptos_router::params::Params;
+use web_sys::MouseEvent;
+
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
-use openidconnect::reqwest;
-#[cfg(feature = "ssr")]
-use openidconnect::{OAuth2TokenResponse, TokenResponse};
-use web_sys::MouseEvent;
-use crate::app::GlobalState;
+use {
+    openidconnect::{reqwest, OAuth2TokenResponse, TokenResponse},
+};
+
 use crate::errors::AppError;
 use crate::icons::LoadingIcon;
-use crate::navigation_bar::get_current_path;
 use crate::unpack::SuspenseUnpack;
-use crate::user::User;
+use crate::user::{User, UserState};
+use crate::utils::get_current_path;
 
 #[cfg(feature = "ssr")]
 use crate::{
-    app::ssr::{get_db_pool, get_session},
     auth::ssr::get_auth_http_client,
     constants::SITE_ROOT,
-    user::ssr::{create_or_update_user, SqlUser}
+    utils::ssr::get_session,
 };
 
 pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
@@ -44,16 +44,16 @@ pub struct OAuthParams {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use super::*;
-    use crate::app::ssr::get_user_lock_cache;
+    use crate::utils::ssr::{get_db_pool, get_session, get_user_lock_cache, AuthSession};
     use crate::errors::AppError;
     use crate::user::User;
-    use axum_session_sqlx::SessionPgPool;
     use openidconnect::core::{CoreTokenResponse, CoreProviderMetadata};
     use openidconnect::{AdditionalProviderMetadata, EndpointMaybeSet, EndpointNotSet, EndpointSet, NonceVerifier, RequestTokenError};
     use reqwest::Client;
     use serde::{Deserialize, Serialize};
     use serde_json::Value;
-    use sqlx::PgPool;
+
+    use crate::user::ssr::{create_or_update_user, SqlUser};
 
     type OidcCoreClient = openidconnect::core::CoreClient<
         EndpointSet,
@@ -63,8 +63,6 @@ pub mod ssr {
         EndpointMaybeSet,
         EndpointMaybeSet
     >;
-
-    pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
     /// A no-op NonceVerifier implementation.
     struct NoNonceVerifier;
@@ -457,7 +455,7 @@ pub fn LoginGuardButton<
     redirect_path_fn: &'static G,
     children: F,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     let children = StoredValue::new(children);
     let login_button_content = StoredValue::new(login_button_content);
 
@@ -465,7 +463,7 @@ pub fn LoginGuardButton<
         <Transition fallback=move || view! { <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
-                match &state.user.await {
+                match &user_state.user.await {
                     Ok(Some(user)) => children.with_value(|children| children(user)).into_any(),
                     _ => {
                         let login_button_view = login_button_content.with_value(|content| content.run());
@@ -491,7 +489,7 @@ where
     A: Fn(MouseEvent) -> () + Clone + Send + Sync + 'static,
     IV: IntoView + 'static
 {
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     let children = StoredValue::new(children.into_inner());
     let button_action = StoredValue::new(button_action);
     view! {
@@ -499,7 +497,7 @@ where
         {
             move || Suspend::new(async move {
                 let children_view = children.with_value(|children| children());
-                match &state.user.await {
+                match &user_state.user.await {
                     Ok(Some(_)) => view! {
                         <button
                             class=button_class
@@ -526,11 +524,11 @@ fn LoginButton<
     redirect_path_fn: &'static F,
     children: Children,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     let redirect_path = RwSignal::new(String::default());
 
     view! {
-        <ActionForm action=state.login_action attr:class="flex items-center">
+        <ActionForm action=user_state.login_action attr:class="flex items-center">
             <input type="text" name="redirect_url" class="hidden" value=redirect_path/>
             <button type="submit" class=class on:click=move |_| redirect_path_fn(redirect_path)>
                 {children()}

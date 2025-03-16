@@ -1,4 +1,4 @@
-use app::errors::AppError;
+use utils::errors::AppError;
 use app::ranking::VoteValue;
 use app::{post, ranking};
 

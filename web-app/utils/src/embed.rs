@@ -370,7 +370,7 @@ pub fn HtmlEmbed(
 /// # Check if the `scheme` matches the given `url`
 ///
 /// ```
-/// use crate::app::embed::url_matches_scheme;
+/// use utils::embed::url_matches_scheme;
 ///
 /// assert_eq!(url_matches_scheme("https://www.youtube.com/watch?v=test", "https://*.youtube.com/watch*"), true);
 /// assert_eq!(url_matches_scheme("https://bsky.app/profile/test/post/testpost", "https://bsky.app/profile/*/post/*"), true);

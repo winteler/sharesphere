@@ -14,7 +14,7 @@ use app::satellite::Satellite;
 use app::sphere::Sphere;
 use app::sphere_category::SphereCategory;
 use app::sphere_management::ssr::set_sphere_icon_url;
-use app::user::User;
+use utils::user::User;
 use app::{post, ranking, sphere, sphere_category};
 use app::embed::Link;
 use app::moderation::ssr::{moderate_comment, moderate_post};

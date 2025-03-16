@@ -1,31 +1,37 @@
 use chrono::SecondsFormat;
+use leptos::ev::{Event, SubmitEvent};
 use leptos::html;
 use leptos::prelude::*;
-use leptos::web_sys::FormData;
+use leptos::wasm_bindgen::closure::Closure;
+use leptos::wasm_bindgen::JsCast;
+use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
 use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced, use_textarea_autosize};
-use serde::{Deserialize, Serialize};
 use server_fn::codec::{MultipartData, MultipartFormData};
 use strum::IntoEnumIterator;
 
+
+use utils::editor::{FormTextEditor, TextareaData};
+use utils::errors::{AppError, ErrorDisplay};
+use utils::icons::{CrossIcon, LoadingIcon, MagnifierIcon, SaveIcon};
+use utils::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
+use utils::unpack::{SuspenseUnpack, TransitionUnpack};
+use utils::widget::{EnumDropdown, ModalDialog, IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+
 use crate::app::{GlobalState, LoginWindow};
-use crate::editor::{FormTextEditor, TextareaData};
-use crate::errors::{AppError, ErrorDisplay};
-use crate::icons::{CrossIcon, MagnifierIcon, SaveIcon};
 use crate::moderation::{get_moderation_info, ModerationInfoDialog};
-use crate::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
 use crate::rule::SphereRulesPanel;
 use crate::satellite::SatellitePanel;
 use crate::search::get_matching_user_header_vec;
 use crate::sphere::{Sphere, SphereState};
 use crate::sphere_category::SphereCategoriesDialog;
-use crate::unpack::{SuspenseUnpack, TransitionUnpack};
-use crate::widget::{EnumDropdown, ModalDialog, SphereImageForm};
+
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
+use utils::{
     auth::ssr::{check_user, reload_user},
+    utils::ssr::get_db_pool,
 };
+use utils::user::UserBan;
 
 pub const MANAGE_SPHERE_ROUTE: &str = "/manage";
 pub const NONE_STR: &str = "None";
@@ -40,22 +46,6 @@ pub const MISSING_BANNER_FILE_STR: &str = "Missing banner file.";
 pub const INCORRECT_BANNER_FILE_TYPE_STR: &str = "Banner file must be an image.";
 pub const BANNER_FILE_INFER_ERROR_STR: &str = "Could not infer file extension.";
 
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct UserBan {
-    pub ban_id: i64,
-    pub user_id: i64,
-    pub username: String,
-    pub sphere_id: Option<i64>,
-    pub sphere_name: Option<String>,
-    pub post_id: i64,
-    pub comment_id: Option<i64>,
-    pub infringed_rule_id: i64,
-    pub moderator_id: i64,
-    pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-    pub create_timestamp: chrono::DateTime<chrono::Utc>,
-}
-
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use http::StatusCode;
@@ -67,12 +57,13 @@ pub mod ssr {
     use tokio::fs::{rename, File};
     use tokio::io::AsyncWriteExt;
 
-    use crate::constants::IMAGE_TYPE;
-    use crate::errors::AppError;
-    use crate::role::{AdminRole, PermissionLevel};
-    use crate::sphere_management::{UserBan, BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_SPHERE_STR};
-    use crate::user::User;
-    use crate::widget::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+    use utils::constants::IMAGE_TYPE;
+    use utils::errors::AppError;
+    use utils::role::{AdminRole, PermissionLevel};
+    use utils::user::{User, UserBan};
+    use utils::widget::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+
+    use crate::sphere_management::{BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_SPHERE_STR};
 
     pub const MAX_IMAGE_MB_SIZE: usize = 5; // 5 MB
     pub const MAX_IMAGE_SIZE: usize = MAX_IMAGE_MB_SIZE * 1024 * 1024; // 5 MB in bytes
@@ -441,6 +432,104 @@ pub fn SphereBannerDialog() -> impl IntoView {
                 />
             </div>
         </AuthorizedShow>
+    }
+}
+
+/// Form to upload an image to the server
+/// The form contains two inputs: a hidden sphere name and an image form
+#[component]
+pub fn SphereImageForm(
+    #[prop(into)]
+    sphere_name: Signal<String>,
+    action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
+    #[prop(default = "max-h-80 max-w-full object-contain")]
+    preview_class: &'static str,
+) -> impl IntoView {
+    let on_submit = move |ev: SubmitEvent| {
+        ev.prevent_default();
+        let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
+        let form_data = FormData::new_with_form(&target).unwrap();
+        action.dispatch_local(form_data);
+    };
+
+    let preview_url = RwSignal::new(String::new());
+    let on_file_change = move |ev| {
+        let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
+        if let Some(files) = input.files() {
+            if let Some(file) = files.get(0) {
+                // Try to create a FileReader, returning early if it fails
+                let reader = match FileReader::new() {
+                    Ok(reader) => reader,
+                    Err(_) => {
+                        log::error!("Failed to create file reader.");
+                        return
+                    }, // Return early if FileReader creation fails
+                };
+
+                // Set up the onload callback for FileReader
+                let preview_url_clone = preview_url.clone();
+                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
+                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
+                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
+                            preview_url_clone.set(result); // Update the preview URL
+                        }
+                    }
+                }) as Box<dyn FnMut(_)>);
+
+                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
+                onload_callback.forget(); // Prevent the closure from being dropped
+
+                // Start reading the file as a Data URL, returning early if it fails
+                if let Err(e) = reader.read_as_data_url(&file) {
+                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
+                    log::error!("Error while getting preview of local image: {error_message}");
+                };
+            }
+        }
+    };
+
+    view! {
+        <form on:submit=on_submit class="flex flex-col gap-1">
+            <input
+                name=SPHERE_NAME_PARAM
+                class="hidden"
+                value=sphere_name
+            />
+            <input
+                type="file"
+                name=IMAGE_FILE_PARAM
+                accept="image/*"
+                class="file-input file-input-primary w-full rounded-xs"
+                on:change=on_file_change
+            />
+            <Show when=move || !preview_url.read().is_empty()>
+                <img src=preview_url alt="Image Preview" class=preview_class/>
+            </Show>
+            <button
+                type="submit"
+                class="btn btn-secondary btn-sm p-1 self-end"
+            >
+                <SaveIcon/>
+            </button>
+            {move || {
+                if action.pending().get()
+                {
+                    view! { <LoadingIcon/> }.into_any()
+                } else {
+                    match action.value().get()
+                    {
+                        Some(Ok(())) => {
+                            if let Some(state) = use_context::<GlobalState>() {
+                                state.sphere_reload_signal.update(|value| *value += 1);
+                            }
+                            ().into_any()
+                        }
+                        Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
+                        None => ().into_any()
+                    }
+                }
+            }}
+        </form>
     }
 }
 

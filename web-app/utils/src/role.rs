@@ -5,11 +5,17 @@ use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
-use crate::app::GlobalState;
 use crate::errors::AppError;
-use crate::unpack::{SuspenseUnpack};
+use crate::form::LabeledFormCheckbox;
+use crate::unpack::SuspenseUnpack;
+use crate::user::UserState;
+
 #[cfg(feature = "ssr")]
-use crate::{app::ssr::get_db_pool, auth::ssr::check_user, auth::ssr::reload_user, user::ssr::SqlUser};
+use crate::{
+    auth::ssr::{check_user, reload_user},
+    user::ssr::SqlUser,
+    utils::ssr::get_db_pool,
+};
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -277,10 +283,10 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
     permission_level: PermissionLevel,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     let children = StoredValue::new(children.into_inner());
     view! {
-        <SuspenseUnpack resource=state.user let:user>
+        <SuspenseUnpack resource=user_state.user let:user>
         {
             match user {
                 Some(user) if user.check_permissions(&sphere_name.read(), permission_level).is_ok() => {
@@ -291,6 +297,20 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
         }
         </SuspenseUnpack>
     }.into_any()
+}
+
+#[component]
+pub fn IsPinnedCheckbox(
+    #[prop(into)]
+    sphere_name: Signal<String>,
+    #[prop(default = false)]
+    value: bool,
+) -> impl IntoView {
+    view! {
+        <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
+            <LabeledFormCheckbox name="is_pinned" label="Pinned" value/>
+        </AuthorizedShow>
+    }
 }
 
 #[cfg(test)]

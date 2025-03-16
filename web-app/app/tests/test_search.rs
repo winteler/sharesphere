@@ -1,16 +1,16 @@
 use std::collections::BTreeSet;
-use app::errors::AppError;
+use utils::errors::AppError;
 use app::search::ssr::{get_matching_sphere_header_vec, get_matching_user_header_vec, search_comments, search_posts, search_spheres};
 use app::comment::CommentWithContext;
 use app::comment::ssr::create_comment;
-use app::embed::Link;
+use utils::embed::Link;
 use app::post::PostWithSphereInfo;
 use app::post::ssr::create_post;
 use app::sphere::SphereHeader;
 use app::sphere::ssr::create_sphere;
 use app::sphere_management::ssr::set_sphere_icon_url;
-use app::user::ssr::set_user_settings;
-use app::user::{User, UserHeader};
+use utils::user::ssr::set_user_settings;
+use utils::user::{User, UserHeader};
 use crate::common::{create_test_user, create_user, get_db_pool};
 use crate::data_factory::{create_simple_post, set_sphere_num_members};
 

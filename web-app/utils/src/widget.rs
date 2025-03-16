@@ -1,10 +1,7 @@
 use leptos::either::Either;
-use leptos::ev::{Event, SubmitEvent};
 use leptos::html;
 use leptos::prelude::*;
-use leptos::wasm_bindgen::closure::Closure;
-use leptos::wasm_bindgen::JsCast;
-use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
+use leptos::web_sys::{FormData};
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_navigate, use_query_map};
 use leptos_router::NavigateOptions;
@@ -16,17 +13,16 @@ use server_fn::request::ClientReq;
 use server_fn::ServerFn;
 use strum::IntoEnumIterator;
 
-use crate::app::GlobalState;
 use crate::auth::{LoginGuardedButton};
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::error_template::ErrorTemplate;
-use crate::errors::{AppError, ErrorDisplay};
+use crate::errors::{AppError};
 use crate::form::LabeledSignalCheckbox;
-use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, DeleteIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SaveIcon, SelfAuthorIcon, SpoilerIcon};
-use crate::profile::get_profile_path;
+use crate::icons::{ArrowUpIcon, AuthorIcon, ClockIcon, CommentIcon, DeleteIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorAuthorIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SelfAuthorIcon, SpoilerIcon};
 use crate::unpack::ActionError;
+use crate::user::{get_profile_path, UserState};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -244,7 +240,7 @@ pub fn AuthorWidget(
     is_moderator: bool,
 ) -> impl IntoView {
     let navigate = use_navigate();
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     let author_profile_path = get_profile_path(&author);
     let aria_label = format!("Navigate to user {}'s profile with path {}", author, author_profile_path);
     let author = StoredValue::new(author);
@@ -265,7 +261,7 @@ pub fn AuthorWidget(
                         <Transition fallback=move || view! { <LoadingIcon/> }>
                         {
                             move || Suspend::new(async move {
-                                match &state.user.await {
+                                match &user_state.user.await {
                                     Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
                                     _ => view! { <AuthorIcon/> }.into_any(),
                                 }
@@ -413,104 +409,6 @@ pub fn MinimizeMaximizeWidget(
     }
 }
 
-/// Form to upload an image to the server
-/// The form contains two inputs: a hidden sphere name and an image form
-#[component]
-pub fn SphereImageForm(
-    #[prop(into)]
-    sphere_name: Signal<String>,
-    action: Action<FormData, Result<(), ServerFnError<AppError>>, LocalStorage>,
-    #[prop(default = "max-h-80 max-w-full object-contain")]
-    preview_class: &'static str,
-) -> impl IntoView {
-    let on_submit = move |ev: SubmitEvent| {
-        ev.prevent_default();
-        let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
-        let form_data = FormData::new_with_form(&target).unwrap();
-        action.dispatch_local(form_data);
-    };
-
-    let preview_url = RwSignal::new(String::new());
-    let on_file_change = move |ev| {
-        let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
-        if let Some(files) = input.files() {
-            if let Some(file) = files.get(0) {
-                // Try to create a FileReader, returning early if it fails
-                let reader = match FileReader::new() {
-                    Ok(reader) => reader,
-                    Err(_) => {
-                        log::error!("Failed to create file reader.");
-                        return
-                    }, // Return early if FileReader creation fails
-                };
-
-                // Set up the onload callback for FileReader
-                let preview_url_clone = preview_url.clone();
-                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
-                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
-                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
-                            preview_url_clone.set(result); // Update the preview URL
-                        }
-                    }
-                }) as Box<dyn FnMut(_)>);
-
-                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
-                onload_callback.forget(); // Prevent the closure from being dropped
-
-                // Start reading the file as a Data URL, returning early if it fails
-                if let Err(e) = reader.read_as_data_url(&file) {
-                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
-                    log::error!("Error while getting preview of local image: {error_message}");
-                };
-            }
-        }
-    };
-
-    view! {
-        <form on:submit=on_submit class="flex flex-col gap-1">
-            <input
-                name=SPHERE_NAME_PARAM
-                class="hidden"
-                value=sphere_name
-            />
-            <input
-                type="file"
-                name=IMAGE_FILE_PARAM
-                accept="image/*"
-                class="file-input file-input-primary w-full rounded-xs"
-                on:change=on_file_change
-            />
-            <Show when=move || !preview_url.read().is_empty()>
-                <img src=preview_url alt="Image Preview" class=preview_class/>
-            </Show>
-            <button
-                type="submit"
-                class="btn btn-secondary btn-sm p-1 self-end"
-            >
-                <SaveIcon/>
-            </button>
-            {move || {
-                if action.pending().get()
-                {
-                    view! { <LoadingIcon/> }.into_any()
-                } else {
-                    match action.value().get()
-                    {
-                        Some(Ok(())) => {
-                            if let Some(state) = use_context::<GlobalState>() {
-                                state.sphere_reload_signal.update(|value| *value += 1);
-                            }
-                            ().into_any()
-                        }
-                        Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
-                        None => ().into_any()
-                    }
-                }
-            }}
-        </form>
-    }
-}
-
 /// Component to render a delete button
 #[component]
 pub fn DeleteButton<A>(
@@ -532,9 +430,9 @@ where
     >>::FormData: From<FormData>,
     A::Output: Send + Sync + 'static,
 {
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     let show_form = RwSignal::new(false);
-    let show_button = move || match &(*state.user.read()) {
+    let show_button = move || match &(*user_state.user.read()) {
         Some(Ok(Some(user))) => user.user_id == author_id,
         _ => false,
     };
@@ -739,12 +637,12 @@ pub fn NsfwCheckbox(
     #[prop(default = "pl-1")]
     class: &'static str,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
-                match state.user.await {
+                match user_state.user.await {
                     Ok(Some(user)) if user.show_nsfw => Some(view! {
                         <LabeledSignalCheckbox label value=show_nsfw class=class/>
                     }),

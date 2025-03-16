@@ -9,33 +9,37 @@ use leptos_router::NavigateOptions;
 use leptos_use::{signal_debounced, use_textarea_autosize};
 use serde::{Deserialize, Serialize};
 
+use utils::auth::{LoginGuardButton, LoginGuardedButton};
+use utils::editor::{FormTextEditor, TextareaData};
+use utils::errors::AppError;
+use utils::form::LabeledFormCheckbox;
+use utils::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
+use utils::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
+use utils::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
+use utils::widget::LoadIndicators;
+
 use crate::app::{GlobalState, PUBLISH_ROUTE};
-use crate::auth::{LoginGuardButton, LoginGuardedButton};
 use crate::content::PostSortWidget;
-use crate::editor::{FormTextEditor, TextareaData};
-use crate::errors::AppError;
-use crate::form::LabeledFormCheckbox;
-use crate::icons::{InternalErrorIcon, LoadingIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
 use crate::moderation::ModeratePost;
 use crate::navigation_bar::{get_create_post_path};
 use crate::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostMiniatureList, PostWithSphereInfo, CREATE_POST_SUFFIX};
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
 use crate::ranking::{SortType};
-use crate::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole, UserSphereRole};
 use crate::rule::{get_sphere_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
 use crate::satellite::{get_satellite_path, get_satellite_vec_by_sphere_name, ActiveSatelliteList, CreateSatellite, DisableSatellite, Satellite, SatelliteState, UpdateSatellite};
+use crate::search::SphereSearchButton;
 use crate::sidebar::SphereSidebar;
 use crate::sphere_category::{get_sphere_category_header_map, get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategory};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
-use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
+
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    auth::ssr::reload_user,
-    auth::{get_user, ssr::check_user},
+use {
+    utils::{
+        auth::ssr::reload_user,
+        auth::{get_user, ssr::check_user},
+        utils::ssr::get_db_pool,
+    },
 };
-use crate::search::SphereSearchButton;
-use crate::widget::LoadIndicators;
 
 pub const CREATE_SPHERE_SUFFIX: &str = "/sphere";
 pub const CREATE_SPHERE_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_SPHERE_SUFFIX);
@@ -129,12 +133,13 @@ impl SphereHeader {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::errors::AppError;
-    use crate::errors::AppError::InternalServerError;
-    use crate::role::ssr::set_user_sphere_role;
-    use crate::role::PermissionLevel;
+    use utils::errors::AppError;
+    use utils::errors::AppError::InternalServerError;
+    use utils::role::ssr::set_user_sphere_role;
+    use utils::role::PermissionLevel;
+    use utils::user::User;
+
     use crate::sphere::{is_valid_sphere_name, Sphere, SphereHeader, SphereWithUserInfo};
-    use crate::user::User;
 
     pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
         let sphere = sqlx::query_as::<_, Sphere>(

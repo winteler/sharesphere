@@ -1,9 +1,9 @@
 pub use crate::common::*;
 pub use crate::data_factory::*;
-use app::errors::AppError;
+use utils::errors::AppError;
 use app::satellite::ssr::{create_satellite, disable_satellite, get_active_satellite_vec_by_sphere_name, get_satellite_by_id, get_satellite_sphere, get_satellite_vec_by_sphere_name, update_satellite};
 use app::sphere::ssr::create_sphere;
-use app::user::User;
+use utils::user::User;
 
 mod common;
 mod data_factory;

@@ -1,9 +1,11 @@
-use crate::comment::{Comment, CommentSortType};
-use crate::icons::{FlameIcon, GraphIcon, HourglassIcon, PodiumIcon};
-use crate::post::{Post, PostSortType};
-use crate::ranking::SortType;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
+
+use utils::icons::{FlameIcon, GraphIcon, HourglassIcon, PodiumIcon};
+
+use crate::comment::{Comment, CommentSortType};
+use crate::post::{Post, PostSortType};
+use crate::ranking::SortType;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Content {

@@ -1,7 +1,7 @@
 use app::comment::{CommentSortType, CommentWithContext};
 use app::comment::ssr::create_comment;
-use app::embed::Link;
-use app::errors::AppError;
+use utils::embed::Link;
+use utils::errors::AppError;
 use app::post::{PostSortType, PostWithSphereInfo};
 use app::post::ssr::create_post;
 use app::profile::ssr::{get_user_comment_vec, get_user_post_vec};

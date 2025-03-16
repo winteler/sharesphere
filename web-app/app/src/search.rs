@@ -6,23 +6,29 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
+use utils::errors::AppError;
+use utils::form::LabeledSignalCheckbox;
+use utils::icons::MagnifierIcon;
+use utils::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
+use utils::user::{UserHeader};
+use utils::widget::{EnumQueryTabs, ToView};
+
 use crate::comment::{CommentMiniatureList, CommentWithContext};
-use crate::errors::AppError;
-use crate::form::LabeledSignalCheckbox;
-use crate::icons::MagnifierIcon;
 use crate::post::{PostMiniatureList, PostWithSphereInfo};
+use crate::profile::UserHeaderLink;
 use crate::sidebar::HomeSidebar;
 use crate::sphere::{get_sphere_path, InfiniteSphereLinkList, SphereHeader, SphereState};
-use crate::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
-use crate::user::{UserHeader, UserHeaderLink};
-use crate::widget::{EnumQueryTabs, ToView};
 
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    auth::get_user,
-    comment::COMMENT_BATCH_SIZE,
-    post::POST_BATCH_SIZE,
+use {
+    utils::{
+        auth::get_user,
+        utils::ssr::get_db_pool,
+    },
+    crate::{
+        comment::COMMENT_BATCH_SIZE,
+        post::POST_BATCH_SIZE,
+    },
 };
 
 pub const SEARCH_ROUTE: &str = "/search";
@@ -85,13 +91,16 @@ impl Default for SearchState {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::cmp::min;
+
     use sqlx::PgPool;
+
+    use utils::errors::AppError;
+    use utils::user::{UserHeader, USER_FETCH_LIMIT};
+
     use crate::comment::CommentWithContext;
-    use crate::errors::AppError;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinCategory;
     use crate::sphere::{SphereHeader, SPHERE_FETCH_LIMIT};
-    use crate::user::{UserHeader, USER_FETCH_LIMIT};
 
     pub async fn get_matching_sphere_header_vec(
         sphere_prefix: &str,

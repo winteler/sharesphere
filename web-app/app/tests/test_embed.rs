@@ -1,4 +1,4 @@
-use app::embed::{verify_link_and_get_embed, EmbedType, Link, LinkType};
+use utils::embed::{verify_link_and_get_embed, EmbedType, Link, LinkType};
 
 #[tokio::test]
 async fn test_verify_link_and_get_embed() {

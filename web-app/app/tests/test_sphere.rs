@@ -1,14 +1,14 @@
 use rand::Rng;
 
 use app::app::ssr::create_db_pool;
-use app::errors::AppError;
-use app::errors::AppError::InsufficientPrivileges;
-use app::role::PermissionLevel;
+use utils::errors::AppError;
+use utils::errors::AppError::InsufficientPrivileges;
+use utils::role::PermissionLevel;
 use app::sphere;
 use app::sphere::ssr::{create_sphere, subscribe, unsubscribe};
 use app::sphere::{SphereHeader};
-use app::user::ssr::set_user_settings;
-use app::user::User;
+use utils::user::ssr::set_user_settings;
+use utils::user::User;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;

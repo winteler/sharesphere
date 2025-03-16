@@ -1,5 +1,3 @@
-use app::error_template::ErrorTemplate;
-use app::errors::AppError;
 use axum::{
     body::Body,
     extract::State,
@@ -10,6 +8,9 @@ use leptos::prelude::{Errors, LeptosOptions};
 use leptos::view;
 use tower::util::ServiceExt;
 use tower_http::services::ServeDir;
+
+use utils::error_template::ErrorTemplate;
+use utils::errors::AppError;
 
 pub async fn file_and_error_handler(
     uri: Uri,

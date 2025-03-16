@@ -4,18 +4,21 @@ use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
-use crate::editor::{FormTextEditor, TextareaData};
-use crate::errors::AppError;
-use crate::icons::{CrossIcon, EditIcon, PlusIcon};
-use crate::role::{AuthorizedShow, PermissionLevel};
+use utils::editor::{FormTextEditor, TextareaData};
+use utils::errors::AppError;
+use utils::icons::{CrossIcon, EditIcon, PlusIcon};
+use utils::role::{AuthorizedShow, PermissionLevel};
+use utils::unpack::{TransitionUnpack};
+use utils::widget::{ModalDialog, ModalFormButtons};
+
 use crate::sphere::SphereState;
-use crate::unpack::{TransitionUnpack};
-use crate::widget::{ModalDialog, ModalFormButtons};
 
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    auth::ssr::check_user,
+use {
+    utils::{
+        utils::ssr::get_db_pool,
+        auth::ssr::check_user,
+    },
 };
 
 
@@ -36,11 +39,13 @@ pub struct Rule {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::errors::AppError;
-    use crate::role::{AdminRole, PermissionLevel};
-    use crate::rule::Rule;
-    use crate::user::User;
     use sqlx::PgPool;
+
+    use utils::errors::AppError;
+    use utils::role::{AdminRole, PermissionLevel};
+    use utils::user::User;
+
+    use crate::rule::Rule;
 
     pub async fn load_rule_by_id(
         rule_id: i64,

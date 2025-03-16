@@ -6,27 +6,32 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
+use utils::auth::NavigateToUserAccount;
+use utils::errors::AppError;
+use utils::form::LabeledFormCheckbox;
+use utils::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
+use utils::user::{get_profile_path, UserHeader, UserHeaderWidget};
+use utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
+use utils::widget::{EnumQueryTabs, ToView};
+
+use crate::app::GlobalState;
 use crate::comment::{CommentMiniatureList, CommentSortType, CommentWithContext};
 use crate::content::{CommentSortWidget, PostSortWidget};
-use crate::errors::AppError;
 use crate::post::{PostMiniatureList, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
 use crate::sidebar::HomeSidebar;
-use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{EnumQueryTabs, ToView};
 
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    comment::COMMENT_BATCH_SIZE,
-    post::{POST_BATCH_SIZE},
+use {
+    utils::{
+        utils::ssr::get_db_pool,
+    },
+    crate::{
+        comment::COMMENT_BATCH_SIZE,
+        post::{POST_BATCH_SIZE},
+    }
 };
-use crate::app::GlobalState;
-use crate::auth::NavigateToUserAccount;
-use crate::form::LabeledFormCheckbox;
-use crate::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
 
-pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
 pub const PROFILE_TAB_QUERY_PARAM: &str = "tab";
 
@@ -67,8 +72,10 @@ impl ToView for SelfProfileTabs {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
+
+    use utils::errors::AppError;
+
     use crate::comment::{CommentWithContext};
-    use crate::errors::AppError;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinCategory;
     use crate::ranking::SortType;
@@ -374,10 +381,17 @@ pub fn UserAccountButton() -> impl IntoView {
     }.into_any()
 }
 
-pub fn get_profile_path(
-    username: &str,
-) -> String {
-    format!("{USER_ROUTE_PREFIX}/{username}")
+/// Component to display a user header and redirect to his profile upon click
+#[component]
+pub fn UserHeaderLink<'a>(
+    user_header: &'a UserHeader,
+) -> impl IntoView {
+    let user_profile_path = get_profile_path(&user_header.username);
+    view! {
+        <a href=user_profile_path class="w-full h-fit p-2 rounded-sm hover:bg-base-300">
+            <UserHeaderWidget user_header/>
+        </a>
+    }.into_any()
 }
 
 /// Get a memo returning the last valid user id from the url. Used to avoid triggering resources when leaving pages.

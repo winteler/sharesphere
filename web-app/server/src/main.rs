@@ -1,12 +1,8 @@
-use crate::fallback::file_and_error_handler;
-use crate::state::AppState;
-use app::app::ssr::create_db_pool;
-use app::user::ssr::UserLockCache;
-use app::user::User;
-use app::{
-    app::*,
-    auth::ssr::*,
-};
+use std::env;
+use std::num::NonZeroUsize;
+use std::str::FromStr;
+use std::sync::Arc;
+
 use axum::{
     body::Body as AxumBody,
     extract::{Path, State},
@@ -21,11 +17,18 @@ use axum_session_sqlx::SessionPgPool;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
-use std::env;
-use std::num::NonZeroUsize;
-use std::str::FromStr;
-use std::sync::Arc;
-use app::post::ssr::update_post_scores;
+
+use utils::utils::ssr::{create_db_pool, AuthSession};
+use utils::user::ssr::UserLockCache;
+use utils::user::User;
+
+use app::{
+    app::*,
+    post::ssr::update_post_scores,
+};
+
+use crate::fallback::file_and_error_handler;
+use crate::state::AppState;
 
 mod fallback;
 mod state;

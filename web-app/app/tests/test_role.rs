@@ -1,8 +1,8 @@
-use app::errors::AppError;
-use app::role::ssr::{get_sphere_role_vec, get_user_sphere_role, set_user_admin_role, set_user_sphere_role};
-use app::role::{AdminRole, PermissionLevel};
+use utils::errors::AppError;
+use utils::role::ssr::{get_sphere_role_vec, get_user_sphere_role, set_user_admin_role, set_user_sphere_role};
+use utils::role::{AdminRole, PermissionLevel};
 use app::sphere;
-use app::user::User;
+use utils::user::User;
 
 use crate::common::{create_user, get_db_pool};
 

@@ -3,26 +3,32 @@ use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
+use utils::editor::{FormTextEditor, TextareaData};
+use utils::errors::AppError;
+use utils::icons::{HammerIcon, MagnifierIcon};
+use utils::role::{AuthorizedShow, PermissionLevel};
+use utils::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
+use utils::widget::{ModalDialog, ModalFormButtons};
+
 use crate::app::GlobalState;
 use crate::comment::Comment;
 use crate::content::{Content, ContentBody};
-use crate::editor::{FormTextEditor, TextareaData};
-use crate::errors::AppError;
-use crate::icons::{HammerIcon, MagnifierIcon};
 use crate::post::Post;
-use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::rule::get_rule_by_id;
 use crate::rule::Rule;
 use crate::sphere::SphereState;
-use crate::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
-use crate::widget::{ModalDialog, ModalFormButtons};
+
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    auth::ssr::{check_user, reload_user},
-    comment::ssr::{get_comment_by_id, get_comment_sphere},
-    post::ssr::get_post_by_id,
-    rule::ssr::load_rule_by_id
+use {
+    utils::{
+        auth::ssr::{check_user, reload_user},
+        utils::ssr::get_db_pool,
+    },
+    crate::{
+        comment::ssr::{get_comment_by_id, get_comment_sphere},
+        post::ssr::get_post_by_id,
+        rule::ssr::load_rule_by_id,
+    },
 };
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -34,13 +40,15 @@ pub struct ModerationInfo {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-    
+
+    use utils::errors::AppError;
+    use utils::role::{AdminRole, PermissionLevel};
+    use utils::user::{User, UserBan};
+
     use crate::comment::Comment;
-    use crate::errors::AppError;
     use crate::post::Post;
-    use crate::role::{AdminRole, PermissionLevel};
-    use crate::sphere_management::{ssr::is_user_sphere_moderator, UserBan};
-    use crate::user::User;
+    use crate::sphere_management::{ssr::is_user_sphere_moderator};
+
     
     pub async fn moderate_post(
         post_id: i64,

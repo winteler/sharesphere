@@ -5,16 +5,18 @@ use std::default::Default;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::auth::Login;
 use crate::errors::AppError;
+use crate::icons::{NsfwIcon, UserIcon};
 use crate::role::{AdminRole, PermissionLevel};
+
 #[cfg(feature = "ssr")]
 use crate::{
-    app::ssr::get_db_pool,
     auth::ssr::{check_user, reload_user},
+    utils::ssr::get_db_pool
 };
-use crate::icons::{NsfwIcon, UserIcon};
-use crate::profile::get_profile_path;
 
+pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_FETCH_LIMIT: i64 = 100;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -51,6 +53,28 @@ pub struct UserHeader {
 pub struct UserPostFilters {
     pub days_hide_spoiler: Option<i32>,
     pub show_nsfw: bool,
+}
+
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct UserBan {
+    pub ban_id: i64,
+    pub user_id: i64,
+    pub username: String,
+    pub sphere_id: Option<i64>,
+    pub sphere_name: Option<String>,
+    pub post_id: i64,
+    pub comment_id: Option<i64>,
+    pub infringed_rule_id: i64,
+    pub moderator_id: i64,
+    pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Copy, Clone)]
+pub struct UserState {
+    pub login_action: ServerAction<Login>,
+    pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
 }
 
 impl BanStatus {
@@ -163,18 +187,19 @@ impl Default for UserPostFilters {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use std::num::NonZeroUsize;
+    use std::sync::Arc;
+
+    use async_trait::async_trait;
     use axum_session_auth::Authentication;
     use lru::LruCache;
     use sqlx::PgPool;
-    use std::num::NonZeroUsize;
-    use std::sync::Arc;
     use tokio::sync::Mutex;
 
     use crate::errors::AppError;
     use crate::role::ssr::get_user_sphere_role;
     use crate::role::UserSphereRole;
-    use crate::sphere_management::UserBan;
-    use async_trait::async_trait;
+
     use super::*;
 
     #[derive(sqlx::FromRow, Clone, Debug, PartialEq)]
@@ -620,17 +645,10 @@ pub fn UserHeaderWidget<'a>(
     }.into_any()
 }
 
-/// Component to display a user header and redirect to his profile upon click
-#[component]
-pub fn UserHeaderLink<'a>(
-    user_header: &'a UserHeader,
-) -> impl IntoView {
-    let user_profile_path = get_profile_path(&user_header.username);
-    view! {
-        <a href=user_profile_path class="w-full h-fit p-2 rounded-sm hover:bg-base-300">
-            <UserHeaderWidget user_header/>
-        </a>
-    }.into_any()
+pub fn get_profile_path(
+    username: &str,
+) -> String {
+    format!("{USER_ROUTE_PREFIX}/{username}")
 }
 
 #[cfg(test)]

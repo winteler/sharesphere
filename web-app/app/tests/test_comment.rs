@@ -5,11 +5,11 @@ pub use crate::data_factory::*;
 use app::comment;
 use app::comment::ssr::{create_comment, delete_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree, update_comment};
 use app::comment::{CommentSortType, CommentWithChildren, COMMENT_BATCH_SIZE};
-use app::editor::get_styled_html_from_markdown;
-use app::errors::AppError;
+use utils::editor::get_styled_html_from_markdown;
+use utils::errors::AppError;
 use app::post::ssr::{get_post_by_id};
 use app::ranking::{SortType};
-use app::user::User;
+use utils::user::User;
 use crate::utils::{get_vote_from_comment_num, sort_comment_tree, COMMENT_SORT_TYPE_ARRAY};
 
 mod common;

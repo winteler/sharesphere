@@ -6,28 +6,34 @@ use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
+
+use utils::constants::{BEST_STR, DELETED_MESSAGE, RECENT_STR};
+use utils::editor::{FormMarkdownEditor, TextareaData};
+use utils::errors::AppError;
+use utils::error_template::ErrorTemplate;
+use utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
+use utils::role::IsPinnedCheckbox;
+use utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
+use utils::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, DeleteButton};
+
 use crate::app::GlobalState;
-use crate::constants::{BEST_STR, DELETED_MESSAGE, RECENT_STR};
 use crate::content::{CommentSortWidget, Content, ContentBody};
-use crate::editor::{FormMarkdownEditor, TextareaData};
-use crate::errors::AppError;
-use crate::error_template::ErrorTemplate;
-use crate::form::IsPinnedCheckbox;
-use crate::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use crate::moderation::{ModerateCommentButton, ModeratedBody, ModerationInfoButton};
 use crate::post::{get_post_path, Post};
 use crate::ranking::{ScoreIndicator, SortType, Vote, VotePanel};
 use crate::sphere::{SphereHeader, SphereState};
-use crate::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use crate::widget::{AuthorWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, LoginGuardedOpenModalButton, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, DeleteButton};
 
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    auth::{get_user, ssr::check_user},
-    editor::{ssr::get_html_and_markdown_bodies},
-    post::ssr::increment_post_comment_count,
-    ranking::{ssr::vote_on_content, VoteValue},
+use {
+    utils::{
+        auth::{get_user, ssr::check_user},
+        editor::{ssr::get_html_and_markdown_bodies},
+        utils::ssr::get_db_pool,
+    },
+    crate::{
+        post::ssr::increment_post_comment_count,
+        ranking::{ssr::vote_on_content, VoteValue},
+    },
 };
 
 pub const COMMENT_ID_QUERY_PARAM: &str = "comment_id";
@@ -126,13 +132,14 @@ impl fmt::Display for CommentSortType {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
-    use crate::errors::AppError;
+    use utils::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
+    use utils::errors::AppError;
+    use utils::role::PermissionLevel;
+    use utils::user::User;
+
     use crate::post::ssr::{get_post_sphere};
     use crate::ranking::VoteValue;
-    use crate::role::PermissionLevel;
     use crate::sphere::Sphere;
-    use crate::user::User;
 
     use super::*;
 
@@ -531,11 +538,12 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
+        use utils::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
         use crate::comment::ssr::CommentWithVote;
         use crate::comment::{Comment, CommentSortType};
         use crate::constants::{BEST_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN};
         use crate::ranking::VoteValue;
-        use crate::user::User;
+        use utils::user::User;
 
         #[test]
         fn test_comment_join_vote_into_comment_with_children() {
@@ -1423,8 +1431,8 @@ pub fn EditCommentForm(
 
 #[cfg(test)]
 mod tests {
+    use utils::constants::{BEST_STR, RECENT_STR};
     use crate::comment::CommentSortType;
-    use crate::constants::{BEST_STR, RECENT_STR};
 
     #[test]
     fn test_post_sort_type_display() {

@@ -1,10 +1,11 @@
-use crate::widget::RotatingArrow;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::on_click_outside;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
+
+use crate::widget::RotatingArrow;
 
 #[repr(i16)]
 #[derive(Clone, Copy, Debug, Display, EnumIter, Eq, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]

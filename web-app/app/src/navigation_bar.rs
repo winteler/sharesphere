@@ -1,27 +1,15 @@
 use leptos::prelude::*;
 use leptos_router::components::Form;
 
+use utils::auth::LoginGuardButton;
+use utils::icons::*;
+use utils::user::{get_profile_path, User};
+use utils::utils::{get_current_path, get_current_url};
+
 use crate::app::GlobalState;
-use crate::auth::LoginGuardButton;
-use crate::constants::SITE_ROOT;
-use crate::icons::*;
 use crate::post::{CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM};
-use crate::profile::get_profile_path;
 use crate::search::{SearchButton};
 use crate::sphere::*;
-use crate::user::User;
-
-pub fn get_current_url(url: RwSignal<String>) {
-    let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));
-    log::debug!("Current url: {url_str}");
-    url.update(|value| *value = url_str);
-}
-
-pub fn get_current_path(path: RwSignal<String>) {
-    let path_str = window().location().pathname().unwrap_or(String::from(SITE_ROOT));
-    log::debug!("Current path: {path_str}");
-    path.update(|value | *value = path_str);
-}
 
 /// # Extract the sphere name from the current path, if it exists
 ///

@@ -1,7 +1,5 @@
 use leptos::prelude::*;
 
-use crate::role::{AuthorizedShow, PermissionLevel};
-
 /// Component for a boolean checkbox in a form
 #[component]
 pub fn FormCheckbox(
@@ -77,19 +75,5 @@ pub fn LabeledSignalCheckbox(
                 />
             </label>
         </div>
-    }
-}
-
-#[component]
-pub fn IsPinnedCheckbox(
-    #[prop(into)]
-    sphere_name: Signal<String>,
-    #[prop(default = false)]
-    value: bool,
-) -> impl IntoView {
-    view! {
-        <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
-            <LabeledFormCheckbox name="is_pinned" label="Pinned" value/>
-        </AuthorizedShow>
     }
 }

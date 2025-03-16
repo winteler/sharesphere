@@ -7,27 +7,33 @@ use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 use server_fn::ServerFnError;
 
+use utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
+use utils::embed::EmbedType;
+use utils::errors::AppError;
+use utils::form::LabeledFormCheckbox;
+use utils::icons::{CrossIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
+use utils::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
+use utils::role::{AuthorizedShow, PermissionLevel};
+use utils::widget::{ModalDialog, ModalFormButtons, TagsWidget};
+
 use crate::content::ContentBody;
-use crate::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
-use crate::errors::AppError;
-use crate::form::LabeledFormCheckbox;
-use crate::icons::{CrossIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
 use crate::post::{add_sphere_info_to_post_vec, get_post_vec_by_satellite_id, CreatePost, PostForm, PostMiniatureList, PostSortType, PostWithSphereInfo};
 use crate::ranking::SortType;
-use crate::role::{AuthorizedShow, PermissionLevel};
 use crate::sphere::{get_sphere_with_user_info, SphereState, SphereToolbar, SPHERE_ROUTE_PREFIX};
 use crate::sphere_category::{get_sphere_category_header_map, get_sphere_category_vec};
-use crate::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
-use crate::widget::{ModalDialog, ModalFormButtons, TagsWidget};
 
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
-    auth::ssr::check_user,
-    editor::ssr::get_html_and_markdown_bodies,
-    satellite::ssr::get_active_satellite_vec_by_sphere_name,
+use {
+    utils::{
+        auth::ssr::check_user,
+        editor::ssr::get_html_and_markdown_bodies,
+        utils::ssr::get_db_pool,
+    },
+    crate::{
+        satellite::ssr::get_active_satellite_vec_by_sphere_name
+    },
 };
-use crate::embed::EmbedType;
+
 
 pub const SATELLITE_ROUTE_PREFIX: &str = "/satellites";
 pub const SATELLITE_ROUTE_PARAM_NAME: &str = "satellite_id";
@@ -59,12 +65,15 @@ pub struct SatelliteState {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::errors::AppError;
-    use crate::role::PermissionLevel;
+    use sqlx::PgPool;
+
+    use utils::errors::AppError;
+    use utils::role::PermissionLevel;
+    use utils::user::User;
+
     use crate::satellite::Satellite;
     use crate::sphere::Sphere;
-    use crate::user::User;
-    use sqlx::PgPool;
+
 
     pub async fn get_satellite_by_id(satellite_id: i64, db_pool: &PgPool) -> Result<Satellite, AppError> {
         let satellite = sqlx::query_as!(

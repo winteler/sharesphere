@@ -1,8 +1,8 @@
 use crate::common::{create_test_user, get_db_pool};
-use app::errors::AppError;
-use app::role::AdminRole;
-use app::user::ssr::{create_or_update_user, set_user_settings};
-use app::user::User;
+use utils::errors::AppError;
+use utils::role::AdminRole;
+use utils::user::ssr::{create_or_update_user, set_user_settings};
+use utils::user::User;
 
 mod common;
 

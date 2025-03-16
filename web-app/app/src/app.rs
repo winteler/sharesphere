@@ -3,30 +3,31 @@ use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 
-use crate::auth::*;
+use utils::auth::*;
+use utils::error_template::ErrorTemplate;
+use utils::errors::AppError;
+use utils::icons::*;
+use utils::unpack::{handle_additional_load, handle_initial_load, SuspenseUnpack};
+use utils::user::{SetUserSettings, User, UserState, USER_ROUTE_PREFIX};
+use utils::utils::get_current_path;
+
 use crate::comment::CommentSortType;
 use crate::content::PostSortWidget;
-use crate::error_template::ErrorTemplate;
-use crate::errors::AppError;
-use crate::icons::*;
 use crate::navigation_bar::*;
 use crate::post::*;
-use crate::profile::{UserProfile, USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
+use crate::profile::{UserProfile, USER_ROUTE_PARAM_NAME};
 use crate::ranking::SortType;
 use crate::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX};
 use crate::search::{Search, SphereSearch, SEARCH_ROUTE};
 use crate::sidebar::*;
 use crate::sphere::*;
 use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-use crate::unpack::{handle_additional_load, handle_initial_load, SuspenseUnpack};
-use crate::user::{SetUserSettings, User};
 
 
 pub const PUBLISH_ROUTE: &str = "/publish";
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {
-    pub login_action: ServerAction<Login>,
     pub logout_action: ServerAction<EndSession>,
     pub set_settings_action: ServerAction<SetUserSettings>,
     pub subscribe_action: ServerAction<Subscribe>,
@@ -40,13 +41,14 @@ pub struct GlobalState {
     pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
 }
 
-impl Default for GlobalState {
-    fn default() -> Self {
-        let logout_action = ServerAction::<EndSession>::new();
-        let create_sphere_action = ServerAction::<CreateSphere>::new();
-        let set_settings_action = ServerAction::<SetUserSettings>::new();
+impl GlobalState {
+    fn new(
+        user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
+        logout_action: ServerAction<EndSession>,
+        create_sphere_action: ServerAction<CreateSphere>,
+        set_settings_action: ServerAction<SetUserSettings>,
+    ) -> Self {
         Self {
-            login_action: ServerAction::<Login>::new(),
             logout_action,
             set_settings_action,
             subscribe_action: ServerAction::<Subscribe>::new(),
@@ -57,51 +59,8 @@ impl Default for GlobalState {
             sphere_reload_signal: RwSignal::new(0),
             post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
-            user: Resource::new(
-                move || {
-                    (
-                        logout_action.version().get(),
-                        create_sphere_action.version().get(),
-                        set_settings_action.version().get(),
-                    )
-                },
-                move |_| get_user(),
-            ),
+            user,
         }
-    }
-}
-
-#[cfg(feature = "ssr")]
-pub mod ssr {
-    use anyhow::Context;
-    use sqlx::{postgres::PgPoolOptions, PgPool};
-    use std::env;
-    use std::sync::Arc;
-
-    use super::*;
-    use crate::auth::ssr::AuthSession;
-    use crate::user::ssr::UserLockCache;
-
-    pub const DB_URL_ENV: &str = "DATABASE_URL";
-
-    pub fn get_session() -> Result<AuthSession, AppError> {
-        use_context::<AuthSession>().ok_or_else(|| AppError::new("Auth session missing."))
-    }
-
-    pub fn get_db_pool() -> Result<PgPool, AppError> {
-        use_context::<PgPool>().ok_or_else(|| AppError::new("DB pool missing."))
-    }
-
-    pub fn get_user_lock_cache() -> Result<Arc<UserLockCache>, AppError> {
-        use_context::<Arc<UserLockCache>>().ok_or_else(|| AppError::new("User lock cache missing."))
-    }
-
-    pub async fn create_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
-        PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&env::var(DB_URL_ENV)?)
-            .await
-            .with_context(|| "Failed to connect to DB")
     }
 }
 
@@ -147,7 +106,30 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     // Provide global context for app
-    let state = GlobalState::default();
+    let logout_action = ServerAction::<EndSession>::new();
+    let create_sphere_action = ServerAction::<CreateSphere>::new();
+    let set_settings_action = ServerAction::<SetUserSettings>::new();
+    let user = Resource::new(
+        move || {
+            (
+                logout_action.version().get(),
+                create_sphere_action.version().get(),
+                set_settings_action.version().get(),
+            )
+        },
+        move |_| get_user(),
+    );
+    let user_state = UserState {
+        login_action: ServerAction::<Login>::new(),
+        user
+    };
+    let state = GlobalState::new(
+        user,
+        logout_action,
+        create_sphere_action,
+        set_settings_action,
+    );
+    provide_context(user_state);
     provide_context(state);
 
     view! {
@@ -239,7 +221,7 @@ fn LoginGuard() -> impl IntoView {
 /// Renders a page requesting a login
 #[component]
 pub fn LoginWindow() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
+    let user_state = expect_context::<UserState>();
     let current_path = RwSignal::new(String::default());
 
     view! {
@@ -250,7 +232,7 @@ pub fn LoginWindow() -> impl IntoView {
                     <h1 class="text-5xl font-bold">"Not authenticated"</h1>
                     <p class="pt-4">"Sorry, we had some trouble identifying you."</p>
                     <p class="pb-4">"Please login to access this page."</p>
-                    <ActionForm action=state.login_action>
+                    <ActionForm action=user_state.login_action>
                         <input type="text" name="redirect_url" class="hidden" value=current_path/>
                         <button type="submit" class="btn btn-primary btn-wide rounded-sm" on:click=move |_| get_current_path(current_path)>
                             "Login"

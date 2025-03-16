@@ -1,4 +1,4 @@
-use app::app::ssr::get_db_pool;
+use utils::utils::ssr::get_db_pool;
 use app::post::ssr::update_post_scores;
 
 #[tokio::main]

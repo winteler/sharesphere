@@ -4,20 +4,20 @@ use leptos::prelude::*;
 use leptos_use::use_textarea_autosize;
 use serde::{Deserialize, Serialize};
 
-use crate::colors::{Color, ColorIndicator, ColorSelect};
-use crate::editor::{FormTextEditor, TextareaData};
-use crate::errors::AppError;
-use crate::form::FormCheckbox;
-use crate::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
-use crate::role::{AuthorizedShow, PermissionLevel};
-use crate::sphere::SphereState;
-use crate::unpack::TransitionUnpack;
+use utils::colors::{Color, ColorIndicator, ColorSelect};
+use utils::editor::{FormTextEditor, TextareaData};
+use utils::errors::AppError;
+use utils::form::FormCheckbox;
+use utils::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
+use utils::role::{AuthorizedShow, PermissionLevel};
+use utils::unpack::TransitionUnpack;
 
+use crate::sphere::SphereState;
 
 #[cfg(feature = "ssr")]
-use crate::{
-    app::ssr::get_db_pool,
+use utils::{
     auth::ssr::check_user,
+    utils::ssr::get_db_pool,
 };
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -53,11 +53,13 @@ impl From<SphereCategory> for SphereCategoryHeader {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::errors::AppError;
-    use crate::role::PermissionLevel;
-    use crate::sphere_category::{Color, SphereCategory};
-    use crate::user::User;
     use sqlx::PgPool;
+
+    use utils::errors::AppError;
+    use utils::role::PermissionLevel;
+    use utils::user::User;
+
+    use crate::sphere_category::{Color, SphereCategory};
 
     pub const CATEGORY_NOT_DELETED_STR: &str = "Category was not deleted, it either doesn't exist or is used.";
     
@@ -373,8 +375,10 @@ pub fn get_sphere_category_header_map(
 #[cfg(test)]
 mod tests {
     use server_fn::ServerFnError;
-    use crate::colors::Color;
-    use crate::errors::AppError;
+
+    use utils::colors::Color;
+    use utils::errors::AppError;
+
     use crate::sphere_category::{get_sphere_category_header_map, SphereCategory};
 
     #[test]

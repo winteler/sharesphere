@@ -403,7 +403,7 @@ pub fn StarIcon(
     #[prop(default = "h-7 w-7")] class: &'static str,
     show_color: RwSignal<bool>,
 ) -> impl IntoView {
-    let svg_path = move || match show_color() {
+    let svg_path = move || match show_color.get() {
         true => "/svg/stars.svg",
         false => "/svg/stars_disabled.svg",
     };
@@ -424,7 +424,7 @@ pub fn SubscribedIcon(
     #[prop(default = "h-7 w-7")] class: &'static str,
     show_color: RwSignal<bool>,
 ) -> impl IntoView {
-    let svg_path = move || match show_color() {
+    let svg_path = move || match show_color.get() {
         true => "/svg/planet.svg",
         false => "/svg/planet_disabled.svg",
     };

@@ -13,18 +13,6 @@ name = "scoring"
 [dependencies]
 app = { path = "../app", default-features = false, features = ["ssr"] }
 
-anyhow.workspace = true
-axum.workspace = true
-axum_session.workspace = true
-axum_session_auth.workspace = true
-axum_session_sqlx.workspace = true
-leptos.workspace = true
 log.workspace = true
 simple_logger.workspace = true
-sqlx.workspace = true
 tokio.workspace = true
-tower.workspace = true
-tower-http.workspace = true
-wasm-bindgen.workspace = true
-
-tracing-subscriber = "0.3.18"

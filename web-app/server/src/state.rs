@@ -1,4 +1,4 @@
-use app::user::ssr::UserLockCache;
+use utils::user::ssr::UserLockCache;
 use axum::extract::FromRef;
 use leptos::prelude::LeptosOptions;
 use leptos_axum::AxumRouteListing;

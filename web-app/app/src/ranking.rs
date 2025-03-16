@@ -1,15 +1,22 @@
-#[cfg(feature = "ssr")]
-use crate::app::ssr::get_db_pool;
-#[cfg(feature = "ssr")]
-use crate::auth::ssr::check_user;
-use crate::auth::{LoginGuardedButton};
-use crate::comment::CommentSortType;
-use crate::errors::AppError;
-use crate::icons::{MinusIcon, PlusIcon, ScoreIcon};
-use crate::post::PostSortType;
+use std::fmt;
+
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::fmt;
+
+use utils::auth::{LoginGuardedButton};
+use utils::errors::AppError;
+use utils::icons::{MinusIcon, PlusIcon, ScoreIcon};
+
+use crate::comment::CommentSortType;
+use crate::post::PostSortType;
+
+#[cfg(feature = "ssr")]
+use {
+    utils::{
+        utils::ssr::get_db_pool,
+        auth::ssr::check_user,
+    },
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -61,9 +68,10 @@ impl fmt::Display for SortType {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use crate::errors::AppError;
+    use utils::errors::AppError;
+    use utils::user::User;
+
     use crate::ranking::{SortType, Vote, VoteValue};
-    use crate::user::User;
 
     impl SortType {
         pub fn to_order_by_code(self) -> &'static str {
@@ -223,8 +231,9 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
+        use utils::constants::{BEST_ORDER_BY_COLUMN, BEST_STR, HOT_ORDER_BY_COLUMN, HOT_STR, RECENT_ORDER_BY_COLUMN, RECENT_STR, TRENDING_ORDER_BY_COLUMN, TRENDING_STR};
+
         use crate::comment::CommentSortType;
-        use crate::constants::{BEST_ORDER_BY_COLUMN, BEST_STR, HOT_ORDER_BY_COLUMN, HOT_STR, RECENT_ORDER_BY_COLUMN, RECENT_STR, TRENDING_ORDER_BY_COLUMN, TRENDING_STR};
         use crate::post::PostSortType;
 
         use super::*;

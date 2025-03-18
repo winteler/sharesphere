@@ -28,12 +28,44 @@ pub struct Rule {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use
-    sqlx::PgPool;
+    use sqlx::PgPool;
     use sharesphere_auth::role::{AdminRole, PermissionLevel};
     use sharesphere_auth::user::User;
     use sharesphere_utils::errors::AppError;
     use crate::rule::Rule;
+
+    pub async fn load_rule_by_id(
+        rule_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Rule, AppError> {
+        let rule = sqlx::query_as!(
+            Rule,
+            "SELECT * FROM rules
+            WHERE rule_id = $1",
+            rule_id
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(rule)
+    }
+
+    pub async fn get_sphere_rule_vec(
+        sphere_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<Vec<Rule>, AppError> {
+        let sphere_rule_vec = sqlx::query_as!(
+            Rule,
+            "SELECT * FROM rules
+            WHERE COALESCE(sphere_name, $1) = $1 AND delete_timestamp IS NULL
+            ORDER BY sphere_name NULLS FIRST, priority, create_timestamp",
+            sphere_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(sphere_rule_vec)
+    }
 
     pub async fn add_rule(
         sphere_name: Option<&str>,
@@ -183,6 +215,24 @@ pub mod ssr {
 
         Ok(())
     }
+}
+
+#[server]
+pub async fn get_rule_by_id(
+    rule_id: i64
+) -> Result<Rule, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let rule = ssr::load_rule_by_id(rule_id, &db_pool).await?;
+    Ok(rule)
+}
+
+#[server]
+pub async fn get_sphere_rule_vec(
+    sphere_name: String
+) -> Result<Vec<Rule>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let rule_vec = ssr::get_sphere_rule_vec(&sphere_name, &db_pool).await?;
+    Ok(rule_vec)
 }
 
 #[server]

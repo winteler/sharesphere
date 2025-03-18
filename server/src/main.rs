@@ -22,10 +22,9 @@ use sharesphere_auth::session::ssr::{create_db_pool, AuthSession};
 use sharesphere_auth::user::ssr::UserLockCache;
 use sharesphere_auth::user::User;
 
-use sharesphere_app::{
-    app::*,
-    post::ssr::update_post_scores,
-};
+use sharesphere_core::post::ssr::update_post_scores;
+
+use sharesphere_app::app::*;
 
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;

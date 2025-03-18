@@ -1,0 +1,624 @@
+use leptos::either::Either;
+use leptos::html;
+use leptos::prelude::*;
+use leptos_router::components::Form;
+use leptos_router::hooks::use_query_map;
+use leptos_use::use_textarea_autosize;
+
+use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
+use sharesphere_utils::error_template::ErrorTemplate;
+use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
+use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
+use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator};
+
+use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
+use sharesphere_auth::role::IsPinnedCheckbox;
+
+use sharesphere_core::comment::{get_comment_tree_by_id, get_post_comment_tree, Comment, CommentBody, CommentWithChildren, CreateComment, DeleteComment, EditComment, COMMENT_ID_QUERY_PARAM};
+use sharesphere_core::moderation::Content;
+use sharesphere_core::ranking::{CommentSortWidget, Vote};
+use sharesphere_core::state::{GlobalState, SphereState};
+use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
+use crate::ranking::{VotePanel};
+
+const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
+const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-orange-500",
+    "bg-red-500",
+    "bg-violet-500",
+];
+
+/// Comment section component
+#[component]
+pub fn CommentSection(
+    #[prop(into)]
+    post_id: Signal<i64>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    is_loading: RwSignal<bool>,
+    additional_load_count: RwSignal<i32>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let query_comment_id = move || match use_query_map().read().get(COMMENT_ID_QUERY_PARAM) {
+        Some(comment_id_string) => comment_id_string.parse::<i64>().ok(),
+        None => None,
+    };
+
+    view! {
+        <CommentSortWidget sort_signal=state.comment_sort_type/>
+        { move || {
+            match query_comment_id() {
+                Some(comment_id) => view! { <CommentTree comment_id comment_vec is_loading/> }.into_any(),
+                None => view! { <CommentTreeVec post_id comment_vec is_loading additional_load_count/> }.into_any(),
+            }
+        }}
+    }.into_any()
+}
+
+/// Component displaying a vector of comment trees
+#[component]
+pub fn CommentTreeVec(
+    #[prop(into)]
+    post_id: Signal<i64>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    is_loading: RwSignal<bool>,
+    additional_load_count: RwSignal<i32>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+
+    let load_error = RwSignal::new(None);
+
+    let _initial_comments_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let initial_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get(), 0).await;
+            handle_initial_load(initial_load, comment_vec, load_error, None);
+            is_loading.set(false);
+        }
+    );
+
+    let _additional_comments_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count.get() > 0 {
+                is_loading.set(true);
+                let num_post = comment_vec.read_untracked().len();
+                let additional_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, comment_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
+
+    view! {
+        <div class="flex flex-col h-fit">
+            <For
+                // a function that returns the items we're iterating over; a signal is fine
+                each= move || comment_vec.get().into_iter().enumerate()
+                // a unique key for each item as a reference
+                key=|(_index, comment)| comment.comment.comment_id
+                // renders each item to a view
+                children=move |(index, comment_with_children)| {
+                    view! {
+                        <CommentBox
+                            comment_with_children
+                            depth=0
+                            ranking=index
+                        />
+                    }.into_any()
+                }
+            />
+        </div>
+        <Show when=move || load_error.read().is_some()>
+        {
+            let mut outside_errors = Errors::default();
+            outside_errors.insert_with_default_key(load_error.get().unwrap());
+            view! {
+                <div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div>
+            }.into_any()
+        }
+        </Show>
+        <Show when=is_loading>
+            <LoadingIcon/>
+        </Show>
+    }.into_any()
+}
+
+/// Component displaying a comment's tree
+#[component]
+pub fn CommentTree(
+    #[prop(into)]
+    comment_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    is_loading: RwSignal<bool>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+
+    let load_error = RwSignal::new(None);
+
+    // we set a signal with a local resource instead of using the resource directly to reuse the components from the ordinary comment tree
+    let _comment_resource = LocalResource::new(
+        move || async move {
+            is_loading.set(true);
+            let comment_tree = get_comment_tree_by_id(comment_id, state.comment_sort_type.get()).await;
+            handle_initial_load(comment_tree.map(|comment| vec![comment]), comment_vec, load_error, None);
+            is_loading.set(false);
+        }
+    );
+
+    view! {
+        <Form method="GET" action="">
+            <button class="p-2 mt-2 rounded-sm hover:bg-base-200 font-semibold">
+                "Single comment tree view. Back to post."
+            </button>
+        </Form>
+        { move || comment_vec.read().first().map(|comment| view! {
+                <div class="flex flex-col h-fit">
+                    <CommentBox
+                        comment_with_children=comment.clone()
+                        depth=0
+                        ranking=0
+                    />
+                </div>
+            })
+        }
+        <Show when=is_loading>
+            <LoadingIcon/>
+        </Show>
+    }.into_any()
+}
+
+/// Comment box component
+#[component]
+pub fn CommentBox(
+    comment_with_children: CommentWithChildren,
+    depth: usize,
+    ranking: usize,
+) -> impl IntoView {
+    let is_query_comment = move || match use_query_map().read().get(COMMENT_ID_QUERY_PARAM) {
+        Some(query_comment_id) => query_comment_id.parse::<i64>().is_ok_and(|query_comment_id| query_comment_id == comment_with_children.comment.comment_id),
+        None => false,
+    };
+    let comment = RwSignal::new(comment_with_children.comment);
+    let child_comments = RwSignal::new(comment_with_children.child_comments);
+    let maximize = RwSignal::new(true);
+    let is_pinned = Signal::derive(move || comment.read().is_pinned);
+    let sidebar_css = move || {
+        if *maximize.read() {
+            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-start items-center gap-1"
+        } else {
+            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-center items-center"
+        }
+    };
+    let color_bar_css = format!(
+        "{} rounded-full h-full w-1 ",
+        DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
+    );
+
+    view! {
+        <div class="flex gap-1 py-1">
+            <div
+                class=sidebar_css
+                on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
+            >
+                <MinimizeMaximizeWidget is_maximized=maximize/>
+                <Show
+                    when=maximize
+                >
+                    <div class=color_bar_css.clone()/>
+                </Show>
+            </div>
+            <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1 p-1 rounded-sm" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
+                    <Show when=maximize>
+                        <CommentBody comment/>
+                    </Show>
+                    <IsPinnedWidget is_pinned/>
+                    <CommentWidgetBar
+                        comment=comment
+                        vote=comment_with_children.vote
+                        child_comments
+                    />
+                </div>
+                <div
+                    class="flex flex-col"
+                    class:hidden=move || !*maximize.read()
+                >
+                    <For
+                        each= move || child_comments.get().into_iter().enumerate()
+                        key=|(_index, comment)| comment.comment.comment_id
+                        children=move |(index, comment_with_children)| {
+                            view! {
+                                <CommentBox
+                                    comment_with_children
+                                    depth=depth+1
+                                    ranking=ranking+index
+                                />
+                            }.into_any()
+                        }
+                    />
+                </div>
+            </div>
+        </div>
+    }.into_any()
+}
+
+/// Component to encapsulate the widgets associated with each comment
+#[component]
+pub fn CommentWidgetBar(
+    comment: RwSignal<Comment>,
+    vote: Option<Vote>,
+    child_comments: RwSignal<Vec<CommentWithChildren>>,
+) -> impl IntoView {
+    let vote = vote;
+    let (comment_id, post_id, score, author_id, author) =
+        comment.with_untracked(|comment| {
+            (
+                comment.comment_id,
+                comment.post_id,
+                comment.score,
+                comment.creator_id,
+                comment.creator_name.clone(),
+            )
+        });
+    let timestamp = Signal::derive(move || comment.read().create_timestamp);
+    let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
+    let moderator = Signal::derive(move || comment.read().moderator_name.clone());
+    let content = Signal::derive(move || Content::Comment(comment.get()));
+    let is_active = Signal::derive(move || comment.read().is_active());
+    let is_moderator_comment = comment.read_untracked().is_creator_moderator;
+    view! {
+        <div class="flex gap-1 items-center">
+            { move || match is_active.get() {
+                true => Either::Left(view! {
+                    <VotePanel
+                        post_id
+                        comment_id=Some(comment_id)
+                        score
+                        vote=vote.clone()
+                    />
+                }),
+                false => Either::Right(view! {
+                    <ScoreIndicator score/>
+                }),
+            }}
+            <CommentButton
+                post_id
+                comment_vec=child_comments
+                parent_comment_id=Some(comment_id)
+            />
+            {
+                move || is_active.get().then_some(view! {
+                    <EditCommentButton
+                        comment_id
+                        author_id
+                        comment
+                    />
+                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
+                    <ModerateCommentButton
+                        comment_id
+                        comment
+                    />
+                })
+            }
+            <ModerationInfoButton content/>
+            <ModeratorWidget moderator/>
+            <TimeSinceWidget timestamp/>
+            <TimeSinceEditWidget edit_timestamp/>
+            { move || is_active.get().then_some(view!{
+                    <DotMenu>
+                        <DeleteCommentButton comment_id author_id comment/>
+                    </DotMenu>
+                })
+            }
+        </div>
+    }.into_any()
+}
+
+/// Component to open the comment form
+#[component]
+pub fn CommentButton(
+    post_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+) -> impl IntoView {
+    let show_dialog = RwSignal::new(false);
+    let comment_button_class = Signal::derive(move || match show_dialog.get() {
+        true => "p-2 rounded-full bg-primary hover:bg-base-200 active:scale-95 transition duration-250",
+        false => "p-2 rounded-full hover:bg-base-200 active:scale-95 transition duration-250",
+    });
+
+    view! {
+        <div>
+            <LoginGuardedOpenModalButton
+                show_dialog
+                button_class=comment_button_class
+            >
+                <AddCommentIcon/>
+            </LoginGuardedOpenModalButton>
+            <CommentDialog
+                post_id
+                parent_comment_id
+                comment_vec
+                show_dialog
+            />
+        </div>
+    }.into_any()
+}
+
+/// Component to open the comment form and indicate comment count
+#[component]
+pub fn CommentButtonWithCount(
+    post_id: i64,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    count: i32,
+    #[prop(default = None)]
+    parent_comment_id: Option<i64>,
+) -> impl IntoView {
+    let show_dialog = RwSignal::new(false);
+    let comment_button_class = Signal::derive(move || match show_dialog.get() {
+        true => "p-1.5 rounded-full bg-primary hover:bg-base-200 active:scale-95 transition duration-250",
+        false => "p-1.5 rounded-full hover:bg-base-200 active:scale-95 transition duration-250",
+    });
+
+    view! {
+        <LoginGuardedOpenModalButton
+            show_dialog
+            button_class=comment_button_class
+        >
+            <div class="w-fit flex gap-1.5 items-center text-sm px-1">
+                <AddCommentIcon/>
+                {count}
+            </div>
+        </LoginGuardedOpenModalButton>
+        <CommentDialog
+            post_id
+            parent_comment_id
+            comment_vec
+            show_dialog
+        />
+    }.into_any()
+}
+
+/// Dialog to publish a comment
+#[component]
+pub fn CommentDialog(
+    post_id: i64,
+    parent_comment_id: Option<i64>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    show_dialog: RwSignal<bool>,
+) -> impl IntoView {
+    view! {
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <CommentForm
+                post_id
+                parent_comment_id
+                comment_vec
+                show_form=show_dialog
+            />
+        </ModalDialog>
+    }
+}
+
+/// Form to publish a comment
+#[component]
+pub fn CommentForm(
+    post_id: i64,
+    parent_comment_id: Option<i64>,
+    comment_vec: RwSignal<Vec<CommentWithChildren>>,
+    show_form: RwSignal<bool>,
+) -> impl IntoView {
+    let sphere_name = expect_context::<SphereState>().sphere_name;
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let comment_autosize = use_textarea_autosize(textarea_ref);
+    let comment_data = TextareaData {
+        content: comment_autosize.content,
+        set_content: comment_autosize.set_content,
+        textarea_ref,
+    };
+
+    let is_comment_empty = Signal::derive(move || comment_data.content.read().is_empty());
+
+    let create_comment_action = ServerAction::<CreateComment>::new();
+
+    Effect::new(move |_| {
+        if let Some(Ok(comment)) = create_comment_action.value().get() {
+            comment_vec.update(|comment_vec| comment_vec.insert(0, comment));
+            show_form.set(false);
+        }
+    });
+
+    view! {
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Share a comment"</div>
+            <ActionForm action=create_comment_action>
+                <div class="flex flex-col gap-3 w-full">
+                    <input
+                        type="text"
+                        name="post_id"
+                        class="hidden"
+                        value=post_id
+                    />
+                    <input
+                        type="text"
+                        name="parent_comment_id"
+                        class="hidden"
+                        value=parent_comment_id
+                    />
+                    <FormMarkdownEditor
+                        name="comment"
+                        is_markdown_name="is_markdown"
+                        placeholder="Your comment..."
+                        data=comment_data
+                    />
+                    <IsPinnedCheckbox sphere_name=sphere_name/>
+                    <ModalFormButtons
+                        disable_publish=is_comment_empty
+                        show_form
+                    />
+                </div>
+            </ActionForm>
+            <ActionError action=create_comment_action.into()/>
+        </div>
+    }
+}
+
+/// Component to open the edit comment form
+#[component]
+pub fn EditCommentButton(
+    comment_id: i64,
+    author_id: i64,
+    comment: RwSignal<Comment>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let show_dialog = RwSignal::new(false);
+    let show_button = move || match &(*state.user.read()) {
+        Some(Ok(Some(user))) => user.user_id == author_id,
+        _ => false,
+    };
+    let comment_button_class = move || match show_dialog.get() {
+        true => "btn btn-circle btn-sm btn-primary",
+        false => "btn btn-circle btn-sm btn-ghost",
+    };
+
+    view! {
+        <Suspense>
+            <Show when=show_button>
+                <div>
+                    <button
+                        class=comment_button_class
+                        aria-expanded=move || show_dialog.get().to_string()
+                        aria-haspopup="dialog"
+                        on:click=move |_| show_dialog.update(|show: &mut bool| *show = !*show)
+                    >
+                        <EditIcon/>
+                    </button>
+                    <EditCommentDialog
+                        comment_id
+                        comment
+                        show_dialog
+                    />
+                </div>
+            </Show>
+        </Suspense>
+    }
+}
+
+/// Component to delete a comment
+#[component]
+pub fn DeleteCommentButton(
+    comment_id: i64,
+    author_id: i64,
+    comment: RwSignal<Comment>,
+) -> impl IntoView {
+    let delete_comment_action = ServerAction::<DeleteComment>::new();
+
+    Effect::new(move |_| {
+        if let Some(Ok(_)) = delete_comment_action.value().get() {
+            comment.update(|comment| {
+                comment.delete_timestamp = Some(chrono::Utc::now());
+            });
+        }
+    });
+
+    view! {
+        <DeleteButton
+            title="Delete Comment"
+            id=comment_id
+            id_name="comment_id"
+            author_id
+            delete_action=delete_comment_action
+        />
+    }
+}
+
+/// Dialog to edit a comment
+#[component]
+pub fn EditCommentDialog(
+    comment_id: i64,
+    comment: RwSignal<Comment>,
+    show_dialog: RwSignal<bool>,
+) -> impl IntoView {
+    view! {
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <EditCommentForm
+                comment_id
+                comment
+                show_form=show_dialog
+            />
+        </ModalDialog>
+    }
+}
+
+/// Form to edit a comment
+#[component]
+pub fn EditCommentForm(
+    comment_id: i64,
+    comment: RwSignal<Comment>,
+    show_form: RwSignal<bool>,
+) -> impl IntoView {
+    let sphere_name = expect_context::<SphereState>().sphere_name;
+    let (current_body, is_markdown) =
+        comment.with_untracked(|comment| match &comment.markdown_body {
+            Some(body) => (body.clone(), true),
+            None => (comment.body.clone(), false),
+        });
+    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let comment_autosize = use_textarea_autosize(textarea_ref);
+    let comment_data = TextareaData {
+        content: comment_autosize.content,
+        set_content: comment_autosize.set_content,
+        textarea_ref,
+    };
+    comment_data.set_content.set(current_body);
+    let is_comment_empty = Signal::derive(
+        move || comment_data.content.read().is_empty()
+    );
+    let edit_comment_action = ServerAction::<EditComment>::new();
+
+    let edit_comment_result = edit_comment_action.value();
+
+    Effect::new(move |_| {
+        if let Some(Ok(edited_comment)) = edit_comment_result.get() {
+            comment.set(edited_comment);
+            show_form.set(false);
+        }
+    });
+
+    view! {
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
+            <div class="text-center font-bold text-2xl">"Edit your comment"</div>
+            <ActionForm action=edit_comment_action>
+                <div class="flex flex-col gap-3 w-full">
+                    <input
+                        type="text"
+                        name="comment_id"
+                        class="hidden"
+                        value=comment_id
+                    />
+                    <FormMarkdownEditor
+                        name="comment"
+                        is_markdown_name="is_markdown"
+                        placeholder="Your comment..."
+                        data=comment_data
+                        is_markdown
+                    />
+                    <IsPinnedCheckbox sphere_name value=comment.read_untracked().is_pinned/>
+                    <ModalFormButtons
+                        disable_publish=is_comment_empty
+                        show_form
+                    />
+                </div>
+            </ActionForm>
+            <ActionError action=edit_comment_action.into()/>
+        </div>
+    }
+}

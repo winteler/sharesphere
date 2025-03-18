@@ -8,6 +8,8 @@ pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
 pub const SPHERE_ROUTE_PREFIX: &str = "/spheres";
 pub const SPHERE_ROUTE_PARAM_NAME: &str = "sphere_name";
+pub const CREATE_SPHERE_SUFFIX: &str = "/sphere";
+pub const CREATE_SPHERE_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_SPHERE_SUFFIX);
 pub const SATELLITE_ROUTE_PREFIX: &str = "/satellites";
 pub const SATELLITE_ROUTE_PARAM_NAME: &str = "satellite_id";
 pub const CREATE_POST_SUFFIX: &str = "/post";
@@ -15,6 +17,8 @@ pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX)
 pub const CREATE_POST_SPHERE_QUERY_PARAM: &str = "sphere";
 pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
+pub const SEARCH_ROUTE: &str = "/search";
+pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
 
 pub fn get_current_url(url: RwSignal<String>) {
     let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));

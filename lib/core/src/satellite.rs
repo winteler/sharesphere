@@ -9,7 +9,8 @@ use {
         auth::ssr::check_user,
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::editor::ssr::get_html_and_markdown_bodies
+    sharesphere_utils::editor::ssr::get_html_and_markdown_bodies,
+    crate::satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -37,6 +38,49 @@ pub mod ssr {
     use sharesphere_utils::errors::AppError;
     use crate::satellite::Satellite;
     use crate::sphere::Sphere;
+
+    pub async fn get_satellite_by_id(satellite_id: i64, db_pool: &PgPool) -> Result<Satellite, AppError> {
+        let satellite = sqlx::query_as!(
+            Satellite,
+            "SELECT * FROM satellites
+            WHERE satellite_id = $1",
+            satellite_id
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(satellite)
+    }
+
+    pub async fn get_active_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
+        let satellite_vec = sqlx::query_as!(
+            Satellite,
+            "SELECT * FROM satellites
+            WHERE
+                sphere_name = $1 AND
+                disable_timestamp IS NULL
+            ORDER BY satellite_name",
+            sphere_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(satellite_vec)
+    }
+
+    pub async fn get_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
+        let satellite_vec = sqlx::query_as!(
+            Satellite,
+            "SELECT * FROM satellites
+            WHERE sphere_name = $1
+            ORDER BY satellite_name",
+            sphere_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(satellite_vec)
+    }
 
     pub async fn get_satellite_sphere(satellite_id: i64, db_pool: &PgPool) -> Result<Sphere, AppError> {
         let sphere = sqlx::query_as::<_, Sphere>(
@@ -152,6 +196,28 @@ pub mod ssr {
 
         Ok(satellite)
     }
+}
+
+#[server]
+pub async fn get_satellite_by_id(
+    satellite_id: i64,
+) -> Result<Satellite, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let satellite = ssr::get_satellite_by_id(satellite_id, &db_pool).await?;
+    Ok(satellite)
+}
+
+#[server]
+pub async fn get_satellite_vec_by_sphere_name(
+    sphere_name: String,
+    only_active: bool,
+) -> Result<Vec<Satellite>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let satellite_vec = match only_active {
+        true => get_active_satellite_vec_by_sphere_name(&sphere_name, &db_pool).await?,
+        false => ssr::get_satellite_vec_by_sphere_name(&sphere_name, &db_pool).await?,
+    };
+    Ok(satellite_vec)
 }
 
 #[server]

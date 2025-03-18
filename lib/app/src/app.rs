@@ -3,66 +3,26 @@ use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 
-
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, SuspenseUnpack};
-use sharesphere_utils::routes::{get_current_path, USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX};
-
+use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX};
 use sharesphere_auth::auth::*;
+use sharesphere_auth::auth_widget::LoginWindow;
 use sharesphere_auth::user::{SetUserSettings, User, UserState};
-
-
-use crate::comment::CommentSortType;
-use crate::content::PostSortWidget;
-use crate::navigation_bar::*;
-use crate::post::*;
-use crate::profile::{UserProfile};
-use crate::ranking::SortType;
-use crate::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
-use crate::search::{Search, SphereSearch, SEARCH_ROUTE};
-use crate::sidebar::*;
-use crate::sphere::*;
-use crate::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-
-#[derive(Copy, Clone)]
-pub struct GlobalState {
-    pub logout_action: ServerAction<EndSession>,
-    pub set_settings_action: ServerAction<SetUserSettings>,
-    pub subscribe_action: ServerAction<Subscribe>,
-    pub unsubscribe_action: ServerAction<Unsubscribe>,
-    pub edit_post_action: ServerAction<EditPost>,
-    pub delete_post_action: ServerAction<DeletePost>,
-    pub create_sphere_action: ServerAction<CreateSphere>,
-    pub sphere_reload_signal: RwSignal<usize>,
-    pub post_sort_type: RwSignal<SortType>,
-    pub comment_sort_type: RwSignal<SortType>,
-    pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
-}
-
-impl GlobalState {
-    fn new(
-        user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
-        logout_action: ServerAction<EndSession>,
-        create_sphere_action: ServerAction<CreateSphere>,
-        set_settings_action: ServerAction<SetUserSettings>,
-    ) -> Self {
-        Self {
-            logout_action,
-            set_settings_action,
-            subscribe_action: ServerAction::<Subscribe>::new(),
-            unsubscribe_action: ServerAction::<Unsubscribe>::new(),
-            edit_post_action: ServerAction::<EditPost>::new(),
-            delete_post_action: ServerAction::<DeletePost>::new(),
-            create_sphere_action,
-            sphere_reload_signal: RwSignal::new(0),
-            post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
-            comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
-            user,
-        }
-    }
-}
+use sharesphere_components::navigation_bar::NavigationBar;
+use sharesphere_components::profile::UserProfile;
+use sharesphere_components::search::{Search, SphereSearch};
+use sharesphere_content::post::{CreatePost, Post};
+use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostMiniatureList, PostWithSphereInfo};
+use sharesphere_core::ranking::PostSortWidget;
+use sharesphere_core::sidebar::{HomeSidebar, LeftSidebar};
+use sharesphere_core::sphere::CreateSphere;
+use sharesphere_core::state::GlobalState;
+use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
+use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
+use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -215,32 +175,6 @@ fn LoginGuard() -> impl IntoView {
             }
         }
         </SuspenseUnpack>
-    }
-}
-
-/// Renders a page requesting a login
-#[component]
-pub fn LoginWindow() -> impl IntoView {
-    let user_state = expect_context::<UserState>();
-    let current_path = RwSignal::new(String::default());
-
-    view! {
-        <div class="hero">
-            <div class="hero-content flex text-center">
-                <AuthErrorIcon class="h-44 w-44"/>
-                <div class="max-w-md">
-                    <h1 class="text-5xl font-bold">"Not authenticated"</h1>
-                    <p class="pt-4">"Sorry, we had some trouble identifying you."</p>
-                    <p class="pb-4">"Please login to access this page."</p>
-                    <ActionForm action=user_state.login_action>
-                        <input type="text" name="redirect_url" class="hidden" value=current_path/>
-                        <button type="submit" class="btn btn-primary btn-wide rounded-sm" on:click=move |_| get_current_path(current_path)>
-                            "Login"
-                        </button>
-                    </ActionForm>
-                </div>
-            </div>
-        </div>
     }
 }
 

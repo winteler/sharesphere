@@ -1,4 +1,4 @@
-use leptos::server;
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use server_fn::ServerFnError;
 
@@ -12,6 +12,7 @@ use {
 
 use sharesphere_utils::colors::Color;
 use sharesphere_utils::errors::AppError;
+use sharesphere_utils::unpack::TransitionUnpack;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -28,6 +29,22 @@ pub struct SphereCategory {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+pub struct SphereCategoryHeader {
+    pub category_name: String,
+    pub category_color: Color,
+}
+
+impl From<SphereCategory> for SphereCategoryHeader {
+    fn from(sphere_category: SphereCategory) -> Self {
+        SphereCategoryHeader {
+            category_name: sphere_category.category_name,
+            category_color: sphere_category.category_color,
+        }
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
@@ -38,6 +55,23 @@ pub mod ssr {
     use crate::sphere_category::SphereCategory;
 
     pub const CATEGORY_NOT_DELETED_STR: &str = "Category was not deleted, it either doesn't exist or is used.";
+
+    pub async fn get_sphere_category_vec(
+        sphere_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<Vec<SphereCategory>, AppError> {
+        let sphere_category_vec = sqlx::query_as!(
+            SphereCategory,
+            "SELECT * FROM sphere_categories
+            WHERE sphere_name = $1
+            ORDER BY is_active DESC, category_name",
+            sphere_name
+        )
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(sphere_category_vec)
+    }
 
     pub async fn set_sphere_category(
         sphere_name: &str,
@@ -51,25 +85,25 @@ pub mod ssr {
         user.check_permissions(sphere_name, PermissionLevel::Manage)?;
 
         let category = sqlx::query_as!(
-                SphereCategory,
-                "INSERT INTO sphere_categories
-                (sphere_id, sphere_name, category_name, category_color, description, is_active, creator_id)
-                VALUES (
-                    (SELECT sphere_id FROM spheres WHERE sphere_name = $1),
-                    $1, $2, $3, $4, $5, $6
-                ) ON CONFLICT (sphere_id, category_name) DO UPDATE
-                    SET description = EXCLUDED.description,
-                        category_color = EXCLUDED.category_color,
-                        is_active = EXCLUDED.is_active,
-                        timestamp = CURRENT_TIMESTAMP
-                RETURNING *",
-                sphere_name,
-                category_name,
-                category_color as i32,
-                description,
-                is_active,
-                user.user_id,
-            )
+            SphereCategory,
+            "INSERT INTO sphere_categories
+            (sphere_id, sphere_name, category_name, category_color, description, is_active, creator_id)
+            VALUES (
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $1),
+                $1, $2, $3, $4, $5, $6
+            ) ON CONFLICT (sphere_id, category_name) DO UPDATE
+                SET description = EXCLUDED.description,
+                    category_color = EXCLUDED.category_color,
+                    is_active = EXCLUDED.is_active,
+                    timestamp = CURRENT_TIMESTAMP
+            RETURNING *",
+            sphere_name,
+            category_name,
+            category_color as i32,
+            description,
+            is_active,
+            user.user_id,
+        )
             .fetch_one(db_pool)
             .await?;
 
@@ -104,6 +138,15 @@ pub mod ssr {
 }
 
 #[server]
+pub async fn get_sphere_category_vec(
+    sphere_name: String,
+) -> Result<Vec<SphereCategory>, ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let sphere_category_vec = ssr::get_sphere_category_vec(&sphere_name, &db_pool).await?;
+    Ok(sphere_category_vec)
+}
+
+#[server]
 pub async fn set_sphere_category(
     sphere_name: String,
     category_name: String,
@@ -126,4 +169,84 @@ pub async fn delete_sphere_category(
     let user = check_user().await?;
     ssr::delete_sphere_category(&sphere_name, &category_name, &user, &db_pool).await?;
     Ok(())
+}
+
+/// Component to display a badge with sphere category's name
+#[component]
+pub fn SphereCategoryBadge(
+    category_header: SphereCategoryHeader,
+) -> impl IntoView {
+    let class = format!(
+        "flex items-center {} px-2 pt-1 pb-1.5 rounded-full text-sm leading-none",
+        category_header.category_color.to_bg_class()
+    );
+    view! {
+        <div class=class>{category_header.category_name}</div>
+    }
+}
+
+/// Dialog to select a sphere category
+#[component]
+pub fn SphereCategoryDropdown(
+    category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    #[prop(default = None)]
+    init_category_id: Option<i64>,
+    #[prop(default = None)]
+    category_id_signal: Option<RwSignal<Option<i64>>>,
+    #[prop(default = true)]
+    show_inactive: bool,
+    #[prop(default = "")]
+    name: &'static str,
+) -> impl IntoView {
+    let is_selected = RwSignal::new(init_category_id.is_some());
+    let select_class = move || match is_selected.get() {
+        true => "select w-fit",
+        false => "select w-fit text-gray-400",
+    };
+
+    view! {
+        <TransitionUnpack resource=category_vec_resource let:sphere_category_vec>
+        {
+            if sphere_category_vec.is_empty() || (!show_inactive && !sphere_category_vec.iter().any(|sphere_category| sphere_category.is_active)) {
+                log::debug!("No category to display.");
+                return ().into_any()
+            }
+            view! {
+                <select
+                    name=name
+                    class=select_class
+                    on:click=move |ev| {
+                        let selected = event_target_value(&ev);
+                        is_selected.set(!selected.is_empty());
+                        if let Some(category_id_signal) = category_id_signal {
+                            match selected.parse::<i64>() {
+                                Ok(category_id) => category_id_signal.set(Some(category_id)),
+                                _ => category_id_signal.set(None),
+                            };
+                        };
+                    }
+                >
+                    <option selected=init_category_id.is_none() value="" class="text-gray-400">"Category"</option>
+                    {
+                        sphere_category_vec.iter().map(|sphere_category| {
+                            let is_selected = init_category_id.is_some_and(|category_id| category_id == sphere_category.category_id);
+                            match show_inactive || sphere_category.is_active {
+                                true => Some(view! {
+                                    <option
+                                        class="text-white"
+                                        selected=is_selected
+                                        value=sphere_category.category_id
+                                    >
+                                        {sphere_category.category_name.clone()}
+                                    </option>
+                                }),
+                                false => None,
+                            }
+                        }).collect_view()
+                    }
+                </select>
+            }.into_any()
+        }
+        </TransitionUnpack>
+    }
 }

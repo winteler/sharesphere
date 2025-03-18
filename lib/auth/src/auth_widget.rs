@@ -10,12 +10,38 @@ use web_sys::FormData;
 
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledSignalCheckbox;
-use sharesphere_utils::icons::{AuthorIcon, DeleteIcon, LoadingIcon, ModeratorAuthorIcon, SelfAuthorIcon};
-use sharesphere_utils::routes::get_profile_path;
+use sharesphere_utils::icons::{AuthErrorIcon, AuthorIcon, DeleteIcon, LoadingIcon, ModeratorAuthorIcon, SelfAuthorIcon};
+use sharesphere_utils::routes::{get_current_path, get_profile_path};
 use sharesphere_utils::unpack::ActionError;
 use sharesphere_utils::widget::{ModalDialog, ModalFormButtons};
 use crate::auth::LoginGuardedButton;
 use crate::user::UserState;
+
+/// Renders a page requesting a login
+#[component]
+pub fn LoginWindow() -> impl IntoView {
+    let user_state = expect_context::<UserState>();
+    let current_path = RwSignal::new(String::default());
+
+    view! {
+        <div class="hero">
+            <div class="hero-content flex text-center">
+                <AuthErrorIcon class="h-44 w-44"/>
+                <div class="max-w-md">
+                    <h1 class="text-5xl font-bold">"Not authenticated"</h1>
+                    <p class="pt-4">"Sorry, we had some trouble identifying you."</p>
+                    <p class="pb-4">"Please login to access this page."</p>
+                    <ActionForm action=user_state.login_action>
+                        <input type="text" name="redirect_url" class="hidden" value=current_path/>
+                        <button type="submit" class="btn btn-primary btn-wide rounded-sm" on:click=move |_| get_current_path(current_path)>
+                            "Login"
+                        </button>
+                    </ActionForm>
+                </div>
+            </div>
+        </div>
+    }
+}
 
 /// Component to display the author of a post or comment
 #[component]

@@ -11,7 +11,7 @@ use crate::constants::{
 };
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError};
-use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, ScoreIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -305,7 +305,39 @@ pub fn TimeSinceEditWidget(
     }
 }
 
-/// Component to display a minimize or maximize icon with transitions
+/// Displays the body of a content given as input with correct styling for markdown
+#[component]
+pub fn ContentBody(
+    body: String,
+    is_markdown: bool,
+) -> impl IntoView {
+    let class = match is_markdown {
+        true => "",
+        false => "whitespace-pre-wrap",
+    };
+
+    view! {
+        <div
+            class=class
+            inner_html=body
+        />
+    }.into_any()
+}
+
+/// Component to display a post's score
+#[component]
+pub fn ScoreIndicator(score: i32) -> impl IntoView {
+    view! {
+        <div class="w-fit flex rounded-btn px-1 gap-1 items-center">
+            <ScoreIcon/>
+            <div class="text-sm">
+                {score}
+            </div>
+        </div>
+    }.into_any()
+}
+
+/// Component to display a "minimize" or "maximize" icon with transitions
 #[component]
 pub fn MinimizeMaximizeWidget(
     is_maximized: RwSignal<bool>

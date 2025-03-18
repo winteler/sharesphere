@@ -2,7 +2,13 @@
 pub mod comment;
 pub mod moderation;
 pub mod post;
+pub mod profile;
+pub mod ranking;
 pub mod rule;
 pub mod satellite;
+pub mod search;
+pub mod sidebar;
 pub mod sphere;
 pub mod sphere_category;
+pub mod sphere_management;
+pub mod state;

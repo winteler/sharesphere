@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 sharesphere_utils = { path = "../lib/utils", default-features = false, features = ["ssr"] }
 sharesphere_auth = { path = "../lib/auth", default-features = false, features = ["ssr"] }
+sharesphere_core = { path = "../lib/core", default-features = false, features = ["ssr"] }
 sharesphere_app = { path = "../lib/app", default-features = false, features = ["ssr"] }
 leptos = { workspace = true, features = [ "ssr" ]}
 leptos_axum.workspace = true

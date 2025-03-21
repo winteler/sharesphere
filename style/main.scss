@@ -2836,10 +2836,10 @@
       }
     }
   }
-  .hover\:bg-base-300 {
+  .hover\:bg-base-content\/20 {
     &:hover {
       @media (hover: hover) {
-        background-color: var(--color-base-300);
+        background-color: color-mix(in oklab, var(--color-base-content) 20%, transparent);
       }
     }
   }

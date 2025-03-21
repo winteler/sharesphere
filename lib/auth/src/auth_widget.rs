@@ -57,7 +57,7 @@ pub fn AuthorWidget(
 
     view! {
         <button
-            class="flex p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-300"
+            class="flex p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-200"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(author_profile_path.as_str(), NavigateOptions::default());
@@ -138,7 +138,7 @@ where
     };
     let edit_button_class = move || match show_form.get() {
         true => "btn btn-circle btn-sm btn-error",
-        false => "btn btn-circle btn-sm btn-ghost",
+        false => "btn btn-circle btn-sm hover:bg-base-content/20",
     };
     view! {
         <Show when=show_button>

@@ -12,10 +12,10 @@ sharesphere_core = { path = "../core", default-features = false}
 sharesphere_sphere = { path = "../sphere", default-features = false}
 sharesphere_content = { path = "../content", default-features = false}
 sharesphere_components = { path = "../components", default-features = false}
+
 leptos.workspace = true
 leptos_meta.workspace = true
 leptos_router.workspace = true
-leptos_axum = { workspace = true, optional = true }
 
 [features]
 default = []
@@ -38,5 +38,4 @@ ssr = [
     "sharesphere_sphere/ssr",
     "sharesphere_content/ssr",
     "sharesphere_components/ssr",
-    "dep:leptos_axum",
 ]

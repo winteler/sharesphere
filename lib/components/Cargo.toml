@@ -9,15 +9,12 @@ edition = "2021"
 sharesphere_utils = { path = "../utils", default-features = false}
 sharesphere_auth = { path = "../auth", default-features = false}
 sharesphere_core = { path = "../core", default-features = false}
+
 leptos.workspace = true
 leptos_meta.workspace = true
 leptos_router.workspace = true
-leptos_axum = { workspace = true, optional = true }
 
-leptos-use.workspace = true
 serde.workspace = true
-
-
 strum.workspace = true
 strum_macros.workspace = true
 
@@ -33,10 +30,8 @@ ssr = [
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
-    "leptos-use/ssr",
     "sharesphere_utils/ssr",
     "sharesphere_auth/ssr",
     "sharesphere_core/ssr",
-    "dep:leptos_axum",
 ]
 

@@ -3613,7 +3613,6 @@ name = "sharesphere_app"
 version = "0.1.0"
 dependencies = [
  "leptos",
- "leptos_axum",
  "leptos_meta",
  "leptos_router",
  "sharesphere_auth",
@@ -3635,7 +3634,6 @@ dependencies = [
  "axum_session_sqlx",
  "chrono",
  "leptos",
- "leptos-use",
  "leptos_axum",
  "leptos_meta",
  "leptos_router",
@@ -3645,7 +3643,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "server_fn",
  "sharesphere_utils",
  "sqlx",
  "strum",
@@ -3659,8 +3656,6 @@ name = "sharesphere_components"
 version = "0.1.0"
 dependencies = [
  "leptos",
- "leptos-use",
- "leptos_axum",
  "leptos_meta",
  "leptos_router",
  "serde",
@@ -3678,7 +3673,6 @@ dependencies = [
  "chrono",
  "leptos",
  "leptos-use",
- "leptos_axum",
  "leptos_meta",
  "leptos_router",
  "log",
@@ -3724,7 +3718,6 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "log",
- "server_fn",
  "sharesphere_auth",
  "sharesphere_core",
  "sharesphere_utils",
@@ -3758,7 +3751,6 @@ dependencies = [
  "send_wrapper",
  "serde",
  "serde_json",
- "server_fn",
  "sqlx",
  "strum",
  "strum_macros",

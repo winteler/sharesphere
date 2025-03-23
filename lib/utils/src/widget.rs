@@ -85,6 +85,7 @@ where
     view! {
         <div class="w-full grid grid-flow-col justify-stretch divide-x divide-base-content/20 border border-1 border-base-content/20">
         {
+            // TODO pass is_selected as parameter, if none selected take default
             query_enum_iter.into_iter().map(|enum_value| view! {
                 <QueryTab query_param query_value=enum_value.into()/>
             }.into_any()).collect_view()

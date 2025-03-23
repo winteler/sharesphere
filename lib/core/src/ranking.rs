@@ -364,16 +364,17 @@ pub fn SortWidgetOption(
 ) -> impl IntoView {
     let is_selected = move || sort_signal.read() == sort_type;
     let class = move || {
-        let mut class =
-            String::from("btn btn-ghost join-item hover:border hover:border-1 hover:border-white ");
-        if is_selected() {
-            class.push_str("border border-1 border-white ");
+        match is_selected() {
+            true => "btn btn-ghost join-item border border-1 border-white",
+            false => "btn btn-ghost join-item hover:border hover:border-1 hover:border-white",
         }
-        class
     };
 
     view! {
         <div class="tooltip" data-tip=datatip>
+            <div class="tooltip-content">
+                {datatip}
+            </div>
             <button
                 class=class
                 on:click=move |_| {

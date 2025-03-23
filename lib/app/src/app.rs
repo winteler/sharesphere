@@ -40,7 +40,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                             format!(
                                 "default-src 'self';
                                 script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';
-                                img-src 'self' https:;
+                                img-src 'self' https: data:;
                                 media-src 'self' https:;
                                 frame-src 'self' https:;
                                 style-src 'self' 'nonce-{nonce}';

@@ -1,4 +1,5 @@
-use leptos::either::Either;
+use std::marker::PhantomData;
+use std::str::FromStr;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
@@ -58,9 +59,9 @@ pub fn ModalDialog(
 fn QueryTab(
     query_param: &'static str,
     query_value: &'static str,
+    is_selected: Signal<bool>,
 ) -> impl IntoView {
-    let query = use_query_map();
-    let tab_class = move || match query.read().get(query_param).unwrap_or_default() == query_value {
+    let tab_class = move || match is_selected.get() {
         true => "w-full text-center p-1 bg-base-content/20 hover:bg-base-content/50",
         false => "w-full text-center p-1 hover:bg-base-content/50",
     };
@@ -80,14 +81,19 @@ fn QueryTabs<I, T>(
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T>,
-    T: std::str::FromStr + Into<&'static str> + IntoEnumIterator
+    T: Copy + Default + FromStr + Into<&'static str> + IntoEnumIterator + PartialEq + Send + Sync + 'static
 {
+    let query = use_query_map();
+    let selected_enum = Signal::derive(move || T::from_str(&query.read().get(query_param).unwrap_or_default()).unwrap_or_default());
     view! {
         <div class="w-full grid grid-flow-col justify-stretch divide-x divide-base-content/20 border border-1 border-base-content/20">
         {
-            // TODO pass is_selected as parameter, if none selected take default
-            query_enum_iter.into_iter().map(|enum_value| view! {
-                <QueryTab query_param query_value=enum_value.into()/>
+            // TODO try styling first and last element differently
+            query_enum_iter.into_iter().map(|enum_value| {
+                let is_selected = Signal::derive(move || selected_enum.get() == enum_value);
+                view! {
+                    <QueryTab query_param query_value=enum_value.into() is_selected/>
+                }
             }.into_any()).collect_view()
         }
         </div>
@@ -96,24 +102,22 @@ where
 
 /// Component to display the view of the enum selected by the query parameter `query_param`
 #[component]
-fn QueryShow<I, T>(
+fn QueryShow<T>(
     query_param: &'static str,
-    query_enum_iter: I,
+    _enum_type: PhantomData<T>,
 ) -> impl IntoView
 where
-    I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
-    T: std::str::FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + ToView
+    T: Copy + Default + FromStr + Default + IntoEnumIterator + PartialEq + ToView
 {
     let query = use_query_map();
     view! {
-        {
-            move || match &query_enum_iter.clone().into_iter().find(
-                |query_value| Into::<&str>::into(*query_value) == query.read().get(query_param).unwrap_or_default()
-            ) {
-                Some(query_value) => Either::Left(query_value.to_view()),
-                None => Either::Right(T::default().to_view()),
-            }
-        }
+        { move || {
+            T::from_str(
+                &query.read().get(query_param).unwrap_or_default()
+            )
+                .unwrap_or_default()
+                .to_view()
+        }}
     }.into_any()
 }
 
@@ -126,12 +130,13 @@ pub fn EnumQueryTabs<I, T>(
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
-    T: std::str::FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + ToView
+    T: Copy + Default + FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + PartialEq + ToView + Send + Sync + 'static
 {
+    let _enum_type = PhantomData::<T>;
     view! {
         <div class="flex flex-col gap-4 pt-2 px-2 w-full h-full">
             <QueryTabs query_param query_enum_iter=query_enum_iter.clone()/>
-            <QueryShow query_param query_enum_iter/>
+            <QueryShow query_param _enum_type/>
         </div>
     }
 }
@@ -145,7 +150,7 @@ pub fn EnumDropdown<I, T>(
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T>,
-    T: std::str::FromStr + Into<&'static str> + IntoEnumIterator
+    T: FromStr + Into<&'static str> + IntoEnumIterator
 {
     view! {
         <select

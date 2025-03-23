@@ -16,24 +16,18 @@ use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons, Tags
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
-use sharesphere_core::satellite::Satellite;
 use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_satellite_id, CreatePost, PostForm, PostMiniatureList, PostWithSphereInfo};
 use sharesphere_core::ranking::{PostSortType, SortType};
-
-use crate::sphere::{get_sphere_with_user_info, SphereToolbar};
-use crate::sphere_category::{get_sphere_category_header_map};
-
-#[cfg(feature = "ssr")]
-use {
-    sharesphere_auth::{
-        session::ssr::get_db_pool,
-    },
-    crate::{
-        satellite::ssr::get_active_satellite_vec_by_sphere_name
-    },
-};
+use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphere_name, Satellite};
+use sharesphere_core::sphere::get_sphere_with_user_info;
 use sharesphere_core::sphere_category::get_sphere_category_vec;
 use sharesphere_core::state::SphereState;
+
+use crate::sphere::{SphereToolbar};
+use crate::sphere_category::{get_sphere_category_header_map};
+
+
+
 
 #[derive(Copy, Clone)]
 pub struct SatelliteState {
@@ -41,80 +35,6 @@ pub struct SatelliteState {
     pub sort_type: RwSignal<SortType>,
     pub category_id_filter: RwSignal<Option<i64>>,
     pub satellite_resource: Resource<Result<Satellite, ServerFnError<AppError>>>,
-}
-
-#[cfg(feature = "ssr")]
-pub mod ssr {
-    use sqlx::PgPool;
-
-    use sharesphere_utils::errors::AppError;
-
-    use sharesphere_core::satellite::Satellite;
-
-    pub async fn get_satellite_by_id(satellite_id: i64, db_pool: &PgPool) -> Result<Satellite, AppError> {
-        let satellite = sqlx::query_as!(
-            Satellite,
-            "SELECT * FROM satellites
-            WHERE satellite_id = $1",
-            satellite_id
-        )
-            .fetch_one(db_pool)
-            .await?;
-
-        Ok(satellite)
-    }
-    
-    pub async fn get_active_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
-        let satellite_vec = sqlx::query_as!(
-            Satellite,
-            "SELECT * FROM satellites
-            WHERE
-                sphere_name = $1 AND
-                disable_timestamp IS NULL
-            ORDER BY satellite_name",
-            sphere_name
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        Ok(satellite_vec)
-    }
-
-    pub async fn get_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
-        let satellite_vec = sqlx::query_as!(
-            Satellite,
-            "SELECT * FROM satellites
-            WHERE sphere_name = $1
-            ORDER BY satellite_name",
-            sphere_name
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        Ok(satellite_vec)
-    }
-}
-
-#[server]
-pub async fn get_satellite_by_id(
-    satellite_id: i64,
-) -> Result<Satellite, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let satellite = ssr::get_satellite_by_id(satellite_id, &db_pool).await?;
-    Ok(satellite)
-}
-
-#[server]
-pub async fn get_satellite_vec_by_sphere_name(
-    sphere_name: String,
-    only_active: bool,
-) -> Result<Vec<Satellite>, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let satellite_vec = match only_active {
-        true => get_active_satellite_vec_by_sphere_name(&sphere_name, &db_pool).await?,
-        false => ssr::get_satellite_vec_by_sphere_name(&sphere_name, &db_pool).await?,
-    };
-    Ok(satellite_vec)
 }
 
 /// Component to display a satellite banner

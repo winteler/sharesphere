@@ -6,10 +6,18 @@
 2. `rustup toolchain install nightly --allow-downgrade` - make sure you have Rust nightly
 3. `rustup target add wasm32-unknown-unknown` - add the ability to compile Rust to WebAssembly
 4. `cargo install cargo-leptos` - install `cargo-laptos` binary
-5. `npm install -g sass` - install `dart-sass` (should be optional in future)
+5. `npm install` - install `TailwindCSS` and `DaisyUI`
 6. Add a `.env` file in the repo's root folder with your Postgres connection, e.g. `DATABASE_URL=postgres://<user>:<password>@<postgres_url>/<schema_name>`
-7. 
-
+7. `cargo install sqlx-cli --no-default-features --features rustls,postgres` - Install sqlx-cli
+8. `sqlx migrate run` - perform migrations on the DB
+9. Set the following environment variables:
+   * OIDC_ISSUER_ADDR - url of the keycloak instance
+   * AUTH_CLIENT_ID - ID of the client in Keycloak
+   * AUTH_CLIENT_SECRET - Secret of the client in Keycloak
+   * DATABASE_URL - Database url
+   * SESSION_KEY - Key to persist session data
+   * SESSION_DB_KEY - DB key to persist session data
+   * TEST_DATABASE_URL - Test DB url, used in integration tests
 
 ## Running sharesphere
 

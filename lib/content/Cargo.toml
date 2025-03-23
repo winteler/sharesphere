@@ -16,23 +16,8 @@ leptos_axum = { workspace = true, optional = true }
 
 leptos-use.workspace = true
 
-anyhow = { workspace = true, optional = true }
-axum_session = { workspace = true, optional = true }
-axum_session_auth = { workspace = true, optional = true }
-axum_session_sqlx = { workspace = true, optional = true }
 chrono.workspace = true
 log.workspace = true
-lru = { workspace = true, optional = true }
-sqlx = { workspace = true, optional = true }
-tokio = { workspace = true, optional = true }
-
-async-trait = { version = "*", optional = true }
-
-infer = { version = "0.19.0", optional = true }
-markdown = { version = "1.0.0-alpha.20", optional = true }
-quick-xml = { version = "0.37.1", optional = true }
-openidconnect = { version = "4.0.0", optional = true }
-reqwest = { version = "0.12.12", features = ["json"], optional = true }
 
 [features]
 default = []
@@ -50,19 +35,5 @@ ssr = [
     "sharesphere_utils/ssr",
     "sharesphere_auth/ssr",
     "sharesphere_core/ssr",
-    "dep:anyhow",
-    "dep:async-trait",
-    "dep:axum_session",
-    "dep:axum_session_auth",
-    "dep:axum_session_sqlx",
-    "dep:infer",
-    "dep:markdown",
-    "dep:quick-xml",
     "dep:leptos_axum",
-    "dep:lru",
-    "dep:openidconnect",
-    "dep:reqwest",
-    "dep:sqlx",
-    "dep:tokio",
 ]
-

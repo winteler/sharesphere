@@ -23,22 +23,17 @@ axum_session_sqlx = { workspace = true, optional = true }
 chrono.workspace = true
 log.workspace = true
 lru = { workspace = true, optional = true }
+openidconnect = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
 serde.workspace = true
 sqlx = { workspace = true, optional = true }
+serde_json.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
 tokio = { workspace = true, optional = true }
 web-sys.workspace = true
 
 async-trait = { version = "*", optional = true }
-
-const_format = "0.2.33"
-infer = { version = "0.19.0", optional = true }
-markdown = { version = "1.0.0-alpha.20", optional = true }
-quick-xml = { version = "0.37.1", optional = true }
-openidconnect = { version = "4.0.0", optional = true }
-reqwest = { version = "0.12.12", features = ["json"], optional = true }
-serde_json = "1.0.128"
-strum = "0.27.1"
-strum_macros = "0.27.1"
 
 [features]
 default = []
@@ -57,9 +52,6 @@ ssr = [
     "dep:axum_session",
     "dep:axum_session_auth",
     "dep:axum_session_sqlx",
-    "dep:infer",
-    "dep:markdown",
-    "dep:quick-xml",
     "dep:leptos_axum",
     "dep:lru",
     "dep:openidconnect",

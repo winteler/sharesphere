@@ -23,7 +23,7 @@ leptos = { version = "0.7.7", features = ["nightly", "nonce"] }
 leptos_meta = { version = "0.7.7" }
 leptos_router = { version = "0.7.7", features = ["nightly"] }
 leptos_axum = { version = "0.7.7" }
-server_fn = { version = "0.7.7", features = [ "multipart"] }
+server_fn = { version = "0.7.7", features = ["multipart"] }
 
 leptos-use = { version = "0.15.1", features = ["use_textarea_autosize"] }
 
@@ -38,9 +38,14 @@ chrono = { version = "0.4.38", features = [ "alloc", "serde" ] }
 http = "1"
 log = "0.4.20"
 lru = "0.13.0"
+openidconnect = "4.0.0"
+reqwest = { version = "0.12.12", features = ["json"] }
 serde = { version = "*", features = ["derive"] }
+serde_json = "1.0.128"
 simple_logger = "5.0.0"
 sqlx = { version = "0.8.2", features = [ "chrono", "postgres", "runtime-tokio", "tls-rustls" ] }
+strum = "0.27.1"
+strum_macros = "0.27.1"
 thiserror = "2.0.3"
 tokio = { version = "1.33.0", features = ["rt-multi-thread"] }
 tower = { version = "0.5.0", features = ["util"] }

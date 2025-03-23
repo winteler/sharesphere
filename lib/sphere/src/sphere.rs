@@ -4,10 +4,8 @@ use leptos::prelude::*;
 use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::{use_params_map};
 use leptos_use::{signal_debounced, use_textarea_autosize};
-use serde::{Deserialize, Serialize};
 
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
-use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::icons::{InternalErrorIcon, LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
 use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
@@ -22,181 +20,14 @@ use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere
 use sharesphere_core::rule::{get_sphere_rule_vec, AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, UpdateSatellite};
 use sharesphere_core::sidebar::SphereSidebar;
-use sharesphere_core::sphere::{is_valid_sphere_name, Sphere, SphereHeader, Subscribe, Unsubscribe, UpdateSphereDescription};
+use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
+use sharesphere_core::sphere::{get_sphere_by_name, get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategoryDropdown};
 use sharesphere_core::state::{GlobalState, SphereState};
 
-use crate::satellite::{get_satellite_vec_by_sphere_name, ActiveSatelliteList, SatelliteState};
+use crate::satellite::{ActiveSatelliteList, SatelliteState};
 use crate::sphere_category::{get_sphere_category_header_map};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
-
-#[cfg(feature = "ssr")]
-use {
-    sharesphere_auth::{
-        auth::{get_user},
-        session::ssr::get_db_pool,
-    },
-};
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct SphereSubscription {
-    pub subscription_id: i64,
-    pub user_id: i64,
-    pub sphere_id: String,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-}
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct SphereWithUserInfo {
-    #[cfg_attr(feature = "ssr", sqlx(flatten))]
-    pub sphere: Sphere,
-    pub subscription_id: Option<i64>,
-}
-
-#[cfg(feature = "ssr")]
-pub mod ssr {
-    use sqlx::PgPool;
-
-    use sharesphere_utils::errors::AppError;
-
-    use crate::sphere::{Sphere, SphereHeader, SphereWithUserInfo};
-
-    pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
-        let sphere = sqlx::query_as::<_, Sphere>(
-            "SELECT * FROM spheres WHERE sphere_name = $1"
-        )
-            .bind(sphere_name)
-            .fetch_one(db_pool)
-            .await?;
-
-        Ok(sphere)
-    }
-
-    pub async fn get_sphere_with_user_info(
-        sphere_name: &str,
-        user_id: Option<i64>,
-        db_pool: &PgPool,
-    ) -> Result<SphereWithUserInfo, AppError> {
-        let sphere = sqlx::query_as::<_, SphereWithUserInfo>(
-            "SELECT s.*, sub.subscription_id
-            FROM spheres s
-            LEFT JOIN sphere_subscriptions sub ON
-                sub.sphere_id = s.sphere_id AND
-                sub.user_id = $1
-            WHERE s.sphere_name = $2",
-        )
-            .bind(user_id)
-            .bind(sphere_name)
-            .fetch_one(db_pool)
-            .await?;
-
-        Ok(sphere)
-    }
-
-    pub async fn is_sphere_available(sphere_name: &str, db_pool: &PgPool) -> Result<bool, AppError> {
-        let sphere_exist = sqlx::query!(
-            "SELECT sphere_id FROM spheres WHERE normalized_sphere_name = normalize_sphere_name($1)",
-            sphere_name,
-        )
-        .fetch_one(db_pool)
-        .await;
-
-        match sphere_exist {
-            Ok(_) => Ok(false),
-            Err(sqlx::error::Error::RowNotFound) => Ok(true),
-            Err(e) => Err(e.into()),
-        }
-    }
-
-    pub async fn get_popular_sphere_headers(
-        limit: i64,
-        db_pool: &PgPool,
-    ) -> Result<Vec<SphereHeader>, AppError> {
-        let sphere_header_vec = sqlx::query_as!(
-            SphereHeader,
-            "SELECT sphere_name, icon_url, is_nsfw
-            FROM spheres
-            where NOT is_nsfw
-            ORDER BY num_members DESC, sphere_name LIMIT $1",
-            limit
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        Ok(sphere_header_vec)
-    }
-
-    pub async fn get_subscribed_sphere_headers(
-        user_id: i64,
-        db_pool: &PgPool,
-    ) -> Result<Vec<SphereHeader>, AppError> {
-        let sphere_header_vec = sqlx::query_as!(
-            SphereHeader,
-            "SELECT s.sphere_name, s.icon_url, s.is_nsfw 
-            FROM spheres s
-            JOIN sphere_subscriptions sub ON
-                s.sphere_id = sub.sphere_id AND
-                sub.user_id = $1
-            ORDER BY sphere_name",
-            user_id,
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        Ok(sphere_header_vec)
-    }
-}
-
-#[server]
-pub async fn is_sphere_available(sphere_name: String) -> Result<bool, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-    let sphere_existence = ssr::is_sphere_available(&sphere_name, &db_pool).await?;
-    Ok(sphere_existence)
-}
-
-#[server]
-pub async fn get_sphere_by_name(sphere_name: String) -> Result<Sphere, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let sphere = ssr::get_sphere_by_name(&sphere_name, &db_pool).await?;
-    Ok(sphere)
-}
-
-#[server]
-pub async fn get_subscribed_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    match get_user().await {
-        Ok(Some(user)) => {
-            let sphere_name_vec = ssr::get_subscribed_sphere_headers(user.user_id, &db_pool).await?;
-            Ok(sphere_name_vec)
-        }
-        _ => Ok(Vec::new()),
-    }
-}
-
-#[server]
-pub async fn get_popular_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let sphere_header_vec = ssr::get_popular_sphere_headers(20, &db_pool).await?;
-    Ok(sphere_header_vec)
-}
-
-#[server]
-pub async fn get_sphere_with_user_info(
-    sphere_name: String,
-) -> Result<SphereWithUserInfo, ServerFnError<AppError>> {
-    let db_pool = get_db_pool()?;
-    let user_id = match get_user().await {
-        Ok(Some(user)) => Some(user.user_id),
-        _ => None,
-    };
-
-    let sphere_content = ssr::get_sphere_with_user_info(sphere_name.as_str(), user_id, &db_pool).await?;
-
-    Ok(sphere_content)
-}
 
 /// Component to display a sphere's banner
 #[component]

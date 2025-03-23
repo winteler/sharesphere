@@ -14,6 +14,7 @@ end2end/playwright-report/
 playwright/.cache/
 
 .env
+env.sh
 
 # ignore icon and banner files
 public/banners/

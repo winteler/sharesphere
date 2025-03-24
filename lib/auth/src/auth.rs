@@ -24,7 +24,7 @@ use {
         constants::SITE_ROOT,
     },
     crate::{
-        auth::ssr::get_auth_http_client,
+        auth::ssr::{get_auth_http_client, get_provider_metadata},
         session::ssr::get_session,
     }
 };
@@ -48,11 +48,10 @@ pub struct OAuthParams {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use openidconnect::core::{CoreTokenResponse, CoreProviderMetadata};
-    use openidconnect::{AdditionalProviderMetadata, EndpointMaybeSet, EndpointNotSet, EndpointSet, NonceVerifier, RequestTokenError};
+    use openidconnect::core::{CoreTokenResponse, CoreAuthDisplay, CoreClientAuthMethod, CoreClaimName, CoreGrantType, CoreJweContentEncryptionAlgorithm, CoreJweKeyManagementAlgorithm, CoreJsonWebKey, CoreResponseMode, CoreSubjectIdentifierType, CoreClaimType, CoreResponseType};
+    use openidconnect::{AdditionalProviderMetadata, EndpointMaybeSet, EndpointNotSet, EndpointSet, LogoutProviderMetadata, NonceVerifier, ProviderMetadata, RequestTokenError};
     use reqwest::Client;
     use serde::{Deserialize, Serialize};
-    use serde_json::Value;
 
     use sharesphere_utils::errors::AppError;
 
@@ -71,13 +70,29 @@ pub mod ssr {
         EndpointMaybeSet
     >;
 
+    type ProviderMetadataWithAccount = ProviderMetadata<
+        LogoutProviderMetadata<AccountProviderMetadata>,
+        CoreAuthDisplay,
+        CoreClientAuthMethod,
+        CoreClaimName,
+        CoreClaimType,
+        CoreGrantType,
+        CoreJweContentEncryptionAlgorithm,
+        CoreJweKeyManagementAlgorithm,
+        CoreJsonWebKey,
+        CoreResponseMode,
+        CoreResponseType,
+        CoreSubjectIdentifierType,
+    >;
+
     /// A no-op NonceVerifier implementation.
     struct NoNonceVerifier;
 
     #[derive(Clone, Debug, Default, Serialize, Deserialize)]
     pub struct AccountProviderMetadata
     {
-        pub account_metadata: String,
+        #[serde(rename = "account-service", default)]
+        pub account_service: Option<String>,
     }
 
     impl NonceVerifier for NoNonceVerifier {
@@ -116,6 +131,7 @@ pub mod ssr {
     }
 
     pub fn get_auth_http_client() -> Result<Client, AppError> {
+        // TODO reuse client?
         let http_client = reqwest::ClientBuilder::new()
             // Following redirects opens the client up to SSRF vulnerabilities.
             .redirect(reqwest::redirect::Policy::none())
@@ -125,11 +141,15 @@ pub mod ssr {
         Ok(http_client)
     }
 
+    pub async fn get_provider_metadata(http_client: &Client) -> Result<ProviderMetadataWithAccount, AppError> {
+        let issuer_url = oidc::IssuerUrl::new(get_issuer_url()?)?;
+        let provider_metadata = ProviderMetadataWithAccount::discover_async(issuer_url.clone(), http_client).await?;
+        Ok(provider_metadata)
+    }
+
     pub async fn get_auth_client(http_client: &Client) -> Result<OidcCoreClient, AppError> {
         let redirect_url = get_auth_redirect()?;
-        let issuer_url = oidc::IssuerUrl::new(get_issuer_url()?)?;
-
-        let provider_metadata = CoreProviderMetadata::discover_async(issuer_url.clone(), http_client).await?;
+        let provider_metadata = get_provider_metadata(http_client).await?;
 
         // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL
         // and token URL.
@@ -138,8 +158,8 @@ pub mod ssr {
             get_client_id()?,
             get_client_secret(),
         )
-        // Set the URL the user will be redirected to after the authorization process.
-        .set_redirect_uri(redirect_url);
+            // Set the URL the user will be redirected to after the authorization process.
+            .set_redirect_uri(redirect_url);
 
         Ok(client)
     }
@@ -311,12 +331,7 @@ pub mod ssr {
                 oidc::core::CoreAuthenticationFlow::AuthorizationCode,
                 oidc::CsrfToken::new_random,
                 oidc::Nonce::new_random,
-            )
-            // TODO remove scopes?
-            // Set the desired scopes.
-            //.add_scope(oidc::Scope::new("read".to_string()))
-            //.add_scope(oidc::Scope::new("write".to_string()))
-            .url();
+            ).url();
 
         let auth_session = get_session()?;
 
@@ -329,14 +344,11 @@ pub mod ssr {
     }
 
     pub async fn navigate_to_user_account() -> Result<(), AppError> {
-        let issuer_url = get_issuer_url()?;
-        let client = Client::new();
-        // TODO check if possible with openidconnect 0.4
-        // Fetch the discovery endpoint data
-        let response = client.get(&issuer_url).send().await.map_err(AppError::new)?.json::<Value>().await.map_err(AppError::new)?;
-
-        // Obtain the account service url from it
-        let account_service_url = response.get("account-service").and_then(|v| v.as_str()).ok_or(AppError::new("Account-service missing from provider"))?;
+        let http_client = get_auth_http_client()?;
+        let auth_provider_metadata = get_provider_metadata(&http_client).await?;
+        let account_service_url = &auth_provider_metadata.additional_metadata().additional_metadata.account_service.as_deref().ok_or(
+            AppError::new("Missing account service metadata.")
+        )?;
 
         // Redirect to the user account page
         leptos_axum::redirect(account_service_url);
@@ -406,6 +418,7 @@ pub async fn get_user() -> Result<Option<User>, ServerFnError<AppError>> {
 pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError<AppError>> {
     log::debug!("Logout, redirect_url: {redirect_url}");
 
+    let http_client = get_auth_http_client()?;
     let auth_session = get_session()?;
     let token_response: oidc::core::CoreTokenResponse =
         auth_session
@@ -415,26 +428,13 @@ pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError<AppEr
 
     let id_token = token_response.id_token().ok_or(AppError::AuthenticationError(String::from("Id token missing.")))?;
 
-    let logout_provider_metadata =
-        oidc::ProviderMetadataWithLogout::discover_async(
-            oidc::IssuerUrl::new(
-                ssr::get_issuer_url()?
-            ).map_err(|e| AppError::new(e))?,
-            &get_auth_http_client()?
-        )
-            .await
-            .map_err(AppError::from)?;
-
-    let logout_endpoint: &Option<oidc::EndSessionUrl> = &logout_provider_metadata
+    let logout_endpoint = get_provider_metadata(&http_client).await?
         .additional_metadata()
-        .end_session_endpoint;
+        .end_session_endpoint
+        .clone()
+        .ok_or(AppError::new("Missing end session endpoint from provider metadata."))?;
 
-    let logout_endpoint_url = match logout_endpoint {
-        Some(url) => Ok(url.clone()),
-        None => Err(AppError::AuthenticationError(String::from("Cannot get logout endpoint."))),
-    }?;
-
-    let logout_request = oidc::LogoutRequest::from(logout_endpoint_url)
+    let logout_request = oidc::LogoutRequest::from(logout_endpoint)
         .set_client_id(ssr::get_client_id()?)
         .set_id_token_hint(id_token)
         .set_post_logout_redirect_uri(oidc::PostLogoutRedirectUrl::new(redirect_url).map_err(AppError::from)?);

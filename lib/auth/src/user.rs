@@ -417,6 +417,118 @@ pub mod ssr {
         Ok(sql_user)
     }
 
+    pub async fn delete_user(
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        log::info!("Delete user {} with id = {}", user.username, user.user_id);
+        delete_user_posts(user, db_pool).await?;
+        delete_user_comments(user, db_pool).await?;
+        delete_user_roles(user, db_pool).await?;
+        delete_user_bans(user, db_pool).await?;
+
+        sqlx::query!(
+            "UPDATE users SET
+                 username = '',
+                 email = '',
+                 is_nsfw = false,
+                 admin_role = 'None',
+                 days_hide_spoiler = NULL,
+                 show_nsfw = false,
+                 timestamp = CURRENT_TIMESTAMP,
+                 delete_timestamp = CURRENT_TIMESTAMP
+            WHERE user_id = $1",
+            user.user_id,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn delete_user_posts(
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            "UPDATE posts SET
+                title = '',
+                body = '',
+                markdown_body = NULL,
+                link_type = -1,
+                link_url = NULL,
+                link_embed = NULL,
+                link_thumbnail_url = NULL,
+                is_nsfw = false,
+                is_spoiler = false,
+                is_pinned = false,
+                category_id = NULL,
+                creator_name = '',
+                edit_timestamp = CURRENT_TIMESTAMP,
+                delete_timestamp = CURRENT_TIMESTAMP
+            WHERE creator_id = $1",
+            user.user_id,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn delete_user_comments(
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            "UPDATE comments SET
+                body = '',
+                markdown_body = NULL,
+                is_pinned = false,
+                creator_name = '',
+                edit_timestamp = CURRENT_TIMESTAMP,
+                delete_timestamp = CURRENT_TIMESTAMP
+            WHERE creator_id = $1",
+            user.user_id,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn delete_user_roles(
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            "UPDATE user_sphere_roles SET
+                username = '',
+                permission_level = 'None',
+                timestamp = CURRENT_TIMESTAMP
+            WHERE user_id = $1",
+            user.user_id,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn delete_user_bans(
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        // TODO enable update and removing username?
+        sqlx::query!(
+            "DELETE FROM user_bans WHERE user_id = $1",
+            user.user_id
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn set_user_settings(
         is_nsfw: bool,
         show_nsfw: bool,
@@ -426,9 +538,9 @@ pub mod ssr {
     ) -> Result<(), AppError> {
         sqlx::query!(
             "UPDATE users SET
-            is_nsfw = $1,
-            show_nsfw = $2,
-            days_hide_spoiler = $3
+                is_nsfw = $1,
+                show_nsfw = $2,
+                days_hide_spoiler = $3
             WHERE user_id = $4",
             is_nsfw,
             show_nsfw,

@@ -131,7 +131,6 @@ pub mod ssr {
     }
 
     pub fn get_auth_http_client() -> Result<Client, AppError> {
-        // TODO reuse client?
         let http_client = reqwest::ClientBuilder::new()
             // Following redirects opens the client up to SSRF vulnerabilities.
             .redirect(reqwest::redirect::Policy::none())
@@ -151,8 +150,8 @@ pub mod ssr {
         let redirect_url = get_auth_redirect()?;
         let provider_metadata = get_provider_metadata(http_client).await?;
 
-        // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL
-        // and token URL.
+        // TODO cache client with a periodic refresh?
+        // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL and token URL.
         let client = oidc::core::CoreClient::from_provider_metadata(
             provider_metadata.clone(),
             get_client_id()?,

@@ -36,6 +36,7 @@ pub enum PermissionLevel {
     Lead = 4,
 }
 
+// TODO: add SCD2
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UserSphereRole {
     pub role_id: i64,
@@ -163,8 +164,9 @@ pub mod ssr {
                     SET
                         permission_level = $1,
                         timestamp = CURRENT_TIMESTAMP
-                    WHERE user_id = $2 AND
-                          sphere_name = $3
+                    WHERE
+                        user_id = $2 AND
+                        sphere_name = $3
                     RETURNING *",
                     manage_level_str,
                     grantor.user_id,

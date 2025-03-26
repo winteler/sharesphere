@@ -20,8 +20,8 @@ AS 'select REPLACE(LOWER($1), ''-'', ''_'');'
 CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
     oidc_id TEXT UNIQUE NOT NULL,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     admin_role TEXT NOT NULL DEFAULT 'None' CHECK (admin_role IN ('None', 'Moderator', 'Admin')),
     days_hide_spoiler INT CHECK (days_hide_spoiler > 0),
@@ -30,6 +30,11 @@ CREATE TABLE users (
     delete_timestamp TIMESTAMPTZ,
     UNIQUE (user_id, username)
 );
+
+CREATE UNIQUE INDEX unique_username ON users (username)
+    WHERE users.delete_timestamp IS NULL;
+CREATE UNIQUE INDEX unique_email ON users (email)
+    WHERE users.delete_timestamp IS NULL;
 
 CREATE TABLE spheres (
     sphere_id BIGSERIAL PRIMARY KEY,

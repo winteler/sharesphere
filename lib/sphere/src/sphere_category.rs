@@ -197,8 +197,7 @@ pub fn get_sphere_category_header_map(
 
 #[cfg(test)]
 mod tests {
-    use server_fn::ServerFnError;
-
+    use leptos::prelude::ServerFnError;
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::errors::AppError;
 

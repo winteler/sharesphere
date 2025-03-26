@@ -500,11 +500,9 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
+        // TODO enable update with SCD2 and removing username?
         sqlx::query!(
-            "UPDATE user_sphere_roles SET
-                username = '',
-                permission_level = 'None',
-                timestamp = CURRENT_TIMESTAMP
+            "DELETE FROM user_sphere_roles
             WHERE user_id = $1",
             user.user_id,
         )
@@ -518,7 +516,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        // TODO enable update and removing username?
+        // TODO enable update with SCD2 and removing username?
         sqlx::query!(
             "DELETE FROM user_bans WHERE user_id = $1",
             user.user_id

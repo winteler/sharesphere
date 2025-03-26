@@ -87,8 +87,8 @@ pub mod ssr {
     ) -> Result<UserSphereRole, AppError> {
         let user_sphere_role = sqlx::query_as!(
             UserSphereRole,
-            "SELECT * FROM user_sphere_roles \
-            WHERE user_id = $1 AND \
+            "SELECT * FROM user_sphere_roles
+            WHERE user_id = $1 AND
                   sphere_name = $2",
             user_id,
             sphere_name,

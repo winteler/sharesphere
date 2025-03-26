@@ -1,11 +1,18 @@
-use sharesphere_auth::role::AdminRole;
-use sharesphere_auth::user::ssr::{create_or_update_user, set_user_settings};
+use sharesphere_auth::role::{AdminRole};
+use sharesphere_auth::role::ssr::get_user_sphere_role;
+use sharesphere_auth::user::ssr::{create_or_update_user, delete_user, set_user_settings};
 use sharesphere_auth::user::User;
+use sharesphere_core::moderation::ssr::ban_user_from_sphere;
+use sharesphere_core::profile::ssr::{get_user_comment_vec, get_user_post_vec};
+use sharesphere_core::ranking::{CommentSortType, PostSortType, SortType};
+use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_utils::errors::AppError;
 
-use crate::common::{create_test_user, get_db_pool};
+use crate::common::{create_test_user, create_user, get_db_pool};
+use crate::data_factory::{create_simple_post, create_sphere_with_post_and_comment};
 
 mod common;
+mod data_factory;
 
 #[tokio::test]
 async fn test_create_or_update_user() -> Result<(), AppError> {
@@ -36,6 +43,39 @@ async fn test_create_or_update_user() -> Result<(), AppError> {
     assert_eq!(loaded_user.delete_timestamp, None);
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_delete_user() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+    let banned_user = create_user("banned", &db_pool).await;
+
+    let (sphere, _, _) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let rule = add_rule(Some(&sphere.sphere_name), 0, "Don't", "pet the cat", &user, &db_pool).await.expect("Should add rule");
+    let post_to_moderate = create_simple_post(&sphere.sphere_name, None, "ban me", "if you can", None, &user, &db_pool).await;
+    ban_user_from_sphere(banned_user.user_id, &sphere.sphere_name, post_to_moderate.post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.expect("Should ban user");
+
+    delete_user(&banned_user, &db_pool).await.expect("Should delete user");
+
+    let deleted_ban_user = User::get(banned_user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(deleted_ban_user.user_id, banned_user.user_id);
+    assert!(deleted_ban_user.ban_status_by_sphere_map.is_empty());
+    let deleted_ban_user_post_vec = get_user_post_vec(&banned_user.username, SortType::Post(PostSortType::Hot), 1, 0, &db_pool).await.expect("Should get user posts");
+    assert!(deleted_ban_user_post_vec.is_empty());
+
+    delete_user(&user, &db_pool).await.expect("Should delete user");
+
+    let deleted_user_post_vec = get_user_post_vec(&user.username, SortType::Post(PostSortType::Hot), 1, 0, &db_pool).await.expect("Should get user posts");
+    let deleted_user_comment_vec = get_user_comment_vec(&user.username, SortType::Comment(CommentSortType::Recent), 1, 0, &db_pool).await.expect("Should get user comments");
+    assert!(deleted_user_post_vec.is_empty());
+    assert!(deleted_user_comment_vec.is_empty());
+    assert_eq!(get_user_sphere_role(user.user_id, &sphere.sphere_name, &db_pool).await, Err(AppError::NotFound));
+
+    let deleted_user = User::get(user.user_id, &db_pool).await.expect("Should get user");
+    assert_eq!(deleted_user.user_id, user.user_id);
+    assert!(deleted_user.ban_status_by_sphere_map.is_empty());
+    assert!(deleted_user.permission_by_sphere_map.is_empty());
 }
 
 #[tokio::test]

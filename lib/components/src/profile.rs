@@ -9,7 +9,7 @@ use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
 use sharesphere_utils::routes::{get_profile_path, get_username_memo};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use sharesphere_utils::widget::{EnumQueryTabs, ToView};
+use sharesphere_utils::widget::{EnumQueryTabs, ModalDialog, ModalFormButtons, ToView};
 
 use sharesphere_auth::auth::NavigateToUserAccount;
 use sharesphere_auth::user::{UserHeader, UserHeaderWidget};
@@ -231,7 +231,38 @@ pub fn UserSettings() -> impl IntoView {
             }
             </Suspense>
             <UserAccountButton/>
+            <DeleteUserButton/>
         </div>
+    }
+}
+
+/// Button to delete one's account
+#[component]
+pub fn DeleteUserButton() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let show_dialog = RwSignal::new(false);
+    view! {
+        <button
+            class="btn btn-error"
+            on:click=move |_| show_dialog.update(|value| *value = !*value)
+        >
+            "Delete your account"
+        </button>
+        <ModalDialog
+            class="w-full max-w-xl"
+            show_dialog
+        >
+            <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
+                <div class="text-center font-bold text-2xl">"Delete your account"</div>
+                <ActionForm action=state.delete_user_action>
+                    <ModalFormButtons
+                        disable_publish=false
+                        show_form=show_dialog
+                    />
+                </ActionForm>
+                <ActionError action=state.delete_user_action.into()/>
+            </div>
+        </ModalDialog>
     }
 }
 

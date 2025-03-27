@@ -1,7 +1,7 @@
 use leptos::prelude::{Memo, Resource, RwSignal, ServerAction, ServerFnError, Signal};
 use sharesphere_auth::auth::EndSession;
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
-use sharesphere_auth::user::{SetUserSettings, User};
+use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
 use sharesphere_utils::errors::AppError;
 use crate::moderation::ModeratePost;
 use crate::post::{DeletePost, EditPost};
@@ -14,6 +14,7 @@ use crate::sphere_category::{DeleteSphereCategory, SetSphereCategory, SphereCate
 #[derive(Copy, Clone)]
 pub struct GlobalState {
     pub logout_action: ServerAction<EndSession>,
+    pub delete_user_action: ServerAction<DeleteUser>,
     pub set_settings_action: ServerAction<SetUserSettings>,
     pub subscribe_action: ServerAction<Subscribe>,
     pub unsubscribe_action: ServerAction<Unsubscribe>,
@@ -23,7 +24,7 @@ pub struct GlobalState {
     pub sphere_reload_signal: RwSignal<usize>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
-    pub user: Resource<leptos::error::Result<Option<User>, ServerFnError<AppError>>>,
+    pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
 }
 
 #[derive(Copy, Clone)]
@@ -31,11 +32,11 @@ pub struct SphereState {
     pub sphere_name: Memo<String>,
     pub category_id_filter: RwSignal<Option<i64>>,
     pub permission_level: Signal<PermissionLevel>,
-    pub sphere_resource: Resource<leptos::error::Result<Sphere, ServerFnError<AppError>>>,
-    pub satellite_vec_resource: Resource<leptos::error::Result<Vec<Satellite>, ServerFnError<AppError>>>,
-    pub sphere_categories_resource: Resource<leptos::error::Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
-    pub sphere_roles_resource: Resource<leptos::error::Result<Vec<UserSphereRole>, ServerFnError<AppError>>>,
-    pub sphere_rules_resource: Resource<leptos::error::Result<Vec<Rule>, ServerFnError<AppError>>>,
+    pub sphere_resource: Resource<Result<Sphere, ServerFnError<AppError>>>,
+    pub satellite_vec_resource: Resource<Result<Vec<Satellite>, ServerFnError<AppError>>>,
+    pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, ServerFnError<AppError>>>,
+    pub sphere_rules_resource: Resource<Result<Vec<Rule>, ServerFnError<AppError>>>,
     pub create_satellite_action: ServerAction<CreateSatellite>,
     pub update_satellite_action: ServerAction<UpdateSatellite>,
     pub disable_satellite_action: ServerAction<DisableSatellite>,
@@ -51,13 +52,15 @@ pub struct SphereState {
 
 impl GlobalState {
     pub fn new(
-        user: Resource<leptos::error::Result<Option<User>, ServerFnError<AppError>>>,
+        user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
         logout_action: ServerAction<EndSession>,
+        delete_user_action: ServerAction<DeleteUser>,
         create_sphere_action: ServerAction<CreateSphere>,
         set_settings_action: ServerAction<SetUserSettings>,
     ) -> Self {
         Self {
             logout_action,
+            delete_user_action,
             set_settings_action,
             subscribe_action: ServerAction::<Subscribe>::new(),
             unsubscribe_action: ServerAction::<Unsubscribe>::new(),

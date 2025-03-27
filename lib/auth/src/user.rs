@@ -13,7 +13,7 @@ use crate::role::{AdminRole, PermissionLevel};
 
 #[cfg(feature = "ssr")]
 use crate::{
-    auth::ssr::{check_user, reload_user},
+    auth::ssr::{check_user, delete_user_in_oidc_provider, reload_user},
     session::ssr::get_db_pool
 };
 
@@ -717,6 +717,19 @@ pub mod ssr {
             assert_eq!(user_2.ban_status, BanStatus::Until(future_timestamp));
         }
     }
+}
+
+#[server]
+pub async fn delete_user() -> Result<(), ServerFnError<AppError>> {
+    let db_pool = get_db_pool()?;
+    let user = check_user().await?;
+
+    ssr::delete_user(&user, &db_pool).await?;
+    if let Err(e) = delete_user_in_oidc_provider(&user).await {
+        log::error!("Failed to delete user ({}, {}): {e}", user.user_id, user.oidc_id);
+    }
+
+    Ok(())
 }
 
 #[server]

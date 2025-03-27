@@ -10,7 +10,7 @@ use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, Sus
 use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX};
 use sharesphere_auth::auth::*;
 use sharesphere_auth::auth_widget::LoginWindow;
-use sharesphere_auth::user::{SetUserSettings, User, UserState};
+use sharesphere_auth::user::{DeleteUser, SetUserSettings, User, UserState};
 use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
 use sharesphere_components::search::{Search, SphereSearch};
@@ -67,12 +67,14 @@ pub fn App() -> impl IntoView {
 
     // Provide global context for app
     let logout_action = ServerAction::<EndSession>::new();
+    let delete_user_action = ServerAction::<DeleteUser>::new();
     let create_sphere_action = ServerAction::<CreateSphere>::new();
     let set_settings_action = ServerAction::<SetUserSettings>::new();
     let user = Resource::new(
         move || {
             (
                 logout_action.version().get(),
+                delete_user_action.version().get(),
                 create_sphere_action.version().get(),
                 set_settings_action.version().get(),
             )
@@ -86,6 +88,7 @@ pub fn App() -> impl IntoView {
     let state = GlobalState::new(
         user,
         logout_action,
+        delete_user_action,
         create_sphere_action,
         set_settings_action,
     );

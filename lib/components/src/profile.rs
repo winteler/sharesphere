@@ -230,8 +230,10 @@ pub fn UserSettings() -> impl IntoView {
                 })
             }
             </Suspense>
-            <UserAccountButton/>
-            <DeleteUserButton/>
+            <div class="flex justify-between items-center">
+                <UserAccountButton/>
+                <DeleteUserButton/>
+            </div>
         </div>
     }
 }
@@ -249,11 +251,12 @@ pub fn DeleteUserButton() -> impl IntoView {
             "Delete your account"
         </button>
         <ModalDialog
-            class="w-full max-w-xl"
+            class="w-full max-w-lg"
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                 <div class="text-center font-bold text-2xl">"Delete your account"</div>
+                <div class="text-center font-bold text-xl">"This cannot be undone."</div>
                 <ActionForm action=state.delete_user_action>
                     <ModalFormButtons
                         disable_publish=false

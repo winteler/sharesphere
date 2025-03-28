@@ -369,7 +369,6 @@ pub mod ssr {
             .send()
             .await?;
 
-        log::info!("delete response: {:?}", response);
         match response.status().is_success() {
             true => Ok(()),
             false => Err(AppError::new(format!("Failed to delete user: {:?}", response.text().await?))),

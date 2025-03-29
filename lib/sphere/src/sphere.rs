@@ -112,7 +112,7 @@ pub fn SphereBanner() -> impl IntoView {
             <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
             {
                 let sphere_banner_class = format!(
-                    "flex-none bg-cover bg-left bg-no-repeat bg-[url('{}')] rounded-sm w-full h-20 2xl:h-40 flex items-center justify-center",
+                    "flex-none bg-cover bg-left bg-no-repeat bg-[url('{}')] rounded-sm w-full h-16 2xl:h-40 flex items-center justify-center",
                     sphere.banner_url.clone().unwrap_or(String::from("/banner.jpg"))
                 );
                 view! {
@@ -225,21 +225,51 @@ pub fn SphereToolbar<'a>(
     let manage_path = move || get_sphere_path(&sphere_name.get()) + MANAGE_SPHERE_ROUTE;
 
     view! {
-        <div class="flex w-full justify-between content-center">
-            <div class="flex w-full gap-2">
+        <div class="flex w-full justify-between items-center">
+            <div class="flex items-center w-full gap-2">
                 <PostSortWidget sort_signal/>
                 <SphereCategoryDropdown category_vec_resource category_id_signal=Some(category_id_signal)/>
             </div>
-            <div class="flex gap-1">
+            <div class="flex items-center 2xl:gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
-                    <A href=manage_path attr:class="btn btn-circle btn-ghost">
-                        <SettingsIcon class="h-5 w-5"/>
+                    <A href=manage_path attr:class="btn btn-circle btn-ghost max-2xl:btn-sm">
+                        <SettingsIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
                     </A>
                 </AuthorizedShow>
                 <SphereSearchButton/>
+                <div class="tooltip" data-tip="New">
+                    <LoginGuardButton
+                        login_button_class="btn btn-circle btn-ghost max-2xl:btn-sm"
+                        login_button_content=move || view! { <PlusIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/> }.into_any()
+                        redirect_path_fn=&get_create_post_path
+                        let:_user
+                    >
+                    { move || match satellite_state {
+                        Some(satellite_state) => {
+                            let create_post_link = get_satellite_path(
+                                &*sphere_state.sphere_name.read(),
+                                satellite_state.satellite_id.get()
+                            ) + PUBLISH_ROUTE + CREATE_POST_SUFFIX;
+                            Either::Left(view! {
+                                <a href=create_post_link class="btn btn-circle btn-ghost max-2xl:btn-sm">
+                                    <PlusIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/>
+                                </a>
+                            })
+                        }
+                        None => Either::Right(view! {
+                            <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
+                                <input type="text" name=CREATE_POST_SPHERE_QUERY_PARAM class="hidden" value=sphere_name/>
+                                <button type="submit" class="btn btn-circle btn-ghost max-2xl:btn-sm">
+                                    <PlusIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/>
+                                </button>
+                            </Form>
+                        }),
+                    }}
+                    </LoginGuardButton>
+                </div>
                 <div class="tooltip" data-tip="Join">
                     <LoginGuardedButton
-                        button_class="btn btn-circle btn-ghost"
+                        button_class="btn btn-circle btn-ghost max-2xl:btn-sm"
                         button_action=move |_| {
                             is_subscribed.update(|value| {
                                 *value = !*value;
@@ -251,38 +281,8 @@ pub fn SphereToolbar<'a>(
                             })
                         }
                     >
-                        <SubscribedIcon class="h-6 w-6" show_color=is_subscribed/>
+                        <SubscribedIcon class="h-4 w-4 2xl:h-6 2xl:w-6" show_color=is_subscribed/>
                     </LoginGuardedButton>
-                </div>
-                <div class="tooltip" data-tip="New">
-                    <LoginGuardButton
-                        login_button_class="btn btn-circle btn-ghost"
-                        login_button_content=move || view! { <PlusIcon class="h-6 w-6"/> }.into_any()
-                        redirect_path_fn=&get_create_post_path
-                        let:_user
-                    >
-                    { move || match satellite_state {
-                        Some(satellite_state) => {
-                            let create_post_link = get_satellite_path(
-                                &*sphere_state.sphere_name.read(),
-                                satellite_state.satellite_id.get()
-                            ) + PUBLISH_ROUTE + CREATE_POST_SUFFIX;
-                            Either::Left(view! {
-                                <a href=create_post_link class="btn btn-circle btn-ghost">
-                                    <PlusIcon class="h-6 w-6"/>
-                                </a>
-                            })
-                        }
-                        None => Either::Right(view! {
-                            <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">
-                                <input type="text" name=CREATE_POST_SPHERE_QUERY_PARAM class="hidden" value=sphere_name/>
-                                <button type="submit" class="btn btn-circle btn-ghost">
-                                    <PlusIcon class="h-6 w-6"/>
-                                </button>
-                            </Form>
-                        }),
-                    }}
-                    </LoginGuardButton>
                 </div>
             </div>
         </div>
@@ -372,7 +372,7 @@ pub fn CreateSphere() -> impl IntoView {
 
                         }
                         </Suspense>
-                        <div class="alert alert-error flex content-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
+                        <div class="alert alert-error flex items-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
                             <InternalErrorIcon class="h-16 w-16"/>
                             <span>"Only alphanumeric characters."</span>
                         </div>
@@ -400,8 +400,8 @@ pub fn SphereSearchButton() -> impl IntoView
     let sphere_state = expect_context::<SphereState>();
     let route = move || format!("{}{}", get_sphere_path(sphere_state.sphere_name.read_untracked().as_str()), SEARCH_ROUTE);
     view! {
-        <a href=route class="btn btn-ghost btn-circle">
-            <MagnifierIcon/>
+        <a href=route class="btn btn-ghost btn-circle max-2xl:btn-sm">
+            <MagnifierIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/>
         </a>
     }
 }

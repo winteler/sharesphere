@@ -365,8 +365,8 @@ pub fn SortWidgetOption(
     let is_selected = move || sort_signal.read() == sort_type;
     let class = move || {
         match is_selected() {
-            true => "btn btn-ghost join-item border border-1 border-white",
-            false => "btn btn-ghost join-item hover:border hover:border-1 hover:border-white",
+            true => "btn btn-ghost max-2xl:btn-sm join-item border border-1 border-white",
+            false => "btn btn-ghost max-2xl:btn-sm join-item hover:border hover:border-1 hover:border-white",
         }
     };
 
@@ -397,16 +397,16 @@ pub fn PostSortWidget(
     view! {
         <div class="join rounded-none">
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) sort_signal datatip="Hot">
-                <FlameIcon/>
+                <FlameIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) sort_signal datatip="Trending">
-                <GraphIcon/>
+                <GraphIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) sort_signal datatip="Best">
-                <PodiumIcon/>
+                <PodiumIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) sort_signal datatip="Recent">
-                <HourglassIcon/>
+                <HourglassIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
             </SortWidgetOption>
         </div>
     }.into_any()
@@ -420,10 +420,10 @@ pub fn CommentSortWidget(
     view! {
         <div class="join rounded-none">
             <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) sort_signal datatip="Best">
-                <PodiumIcon/>
+                <PodiumIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) sort_signal datatip="Recent">
-                <HourglassIcon/>
+                <HourglassIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
             </SortWidgetOption>
         </div>
     }.into_any()

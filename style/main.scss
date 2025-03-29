@@ -2909,9 +2909,31 @@
       background-color: var(--color-base-300);
     }
   }
+  .max-2xl\:btn-sm {
+    @media (width < 96rem) {
+      --fontsize: 0.75rem;
+      --btn-p: 0.75rem;
+      --size: calc(var(--size-field, 0.25rem) * 8);
+    }
+  }
   .\32 xl\:hidden {
     @media (width >= 96rem) {
       display: none;
+    }
+  }
+  .\32 xl\:h-5 {
+    @media (width >= 96rem) {
+      height: calc(var(--spacing) * 5);
+    }
+  }
+  .\32 xl\:h-6 {
+    @media (width >= 96rem) {
+      height: calc(var(--spacing) * 6);
+    }
+  }
+  .\32 xl\:h-7 {
+    @media (width >= 96rem) {
+      height: calc(var(--spacing) * 7);
     }
   }
   .\32 xl\:h-12 {
@@ -2944,6 +2966,21 @@
       width: calc(2/5 * 100%);
     }
   }
+  .\32 xl\:w-5 {
+    @media (width >= 96rem) {
+      width: calc(var(--spacing) * 5);
+    }
+  }
+  .\32 xl\:w-6 {
+    @media (width >= 96rem) {
+      width: calc(var(--spacing) * 6);
+    }
+  }
+  .\32 xl\:w-7 {
+    @media (width >= 96rem) {
+      width: calc(var(--spacing) * 7);
+    }
+  }
   .\32 xl\:w-12 {
     @media (width >= 96rem) {
       width: calc(var(--spacing) * 12);
@@ -2957,6 +2994,11 @@
   .\32 xl\:justify-start {
     @media (width >= 96rem) {
       justify-content: flex-start;
+    }
+  }
+  .\32 xl\:gap-1 {
+    @media (width >= 96rem) {
+      gap: calc(var(--spacing) * 1);
     }
   }
   .\32 xl\:text-4xl {

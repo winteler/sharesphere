@@ -215,7 +215,7 @@ pub fn SphereCategoryDropdown(
                 <select
                     name=name
                     class=select_class
-                    on:click=move |ev| {
+                    on:input=move |ev| {
                         let selected = event_target_value(&ev);
                         is_selected.set(!selected.is_empty());
                         if let Some(category_id_signal) = category_id_signal {

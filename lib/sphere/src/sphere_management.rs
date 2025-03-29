@@ -87,7 +87,7 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
+            <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere description"</div>
                 <SuspenseUnpack resource=sphere_state.sphere_resource let:sphere>
                     <SphereDescriptionForm sphere=sphere/>
@@ -149,7 +149,7 @@ pub fn SphereIconDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
+            <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere icon"</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
@@ -172,7 +172,7 @@ pub fn SphereBannerDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
+            <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere banner"</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
@@ -293,7 +293,7 @@ pub fn ModeratorPanel() -> impl IntoView {
 
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
+        <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Moderators"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex gap-1 border-b border-base-content/20">
@@ -362,7 +362,7 @@ pub fn PermissionLevelForm(
                     class="hidden"
                     value=sphere_name
                 />
-                <div class="flex gap-1 content-center">
+                <div class="flex gap-1 items-center">
                     <div class="dropdown dropdown-end w-2/5">
                         <input
                             tabindex="0"
@@ -436,7 +436,7 @@ pub fn BanPanel() -> impl IntoView {
 
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full bg-base-200 p-2 rounded-sm">
+        <div class="shrink-0 flex flex-col gap-1 items-center w-full bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Banned users"</div>
             <div class="flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">

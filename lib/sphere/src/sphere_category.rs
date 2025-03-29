@@ -34,7 +34,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
+            <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere categories"</div>
                 <div class="flex flex-col">
                     <div class="border-b border-base-content/20 pl-2">

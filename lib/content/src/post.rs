@@ -137,7 +137,7 @@ fn PostWidgetBar<'a>(
     let author_id = post.post.creator_id;
     let is_active = post.post.is_active();
     view! {
-        <div class="flex gap-1 content-center">
+        <div class="flex gap-1 items-center">
             { match is_active {
                 true => Either::Left(view! {
                     <VotePanel

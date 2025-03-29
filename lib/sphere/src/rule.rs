@@ -19,7 +19,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
+        <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Rules"</div>
             <div class="flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
@@ -225,7 +225,7 @@ pub fn RuleInputs(
     description_data: TextareaData,
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-1 content-center">
+        <div class="flex gap-1 items-center">
             <input
                 tabindex="0"
                 type="number"

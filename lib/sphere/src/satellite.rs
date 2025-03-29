@@ -292,7 +292,7 @@ pub fn SatellitePanel() -> impl IntoView {
     );
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 content-center w-full h-fit bg-base-200 p-2 rounded-sm">
+        <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Satellites"</div>
             <div class="flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
@@ -501,7 +501,7 @@ pub fn SatelliteInputs(
     is_spoiler: bool,
 ) -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-1 content-center">
+        <div class="flex flex-col gap-1 items-center">
             <FormTextEditor
                 name="satellite_name"
                 placeholder="Name"

@@ -29,7 +29,7 @@ pub fn NavigationBar() -> impl IntoView
                     </a>
                 </div>
             </div>
-            <div class="navbar-end gap-1">
+            <div class="navbar-end 2xl:gap-1">
                 <SearchButton/>
                 <PlusMenu/>
                 <UserMenu/>

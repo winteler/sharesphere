@@ -29,7 +29,7 @@ use {
     }
 };
 
-pub const BASE_URL_ENV: &str = "LEPTOS_SITE_ADDR";
+pub const BASE_URL_ENV: &str = "BASE_URL";
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_URL";
 pub const OIDC_ISSUER_ADMIN_URL_ENV: &str = "OIDC_ISSUER_ADMIN_URL";
 pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
@@ -100,14 +100,15 @@ pub mod ssr {
     }
 
     pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
-        Ok(oidc::RedirectUrl::new(String::from("http://") + get_base_url()?.as_str() + AUTH_CALLBACK_ROUTE)?)
+        Ok(oidc::RedirectUrl::new(get_base_url()? + AUTH_CALLBACK_ROUTE)?)
     }
 
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
-        Ok(oidc::PostLogoutRedirectUrl::new(String::from("http://") + get_base_url()?.as_str())?)
+        Ok(oidc::PostLogoutRedirectUrl::new(get_base_url()?)?)
     }
 
     pub fn get_oidc_http_client() -> Result<Client, AppError> {
+
         let http_client = reqwest::ClientBuilder::new()
             // Following redirects opens the client up to SSRF vulnerabilities.
             .redirect(reqwest::redirect::Policy::none())

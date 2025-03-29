@@ -112,7 +112,7 @@ pub fn SphereBanner() -> impl IntoView {
             <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
             {
                 let sphere_banner_class = format!(
-                    "flex-none bg-cover bg-center bg-no-repeat bg-[url('{}')] rounded-sm w-full h-40 flex items-center justify-center",
+                    "flex-none bg-cover bg-left bg-no-repeat bg-[url('{}')] rounded-sm w-full h-20 2xl:h-40 flex items-center justify-center",
                     sphere.banner_url.clone().unwrap_or(String::from("/banner.jpg"))
                 );
                 view! {
@@ -121,8 +121,8 @@ pub fn SphereBanner() -> impl IntoView {
                         class=sphere_banner_class
                     >
                         <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
-                            <SphereIcon icon_url=sphere.icon_url.clone() class="h-12 w-12"/>
-                            <span class="text-4xl">{sphere_state.sphere_name.get()}</span>
+                            <SphereIcon icon_url=sphere.icon_url.clone() class="h-8 w-8 2xl:h-12 2xl:w-12"/>
+                            <span class="text-2xl 2xl:text-4xl">{sphere_state.sphere_name.get()}</span>
                         </div>
                     </a>
                 }.into_any()

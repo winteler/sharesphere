@@ -19,6 +19,7 @@ use {
 use sharesphere_utils::icons::SphereIcon;
 use sharesphere_utils::routes::get_sphere_path;
 use sharesphere_utils::widget::LoadIndicators;
+use crate::state::GlobalState;
 
 pub const SPHERE_FETCH_LIMIT: usize = 100;
 
@@ -424,6 +425,7 @@ pub fn SphereHeaderLink(
 pub fn SphereLinkItems(
     sphere_header_vec: Vec<SphereHeader>
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     view! {
         <For
             each= move || sphere_header_vec.clone().into_iter()
@@ -432,7 +434,14 @@ pub fn SphereLinkItems(
                 let sphere_path = get_sphere_path(&sphere_header.sphere_name);
                 view! {
                     <li class="px-2 rounded-sm hover:bg-base-200">
-                        <a href=sphere_path>
+                        <a
+                            href=sphere_path
+                            on:click=move |_| {
+                                if let Some(input_ref) = state.left_sidebar_checkbox_ref.get() {
+                                    input_ref.set_checked(false);
+                                }
+                            }
+                        >
                             <SphereHeader sphere_header=sphere_header/>
                         </a>
                     </li>

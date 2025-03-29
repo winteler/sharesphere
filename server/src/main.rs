@@ -150,6 +150,11 @@ async fn main() {
 
     let pool = create_db_pool().await.expect("Failed to create db pool");
 
+    sqlx::migrate!("../migrations/")
+        .run(&pool)
+        .await
+        .expect("Should be able to run SQLx migrations.");
+
     // Start a task to periodically update post scores
     tokio::spawn(update_post_scores_loop(pool.clone()));
 
@@ -165,11 +170,6 @@ async fn main() {
 
     let auth_config = AuthConfig::<i64>::default();
     let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
-
-    sqlx::migrate!("../migrations/")
-        .run(&pool)
-        .await
-        .expect("Should be able to run SQLx migrations.");
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:

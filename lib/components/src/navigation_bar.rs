@@ -16,11 +16,16 @@ pub fn NavigationBar() -> impl IntoView
     view! {
         <div class="flex-none navbar bg-blue-500">
             <div class="navbar-start">
-                <label for="my-drawer" class="drawer-button 2xl:hidden btn btn-square btn-ghost"><SideBarIcon/></label>
+                <label
+                    for="my-drawer"
+                    class="drawer-button 2xl:hidden btn btn-square btn-ghost"
+                >
+                    <SideBarIcon/>
+                </label>
                 <div class="flex-1">
                     <a href="/" class="btn btn-ghost text-l">
                         <LogoIcon/>
-                        <label class="max-2xl:hidden">"ShareSphere"</label>
+                        <label>"ShareSphere"</label>
                     </a>
                 </div>
             </div>

@@ -2806,6 +2806,16 @@
       --input-color: var(--color-primary);
     }
   }
+  .toggle-primary {
+    &:checked, &[aria-checked="true"] {
+      --input-color: var(--color-primary);
+    }
+  }
+  .toggle-secondary {
+    &:checked, &[aria-checked="true"] {
+      --input-color: var(--color-secondary);
+    }
+  }
   .hover\:border {
     &:hover {
       @media (hover: hover) {
@@ -2999,6 +3009,11 @@
   .\32 xl\:gap-1 {
     @media (width >= 96rem) {
       gap: calc(var(--spacing) * 1);
+    }
+  }
+  .\32 xl\:gap-2 {
+    @media (width >= 96rem) {
+      gap: calc(var(--spacing) * 2);
     }
   }
   .\32 xl\:text-4xl {
@@ -3292,7 +3307,7 @@ textarea::-webkit-scrollbar {
       --color-warning-content: oklch(41% 0.112 45.904);
       --color-error: oklch(52% 0.245 27.325);
       --color-error-content: oklch(1 0 0);
-      --radius-selector: 0.25rem;
+      --radius-selector: 0rem;
       --radius-field: 0.25rem;
       --radius-box: 0.25rem;
       --size-selector: 0.25rem;
@@ -3326,7 +3341,7 @@ textarea::-webkit-scrollbar {
     --color-warning-content: oklch(41% 0.112 45.904);
     --color-error: oklch(52% 0.245 27.325);
     --color-error-content: oklch(1 0 0);
-    --radius-selector: 0.25rem;
+    --radius-selector: 0rem;
     --radius-field: 0.25rem;
     --radius-box: 0.25rem;
     --size-selector: 0.25rem;

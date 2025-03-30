@@ -13,7 +13,7 @@ use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, Act
 
 use sharesphere_auth::auth::{LoginGuardButton, LoginGuardedButton};
 use sharesphere_auth::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole};
-
+use sharesphere_core::filter::{PostFiltersButton, SphereCategoryFilter};
 use sharesphere_core::ranking::{PostSortWidget, SortType};
 use sharesphere_core::moderation::ModeratePost;
 use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostMiniatureList, PostWithSphereInfo};
@@ -22,7 +22,7 @@ use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, UpdateSatel
 use sharesphere_core::sidebar::SphereSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
 use sharesphere_core::sphere::{get_sphere_by_name, get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
-use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory, SphereCategoryDropdown};
+use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
 
 use crate::satellite::{ActiveSatelliteList, SatelliteState};
@@ -46,7 +46,7 @@ pub fn SphereBanner() -> impl IntoView {
     let remove_rule_action = ServerAction::<RemoveRule>::new();
     let sphere_state = SphereState {
         sphere_name,
-        category_id_filter: RwSignal::new(None),
+        sphere_category_filter: RwSignal::new(SphereCategoryFilter::All),
         permission_level: Signal::derive(
             move || match &(*state.user.read()) {
                 Some(Ok(Some(user))) => user.get_sphere_permission_level(&*sphere_name.read()),
@@ -161,7 +161,7 @@ pub fn SphereContents() -> impl IntoView {
             // TODO check no unnecessary loads
             let initial_load = get_post_vec_by_sphere_name(
                 sphere_name.get(),
-                sphere_state.category_id_filter.get(),
+                sphere_state.sphere_category_filter.get(),
                 state.post_sort_type.get(),
                 0,
             ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
@@ -178,7 +178,7 @@ pub fn SphereContents() -> impl IntoView {
                 let num_post = post_vec.read_untracked().len();
                 let additional_load = get_post_vec_by_sphere_name(
                     sphere_name.get_untracked(),
-                    sphere_state.category_id_filter.get_untracked(),
+                    sphere_state.sphere_category_filter.get_untracked(),
                     state.post_sort_type.get_untracked(),
                     num_post
                 ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
@@ -194,7 +194,6 @@ pub fn SphereContents() -> impl IntoView {
             <SphereToolbar
                 sphere
                 sort_signal=state.post_sort_type
-                category_id_signal=sphere_state.category_id_filter
             />
         </SuspenseUnpack>
         <PostMiniatureList
@@ -213,12 +212,10 @@ pub fn SphereContents() -> impl IntoView {
 pub fn SphereToolbar<'a>(
     sphere: &'a SphereWithUserInfo,
     sort_signal: RwSignal<SortType>,
-    category_id_signal: RwSignal<Option<i64>>
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let satellite_state = use_context::<SatelliteState>();
-    let category_vec_resource = sphere_state.sphere_categories_resource;
     let sphere_id = sphere.sphere.sphere_id;
     let sphere_name = RwSignal::new(sphere.sphere.sphere_name.clone());
     let is_subscribed = RwSignal::new(sphere.subscription_id.is_some());
@@ -226,9 +223,9 @@ pub fn SphereToolbar<'a>(
 
     view! {
         <div class="flex w-full justify-between items-center">
-            <div class="flex items-center w-full gap-2">
+            <div class="flex items-center w-full 2xl:gap-2">
                 <PostSortWidget sort_signal/>
-                <SphereCategoryDropdown category_vec_resource category_id_signal=Some(category_id_signal)/>
+                <PostFiltersButton/>
             </div>
             <div class="flex items-center 2xl:gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>

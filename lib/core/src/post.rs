@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap};
 use leptos::html;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -12,6 +12,7 @@ use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::widget::{CommentCountWidget, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
 
+use crate::filter::SphereCategoryFilter;
 use crate::ranking::{SortType, Vote};
 use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::sphere_category::{SphereCategory, SphereCategoryBadge, SphereCategoryDropdown, SphereCategoryHeader};
@@ -118,8 +119,9 @@ pub mod ssr {
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::embed::Link;
     use sharesphere_utils::errors::AppError;
-    use crate::ranking::{SortType, Vote, VoteValue};
+    use crate::filter::SphereCategoryFilter;
     use crate::post::{Post, PostInheritedAttributes, PostWithInfo, PostWithSphereInfo};
+    use crate::ranking::{SortType, Vote, VoteValue};
     use crate::sphere::Sphere;
     use crate::sphere_category::SphereCategoryHeader;
 
@@ -281,7 +283,7 @@ pub mod ssr {
 
     pub async fn get_post_vec_by_sphere_name(
         sphere_name: &str,
-        sphere_category_id: Option<i64>,
+        sphere_category_filter: SphereCategoryFilter,
         sort_type: SortType,
         limit: i64,
         offset: i64,
@@ -295,24 +297,38 @@ pub mod ssr {
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 WHERE
                     s.sphere_name = $1 AND
-                    p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
+                    (
+                        $2 OR (
+                            $3 AND p.category_id IS NULL
+                        ) OR (
+                            p.category_id IS NOT NULL AND p.category_id = ANY($4)
+                        )
+                    ) AND
                     p.moderator_id IS NULL AND
                     p.delete_timestamp IS NULL AND
                     p.satellite_id IS NULL AND
                     (
-                        $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $3)
+                        $5 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $5)
                     ) AND
                     (
-                        $4 OR NOT p.is_nsfw
+                        $6 OR NOT p.is_nsfw
                     )
                 ORDER BY p.is_pinned DESC, {} DESC
-                LIMIT $5
-                OFFSET $6",
+                LIMIT $7
+                OFFSET $8",
                 sort_type.to_order_by_code(),
             ).as_str(),
         )
             .bind(sphere_name)
-            .bind(sphere_category_id)
+            .bind(sphere_category_filter == SphereCategoryFilter::All)
+            .bind(match sphere_category_filter {
+                SphereCategoryFilter::All => false,
+                SphereCategoryFilter::CategorySet((_, keep_post_without_category)) => keep_post_without_category
+            })
+            .bind(match sphere_category_filter {
+                SphereCategoryFilter::All => None,
+                SphereCategoryFilter::CategorySet((category_set, _)) => Some(category_set)
+            })
             .bind(posts_filters.days_hide_spoiler)
             .bind(posts_filters.show_nsfw)
             .bind(limit)
@@ -828,7 +844,7 @@ pub async fn get_subscribed_post_vec(
 #[server]
 pub async fn get_post_vec_by_sphere_name(
     sphere_name: String,
-    sphere_category_id: Option<i64>,
+    sphere_category_set: SphereCategoryFilter,
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<Post>, ServerFnError<AppError>> {
@@ -836,7 +852,7 @@ pub async fn get_post_vec_by_sphere_name(
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_sphere_name(
         sphere_name.as_str(),
-        sphere_category_id,
+        sphere_category_set,
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,

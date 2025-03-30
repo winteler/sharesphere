@@ -155,7 +155,6 @@ pub fn SatelliteContent() -> impl IntoView {
             <SphereToolbar
                 sphere
                 sort_signal
-                category_id_signal
             />
         </SuspenseUnpack>
         <PostMiniatureList

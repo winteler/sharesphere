@@ -45,6 +45,15 @@ impl From<SphereCategory> for SphereCategoryHeader {
     }
 }
 
+impl From<&SphereCategory> for SphereCategoryHeader {
+    fn from(sphere_category: &SphereCategory) -> Self {
+        SphereCategoryHeader {
+            category_name: sphere_category.category_name.clone(),
+            category_color: sphere_category.category_color,
+        }
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
@@ -191,8 +200,6 @@ pub fn SphereCategoryDropdown(
     category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
     #[prop(default = None)]
     init_category_id: Option<i64>,
-    #[prop(default = None)]
-    category_id_signal: Option<RwSignal<Option<i64>>>,
     #[prop(default = true)]
     show_inactive: bool,
     #[prop(default = "")]
@@ -218,12 +225,6 @@ pub fn SphereCategoryDropdown(
                     on:input=move |ev| {
                         let selected = event_target_value(&ev);
                         is_selected.set(!selected.is_empty());
-                        if let Some(category_id_signal) = category_id_signal {
-                            match selected.parse::<i64>() {
-                                Ok(category_id) => category_id_signal.set(Some(category_id)),
-                                _ => category_id_signal.set(None),
-                            };
-                        };
                     }
                 >
                     <option selected=init_category_id.is_none() value="" class="text-gray-400">"Category"</option>

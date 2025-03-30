@@ -1,5 +1,6 @@
 #![recursion_limit = "256"]
 pub mod comment;
+pub mod filter;
 pub mod moderation;
 pub mod post;
 pub mod profile;

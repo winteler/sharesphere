@@ -136,7 +136,7 @@ where
         Some(Ok(Some(user))) => user.user_id == author_id,
         _ => false,
     };
-    let edit_button_class = move || match show_form.get() {
+    let delete_button_class = move || match show_form.get() {
         true => "btn btn-circle btn-sm btn-error",
         false => "btn btn-circle btn-sm hover:bg-base-content/20",
     };
@@ -144,7 +144,7 @@ where
         <Show when=show_button>
             <div>
                 <button
-                    class=edit_button_class
+                    class=delete_button_class
                     aria-expanded=move || show_form.get().to_string()
                     aria-haspopup="dialog"
                     on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)

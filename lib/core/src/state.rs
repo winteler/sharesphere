@@ -4,6 +4,7 @@ use sharesphere_auth::auth::EndSession;
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
 use sharesphere_utils::errors::AppError;
+use crate::filter::SphereCategoryFilter;
 use crate::moderation::ModeratePost;
 use crate::post::{DeletePost, EditPost};
 use crate::ranking::{CommentSortType, PostSortType, SortType};
@@ -32,7 +33,7 @@ pub struct GlobalState {
 #[derive(Copy, Clone)]
 pub struct SphereState {
     pub sphere_name: Memo<String>,
-    pub category_id_filter: RwSignal<Option<i64>>,
+    pub sphere_category_filter: RwSignal<SphereCategoryFilter>,
     pub permission_level: Signal<PermissionLevel>,
     pub sphere_resource: Resource<Result<Sphere, ServerFnError<AppError>>>,
     pub satellite_vec_resource: Resource<Result<Vec<Satellite>, ServerFnError<AppError>>>,

@@ -321,13 +321,13 @@ pub mod ssr {
         )
             .bind(sphere_name)
             .bind(sphere_category_filter == SphereCategoryFilter::All)
-            .bind(match sphere_category_filter {
+            .bind(match &sphere_category_filter {
                 SphereCategoryFilter::All => false,
-                SphereCategoryFilter::CategorySet((_, keep_post_without_category)) => keep_post_without_category
+                SphereCategoryFilter::CategorySet(category_filter_set) => !category_filter_set.only_category
             })
             .bind(match sphere_category_filter {
                 SphereCategoryFilter::All => None,
-                SphereCategoryFilter::CategorySet((category_set, _)) => Some(category_set)
+                SphereCategoryFilter::CategorySet(category_filter_set) => Some(Vec::from_iter(category_filter_set.filters))
             })
             .bind(posts_filters.days_hide_spoiler)
             .bind(posts_filters.show_nsfw)

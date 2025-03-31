@@ -372,9 +372,6 @@ pub fn SortWidgetOption(
 
     view! {
         <div class="tooltip" data-tip=datatip>
-            <div class="tooltip-content">
-                {datatip}
-            </div>
             <button
                 class=class
                 on:click=move |_| {

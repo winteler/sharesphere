@@ -75,8 +75,8 @@ pub fn PostFiltersButton() -> impl IntoView {
 pub fn SphereCategoryFilter() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let all_input_ref = NodeRef::<Input>::new();
-    let without_category_input_ref = NodeRef::<Input>::new();
-    let category_input_ref_map = StoredValue::new(HashMap::new());
+    let only_category_input_ref = NodeRef::<Input>::new();
+    let category_input_ref_map = StoredValue::new(HashMap::<i64, NodeRef<Input>>::new());
     view! {
         <div class="flex flex-col gap-1">
             <div class="text-center font-bold text-xl">"Sphere categories"</div>
@@ -85,23 +85,36 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                 <input
                     type="checkbox"
                     class="toggle toggle-primary"
-                    checked=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
+                    checked=true
                     node_ref=all_input_ref
-                    on:click=move |_| if let Some(input_ref) = all_input_ref.get() {
+                    disabled=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
+                    on:change=move |_| if let Some(input_ref) = all_input_ref.get() {
                         log::info!("All input: {}", input_ref.checked());
                         match input_ref.checked() {
                             true => {
-                                // TODO deactivate all other inputs
+                                category_input_ref_map.with_value(|input_ref_map| {
+                                    for input_ref in input_ref_map.values() {
+                                        if let Some(input_ref) = input_ref.get() {
+                                            input_ref.set_checked(false);
+                                        }
+                                    }
+                                });
+                                if let Some(input_ref) = only_category_input_ref.get() {
+                                    input_ref.set_checked(false);
+                                }
                                 sphere_state.sphere_category_filter.set(SphereCategoryFilter::All);
                             },
                             false => {
+                                if let Some(input_ref) = only_category_input_ref.get() {
+                                    input_ref.set_checked(true);
+                                }
                                 sphere_state.sphere_category_filter.set(SphereCategoryFilter::CategorySet(CategoryFilterSet::default()));
                             },
                         }
                     }
                 />
             </label>
-            <div class="w-full border-b border-1"/>
+            <div class="w-full border-b border-0.5 border-base-content/20"/>
             <SuspenseUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
             {
                 category_input_ref_map.update_value(|mut input_ref_map| input_ref_map.clear());
@@ -120,7 +133,7 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                             <input
                                 type="checkbox"
                                 class="toggle toggle-secondary"
-                                checked=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
+                                checked=false
                                 node_ref=category_input_ref
                                 on:change=move |_| if let Some(input_ref) = category_input_ref.get() {
                                     log::info!("Category {} input: {}", category_name, input_ref.checked());
@@ -128,10 +141,18 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                                         true => {
                                             sphere_state.sphere_category_filter.update(|filter| {
                                                 match filter {
-                                                    SphereCategoryFilter::All => *filter = SphereCategoryFilter::CategorySet(CategoryFilterSet {
-                                                        filters: HashSet::from([category_id]),
-                                                        only_category: false,
-                                                    }),
+                                                    SphereCategoryFilter::All => {
+                                                        if let Some(all_input_ref) = all_input_ref.get() {
+                                                            all_input_ref.set_checked(false);
+                                                        }
+                                                        if let Some(input_ref) = only_category_input_ref.get() {
+                                                            input_ref.set_checked(true);
+                                                        }
+                                                        *filter = SphereCategoryFilter::CategorySet(CategoryFilterSet {
+                                                            filters: HashSet::from([category_id]),
+                                                            only_category: true,
+                                                        })
+                                                    },
                                                     SphereCategoryFilter::CategorySet(ref mut filter_set) => {
                                                         filter_set.filters.insert(category_id);
                                                     },
@@ -142,6 +163,15 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                                             sphere_state.sphere_category_filter.update(|filter| {
                                                 if let SphereCategoryFilter::CategorySet(ref mut filter_set) = filter {
                                                     filter_set.filters.remove(&category_id);
+                                                    if filter_set.filters.is_empty() {
+                                                        *filter = SphereCategoryFilter::All;
+                                                        if let Some(all_input_ref) = all_input_ref.get() {
+                                                            all_input_ref.set_checked(true);
+                                                        }
+                                                        if let Some(input_ref) = only_category_input_ref.get() {
+                                                            input_ref.set_checked(false);
+                                                        }
+                                                    }
                                                 }
                                             })
                                         },
@@ -158,9 +188,10 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                 <input
                     type="checkbox"
                     class="toggle toggle-info"
-                    checked=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
-                    node_ref=without_category_input_ref
-                    on:click=move |_| if let Some(input_ref) = without_category_input_ref.get() {
+                    checked=false
+                    node_ref=only_category_input_ref
+                    disabled=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
+                    on:click=move |_| if let Some(input_ref) = only_category_input_ref.get() {
                         match input_ref.checked() {
                             true => {
                                 sphere_state.sphere_category_filter.update(|filter| match filter {

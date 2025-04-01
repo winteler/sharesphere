@@ -2806,6 +2806,11 @@
       --input-color: var(--color-primary);
     }
   }
+  .toggle-info {
+    &:checked, &[aria-checked="true"] {
+      --input-color: var(--color-info);
+    }
+  }
   .toggle-primary {
     &:checked, &[aria-checked="true"] {
       --input-color: var(--color-primary);

@@ -13,18 +13,19 @@ use crate::state::SphereState;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum SphereCategoryFilter {
     All,
-    CategorySet(CategoryFilterSet),
+    CategorySet(CategorySetFilter),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct CategoryFilterSet {
+pub struct CategorySetFilter {
+    #[serde(default)]
     pub filters: HashSet<i64>,
     pub only_category: bool,
 }
 
-impl Default for CategoryFilterSet {
+impl Default for CategorySetFilter {
     fn default() -> Self {
-        CategoryFilterSet {
+        CategorySetFilter {
             filters: HashSet::new(),
             only_category: true,
         }
@@ -50,6 +51,7 @@ pub fn PostFiltersButton() -> impl IntoView {
                 <FiltersIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
             </button>
         </div>
+        // TODO change to dropdown instead of modal
         <ModalDialog
             class="w-full max-w-xl"
             show_dialog
@@ -87,31 +89,7 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                     class="toggle toggle-primary"
                     checked=true
                     node_ref=all_input_ref
-                    disabled=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
-                    on:change=move |_| if let Some(input_ref) = all_input_ref.get() {
-                        log::info!("All input: {}", input_ref.checked());
-                        match input_ref.checked() {
-                            true => {
-                                category_input_ref_map.with_value(|input_ref_map| {
-                                    for input_ref in input_ref_map.values() {
-                                        if let Some(input_ref) = input_ref.get() {
-                                            input_ref.set_checked(false);
-                                        }
-                                    }
-                                });
-                                if let Some(input_ref) = only_category_input_ref.get() {
-                                    input_ref.set_checked(false);
-                                }
-                                sphere_state.sphere_category_filter.set(SphereCategoryFilter::All);
-                            },
-                            false => {
-                                if let Some(input_ref) = only_category_input_ref.get() {
-                                    input_ref.set_checked(true);
-                                }
-                                sphere_state.sphere_category_filter.set(SphereCategoryFilter::CategorySet(CategoryFilterSet::default()));
-                            },
-                        }
-                    }
+                    on:change=move |_| on_change_all_category_input(sphere_state.sphere_category_filter, all_input_ref, only_category_input_ref, category_input_ref_map)
                 />
             </label>
             <div class="w-full border-b border-0.5 border-base-content/20"/>
@@ -124,7 +102,6 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                         input_ref_map.insert(sphere_category.category_id, category_input_ref);
                     });
                     let category_id = sphere_category.category_id;
-                    let category_name = sphere_category.category_name.clone();
                     view! {
                         <label class="cursor-pointer flex justify-between">
                             <span class="label">
@@ -135,48 +112,7 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                                 class="toggle toggle-secondary"
                                 checked=false
                                 node_ref=category_input_ref
-                                on:change=move |_| if let Some(input_ref) = category_input_ref.get() {
-                                    log::info!("Category {} input: {}", category_name, input_ref.checked());
-                                    match input_ref.checked() {
-                                        true => {
-                                            sphere_state.sphere_category_filter.update(|filter| {
-                                                match filter {
-                                                    SphereCategoryFilter::All => {
-                                                        if let Some(all_input_ref) = all_input_ref.get() {
-                                                            all_input_ref.set_checked(false);
-                                                        }
-                                                        if let Some(input_ref) = only_category_input_ref.get() {
-                                                            input_ref.set_checked(true);
-                                                        }
-                                                        *filter = SphereCategoryFilter::CategorySet(CategoryFilterSet {
-                                                            filters: HashSet::from([category_id]),
-                                                            only_category: true,
-                                                        })
-                                                    },
-                                                    SphereCategoryFilter::CategorySet(ref mut filter_set) => {
-                                                        filter_set.filters.insert(category_id);
-                                                    },
-                                                }
-                                            });
-                                        },
-                                        false => {
-                                            sphere_state.sphere_category_filter.update(|filter| {
-                                                if let SphereCategoryFilter::CategorySet(ref mut filter_set) = filter {
-                                                    filter_set.filters.remove(&category_id);
-                                                    if filter_set.filters.is_empty() {
-                                                        *filter = SphereCategoryFilter::All;
-                                                        if let Some(all_input_ref) = all_input_ref.get() {
-                                                            all_input_ref.set_checked(true);
-                                                        }
-                                                        if let Some(input_ref) = only_category_input_ref.get() {
-                                                            input_ref.set_checked(false);
-                                                        }
-                                                    }
-                                                }
-                                            })
-                                        },
-                                    }
-                                }
+                                on:change=move |_| on_change_category_input(sphere_state.sphere_category_filter, all_input_ref, only_category_input_ref, category_input_ref, category_id)
                             />
                         </label>
                     }
@@ -191,25 +127,104 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                     checked=false
                     node_ref=only_category_input_ref
                     disabled=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
-                    on:click=move |_| if let Some(input_ref) = only_category_input_ref.get() {
-                        match input_ref.checked() {
-                            true => {
-                                sphere_state.sphere_category_filter.update(|filter| match filter {
-                                    SphereCategoryFilter::All => *filter = SphereCategoryFilter::CategorySet(CategoryFilterSet::default()),
-                                    SphereCategoryFilter::CategorySet(filter_set) => filter_set.only_category = true,
-                                });
-                            },
-                            false => {
-                                sphere_state.sphere_category_filter.update(|filter| {
-                                    if let SphereCategoryFilter::CategorySet(ref mut filter_set) = filter {
-                                        filter_set.only_category = false;
-                                    }
-                                })
-                            },
-                        }
-                    }
+                    on:change=move |_| on_change_only_category_input(sphere_state.sphere_category_filter, only_category_input_ref)
                 />
             </label>
         </div>
+    }
+}
+
+fn on_change_all_category_input(
+    sphere_category_filter: RwSignal<SphereCategoryFilter>,
+    all_input_ref: NodeRef<Input>,
+    only_category_input_ref: NodeRef<Input>,
+    category_input_ref_map: StoredValue<HashMap<i64, NodeRef<Input>>>,
+) {
+    if let Some(input_ref) = all_input_ref.get() {
+        match input_ref.checked() {
+            true => {
+                category_input_ref_map.with_value(|input_ref_map| {
+                    for input_ref in input_ref_map.values() {
+                        if let Some(input_ref) = input_ref.get() {
+                            input_ref.set_checked(false);
+                        }
+                    }
+                });
+                if let Some(input_ref) = only_category_input_ref.get() {
+                    input_ref.set_checked(false);
+                }
+                sphere_category_filter.set(SphereCategoryFilter::All);
+            },
+            false => {
+                sphere_category_filter.set(SphereCategoryFilter::CategorySet(CategorySetFilter {
+                    filters: Default::default(),
+                    only_category: false,
+                }));
+            },
+        }
+    }
+}
+
+fn on_change_category_input(
+    sphere_category_filter: RwSignal<SphereCategoryFilter>,
+    all_input_ref: NodeRef<Input>,
+    only_category_input_ref: NodeRef<Input>,
+    category_input_ref: NodeRef<Input>,
+    category_id: i64,
+) {
+    if let Some(input_ref) = category_input_ref.get() {
+        match input_ref.checked() {
+            true => {
+                sphere_category_filter.update(|filter| {
+                    match filter {
+                        SphereCategoryFilter::All => {
+                            if let Some(all_input_ref) = all_input_ref.get() {
+                                all_input_ref.set_checked(false);
+                            }
+                            if let Some(input_ref) = only_category_input_ref.get() {
+                                input_ref.set_checked(true);
+                            }
+                            *filter = SphereCategoryFilter::CategorySet(CategorySetFilter {
+                                filters: HashSet::from([category_id]),
+                                only_category: true,
+                            })
+                        },
+                        SphereCategoryFilter::CategorySet(ref mut filter_set) => {
+                            filter_set.filters.insert(category_id);
+                        },
+                    }
+                });
+            },
+            false => {
+                sphere_category_filter.update(|filter| {
+                    if let SphereCategoryFilter::CategorySet(ref mut filter_set) = filter {
+                        filter_set.filters.remove(&category_id);
+                    }
+                })
+            },
+        }
+    }
+}
+
+fn on_change_only_category_input(
+    sphere_category_filter: RwSignal<SphereCategoryFilter>,
+    only_category_input_ref: NodeRef<Input>,
+) {
+    if let Some(input_ref) = only_category_input_ref.get() {
+        match input_ref.checked() {
+            true => {
+                sphere_category_filter.update(|filter| match filter {
+                    SphereCategoryFilter::All => *filter = SphereCategoryFilter::CategorySet(CategorySetFilter::default()),
+                    SphereCategoryFilter::CategorySet(filter_set) => filter_set.only_category = true,
+                });
+            },
+            false => {
+                sphere_category_filter.update(|filter| {
+                    if let SphereCategoryFilter::CategorySet(ref mut filter_set) = filter {
+                        filter_set.only_category = false;
+                    }
+                })
+            },
+        }
     }
 }

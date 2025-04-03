@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet};
-use leptos::html;
 use leptos::html::Input;
 use leptos::prelude::*;
-use leptos_use::on_click_outside;
 use serde::{Deserialize, Serialize};
 use sharesphere_utils::icons::{FiltersIcon};
 use sharesphere_utils::unpack::SuspenseUnpack;
-use sharesphere_utils::widget::ModalDialog;
+use sharesphere_utils::widget::{Dropdown};
 use crate::sphere_category::{SphereCategoryBadge};
 use crate::state::SphereState;
 
@@ -35,40 +33,28 @@ impl Default for CategorySetFilter {
 /// Button to open post filters modal window
 #[component]
 pub fn PostFiltersButton() -> impl IntoView {
-    let show_dialog = RwSignal::new(false);
-    let modal_ref = NodeRef::<html::Div>::new();
-    let _ = on_click_outside(modal_ref, move |_| show_dialog.set(false));
-    let button_class = move || match show_dialog.get() {
+    let show_dropdown = RwSignal::new(false);
+    let button_class = move || match show_dropdown.get() {
         true => "btn max-2xl:btn-sm btn-primary",
         false => "btn max-2xl:btn-sm btn-ghost",
     };
     view! {
-        <div class="tooltip" data-tip="Filters">
-            <button
-                class=button_class
-                on:click=move |_| show_dialog.update(|value| *value = !*value)
-            >
-                <FiltersIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
-            </button>
-        </div>
-        // TODO change to dropdown instead of modal
-        <ModalDialog
-            class="w-full max-w-xl"
-            show_dialog
-            modal_ref
-        >
-            <div class="bg-base-100 shadow-xl w-fit p-3 rounded-xs flex flex-col gap-3">
-                <div class="text-center font-bold text-2xl">"Post filters"</div>
-                <SphereCategoryFilter/>
+        <div class="h-full relative">
+            <div class="tooltip" data-tip="Filters">
                 <button
-                    type="button"
-                    class="btn btn-error"
-                    on:click=move |_| show_dialog.set(false)
+                    class=button_class
+                    on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
-                    "Close"
+                    <FiltersIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
                 </button>
             </div>
-        </ModalDialog>
+            <Dropdown show_dropdown>
+                <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
+                    <div class="text-center font-bold text-2xl">"Post filters"</div>
+                    <SphereCategoryFilter/>
+                </div>
+            </Dropdown>
+        </div>
     }
 }
 
@@ -81,7 +67,7 @@ pub fn SphereCategoryFilter() -> impl IntoView {
     let category_input_ref_map = StoredValue::new(HashMap::<i64, NodeRef<Input>>::new());
     view! {
         <div class="flex flex-col gap-1">
-            <div class="text-center font-bold text-xl">"Sphere categories"</div>
+            <div class="text-center font-bold text-xl whitespace-nowrap">"Sphere categories"</div>
             <label class="cursor-pointer flex justify-between">
                 <span class="label">"All"</span>
                 <input

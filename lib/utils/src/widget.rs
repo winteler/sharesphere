@@ -54,6 +54,64 @@ pub fn ModalDialog(
     }.into_any()
 }
 
+/// Button that displays its children in a dropdown when clicked
+#[component]
+pub fn DropdownButton<C: IntoView + 'static>(
+    #[prop(default="btn btn-circle btn-sm btn-ghost")]
+    button_class: &'static str,
+    #[prop(default="btn btn-circle btn-sm btn-primary")]
+    activated_button_class: &'static str,
+    #[prop(into)]
+    button_content: ViewFn,
+    children: TypedChildrenFn<C>,
+    #[prop(optional)]
+    dropdown_ref: NodeRef<html::Div>,
+) -> impl IntoView {
+    let show_dropdown = RwSignal::new(false);
+
+    let button_class = move || match show_dropdown.get() {
+        true => activated_button_class,
+        false => button_class,
+    };
+
+    view! {
+        <div class="h-full relative">
+            <button
+                class=button_class
+                on:click= move |_| show_dropdown.update(|value| *value = !*value)
+            >
+                {button_content.run()}
+            </button>
+            <Dropdown show_dropdown children dropdown_ref/>
+        </div>
+    }.into_any()
+}
+
+/// Component that displays its children in a dropdown when the input show_dropdown is true
+#[component]
+pub fn Dropdown<C: IntoView + 'static>(
+    show_dropdown: RwSignal<bool>,
+    children: TypedChildrenFn<C>,
+    #[prop(optional)]
+    dropdown_ref: NodeRef<html::Div>,
+) -> impl IntoView {
+    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+
+    let children = StoredValue::new(children.into_inner());
+
+    view! {
+        <Show when=show_dropdown>
+            <div class="absolute z-10 origin-bottom-left w-fit" node_ref=dropdown_ref>
+                <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 w-fit">
+                {
+                    children.with_value(|children| children())
+                }
+                </div>
+            </div>
+        </Show>
+    }.into_any()
+}
+
 /// Form to update query parameter `query_param` with the value `title` upon clicking
 #[component]
 fn QueryTab(
@@ -170,38 +228,11 @@ where
 pub fn DotMenu<C: IntoView + 'static>(
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
-    let show_menu = RwSignal::new(false);
-    let dropdown_ref = NodeRef::<html::Div>::new();
-    let _ = on_click_outside(dropdown_ref, move |_| show_menu.set(false));
-
-    let button_class = move || match show_menu.get() {
-        true => "btn btn-circle btn-sm btn-primary",
-        false => "btn btn-circle btn-sm btn-ghost",
-    };
-
-    let children = StoredValue::new(children.into_inner());
-
     view! {
-        <div
-            class="h-full relative"
-            node_ref=dropdown_ref
-        >
-            <button
-                class=button_class
-                on:click= move |_| show_menu.update(|value| *value = !*value)
-            >
-                <DotMenuIcon/>
-            </button>
-            <Show when=show_menu>
-                <div class="absolute z-10 origin-bottom-left">
-                    <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 w-fit">
-                    {
-                        children.with_value(|children| children())
-                    }
-                    </div>
-                </div>
-            </Show>
-        </div>
+        <DropdownButton
+            button_content=move || view! { <DotMenuIcon/> }
+            children
+        />
     }.into_any()
 }
 

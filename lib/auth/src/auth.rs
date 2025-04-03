@@ -108,7 +108,6 @@ pub mod ssr {
     }
 
     pub fn get_oidc_http_client() -> Result<Client, AppError> {
-
         let http_client = reqwest::ClientBuilder::new()
             // Following redirects opens the client up to SSRF vulnerabilities.
             .redirect(reqwest::redirect::Policy::none())
@@ -322,7 +321,6 @@ pub mod ssr {
 
     pub async fn redirect_to_oidc_provider(redirect_url: String) -> Result<(), AppError> {
         let client = get_oidc_client(&get_oidc_http_client()?).await?;
-
         // Generate the full authorization URL.
         let (auth_url, _csrf_token, nonce) = client
             .authorize_url(

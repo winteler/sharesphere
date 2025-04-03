@@ -141,39 +141,41 @@ where
         false => "btn btn-circle btn-sm hover:bg-base-content/20",
     };
     view! {
-        <Show when=show_button>
-            <div>
-                <button
-                    class=delete_button_class
-                    aria-expanded=move || show_form.get().to_string()
-                    aria-haspopup="dialog"
-                    on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)
-                >
-                    <DeleteIcon/>
-                </button>
-                <ModalDialog
-                    class="w-full flex justify-center"
-                    show_dialog=show_form
-                >
-                    <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-5 w-96">
-                        <div class="text-center font-bold text-2xl">{title}</div>
-                        <div class="text-center font-bold text-xl">"This cannot be undone."</div>
-                        <ActionForm action=delete_action>
-                            <input
-                                name=id_name
-                                class="hidden"
-                                value=id
-                            />
-                            <ModalFormButtons
-                                disable_publish=false
-                                show_form
-                            />
-                        </ActionForm>
-                        <ActionError action=delete_action.into()/>
-                    </div>
-                </ModalDialog>
-            </div>
-        </Show>
+        <Suspense>
+            <Show when=show_button>
+                <div>
+                    <button
+                        class=delete_button_class
+                        aria-expanded=move || show_form.get().to_string()
+                        aria-haspopup="dialog"
+                        on:click=move |_| show_form.update(|show: &mut bool| *show = !*show)
+                    >
+                        <DeleteIcon/>
+                    </button>
+                    <ModalDialog
+                        class="w-full flex justify-center"
+                        show_dialog=show_form
+                    >
+                        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-5 w-96">
+                            <div class="text-center font-bold text-2xl">{title}</div>
+                            <div class="text-center font-bold text-xl">"This cannot be undone."</div>
+                            <ActionForm action=delete_action>
+                                <input
+                                    name=id_name
+                                    class="hidden"
+                                    value=id
+                                />
+                                <ModalFormButtons
+                                    disable_publish=false
+                                    show_form
+                                />
+                            </ActionForm>
+                            <ActionError action=delete_action.into()/>
+                        </div>
+                    </ModalDialog>
+                </div>
+            </Show>
+        </Suspense>
     }
 }
 

@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
-use leptos::html::Input;
+use leptos::html::{Div, Input};
 use leptos::prelude::*;
+use leptos_use::on_click_outside;
 use serde::{Deserialize, Serialize};
 use sharesphere_utils::icons::{FiltersIcon};
 use sharesphere_utils::unpack::SuspenseUnpack;
@@ -34,12 +35,14 @@ impl Default for CategorySetFilter {
 #[component]
 pub fn PostFiltersButton() -> impl IntoView {
     let show_dropdown = RwSignal::new(false);
+    let dropdown_ref = NodeRef::<Div>::new();
+    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
     let button_class = move || match show_dropdown.get() {
         true => "btn max-2xl:btn-sm btn-primary",
         false => "btn max-2xl:btn-sm btn-ghost",
     };
     view! {
-        <div class="h-full relative">
+        <div class="h-full relative" node_ref=dropdown_ref>
             <div class="tooltip" data-tip="Filters">
                 <button
                     class=button_class

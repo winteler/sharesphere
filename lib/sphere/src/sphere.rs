@@ -107,6 +107,11 @@ pub fn SphereBanner() -> impl IntoView {
 
     let sphere_path = move || get_sphere_path(&sphere_name.get());
 
+    Effect::new(move || {
+        sphere_name.read();
+        sphere_state.sphere_category_filter.set(SphereCategoryFilter::All);
+    });
+
     view! {
         <div class="flex flex-col gap-2 pt-2 px-2 w-full">
             <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>

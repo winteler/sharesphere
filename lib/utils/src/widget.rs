@@ -68,6 +68,7 @@ pub fn DropdownButton<C: IntoView + 'static>(
     dropdown_ref: NodeRef<html::Div>,
 ) -> impl IntoView {
     let show_dropdown = RwSignal::new(false);
+    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
 
     let button_class = move || match show_dropdown.get() {
         true => activated_button_class,
@@ -75,14 +76,14 @@ pub fn DropdownButton<C: IntoView + 'static>(
     };
 
     view! {
-        <div class="h-full relative">
+        <div class="h-full relative" node_ref=dropdown_ref>
             <button
                 class=button_class
                 on:click= move |_| show_dropdown.update(|value| *value = !*value)
             >
                 {button_content.run()}
             </button>
-            <Dropdown show_dropdown children dropdown_ref/>
+            <Dropdown show_dropdown children/>
         </div>
     }.into_any()
 }
@@ -92,16 +93,12 @@ pub fn DropdownButton<C: IntoView + 'static>(
 pub fn Dropdown<C: IntoView + 'static>(
     show_dropdown: RwSignal<bool>,
     children: TypedChildrenFn<C>,
-    #[prop(optional)]
-    dropdown_ref: NodeRef<html::Div>,
 ) -> impl IntoView {
-    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
-
     let children = StoredValue::new(children.into_inner());
 
     view! {
         <Show when=show_dropdown>
-            <div class="absolute z-10 origin-bottom-left w-fit" node_ref=dropdown_ref>
+            <div class="absolute z-10 origin-bottom-left w-fit">
                 <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 w-fit">
                 {
                     children.with_value(|children| children())

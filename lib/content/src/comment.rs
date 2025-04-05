@@ -186,9 +186,9 @@ pub fn CommentBox(
     let is_pinned = Signal::derive(move || comment.read().is_pinned);
     let sidebar_css = move || {
         if *maximize.read() {
-            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-start items-center gap-1"
+            "2xl:p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-start items-center gap-1"
         } else {
-            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-center items-center"
+            "2xl:p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-center items-center"
         }
     };
     let color_bar_css = format!(
@@ -197,7 +197,7 @@ pub fn CommentBox(
     );
 
     view! {
-        <div class="flex gap-1 py-1">
+        <div class="flex 2xl:gap-1 py-1">
             <div
                 class=sidebar_css
                 on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
@@ -290,28 +290,27 @@ pub fn CommentWidgetBar(
             />
             {
                 move || is_active.get().then_some(view! {
+                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
+                })
+            }
+            <ModeratorWidget moderator/>
+            <TimeSinceWidget timestamp/>
+            <TimeSinceEditWidget edit_timestamp/>
+            <DotMenu>
+                { move || is_active.get().then_some(view!{
                     <EditCommentButton
                         comment_id
                         author_id
                         comment
                     />
-                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
                     <ModerateCommentButton
                         comment_id
                         comment
                     />
-                })
-            }
-            <ModerationInfoButton content/>
-            <ModeratorWidget moderator/>
-            <TimeSinceWidget timestamp/>
-            <TimeSinceEditWidget edit_timestamp/>
-            { move || is_active.get().then_some(view!{
-                    <DotMenu>
-                        <DeleteCommentButton comment_id author_id comment/>
-                    </DotMenu>
-                })
-            }
+                    <DeleteCommentButton comment_id author_id comment/>
+                })}
+                <ModerationInfoButton content/>
+            </DotMenu>
         </div>
     }.into_any()
 }
@@ -326,17 +325,17 @@ pub fn CommentButton(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "p-2 rounded-full bg-primary hover:bg-base-200 active:scale-95 transition duration-250",
-        false => "p-2 rounded-full hover:bg-base-200 active:scale-95 transition duration-250",
+        true => "button-primary-active",
+        false => "button-ghost",
     });
 
     view! {
-        <div>
+        <div class="flex items-center">
             <LoginGuardedOpenModalButton
                 show_dialog
                 button_class=comment_button_class
             >
-                <AddCommentIcon/>
+                <AddCommentIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
             </LoginGuardedOpenModalButton>
             <CommentDialog
                 post_id
@@ -359,8 +358,8 @@ pub fn CommentButtonWithCount(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "p-1.5 rounded-full bg-primary hover:bg-base-200 active:scale-95 transition duration-250",
-        false => "p-1.5 rounded-full hover:bg-base-200 active:scale-95 transition duration-250",
+        true => "button-primary-active",
+        false => "button-ghost",
     });
 
     view! {
@@ -368,8 +367,8 @@ pub fn CommentButtonWithCount(
             show_dialog
             button_class=comment_button_class
         >
-            <div class="w-fit flex gap-1.5 items-center text-sm px-1">
-                <AddCommentIcon/>
+            <div class="w-fit flex gap-1.5 items-center text-sm">
+                <AddCommentIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
                 {count}
             </div>
         </LoginGuardedOpenModalButton>

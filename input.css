@@ -41,26 +41,23 @@
     --spacing-160: 40rem;
 }
 
-/* Don't make button's text uppercase, change default rounding */
-.btn {
-    text-transform: none;
-    @apply rounded-xs;
+.button-ghost {
+    @apply p-1 2xl:p-2 rounded-full hover:bg-base-300 active:scale-95 transition duration-250;
 }
 
-.btn-circle {
-    @apply rounded-full;
+.button-primary-active {
+    @apply p-1 2xl:p-2 rounded-full bg-primary active:scale-95 transition duration-100;
 }
 
-.input {
-    @apply rounded-xs;
+/* Styles for the spoiler blocks */
+.spoiler-checkbox {
 }
 
-.select {
-    @apply rounded-xs;
+.spoiler-text {
 }
 
-.checkbox {
-    @apply rounded-xs;
+.spoiler-checkbox:checked + .spoiler-text {
+    background-color: black;
 }
 
 /* class to remove spinner from number inputs */
@@ -95,17 +92,6 @@ input[type="number"].no-spinner {
 /* Handle */
 ::-webkit-scrollbar-thumb {
     background: #ffffff;
-}
-
-/* Styles for the spoiler blocks */
-.spoiler-checkbox {
-}
-
-.spoiler-text {
-}
-
-.spoiler-checkbox:checked + .spoiler-text {
-    background-color: black;
 }
 
 /* remove textarea scrollbar as we autoscale them */

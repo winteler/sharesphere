@@ -4,7 +4,8 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
-use leptos_use::on_click_outside;
+use leptos_use::{breakpoints_tailwind, on_click_outside, use_breakpoints};
+use leptos_use::BreakpointsTailwind::Xxl;
 use strum::IntoEnumIterator;
 
 use crate::constants::{
@@ -19,6 +20,34 @@ pub const IMAGE_FILE_PARAM: &str = "image";
 
 pub trait ToView {
     fn to_view(self) -> AnyView;
+}
+
+enum TimeScale {
+    Seconds,
+    Minutes,
+    Hours,
+    Days,
+    Months,
+    Years,
+}
+
+impl TimeScale {
+    pub fn to_str(&self, is_plural: bool, use_fullname: bool) -> &'static str {
+        match (use_fullname, self) {
+            (false, TimeScale::Seconds) => "s",
+            (false, TimeScale::Minutes) => "min",
+            (false, TimeScale::Hours) => "h",
+            (false, TimeScale::Days) => "d",
+            (false, TimeScale::Months) => "mo",
+            (false, TimeScale::Years) => "y",
+            (true, TimeScale::Seconds) => if is_plural { "seconds" } else { "second" },
+            (true, TimeScale::Minutes) => if is_plural { "minutes" } else { "minute" },
+            (true, TimeScale::Hours) => if is_plural { "hours" } else { "hour" },
+            (true, TimeScale::Days) => if is_plural { "days" } else { "day" },
+            (true, TimeScale::Months) => if is_plural { "months" } else { "month" },
+            (true, TimeScale::Years) => if is_plural { "years" } else { "year" },
+        }
+    }
 }
 
 /// Component that displays its children in a modal dialog
@@ -57,9 +86,9 @@ pub fn ModalDialog(
 /// Button that displays its children in a dropdown when clicked
 #[component]
 pub fn DropdownButton<C: IntoView + 'static>(
-    #[prop(default="btn btn-circle btn-sm btn-ghost")]
+    #[prop(default="button-ghost")]
     button_class: &'static str,
-    #[prop(default="btn btn-circle btn-sm btn-primary")]
+    #[prop(default="button-primary-active")]
     activated_button_class: &'static str,
     #[prop(into)]
     button_content: ViewFn,
@@ -227,7 +256,7 @@ pub fn DotMenu<C: IntoView + 'static>(
 ) -> impl IntoView {
     view! {
         <DropdownButton
-            button_content=move || view! { <DotMenuIcon/> }
+            button_content=move || view! { <DotMenuIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }
             children
         />
     }.into_any()
@@ -311,11 +340,12 @@ pub fn TimeSinceWidget(
     #[prop(into)]
     timestamp: Signal<chrono::DateTime<chrono::Utc>>
 ) -> impl IntoView {
+    let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Xxl);
     view! {
         <div class="flex gap-1.5 items-center text-sm px-1">
-            <ClockIcon/>
+            <ClockIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
             {
-                move || get_elapsed_time_string(timestamp.get())
+                move || get_elapsed_time_string(timestamp.get(), use_fullname.get())
             }
         </div>
     }.into_any()
@@ -327,12 +357,13 @@ pub fn TimeSinceEditWidget(
     #[prop(into)]
     edit_timestamp: Signal<Option<chrono::DateTime<chrono::Utc>>>
 ) -> impl IntoView {
+    let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Xxl);
     view! {
         <Show when=move || edit_timestamp.read().is_some()>
             <div class="flex gap-1.5 items-center text-sm px-1">
-                <EditTimeIcon/>
+                <EditTimeIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
                 {
-                    move || get_elapsed_time_string(edit_timestamp.get().unwrap())
+                    move || get_elapsed_time_string(edit_timestamp.get().unwrap(), use_fullname.get())
                 }
             </div>
         </Show>
@@ -374,7 +405,7 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
 /// Component to display a "minimize" or "maximize" icon with transitions
 #[component]
 pub fn MinimizeMaximizeWidget(
-    is_maximized: RwSignal<bool>
+    is_maximized: RwSignal<bool>,
 ) -> impl IntoView {
     let invisible_class = "transition opacity-0 invisible h-0 w-0";
     let visible_class = "transition rotate-90 duration-300 opacity-100 visible";
@@ -389,10 +420,10 @@ pub fn MinimizeMaximizeWidget(
     view! {
         <div>
             <div class=minimize_class>
-                <MinimizeIcon/>
+                <MinimizeIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/>
             </div>
             <div class=maximize_class>
-                <MaximizeIcon/>
+                <MaximizeIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/>
             </div>
         </div>
     }
@@ -550,30 +581,31 @@ pub fn LoadIndicators(
 
 fn get_elapsed_time_string(
     timestamp: chrono::DateTime<chrono::Utc>,
+    use_fullname: bool,
 ) -> String {
     let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
     let seconds = elapsed_time.num_seconds();
     match seconds {
-        seconds if seconds < SECONDS_IN_MINUTE => format!("{} {}", seconds, if seconds == 1 { "second" } else { "seconds" }),
+        seconds if seconds < SECONDS_IN_MINUTE => format!("{} {}", seconds, TimeScale::Seconds.to_str(seconds > 1, use_fullname)),
         seconds if seconds < SECONDS_IN_HOUR => {
             let minutes = seconds / SECONDS_IN_MINUTE;
-            format!("{} {}", minutes, if minutes == 1 { "minute" } else { "minutes" })
+            format!("{} {}", minutes, TimeScale::Minutes.to_str(minutes > 1, use_fullname))
         }
         seconds if seconds < SECONDS_IN_DAY => {
             let hours = seconds / SECONDS_IN_HOUR;
-            format!("{} {}", hours, if hours == 1 { "hour" } else { "hours" })
+            format!("{} {}", hours, TimeScale::Hours.to_str(hours > 1, use_fullname))
         }
         seconds if seconds < SECONDS_IN_MONTH => {
             let days = seconds / SECONDS_IN_DAY;
-            format!("{} {}", days, if days == 1 { "day" } else { "days" })
+            format!("{} {}", days, TimeScale::Days.to_str(days > 1, use_fullname))
         }
         seconds if seconds < SECONDS_IN_YEAR => {
             let months = seconds / SECONDS_IN_MONTH;
-            format!("{} {}", months, if months == 1 { "month" } else { "months" })
+            format!("{} {}", months, TimeScale::Months.to_str(months > 1, use_fullname))
         }
         _ => {
             let years = seconds / SECONDS_IN_YEAR;
-            format!("{} {}", years, if years == 1 { "year" } else { "years" })
+            format!("{} {}", years, TimeScale::Years.to_str(years > 1, use_fullname))
         }
     }
 }

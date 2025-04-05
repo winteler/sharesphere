@@ -57,7 +57,7 @@ pub fn AuthorWidget(
 
     view! {
         <button
-            class="flex p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-200"
+            class="flex p-1 2xl:p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-200"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(author_profile_path.as_str(), NavigateOptions::default());
@@ -65,15 +65,15 @@ pub fn AuthorWidget(
             aria-label=aria_label
         >
             { move || if is_moderator {
-                    view! { <ModeratorAuthorIcon/> }.into_any()
+                    view! { <ModeratorAuthorIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }.into_any()
                 } else {
                     view! {
-                        <Transition fallback=move || view! { <LoadingIcon/> }>
+                        <Transition fallback=move || view! { <LoadingIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }>
                         {
                             move || Suspend::new(async move {
                                 match &user_state.user.await {
-                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
-                                    _ => view! { <AuthorIcon/> }.into_any(),
+                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }.into_any(),
+                                    _ => view! { <AuthorIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }.into_any(),
                                 }
                             })
                         }

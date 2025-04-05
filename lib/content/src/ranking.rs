@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use sharesphere_utils::icons::{MinusIcon, PlusIcon, ScoreIcon};
+use sharesphere_utils::icons::{MinusIcon, PlusIcon};
 use sharesphere_auth::auth::{LoginGuardedButton};
 use sharesphere_core::ranking::{Vote, VoteOnContent, VoteValue};
 
@@ -11,9 +11,8 @@ pub fn DynScoreIndicator(
     score: Signal<i32>
 ) -> impl IntoView {
     view! {
-        <div class="flex rounded-btn gap-1 items-center">
-            <ScoreIcon/>
-            <div class="w-fit text-sm text-right">
+        <div class="flex items-center">
+            <div class="w-fit text-sm">
                 {move || score.get()}
             </div>
         </div>
@@ -68,7 +67,7 @@ pub fn VotePanel(
                     );
                 }
             >
-                <PlusIcon/>
+                <PlusIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
             </LoginGuardedButton>
             <DynScoreIndicator score=score/>
             <LoginGuardedButton
@@ -86,7 +85,7 @@ pub fn VotePanel(
                     );
                 }
             >
-                <MinusIcon/>
+                <MinusIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
             </LoginGuardedButton>
         </div>
     }.into_any()

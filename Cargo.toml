@@ -25,7 +25,7 @@ leptos_router = { version = "0.7.7", features = ["nightly"] }
 leptos_axum = { version = "0.7.7" }
 server_fn = { version = "0.7.7", features = ["multipart"] }
 
-leptos-use = { version = "0.15.1", features = ["use_textarea_autosize"] }
+leptos-use = { version = "0.15.1", features = ["use_breakpoints", "use_textarea_autosize"] }
 
 anyhow = "*"
 axum = {  version = "0.7", features = [ "macros" ] }

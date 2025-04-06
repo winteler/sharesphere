@@ -86,9 +86,9 @@ pub fn ModalDialog(
 /// Button that displays its children in a dropdown when clicked
 #[component]
 pub fn DropdownButton<C: IntoView + 'static>(
-    #[prop(default="button-ghost")]
+    #[prop(default="button-rounded-ghost")]
     button_class: &'static str,
-    #[prop(default="button-primary-active")]
+    #[prop(default="button-rounded-primary")]
     activated_button_class: &'static str,
     #[prop(into)]
     button_content: ViewFn,
@@ -393,7 +393,7 @@ pub fn ContentBody(
 #[component]
 pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
-        <div class="w-fit flex rounded-btn px-1 gap-1 items-center">
+        <div class="w-fit px-1 flex gap-1 items-center">
             <ScoreIcon/>
             <div class="text-sm">
                 {score}
@@ -442,14 +442,14 @@ pub fn ModalFormButtons(
         <div class="flex justify-between gap-2">
             <button
                 type="button"
-                class="btn btn-error"
+                class="button-error"
                 on:click=move |_| show_form.set(false)
             >
                 "Cancel"
             </button>
             <button
                 type="submit"
-                class="btn btn-secondary"
+                class="button-secondary"
                 disabled=disable_publish
             >
                 "Submit"

@@ -221,7 +221,7 @@ pub fn UserSettings() -> impl IntoView {
                                     value=days_hide_spoiler
                                 />
                             </div>
-                            <button type="submit" class="btn btn-secondary">
+                            <button type="submit" class="button-secondary">
                                 "Save"
                             </button>
                         </ActionForm>
@@ -245,7 +245,7 @@ pub fn DeleteUserButton() -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     view! {
         <button
-            class="btn btn-error"
+            class="button-error"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             "Delete your account"
@@ -275,7 +275,7 @@ pub fn UserAccountButton() -> impl IntoView {
     let navigate_to_account_action = ServerAction::<NavigateToUserAccount>::new();
     view! {
         <ActionForm action=navigate_to_account_action attr:class="flex justify-center items-center">
-            <button type="submit" class="btn btn-primary flex">
+            <button type="submit" class="button-primary flex">
                 <UserSettingsIcon/>
                 "Account"
             </button>

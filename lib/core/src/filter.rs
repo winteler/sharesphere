@@ -38,8 +38,8 @@ pub fn PostFiltersButton() -> impl IntoView {
     let dropdown_ref = NodeRef::<Div>::new();
     let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
     let button_class = move || match show_dropdown.get() {
-        true => "btn max-2xl:btn-sm btn-primary",
-        false => "btn max-2xl:btn-sm btn-ghost",
+        true => "button-primary",
+        false => "button-ghost",
     };
     view! {
         <div class="h-full relative" node_ref=dropdown_ref>
@@ -48,7 +48,7 @@ pub fn PostFiltersButton() -> impl IntoView {
                     class=button_class
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
-                    <FiltersIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
+                    <FiltersIcon/>
                 </button>
             </div>
             <Dropdown show_dropdown>

@@ -325,8 +325,8 @@ pub fn CommentButton(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "button-primary-active",
-        false => "button-ghost",
+        true => "button-rounded-primary",
+        false => "button-rounded-ghost",
     });
 
     view! {
@@ -358,8 +358,8 @@ pub fn CommentButtonWithCount(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "button-primary-active",
-        false => "button-ghost",
+        true => "button-rounded-primary",
+        false => "button-rounded-ghost",
     });
 
     view! {
@@ -481,8 +481,8 @@ pub fn EditCommentButton(
         _ => false,
     };
     let comment_button_class = move || match show_dialog.get() {
-        true => "btn btn-circle btn-sm btn-primary",
-        false => "btn btn-circle btn-sm btn-ghost",
+        true => "button-rounded-primary",
+        false => "button-rounded-ghost",
     };
 
     view! {

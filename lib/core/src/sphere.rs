@@ -391,7 +391,7 @@ pub fn SphereHeader(
         <div
             class="w-fit flex gap-1.5 items-center"
         >
-            <SphereIcon icon_url=sphere_header.icon_url class="h-5 w-5"/>
+            <SphereIcon icon_url=sphere_header.icon_url class="content-toolbar-icon-size"/>
             <span class="pt-1 pb-1.5 text-sm">{sphere_header.sphere_name}</span>
         </div>
     }
@@ -408,7 +408,7 @@ pub fn SphereHeaderLink(
     let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
     view! {
         <button
-            class="px-2 rounded-full hover:bg-base-200"
+            class="button-rounded-ghost"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(sphere_path.as_str(), NavigateOptions::default());

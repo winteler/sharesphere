@@ -141,7 +141,7 @@ pub fn SetCategoryForm(
                     <button
                         type="submit"
                         disabled=disable_submit
-                        class="btn btn-secondary btn-sm p-1 self-center"
+                        class="button-secondary self-center"
                     >
                         <SaveIcon/>
                     </button>

@@ -221,7 +221,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
                             category_vec_resource
                         />
                     </SuspenseUnpack>
-                    <button type="submit" class="btn btn-secondary" disabled=move || {
+                    <button type="submit" class="button-secondary" disabled=move || {
                         title_input.read().is_empty() ||
                         (
                             body_data.content.read().is_empty() &&

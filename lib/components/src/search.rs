@@ -59,7 +59,7 @@ pub fn SearchButton() -> impl IntoView
     view! {
         <Form method="GET" action=SEARCH_ROUTE>
             <input name=SEARCH_TAB_QUERY_PARAM value=tab class="hidden"/>
-            <button class="btn btn-ghost btn-circle">
+            <button class="button-rounded-ghost">
                 <MagnifierIcon/>
             </button>
         </Form>

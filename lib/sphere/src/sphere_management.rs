@@ -129,7 +129,7 @@ pub fn SphereDescriptionForm<'a>(
             />
             <button
                 type="submit"
-                class="btn btn-secondary btn-sm p-1 self-end"
+                class="button-secondary self-end"
                 disabled=disable_submit
             >
                 <SaveIcon/>
@@ -255,7 +255,7 @@ pub fn SphereImageForm(
             </Show>
             <button
                 type="submit"
-                class="btn btn-secondary btn-sm p-1 self-end"
+                class="button-secondary self-end"
             >
                 <SaveIcon/>
             </button>
@@ -410,7 +410,7 @@ pub fn PermissionLevelForm(
                     />
                     <button
                         type="submit"
-                        class="btn btn-secondary"
+                        class="button-secondary"
                         disabled=disable_submit
                     >
                         "Assign"

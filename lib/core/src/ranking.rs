@@ -365,13 +365,13 @@ pub fn SortWidgetOption(
     let is_selected = move || sort_signal.read() == sort_type;
     let class = move || {
         match is_selected() {
-            true => "btn btn-ghost max-2xl:btn-sm join-item border border-1 border-white",
-            false => "btn btn-ghost max-2xl:btn-sm join-item hover:border hover:border-1 hover:border-white",
+            true => "button-ghost !rounded-none !px-3 border border-1 border-white join-item",
+            false => "button-ghost !rounded-none !px-3 border border-1 border-base-100 hover:border-white join-item",
         }
     };
 
     view! {
-        <div class="tooltip" data-tip=datatip>
+        <div class="tooltip rounded-none" data-tip=datatip>
             <button
                 class=class
                 on:click=move |_| {
@@ -392,18 +392,18 @@ pub fn PostSortWidget(
     sort_signal: RwSignal<SortType>
 ) -> impl IntoView {
     view! {
-        <div class="join rounded-none">
+        <div class="join rounded-none w-fit">
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) sort_signal datatip="Hot">
-                <FlameIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
+                <FlameIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) sort_signal datatip="Trending">
-                <GraphIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
+                <GraphIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) sort_signal datatip="Best">
-                <PodiumIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
+                <PodiumIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) sort_signal datatip="Recent">
-                <HourglassIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
+                <HourglassIcon/>
             </SortWidgetOption>
         </div>
     }.into_any()
@@ -415,12 +415,12 @@ pub fn CommentSortWidget(
     sort_signal: RwSignal<SortType>
 ) -> impl IntoView {
     view! {
-        <div class="join rounded-none">
+        <div class="join rounded-none w-fit">
             <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) sort_signal datatip="Best">
-                <PodiumIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
+                <PodiumIcon/>
             </SortWidgetOption>
             <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) sort_signal datatip="Recent">
-                <HourglassIcon class="h-4 w-4 2xl:h-7 2xl:w-7"/>
+                <HourglassIcon/>
             </SortWidgetOption>
         </div>
     }.into_any()

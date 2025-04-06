@@ -9,9 +9,9 @@
     --color-base-200: oklch(22% 0.045 245);
     --color-base-300: oklch(0 0 0);
     --color-base-content: oklch(1 0 0);
-    --color-primary: oklch(66.31% 0.1509 239.62);
+    --color-primary: oklch(66% 0.15 240);
     --color-primary-content: oklch(1 0 0);
-    --color-secondary: oklch(52.73% 0.1371 150.07);
+    --color-secondary: oklch(52.5% 0.14 150);
     --color-secondary-content: oklch(1 0 0);
     --color-accent: oklch(77% 0.152 181.912);
     --color-accent-content: oklch(38% 0.063 188.416);
@@ -39,14 +39,54 @@
     --spacing-124: 31rem;
     --spacing-128: 32rem;
     --spacing-160: 40rem;
+
+    --color-primary-hover: oklch(46% 0.15 240);
+    --color-secondary-hover: oklch(32.5% 0.14 150);
+    --color-error-hover: oklch(32% 0.245 27.325);
 }
 
 .button-ghost {
+    @apply p-1 2xl:p-2 rounded-xs hover:bg-base-300 active:scale-95 transition duration-250;
+}
+
+.button-primary {
+    @apply p-1 2xl:p-2 rounded-xs bg-primary hover:bg-primary-hover active:scale-95 transition duration-250;
+}
+
+.button-secondary {
+    @apply p-1 2xl:p-2 rounded-xs bg-secondary hover:bg-secondary-hover active:scale-95 transition duration-250;
+}
+
+.button-error {
+    @apply p-1 2xl:p-2 rounded-xs bg-error hover:bg-error-hover active:scale-95 transition duration-250;
+}
+
+.button-rounded-ghost {
     @apply p-1 2xl:p-2 rounded-full hover:bg-base-300 active:scale-95 transition duration-250;
 }
 
-.button-primary-active {
-    @apply p-1 2xl:p-2 rounded-full bg-primary active:scale-95 transition duration-100;
+.button-rounded-primary {
+    @apply p-1 2xl:p-2 rounded-full bg-primary hover:bg-primary-hover active:scale-95 transition duration-250;
+}
+
+.button-rounded-error {
+    @apply p-1 2xl:p-2 rounded-full bg-error hover:bg-error-hover active:scale-95 transition duration-250;
+}
+
+.navbar-icon-size {
+    @apply h-5 w-5 2xl:h-7 2xl:w-7;
+}
+
+.filter-icon-size {
+    @apply h-4 w-4 2xl:h-7 2xl:w-7;
+}
+
+.sphere-toolbar-icon-size {
+    @apply h-4 w-4 2xl:h-6 2xl:w-6;
+}
+
+.content-toolbar-icon-size {
+    @apply h-4 w-4 2xl:h-5 2xl:w-5;
 }
 
 /* Styles for the spoiler blocks */

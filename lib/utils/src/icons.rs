@@ -25,14 +25,14 @@ pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl
 }
 
 #[component]
-pub fn AuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn AuthorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/author.svg" class=class/>
     }
 }
 
 #[component]
-pub fn SelfAuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn SelfAuthorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/author_filled.svg" class=class/>
     }
@@ -124,21 +124,21 @@ pub fn SphereIcon(
 }
 
 #[component]
-pub fn FiltersIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn FiltersIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/filters.svg" class=class/>
     }
 }
 
 #[component]
-pub fn FlameIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn FlameIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/flame.svg" class=class/>
     }
 }
 
 #[component]
-pub fn GraphIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn GraphIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/graph.svg" class=class/>
     }
@@ -173,7 +173,7 @@ pub fn HelpIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoVi
 }
 
 #[component]
-pub fn HourglassIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn HourglassIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/hourglass.svg" class=class/>
     }
@@ -239,14 +239,14 @@ pub fn LoadingIcon(#[prop(default = "h-7 w-7 my-5")] class: &'static str) -> imp
 }
 
 #[component]
-pub fn LogoIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn LogoIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/planet.svg" class=class/>
     }
 }
 
 #[component]
-pub fn MagnifierIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn MagnifierIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/magnifier.svg" class=class/>
     }
@@ -287,14 +287,14 @@ pub fn MinusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoV
 }
 
 #[component]
-pub fn ModeratorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn ModeratorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/moderator.svg" class=class/>
     }
 }
 
 #[component]
-pub fn ModeratorAuthorIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn ModeratorAuthorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/moderator_filled.svg" class=class/>
     }
@@ -350,14 +350,14 @@ pub fn PlayIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoVi
 }
 
 #[component]
-pub fn PlusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn PlusIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/plus.svg" class=class/>
     }
 }
 
 #[component]
-pub fn PodiumIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn PodiumIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/podium.svg" class=class/>
     }
@@ -392,7 +392,7 @@ pub fn SettingsIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl In
 }
 
 #[component]
-pub fn SideBarIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
+pub fn SideBarIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/sidebar.svg" class=class/>
     }
@@ -448,7 +448,7 @@ pub fn TooHeavyIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl 
 }
 
 #[component]
-pub fn UserIcon(#[prop(default = "h-7 w-7")] class: &'static str) -> impl IntoView {
+pub fn UserIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/user.svg" class=class/>
     }

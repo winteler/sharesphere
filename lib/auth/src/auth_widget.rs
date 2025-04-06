@@ -33,7 +33,7 @@ pub fn LoginWindow() -> impl IntoView {
                     <p class="pb-4">"Please login to access this page."</p>
                     <ActionForm action=user_state.login_action>
                         <input type="text" name="redirect_url" class="hidden" value=current_path/>
-                        <button type="submit" class="btn btn-primary btn-wide rounded-sm" on:click=move |_| get_current_path(current_path)>
+                        <button type="submit" class="button-primary w-full" on:click=move |_| get_current_path(current_path)>
                             "Login"
                         </button>
                     </ActionForm>
@@ -57,7 +57,7 @@ pub fn AuthorWidget(
 
     view! {
         <button
-            class="flex p-1 2xl:p-1.5 rounded-full gap-1.5 items-center text-sm hover:bg-base-200"
+            class="button-rounded-ghost flex gap-1.5 items-center text-sm"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(author_profile_path.as_str(), NavigateOptions::default());
@@ -65,15 +65,15 @@ pub fn AuthorWidget(
             aria-label=aria_label
         >
             { move || if is_moderator {
-                    view! { <ModeratorAuthorIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }.into_any()
+                    view! { <ModeratorAuthorIcon/> }.into_any()
                 } else {
                     view! {
-                        <Transition fallback=move || view! { <LoadingIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }>
+                        <Transition fallback=move || view! { <LoadingIcon class="content-toolbar-icon-size"/> }>
                         {
                             move || Suspend::new(async move {
                                 match &user_state.user.await {
-                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }.into_any(),
-                                    _ => view! { <AuthorIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }.into_any(),
+                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
+                                    _ => view! { <AuthorIcon/> }.into_any(),
                                 }
                             })
                         }
@@ -137,8 +137,8 @@ where
         _ => false,
     };
     let delete_button_class = move || match show_form.get() {
-        true => "btn btn-circle btn-sm btn-error",
-        false => "btn btn-circle btn-sm hover:bg-base-content/20",
+        true => "button-rounded-error",
+        false => "button-rounded-ghost",
     };
     view! {
         <Suspense>

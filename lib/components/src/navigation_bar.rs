@@ -15,21 +15,19 @@ pub fn NavigationBar() -> impl IntoView
 {
     view! {
         <div class="flex-none navbar bg-blue-500">
-            <div class="navbar-start">
+            <div class="navbar-start flex gap-1">
                 <label
                     for="my-drawer"
-                    class="drawer-button 2xl:hidden btn btn-square btn-ghost"
+                    class="drawer-button 2xl:hidden button-rounded-ghost"
                 >
                     <SideBarIcon/>
                 </label>
-                <div class="flex-1">
-                    <a href="/" class="btn btn-ghost text-l">
-                        <LogoIcon/>
-                        <label>"ShareSphere"</label>
-                    </a>
-                </div>
+                <a href="/" class="button-ghost text-l font-semibold flex gap-1">
+                    <LogoIcon/>
+                    <div>"ShareSphere"</div>
+                </a>
             </div>
-            <div class="navbar-end 2xl:gap-1">
+            <div class="navbar-end flex 2xl:gap-1">
                 <SearchButton/>
                 <PlusMenu/>
                 <UserMenu/>
@@ -42,7 +40,7 @@ pub fn NavigationBar() -> impl IntoView
 pub fn UserMenu() -> impl IntoView {
     view! {
         <LoginGuardButton
-            login_button_class="btn btn-ghost btn-circle rounded-full"
+            login_button_class="button-rounded-ghost"
             login_button_content=move || view! { <UserIcon/> }.into_any()
             redirect_path_fn=&get_current_path
             let:user
@@ -61,9 +59,9 @@ pub fn LoggedInMenu(
 
     view! {
         <div class="dropdown dropdown-end">
-            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
+            <button tabindex="0" class="button-rounded-ghost">
                 <UserIcon/>
-            </label>
+            </button>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-1 p-2 shadow-sm bg-base-200 rounded-xs w-52">
                 <li><a href=get_profile_path(&user.username)>"Profile"</a></li>
                 <li>
@@ -87,9 +85,9 @@ pub fn PlusMenu() -> impl IntoView {
     let create_post_str = "Share a Post!";
     view! {
         <div class="dropdown dropdown-end">
-            <label tabindex="0" class="btn btn-ghost btn-circle rounded-full">
-                <PlusIcon class="h-6 w-6"/>
-            </label>
+            <button tabindex="0" class="button-rounded-ghost">
+                <PlusIcon/>
+            </button>
             <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded-sm">
                 <li>
                     <LoginGuardButton

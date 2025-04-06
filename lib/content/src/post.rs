@@ -187,8 +187,8 @@ pub fn EditPostButton(
         _ => false,
     };
     let edit_button_class = move || match show_dialog.get() {
-        true => "btn btn-circle btn-sm btn-primary",
-        false => "btn btn-circle btn-sm btn-ghost",
+        true => "button-rounded-primary",
+        false => "button-rounded-ghost",
     };
     view! {
         <Show when=show_button>
@@ -322,7 +322,7 @@ pub fn CreatePost() -> impl IntoView {
                         is_parent_nsfw=is_sphere_nsfw
                         category_vec_resource
                     />
-                    <button type="submit" class="btn btn-secondary" disabled=move || {
+                    <button type="submit" class="button-secondary" disabled=move || {
                         !is_sphere_selected.get() ||
                         title_input.read().is_empty() ||
                         (

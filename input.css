@@ -46,7 +46,7 @@
 }
 
 .button-ghost {
-    @apply p-1 2xl:p-2 rounded-xs hover:bg-base-300 active:scale-95 transition duration-250;
+    @apply p-1 2xl:p-2 rounded-xs hover:bg-base-content/20 active:scale-95 transition duration-250;
 }
 
 .button-primary {
@@ -62,7 +62,7 @@
 }
 
 .button-rounded-ghost {
-    @apply p-1 2xl:p-2 rounded-full hover:bg-base-300 active:scale-95 transition duration-250;
+    @apply p-1 2xl:p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250;
 }
 
 .button-rounded-primary {

@@ -14,20 +14,20 @@ use crate::search::{SearchButton};
 pub fn NavigationBar() -> impl IntoView
 {
     view! {
-        <div class="flex-none navbar bg-blue-500">
-            <div class="navbar-start flex gap-1">
+        <div class="flex-none flex justify-between items-center w-full p-2 bg-blue-500">
+            <div class="flex items-center gap-1 2xl:gap-2">
                 <label
                     for="my-drawer"
                     class="drawer-button 2xl:hidden button-rounded-ghost"
                 >
                     <SideBarIcon/>
                 </label>
-                <a href="/" class="button-ghost text-l font-semibold flex gap-1">
+                <a href="/" class="button-ghost flex gap-1.5 items-center">
                     <LogoIcon/>
-                    <div>"ShareSphere"</div>
+                    <div class="2xl:pt-1 2xl:pb-1.5 text-l font-semibold">"ShareSphere"</div>
                 </a>
             </div>
-            <div class="navbar-end flex 2xl:gap-1">
+            <div class="flex items-center gap-1 2xl:gap-2">
                 <SearchButton/>
                 <PlusMenu/>
                 <UserMenu/>

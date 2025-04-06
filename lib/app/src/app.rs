@@ -192,11 +192,11 @@ fn HomePage() -> impl IntoView {
     view! {
         <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2">
             <div
-                class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-40 flex items-center justify-center max-2xl:hidden"
+                class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-16 2xl:h-40 flex items-center justify-center"
             >
                 <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
-                    <LogoIcon class="h-12 w-12"/>
-                    <span class="text-4xl select-none">"ShareSphere"</span>
+                    <LogoIcon class="h-8 w-8 2xl:h-12 2xl:w-12"/>
+                    <span class="text-2xl 2xl:text-4xl select-none">"ShareSphere"</span>
                 </div>
             </div>
             <PostSortWidget sort_signal=state.post_sort_type/>

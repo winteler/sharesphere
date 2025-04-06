@@ -228,7 +228,7 @@ pub fn SphereToolbar<'a>(
 
     view! {
         <div class="flex w-full justify-between items-center">
-            <div class="flex items-center w-fit 2xl:gap-2">
+            <div class="flex items-center w-fit gap-2">
                 <PostSortWidget sort_signal/>
                 <PostFiltersButton/>
             </div>

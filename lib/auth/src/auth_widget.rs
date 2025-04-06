@@ -57,7 +57,7 @@ pub fn AuthorWidget(
 
     view! {
         <button
-            class="button-rounded-ghost flex gap-1.5 items-center text-sm"
+            class="button-rounded-ghost !p-0 !px-2 flex gap-1.5 items-center"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(author_profile_path.as_str(), NavigateOptions::default());
@@ -81,7 +81,7 @@ pub fn AuthorWidget(
                     }.into_any()
                 }
             }
-            {author.get_value()}
+            <span class="pt-1 pb-1.5 text-sm">{author.get_value()}</span>
         </button>
     }.into_any()
 }

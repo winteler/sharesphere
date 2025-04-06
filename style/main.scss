@@ -1718,25 +1718,6 @@
     height: var(--tabs-height);
     flex-direction: var(--tabs-direction);
   }
-  .navbar {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    padding: 0.5rem;
-    min-height: 4rem;
-  }
-  .navbar-end {
-    display: inline-flex;
-    align-items: center;
-    width: 50%;
-    justify-content: flex-end;
-  }
-  .navbar-start {
-    display: inline-flex;
-    align-items: center;
-    width: 50%;
-    justify-content: flex-start;
-  }
   .card-body {
     display: flex;
     flex: auto;
@@ -1906,9 +1887,6 @@
   .h-8 {
     height: calc(var(--spacing) * 8);
   }
-  .h-12 {
-    height: calc(var(--spacing) * 12);
-  }
   .h-16 {
     height: calc(var(--spacing) * 16);
   }
@@ -1917,9 +1895,6 @@
   }
   .h-28 {
     height: calc(var(--spacing) * 28);
-  }
-  .h-40 {
-    height: calc(var(--spacing) * 40);
   }
   .h-44 {
     height: calc(var(--spacing) * 44);
@@ -2025,9 +2000,6 @@
   }
   .w-8 {
     width: calc(var(--spacing) * 8);
-  }
-  .w-12 {
-    width: calc(var(--spacing) * 12);
   }
   .w-16 {
     width: calc(var(--spacing) * 16);
@@ -2420,6 +2392,9 @@
   .object-contain {
     object-fit: contain;
   }
+  .\!p-0 {
+    padding: calc(var(--spacing) * 0) !important;
+  }
   .p-0\.5 {
     padding: calc(var(--spacing) * 0.5);
   }
@@ -2706,6 +2681,13 @@
       }
     }
   }
+  .hover\:bg-base-content\/20 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: color-mix(in oklab, var(--color-base-content) 20%, transparent);
+      }
+    }
+  }
   .hover\:bg-base-content\/50 {
     &:hover {
       @media (hover: hover) {
@@ -2862,6 +2844,16 @@
       padding-inline: calc(var(--spacing) * 3) !important;
     }
   }
+  .\32 xl\:pt-1 {
+    @media (width >= 96rem) {
+      padding-top: calc(var(--spacing) * 1);
+    }
+  }
+  .\32 xl\:pb-1\.5 {
+    @media (width >= 96rem) {
+      padding-bottom: calc(var(--spacing) * 1.5);
+    }
+  }
   .\32 xl\:text-4xl {
     @media (width >= 96rem) {
       font-size: var(--text-4xl);
@@ -2879,7 +2871,7 @@
   transition-duration: 250ms;
   &:hover {
     @media (hover: hover) {
-      background-color: var(--color-base-300);
+      background-color: color-mix(in oklab, var(--color-base-content) 20%, transparent);
     }
   }
   &:active {
@@ -2974,7 +2966,7 @@
   transition-duration: 250ms;
   &:hover {
     @media (hover: hover) {
-      background-color: var(--color-base-300);
+      background-color: color-mix(in oklab, var(--color-base-content) 20%, transparent);
     }
   }
   &:active {

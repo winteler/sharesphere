@@ -2432,8 +2432,8 @@
   .p-3 {
     padding: calc(var(--spacing) * 3);
   }
-  .\!px-3 {
-    padding-inline: calc(var(--spacing) * 3) !important;
+  .\!px-2 {
+    padding-inline: calc(var(--spacing) * 2) !important;
   }
   .px-0\.5 {
     padding-inline: calc(var(--spacing) * 0.5);
@@ -2855,6 +2855,11 @@
   .\32 xl\:p-0\.5 {
     @media (width >= 96rem) {
       padding: calc(var(--spacing) * 0.5);
+    }
+  }
+  .\32 xl\:\!px-3 {
+    @media (width >= 96rem) {
+      padding-inline: calc(var(--spacing) * 3) !important;
     }
   }
   .\32 xl\:text-4xl {

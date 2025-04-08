@@ -57,7 +57,7 @@ pub fn AuthorWidget(
 
     view! {
         <button
-            class="button-rounded-ghost !p-0 !px-2 flex gap-1.5 items-center"
+            class="button-rounded-neutral !p-0 !px-2 flex gap-1.5 items-center"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(author_profile_path.as_str(), NavigateOptions::default());
@@ -138,7 +138,7 @@ where
     };
     let delete_button_class = move || match show_form.get() {
         true => "button-rounded-error",
-        false => "button-rounded-ghost",
+        false => "button-rounded-neutral",
     };
     view! {
         <Suspense>

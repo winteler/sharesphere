@@ -65,16 +65,20 @@
     @apply p-1 2xl:p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250;
 }
 
+.button-rounded-neutral {
+    @apply p-2 rounded-full bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer active:scale-95 transition duration-250;
+}
+
 .button-rounded-primary {
-    @apply p-1 2xl:p-2 rounded-full bg-primary hover:bg-primary-hover active:scale-95 transition duration-250;
+    @apply p-2 rounded-full bg-primary hover:bg-primary-hover active:scale-95 transition duration-250;
 }
 
 .button-rounded-error {
-    @apply p-1 2xl:p-2 rounded-full bg-error hover:bg-error-hover active:scale-95 transition duration-250;
+    @apply p-2 rounded-full bg-error hover:bg-error-hover active:scale-95 transition duration-250;
 }
 
 .navbar-icon-size {
-    @apply h-5 w-5 2xl:h-7 2xl:w-7;
+    @apply h-6 w-6 2xl:h-7 2xl:w-7;
 }
 
 .filter-icon-size {
@@ -82,7 +86,7 @@
 }
 
 .sphere-toolbar-icon-size {
-    @apply h-4 w-4 2xl:h-6 2xl:w-6;
+    @apply h-5 w-5 2xl:h-6 2xl:w-6;
 }
 
 .content-toolbar-icon-size {

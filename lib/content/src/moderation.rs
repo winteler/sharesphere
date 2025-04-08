@@ -20,7 +20,7 @@ use sharesphere_core::state::{GlobalState, SphereState};
 pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
     let edit_button_class = move || match show_dialog.get() {
         true => "button-rounded-primary",
-        false => "button-rounded-ghost",
+        false => "button-rounded-neutral",
     };
     view! {
         <button
@@ -278,7 +278,7 @@ pub fn ModerationInfoButton(
     let show_dialog = RwSignal::new(false);
     let button_class = move || match show_dialog.get() {
         true => "button-rounded-primary",
-        false => "button-rounded-ghost",
+        false => "button-rounded-neutral",
     };
     
     view! {

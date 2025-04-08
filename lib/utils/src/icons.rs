@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 #[component]
-pub fn AddCommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn AddCommentIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/add_comment.svg" class=class/>
     }
@@ -53,7 +53,7 @@ pub fn BoldIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoVi
 }
 
 #[component]
-pub fn ClockIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn ClockIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/clock.svg" class=class/>
     }
@@ -67,42 +67,42 @@ pub fn CodeBlockIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl I
 }
 
 #[component]
-pub fn CommentIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn CommentIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/comment.svg" class=class/>
     }
 }
 
 #[component]
-pub fn CrossIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn CrossIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/cross.svg" class=class/>
     }
 }
 
 #[component]
-pub fn DeleteIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn DeleteIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/delete.svg" class=class/>
     }
 }
 
 #[component]
-pub fn DotMenuIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn DotMenuIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/dot_menu.svg" class=class/>
     }
 }
 
 #[component]
-pub fn EditIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn EditIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/edit.svg" class=class/>
     }
 }
 
 #[component]
-pub fn EditTimeIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn EditTimeIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/edit_time.svg" class=class/>
     }
@@ -145,7 +145,7 @@ pub fn GraphIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> i
 }
 
 #[component]
-pub fn HammerIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn HammerIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/hammer.svg" class=class/>
     }
@@ -262,7 +262,7 @@ pub fn MarkdownIcon(#[prop(default = "h-4 w-8")] class: &'static str) -> impl In
 }
 
 #[component]
-pub fn MaximizeIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
+pub fn MaximizeIcon(#[prop(default = "h-4 w-4 2xl:h-6 2xl:w-6")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/maximize.svg"/>
@@ -271,7 +271,7 @@ pub fn MaximizeIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl In
 }
 
 #[component]
-pub fn MinimizeIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl IntoView {
+pub fn MinimizeIcon(#[prop(default = "h-4 w-4 2xl:h-6 2xl:w-6")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/minimize.svg"/>
@@ -280,7 +280,7 @@ pub fn MinimizeIcon(#[prop(default = "h-6 w-6")] class: &'static str) -> impl In
 }
 
 #[component]
-pub fn MinusIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn MinusIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/minus.svg" class=class/>
     }
@@ -329,28 +329,28 @@ pub fn NsfwIcon() -> impl IntoView {
 }
 
 #[component]
-pub fn PauseIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn PauseIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/pause.svg" class=class/>
     }
 }
 
 #[component]
-pub fn PinnedIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn PinnedIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/pin.svg" class=class/>
     }
 }
 
 #[component]
-pub fn PlayIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn PlayIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/play.svg" class=class/>
     }
 }
 
 #[component]
-pub fn PlusIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
+pub fn PlusIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/plus.svg" class=class/>
     }
@@ -371,14 +371,14 @@ pub fn QuoteIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoV
 }
 
 #[component]
-pub fn SaveIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn SaveIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/form/save.svg" class=class/>
     }
 }
 
 #[component]
-pub fn ScoreIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn ScoreIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/score.svg" class=class/>
     }
@@ -399,7 +399,7 @@ pub fn SideBarIcon(#[prop(default = "navbar-icon-size")] class: &'static str) ->
 }
 
 #[component]
-pub fn SpoilerIcon(#[prop(default = "h-5 w-5")] class: &'static str) -> impl IntoView {
+pub fn SpoilerIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/spoiler.svg" class=class/>
     }

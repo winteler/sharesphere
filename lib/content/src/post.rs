@@ -69,7 +69,7 @@ pub fn Post() -> impl IntoView {
             <TransitionUnpack resource=post_resource let:post_with_info>
                 <div class="card">
                     <div class="card-body">
-                        <div class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-1 2xl:gap-2">
                             <h2 class="card-title">
                             { match post_with_info.post.is_active() {
                                 true => post_with_info.post.title.clone(),
@@ -138,7 +138,7 @@ fn PostWidgetBar<'a>(
     let is_active = post.post.is_active();
     let stored_post = StoredValue::new(post.post.clone());
     view! {
-        <div class="flex 2xl:gap-1 items-center">
+        <div class="flex gap-1 items-center">
             { match is_active {
                 true => Either::Left(view! {
                     <VotePanel
@@ -188,7 +188,7 @@ pub fn EditPostButton(
     };
     let edit_button_class = move || match show_dialog.get() {
         true => "button-rounded-primary",
-        false => "button-rounded-ghost",
+        false => "button-rounded-neutral",
     };
     view! {
         <Show when=show_button>

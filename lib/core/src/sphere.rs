@@ -18,7 +18,7 @@ use {
 };
 use sharesphere_utils::icons::SphereIcon;
 use sharesphere_utils::routes::get_sphere_path;
-use sharesphere_utils::widget::LoadIndicators;
+use sharesphere_utils::widget::{LoadIndicators, Badge};
 use crate::state::GlobalState;
 
 pub const SPHERE_FETCH_LIMIT: usize = 100;
@@ -388,12 +388,9 @@ pub fn SphereHeader(
     sphere_header: SphereHeader
 ) -> impl IntoView {
     view! {
-        <div
-            class="w-fit flex gap-1.5 items-center"
-        >
+        <Badge text=sphere_header.sphere_name>
             <SphereIcon icon_url=sphere_header.icon_url class="content-toolbar-icon-size"/>
-            <span class="pt-1 pb-1.5 text-sm">{sphere_header.sphere_name}</span>
-        </div>
+        </Badge>
     }
 }
 
@@ -408,7 +405,7 @@ pub fn SphereHeaderLink(
     let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
     view! {
         <button
-            class="button-rounded-ghost !p-0 !px-2"
+            class="button-rounded-neutral !p-0 !px-2"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(sphere_path.as_str(), NavigateOptions::default());
@@ -484,7 +481,7 @@ pub fn InfiniteSphereLinkList(
 ) -> impl IntoView {
     view! {
         <Show when=move || !sphere_header_vec.read().is_empty()>
-            <ul class="flex flex-col overflow-y-auto max-h-full w-full  p-1"
+            <ul class="flex flex-col overflow-y-auto max-h-full w-full p-1"
                 on:scroll=move |_| match list_ref.get() {
                     Some(node_ref) => {
                         if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {

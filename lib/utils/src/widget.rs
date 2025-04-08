@@ -86,7 +86,7 @@ pub fn ModalDialog(
 /// Button that displays its children in a dropdown when clicked
 #[component]
 pub fn DropdownButton<C: IntoView + 'static>(
-    #[prop(default="button-rounded-ghost")]
+    #[prop(default="button-rounded-neutral")]
     button_class: &'static str,
     #[prop(default="button-rounded-primary")]
     activated_button_class: &'static str,
@@ -127,8 +127,8 @@ pub fn Dropdown<C: IntoView + 'static>(
 
     view! {
         <Show when=show_dropdown>
-            <div class="absolute z-10 origin-bottom-left w-fit">
-                <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 w-fit">
+            <div class="absolute z-10 origin-bottom-left min-w-max">
+                <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 flex flex-col gap-1">
                 {
                     children.with_value(|children| children())
                 }
@@ -256,9 +256,28 @@ pub fn DotMenu<C: IntoView + 'static>(
 ) -> impl IntoView {
     view! {
         <DropdownButton
-            button_content=move || view! { <DotMenuIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/> }
+            button_content=move || view! { <DotMenuIcon/> }
             children
         />
+    }.into_any()
+}
+
+/// Component to display a badge, i.e. an icon with associated text
+/// /// For simplicity, the icon is passed as a child
+#[component]
+pub fn Badge<C>(
+    #[prop(into)]
+    text: Signal<String>,
+    children: TypedChildren<C>,
+) -> impl IntoView
+where
+    C: IntoView + 'static,
+{
+    view! {
+        <div class="flex gap-1.5 items-center">
+            {children.into_inner()()}
+            <div class="pt-1 pb-1.5 text-sm">{move || text.get()}</div>
+        </div>
     }.into_any()
 }
 
@@ -343,7 +362,7 @@ pub fn TimeSinceWidget(
     let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Xxl);
     view! {
         <div class="flex gap-1.5 items-center text-sm px-1">
-            <ClockIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
+            <ClockIcon/>
             {
                 move || get_elapsed_time_string(timestamp.get(), use_fullname.get())
             }
@@ -361,7 +380,7 @@ pub fn TimeSinceEditWidget(
     view! {
         <Show when=move || edit_timestamp.read().is_some()>
             <div class="flex gap-1.5 items-center text-sm px-1">
-                <EditTimeIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
+                <EditTimeIcon/>
                 {
                     move || get_elapsed_time_string(edit_timestamp.get().unwrap(), use_fullname.get())
                 }
@@ -420,10 +439,10 @@ pub fn MinimizeMaximizeWidget(
     view! {
         <div>
             <div class=minimize_class>
-                <MinimizeIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/>
+                <MinimizeIcon/>
             </div>
             <div class=maximize_class>
-                <MaximizeIcon class="h-4 w-4 2xl:h-6 2xl:w-6"/>
+                <MaximizeIcon/>
             </div>
         </div>
     }

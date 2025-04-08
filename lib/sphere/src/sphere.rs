@@ -232,7 +232,7 @@ pub fn SphereToolbar<'a>(
                 <PostSortWidget sort_signal/>
                 <PostFiltersButton/>
             </div>
-            <div class="flex items-center w-fit 2xl:gap-1">
+            <div class="flex items-center w-fit gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
                     <A href=manage_path attr:class="button-rounded-ghost">
                         <SettingsIcon class="sphere-toolbar-icon-size"/>

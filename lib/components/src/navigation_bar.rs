@@ -24,7 +24,7 @@ pub fn NavigationBar() -> impl IntoView
                 </label>
                 <a href="/" class="button-ghost flex gap-1.5 items-center">
                     <LogoIcon/>
-                    <div class="2xl:pt-1 2xl:pb-1.5 text-l font-semibold">"ShareSphere"</div>
+                    <div class="2xl:pt-1 2xl:pb-1.5 font-semibold">"ShareSphere"</div>
                 </a>
             </div>
             <div class="flex items-center gap-1 2xl:gap-2">
@@ -86,7 +86,7 @@ pub fn PlusMenu() -> impl IntoView {
     view! {
         <div class="dropdown dropdown-end">
             <button tabindex="0" class="button-rounded-ghost">
-                <PlusIcon/>
+                <PlusIcon class="navbar-icon-size"/>
             </button>
             <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded-sm">
                 <li>

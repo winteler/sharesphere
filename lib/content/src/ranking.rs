@@ -67,7 +67,7 @@ pub fn VotePanel(
                     );
                 }
             >
-                <PlusIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
+                <PlusIcon/>
             </LoginGuardedButton>
             <DynScoreIndicator score=score/>
             <LoginGuardedButton
@@ -85,7 +85,7 @@ pub fn VotePanel(
                     );
                 }
             >
-                <MinusIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
+                <MinusIcon/>
             </LoginGuardedButton>
         </div>
     }.into_any()

@@ -9,7 +9,7 @@ use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator};
+use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge};
 
 use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
 use sharesphere_auth::role::IsPinnedCheckbox;
@@ -326,7 +326,7 @@ pub fn CommentButton(
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
         true => "button-rounded-primary",
-        false => "button-rounded-ghost",
+        false => "button-rounded-neutral",
     });
 
     view! {
@@ -335,7 +335,7 @@ pub fn CommentButton(
                 show_dialog
                 button_class=comment_button_class
             >
-                <AddCommentIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
+                <AddCommentIcon/>
             </LoginGuardedOpenModalButton>
             <CommentDialog
                 post_id
@@ -358,8 +358,8 @@ pub fn CommentButtonWithCount(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "button-rounded-primary",
-        false => "button-rounded-ghost",
+        true => "button-rounded-primary !p-0 !px-2",
+        false => "button-rounded-neutral !p-0 !px-2",
     });
 
     view! {
@@ -367,10 +367,9 @@ pub fn CommentButtonWithCount(
             show_dialog
             button_class=comment_button_class
         >
-            <div class="w-fit flex gap-1.5 items-center text-sm">
-                <AddCommentIcon class="h-4 w-4 2xl:h-5 2xl:w-5"/>
-                {count}
-            </div>
+            <Badge text=count.to_string()>
+                <AddCommentIcon/>
+            </Badge>
         </LoginGuardedOpenModalButton>
         <CommentDialog
             post_id
@@ -482,7 +481,7 @@ pub fn EditCommentButton(
     };
     let comment_button_class = move || match show_dialog.get() {
         true => "button-rounded-primary",
-        false => "button-rounded-ghost",
+        false => "button-rounded-neutral",
     };
 
     view! {

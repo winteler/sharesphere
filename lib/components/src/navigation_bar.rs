@@ -7,6 +7,7 @@ use sharesphere_utils::routes::{get_create_post_path, get_current_path, get_curr
 use sharesphere_auth::auth::LoginGuardButton;
 use sharesphere_auth::user::User;
 use sharesphere_core::state::GlobalState;
+use sharesphere_utils::widget::DropdownButton;
 use crate::search::{SearchButton};
 
 /// Navigation bar component
@@ -18,7 +19,7 @@ pub fn NavigationBar() -> impl IntoView
             <div class="flex items-center gap-1 2xl:gap-2">
                 <label
                     for="my-drawer"
-                    class="drawer-button 2xl:hidden button-rounded-ghost"
+                    class="drawer-button 2xl:hidden button-rounded-neutral"
                 >
                     <SideBarIcon/>
                 </label>
@@ -28,7 +29,7 @@ pub fn NavigationBar() -> impl IntoView
                 </a>
             </div>
             <div class="flex items-center gap-1 2xl:gap-2">
-                <SearchButton/>
+                <SearchButton class="button-rounded-neutral"/>
                 <PlusMenu/>
                 <UserMenu/>
             </div>
@@ -40,7 +41,7 @@ pub fn NavigationBar() -> impl IntoView
 pub fn UserMenu() -> impl IntoView {
     view! {
         <LoginGuardButton
-            login_button_class="button-rounded-ghost"
+            login_button_class="button-rounded-neutral"
             login_button_content=move || view! { <UserIcon/> }.into_any()
             redirect_path_fn=&get_current_path
             let:user
@@ -58,23 +59,23 @@ pub fn LoggedInMenu(
     let current_url = RwSignal::new(String::default());
 
     view! {
-        <div class="dropdown dropdown-end">
-            <button tabindex="0" class="button-rounded-ghost">
-                <UserIcon/>
-            </button>
-            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-1 p-2 shadow-sm bg-base-200 rounded-xs w-52">
-                <li><a href=get_profile_path(&user.username)>"Profile"</a></li>
-                <li>
+        <DropdownButton
+            button_content=move || view! { <UserIcon/> }
+            align_right=true
+        >
+            <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm w-fit flex flex-col">
+                <li class="w-full button-ghost-sm"><a href=get_profile_path(&user.username)>"Profile"</a></li>
+                <li class="w-full button-ghost-sm">
                     <ActionForm action=state.logout_action attr:class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>
-                        <button type="submit" class="w-full text-left" on:click=move |_| get_current_url(current_url)>
+                        <button type="submit" class="text-left" on:click=move |_| get_current_url(current_url)>
                             "Logout"
                         </button>
                     </ActionForm>
                 </li>
-                <li><span>{format!("Logged in as: {}", user.username)}</span></li>
+                <li class="button-ghost-sm"><span>{format!("Logged in as: {}", user.username)}</span></li>
             </ul>
-        </div>
+        </DropdownButton>
     }.into_any()
 }
 
@@ -84,12 +85,12 @@ pub fn PlusMenu() -> impl IntoView {
     let create_sphere_str = "Settle a Sphere!";
     let create_post_str = "Share a Post!";
     view! {
-        <div class="dropdown dropdown-end">
-            <button tabindex="0" class="button-rounded-ghost">
-                <PlusIcon class="navbar-icon-size"/>
-            </button>
-            <ul tabindex="0" class="menu menu-sm dropdown-content z-10 mt-3 p-2 bg-base-200 rounded-sm">
-                <li>
+        <DropdownButton
+            button_content=move || view! { <PlusIcon class="navbar-icon-size"/> }
+            align_right=true
+        >
+            <ul class="z-10 mt-4 p-2 bg-base-200 rounded-sm w-fit flex flex-col">
+                <li class="button-ghost-sm w-full">
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }.into_any()
                         redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.set(String::from(CREATE_SPHERE_ROUTE)))
@@ -98,7 +99,7 @@ pub fn PlusMenu() -> impl IntoView {
                         <a href=CREATE_SPHERE_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
                     </LoginGuardButton>
                 </li>
-                <li>
+                <li class="button-ghost-sm w-full">
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }.into_any()
                         redirect_path_fn=&get_create_post_path
@@ -113,6 +114,6 @@ pub fn PlusMenu() -> impl IntoView {
                     </LoginGuardButton>
                 </li>
             </ul>
-        </div>
+        </DropdownButton>
     }.into_any()
 }

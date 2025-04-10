@@ -92,6 +92,8 @@ pub fn DropdownButton<C: IntoView + 'static>(
     activated_button_class: &'static str,
     #[prop(into)]
     button_content: ViewFn,
+    #[prop(optional)]
+    align_right: bool,
     children: TypedChildrenFn<C>,
     #[prop(optional)]
     dropdown_ref: NodeRef<html::Div>,
@@ -112,7 +114,7 @@ pub fn DropdownButton<C: IntoView + 'static>(
             >
                 {button_content.run()}
             </button>
-            <Dropdown show_dropdown children/>
+            <Dropdown show_dropdown align_right children/>
         </div>
     }.into_any()
 }
@@ -121,18 +123,21 @@ pub fn DropdownButton<C: IntoView + 'static>(
 #[component]
 pub fn Dropdown<C: IntoView + 'static>(
     show_dropdown: RwSignal<bool>,
+    #[prop(optional)]
+    align_right: bool,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
     let children = StoredValue::new(children.into_inner());
-
+    let class = match align_right {
+        true => "absolute z-10 origin-bottom right-0 min-w-max",
+        false => "absolute z-10 origin-bottom left-0 min-w-max",
+    };
     view! {
         <Show when=show_dropdown>
-            <div class="absolute z-10 origin-bottom-left min-w-max">
-                <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 flex flex-col gap-1">
-                {
-                    children.with_value(|children| children())
-                }
-                </div>
+            <div class=class>
+            {
+                children.with_value(|children| children())
+            }
             </div>
         </Show>
     }.into_any()
@@ -254,11 +259,17 @@ where
 pub fn DotMenu<C: IntoView + 'static>(
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
+    let children = StoredValue::new(children.into_inner());
     view! {
         <DropdownButton
             button_content=move || view! { <DotMenuIcon/> }
-            children
-        />
+        >
+            <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 flex flex-col gap-1">
+            {
+                children.with_value(|children| children())
+            }
+            </div>
+        </DropdownButton>
     }.into_any()
 }
 

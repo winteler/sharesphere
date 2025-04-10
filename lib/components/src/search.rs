@@ -53,13 +53,16 @@ impl ToView for SphereSearchType {
 
 /// Button to navigate to the search page
 #[component]
-pub fn SearchButton() -> impl IntoView
+pub fn SearchButton(
+    #[prop(default="button-rounded-ghost")]
+    class: &'static str,
+) -> impl IntoView
 {
     let tab: &'static str = SearchType::default().into();
     view! {
         <Form method="GET" action=SEARCH_ROUTE>
             <input name=SEARCH_TAB_QUERY_PARAM value=tab class="hidden"/>
-            <button class="button-rounded-ghost">
+            <button class=class>
                 <MagnifierIcon/>
             </button>
         </Form>

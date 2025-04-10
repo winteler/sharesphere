@@ -46,35 +46,43 @@
 }
 
 .button-ghost {
-    @apply p-1 2xl:p-2 rounded-xs hover:bg-base-content/20 active:scale-95 transition duration-250;
+    @apply p-1 2xl:p-2 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+}
+
+.button-neutral {
+    @apply p-1 2xl:p-2 rounded-xs bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
+}
+
+.button-ghost-sm {
+    @apply p-1 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .button-primary {
-    @apply p-1 2xl:p-2 rounded-xs bg-primary hover:bg-primary-hover active:scale-95 transition duration-250;
+    @apply p-1 2xl:p-2 rounded-xs bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .button-secondary {
-    @apply p-1 2xl:p-2 rounded-xs bg-secondary hover:bg-secondary-hover active:scale-95 transition duration-250;
+    @apply p-1 2xl:p-2 rounded-xs bg-secondary hover:bg-secondary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .button-error {
-    @apply p-1 2xl:p-2 rounded-xs bg-error hover:bg-error-hover active:scale-95 transition duration-250;
+    @apply p-1 2xl:p-2 rounded-xs bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .button-rounded-ghost {
-    @apply p-1 2xl:p-2 rounded-full hover:bg-base-content/20 active:scale-95 transition duration-250;
+    @apply p-1 2xl:p-2 rounded-full hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .button-rounded-neutral {
-    @apply p-2 rounded-full bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer active:scale-95 transition duration-250;
+    @apply p-2 rounded-full bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .button-rounded-primary {
-    @apply p-2 rounded-full bg-primary hover:bg-primary-hover active:scale-95 transition duration-250;
+    @apply p-2 rounded-full bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .button-rounded-error {
-    @apply p-2 rounded-full bg-error hover:bg-error-hover active:scale-95 transition duration-250;
+    @apply p-2 rounded-full bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
 }
 
 .navbar-icon-size {

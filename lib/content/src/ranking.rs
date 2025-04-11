@@ -124,9 +124,9 @@ pub fn get_vote_button_css(vote: RwSignal<VoteValue>, is_upvote: bool) -> Signal
 
     Signal::derive(move || match (is_upvote, vote.get() == activated_value) {
         (true, true) => "p-1 rounded-full bg-success",
-        (true, false) => "p-1 rounded-full hover:bg-success",
+        (true, false) => "p-1 rounded-full bg-success/20 shadow-md/30 hover:bg-success hover:shadow-none",
         (false, true) => "p-1 rounded-full bg-error",
-        (false, false) => "p-1 rounded-full hover:bg-error",
+        (false, false) => "p-1 rounded-full bg-error/20 shadow-md/30 hover:bg-error hover:shadow-none",
     })
 }
 
@@ -169,15 +169,15 @@ mod tests {
         let upvote_css = get_vote_button_css(vote_signal, true);
         let downvote_css = get_vote_button_css(vote_signal, false);
 
-        assert_eq!(upvote_css(), String::from("p-1 rounded-full hover:bg-success"));
-        assert_eq!(downvote_css(), String::from("p-1 rounded-full hover:bg-error"));
+        assert_eq!(upvote_css(), String::from("p-1 rounded-full bg-success/20 shadow-md/30 hover:bg-success hover:shadow-none"));
+        assert_eq!(downvote_css(), String::from("p-1 rounded-full bg-error/20 shadow-md/30 hover:bg-error hover:shadow-none"));
 
         vote_signal.set(VoteValue::Up);
         assert_eq!(upvote_css(), String::from("p-1 rounded-full bg-success"));
-        assert_eq!(downvote_css(), String::from("p-1 rounded-full hover:bg-error"));
+        assert_eq!(downvote_css(), String::from("p-1 rounded-full bg-error/20 shadow-md/30 hover:bg-error hover:shadow-none"));
 
         vote_signal.set(VoteValue::Down);
-        assert_eq!(upvote_css(), String::from("p-1 rounded-full hover:bg-success"));
+        assert_eq!(upvote_css(), String::from("p-1 rounded-full bg-success/20 shadow-md/30 hover:bg-success hover:shadow-none"));
         assert_eq!(downvote_css(), String::from("p-1 rounded-full bg-error"));
     }
 

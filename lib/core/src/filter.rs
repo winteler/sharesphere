@@ -31,6 +31,16 @@ impl Default for CategorySetFilter {
     }
 }
 
+impl CategorySetFilter {
+    pub fn new(category_id: i64) -> Self
+    {
+        CategorySetFilter {
+            filters: std::iter::once(category_id).collect(),
+            only_category: true,
+        }
+    }
+}
+
 /// Button to open post filters modal window
 #[component]
 pub fn PostFiltersButton() -> impl IntoView {
@@ -173,10 +183,7 @@ fn on_change_category_input(
                             if let Some(input_ref) = only_category_input_ref.get() {
                                 input_ref.set_checked(true);
                             }
-                            *filter = SphereCategoryFilter::CategorySet(CategorySetFilter {
-                                filters: HashSet::from([category_id]),
-                                only_category: true,
-                            })
+                            *filter = SphereCategoryFilter::CategorySet(CategorySetFilter::new(category_id));
                         },
                         SphereCategoryFilter::CategorySet(ref mut filter_set) => {
                             filter_set.filters.insert(category_id);
@@ -215,5 +222,25 @@ fn on_change_only_category_input(
                 })
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::filter::CategorySetFilter;
+
+    #[test]
+    fn test_category_set_filter_default() {
+        let default_category_filter = CategorySetFilter::default();
+        assert!(default_category_filter.filters.is_empty());
+        assert!(default_category_filter.only_category);
+    }
+
+    #[test]
+    fn test_category_set_filter_new() {
+        let default_category_filter = CategorySetFilter::new(7);
+        assert_eq!(default_category_filter.filters.len(), 1);
+        assert_eq!(default_category_filter.filters.iter().next(), Some(&7));
+        assert!(default_category_filter.only_category);
     }
 }

@@ -1,10 +1,9 @@
-pub use crate::common::*;
-pub use crate::data_factory::*;
-use crate::utils::{sort_post_vec, test_post_score, POST_SORT_TYPE_ARRAY};
 use rand::Rng;
+
 use sharesphere_core::comment::ssr::create_comment;
+use sharesphere_core::filter::{CategorySetFilter, SphereCategoryFilter};
 use sharesphere_core::post::ssr::{create_post, delete_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_vec_by_satellite_id, get_post_vec_by_sphere_name, get_post_with_info_by_id, get_sorted_post_vec, get_subscribed_post_vec, update_post, update_post_scores};
-use sharesphere_core::post::PostWithSphereInfo;
+use sharesphere_core::post::{PostWithSphereInfo};
 use sharesphere_core::ranking::ssr::vote_on_content;
 use sharesphere_core::ranking::{PostSortType, SortType, VoteValue};
 use sharesphere_core::sphere::ssr::{create_sphere, subscribe, unsubscribe};
@@ -20,8 +19,12 @@ use sharesphere_utils::editor::get_styled_html_from_markdown;
 use sharesphere_utils::embed::{Link, LinkType};
 use sharesphere_utils::errors::AppError;
 use sqlx::PgPool;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
+
+use crate::common::*;
+use crate::data_factory::*;
+use crate::utils::{sort_post_vec, test_post_score, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -848,7 +851,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         sort_post_vec(&mut expected_post_vec, sort_type, true);
         let post_vec = get_post_vec_by_sphere_name(
             sphere_name,
-            None,
+            SphereCategoryFilter::All,
             SortType::Post(sort_type),
             load_count as i64,
             0,
@@ -867,7 +870,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
 
         let second_post_vec = get_post_vec_by_sphere_name(
             sphere_name,
-            None,
+            SphereCategoryFilter::All,
             SortType::Post(sort_type),
             load_count as i64,
             load_count as i64,
@@ -889,7 +892,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
 
     let post_vec = get_post_vec_by_sphere_name(
         sphere_name,
-        None,
+        SphereCategoryFilter::All,
         SortType::Post(PostSortType::Hot),
         num_posts as i64,
         0,
@@ -940,7 +943,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = get_post_vec_by_sphere_name(
             sphere_name,
-            None,
+            SphereCategoryFilter::All,
             SortType::Post(sort_type),
             partial_load_num_post as i64,
             0,
@@ -963,7 +966,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
     let sphere_name = "sphere";
     let num_posts = 10usize;
 
-    let (sphere, _, _) = create_sphere_with_posts(
+    let (sphere, _, init_post_vec) = create_sphere_with_posts(
         sphere_name,
         None,
         num_posts,
@@ -972,6 +975,9 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         &mut user,
         &db_pool,
     ).await.expect("Sphere with post should be created");
+    let mut no_category_post_vec: Vec<PostWithSphereInfo> = init_post_vec.into_iter().filter(|post| {
+        post.sphere_category.is_none()
+    }).collect();
 
     let sphere_category = set_sphere_category(
         sphere_name,
@@ -1012,6 +1018,11 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         &user,
         &db_pool
     ).await.expect("Post 2 with category should be created.");
+    let category_post_2 = set_post_score(
+        category_post_2.post_id,
+        50,
+        &db_pool,
+    ).await.expect("Post 2 score should be set");
 
     let mut expected_post_vec = vec![
         PostWithSphereInfo::from_post(category_post_1, Some(sphere_category.clone().into()), sphere.icon_url.clone()),
@@ -1019,9 +1030,10 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
     ];
 
     for sort_type in POST_SORT_TYPE_ARRAY {
+        println!("Sort type: {:?}", sort_type);
         let category_post_vec = get_post_vec_by_sphere_name(
             sphere_name,
-            Some(sphere_category.category_id),
+            SphereCategoryFilter::CategorySet(CategorySetFilter::new(sphere_category.category_id)),
             SortType::Post(sort_type),
             num_posts as i64,
             0,
@@ -1034,6 +1046,54 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         }).collect();
         sort_post_vec(&mut expected_post_vec, sort_type, true);
         assert_eq!(category_post_vec, expected_post_vec);
+    }
+
+    //
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        println!("Sort type: {:?}", sort_type);
+        let category_post_vec = get_post_vec_by_sphere_name(
+            sphere_name,
+            SphereCategoryFilter::CategorySet(CategorySetFilter {
+                filters: HashSet::new(),
+                only_category: false,
+            }),
+            SortType::Post(sort_type),
+            num_posts as i64,
+            0,
+            None,
+            &db_pool,
+        ).await?;
+        let result_post_vec: Vec<PostWithSphereInfo> = category_post_vec.into_iter().map(|post| {
+            let sphere_category = post.category_id.map(|_| sphere_category.clone().into());
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
+        }).collect();
+        sort_post_vec(&mut no_category_post_vec, sort_type, true);
+        assert_eq!(result_post_vec, no_category_post_vec);
+    }
+
+    let mut all_post_vec = no_category_post_vec.clone();
+    all_post_vec.append(&mut expected_post_vec.clone());
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        println!("Sort type: {:?}", sort_type);
+        let category_post_vec = get_post_vec_by_sphere_name(
+            sphere_name,
+            SphereCategoryFilter::CategorySet(CategorySetFilter {
+                filters: std::iter::once(sphere_category.category_id).collect(),
+                only_category: false,
+            }),
+            SortType::Post(sort_type),
+            num_posts as i64,
+            0,
+            None,
+            &db_pool,
+        ).await?;
+        let category_post_vec: Vec<PostWithSphereInfo> = category_post_vec.into_iter().map(|post| {
+            let sphere_category = post.category_id.map(|_| sphere_category.clone().into());
+            PostWithSphereInfo::from_post(post, sphere_category, sphere.icon_url.clone())
+        }).collect();
+        sort_post_vec(&mut all_post_vec, sort_type, true);
+        assert_eq!(category_post_vec, all_post_vec);
     }
 
     Ok(())
@@ -1070,7 +1130,7 @@ async fn test_get_post_vec_by_sphere_name_with_filters() {
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = get_post_vec_by_sphere_name(
             &sphere.sphere_name,
-            None,
+            SphereCategoryFilter::All,
             SortType::Post(sort_type),
             (2*num_post) as i64,
             0,
@@ -1094,7 +1154,7 @@ async fn test_get_post_vec_by_sphere_name_with_filters() {
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = get_post_vec_by_sphere_name(
             &sphere.sphere_name,
-            None,
+            SphereCategoryFilter::All,
             SortType::Post(sort_type),
             (2*num_post) as i64,
             0,
@@ -1117,7 +1177,7 @@ async fn test_get_post_vec_by_sphere_name_with_filters() {
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = get_post_vec_by_sphere_name(
             &sphere.sphere_name,
-            None,
+            SphereCategoryFilter::All,
             SortType::Post(sort_type),
             (2*num_post) as i64,
             0,

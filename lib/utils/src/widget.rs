@@ -151,13 +151,15 @@ fn QueryTab(
     is_selected: Signal<bool>,
 ) -> impl IntoView {
     let tab_class = move || match is_selected.get() {
-        true => "w-full text-center p-1 bg-base-content/20 hover:bg-base-content/50",
-        false => "w-full text-center p-1 hover:bg-base-content/50",
+        true => "w-full p-1 text-center bg-base-content/20 hover:bg-base-content/50",
+        false => "w-full p-1 text-center hover:bg-base-content/50",
     };
     view! {
-        <Form method="GET" action="">
+        <Form method="GET" action="" attr:class="w-full">
             <input type="search" class="hidden" name=query_param value=query_value/>
-            <button type="submit" class=tab_class>{query_value}</button>
+            <button type="submit" class=tab_class>
+                {query_value}
+            </button>
         </Form>
     }
 }
@@ -175,7 +177,7 @@ where
     let query = use_query_map();
     let selected_enum = Signal::derive(move || T::from_str(&query.read().get(query_param).unwrap_or_default()).unwrap_or_default());
     view! {
-        <div class="w-full grid grid-flow-col justify-stretch divide-x divide-base-content/20 border border-1 border-base-content/20">
+        <div class="w-full flex justify-stretch divide-x divide-base-content/20 border border-1 border-base-content/20">
         {
             // TODO try styling first and last element differently
             query_enum_iter.into_iter().map(|enum_value| {

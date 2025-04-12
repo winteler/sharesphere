@@ -2237,9 +2237,6 @@
   .list-disc {
     list-style-type: disc;
   }
-  .grid-flow-col {
-    grid-auto-flow: column;
-  }
   .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2272,9 +2269,6 @@
   }
   .justify-start {
     justify-content: flex-start;
-  }
-  .justify-stretch {
-    justify-content: stretch;
   }
   .gap-1 {
     gap: calc(var(--spacing) * 1);

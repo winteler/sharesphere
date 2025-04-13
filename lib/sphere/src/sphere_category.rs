@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::use_textarea_autosize;
 
 use sharesphere_utils::colors::{Color, ColorIndicator, ColorSelect};
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
@@ -25,10 +24,8 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
     let color_input = RwSignal::new(Color::None);
     let activated_input = RwSignal::new(true);
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let description_autosize = use_textarea_autosize(textarea_ref);
     let description_data = TextareaData {
-        content: description_autosize.content,
-        set_content: description_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref
     };
     view! {
@@ -62,7 +59,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
                                                 color_input.set(color);
-                                                description_data.set_content.set(description.clone());
+                                                description_data.content.set(description.clone());
                                                 if let Some(textarea_ref) = textarea_ref.get() {
                                                     textarea_ref.set_value(&description);
                                                 }

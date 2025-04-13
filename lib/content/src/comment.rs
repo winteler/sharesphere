@@ -3,7 +3,6 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
-use leptos_use::use_textarea_autosize;
 
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::error_template::ErrorTemplate;
@@ -413,10 +412,8 @@ pub fn CommentForm(
 ) -> impl IntoView {
     let sphere_name = expect_context::<SphereState>().sphere_name;
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let comment_autosize = use_textarea_autosize(textarea_ref);
     let comment_data = TextareaData {
-        content: comment_autosize.content,
-        set_content: comment_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref,
     };
 
@@ -570,13 +567,10 @@ pub fn EditCommentForm(
             None => (comment.body.clone(), false),
         });
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let comment_autosize = use_textarea_autosize(textarea_ref);
     let comment_data = TextareaData {
-        content: comment_autosize.content,
-        set_content: comment_autosize.set_content,
+        content: RwSignal::new(current_body),
         textarea_ref,
     };
-    comment_data.set_content.set(current_body);
     let is_comment_empty = Signal::derive(
         move || comment_data.content.read().is_empty()
     );

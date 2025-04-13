@@ -28,8 +28,7 @@ pub enum FormatType {
 
 #[derive(Clone, Copy, Debug)]
 pub struct TextareaData {
-    pub content: Signal<String>,
-    pub set_content: WriteSignal<String>,
+    pub content: RwSignal<String>,
     pub textarea_ref: NodeRef<html::Textarea>
 }
 
@@ -189,9 +188,9 @@ pub fn FormTextEditor(
                     id=name
                     name=name
                     placeholder=placeholder
-                    class="w-full bg-base-100 resize-none box-border outline-hidden border-none"
+                    class="w-full bg-base-100 box-border outline-hidden border-none field-sizing-content"
                     on:input=move |ev| {
-                        data.set_content.set(event_target_value(&ev));
+                        data.content.set(event_target_value(&ev));
                     }
                     node_ref=data.textarea_ref
                 >
@@ -251,10 +250,10 @@ pub fn FormMarkdownEditor(
                         id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full resize-none box-border bg-base-100 p-1 rounded-xs outline-hidden"
+                        class="w-full field-sizing-content box-border bg-base-100 p-1 rounded-xs outline-hidden"
                         autofocus
                         on:input=move |ev| {
-                            data.set_content.set(event_target_value(&ev));
+                            data.content.set(event_target_value(&ev));
                         }
                         node_ref=data.textarea_ref
                     >
@@ -327,7 +326,7 @@ pub fn FormatButton(
                             let selection_start = selection_start as usize;
                             let selection_end = selection_end as usize;
                             format_textarea_content(
-                                &mut data.set_content.write(),
+                                &mut data.content.write(),
                                 selection_start,
                                 selection_end,
                                 format_type,

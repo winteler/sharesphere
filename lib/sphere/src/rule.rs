@@ -1,7 +1,6 @@
 use leptos::form::ActionForm;
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::use_textarea_autosize;
 
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::icons::{CrossIcon, EditIcon, PlusIcon};
@@ -115,21 +114,17 @@ pub fn EditRuleForm(
     let rule_priority = rule.with_value(|rule| rule.priority);
     let priority = RwSignal::new(rule_priority.to_string());
     let title_ref = NodeRef::<html::Textarea>::new();
-    let title_autosize = use_textarea_autosize(title_ref);
     let title_data = TextareaData {
-        content: title_autosize.content,
-        set_content: title_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref: title_ref,
     };
     let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(description_ref);
     let description_data = TextareaData {
-        content: desc_autosize.content,
-        set_content: desc_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref: description_ref,
     };
     let invalid_inputs = Signal::derive(move || {
-        priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+        priority.read().is_empty() || title_data.content.read().is_empty() || description_data.content.read().is_empty()
     });
 
     view! {
@@ -165,21 +160,17 @@ pub fn CreateRuleForm() -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let priority = RwSignal::new(String::default());
     let title_ref = NodeRef::<html::Textarea>::new();
-    let title_autosize = use_textarea_autosize(title_ref);
     let title_data = TextareaData {
-        content: title_autosize.content,
-        set_content: title_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref: title_ref,
     };
     let description_ref = NodeRef::<html::Textarea>::new();
-    let desc_autosize = use_textarea_autosize(description_ref);
     let description_data = TextareaData {
-        content: desc_autosize.content,
-        set_content: desc_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref: description_ref,
     };
     let invalid_inputs = Signal::derive(move || {
-        priority.read().is_empty() || title_autosize.content.read().is_empty() || description_data.content.read().is_empty()
+        priority.read().is_empty() || title_data.content.read().is_empty() || description_data.content.read().is_empty()
     });
 
     view! {

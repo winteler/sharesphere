@@ -1,7 +1,5 @@
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::use_textarea_autosize;
-
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{HammerIcon, MagnifierIcon};
@@ -80,10 +78,8 @@ pub fn ModeratePostDialog(
     let sphere_state = expect_context::<SphereState>();
 
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref,
     };
     let is_text_empty = Signal::derive(move || body_data.content.read().is_empty());
@@ -130,10 +126,8 @@ pub fn ModerateCommentDialog(
     show_dialog: RwSignal<bool>,
 ) -> impl IntoView {
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let comment_autosize = use_textarea_autosize(textarea_ref);
     let comment_data = TextareaData{
-        content: comment_autosize.content,
-        set_content: comment_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref,
     };
     let is_text_empty = Signal::derive(move || comment_data.content.read().is_empty());

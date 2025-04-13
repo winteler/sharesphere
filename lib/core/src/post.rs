@@ -1104,7 +1104,7 @@ pub fn PostForm(
                 Some(body) => (body.clone(), true),
                 None => (post.body.clone(), false),
             };
-            body_data.set_content.set(current_body);
+            body_data.content.set(current_body);
             (is_markdown, post.is_spoiler, post.is_nsfw, post.is_pinned, post.category_id)
         }),
         None => (false, false, false, false, None),

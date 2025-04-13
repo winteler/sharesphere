@@ -2002,6 +2002,9 @@
   .table {
     display: table;
   }
+  .field-sizing-content {
+    field-sizing: content;
+  }
   .h-0 {
     height: calc(var(--spacing) * 0);
   }
@@ -2224,9 +2227,6 @@
   }
   .cursor-pointer {
     cursor: pointer;
-  }
-  .resize-none {
-    resize: none;
   }
   .list-inside {
     list-style-position: inside;

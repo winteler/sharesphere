@@ -2,7 +2,6 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_params_map;
-use leptos_use::use_textarea_autosize;
 use server_fn::ServerFnError;
 
 use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
@@ -178,10 +177,8 @@ pub fn CreateSatellitePost() -> impl IntoView {
 
     let title_input = RwSignal::new(String::default());
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
+        content: RwSignal::new(String::default()),
         textarea_ref,
     };
     let link_input = RwSignal::new(String::default());
@@ -388,27 +385,22 @@ pub fn EditSatelliteForm(
     let is_nsfw = satellite.is_nsfw;
     let is_spoiler = satellite.is_spoiler;
     let title_ref = NodeRef::<html::Textarea>::new();
-    let title_autosize = use_textarea_autosize(title_ref);
     let title_data = TextareaData {
-        content: title_autosize.content,
-        set_content: title_autosize.set_content,
+        content: RwSignal::new(satellite.satellite_name),
         textarea_ref: title_ref,
     };
-    title_data.set_content.set(satellite.satellite_name);
     let body_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(body_ref);
-    let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
-        textarea_ref: body_ref,
-    };
     let (body, is_markdown_body) = match satellite.markdown_body {
         Some(markdown_body) => (markdown_body, true),
         None => (satellite.body, false),
     };
-    body_data.set_content.set(body);
+    let body_data = TextareaData {
+        content: RwSignal::new(body),
+        textarea_ref: body_ref,
+    };
+
     let invalid_inputs = Signal::derive(move || {
-        title_autosize.content.read().is_empty() || body_data.content.read().is_empty()
+        title_data.content.read().is_empty() || body_data.content.read().is_empty()
     });
 
     view! {
@@ -438,21 +430,17 @@ pub fn CreateSatelliteForm() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let show_dialog = RwSignal::new(false);
     let title_ref = NodeRef::<html::Textarea>::new();
-    let title_autosize = use_textarea_autosize(title_ref);
     let title_data = TextareaData {
-        content: title_autosize.content,
-        set_content: title_autosize.set_content,
+        content: RwSignal::new(String::default()),
         textarea_ref: title_ref,
     };
     let body_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(body_ref);
     let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
+        content: RwSignal::new(String::default()),
         textarea_ref: body_ref,
     };
     let invalid_inputs = Signal::derive(move || {
-        title_autosize.content.read().is_empty() || body_data.content.read().is_empty()
+        title_data.content.read().is_empty() || body_data.content.read().is_empty()
     });
 
     view! {

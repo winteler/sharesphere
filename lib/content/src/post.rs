@@ -2,7 +2,7 @@ use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map, use_query_map};
-use leptos_use::{signal_debounced, use_textarea_autosize};
+use leptos_use::{signal_debounced};
 
 use sharesphere_utils::constants::{DELETED_MESSAGE};
 use sharesphere_utils::editor::{TextareaData};
@@ -245,10 +245,8 @@ pub fn CreatePost() -> impl IntoView {
 
     let title_input = RwSignal::new(String::default());
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref,
     };
     let link_input = RwSignal::new(String::default());
@@ -379,10 +377,8 @@ pub fn EditPostForm(
     ));
     let title_input = RwSignal::new(title);
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let body_autosize = use_textarea_autosize(textarea_ref);
     let body_data = TextareaData {
-        content: body_autosize.content,
-        set_content: body_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref,
     };
     let embed_type_input = RwSignal::new(match link_type {

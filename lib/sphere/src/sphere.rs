@@ -3,7 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::{use_params_map};
-use leptos_use::{signal_debounced, use_textarea_autosize};
+use leptos_use::{signal_debounced};
 
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
@@ -324,10 +324,8 @@ pub fn CreateSphere() -> impl IntoView {
 
     let is_name_taken = RwSignal::new(false);
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let textarea_autosize = use_textarea_autosize(textarea_ref);
     let description_data = TextareaData {
-        content: textarea_autosize.content,
-        set_content: textarea_autosize.set_content,
+        content: RwSignal::new(String::new()),
         textarea_ref,
     };
     let is_name_empty = move || sphere_name.read().is_empty();

@@ -6,7 +6,7 @@ use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::JsCast;
 use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
 use leptos_router::components::Outlet;
-use leptos_use::{signal_debounced, use_textarea_autosize};
+use leptos_use::{signal_debounced};
 use strum::IntoEnumIterator;
 
 
@@ -87,7 +87,7 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
+            <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere description"</div>
                 <SuspenseUnpack resource=sphere_state.sphere_resource let:sphere>
                     <SphereDescriptionForm sphere=sphere/>
@@ -104,18 +104,15 @@ pub fn SphereDescriptionForm<'a>(
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let textarea_ref = NodeRef::<html::Textarea>::new();
-    let description_autosize = use_textarea_autosize(textarea_ref);
     let description_data = TextareaData {
-        content: description_autosize.content,
-        set_content: description_autosize.set_content,
+        content: RwSignal::new(sphere.description.clone()),
         textarea_ref
     };
-    description_data.set_content.set(sphere.description.clone());
     let disable_submit = move || description_data.content.read().is_empty();
     view! {
         <ActionForm
             action=sphere_state.update_sphere_desc_action
-            attr:class="flex flex-col gap-1"
+            attr:class="w-full flex flex-col gap-1"
         >
             <input
                 name="sphere_name"

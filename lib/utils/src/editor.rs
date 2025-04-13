@@ -188,9 +188,17 @@ pub fn FormTextEditor(
                     id=name
                     name=name
                     placeholder=placeholder
-                    class="w-full bg-base-100 box-border outline-hidden border-none field-sizing-content"
+                    class="w-full bg-base-100 box-border outline-hidden border-none"
                     on:input=move |ev| {
                         data.content.set(event_target_value(&ev));
+                        if let Some(textarea_ref) = data.textarea_ref.get() {
+                            textarea_ref.style(("height", "auto"));
+                            let scroll_height = textarea_ref.scroll_height();
+                            textarea_ref.style(("height", format!("{}px", scroll_height).as_str()));
+                            if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
+                                log::warn!("Failed to set scroll_height: {:?}", e.as_string());
+                            };
+                        }
                     }
                     node_ref=data.textarea_ref
                 >
@@ -250,10 +258,18 @@ pub fn FormMarkdownEditor(
                         id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full field-sizing-content box-border bg-base-100 p-1 rounded-xs outline-hidden"
+                        class="w-full box-border bg-base-100 p-1 rounded-xs outline-hidden"
                         autofocus
                         on:input=move |ev| {
                             data.content.set(event_target_value(&ev));
+                            if let Some(textarea_ref) = data.textarea_ref.get() {
+                                textarea_ref.style(("height", "auto"));
+                                let scroll_height = textarea_ref.scroll_height();
+                                textarea_ref.style(("height", format!("{}px", scroll_height).as_str()));
+                                if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
+                                    log::warn!("Failed to set scroll_height: {:?}", e.as_string());
+                                };
+                            }
                         }
                         node_ref=data.textarea_ref
                     >

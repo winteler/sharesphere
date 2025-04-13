@@ -18,7 +18,7 @@ pub fn NavigationBar() -> impl IntoView
             <div class="flex items-center gap-1 2xl:gap-2">
                 <label
                     for="my-drawer"
-                    class="drawer-button 2xl:hidden button-rounded-neutral"
+                    class="drawer-button 2xl:hidden button-rounded-ghost"
                 >
                     <SideBarIcon/>
                 </label>
@@ -28,7 +28,7 @@ pub fn NavigationBar() -> impl IntoView
                 </a>
             </div>
             <div class="flex items-center gap-1 2xl:gap-2">
-                <SearchButton class="button-rounded-neutral"/>
+                <SearchButton class="button-rounded-ghost"/>
                 <PlusMenu/>
                 <UserMenu/>
             </div>
@@ -40,12 +40,12 @@ pub fn NavigationBar() -> impl IntoView
 pub fn UserMenu() -> impl IntoView {
     view! {
         <LoginGuardButton
-            login_button_class="button-rounded-neutral"
+            login_button_class="button-rounded-ghost"
             login_button_content=move || view! { <UserIcon/> }.into_any()
             redirect_path_fn=&get_current_path
             let:user
         >
-            <LoggedInMenu user=user.clone()/>
+            <LoggedInMenu username=user.username.clone()/>
         </LoginGuardButton>
     }.into_any()
 }
@@ -59,6 +59,7 @@ pub fn LoggedInMenu(
 
     view! {
         <DropdownButton
+            button_class="button-rounded-ghost"
             button_content=move || view! { <UserIcon/> }
             align_right=true
         >
@@ -85,6 +86,7 @@ pub fn PlusMenu() -> impl IntoView {
     let create_post_str = "Share a Post!";
     view! {
         <DropdownButton
+            button_class="button-rounded-ghost"
             button_content=move || view! { <PlusIcon class="navbar-icon-size"/> }
             align_right=true
         >

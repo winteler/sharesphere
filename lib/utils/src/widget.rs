@@ -4,9 +4,12 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
-use leptos_use::{breakpoints_tailwind, on_click_outside, use_breakpoints};
+use leptos_use::{breakpoints_tailwind, use_breakpoints};
 use leptos_use::BreakpointsTailwind::Xxl;
 use strum::IntoEnumIterator;
+
+#[cfg(feature = "hydrate")]
+use leptos_use::on_click_outside;
 
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
@@ -99,8 +102,11 @@ pub fn DropdownButton<C: IntoView + 'static>(
     dropdown_ref: NodeRef<html::Div>,
 ) -> impl IntoView {
     let show_dropdown = RwSignal::new(false);
-    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
-
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+    }
     let button_class = move || match show_dropdown.get() {
         true => activated_button_class,
         false => button_class,

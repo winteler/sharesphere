@@ -2270,6 +2270,9 @@
   .justify-start {
     justify-content: flex-start;
   }
+  .justify-stretch {
+    justify-content: stretch;
+  }
   .gap-1 {
     gap: calc(var(--spacing) * 1);
   }

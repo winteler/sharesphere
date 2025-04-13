@@ -1,9 +1,11 @@
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::on_click_outside;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
+
+#[cfg(feature = "hydrate")]
+use leptos_use::on_click_outside;
 
 use crate::widget::RotatingArrow;
 
@@ -88,7 +90,11 @@ pub fn ColorSelect(
     let color_string = move || color_input.get().to_string();
     let div_class = format!("h-full flex gap-1 {class}");
     let dropdown_ref = NodeRef::<html::Div>::new();
-    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+    }
 
     let label_view = match label.is_empty() {
         true => ().into_any(),

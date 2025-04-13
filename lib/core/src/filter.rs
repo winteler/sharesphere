@@ -1,8 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use leptos::html::{Div, Input};
 use leptos::prelude::*;
-use leptos_use::on_click_outside;
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "hydrate")]
+use leptos_use::on_click_outside;
+
 use sharesphere_utils::icons::{FiltersIcon};
 use sharesphere_utils::unpack::SuspenseUnpack;
 use sharesphere_utils::widget::{Dropdown};
@@ -46,7 +49,11 @@ impl CategorySetFilter {
 pub fn PostFiltersButton() -> impl IntoView {
     let show_dropdown = RwSignal::new(false);
     let dropdown_ref = NodeRef::<Div>::new();
-    let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+    }
     let button_class = move || match show_dropdown.get() {
         true => "button-primary",
         false => "button-ghost",

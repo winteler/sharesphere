@@ -201,8 +201,8 @@ fn HomePage() -> impl IntoView {
             </div>
             <PostSortWidget sort_signal=state.post_sort_type/>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
-                { 
-                    move || Suspend::new(async move { 
+                {
+                    move || Suspend::new(async move {
                         match state.user.await {
                             Ok(Some(user)) => view! { <UserHomePage user/> }.into_any(),
                             _ => view! { <DefaultHomePage/> }.into_any(),

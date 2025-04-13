@@ -1,6 +1,9 @@
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::{on_click_outside, signal_debounced};
+use leptos_use::{signal_debounced};
+
+#[cfg(feature = "hydrate")]
+use leptos_use::on_click_outside;
 
 use crate::constants::SPOILER_TAG;
 use crate::errors::AppError;
@@ -364,7 +367,11 @@ pub fn FormatButton(
 pub fn HelpButton() -> impl IntoView {
     let show_help = RwSignal::new(false);
     let modal_ref = NodeRef::<html::Div>::new();
-    let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
+    }
 
     view! {
         <div class="relative inline-block z-20">

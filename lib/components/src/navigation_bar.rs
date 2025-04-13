@@ -5,7 +5,6 @@ use sharesphere_utils::icons::*;
 use sharesphere_utils::routes::{get_create_post_path, get_current_path, get_current_url, get_profile_path, get_sphere_name, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_SPHERE_ROUTE};
 
 use sharesphere_auth::auth::LoginGuardButton;
-use sharesphere_auth::user::User;
 use sharesphere_core::state::GlobalState;
 use sharesphere_utils::widget::DropdownButton;
 use crate::search::{SearchButton};
@@ -53,7 +52,7 @@ pub fn UserMenu() -> impl IntoView {
 
 #[component]
 pub fn LoggedInMenu(
-    user: User,
+    username: String,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let current_url = RwSignal::new(String::default());
@@ -64,7 +63,7 @@ pub fn LoggedInMenu(
             align_right=true
         >
             <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm w-fit flex flex-col">
-                <li class="w-full button-ghost-sm"><a href=get_profile_path(&user.username)>"Profile"</a></li>
+                <li class="w-full button-ghost-sm"><a href=get_profile_path(&username)>"Profile"</a></li>
                 <li class="w-full button-ghost-sm">
                     <ActionForm action=state.logout_action attr:class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>
@@ -73,7 +72,7 @@ pub fn LoggedInMenu(
                         </button>
                     </ActionForm>
                 </li>
-                <li class="button-ghost-sm"><span>{format!("Logged in as: {}", user.username)}</span></li>
+                <li class="button-ghost-sm"><span>{format!("Logged in as: {}", username)}</span></li>
             </ul>
         </DropdownButton>
     }.into_any()

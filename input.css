@@ -45,60 +45,62 @@
     --color-error-hover: oklch(32% 0.245 27.325);
 }
 
-.button-ghost {
-    @apply p-1 2xl:p-2 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+@layer components {
+    .button-ghost {
+        @apply p-1 2xl:p-2 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-neutral {
-    @apply p-1 2xl:p-2 rounded-xs bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-neutral {
+        @apply p-1 2xl:p-2 rounded-xs bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-ghost-sm {
-    @apply p-1 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-ghost-sm {
+        @apply p-1 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-primary {
-    @apply p-1 2xl:p-2 rounded-xs bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-primary {
+        @apply p-1 2xl:p-2 rounded-xs bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-secondary {
-    @apply p-1 2xl:p-2 rounded-xs bg-secondary hover:bg-secondary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-secondary {
+        @apply p-1 2xl:p-2 rounded-xs bg-secondary hover:bg-secondary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-error {
-    @apply p-1 2xl:p-2 rounded-xs bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-error {
+        @apply p-1 2xl:p-2 rounded-xs bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-rounded-ghost {
-    @apply p-1 2xl:p-2 rounded-full hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-rounded-ghost {
+        @apply p-1 2xl:p-2 rounded-full hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-rounded-neutral {
-    @apply p-2 rounded-full bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-rounded-neutral {
+        @apply p-2 rounded-full bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-rounded-primary {
-    @apply p-2 rounded-full bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-rounded-primary {
+        @apply p-2 rounded-full bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.button-rounded-error {
-    @apply p-2 rounded-full bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
-}
+    .button-rounded-error {
+        @apply p-2 rounded-full bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
 
-.navbar-icon-size {
-    @apply h-6 w-6 2xl:h-7 2xl:w-7;
-}
+    .navbar-icon-size {
+        @apply h-6 w-6 2xl:h-7 2xl:w-7;
+    }
 
-.filter-icon-size {
-    @apply h-4 w-4 2xl:h-7 2xl:w-7;
-}
+    .filter-icon-size {
+        @apply h-4 w-4 2xl:h-7 2xl:w-7;
+    }
 
-.sphere-toolbar-icon-size {
-    @apply h-5 w-5 2xl:h-6 2xl:w-6;
-}
+    .sphere-toolbar-icon-size {
+        @apply h-5 w-5 2xl:h-6 2xl:w-6;
+    }
 
-.content-toolbar-icon-size {
-    @apply h-4 w-4 2xl:h-5 2xl:w-5;
+    .content-toolbar-icon-size {
+        @apply h-4 w-4 2xl:h-5 2xl:w-5;
+    }
 }
 
 /* Styles for the spoiler blocks */

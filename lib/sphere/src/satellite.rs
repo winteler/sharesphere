@@ -288,9 +288,9 @@ pub fn SatellitePanel() -> impl IntoView {
     );
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
+        <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Satellites"</div>
-            <div class="flex flex-col gap-1">
+            <div class="w-full flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
                     <div class="w-5/6 flex gap-1">
                         <div class="w-3/6 py-2 font-bold">"Title"</div>

@@ -146,7 +146,7 @@ pub fn SphereIconDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
+            <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere icon"</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
@@ -169,7 +169,7 @@ pub fn SphereBannerDialog() -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
-            <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
+            <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere banner"</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
@@ -234,7 +234,7 @@ pub fn SphereImageForm(
     };
 
     view! {
-        <form on:submit=on_submit class="flex flex-col gap-1">
+        <form on:submit=on_submit class="w-full flex flex-col gap-1">
             <input
                 name=SPHERE_NAME_PARAM
                 class="hidden"
@@ -244,7 +244,7 @@ pub fn SphereImageForm(
                 type="file"
                 name=IMAGE_FILE_PARAM
                 accept="image/*"
-                class="file-input file-input-primary w-full rounded-xs"
+                class="file-input file-input-primary w-full"
                 on:change=on_file_change
             />
             <Show when=move || !preview_url.read().is_empty()>
@@ -290,9 +290,9 @@ pub fn ModeratorPanel() -> impl IntoView {
 
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
+        <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Moderators"</div>
-            <div class="flex flex-col gap-1">
+            <div class="w-full flex flex-col gap-1">
                 <div class="flex gap-1 border-b border-base-content/20">
                     <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
                     <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
@@ -353,13 +353,13 @@ pub fn PermissionLevelForm(
 
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
-            <ActionForm action=set_role_action>
+            <ActionForm action=set_role_action attr:class="w-full">
                 <input
                     name="sphere_name"
                     class="hidden"
                     value=sphere_name
                 />
-                <div class="flex gap-1 items-center">
+                <div class="w-full flex gap-1 items-center">
                     <div class="dropdown dropdown-end w-2/5">
                         <input
                             tabindex="0"
@@ -433,9 +433,9 @@ pub fn BanPanel() -> impl IntoView {
 
     view! {
         // TODO add overflow-y-auto max-h-full?
-        <div class="shrink-0 flex flex-col gap-1 items-center w-full bg-base-200 p-2 rounded-sm">
+        <div class="flex flex-col gap-1 items-center w-full bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Banned users"</div>
-            <div class="flex flex-col gap-1">
+            <div class="w-full flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">
                     <div class="flex">
                         <input

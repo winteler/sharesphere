@@ -20,7 +20,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Rules"</div>
-            <div class="flex flex-col gap-1">
+            <div class="w-full flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
                     <div class="w-5/6 flex gap-1">
                         <div class="w-1/12 py-2 font-bold">"N°"</div>

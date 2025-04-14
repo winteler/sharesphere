@@ -357,8 +357,8 @@ pub fn CommentButtonWithCount(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "button-rounded-primary !p-0 !px-2",
-        false => "button-rounded-neutral !p-0 !px-2",
+        true => "button-rounded-primary p-0 px-2",
+        false => "button-rounded-neutral p-0 px-2",
     });
 
     view! {

@@ -405,7 +405,7 @@ pub fn SphereHeaderLink(
     let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
     view! {
         <button
-            class="button-rounded-neutral !p-0 !px-2"
+            class="button-rounded-neutral p-0 px-2"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(sphere_path.as_str(), NavigateOptions::default());

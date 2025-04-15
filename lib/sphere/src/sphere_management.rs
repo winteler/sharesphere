@@ -407,7 +407,7 @@ pub fn PermissionLevelForm(
                     />
                     <button
                         type="submit"
-                        class="button-secondary"
+                        class="button-secondary p-3"
                         disabled=disable_submit
                     >
                         "Assign"

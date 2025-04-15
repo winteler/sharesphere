@@ -3,7 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 
 use sharesphere_utils::colors::{Color, ColorIndicator, ColorSelect};
-use sharesphere_utils::editor::{FormTextEditor, TextareaData};
+use sharesphere_utils::editor::{adjust_textarea_height, FormTextEditor, TextareaData};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::FormCheckbox;
 use sharesphere_utils::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
@@ -35,11 +35,11 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                 <div class="text-xl text-center">"Sphere categories"</div>
                 <div class="w-full flex flex-col">
                     <div class="border-b border-base-content/20 pl-2">
-                        <div class="w-5/6 flex gap-1">
+                        <div class="w-15/16 flex gap-1">
                             <div class="w-3/12 py-2 font-bold">"Category"</div>
-                            <div class="w-1/12 py-2 font-bold">"Color"</div>
+                            <div class="w-2/12 2xl:w-1/12 py-2 flex justify-center font-bold">"Color"</div>
                             <div class="w-3/6 py-2 font-bold">"Description"</div>
-                            <div class="w-20 py-2 font-bold text-center">"Active"</div>
+                            <div class="w-1/12 py-2 font-bold text-center max-2xl:hidden">"Active"</div>
                         </div>
                     </div>
                     <div class="flex flex-col gap-1 pl-2 py-1">
@@ -55,21 +55,22 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                         class="flex justify-between items-center"
                                     >
                                         <div
-                                            class="w-5/6 flex items-center gap-1 p-1 rounded-sm hover:bg-base-200 active:scale-95 transition duration-250"
+                                            class="w-15/16 flex items-center gap-1 p-1 rounded-sm hover:bg-base-200 active:scale-95 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
                                                 color_input.set(color);
                                                 description_data.content.set(description.clone());
-                                                if let Some(textarea_ref) = textarea_ref.get() {
-                                                    textarea_ref.set_value(&description);
+                                                if let Some(textarea_elem) = textarea_ref.get() {
+                                                    textarea_elem.set_value(&description);
+                                                    adjust_textarea_height(textarea_ref);
                                                 }
                                                 activated_input.set(is_active);
                                             }
                                         >
                                             <div class="w-3/12 select-none">{category_name.clone()}</div>
-                                            <div class="w-1/12 h-fit"><ColorIndicator color/></div>
+                                            <div class="w-2/12 2xl:w-1/12 flex justify-center"><ColorIndicator color/></div>
                                             <div class="w-3/6 select-none whitespace-pre-wrap">{description.clone()}</div>
-                                            <div class="w-20 flex justify-center">
+                                            <div class="w-1/12 flex justify-center">
                                             {
                                                 match is_active {
                                                     true => view! { <PlayIcon/> }.into_any(),
@@ -113,7 +114,7 @@ pub fn SetCategoryForm(
                     value=sphere_name
                 />
                 <div class="w-full flex gap-1 justify-between items-stretch pl-2">
-                    <div class="flex gap-1 items-center w-5/6 p-1">
+                    <div class="flex gap-1 items-center w-15/16 2xl:p-1">
                         <input
                             tabindex="0"
                             type="text"
@@ -126,19 +127,19 @@ pub fn SetCategoryForm(
                             }
                             prop:value=category_input
                         />
-                        <ColorSelect name="category_color" color_input class="w-1/12"/>
+                        <ColorSelect name="category_color" color_input class="w-2/12 h-input-md 2xl:w-1/12 flex justify-center"/>
                         <FormTextEditor
                             name="description"
                             placeholder="Description"
                             data=description_data
                             class="w-3/6"
                         />
-                        <FormCheckbox name="is_active" is_checked=activated_input class="w-20 self-center flex justify-center"/>
+                        <FormCheckbox name="is_active" is_checked=activated_input class="w-1/12 self-center flex justify-center"/>
                     </div>
                     <button
                         type="submit"
                         disabled=disable_submit
-                        class="button-secondary self-center"
+                        class="button-secondary self-center "
                     >
                         <SaveIcon/>
                     </button>

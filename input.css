@@ -26,8 +26,8 @@
     --color-error: oklch(52% 0.245 27.325);
     --color-error-content: oklch(1 0 0);
     --radius-selector: 0rem;
-    --radius-field: 0.25rem;
-    --radius-box: 0.25rem;
+    --radius-field: 0rem;
+    --radius-box: 0rem;
     --size-selector: 0.25rem;
     --size-field: 0.28125rem;
     --border: 1px;
@@ -36,6 +36,7 @@
 }
 
 @theme {
+    --spacing-input-md: 2.8125rem;
     --spacing-124: 31rem;
     --spacing-128: 32rem;
     --spacing-160: 40rem;

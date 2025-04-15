@@ -88,7 +88,7 @@ pub fn ColorSelect(
 ) -> impl IntoView {
     let show_dropdown = RwSignal::new(false);
     let color_string = move || color_input.get().to_string();
-    let div_class = format!("h-full flex gap-1 {class}");
+    let div_class = format!("h-full flex {class}");
     let dropdown_ref = NodeRef::<html::Div>::new();
     #[cfg(feature = "hydrate")]
     {
@@ -98,16 +98,16 @@ pub fn ColorSelect(
 
     let label_view = match label.is_empty() {
         true => ().into_any(),
-        false => view! { <span class="label-text">{label}</span> }.into_any()
+        false => view! { <span class="pr-1 label-text">{label}</span> }.into_any()
     };
 
     view! {
         <div class=div_class node_ref=dropdown_ref>
             <input type="text" name=name value=color_string class="hidden"/>
             {label_view}
-            <div class="h-full relative">
+            <div class="h-full w-fit relative">
                 <div
-                    class="h-full flex items-center gap-2 pr-2 border border-primary bg-base-100 hover:bg-base-200"
+                    class="h-full flex items-center 2xl:gap-1 pr-2 border border-primary bg-base-100 hover:bg-base-200"
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
                     <ColorIndicator color=color_input/>

@@ -1,4 +1,5 @@
 use leptos::html;
+use leptos::html::Textarea;
 use leptos::prelude::*;
 use leptos_use::{signal_debounced};
 
@@ -176,7 +177,7 @@ pub fn FormTextEditor(
     #[prop(default = "w-full")]
     class: &'static str,
 ) -> impl IntoView {
-    let class = format!("group max-w-full p-2 border border-primary rounded-xs bg-base-100 {class}");
+    let class = format!("group max-w-full p-2 border border-primary bg-base-100 {class}");
 
     view! {
         <div class=class>
@@ -192,14 +193,7 @@ pub fn FormTextEditor(
                     rows=1
                     on:input=move |ev| {
                         data.content.set(event_target_value(&ev));
-                        if let Some(textarea_ref) = data.textarea_ref.get() {
-                            textarea_ref.style(("height", "auto"));
-                            let scroll_height = textarea_ref.scroll_height();
-                            textarea_ref.style(("height", format!("{}px", scroll_height).as_str()));
-                            if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
-                                log::warn!("Failed to set scroll_height: {:?}", e.as_string());
-                            };
-                        }
+                        adjust_textarea_height(data.textarea_ref);
                     }
                     node_ref=data.textarea_ref
                 >
@@ -250,7 +244,7 @@ pub fn FormMarkdownEditor(
 
     view! {
         <div class="flex flex-col gap-2">
-            <div class="group w-full max-w-full p-2 border border-primary rounded-xs">
+            <div class="group w-full max-w-full p-2 border border-primary">
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for=name class="sr-only">
                         {placeholder}
@@ -259,19 +253,12 @@ pub fn FormMarkdownEditor(
                         id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full box-border bg-base-100 p-1 rounded-xs outline-hidden resize-none"
+                        class="w-full box-border bg-base-100 p-1 outline-hidden resize-none"
                         rows=1
                         autofocus
                         on:input=move |ev| {
                             data.content.set(event_target_value(&ev));
-                            if let Some(textarea_ref) = data.textarea_ref.get() {
-                                textarea_ref.style(("height", "auto"));
-                                let scroll_height = textarea_ref.scroll_height();
-                                textarea_ref.style(("height", format!("{}px", scroll_height).as_str()));
-                                if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
-                                    log::warn!("Failed to set scroll_height: {:?}", e.as_string());
-                                };
-                            }
+                            adjust_textarea_height(data.textarea_ref);
                         }
                         node_ref=data.textarea_ref
                     >
@@ -312,7 +299,7 @@ pub fn FormMarkdownEditor(
             </div>
             <Show when=is_markdown_mode>
                 <TransitionUnpack resource=render_markdown_resource let:markdown_as_html>
-                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary rounded-xs bg-base-100 break-words"
+                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary bg-base-100 break-words"
                         inner_html={markdown_as_html.clone()}
                     />
                 </TransitionUnpack>
@@ -503,6 +490,18 @@ fn get_line_start_for_position(string: &String, position: usize) -> usize {
     match string[..position].rfind('\n') {
         Some(line_start) => line_start + 1,
         None => 0,
+    }
+}
+
+/// Adjust the height of `textarea_ref` so that all its content is displayed without a scrollbar.
+pub fn adjust_textarea_height(textarea_ref: NodeRef<Textarea>) {
+    if let Some(textarea_ref) = textarea_ref.get() {
+        textarea_ref.style(("height", "auto"));
+        let scroll_height = textarea_ref.scroll_height();
+        textarea_ref.style(("height", format!("{}px", scroll_height).as_str()));
+        if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
+            log::warn!("Failed to set scroll_height: {:?}", e.as_string());
+        };
     }
 }
 

@@ -51,6 +51,7 @@
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
+    --spacing-input-md: 2.8125rem;
     --spacing-124: 31rem;
     --spacing-128: 32rem;
     --spacing-160: 40rem;
@@ -2038,6 +2039,9 @@
   .h-full {
     height: 100%;
   }
+  .h-input-md {
+    height: var(--spacing-input-md);
+  }
   .h-screen {
     height: 100vh;
   }
@@ -2092,6 +2096,9 @@
   .w-2\/5 {
     width: calc(2/5 * 100%);
   }
+  .w-2\/12 {
+    width: calc(2/12 * 100%);
+  }
   .w-3 {
     width: calc(var(--spacing) * 3);
   }
@@ -2127,6 +2134,9 @@
   }
   .w-8 {
     width: calc(var(--spacing) * 8);
+  }
+  .w-15\/16 {
+    width: calc(15/16 * 100%);
   }
   .w-16 {
     width: calc(var(--spacing) * 16);
@@ -2597,6 +2607,9 @@
   .pt-4 {
     padding-top: calc(var(--spacing) * 4);
   }
+  .pr-1 {
+    padding-right: calc(var(--spacing) * 1);
+  }
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
   }
@@ -2957,6 +2970,11 @@
       width: calc(1/4 * 100%);
     }
   }
+  .\32 xl\:w-1\/12 {
+    @media (width >= 96rem) {
+      width: calc(1/12 * 100%);
+    }
+  }
   .\32 xl\:w-2\/3 {
     @media (width >= 96rem) {
       width: calc(2/3 * 100%);
@@ -3000,6 +3018,11 @@
   .\32 xl\:p-0\.5 {
     @media (width >= 96rem) {
       padding: calc(var(--spacing) * 0.5);
+    }
+  }
+  .\32 xl\:p-1 {
+    @media (width >= 96rem) {
+      padding: calc(var(--spacing) * 1);
     }
   }
   .\32 xl\:px-3 {
@@ -3638,8 +3661,8 @@ textarea::-webkit-scrollbar {
       --color-error: oklch(52% 0.245 27.325);
       --color-error-content: oklch(1 0 0);
       --radius-selector: 0rem;
-      --radius-field: 0.25rem;
-      --radius-box: 0.25rem;
+      --radius-field: 0rem;
+      --radius-box: 0rem;
       --size-selector: 0.25rem;
       --size-field: 0.28125rem;
       --border: 1px;
@@ -3672,8 +3695,8 @@ textarea::-webkit-scrollbar {
     --color-error: oklch(52% 0.245 27.325);
     --color-error-content: oklch(1 0 0);
     --radius-selector: 0rem;
-    --radius-field: 0.25rem;
-    --radius-box: 0.25rem;
+    --radius-field: 0rem;
+    --radius-box: 0rem;
     --size-selector: 0.25rem;
     --size-field: 0.28125rem;
     --border: 1px;

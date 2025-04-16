@@ -367,7 +367,7 @@ pub fn DisableSatelliteButton(
                     class="hidden"
                     value=satellite_id
                 />
-                <button class="p-1 rounded-xs bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                <button class="button-error">
                     <CrossIcon/>
                 </button>
             </ActionForm>
@@ -445,7 +445,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
 
     view! {
         <button
-            class="self-end p-1 bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
+            class="self-end button-secondary"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <PlusIcon/>

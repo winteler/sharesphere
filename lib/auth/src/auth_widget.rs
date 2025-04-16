@@ -26,7 +26,7 @@ pub fn LoginWindow() -> impl IntoView {
     view! {
         <div class="hero">
             <div class="hero-content flex text-center">
-                <AuthErrorIcon class="h-44 w-44"/>
+                <AuthErrorIcon class="h-20 w-20 2xl:h-44 2xl:w-44"/>
                 <div class="max-w-md">
                     <h1 class="text-5xl font-bold">"Not authenticated"</h1>
                     <p class="pt-4">"Sorry, we had some trouble identifying you."</p>

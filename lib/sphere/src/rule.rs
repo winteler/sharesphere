@@ -175,7 +175,7 @@ pub fn CreateRuleForm() -> impl IntoView {
 
     view! {
         <button
-            class="self-end p-1 bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
+            class="self-end button-secondary"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <PlusIcon/>

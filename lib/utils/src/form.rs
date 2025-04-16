@@ -8,12 +8,14 @@ pub fn FormCheckbox(
     is_checked: RwSignal<bool>,
     #[prop(default = "")]
     class: &'static str,
+    #[prop(default="checkbox checkbox-primary")]
+    checkbox_class: &'static str,
 ) -> impl IntoView {
     let is_checked_string = move || is_checked.get().to_string();
     view! {
         <div class=class>
             <input type="text" name=name value=is_checked_string class="hidden"/>
-            <input type="checkbox" class="checkbox checkbox-primary" checked=is_checked on:click=move |_| is_checked.update(|value| *value = !*value)/>
+            <input type="checkbox" class=checkbox_class checked=is_checked on:click=move |_| is_checked.update(|value| *value = !*value)/>
         </div>
     }
 }
@@ -32,6 +34,8 @@ pub fn LabeledFormCheckbox(
     disabled: bool,
     #[prop(optional)]
     class: &'static str,
+    #[prop(default="checkbox checkbox-primary")]
+    checkbox_class: &'static str,
 ) -> impl IntoView {
     let is_checked = RwSignal::new(value);
     let is_checked_string = move || is_checked.get().to_string();
@@ -42,7 +46,7 @@ pub fn LabeledFormCheckbox(
                 <span class="label">{label}</span>
                 <input
                     type="checkbox"
-                    class="checkbox checkbox-primary"
+                    class=checkbox_class
                     checked=is_checked
                     disabled=disabled
                     on:click=move |_| is_checked.update(|value| *value = !*value)

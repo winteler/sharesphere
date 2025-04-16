@@ -471,7 +471,7 @@ pub fn BanPanel() -> impl IntoView {
                                                 class="hidden"
                                                 value=ban_id
                                             />
-                                            <button class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                                            <button class="button-error">
                                                 <CrossIcon/>
                                             </button>
                                         </ActionForm>
@@ -497,7 +497,7 @@ pub fn BanInfoButton(
 
     view! {
         <button
-            class="p-1 h-full bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
+            class="button-secondary"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
             <MagnifierIcon/>
@@ -517,7 +517,7 @@ pub fn BanInfoButton(
                             <ModerationInfoDialog moderation_info/>
                             <button
                                 type="button"
-                                class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                                class="button-error"
                                 on:click=move |_| show_dialog.set(false)
                             >
                                 "Close"

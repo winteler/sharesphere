@@ -219,7 +219,7 @@ pub mod ssr {
 #[server]
 pub async fn get_rule_by_id(
     rule_id: i64
-) -> Result<Rule, ServerFnError<AppError>> {
+) -> Result<Rule, AppError> {
     let db_pool = get_db_pool()?;
     let rule = ssr::load_rule_by_id(rule_id, &db_pool).await?;
     Ok(rule)
@@ -228,7 +228,7 @@ pub async fn get_rule_by_id(
 #[server]
 pub async fn get_sphere_rule_vec(
     sphere_name: String
-) -> Result<Vec<Rule>, ServerFnError<AppError>> {
+) -> Result<Vec<Rule>, AppError> {
     let db_pool = get_db_pool()?;
     let rule_vec = ssr::get_sphere_rule_vec(&sphere_name, &db_pool).await?;
     Ok(rule_vec)
@@ -240,7 +240,7 @@ pub async fn add_rule(
     priority: i16,
     title: String,
     description: String,
-) -> Result<Rule, ServerFnError<AppError>> {
+) -> Result<Rule, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let rule = ssr::add_rule(sphere_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
@@ -254,7 +254,7 @@ pub async fn update_rule(
     priority: i16,
     title: String,
     description: String,
-) -> Result<Rule, ServerFnError<AppError>> {
+) -> Result<Rule, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let rule = ssr::update_rule(sphere_name.as_ref().map(String::as_str), current_priority, priority, &title, &description, &user, &db_pool).await?;
@@ -265,7 +265,7 @@ pub async fn update_rule(
 pub async fn remove_rule(
     sphere_name: Option<String>,
     priority: i16,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     ssr::remove_rule(sphere_name.as_deref(), priority, &user, &db_pool).await?;

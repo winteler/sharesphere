@@ -1,7 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::signal_debounced;
-use server_fn::ServerFnError;
 use sharesphere_auth::user::UserHeader;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledSignalCheckbox;
@@ -229,7 +228,7 @@ pub mod ssr {
 #[server]
 pub async fn get_matching_sphere_header_vec(
     sphere_prefix: String,
-) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
+) -> Result<Vec<SphereHeader>, AppError> {
     let db_pool = get_db_pool()?;
     let sphere_header_vec = ssr::get_matching_sphere_header_vec(
         &sphere_prefix,
@@ -244,7 +243,7 @@ pub async fn search_spheres(
     search_query: String,
     load_count: usize,
     num_already_loaded: usize,
-) -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
+) -> Result<Vec<SphereHeader>, AppError> {
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, load_count as i64, num_already_loaded as i64, &db_pool).await?;
@@ -257,7 +256,7 @@ pub async fn search_posts(
     sphere_name: Option<String>,
     show_spoilers: bool,
     num_already_loaded: usize,
-) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithSphereInfo>, AppError> {
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let post_vec = ssr::search_posts(&search_query, sphere_name.as_deref(), show_spoilers, show_nsfw, POST_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
@@ -269,7 +268,7 @@ pub async fn search_comments(
     search_query: String,
     sphere_name: Option<String>,
     num_already_loaded: usize,
-) -> Result<Vec<CommentWithContext>, ServerFnError<AppError>> {
+) -> Result<Vec<CommentWithContext>, AppError> {
     let db_pool = get_db_pool()?;
     let comment_vec = ssr::search_comments(&search_query, sphere_name.as_deref(), COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(comment_vec)
@@ -280,7 +279,7 @@ pub async fn get_matching_user_header_vec(
     username_prefix: String,
     show_nsfw: Option<bool>,
     load_count: usize,
-) -> Result<Vec<UserHeader>, ServerFnError<AppError>> {
+) -> Result<Vec<UserHeader>, AppError> {
     let db_pool = get_db_pool()?;
     let show_nsfw = show_nsfw.unwrap_or_default() || get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, load_count as i64, &db_pool).await?;

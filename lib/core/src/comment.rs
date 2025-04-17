@@ -539,7 +539,7 @@ pub async fn get_post_comment_tree(
     post_id: i64,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<CommentWithChildren>, ServerFnError<AppError>> {
+) -> Result<Vec<CommentWithChildren>, AppError> {
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
         _ => None,
@@ -561,7 +561,7 @@ pub async fn get_post_comment_tree(
 pub async fn get_comment_tree_by_id(
     comment_id: i64,
     sort_type: SortType,
-) -> Result<CommentWithChildren, ServerFnError<AppError>> {
+) -> Result<CommentWithChildren, AppError> {
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
         _ => None,
@@ -584,7 +584,7 @@ pub async fn create_comment(
     comment: String,
     is_markdown: bool,
     is_pinned: Option<bool>,
-) -> Result<CommentWithChildren, ServerFnError<AppError>> {
+) -> Result<CommentWithChildren, AppError> {
     log::trace!("Create comment for post {post_id}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -626,7 +626,7 @@ pub async fn edit_comment(
     comment: String,
     is_markdown: bool,
     is_pinned: Option<bool>,
-) -> Result<Comment, ServerFnError<AppError>> {
+) -> Result<Comment, AppError> {
     log::trace!("Edit comment {comment_id}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -649,7 +649,7 @@ pub async fn edit_comment(
 #[server]
 pub async fn delete_comment(
     comment_id: i64,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     log::trace!("Edit comment {comment_id}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;

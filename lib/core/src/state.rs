@@ -1,5 +1,5 @@
 use leptos::html::Input;
-use leptos::prelude::{Memo, NodeRef, Resource, RwSignal, ServerAction, ServerFnError, Signal};
+use leptos::prelude::{Memo, NodeRef, Resource, RwSignal, ServerAction, Signal};
 use sharesphere_auth::auth::EndSession;
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
@@ -27,7 +27,7 @@ pub struct GlobalState {
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
     pub left_sidebar_checkbox_ref: NodeRef<Input>,
-    pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
+    pub user: Resource<Result<Option<User>, AppError>>,
 }
 
 #[derive(Copy, Clone)]
@@ -35,11 +35,11 @@ pub struct SphereState {
     pub sphere_name: Memo<String>,
     pub sphere_category_filter: RwSignal<SphereCategoryFilter>,
     pub permission_level: Signal<PermissionLevel>,
-    pub sphere_resource: Resource<Result<Sphere, ServerFnError<AppError>>>,
-    pub satellite_vec_resource: Resource<Result<Vec<Satellite>, ServerFnError<AppError>>>,
-    pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
-    pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, ServerFnError<AppError>>>,
-    pub sphere_rules_resource: Resource<Result<Vec<Rule>, ServerFnError<AppError>>>,
+    pub sphere_resource: Resource<Result<Sphere, AppError>>,
+    pub satellite_vec_resource: Resource<Result<Vec<Satellite>, AppError>>,
+    pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, AppError>>,
+    pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, AppError>>,
+    pub sphere_rules_resource: Resource<Result<Vec<Rule>, AppError>>,
     pub create_satellite_action: ServerAction<CreateSatellite>,
     pub update_satellite_action: ServerAction<UpdateSatellite>,
     pub disable_satellite_action: ServerAction<DisableSatellite>,
@@ -55,7 +55,7 @@ pub struct SphereState {
 
 impl GlobalState {
     pub fn new(
-        user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
+        user: Resource<Result<Option<User>, AppError>>,
         logout_action: ServerAction<EndSession>,
         delete_user_action: ServerAction<DeleteUser>,
         create_sphere_action: ServerAction<CreateSphere>,

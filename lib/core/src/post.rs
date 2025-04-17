@@ -789,14 +789,14 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithInfo, ServerFnError<AppError>> {
+pub async fn get_post_with_info_by_id(post_id: i64) -> Result<PostWithInfo, AppError> {
     let db_pool = get_db_pool()?;
     let user = get_user().await?;
     Ok(ssr::get_post_with_info_by_id(post_id, user.as_ref(), &db_pool).await?)
 }
 
 #[server]
-pub async fn get_post_inherited_attributes(post_id: i64) -> Result<PostInheritedAttributes, ServerFnError<AppError>> {
+pub async fn get_post_inherited_attributes(post_id: i64) -> Result<PostInheritedAttributes, AppError> {
     let db_pool = get_db_pool()?;
     Ok(ssr::get_post_inherited_attributes(post_id, &db_pool).await?)
 }
@@ -805,7 +805,7 @@ pub async fn get_post_inherited_attributes(post_id: i64) -> Result<PostInherited
 pub async fn get_sorted_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithSphereInfo>, AppError> {
     let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
 
@@ -825,7 +825,7 @@ pub async fn get_subscribed_post_vec(
     user_id: i64,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithSphereInfo>, AppError> {
     let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
 
@@ -847,7 +847,7 @@ pub async fn get_post_vec_by_sphere_name(
     sphere_category_set: SphereCategoryFilter,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Post>, ServerFnError<AppError>> {
+) -> Result<Vec<Post>, AppError> {
     let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_sphere_name(
@@ -868,7 +868,7 @@ pub async fn get_post_vec_by_satellite_id(
     sphere_category_id: Option<i64>,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<Post>, ServerFnError<AppError>> {
+) -> Result<Vec<Post>, AppError> {
     let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_satellite_id(
@@ -897,7 +897,7 @@ pub async fn create_post(
     is_nsfw: bool,
     is_pinned: Option<bool>,
     category_id: Option<i64>,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -944,7 +944,7 @@ pub async fn edit_post(
     is_nsfw: bool,
     is_pinned: Option<bool>,
     category_id: Option<i64>,
-) -> Result<Post, ServerFnError<AppError>> {
+) -> Result<Post, AppError> {
     log::trace!("Edit post {post_id}, title = {title}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -977,7 +977,7 @@ pub async fn edit_post(
 #[server]
 pub async fn delete_post(
     post_id: i64,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -1094,7 +1094,7 @@ pub fn PostForm(
     is_parent_spoiler: Signal<bool>,
     #[prop(into)]
     is_parent_nsfw: Signal<bool>,
-    category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    category_vec_resource: Resource<Result<Vec<SphereCategory>, AppError>>,
     #[prop(default = None)]
     current_post: Option<StoredValue<Post>>,
 ) -> impl IntoView {

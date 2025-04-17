@@ -376,7 +376,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError<AppError>> {
+pub async fn login(redirect_url: String) -> Result<Option<User>, AppError> {
     let current_user = get_user().await;
 
     if let Ok(Some(current_user)) = current_user
@@ -390,13 +390,13 @@ pub async fn login(redirect_url: String) -> Result<Option<User>, ServerFnError<A
 }
 
 #[server]
-pub async fn navigate_to_user_account() -> Result<(), ServerFnError<AppError>> {
+pub async fn navigate_to_user_account() -> Result<(), AppError> {
     ssr::navigate_to_user_account().await?;
     Ok(())
 }
 
 #[server]
-pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError<AppError>> {
+pub async fn authenticate_user(auth_code: String) -> Result<(), AppError> {
     // Once the user has been redirected to the redirect URL, you'll have access to the
     // authorization code. For security reasons, your code should verify that the `state`
     // parameter returned by the server matches `csrf_state`.
@@ -428,13 +428,13 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), ServerFnError<Ap
 }
 
 #[server]
-pub async fn get_user() -> Result<Option<User>, ServerFnError<AppError>> {
+pub async fn get_user() -> Result<Option<User>, AppError> {
     let user = ssr::check_oidc_refresh_token().await?;
     Ok(user)
 }
 
 #[server]
-pub async fn end_session(redirect_url: String) -> Result<(), ServerFnError<AppError>> {
+pub async fn end_session(redirect_url: String) -> Result<(), AppError> {
     log::debug!("Logout, redirect_url: {redirect_url}");
 
     let http_client = get_oidc_http_client()?;

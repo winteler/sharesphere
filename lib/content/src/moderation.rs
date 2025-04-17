@@ -325,7 +325,7 @@ pub fn ContentModerationInfo(
                         rule,
                     })
                 },
-                None => Err(ServerFnError::WrappedServerError(AppError::new("Content is not moderated."))),
+                None => Err(AppError::new("Content is not moderated.")),
             }
         }
     );

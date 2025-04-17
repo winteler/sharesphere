@@ -3,7 +3,6 @@ use leptos::{component, html, server, view, IntoView};
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
 use serde::{Deserialize, Serialize};
-use server_fn::ServerFnError;
 use sharesphere_utils::errors::AppError;
 
 #[cfg(feature = "ssr")]
@@ -273,7 +272,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn is_sphere_available(sphere_name: String) -> Result<bool, ServerFnError<AppError>> {
+pub async fn is_sphere_available(sphere_name: String) -> Result<bool, AppError> {
     let db_pool = get_db_pool()?;
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
     let sphere_existence = ssr::is_sphere_available(&sphere_name, &db_pool).await?;
@@ -281,14 +280,14 @@ pub async fn is_sphere_available(sphere_name: String) -> Result<bool, ServerFnEr
 }
 
 #[server]
-pub async fn get_sphere_by_name(sphere_name: String) -> Result<Sphere, ServerFnError<AppError>> {
+pub async fn get_sphere_by_name(sphere_name: String) -> Result<Sphere, AppError> {
     let db_pool = get_db_pool()?;
     let sphere = ssr::get_sphere_by_name(&sphere_name, &db_pool).await?;
     Ok(sphere)
 }
 
 #[server]
-pub async fn get_subscribed_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
+pub async fn get_subscribed_sphere_headers() -> Result<Vec<SphereHeader>, AppError> {
     let db_pool = get_db_pool()?;
     match get_user().await {
         Ok(Some(user)) => {
@@ -300,7 +299,7 @@ pub async fn get_subscribed_sphere_headers() -> Result<Vec<SphereHeader>, Server
 }
 
 #[server]
-pub async fn get_popular_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnError<AppError>> {
+pub async fn get_popular_sphere_headers() -> Result<Vec<SphereHeader>, AppError> {
     let db_pool = get_db_pool()?;
     let sphere_header_vec = ssr::get_popular_sphere_headers(20, &db_pool).await?;
     Ok(sphere_header_vec)
@@ -309,7 +308,7 @@ pub async fn get_popular_sphere_headers() -> Result<Vec<SphereHeader>, ServerFnE
 #[server]
 pub async fn get_sphere_with_user_info(
     sphere_name: String,
-) -> Result<SphereWithUserInfo, ServerFnError<AppError>> {
+) -> Result<SphereWithUserInfo, AppError> {
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
@@ -326,7 +325,7 @@ pub async fn create_sphere(
     sphere_name: String,
     description: String,
     is_nsfw: bool,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     log::trace!("Create Sphere '{sphere_name}', {description}, {is_nsfw}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -354,7 +353,7 @@ pub async fn create_sphere(
 pub async fn update_sphere_description(
     sphere_name: String,
     description: String,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -364,7 +363,7 @@ pub async fn update_sphere_description(
 }
 
 #[server]
-pub async fn subscribe(sphere_id: i64) -> Result<(), ServerFnError<AppError>> {
+pub async fn subscribe(sphere_id: i64) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -374,7 +373,7 @@ pub async fn subscribe(sphere_id: i64) -> Result<(), ServerFnError<AppError>> {
 }
 
 #[server]
-pub async fn unsubscribe(sphere_id: i64) -> Result<(), ServerFnError<AppError>> {
+pub async fn unsubscribe(sphere_id: i64) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

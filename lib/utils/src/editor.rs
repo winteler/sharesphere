@@ -152,7 +152,7 @@ pub mod ssr {
 #[server]
 pub async fn get_styled_html_from_markdown(
     markdown_input: String,
-) -> Result<String, ServerFnError<AppError>> {
+) -> Result<String, AppError> {
     let html_from_markdown =
         markdown::to_html_with_options(markdown_input.as_str(), &markdown::Options::gfm())
             .or_else(|e| Err(AppError::new(e)))?;
@@ -497,11 +497,11 @@ fn get_line_start_for_position(string: &String, position: usize) -> usize {
 pub fn adjust_textarea_height(textarea_ref: NodeRef<Textarea>) {
     if let Some(textarea_ref) = textarea_ref.get() {
         textarea_ref.style(("height", "auto"));
-        let scroll_height = textarea_ref.scroll_height();
-        textarea_ref.style(("height", format!("{}px", scroll_height).as_str()));
-        if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
-            log::warn!("Failed to set scroll_height: {:?}", e.as_string());
-        };
+        let scroll_height = format!("{}px", textarea_ref.scroll_height());
+        textarea_ref.style(("height", scroll_height));
+        //if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
+        //    log::warn!("Failed to set scroll_height: {:?}", e.as_string());
+        //};
     }
 }
 

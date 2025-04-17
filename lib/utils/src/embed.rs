@@ -181,7 +181,7 @@ impl OEmbedEndpoint {
 }
 
 #[server]
-pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, ServerFnError<AppError>> {
+pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, AppError> {
     let mut oembed_data = fetch_api::<OEmbedReply>(&url)
         .await
         .ok_or(AppError::new(format!("Cannot get oEmbed data at endpoint {url}")))?;

@@ -74,7 +74,7 @@ pub struct UserBan {
 #[derive(Copy, Clone)]
 pub struct UserState {
     pub login_action: ServerAction<Login>,
-    pub user: Resource<Result<Option<User>, ServerFnError<AppError>>>,
+    pub user: Resource<Result<Option<User>, AppError>>,
 }
 
 impl BanStatus {
@@ -720,7 +720,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn delete_user() -> Result<(), ServerFnError<AppError>> {
+pub async fn delete_user() -> Result<(), AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 
@@ -737,7 +737,7 @@ pub async fn set_user_settings(
     is_nsfw: bool,
     show_nsfw: bool,
     days_hide_spoilers: u32,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 

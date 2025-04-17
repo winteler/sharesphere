@@ -19,39 +19,39 @@ lto = true
 opt-level = 'z'
 
 [workspace.dependencies]
-leptos = { version = "0.7.7", features = ["nightly", "nonce"] }
-leptos_meta = { version = "0.7.7" }
-leptos_router = { version = "0.7.7", features = ["nightly"] }
-leptos_axum = { version = "0.7.7" }
-server_fn = { version = "0.7.7", features = ["multipart"] }
+leptos = { version = "0.8.0-rc1", features = ["nightly", "nonce"] }
+leptos_meta = { version = "0.8.0-rc1" }
+leptos_router = { version = "0.8.0-rc1", features = ["nightly"] }
+leptos_axum = { version = "0.8.0-rc1" }
+server_fn = { version = "0.8.0-rc1", features = ["multipart"] }
 
-leptos-use = { version = "0.15.7", features = ["use_breakpoints"] }
+leptos-use = { version = "0.16.0-beta", features = ["use_breakpoints"] }
 
 anyhow = "*"
-axum = {  version = "0.7", features = [ "macros" ] }
-axum_session = { version = "0.14.4" }
-axum_session_auth = { version = "0.14.1" }
-axum_session_sqlx = { version = "0.3.0" }
+axum = {  version = "0.8.3", features = [ "macros" ] }
+axum_session = { version = "0.16.0" }
+axum_session_auth = { version = "0.16.0" }
+axum_session_sqlx = { version = "0.5.0" }
 console_error_panic_hook = "0.1.7"
 console_log = "1"
-chrono = { version = "0.4.38", features = [ "alloc", "serde" ] }
+chrono = { version = "0.4.40", features = [ "alloc", "serde" ] }
 http = "1"
-log = "0.4.20"
-lru = "0.13.0"
+log = "0.4.27"
+lru = "0.14.0"
 openidconnect = "4.0.0"
-reqwest = { version = "0.12.12", features = ["json"] }
+reqwest = { version = "0.12.15", features = ["json"] }
 serde = { version = "*", features = ["derive"] }
-serde_json = "1.0.128"
+serde_json = "1.0.140"
 simple_logger = "5.0.0"
-sqlx = { version = "0.8.2", features = [ "chrono", "postgres", "runtime-tokio", "tls-rustls" ] }
+sqlx = { version = "0.8.5", features = [ "chrono", "postgres", "runtime-tokio", "tls-rustls" ] }
 strum = "0.27.1"
 strum_macros = "0.27.1"
-thiserror = "2.0.3"
-tokio = { version = "1.33.0", features = ["rt-multi-thread"] }
-tower = { version = "0.5.0", features = ["util"] }
+thiserror = "2.0.12"
+tokio = { version = "1.44.2", features = ["rt-multi-thread"] }
+tower = { version = "0.5.2", features = ["util"] }
 tower-http = { version = "0.6.2", features = ["fs"] }
 wasm-bindgen = "=0.2.100"
-web-sys = "0.3.70"
+web-sys = "0.3.77"
 
 # See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
 

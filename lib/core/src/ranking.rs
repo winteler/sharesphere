@@ -337,7 +337,7 @@ pub async fn vote_on_content(
     post_id: i64,
     comment_id: Option<i64>,
     vote_id: Option<i64>,
-) -> Result<Option<Vote>, ServerFnError<AppError>> {
+) -> Result<Option<Vote>, AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

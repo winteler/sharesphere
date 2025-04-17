@@ -1,6 +1,5 @@
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use server_fn::ServerFnError;
 
 #[cfg(feature = "ssr")]
 use {
@@ -149,7 +148,7 @@ pub mod ssr {
 #[server]
 pub async fn get_sphere_category_vec(
     sphere_name: String,
-) -> Result<Vec<SphereCategory>, ServerFnError<AppError>> {
+) -> Result<Vec<SphereCategory>, AppError> {
     let db_pool = get_db_pool()?;
     let sphere_category_vec = ssr::get_sphere_category_vec(&sphere_name, &db_pool).await?;
     Ok(sphere_category_vec)
@@ -162,7 +161,7 @@ pub async fn set_sphere_category(
     category_color: Color,
     description: String,
     is_active: bool,
-) -> Result<SphereCategory, ServerFnError<AppError>> {
+) -> Result<SphereCategory, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let sphere_category = ssr::set_sphere_category(&sphere_name, &category_name, category_color, &description, is_active, &user, &db_pool).await?;
@@ -173,7 +172,7 @@ pub async fn set_sphere_category(
 pub async fn delete_sphere_category(
     sphere_name: String,
     category_name: String,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     ssr::delete_sphere_category(&sphere_name, &category_name, &user, &db_pool).await?;
@@ -197,7 +196,7 @@ pub fn SphereCategoryBadge(
 /// Dialog to select a sphere category
 #[component]
 pub fn SphereCategoryDropdown(
-    category_vec_resource: Resource<Result<Vec<SphereCategory>, ServerFnError<AppError>>>,
+    category_vec_resource: Resource<Result<Vec<SphereCategory>, AppError>>,
     #[prop(default = None)]
     init_category_id: Option<i64>,
     #[prop(default = true)]

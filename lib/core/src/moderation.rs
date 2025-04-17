@@ -1,6 +1,5 @@
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use server_fn::ServerFnError;
 use sharesphere_utils::errors::AppError;
 use crate::post::Post;
 
@@ -227,7 +226,7 @@ pub mod ssr {
 pub async fn get_moderation_info(
     post_id: i64,
     comment_id: Option<i64>,
-) -> Result<ModerationInfo, ServerFnError<AppError>> {
+) -> Result<ModerationInfo, AppError> {
     let db_pool = get_db_pool()?;
     let (rule_id, content) = match comment_id {
         Some(comment_id) => {
@@ -260,7 +259,7 @@ pub async fn moderate_post(
     rule_id: i64,
     moderator_message: String,
     ban_duration_days: Option<usize>,
-) -> Result<Post, ServerFnError<AppError>> {
+) -> Result<Post, AppError> {
     log::debug!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -299,7 +298,7 @@ pub async fn moderate_comment(
     rule_id: i64,
     moderator_message: String,
     ban_duration_days: Option<usize>,
-) -> Result<Comment, ServerFnError<AppError>> {
+) -> Result<Comment, AppError> {
     log::trace!("Moderate comment {comment_id}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;

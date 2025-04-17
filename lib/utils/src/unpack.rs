@@ -2,30 +2,13 @@ use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LoadingIcon;
 use leptos::prelude::*;
-use leptos::server_fn::error::ServerFnErrorErr;
 use leptos::html;
-
-#[component]
-pub fn Unpack<
-    T,
-    V: IntoView + 'static,
-    F: FnOnce(T) -> V + Send + Sync + 'static
->(
-    what: Option<Result<T, ServerFnError<AppError>>>,
-    children: F,
-) -> impl IntoView {
-    match what {
-        Some(Ok(value)) => Some(Ok(children(value))),
-        Some(Err(e)) => Some(Err(ServerFnErrorErr::from(e))),
-        None => None,
-    }
-}
 
 pub fn action_has_error<
     T: Send + Sync + 'static,
     A: Send + Sync + 'static,
 >(
-    action: Action<A, Result<T, ServerFnError<AppError>>>
+    action: Action<A, Result<T, AppError>>
 ) -> Signal<bool> {
     Signal::derive(move || matches!(*action.value().read(), Some(Err(_))))
 }
@@ -36,13 +19,13 @@ pub fn ActionError<
     T: Send + Sync + 'static,
     A: Send + Sync + 'static,
 >(
-    action: Action<A, Result<T, ServerFnError<AppError>>>
+    action: Action<A, Result<T, AppError>>
 ) -> impl IntoView {
     view! {
         <Show when=action_has_error(action)>
         {
             match &*action.value().read() {
-                Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
+                Some(Err(e)) => view! { <ErrorDisplay error=e.clone()/> }.into_any(),
                 _ => ().into_any(),
             }
         }
@@ -59,7 +42,7 @@ pub fn UnpackAction<
     FB: Fn() -> FV + Send + Sync +  'static,
     FV: IntoView + 'static,
 >(
-    action: Action<A, Result<T, ServerFnError<AppError>>>,
+    action: Action<A, Result<T, AppError>>,
     children: F,
     fallback: FB,
 ) -> impl IntoView {
@@ -76,7 +59,7 @@ pub fn UnpackAction<
         }>
             {move || match action.value().get() {
                 Some(Ok(value)) => Some(Ok(children.with_value(|children| children(value)))),
-                Some(Err(e)) => Some(Err(ServerFnErrorErr::from(e))),
+                Some(Err(e)) => Some(Err(e)),
                 None => None,
             }}
         </Suspense>
@@ -88,12 +71,12 @@ async fn unpack_resource<
     V: IntoView + 'static,
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError<AppError>>>,
+    resource: Resource<Result<T, AppError>>,
     children: StoredValue<F>,
 ) -> impl IntoView {
     match &resource.await {
         Ok(value) => Ok(children.with_value(|children| children(value))),
-        Err(e) => Err(AppError::from(e)),
+        Err(e) => Err(e.clone()),
     }
 }
 
@@ -103,7 +86,7 @@ pub fn SuspenseUnpack<
     V: IntoView + 'static,
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError<AppError>>>,
+    resource: Resource<Result<T, AppError>>,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
@@ -127,7 +110,7 @@ pub fn TransitionUnpack<
     V: IntoView + 'static,
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
-    resource: Resource<Result<T, ServerFnError<AppError>>>,
+    resource: Resource<Result<T, AppError>>,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
@@ -146,7 +129,7 @@ pub fn TransitionUnpack<
 }
 
 pub fn handle_initial_load<T: Clone + Send + Sync + 'static>(
-    load_result: Result<Vec<T>, ServerFnError<AppError>>,
+    load_result: Result<Vec<T>, AppError>,
     loaded_vec: RwSignal<Vec<T>>,
     load_error: RwSignal<Option<AppError>>,
     list_ref: Option<NodeRef<html::Ul>>,
@@ -160,19 +143,19 @@ pub fn handle_initial_load<T: Clone + Send + Sync + 'static>(
         },
         Err(ref e) => {
             loaded_vec.write().clear();
-            load_error.set(Some(AppError::from(e)))
+            load_error.set(Some(AppError::from(e.clone())))
         },
     };
 }
 
 pub fn handle_additional_load<T: Clone + Send + Sync + 'static>(
-    mut load_result: Result<Vec<T>, ServerFnError<AppError>>,
+    mut load_result: Result<Vec<T>, AppError>,
     loaded_vec: RwSignal<Vec<T>>,
     load_error: RwSignal<Option<AppError>>,
 ) {
     match load_result {
         Ok(ref mut additional_vec) => loaded_vec.update(|loaded_vec| loaded_vec.append(additional_vec)),
-        Err(ref e) => load_error.set(Some(AppError::from(e))),
+        Err(ref e) => load_error.set(Some(AppError::from(e.clone()))),
     }
 }
 

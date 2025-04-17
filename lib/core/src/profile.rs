@@ -91,7 +91,7 @@ pub async fn get_user_post_vec(
     username: String,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<PostWithSphereInfo>, ServerFnError<AppError>> {
+) -> Result<Vec<PostWithSphereInfo>, AppError> {
     let db_pool = get_db_pool()?;
 
     // TODO check if private profile
@@ -112,7 +112,7 @@ pub async fn get_user_comment_vec(
     username: String,
     sort_type: SortType,
     num_already_loaded: usize,
-) -> Result<Vec<CommentWithContext>, ServerFnError<AppError>> {
+) -> Result<Vec<CommentWithContext>, AppError> {
     let db_pool = get_db_pool()?;
 
     // TODO check if private profile

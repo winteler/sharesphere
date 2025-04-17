@@ -208,7 +208,7 @@ pub mod ssr {
 pub async fn get_sphere_ban_vec(
     sphere_name: String,
     username_prefix: String,
-) -> Result<Vec<UserBan>, ServerFnError<AppError>> {
+) -> Result<Vec<UserBan>, AppError> {
     let db_pool = get_db_pool()?;
     let ban_vec = ssr::get_sphere_ban_vec(&sphere_name, &username_prefix, &db_pool).await?;
     Ok(ban_vec)
@@ -217,7 +217,7 @@ pub async fn get_sphere_ban_vec(
 #[server]
 pub async fn remove_user_ban(
     ban_id: i64
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
     let deleted_user_ban = ssr::remove_user_ban(ban_id, &user, &db_pool).await?;
@@ -228,7 +228,7 @@ pub async fn remove_user_ban(
 #[server(input = MultipartFormData)]
 pub async fn set_sphere_icon(
     data: MultipartData,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -241,7 +241,7 @@ pub async fn set_sphere_icon(
 #[server(input = MultipartFormData)]
 pub async fn set_sphere_banner(
     data: MultipartData,
-) -> Result<(), ServerFnError<AppError>> {
+) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

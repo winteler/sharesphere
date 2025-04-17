@@ -4,7 +4,8 @@ use std::str::FromStr;
 
 use http::status::StatusCode;
 use leptos::prelude::*;
-use leptos::{component, prelude::ServerFnError, view, IntoView};
+use leptos::{component, view, IntoView};
+use leptos::server_fn::codec::JsonEncoding;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -31,7 +32,7 @@ pub enum AppError {
     PermanentSphereBan,
     GlobalBanUntil(chrono::DateTime<chrono::Utc>),
     PermanentGlobalBan,
-    CommunicationError(ServerFnError),
+    CommunicationError(ServerFnErrorErr),
     DatabaseError(String),
     InternalServerError(String),
     NotFound,
@@ -45,8 +46,8 @@ impl AppError {
             AppError::NotAuthenticated | AppError::InsufficientPrivileges | AppError::SphereBanUntil(_) |
             AppError::PermanentSphereBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => StatusCode::FORBIDDEN,
             AppError::CommunicationError(error) => match error {
-                ServerFnError::Args(_) | ServerFnError::MissingArg(_) | ServerFnError::Serialization(_) | ServerFnError::Deserialization(_) => StatusCode::BAD_REQUEST,
-                ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
+                ServerFnErrorErr::Args(_) | ServerFnErrorErr::MissingArg(_) | ServerFnErrorErr::Serialization(_) | ServerFnErrorErr::Deserialization(_) => StatusCode::BAD_REQUEST,
+                ServerFnErrorErr::Registration(_) | ServerFnErrorErr::Request(_) | ServerFnErrorErr::Response(_) => StatusCode::SERVICE_UNAVAILABLE,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
             AppError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -66,9 +67,9 @@ impl AppError {
             AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp),
             AppError::PermanentGlobalBan => String::from(PERMANENT_GLOBAL_BAN_MESSAGE),
             AppError::CommunicationError(error) => match error {
-                ServerFnError::Args(_) | ServerFnError::MissingArg(_) |
-                ServerFnError::Serialization(_) | ServerFnError::Deserialization(_) => String::from(BAD_REQUEST_MESSAGE),
-                ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => String::from(UNAVAILABLE_MESSAGE),
+                ServerFnErrorErr::Args(_) | ServerFnErrorErr::MissingArg(_) |
+                ServerFnErrorErr::Serialization(_) | ServerFnErrorErr::Deserialization(_) => String::from(BAD_REQUEST_MESSAGE),
+                ServerFnErrorErr::Registration(_) | ServerFnErrorErr::Request(_) | ServerFnErrorErr::Response(_) => String::from(UNAVAILABLE_MESSAGE),
                 _ => String::from(INTERNAL_ERROR_MESSAGE),
             },
             AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
@@ -98,18 +99,13 @@ impl FromStr for AppError {
     }
 }
 
-impl From<ServerFnError<AppError>> for AppError {
-    fn from(error: ServerFnError<AppError>) -> Self {
-        Self::from(&error)
-    }
-}
+impl FromServerFnError for AppError {
+    type Encoder = JsonEncoding;
 
-impl From<&ServerFnError<AppError>> for AppError {
-    fn from(error: &ServerFnError<AppError>) -> Self {
+    fn from_server_fn_error(error: ServerFnErrorErr) -> Self {
         match error {
-            ServerFnError::WrappedServerError(app_error) => app_error.clone(),
-            ServerFnError::ServerError(message) => AppError::from_str(message.as_str()).unwrap_or(AppError::InternalServerError(message.clone())),
-            _ => AppError::CommunicationError(ServerFnError::from(error)),
+            ServerFnErrorErr::ServerError(message) => AppError::from_str(message.as_str()).unwrap_or(AppError::InternalServerError(message.clone())),
+            _ => AppError::CommunicationError(error),
         }
     }
 }
@@ -213,8 +209,8 @@ pub fn AppErrorIcon(
         AppError::InsufficientPrivileges => view! { <NotAuthorizedIcon/> }.into_any(),
         AppError::SphereBanUntil(_) | AppError::PermanentSphereBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <BannedIcon/> }.into_any(),
         AppError::CommunicationError(error) => match error {
-            ServerFnError::Args(_) | ServerFnError::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
-            ServerFnError::Registration(_) | ServerFnError::Request(_) | ServerFnError::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),
+            ServerFnErrorErr::Args(_) | ServerFnErrorErr::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
+            ServerFnErrorErr::Registration(_) | ServerFnErrorErr::Request(_) | ServerFnErrorErr::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),
             _ => view! { <InternalErrorIcon/> }.into_any(),
         },
         AppError::DatabaseError(_) => view! { <InternalErrorIcon/> }.into_any(),
@@ -249,7 +245,7 @@ pub fn ErrorDisplay(
 mod tests {
     use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, PERMANENT_SPHERE_BAN_MESSAGE, SPHERE_BAN_UNTIL_MESSAGE, UNAVAILABLE_MESSAGE};
     use http::StatusCode;
-    use leptos::prelude::ServerFnError;
+    use leptos::prelude::{ServerFnError, ServerFnErrorErr};
     use leptos::server_fn::error::NoCustomError;
     use quick_xml::errors::SyntaxError;
     use std::str::FromStr;
@@ -258,15 +254,14 @@ mod tests {
     fn test_app_error_status_code() {
         let test_string = String::from("test");
         let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
-        let server_fn_error = ServerFnError::new("test");
-        let args_error = ServerFnError::Args(String::from("test"));
-        let missing_arg_error = ServerFnError::MissingArg(String::from("test"));
-        let request_error = ServerFnError::Request(String::from("test"));
-        let response_error = ServerFnError::Response(String::from("test"));
-        let registration_error = ServerFnError::Registration(String::from("test"));
-        let serialization_error = ServerFnError::Serialization(String::from("test"));
-        let deserialization_error = ServerFnError::Deserialization(String::from("test"));
-        let wrapper_error = ServerFnError::WrappedServerError(NoCustomError);
+        let server_fn_error = ServerFnErrorErr::ServerError(String::from("test"));
+        let args_error = ServerFnErrorErr::Args(String::from("test"));
+        let missing_arg_error = ServerFnErrorErr::MissingArg(String::from("test"));
+        let request_error = ServerFnErrorErr::Request(String::from("test"));
+        let response_error = ServerFnErrorErr::Response(String::from("test"));
+        let registration_error = ServerFnErrorErr::Registration(String::from("test"));
+        let serialization_error = ServerFnErrorErr::Serialization(String::from("test"));
+        let deserialization_error = ServerFnErrorErr::Deserialization(String::from("test"));
         assert_eq!(AppError::AuthenticationError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(AppError::NotAuthenticated.status_code(), StatusCode::FORBIDDEN);
         assert_eq!(AppError::InsufficientPrivileges.status_code(), StatusCode::FORBIDDEN);
@@ -282,7 +277,6 @@ mod tests {
         assert_eq!(AppError::CommunicationError(request_error).status_code(), StatusCode::SERVICE_UNAVAILABLE);
         assert_eq!(AppError::CommunicationError(response_error).status_code(), StatusCode::SERVICE_UNAVAILABLE);
         assert_eq!(AppError::CommunicationError(registration_error).status_code(), StatusCode::SERVICE_UNAVAILABLE);
-        assert_eq!(AppError::CommunicationError(wrapper_error).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(AppError::DatabaseError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(AppError::InternalServerError(test_string.clone()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(AppError::NotFound.status_code(), StatusCode::NOT_FOUND);
@@ -292,15 +286,14 @@ mod tests {
     fn test_app_error_user_message() {
         let test_string = String::from("test");
         let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
-        let server_fn_error = ServerFnError::new("test");
-        let args_error = ServerFnError::Args(String::from("test"));
-        let missing_arg_error = ServerFnError::MissingArg(String::from("test"));
-        let request_error = ServerFnError::Request(String::from("test"));
-        let response_error = ServerFnError::Response(String::from("test"));
-        let registration_error = ServerFnError::Registration(String::from("test"));
-        let serialization_error = ServerFnError::Serialization(String::from("test"));
-        let deserialization_error = ServerFnError::Deserialization(String::from("test"));
-        let wrapper_error = ServerFnError::WrappedServerError(NoCustomError);
+        let server_fn_error = ServerFnErrorErr::ServerError(String::from("test"));
+        let args_error = ServerFnErrorErr::Args(String::from("test"));
+        let missing_arg_error = ServerFnErrorErr::MissingArg(String::from("test"));
+        let request_error = ServerFnErrorErr::Request(String::from("test"));
+        let response_error = ServerFnErrorErr::Response(String::from("test"));
+        let registration_error = ServerFnErrorErr::Registration(String::from("test"));
+        let serialization_error = ServerFnErrorErr::Serialization(String::from("test"));
+        let deserialization_error = ServerFnErrorErr::Deserialization(String::from("test"));
         assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), String::from(AUTH_FAILED_MESSAGE));
         assert_eq!(AppError::NotAuthenticated.user_message(), String::from(NOT_AUTHENTICATED_MESSAGE));
         assert_eq!(AppError::InsufficientPrivileges.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
@@ -316,7 +309,6 @@ mod tests {
         assert_eq!(AppError::CommunicationError(request_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
         assert_eq!(AppError::CommunicationError(response_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
         assert_eq!(AppError::CommunicationError(registration_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
-        assert_eq!(AppError::CommunicationError(wrapper_error).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
         assert_eq!(AppError::DatabaseError(test_string.clone()).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
         assert_eq!(AppError::InternalServerError(test_string.clone()).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
         assert_eq!(AppError::NotFound.user_message(), String::from(NOT_FOUND_MESSAGE));
@@ -332,8 +324,8 @@ mod tests {
     fn test_app_error_display_and_from_string() {
         let test_string = String::from("test");
         let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
-        let server_fn_error = ServerFnError::new("test");
-        let server_fn_error_2 = ServerFnError::MissingArg(test_string.clone());
+        let server_fn_error = ServerFnErrorErr::ServerError(String::from("test"));
+        let server_fn_error_2 = ServerFnErrorErr::MissingArg(test_string.clone());
         assert_eq!(
             AppError::from_str(AppError::AuthenticationError(test_string.clone()).to_string().as_str()).expect("AppError should be convert to string and back"),
             AppError::AuthenticationError(test_string.clone())
@@ -383,49 +375,6 @@ mod tests {
             AppError::NotFound
         );
         assert!(AppError::from_str("invalid").is_err());
-    }
-
-    #[test]
-    fn test_app_error_from_server_fn_error() {
-        let error_message = String::from("error");
-        let wrapped_error = ServerFnError::<AppError>::WrappedServerError(AppError::NotAuthenticated);
-        assert_eq!(
-            AppError::from(&ServerFnError::<AppError>::ServerError(error_message.clone())),
-            AppError::InternalServerError(error_message.clone())
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::ServerError(error_message.clone())),
-            AppError::InternalServerError(error_message.clone())
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::Request(error_message.clone())),
-            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Request(error_message.clone())))
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::Response(error_message.clone())),
-            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Response(error_message.clone())))
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::Args(error_message.clone())),
-            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Args(error_message.clone())))
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::MissingArg(error_message.clone())),
-            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::MissingArg(error_message.clone())))
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::Serialization(error_message.clone())),
-            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Serialization(error_message.clone())))
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::Deserialization(error_message.clone())),
-            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Deserialization(error_message.clone())))
-        );
-        assert_eq!(
-            AppError::from(ServerFnError::<AppError>::Registration(error_message.clone())),
-            AppError::CommunicationError(ServerFnError::from(ServerFnError::<AppError>::Registration(error_message.clone())))
-        );
-        assert_eq!(AppError::from(&wrapped_error), AppError::NotAuthenticated);
     }
 
     #[test]

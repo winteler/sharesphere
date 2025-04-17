@@ -254,7 +254,7 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_sphere_role_vec(sphere_name: String) -> Result<Vec<UserSphereRole>, ServerFnError<AppError>> {
+pub async fn get_sphere_role_vec(sphere_name: String) -> Result<Vec<UserSphereRole>, AppError> {
     let db_pool = get_db_pool()?;
 
     let role_vec = ssr::get_sphere_role_vec(
@@ -270,7 +270,7 @@ pub async fn set_user_sphere_role(
     username: String,
     sphere_name: String,
     permission_level: PermissionLevel,
-) -> Result<UserSphereRole, ServerFnError<AppError>> {
+) -> Result<UserSphereRole, AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

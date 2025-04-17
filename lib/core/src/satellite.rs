@@ -200,7 +200,7 @@ pub mod ssr {
 #[server]
 pub async fn get_satellite_by_id(
     satellite_id: i64,
-) -> Result<Satellite, ServerFnError<AppError>> {
+) -> Result<Satellite, AppError> {
     let db_pool = get_db_pool()?;
     let satellite = ssr::get_satellite_by_id(satellite_id, &db_pool).await?;
     Ok(satellite)
@@ -210,7 +210,7 @@ pub async fn get_satellite_by_id(
 pub async fn get_satellite_vec_by_sphere_name(
     sphere_name: String,
     only_active: bool,
-) -> Result<Vec<Satellite>, ServerFnError<AppError>> {
+) -> Result<Vec<Satellite>, AppError> {
     let db_pool = get_db_pool()?;
     let satellite_vec = match only_active {
         true => get_active_satellite_vec_by_sphere_name(&sphere_name, &db_pool).await?,
@@ -227,7 +227,7 @@ pub async fn create_satellite(
     is_markdown: bool,
     is_nsfw: bool,
     is_spoiler: bool,
-) -> Result<Satellite, ServerFnError<AppError>> {
+) -> Result<Satellite, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 
@@ -254,7 +254,7 @@ pub async fn update_satellite(
     is_markdown: bool,
     is_nsfw: bool,
     is_spoiler: bool,
-) -> Result<Satellite, ServerFnError<AppError>> {
+) -> Result<Satellite, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 
@@ -276,7 +276,7 @@ pub async fn update_satellite(
 #[server]
 pub async fn disable_satellite(
     satellite_id: i64,
-) -> Result<Satellite, ServerFnError<AppError>> {
+) -> Result<Satellite, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let satellite = ssr::disable_satellite(

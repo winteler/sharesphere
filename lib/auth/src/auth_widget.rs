@@ -1,9 +1,10 @@
 use leptos::prelude::*;
+use leptos::server_fn::codec::PostUrl;
+use leptos::server_fn::Http;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
 use serde::de::DeserializeOwned;
 use server_fn::client::Client;
-use server_fn::codec::PostUrl;
 use server_fn::request::ClientReq;
 use server_fn::ServerFn;
 use web_sys::FormData;
@@ -111,7 +112,7 @@ where
 
 /// Component to render a delete button
 #[component]
-pub fn DeleteButton<A>(
+pub fn DeleteButton<A, O>(
     title: &'static str,
     id: i64,
     id_name: &'static str,
@@ -120,7 +121,7 @@ pub fn DeleteButton<A>(
 ) -> impl IntoView
 where
     A: DeserializeOwned
-    + ServerFn<InputEncoding = PostUrl, Error = AppError>
+    + ServerFn<Protocol = Http<PostUrl, O>, Error = AppError>
     + Clone
     + Send
     + Sync
@@ -128,7 +129,10 @@ where
     <<A::Client as Client<A::Error>>::Request as ClientReq<
         A::Error,
     >>::FormData: From<FormData>,
+    A: Send + Sync + 'static,
     A::Output: Send + Sync + 'static,
+    <A as ServerFn>::Client: Client<AppError>,
+    O: 'static,
 {
     let user_state = expect_context::<UserState>();
     let show_form = RwSignal::new(false);

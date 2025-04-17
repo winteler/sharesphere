@@ -2,7 +2,6 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_params_map;
-use server_fn::ServerFnError;
 
 use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use sharesphere_utils::embed::EmbedType;
@@ -33,7 +32,7 @@ pub struct SatelliteState {
     pub satellite_id: Memo<i64>,
     pub sort_type: RwSignal<SortType>,
     pub category_id_filter: RwSignal<Option<i64>>,
-    pub satellite_resource: Resource<Result<Satellite, ServerFnError<AppError>>>,
+    pub satellite_resource: Resource<Result<Satellite, AppError>>,
 }
 
 /// Component to display a satellite banner

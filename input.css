@@ -102,6 +102,10 @@
     .content-toolbar-icon-size {
         @apply h-4 w-4 2xl:h-5 2xl:w-5;
     }
+
+    .editor-button-size {
+        @apply h-4 w-4;
+    }
 }
 
 /* Styles for the spoiler blocks */

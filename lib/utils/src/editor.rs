@@ -222,8 +222,8 @@ pub fn FormMarkdownEditor(
     let is_markdown_mode = RwSignal::new(is_markdown);
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
     let markdown_button_class = move || match is_markdown_mode.get() {
-        true => "h-full content-center p-2 rounded-md bg-success",
-        false => "h-full content-center p-2 rounded-md hover:bg-base-200",
+        true => "button-primary",
+        false => "button-ghost",
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -244,7 +244,7 @@ pub fn FormMarkdownEditor(
 
     view! {
         <div class="flex flex-col gap-2">
-            <div class="group w-full max-w-full p-2 border border-primary">
+            <div class="group w-full max-w-full p-1 2xl:p-2 border border-primary">
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for=name class="sr-only">
                         {placeholder}
@@ -266,7 +266,7 @@ pub fn FormMarkdownEditor(
                     </textarea>
                 </div>
                 <div class="flex justify-between items-center">
-                    <div class="flex bg-base-300 rounded-md">
+                    <div class="flex items-center bg-base-300 rounded-xs">
                         <label>
                             <input
                                 type="text"
@@ -282,15 +282,15 @@ pub fn FormMarkdownEditor(
                         <FormatButton format_type=FormatType::Bold data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Italic data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Strikethrough data is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Header1 data is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Header2 data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Header1 data is_markdown_mode hide_for_mobile=true/>
+                        <FormatButton format_type=FormatType::Header2 data is_markdown_mode hide_for_mobile=true/>
                         <FormatButton format_type=FormatType::List data is_markdown_mode/>
-                        <FormatButton format_type=FormatType::NumberedList data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::NumberedList data is_markdown_mode hide_for_mobile=true/>
                         <FormatButton format_type=FormatType::CodeBlock data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Spoiler data is_markdown_mode/>
                         <FormatButton format_type=FormatType::BlockQuote data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Link data is_markdown_mode/>
-                        <FormatButton format_type=FormatType::Image data is_markdown_mode/>
+                        <FormatButton format_type=FormatType::Image data is_markdown_mode hide_for_mobile=true/>
                     </div>
                     <div class="bg-base-300 rounded-full">
                         <HelpButton/>
@@ -317,11 +317,18 @@ pub fn FormatButton(
     is_markdown_mode: RwSignal<bool>,
     /// format operation of the button
     format_type: FormatType,
+    /// boolean indicating if the button is visible in mobile mode
+    #[prop(optional)]
+    hide_for_mobile: bool,
 ) -> impl IntoView {
+    let class = match hide_for_mobile {
+        true => "button-ghost px-2 max-2xl:hidden",
+        false => "button-ghost px-2",
+    };
     view! {
         <button
             type="button"
-            class="p-2 rounded-md hover:bg-base-200"
+            class=class
             on:click=move |_| {
                 if let Some(textarea_ref) = data.textarea_ref.get_untracked() {
                     let selection_start = textarea_ref.selection_start();
@@ -340,6 +347,7 @@ pub fn FormatButton(
                             if !is_markdown_mode.get_untracked() {
                                 is_markdown_mode.set(true);
                             }
+                            let _ = textarea_ref.focus();
                         },
                         _ => log::debug!("Failed to get textarea selections."),
                     };
@@ -356,7 +364,7 @@ pub fn FormatButton(
                 FormatType::List => view!{ <ListBulletIcon/> }.into_any(),
                 FormatType::NumberedList => view!{ <ListNumberIcon/> }.into_any(),
                 FormatType::CodeBlock => view!{ <CodeBlockIcon/> }.into_any(),
-                FormatType::Spoiler => view!{ <SpoilerIcon/> }.into_any(),
+                FormatType::Spoiler => view!{ <SpoilerIcon class="editor-button-size"/> }.into_any(),
                 FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
                 FormatType::Link => view!{ <LinkIcon/> }.into_any(),
                 FormatType::Image => view!{ <ImageIcon/> }.into_any(),
@@ -382,10 +390,10 @@ pub fn HelpButton() -> impl IntoView {
             <Show when=show_help>
                 <div class="relative z-30">
                     <div
-                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-128 bg-base-200/90 rounded-sm"
+                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-86 2xl:w-128 bg-base-200/90 rounded-sm"
                         node_ref=modal_ref
                     >
-                        <div class="relative flex flex-col gap-2 leading-snug text-justify text-sm">
+                        <div class="relative flex flex-col gap-2 leading-snug text-justify text-xs 2xl:text-sm">
                             <p>
                                 "To add formatting to your content, the 'Markdown mode' must be activated with the following button: "
                                 <span class="inline-flex align-bottom w-fit p-1 mt-1 rounded-md bg-base-content/20"><MarkdownIcon/></span>
@@ -405,7 +413,7 @@ pub fn HelpButton() -> impl IntoView {
             </Show>
             <button
                 type="button"
-                class="p-2 rounded-full hover:bg-base-200"
+                class="button-ghost p-2"
                 on:click=move |_| show_help.set(true)
             >
                 <HelpIcon/>

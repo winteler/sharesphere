@@ -46,7 +46,7 @@ pub fn BannedIcon(#[prop(default = "h-20 w-20")] class: &'static str) -> impl In
 }
 
 #[component]
-pub fn BoldIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn BoldIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/bold.svg" class=class/>
     }
@@ -60,7 +60,7 @@ pub fn ClockIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static 
 }
 
 #[component]
-pub fn CodeBlockIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn CodeBlockIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/codeblock.svg" class=class/>
     }
@@ -152,21 +152,21 @@ pub fn HammerIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static
 }
 
 #[component]
-pub fn Header1Icon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn Header1Icon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/header_1.svg" class=class/>
     }
 }
 
 #[component]
-pub fn Header2Icon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn Header2Icon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/header_2.svg" class=class/>
     }
 }
 
 #[component]
-pub fn HelpIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn HelpIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/help.svg" class=class/>
     }
@@ -180,7 +180,7 @@ pub fn HourglassIcon(#[prop(default = "filter-icon-size")] class: &'static str) 
 }
 
 #[component]
-pub fn ImageIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn ImageIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/image.svg" class=class/>
     }
@@ -201,28 +201,28 @@ pub fn InvalidRequestIcon(#[prop(default = "h-28 w-28")] class: &'static str) ->
 }
 
 #[component]
-pub fn ItalicIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn ItalicIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/italic.svg" class=class/>
     }
 }
 
 #[component]
-pub fn LinkIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn LinkIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/link.svg" class=class/>
     }
 }
 
 #[component]
-pub fn ListBulletIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn ListBulletIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/bullet_list.svg" class=class/>
     }
 }
 
 #[component]
-pub fn ListNumberIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn ListNumberIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/number_list.svg" class=class/>
     }
@@ -364,7 +364,7 @@ pub fn PodiumIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> 
 }
 
 #[component]
-pub fn QuoteIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn QuoteIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/quote.svg" class=class/>
     }
@@ -420,7 +420,7 @@ pub fn StarIcon(
 }
 
 #[component]
-pub fn StrikethroughIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn StrikethroughIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/strikethrough.svg" class=class/>
     }

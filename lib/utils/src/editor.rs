@@ -499,9 +499,6 @@ pub fn adjust_textarea_height(textarea_ref: NodeRef<Textarea>) {
         textarea_ref.style(("height", "auto"));
         let scroll_height = format!("{}px", textarea_ref.scroll_height());
         textarea_ref.style(("height", scroll_height));
-        //if let Err(e) = textarea_ref.set_attribute("height", &format!("{}px", scroll_height)) {
-        //    log::warn!("Failed to set scroll_height: {:?}", e.as_string());
-        //};
     }
 }
 

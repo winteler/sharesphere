@@ -152,7 +152,6 @@ pub mod ssr {
         }?;
 
         let image_path = format!("{}{}{}.{}", store_path, image_category, sphere_name.clone(), file_extension);
-        println!("Image path: {}", image_path);
 
         // TODO create folder?
         // TODO delete previous file? Here or somewhere else?

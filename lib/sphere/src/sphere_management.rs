@@ -9,7 +9,6 @@ use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced};
 use strum::IntoEnumIterator;
 
-
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::errors::{AppError, ErrorDisplay};
 use sharesphere_utils::icons::{CrossIcon, LoadingIcon, MagnifierIcon, SaveIcon};
@@ -143,16 +142,17 @@ pub fn SphereIconDialog() -> impl IntoView {
     let set_icon_action = Action::new_local(|data: &FormData| {
         set_sphere_icon(data.clone().into())
     });
+
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere icon"</div>
-                //<SphereImageForm
-                //    sphere_name=sphere_state.sphere_name
-                //    action=set_icon_action
-                //    preview_class="max-h-12 max-w-full object-contain"
-                ///>
+                <SphereImageForm
+                    sphere_name=sphere_state.sphere_name
+                    action=set_icon_action
+                    preview_class="max-h-12 max-w-full object-contain"
+                />
             </div>
         </AuthorizedShow>
     }
@@ -171,10 +171,10 @@ pub fn SphereBannerDialog() -> impl IntoView {
             // TODO add overflow-y-auto max-h-full?
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere banner"</div>
-                //<SphereImageForm
-                //    sphere_name=sphere_state.sphere_name
-                //    action=set_banner_action
-                ///>
+                <SphereImageForm
+                    sphere_name=sphere_state.sphere_name
+                    action=set_banner_action
+                />
             </div>
         </AuthorizedShow>
     }
@@ -182,101 +182,107 @@ pub fn SphereBannerDialog() -> impl IntoView {
 
 /// Form to upload an image to the server
 /// The form contains two inputs: a hidden sphere name and an image form
-//#[component]
-//pub fn SphereImageForm(
-//    #[prop(into)]
-//    sphere_name: Signal<String>,
-//    action: Action<FormData, Result<(), AppError>, LocalStorage>,
-//    #[prop(default = "max-h-80 max-w-full object-contain")]
-//    preview_class: &'static str,
-//) -> impl IntoView {
-//    let on_submit = move |ev: SubmitEvent| {
-//        ev.prevent_default();
-//        let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
-//        let form_data = FormData::new_with_form(&target).unwrap();
-//        action.dispatch_local(form_data);
-//    };
-//
-//    let preview_url = RwSignal::new(String::new());
-//    let on_file_change = move |ev| {
-//        let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
-//        if let Some(files) = input.files() {
-//            if let Some(file) = files.get(0) {
-//                // Try to create a FileReader, returning early if it fails
-//                let reader = match FileReader::new() {
-//                    Ok(reader) => reader,
-//                    Err(_) => {
-//                        log::error!("Failed to create file reader.");
-//                        return
-//                    }, // Return early if FileReader creation fails
-//                };
-//
-//                // Set up the onload callback for FileReader
-//                let preview_url_clone = preview_url.clone();
-//                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
-//                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
-//                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
-//                            preview_url_clone.set(result); // Update the preview URL
-//                        }
-//                    }
-//                }) as Box<dyn FnMut(_)>);
-//
-//                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
-//                onload_callback.forget(); // Prevent the closure from being dropped
-//
-//                // Start reading the file as a Data URL, returning early if it fails
-//                if let Err(e) = reader.read_as_data_url(&file) {
-//                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
-//                    log::error!("Error while getting preview of local image: {error_message}");
-//                };
-//            }
-//        }
-//    };
-//
-//    view! {
-//        <form on:submit=on_submit class="w-full flex flex-col gap-1">
-//            <input
-//                name=SPHERE_NAME_PARAM
-//                class="hidden"
-//                value=sphere_name
-//            />
-//            <input
-//                type="file"
-//                name=IMAGE_FILE_PARAM
-//                accept="image/*"
-//                class="file-input file-input-primary w-full"
-//                on:change=on_file_change
-//            />
-//            <Show when=move || !preview_url.read().is_empty()>
-//                <img src=preview_url alt="Image Preview" class=preview_class/>
-//            </Show>
-//            <button
-//                type="submit"
-//                class="button-secondary self-end"
-//            >
-//                <SaveIcon/>
-//            </button>
-//            {move || {
-//                if action.pending().get()
-//                {
-//                    view! { <LoadingIcon/> }.into_any()
-//                } else {
-//                    match action.value().get()
-//                    {
-//                        Some(Ok(())) => {
-//                            if let Some(state) = use_context::<GlobalState>() {
-//                                state.sphere_reload_signal.update(|value| *value += 1);
-//                            }
-//                            ().into_any()
-//                        }
-//                        Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
-//                        None => ().into_any()
-//                    }
-//                }
-//            }}
-//        </form>
-//    }
-//}
+#[component]
+pub fn SphereImageForm(
+    #[prop(into)]
+    sphere_name: Signal<String>,
+    action: Action<FormData, Result<(), AppError>>,
+    #[prop(default = "max-h-80 max-w-full object-contain")]
+    preview_class: &'static str,
+) -> impl IntoView {
+    let on_submit = move |ev: SubmitEvent| {
+        ev.prevent_default();
+        if cfg!(feature = "hydrate") {
+            let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
+            let form_data = FormData::new_with_form(&target).unwrap();
+            action.dispatch_local(form_data);
+        }
+    };
+
+    let preview_url = RwSignal::new(String::new());
+    let on_file_change = move |ev| {
+        let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
+        if let Some(files) = input.files() {
+            if let Some(file) = files.get(0) {
+                // Try to create a FileReader, returning early if it fails
+                let reader = match FileReader::new() {
+                    Ok(reader) => reader,
+                    Err(_) => {
+                        log::error!("Failed to create file reader.");
+                        return
+                    }, // Return early if FileReader creation fails
+                };
+
+                // Set up the onload callback for FileReader
+                let preview_url_clone = preview_url.clone();
+                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
+                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
+                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
+                            preview_url_clone.set(result); // Update the preview URL
+                        }
+                    }
+                }) as Box<dyn FnMut(_)>);
+
+                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
+                onload_callback.forget(); // Prevent the closure from being dropped
+
+                // Start reading the file as a Data URL, returning early if it fails
+                if let Err(e) = reader.read_as_data_url(&file) {
+                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
+                    log::error!("Error while getting preview of local image: {error_message}");
+                };
+            }
+        }
+    };
+
+    view! {
+        <form on:submit=on_submit class="w-full flex flex-col gap-1">
+            <input
+                name=SPHERE_NAME_PARAM
+                class="hidden"
+                value=sphere_name
+            />
+            <input
+                type="file"
+                name=IMAGE_FILE_PARAM
+                accept="image/*"
+                class="file-input file-input-primary w-full"
+                on:change=on_file_change
+            />
+            <Show when=move || !preview_url.read().is_empty()>
+                <img src=preview_url alt="Image Preview" class=preview_class/>
+            </Show>
+            <button
+                type="submit"
+                class="button-secondary self-end"
+            >
+                <SaveIcon/>
+            </button>
+            {move || {
+                if cfg!(feature = "hydrate") {
+                    if action.pending().get()
+                    {
+                        view! { <LoadingIcon/> }.into_any()
+                    } else {
+                        match action.value().get()
+                        {
+                            Some(Ok(())) => {
+                                if let Some(state) = use_context::<GlobalState>() {
+                                    state.sphere_reload_signal.update(|value| *value += 1);
+                                }
+                                ().into_any()
+                            }
+                            Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
+                            None => ().into_any()
+                        }
+                    }
+                } else {
+                    ().into_any()
+                }
+            }}
+        </form>
+    }
+}
 
 /// Component to manage moderators
 #[component]

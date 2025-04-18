@@ -222,8 +222,8 @@ pub fn FormMarkdownEditor(
     let is_markdown_mode = RwSignal::new(is_markdown);
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
     let markdown_button_class = move || match is_markdown_mode.get() {
-        true => "button-primary",
-        false => "button-ghost",
+        true => "button-primary p-2",
+        false => "button-ghost p-2",
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -322,8 +322,8 @@ pub fn FormatButton(
     hide_for_mobile: bool,
 ) -> impl IntoView {
     let class = match hide_for_mobile {
-        true => "button-ghost px-2 max-2xl:hidden",
-        false => "button-ghost px-2",
+        true => "button-ghost p-2 max-2xl:hidden",
+        false => "button-ghost p-2",
     };
     view! {
         <button

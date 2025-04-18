@@ -28,6 +28,7 @@ pub fn NavigationBar() -> impl IntoView
                 </a>
             </div>
             <div class="flex items-center gap-1 2xl:gap-2">
+                <RightSidebarButton/>
                 <SearchButton class="button-rounded-ghost"/>
                 <PlusMenu/>
                 <UserMenu/>
@@ -117,4 +118,21 @@ pub fn PlusMenu() -> impl IntoView {
             </ul>
         </DropdownButton>
     }.into_any()
+}
+
+#[component]
+pub fn RightSidebarButton() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let button_class = move || match state.show_right_sidebar.get() {
+        true => "2xl:hidden button-rounded-neutral",
+        false => "2xl:hidden button-rounded-ghost",
+    };
+    view! {
+        <button
+            class=button_class
+            on:click=move |_| state.show_right_sidebar.update(|value| *value = !*value)
+        >
+            <InfoIcon/>
+        </button>
+    }
 }

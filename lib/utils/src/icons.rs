@@ -187,6 +187,13 @@ pub fn ImageIcon(#[prop(default = "editor-button-size")] class: &'static str) ->
 }
 
 #[component]
+pub fn InfoIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/info.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn InternalErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/errors/landing_space_capsule.svg" class=class/>

@@ -27,6 +27,7 @@ pub struct GlobalState {
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
     pub left_sidebar_checkbox_ref: NodeRef<Input>,
+    pub show_right_sidebar: RwSignal<bool>,
     pub user: Resource<Result<Option<User>, AppError>>,
 }
 
@@ -75,6 +76,7 @@ impl GlobalState {
             post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
             left_sidebar_checkbox_ref,
+            show_right_sidebar: RwSignal::new(false),
             user,
         }
     }

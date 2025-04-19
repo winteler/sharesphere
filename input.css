@@ -87,6 +87,10 @@
         @apply p-2 rounded-full bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
     }
 
+    .button-navbar-activated {
+        @apply p-1 2xl:p-2 rounded-full bg-base-100 hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+    }
+
     .navbar-icon-size {
         @apply h-6 w-6 2xl:h-7 2xl:w-7;
     }

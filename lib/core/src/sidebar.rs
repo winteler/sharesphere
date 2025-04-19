@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-
+use server_fn::const_format::concatcp;
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{Collapse, TitleCollapse};
 
@@ -9,6 +9,8 @@ use crate::state::{GlobalState, SphereState};
 use crate::search::{SearchSpheres, SearchState};
 use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers};
 use crate::sphere_category::SphereCategoryBadge;
+
+const BASE_RIGHT_SIDEBAR_CLASS: &'static str = "flex flex-col justify-start w-80 h-full px-3 py-2 bg-base-200 2xl:bg-base-100 max-2xl:absolute max-2xl:top-0 max-2xl:right-0 ";
 
 /// Component to display a collapsable list of sphere links
 #[component]
@@ -75,8 +77,13 @@ pub fn LeftSidebar() -> impl IntoView {
 /// Home right sidebar component
 #[component]
 pub fn HomeSidebar() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let sidebar_class = move || match state.show_right_sidebar.get() {
+        true => concatcp!(BASE_RIGHT_SIDEBAR_CLASS, "max-2xl:translate-x-0 transition-transform duration-250 ease-in-out"),
+        false => concatcp!(BASE_RIGHT_SIDEBAR_CLASS, "max-2xl:translate-x-100 transition-transform duration-250 ease-in-out"),
+    };
     view! {
-        <div class="flex flex-col justify-start w-80 h-full px-3 py-2 max-2xl:z-50">
+        <div class=sidebar_class>
             <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">"Welcome to ShareSphere!"</div>
                 <div class="flex flex-col gap-1 text-justify">

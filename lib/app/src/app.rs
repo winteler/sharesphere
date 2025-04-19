@@ -190,7 +190,7 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2">
+        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2 max-2xl:relative">
             <div
                 class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-16 2xl:h-40 flex items-center justify-center"
             >
@@ -211,9 +211,7 @@ fn HomePage() -> impl IntoView {
                 }
             </Transition>
         </div>
-        <div class="max-2xl:hidden">
-            <HomeSidebar/>
-        </div>
+        <HomeSidebar/>
     }
 }
 

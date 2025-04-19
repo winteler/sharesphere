@@ -124,7 +124,7 @@ pub fn PlusMenu() -> impl IntoView {
 pub fn RightSidebarButton() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let button_class = move || match state.show_right_sidebar.get() {
-        true => "2xl:hidden button-rounded-neutral",
+        true => "2xl:hidden button-navbar-activated",
         false => "2xl:hidden button-rounded-ghost",
     };
     view! {

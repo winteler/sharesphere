@@ -245,8 +245,7 @@ pub fn ErrorDisplay(
 mod tests {
     use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, PERMANENT_SPHERE_BAN_MESSAGE, SPHERE_BAN_UNTIL_MESSAGE, UNAVAILABLE_MESSAGE};
     use http::StatusCode;
-    use leptos::prelude::{ServerFnError, ServerFnErrorErr};
-    use leptos::server_fn::error::NoCustomError;
+    use leptos::prelude::{ServerFnErrorErr};
     use quick_xml::errors::SyntaxError;
     use std::str::FromStr;
 

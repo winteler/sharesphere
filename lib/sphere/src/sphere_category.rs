@@ -200,7 +200,7 @@ pub fn get_sphere_category_header_map(
 
 #[cfg(test)]
 mod tests {
-    use leptos::prelude::ServerFnError;
+    use leptos::prelude::ServerFnErrorErr;
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::errors::AppError;
 
@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(category_map.get(&category_1.category_id), Some(&category_1.into()));
         assert_eq!(category_map.get(&category_2.category_id), Some(&category_2.into()));
         
-        let empty_category_map = get_sphere_category_header_map(Err(ServerFnError::<AppError>::Request(String::from("test"))));
+        let empty_category_map = get_sphere_category_header_map(Err(AppError::CommunicationError(ServerFnErrorErr::Request(String::from("test")))));
         
         assert_eq!(empty_category_map.len(), 0);
     }

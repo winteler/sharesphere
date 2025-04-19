@@ -1192,7 +1192,7 @@ pub fn LinkForm(
                 <input
                     type="text"
                     name="link"
-                    placeholder="Link"
+                    placeholder="Url"
                     class="input input-primary grow"
                     value=link_input
                     autofocus

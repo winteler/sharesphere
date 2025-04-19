@@ -189,7 +189,7 @@ pub fn FormTextEditor(
                     id=name
                     name=name
                     placeholder=placeholder
-                    class="w-full bg-base-100 box-border outline-hidden border-none resize-none"
+                    class="w-full bg-base-100 box-border outline-hidden border-none resize-none text-sm"
                     rows=1
                     on:input=move |ev| {
                         data.content.set(event_target_value(&ev));
@@ -253,7 +253,7 @@ pub fn FormMarkdownEditor(
                         id=name
                         name=name
                         placeholder=placeholder
-                        class="w-full box-border bg-base-100 p-1 outline-hidden resize-none"
+                        class="w-full box-border bg-base-100 p-1 outline-hidden resize-none text-sm"
                         rows=1
                         autofocus
                         on:input=move |ev| {

@@ -180,10 +180,10 @@ mod tests {
         assert_eq!(loaded_vec.read().as_slice(), &[4, 5, 6]);
         assert_eq!(load_error.read(), None);
 
-        let error = ServerFnError::<AppError>::Request(String::from("test"));
+        let error = AppError::CommunicationError(ServerFnErrorErr::Request(String::from("test")));
         handle_initial_load(Err(error.clone()), loaded_vec, load_error, None);
         assert!(loaded_vec.read().is_empty());
-        assert_eq!(load_error.read(), Some(AppError::from(error)));
+        assert_eq!(load_error.read(), Some(error));
     }
 
     #[test]
@@ -201,9 +201,9 @@ mod tests {
         assert_eq!(loaded_vec.read().as_slice(), &[1, 2, 3, 4, 5, 6]);
         assert_eq!(load_error.read(), None);
 
-        let error = ServerFnError::<AppError>::Request(String::from("test"));
+        let error = AppError::CommunicationError(ServerFnErrorErr::Request(String::from("test")));
         handle_additional_load(Err(error.clone()), loaded_vec, load_error);
         assert_eq!(loaded_vec.read().as_slice(), &[1, 2, 3, 4, 5, 6]);
-        assert_eq!(load_error.read(), Some(AppError::from(error)));
+        assert_eq!(load_error.read(), Some(error));
     }
 }

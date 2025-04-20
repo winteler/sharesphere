@@ -1,5 +1,4 @@
-use leptos::html::Input;
-use leptos::prelude::{Memo, NodeRef, Resource, RwSignal, ServerAction, Signal};
+use leptos::prelude::{Memo, Resource, RwSignal, ServerAction, Signal};
 use sharesphere_auth::auth::EndSession;
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
@@ -26,7 +25,7 @@ pub struct GlobalState {
     pub sphere_reload_signal: RwSignal<usize>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
-    pub left_sidebar_checkbox_ref: NodeRef<Input>,
+    pub show_left_sidebar: RwSignal<bool>,
     pub show_right_sidebar: RwSignal<bool>,
     pub user: Resource<Result<Option<User>, AppError>>,
 }
@@ -61,7 +60,6 @@ impl GlobalState {
         delete_user_action: ServerAction<DeleteUser>,
         create_sphere_action: ServerAction<CreateSphere>,
         set_settings_action: ServerAction<SetUserSettings>,
-        left_sidebar_checkbox_ref: NodeRef<Input>,
     ) -> Self {
         Self {
             logout_action,
@@ -75,7 +73,7 @@ impl GlobalState {
             sphere_reload_signal: RwSignal::new(0),
             post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
-            left_sidebar_checkbox_ref,
+            show_left_sidebar: RwSignal::new(false),
             show_right_sidebar: RwSignal::new(false),
             user,
         }

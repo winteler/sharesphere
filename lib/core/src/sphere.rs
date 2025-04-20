@@ -432,11 +432,7 @@ pub fn SphereLinkItems(
                     <li class="px-2 rounded-sm hover:bg-base-content/20">
                         <a
                             href=sphere_path
-                            on:click=move |_| {
-                                if let Some(input_ref) = state.left_sidebar_checkbox_ref.get() {
-                                    input_ref.set_checked(false);
-                                }
-                            }
+                            on:click=move |_| state.show_left_sidebar.set(false)
                         >
                             <SphereHeader sphere_header=sphere_header/>
                         </a>

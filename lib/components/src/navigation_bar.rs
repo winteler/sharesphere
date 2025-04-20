@@ -13,15 +13,16 @@ use crate::search::{SearchButton};
 #[component]
 pub fn NavigationBar() -> impl IntoView
 {
+    let state = expect_context::<GlobalState>();
     view! {
         <div class="flex-none flex justify-between items-center w-full p-2 bg-blue-500">
             <div class="flex items-center gap-1 2xl:gap-2">
-                <label
-                    for="my-drawer"
+                <button
                     class="drawer-button 2xl:hidden button-rounded-ghost"
+                    on:click=move |_| state.show_left_sidebar.update(|value| *value = !*value)
                 >
                     <SideBarIcon/>
-                </label>
+                </button>
                 <a href="/" class="button-ghost flex gap-1.5 items-center">
                     <LogoIcon/>
                     <div class="2xl:pt-1 2xl:pb-1.5 font-semibold">"ShareSphere"</div>

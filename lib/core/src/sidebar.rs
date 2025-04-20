@@ -1,5 +1,7 @@
 use leptos::prelude::*;
-use server_fn::const_format::concatcp;
+use leptos::html::Div;
+#[cfg(feature = "hydrate")]
+use leptos_use::on_click_outside;
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{Collapse, TitleCollapse};
 
@@ -9,8 +11,6 @@ use crate::state::{GlobalState, SphereState};
 use crate::search::{SearchSpheres, SearchState};
 use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers};
 use crate::sphere_category::SphereCategoryBadge;
-
-const BASE_RIGHT_SIDEBAR_CLASS: &'static str = "flex flex-col justify-start w-80 h-full px-3 py-2 bg-base-200 2xl:bg-base-100 max-2xl:absolute max-2xl:top-0 max-2xl:right-0 ";
 
 /// Component to display a collapsable list of sphere links
 #[component]
@@ -52,8 +52,19 @@ pub fn LeftSidebar() -> impl IntoView {
         |_| get_popular_sphere_headers(),
     );
 
+    let sidebar_class = move || match state.show_left_sidebar.get() {
+        true => "left_sidebar_base_class max-2xl:translate-x-0 transition-transform duration-300 ease-in-out",
+        false => "left_sidebar_base_class max-2xl:-translate-x-100 transition-transform duration-300 ease-in-out",
+    };
+    let sidebar_ref = NodeRef::<Div>::new();
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(sidebar_ref, move |_| state.show_left_sidebar.set(false));
+    }
+
     view! {
-        <div class="flex flex-col justify-start w-60 h-full h-min-0 overflow-y-auto p-2 max-2xl:bg-base-300">
+        <div class=sidebar_class node_ref=sidebar_ref>
             <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
                 <SphereLinkListCollapse
                     title="Subscribed"
@@ -71,6 +82,9 @@ pub fn LeftSidebar() -> impl IntoView {
                 <SearchSpheres search_state class="w-full gap-2" autofocus=false/>
             </div>
         </div>
+        <Show when=state.show_left_sidebar>
+            <div class="absolute top-0 right-0 h-full w-full bg-base-200/50"/>
+        </Show>
     }
 }
 
@@ -79,11 +93,17 @@ pub fn LeftSidebar() -> impl IntoView {
 pub fn HomeSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sidebar_class = move || match state.show_right_sidebar.get() {
-        true => concatcp!(BASE_RIGHT_SIDEBAR_CLASS, "max-2xl:translate-x-0 transition-transform duration-250 ease-in-out"),
-        false => concatcp!(BASE_RIGHT_SIDEBAR_CLASS, "max-2xl:translate-x-100 transition-transform duration-250 ease-in-out"),
+        true => "right_sidebar_base_class max-2xl:translate-x-0 transition-transform duration-300 ease-in-out",
+        false => "right_sidebar_base_class max-2xl:translate-x-100 transition-transform duration-300 ease-in-out",
     };
+    let sidebar_ref = NodeRef::<Div>::new();
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(sidebar_ref, move |_| state.show_right_sidebar.set(false));
+    }
     view! {
-        <div class=sidebar_class>
+        <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">"Welcome to ShareSphere!"</div>
                 <div class="flex flex-col gap-1 text-justify">
@@ -92,15 +112,29 @@ pub fn HomeSidebar() -> impl IntoView {
                 </div>
             </div>
         </div>
+        <Show when=state.show_right_sidebar>
+            <div class="absolute top-0 left-0 h-full w-full bg-base-200/50"/>
+        </Show>
     }
 }
 
 /// Sphere right sidebar component
 #[component]
 pub fn SphereSidebar() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
+    let sidebar_class = move || match state.show_right_sidebar.get() {
+        true => "right_sidebar_base_class max-2xl:translate-x-0 transition-transform duration-300 ease-in-out",
+        false => "right_sidebar_base_class max-2xl:translate-x-100 transition-transform duration-300 ease-in-out",
+    };
+    let sidebar_ref = NodeRef::<Div>::new();
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(sidebar_ref, move |_| state.show_right_sidebar.set(false));
+    }
     view! {
-        <div class="flex flex-col gap-2 justify-start w-80 h-full px-4 py-2">
+        <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
                 <div class="text-2xl font-semibold text-center">{sphere_state.sphere_name}</div>
                 <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
@@ -114,6 +148,9 @@ pub fn SphereSidebar() -> impl IntoView {
             <div class="border-b border-primary/80"/>
             <ModeratorList/>
         </div>
+        <Show when=state.show_right_sidebar>
+            <div class="absolute top-0 left-0 h-full w-full bg-base-200/50"/>
+        </Show>
     }
 }
 

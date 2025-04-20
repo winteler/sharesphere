@@ -1,5 +1,4 @@
 use leptos::html;
-use leptos::html::Input;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
@@ -86,14 +85,12 @@ pub fn App() -> impl IntoView {
         login_action: ServerAction::<Login>::new(),
         user
     };
-    let left_sidebar_checkbox_ref = NodeRef::<Input>::new();
     let state = GlobalState::new(
         user,
         logout_action,
         delete_user_action,
         create_sphere_action,
         set_settings_action,
-        left_sidebar_checkbox_ref,
     );
     provide_context(user_state);
     provide_context(state);
@@ -106,14 +103,11 @@ pub fn App() -> impl IntoView {
         // sets the document title
         <Title text="Welcome to ShareSphere"/>
         <Router>
-            <main class="h-screen text-white">
-                <input id="my-drawer" type="checkbox" class="drawer-toggle" node_ref=left_sidebar_checkbox_ref/>
-                <div class="drawer-content h-full flex flex-col max-2xl:items-center">
+            <main class="h-screen text-white relative">
+                <div class="h-full flex flex-col max-2xl:items-center">
                     <NavigationBar/>
                     <div class="grow flex w-full overflow-hidden min-h-0">
-                        <div class="max-2xl:hidden flex flex-col">
-                            <LeftSidebar/>
-                        </div>
+                        <LeftSidebar/>
                         <Routes fallback=|| {
                             let mut outside_errors = Errors::default();
                             outside_errors.insert_with_default_key(AppError::NotFound);
@@ -146,10 +140,6 @@ pub fn App() -> impl IntoView {
                             <Route path=StaticSegment(SEARCH_ROUTE) view=Search/>
                         </Routes>
                     </div>
-                </div>
-                <div class="drawer-side">
-                    <label for="my-drawer" class="drawer-overlay"></label>
-                    <LeftSidebar/>
                 </div>
             </main>
         </Router>
@@ -190,7 +180,7 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2 max-2xl:relative">
+        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2">
             <div
                 class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-16 2xl:h-40 flex items-center justify-center"
             >

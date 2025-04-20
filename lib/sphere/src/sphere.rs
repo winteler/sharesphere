@@ -135,9 +135,7 @@ pub fn SphereBanner() -> impl IntoView {
             </TransitionUnpack>
             <Outlet/>
         </div>
-        <div class="max-2xl:hidden">
-            <SphereSidebar/>
-        </div>
+        <SphereSidebar/>
     }.into_any()
 }
 

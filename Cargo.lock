@@ -3628,6 +3628,7 @@ dependencies = [
  "leptos",
  "leptos_meta",
  "leptos_router",
+ "log",
  "sharesphere_auth",
  "sharesphere_components",
  "sharesphere_content",

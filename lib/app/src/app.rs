@@ -1,3 +1,4 @@
+use leptos::ev::TouchEvent;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
@@ -95,6 +96,40 @@ pub fn App() -> impl IntoView {
     provide_context(user_state);
     provide_context(state);
 
+    let swipe_start_x = RwSignal::new(None);
+    let swipe_id = RwSignal::new(None);
+
+    let on_touch_start = move |ev: TouchEvent| {
+        if let Some(touch) = ev.touches().item(0) {
+            swipe_start_x.set(Some(touch.client_x()));
+            swipe_id.set(Some(touch.identifier()));
+        }
+    };
+    let on_touch_end = move |ev: TouchEvent| {
+        log::debug!("Touch end. {:?}, {:?}", swipe_start_x.get_untracked(), swipe_id.get_untracked());
+        if let Some(touch) = ev.changed_touches().item(0) {
+            log::info!("Touch x: {}, touch id: {}", touch.client_x(), touch.identifier());
+            if swipe_id.get_untracked().is_some_and(|swipe_id| swipe_id == touch.identifier()) {
+                let swipe_end = touch.client_x();
+                let threshold = 50;
+                let delta = swipe_end - swipe_start_x.get().unwrap_or(swipe_end);
+                match delta {
+                    x if x < -threshold => {
+                        log::debug!("Swipe left: delta = {delta}");
+                        handle_left_swipe(state.show_left_sidebar, state.show_right_sidebar);
+                    },
+                    x if x > threshold => {
+                        log::debug!("Swipe right: delta = {delta}");
+                        handle_right_swipe(state.show_left_sidebar, state.show_right_sidebar);
+                    },
+                    _ => log::debug!("No swipe: delta = {delta}"),
+                }
+            }
+        }
+        swipe_start_x.set(None);
+        swipe_id.set(None);
+    };
+
     view! {
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
@@ -103,7 +138,11 @@ pub fn App() -> impl IntoView {
         // sets the document title
         <Title text="Welcome to ShareSphere"/>
         <Router>
-            <main class="h-screen text-white relative">
+            <main
+                class="h-screen w-screen overflow-hidden text-white relative"
+                on:touchstart=on_touch_start
+                on:touchend=on_touch_end
+            >
                 <div class="h-full flex flex-col max-2xl:items-center">
                     <NavigationBar/>
                     <div class="grow flex w-full overflow-hidden min-h-0">
@@ -287,5 +326,27 @@ fn UserHomePage(user: User) -> impl IntoView {
             additional_load_count
             list_ref
         />
+    }
+}
+
+fn handle_right_swipe(
+    show_left_sidebar: RwSignal<bool>,
+    show_right_sidebar: RwSignal<bool>,
+) {
+    if show_right_sidebar.get_untracked() {
+        show_right_sidebar.set(false);
+    } else if !show_left_sidebar.get_untracked() {
+        show_left_sidebar.set(true);
+    }
+}
+
+fn handle_left_swipe(
+    show_left_sidebar: RwSignal<bool>,
+    show_right_sidebar: RwSignal<bool>,
+) {
+    if show_left_sidebar.get_untracked() {
+        show_left_sidebar.set(false);
+    } else if !show_right_sidebar.get_untracked() {
+        show_right_sidebar.set(true);
     }
 }

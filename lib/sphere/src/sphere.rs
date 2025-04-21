@@ -113,7 +113,7 @@ pub fn SphereBanner() -> impl IntoView {
     });
 
     view! {
-        <div class="flex flex-col gap-2 pt-2 px-2 w-full">
+        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2">
             <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
             {
                 let sphere_banner_class = format!(

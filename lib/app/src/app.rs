@@ -97,36 +97,39 @@ pub fn App() -> impl IntoView {
     provide_context(state);
 
     let swipe_start_x = RwSignal::new(None);
+    let swipe_start_y = RwSignal::new(None);
     let swipe_id = RwSignal::new(None);
 
     let on_touch_start = move |ev: TouchEvent| {
         if let Some(touch) = ev.touches().item(0) {
             swipe_start_x.set(Some(touch.client_x()));
+            swipe_start_y.set(Some(touch.client_y()));
             swipe_id.set(Some(touch.identifier()));
         }
     };
     let on_touch_end = move |ev: TouchEvent| {
-        log::debug!("Touch end. {:?}, {:?}", swipe_start_x.get_untracked(), swipe_id.get_untracked());
+        log::debug!("Touch end. {:?}, {:?}, {:?}", swipe_start_x.get_untracked(), swipe_start_y.get_untracked(), swipe_id.get_untracked());
         if let Some(touch) = ev.changed_touches().item(0) {
-            log::info!("Touch x: {}, touch id: {}", touch.client_x(), touch.identifier());
+            log::debug!("Touch x: {}, touch y: {}, touch id: {}", touch.client_x(), touch.client_x(), touch.identifier());
             if swipe_id.get_untracked().is_some_and(|swipe_id| swipe_id == touch.identifier()) {
-                let swipe_end = touch.client_x();
                 let threshold = 50;
-                let delta = swipe_end - swipe_start_x.get().unwrap_or(swipe_end);
-                match delta {
-                    x if x < -threshold => {
-                        log::debug!("Swipe left: delta = {delta}");
+                let delta_x = touch.client_x() - swipe_start_x.get_untracked().unwrap_or(touch.client_x());
+                let delta_y = touch.client_y() - swipe_start_y.get_untracked().unwrap_or(touch.client_y());
+                match (delta_x, delta_y) {
+                    (delta_x, delta_y) if delta_x < -threshold && delta_y.abs() < threshold => {
+                        log::debug!("Swipe left: delta_x = {delta_x}, delta_y = {delta_y}");
                         handle_left_swipe(state.show_left_sidebar, state.show_right_sidebar);
                     },
-                    x if x > threshold => {
-                        log::debug!("Swipe right: delta = {delta}");
+                    (delta_x, delta_y) if delta_x > threshold && delta_y.abs() < threshold => {
+                        log::debug!("Swipe right: delta_x = {delta_x}, delta_y = {delta_y}");
                         handle_right_swipe(state.show_left_sidebar, state.show_right_sidebar);
                     },
-                    _ => log::debug!("No swipe: delta = {delta}"),
+                    _ => log::debug!("No swipe: delta_x = {delta_x}, delta_y = {delta_y}"),
                 }
             }
         }
         swipe_start_x.set(None);
+        swipe_start_y.set(None);
         swipe_id.set(None);
     };
 

@@ -7,7 +7,7 @@ use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, Pa
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
-use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, SuspenseUnpack};
+use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
 use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX};
 use sharesphere_auth::auth::*;
 use sharesphere_auth::auth_widget::LoginWindow;
@@ -16,7 +16,7 @@ use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
 use sharesphere_components::search::{Search, SphereSearch};
 use sharesphere_content::post::{CreatePost, Post};
-use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostMiniatureList, PostWithSphereInfo};
+use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::ranking::PostSortWidget;
 use sharesphere_core::sidebar::{HomeSidebar, LeftSidebar};
 use sharesphere_core::sphere::CreateSphere;
@@ -251,18 +251,17 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
-    let _initial_post_resource = LocalResource::new(
-        move || async move {
-            is_loading.set(true);
-            let initial_load = get_sorted_post_vec(state.post_sort_type.get(), 0).await;
-            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
-            is_loading.set(false);
+    let post_vec_resource = Resource::new(
+        move || state.post_sort_type.get(),
+        move |sort_type| async move {
+            reset_additional_load(additional_post_vec, Some(list_ref));
+            get_sorted_post_vec(sort_type, 0).await
         }
     );
 
@@ -270,17 +269,18 @@ fn DefaultHomePage() -> impl IntoView {
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
-                let num_post = post_vec.read_untracked().len();
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_sorted_post_vec(state.post_sort_type.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, post_vec, load_error);
+                handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }
         }
     );
 
     view! {
-        <PostMiniatureList
-            post_vec=post_vec
+        <PostListWithInitLoad
+            post_vec_resource
+            additional_post_vec
             is_loading=is_loading
             load_error=load_error
             additional_load_count=additional_load_count
@@ -294,18 +294,17 @@ fn DefaultHomePage() -> impl IntoView {
 fn UserHomePage(user: User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
-    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
-    let _initial_post_resource = LocalResource::new(
-        move || async move {
-            is_loading.set(true);
-            let initial_load = get_subscribed_post_vec(user_id, state.post_sort_type.get(), 0).await;
-            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
-            is_loading.set(false);
+    let post_vec_resource = Resource::new(
+        move || state.post_sort_type.get(),
+        move |sort_type| async move {
+            reset_additional_load(additional_post_vec, Some(list_ref));
+            get_subscribed_post_vec(user_id, sort_type, 0).await
         }
     );
 
@@ -313,17 +312,18 @@ fn UserHomePage(user: User) -> impl IntoView {
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
-                let num_post = post_vec.read_untracked().len();
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, post_vec, load_error);
+                handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }
         }
     );
 
     view! {
-        <PostMiniatureList
-            post_vec
+        <PostListWithInitLoad
+            post_vec_resource
+            additional_post_vec
             is_loading
             load_error
             additional_load_count

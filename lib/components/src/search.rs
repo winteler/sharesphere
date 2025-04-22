@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use sharesphere_core::comment::CommentMiniatureList;
-use sharesphere_core::post::PostMiniatureList;
+use sharesphere_core::post::{PostListWithIndicators};
 use sharesphere_core::search::{get_matching_user_header_vec, search_comments, search_posts, SearchForm, SearchSpheres, SearchState};
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_core::state::SphereState;
@@ -166,7 +166,7 @@ pub fn SearchPosts() -> impl IntoView
             search_state
             show_spoiler_checkbox=true
         />
-        <PostMiniatureList
+        <PostListWithIndicators
             post_vec
             is_loading
             load_error

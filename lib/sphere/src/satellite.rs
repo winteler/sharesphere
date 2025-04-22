@@ -9,12 +9,12 @@ use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::icons::{CrossIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
 use sharesphere_utils::routes::{get_satellite_id_memo, get_satellite_path};
-use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
+use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
 use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons, TagsWidget};
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
-use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_satellite_id, CreatePost, PostForm, PostMiniatureList, PostWithSphereInfo};
+use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_satellite_id, CreatePost, PostForm, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::ranking::{PostSortType, SortType};
 use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphere_name, Satellite};
 use sharesphere_core::sphere::get_sphere_with_user_info;
@@ -99,26 +99,28 @@ pub fn SatelliteContent() -> impl IntoView {
     let category_id_signal = RwSignal::new(None);
     let sort_signal = RwSignal::new(SortType::Post(PostSortType::Hot));
     let additional_load_count = RwSignal::new(0);
-    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
-    let _initial_post_resource = LocalResource::new(
-        move || async move {
-            post_vec.write().clear();
-            is_loading.set(true);
+    let post_vec_resource = Resource::new(
+        move || (
+            satellite_state.satellite_id.get(),
+            category_id_signal.get(),
+            sort_signal.get(),
+        ),
+        move |(satellite_id, category_id, sort_type)| async move {
             // TODO return map in resource directly?
+            reset_additional_load(additional_post_vec, Some(list_ref));
             let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
 
-            let initial_load = get_post_vec_by_satellite_id(
-                satellite_state.satellite_id.get(),
-                category_id_signal.get(),
-                sort_signal.get(),
+            get_post_vec_by_satellite_id(
+                satellite_id,
+                category_id,
+                sort_type,
                 0
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
-            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
-            is_loading.set(false);
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None))
         }
     );
 
@@ -127,14 +129,14 @@ pub fn SatelliteContent() -> impl IntoView {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
                 let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
-                let num_post = post_vec.read_untracked().len();
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_post_vec_by_satellite_id(
                     satellite_state.satellite_id.get_untracked(),
                     category_id_signal.get_untracked(),
                     sort_signal.get_untracked(),
                     num_post
                 ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
-                handle_additional_load(additional_load, post_vec, load_error);
+                handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }
         }
@@ -155,8 +157,9 @@ pub fn SatelliteContent() -> impl IntoView {
                 sort_signal
             />
         </SuspenseUnpack>
-        <PostMiniatureList
-            post_vec
+        <PostListWithInitLoad
+            post_vec_resource
+            additional_post_vec
             is_loading
             load_error
             additional_load_count

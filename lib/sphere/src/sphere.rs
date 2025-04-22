@@ -9,14 +9,14 @@ use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::icons::{InternalErrorIcon, LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
 use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
-use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack, TransitionUnpack};
+use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
 
 use sharesphere_auth::auth::{LoginGuardButton, LoginGuardedButton};
 use sharesphere_auth::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole};
 use sharesphere_core::filter::{PostFiltersButton, SphereCategoryFilter};
 use sharesphere_core::ranking::{PostSortWidget, SortType};
 use sharesphere_core::moderation::ModeratePost;
-use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostMiniatureList, PostWithSphereInfo};
+use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::rule::{get_sphere_rule_vec, AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, UpdateSatellite};
 use sharesphere_core::sidebar::SphereSidebar;
@@ -146,7 +146,7 @@ pub fn SphereContents() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = expect_context::<SphereState>().sphere_name;
     let additional_load_count = RwSignal::new(0);
-    let post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
@@ -155,21 +155,23 @@ pub fn SphereContents() -> impl IntoView {
         move |(sphere_name,)| get_sphere_with_user_info(sphere_name),
     );
 
-    let _initial_post_resource = LocalResource::new(
-        move || async move {
-            post_vec.write().clear();
-            is_loading.set(true);
+    let post_vec_resource = Resource::new(
+        move || (
+            sphere_name.get(),
+            sphere_state.sphere_category_filter.get(),
+            state.post_sort_type.get(),
+        ),
+        move |(sphere_name, sphere_category_filter, sort_type)| async move {
             // TODO return map in resource directly?
             let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
             // TODO check no unnecessary loads
-            let initial_load = get_post_vec_by_sphere_name(
-                sphere_name.get(),
-                sphere_state.sphere_category_filter.get(),
-                state.post_sort_type.get(),
+            reset_additional_load(additional_post_vec, Some(list_ref));
+            get_post_vec_by_sphere_name(
+                sphere_name,
+                sphere_category_filter,
+                sort_type,
                 0,
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
-            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
-            is_loading.set(false);
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None))
         }
     );
 
@@ -178,14 +180,14 @@ pub fn SphereContents() -> impl IntoView {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
                 let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
-                let num_post = post_vec.read_untracked().len();
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_post_vec_by_sphere_name(
                     sphere_name.get_untracked(),
                     sphere_state.sphere_category_filter.get_untracked(),
                     state.post_sort_type.get_untracked(),
                     num_post
                 ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
-                handle_additional_load(additional_load, post_vec, load_error);
+                handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }
         }
@@ -199,8 +201,9 @@ pub fn SphereContents() -> impl IntoView {
                 sort_signal=state.post_sort_type
             />
         </SuspenseUnpack>
-        <PostMiniatureList
-            post_vec
+        <PostListWithInitLoad
+            post_vec_resource
+            additional_post_vec
             is_loading
             load_error
             additional_load_count

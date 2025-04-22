@@ -148,6 +148,16 @@ pub fn handle_initial_load<T: Clone + Send + Sync + 'static>(
     };
 }
 
+pub fn reset_additional_load<T: Clone + Send + Sync + 'static>(
+    additional_vec: RwSignal<Vec<T>>,
+    list_ref: Option<NodeRef<html::Ul>>,
+) {
+    additional_vec.write().clear();
+    if let Some(Some(list_ref)) = list_ref.map(|list_ref| list_ref.get_untracked()) {
+        list_ref.set_scroll_top(0);
+    }
+}
+
 pub fn handle_additional_load<T: Clone + Send + Sync + 'static>(
     mut load_result: Result<Vec<T>, AppError>,
     loaded_vec: RwSignal<Vec<T>>,

@@ -29,6 +29,7 @@ use {
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
 };
+use sharesphere_utils::unpack::SuspenseUnpack;
 
 pub const POST_BATCH_SIZE: i64 = 50;
 
@@ -986,9 +987,51 @@ pub async fn delete_post(
     Ok(())
 }
 
+/// Component to initially load on the server a vector of post and load additional post on the client upon scrolling
+#[component]
+pub fn PostListWithInitLoad(
+    /// resource to load initial posts
+    post_vec_resource: Resource<Result<Vec<PostWithSphereInfo>, AppError>>,
+    /// signal containing additionally loaded posts when scrolling
+    #[prop(into)]
+    additional_post_vec: Signal<Vec<PostWithSphereInfo>>,
+    /// signal indicating new posts are being loaded
+    #[prop(into)]
+    is_loading: Signal<bool>,
+    /// signal containing an eventual loading error in order to display it
+    #[prop(into)]
+    load_error: Signal<Option<AppError>>,
+    /// signal to request loading additional posts
+    additional_load_count: RwSignal<i64>,
+    /// reference to the container of the posts in order to reset scroll position when context changes
+    list_ref: NodeRef<html::Ul>,
+    #[prop(default = true)]
+    show_sphere_header: bool,
+) -> impl IntoView {
+    view! {
+        <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20"
+            on:scroll=move |_| match list_ref.get() {
+                Some(node_ref) => {
+                    if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
+                        additional_load_count.update(|value| *value += 1);
+                    }
+                },
+                None => log::error!("Post container 'ul' node failed to load."),
+            }
+            node_ref=list_ref
+        >
+            <SuspenseUnpack resource=post_vec_resource let:post_vec>
+                <PostMiniatureList post_vec=post_vec.clone() show_sphere_header/>
+            </SuspenseUnpack>
+            <PostMiniatureList post_vec=additional_post_vec show_sphere_header/>
+            <LoadIndicators load_error is_loading/>
+        </ul>
+    }
+}
+
 /// Component to display a vector of sphere posts and indicate when more need to be loaded
 #[component]
-pub fn PostMiniatureList(
+pub fn PostListWithIndicators(
     /// signal containing the posts to display
     #[prop(into)]
     post_vec: Signal<Vec<PostWithSphereInfo>>,
@@ -1017,42 +1060,56 @@ pub fn PostMiniatureList(
             }
             node_ref=list_ref
         >
-            <For
-                each= move || post_vec.get().into_iter()
-                key=|post| post.post.post_id
-                children=move |post_info| {
-                    let post = post_info.post;
-                    let sphere_header = match show_sphere_header {
-                        true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
-                        false => None,
-                    };
-                    let post_path = get_post_path(&post.sphere_name, post.satellite_id, post.post_id);
-                    view! {
-                        <li>
-                            <a href=post_path>
-                                <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-200">
-                                    <h2 class="card-title pl-1">{post.title.clone()}</h2>
-                                    <PostBadgeList
-                                        sphere_header
-                                        sphere_category=post_info.sphere_category
-                                        is_spoiler=post.is_spoiler
-                                        is_nsfw=post.is_nsfw
-                                        is_pinned=post.is_pinned
-                                    />
-                                    <div class="flex gap-1">
-                                        <ScoreIndicator score=post.score/>
-                                        <CommentCountWidget count=post.num_comments/>
-                                        <AuthorWidget author=post.creator_name.clone() is_moderator=post.is_creator_moderator/>
-                                        <TimeSinceWidget timestamp=post.create_timestamp/>
-                                    </div>
-                                </div>
-                            </a>
-                        </li>
-                    }
-                }
-            />
+            <PostMiniatureList post_vec show_sphere_header/>
             <LoadIndicators load_error is_loading/>
         </ul>
+    }
+}
+
+/// Component to display a vector of sphere posts and indicate when more need to be loaded
+#[component]
+pub fn PostMiniatureList(
+    /// signal containing initial load of posts
+    #[prop(into)]
+    post_vec: Signal<Vec<PostWithSphereInfo>>,
+    #[prop(default = true)]
+    show_sphere_header: bool,
+) -> impl IntoView {
+    view! {
+        <For
+            each= move || post_vec.get().into_iter()
+            key=|post| post.post.post_id
+            children=move |post_info| {
+                let post = post_info.post;
+                let sphere_header = match show_sphere_header {
+                    true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
+                    false => None,
+                };
+                let post_path = get_post_path(&post.sphere_name, post.satellite_id, post.post_id);
+                view! {
+                    <li>
+                        <a href=post_path>
+                            <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-200">
+                                <h2 class="card-title pl-1">{post.title.clone()}</h2>
+                                <PostBadgeList
+                                    sphere_header
+                                    sphere_category=post_info.sphere_category
+                                    is_spoiler=post.is_spoiler
+                                    is_nsfw=post.is_nsfw
+                                    is_pinned=post.is_pinned
+                                />
+                                <div class="flex gap-1">
+                                    <ScoreIndicator score=post.score/>
+                                    <CommentCountWidget count=post.num_comments/>
+                                    <AuthorWidget author=post.creator_name.clone() is_moderator=post.is_creator_moderator/>
+                                    <TimeSinceWidget timestamp=post.create_timestamp/>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                }
+            }
+        />
     }
 }
 

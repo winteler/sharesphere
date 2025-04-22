@@ -8,14 +8,14 @@ use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
 use sharesphere_utils::routes::{get_profile_path, get_username_memo};
-use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
+use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, reset_additional_load, ActionError};
 use sharesphere_utils::widget::{EnumQueryTabs, ModalDialog, ModalFormButtons, ToView};
 
 use sharesphere_auth::auth::NavigateToUserAccount;
 use sharesphere_auth::user::{UserHeader, UserHeaderWidget};
 
 use sharesphere_core::comment::{CommentMiniatureList};
-use sharesphere_core::post::{PostMiniatureList};
+use sharesphere_core::post::{PostListWithInitLoad, POST_BATCH_SIZE};
 use sharesphere_core::profile::{get_user_comment_vec, get_user_post_vec};
 use sharesphere_core::ranking::{CommentSortType, CommentSortWidget, PostSortType, PostSortWidget, SortType};
 use sharesphere_core::sidebar::HomeSidebar;
@@ -104,18 +104,17 @@ pub fn UserPosts() -> impl IntoView {
     let params = use_params_map();
     let username = get_username_memo(params);
     let sort_signal = RwSignal::new(SortType::Post(PostSortType::Hot));
-    let post_vec = RwSignal::new(Vec::new());
+    let additional_post_vec = RwSignal::new(Vec::new());
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
-    let _initial_post_resource = LocalResource::new(
-        move || async move {
-            is_loading.set(true);
-            let initial_load = get_user_post_vec(username.get(), sort_signal.get(), 0).await;
-            handle_initial_load(initial_load, post_vec, load_error, Some(list_ref));
-            is_loading.set(false);
+    let post_vec_resource = Resource::new(
+        move || (username.get(), sort_signal.get()),
+        move |(username, sort_type)| async move {
+            reset_additional_load(additional_post_vec, Some(list_ref));
+            get_user_post_vec(username, sort_type, 0).await
         }
     );
 
@@ -123,9 +122,9 @@ pub fn UserPosts() -> impl IntoView {
         move || async move {
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
-                let num_post = post_vec.read_untracked().len();
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_user_post_vec(username.get_untracked(), sort_signal.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, post_vec, load_error);
+                handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }
         }
@@ -133,8 +132,9 @@ pub fn UserPosts() -> impl IntoView {
 
     view! {
         <PostSortWidget sort_signal/>
-        <PostMiniatureList
-            post_vec
+        <PostListWithInitLoad
+            post_vec_resource
+            additional_post_vec
             is_loading
             load_error
             additional_load_count

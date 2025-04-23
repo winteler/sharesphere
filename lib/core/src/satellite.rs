@@ -11,6 +11,7 @@ use {
     sharesphere_utils::editor::ssr::get_html_and_markdown_bodies,
     crate::satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
+use crate::ranking::SortType;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -27,6 +28,14 @@ pub struct Satellite {
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub disable_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Copy, Clone)]
+pub struct SatelliteState {
+    pub satellite_id: Memo<i64>,
+    pub sort_type: RwSignal<SortType>,
+    pub category_id_filter: RwSignal<Option<i64>>,
+    pub satellite_resource: Resource<Result<Satellite, AppError>>,
 }
 
 #[cfg(feature = "ssr")]

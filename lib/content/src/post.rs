@@ -55,7 +55,7 @@ pub fn Post() -> impl IntoView {
 
     view! {
         <div
-            class="grow flex flex-col content-start gap-1 overflow-y-auto px-0.5"
+            class="grow flex flex-col content-start gap-1 overflow-x-hidden overflow-y-auto px-0.5"
             on:scroll=move |_| match container_ref.get() {
                 Some(node_ref) => {
                     if !is_loading.get_untracked() && node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() {

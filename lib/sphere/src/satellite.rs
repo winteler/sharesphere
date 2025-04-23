@@ -5,7 +5,6 @@ use leptos_router::hooks::use_params_map;
 
 use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use sharesphere_utils::embed::EmbedType;
-use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::icons::{CrossIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
 use sharesphere_utils::routes::{get_satellite_id_memo, get_satellite_path};
@@ -16,24 +15,13 @@ use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_satellite_id, CreatePost, PostForm, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::ranking::{PostSortType, SortType};
-use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphere_name, Satellite};
+use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphere_name, Satellite, SatelliteState};
 use sharesphere_core::sphere::get_sphere_with_user_info;
 use sharesphere_core::sphere_category::get_sphere_category_vec;
 use sharesphere_core::state::SphereState;
 
 use crate::sphere::{SphereToolbar};
 use crate::sphere_category::{get_sphere_category_header_map};
-
-
-
-
-#[derive(Copy, Clone)]
-pub struct SatelliteState {
-    pub satellite_id: Memo<i64>,
-    pub sort_type: RwSignal<SortType>,
-    pub category_id_filter: RwSignal<Option<i64>>,
-    pub satellite_resource: Resource<Result<Satellite, AppError>>,
-}
 
 /// Component to display a satellite banner
 #[component]

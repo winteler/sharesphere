@@ -18,14 +18,14 @@ use sharesphere_core::ranking::{PostSortWidget, SortType};
 use sharesphere_core::moderation::ModeratePost;
 use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::rule::{get_sphere_rule_vec, AddRule, RemoveRule, UpdateRule};
-use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, UpdateSatellite};
+use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, SatelliteState, UpdateSatellite};
 use sharesphere_core::sidebar::SphereSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
 use sharesphere_core::sphere::{get_sphere_by_name, get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
 
-use crate::satellite::{ActiveSatelliteList, SatelliteState};
+use crate::satellite::{ActiveSatelliteList};
 use crate::sphere_category::{get_sphere_category_header_map};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
 

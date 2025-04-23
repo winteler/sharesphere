@@ -3,7 +3,8 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
-
+use leptos_use::{breakpoints_tailwind, use_breakpoints};
+use leptos_use::BreakpointsTailwind::Xxl;
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
@@ -16,7 +17,9 @@ use sharesphere_auth::role::IsPinnedCheckbox;
 use sharesphere_core::comment::{get_comment_tree_by_id, get_post_comment_tree, Comment, CommentBody, CommentWithChildren, CreateComment, DeleteComment, EditComment, COMMENT_ID_QUERY_PARAM};
 use sharesphere_core::moderation::Content;
 use sharesphere_core::ranking::{CommentSortWidget, Vote};
+use sharesphere_core::satellite::SatelliteState;
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::routes::get_post_path;
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
 
@@ -148,7 +151,7 @@ pub fn CommentTree(
 
     view! {
         <Form method="GET" action="">
-            <button class="p-2 mt-2 rounded-sm hover:bg-base-200 font-semibold">
+            <button class="button-neutral">
                 "Single comment tree view. Back to post."
             </button>
         </Form>
@@ -175,6 +178,8 @@ pub fn CommentBox(
     depth: usize,
     ranking: usize,
 ) -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let satellite_state = use_context::<SatelliteState>();
     let is_query_comment = move || match use_query_map().read().get(COMMENT_ID_QUERY_PARAM) {
         Some(query_comment_id) => query_comment_id.parse::<i64>().is_ok_and(|query_comment_id| query_comment_id == comment_with_children.comment.comment_id),
         None => false,
@@ -194,6 +199,9 @@ pub fn CommentBox(
         "{} rounded-full h-full w-1 ",
         DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
     );
+
+    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
+    let collapse_children = move || is_mobile.get() && depth > 4;
 
     view! {
         <div class="flex 2xl:gap-1 py-1">
@@ -224,19 +232,37 @@ pub fn CommentBox(
                     class="flex flex-col"
                     class:hidden=move || !*maximize.read()
                 >
-                    <For
-                        each= move || child_comments.get().into_iter().enumerate()
-                        key=|(_index, comment)| comment.comment.comment_id
-                        children=move |(index, comment_with_children)| {
-                            view! {
-                                <CommentBox
-                                    comment_with_children
-                                    depth=depth+1
-                                    ranking=ranking+index
-                                />
-                            }.into_any()
-                        }
-                    />
+                { move || match collapse_children() {
+                    true => {
+                        let post_path = get_post_path(
+                            &*sphere_state.sphere_name.read_untracked(),
+                            satellite_state.map(|state| state.satellite_id.get_untracked()),
+                            comment.read_untracked().post_id,
+                        );
+                        Either::Left(view! {
+                            <Form method="GET" action=post_path>
+                                <input name=COMMENT_ID_QUERY_PARAM value=comment.read_untracked().comment_id class="hidden"/>
+                                <button class="button-neutral">"Show replies"</button>
+                            </Form>
+                        })
+                    },
+                    false => Either::Right(view! {
+                        <For
+                            each= move || child_comments.get().into_iter().enumerate()
+                            key=|(_index, comment)| comment.comment.comment_id
+                            children=move |(index, comment_with_children)| {
+                                view! {
+                                    <CommentBox
+                                        comment_with_children
+                                        depth=depth+1
+                                        ranking=ranking+index
+                                    />
+                                }.into_any()
+                            }
+                        />
+                    }),
+                }}
+
                 </div>
             </div>
         </div>

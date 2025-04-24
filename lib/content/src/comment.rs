@@ -69,13 +69,18 @@ pub fn CommentTreeVec(
     additional_load_count: RwSignal<i32>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-
     let load_error = RwSignal::new(None);
+    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
 
     let _initial_comments_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            let initial_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get(), 0).await;
+            let initial_load = get_post_comment_tree(
+                post_id.get(),
+                state.comment_sort_type.get(),
+                get_max_comment_depth(is_mobile.get_untracked()),
+                0
+            ).await;
             handle_initial_load(initial_load, comment_vec, load_error, None);
             is_loading.set(false);
         }
@@ -86,7 +91,12 @@ pub fn CommentTreeVec(
             if additional_load_count.get() > 0 {
                 is_loading.set(true);
                 let num_post = comment_vec.read_untracked().len();
-                let additional_load = get_post_comment_tree(post_id.get(), state.comment_sort_type.get_untracked(), num_post).await;
+                let additional_load = get_post_comment_tree(
+                    post_id.get(),
+                    state.comment_sort_type.get_untracked(),
+                    get_max_comment_depth(is_mobile.get_untracked()),
+                    num_post
+                ).await;
                 handle_additional_load(additional_load, comment_vec, load_error);
                 is_loading.set(false);
             }
@@ -136,14 +146,18 @@ pub fn CommentTree(
     is_loading: RwSignal<bool>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-
     let load_error = RwSignal::new(None);
+    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
 
     // we set a signal with a local resource instead of using the resource directly to reuse the components from the ordinary comment tree
     let _comment_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
-            let comment_tree = get_comment_tree_by_id(comment_id, state.comment_sort_type.get()).await;
+            let comment_tree = get_comment_tree_by_id(
+                comment_id,
+                state.comment_sort_type.get(),
+                get_max_comment_depth(is_mobile.get_untracked()),
+            ).await;
             handle_initial_load(comment_tree.map(|comment| vec![comment]), comment_vec, load_error, None);
             is_loading.set(false);
         }
@@ -201,7 +215,7 @@ pub fn CommentBox(
     );
 
     let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
-    let collapse_children = move || is_mobile.get() && depth > 4;
+    let collapse_children = Memo::new(move |_| depth >= get_max_comment_depth(is_mobile.get()) && !child_comments.read().is_empty());
 
     view! {
         <div class="flex 2xl:gap-1 py-1">
@@ -227,40 +241,45 @@ pub fn CommentBox(
                         vote=comment_with_children.vote
                         child_comments
                     />
+                    <div>{depth}</div>
                 </div>
                 <div
                     class="flex flex-col"
                     class:hidden=move || !*maximize.read()
                 >
-                { move || match collapse_children() {
+                { move || match collapse_children.get() {
                     true => {
+                        log::info!("{} hidden child comments len: {}", comment.read_untracked().body.clone(), child_comments.read_untracked().len());
                         let post_path = get_post_path(
                             &*sphere_state.sphere_name.read_untracked(),
                             satellite_state.map(|state| state.satellite_id.get_untracked()),
                             comment.read_untracked().post_id,
                         );
                         Either::Left(view! {
-                            <Form method="GET" action=post_path>
+                            <Form method="GET" action=post_path attr:class="flex justify-center">
                                 <input name=COMMENT_ID_QUERY_PARAM value=comment.read_untracked().comment_id class="hidden"/>
-                                <button class="button-neutral">"Show replies"</button>
+                                <button class="button-neutral p-2">"Load replies"</button>
                             </Form>
                         })
                     },
-                    false => Either::Right(view! {
-                        <For
-                            each= move || child_comments.get().into_iter().enumerate()
-                            key=|(_index, comment)| comment.comment.comment_id
-                            children=move |(index, comment_with_children)| {
-                                view! {
-                                    <CommentBox
-                                        comment_with_children
-                                        depth=depth+1
-                                        ranking=ranking+index
-                                    />
-                                }.into_any()
-                            }
-                        />
-                    }),
+                    false => {
+                        log::info!("{} child comments len: {}", comment.read_untracked().body.clone(), child_comments.read_untracked().len());
+                        Either::Right(view! {
+                            <For
+                                each= move || child_comments.get().into_iter().enumerate()
+                                key=|(_index, comment)| comment.comment.comment_id
+                                children=move |(index, comment_with_children)| {
+                                    view! {
+                                        <CommentBox
+                                            comment_with_children
+                                            depth=depth+1
+                                            ranking=ranking+index
+                                        />
+                                    }.into_any()
+                                }
+                            />
+                        })
+                    },
                 }}
 
                 </div>
@@ -638,5 +657,12 @@ pub fn EditCommentForm(
             </ActionForm>
             <ActionError action=edit_comment_action.into()/>
         </div>
+    }
+}
+
+fn get_max_comment_depth(is_mobile: bool) -> usize {
+    match is_mobile {
+        true => 5,
+        false => 15,
     }
 }

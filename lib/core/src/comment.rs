@@ -218,6 +218,7 @@ pub mod ssr {
     pub async fn get_post_comment_tree(
         post_id: i64,
         sort_type: SortType,
+        max_depth: usize,
         user_id: Option<i64>,
         limit: i64,
         offset: i64,
@@ -251,8 +252,8 @@ pub mod ssr {
                             c.post_id = $2 AND
                             c.parent_id IS NULL
                         ORDER BY c.is_pinned DESC, c.{sort_column} DESC
-                        LIMIT $3
-                        OFFSET $4
+                        LIMIT $4
+                        OFFSET $5
                     )
                     UNION ALL (
                         SELECT
@@ -270,6 +271,7 @@ pub mod ssr {
                         LEFT JOIN votes vr
                         ON vr.comment_id = n.comment_id AND
                            vr.user_id = $1
+                        WHERE r.depth <= $3
                     )
                 )
                 SELECT * FROM comment_tree
@@ -279,6 +281,7 @@ pub mod ssr {
         )
             .bind(user_id)
             .bind(post_id)
+            .bind((max_depth + 1) as i64)
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -293,6 +296,7 @@ pub mod ssr {
     pub async fn get_comment_tree_by_id(
         comment_id: i64,
         sort_type: SortType,
+        max_depth: usize,
         user_id: Option<i64>,
         db_pool: &PgPool,
     ) -> Result<CommentWithChildren, AppError> {
@@ -340,12 +344,13 @@ pub mod ssr {
                         LEFT JOIN votes vr
                         ON vr.comment_id = n.comment_id AND
                            vr.user_id = $1
+                        WHERE r.depth <= $3
                     )
                 )
                 SELECT * FROM (
                     SELECT * FROM comment_tree
                     ORDER BY path DESC
-                    LIMIT $3
+                    LIMIT $4
                 ) AS filtered_comment_tree
                 UNION ALL (
                     SELECT
@@ -372,6 +377,7 @@ pub mod ssr {
         )
             .bind(user_id)
             .bind(comment_id)
+            .bind((max_depth + 1) as i64)
             .bind(COMMENT_BATCH_SIZE)
             .fetch_all(db_pool)
             .await?;
@@ -538,6 +544,7 @@ pub mod ssr {
 pub async fn get_post_comment_tree(
     post_id: i64,
     sort_type: SortType,
+    max_depth: usize,
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithChildren>, AppError> {
     let user_id = match get_user().await {
@@ -548,6 +555,7 @@ pub async fn get_post_comment_tree(
     let comment_tree = ssr::get_post_comment_tree(
         post_id,
         sort_type,
+        max_depth,
         user_id,
         COMMENT_BATCH_SIZE,
         num_already_loaded as i64,
@@ -561,6 +569,7 @@ pub async fn get_post_comment_tree(
 pub async fn get_comment_tree_by_id(
     comment_id: i64,
     sort_type: SortType,
+    max_depth: usize,
 ) -> Result<CommentWithChildren, AppError> {
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
@@ -570,6 +579,7 @@ pub async fn get_comment_tree_by_id(
     let comment_tree = ssr::get_comment_tree_by_id(
         comment_id,
         sort_type,
+        max_depth,
         user_id,
         &db_pool,
     ).await?;

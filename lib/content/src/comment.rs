@@ -78,7 +78,7 @@ pub fn CommentTreeVec(
             let initial_load = get_post_comment_tree(
                 post_id.get(),
                 state.comment_sort_type.get(),
-                get_max_comment_depth(is_mobile.get_untracked()),
+                Some(get_max_comment_depth(is_mobile.get_untracked())),
                 0
             ).await;
             handle_initial_load(initial_load, comment_vec, load_error, None);
@@ -94,7 +94,7 @@ pub fn CommentTreeVec(
                 let additional_load = get_post_comment_tree(
                     post_id.get(),
                     state.comment_sort_type.get_untracked(),
-                    get_max_comment_depth(is_mobile.get_untracked()),
+                    Some(get_max_comment_depth(is_mobile.get_untracked())),
                     num_post
                 ).await;
                 handle_additional_load(additional_load, comment_vec, load_error);
@@ -156,7 +156,7 @@ pub fn CommentTree(
             let comment_tree = get_comment_tree_by_id(
                 comment_id,
                 state.comment_sort_type.get(),
-                get_max_comment_depth(is_mobile.get_untracked()),
+                Some(get_max_comment_depth(is_mobile.get_untracked())),
             ).await;
             handle_initial_load(comment_tree.map(|comment| vec![comment]), comment_vec, load_error, None);
             is_loading.set(false);

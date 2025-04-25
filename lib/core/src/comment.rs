@@ -218,7 +218,7 @@ pub mod ssr {
     pub async fn get_post_comment_tree(
         post_id: i64,
         sort_type: SortType,
-        max_depth: usize,
+        max_depth: Option<usize>,
         user_id: Option<i64>,
         limit: i64,
         offset: i64,
@@ -271,7 +271,7 @@ pub mod ssr {
                         LEFT JOIN votes vr
                         ON vr.comment_id = n.comment_id AND
                            vr.user_id = $1
-                        WHERE r.depth <= $3
+                        WHERE ($3 IS NULL OR r.depth <= $3)
                     )
                 )
                 SELECT * FROM comment_tree
@@ -281,7 +281,7 @@ pub mod ssr {
         )
             .bind(user_id)
             .bind(post_id)
-            .bind((max_depth + 1) as i64)
+            .bind(max_depth.map(|max_depth| (max_depth+ 1) as i64))
             .bind(limit)
             .bind(offset)
             .fetch_all(db_pool)
@@ -296,7 +296,7 @@ pub mod ssr {
     pub async fn get_comment_tree_by_id(
         comment_id: i64,
         sort_type: SortType,
-        max_depth: usize,
+        max_depth: Option<usize>,
         user_id: Option<i64>,
         db_pool: &PgPool,
     ) -> Result<CommentWithChildren, AppError> {
@@ -344,7 +344,7 @@ pub mod ssr {
                         LEFT JOIN votes vr
                         ON vr.comment_id = n.comment_id AND
                            vr.user_id = $1
-                        WHERE r.depth <= $3
+                        WHERE ($3 IS NULL OR r.depth <= $3)
                     )
                 )
                 SELECT * FROM (
@@ -377,7 +377,7 @@ pub mod ssr {
         )
             .bind(user_id)
             .bind(comment_id)
-            .bind((max_depth + 1) as i64)
+            .bind(max_depth.map(|max_depth| (max_depth+ 1) as i64))
             .bind(COMMENT_BATCH_SIZE)
             .fetch_all(db_pool)
             .await?;
@@ -544,7 +544,7 @@ pub mod ssr {
 pub async fn get_post_comment_tree(
     post_id: i64,
     sort_type: SortType,
-    max_depth: usize,
+    max_depth: Option<usize>,
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithChildren>, AppError> {
     let user_id = match get_user().await {
@@ -569,7 +569,7 @@ pub async fn get_post_comment_tree(
 pub async fn get_comment_tree_by_id(
     comment_id: i64,
     sort_type: SortType,
-    max_depth: usize,
+    max_depth: Option<usize>,
 ) -> Result<CommentWithChildren, AppError> {
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),

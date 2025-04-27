@@ -97,18 +97,24 @@ pub fn SatelliteContent() -> impl IntoView {
             satellite_state.satellite_id.get(),
             category_id_signal.get(),
             sort_signal.get(),
+            sphere_state.post_refresh_count.get(),
         ),
-        move |(satellite_id, category_id, sort_type)| async move {
+        move |(satellite_id, category_id, sort_type, _)| async move {
             // TODO return map in resource directly?
-            reset_additional_load(additional_post_vec, Some(list_ref));
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
+            reset_additional_load(additional_post_vec, additional_load_count, Some(list_ref));
             let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
 
-            get_post_vec_by_satellite_id(
+            let result = get_post_vec_by_satellite_id(
                 satellite_id,
                 category_id,
                 sort_type,
                 0
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None))
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            result
         }
     );
 

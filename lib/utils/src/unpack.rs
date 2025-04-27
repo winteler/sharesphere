@@ -3,6 +3,9 @@ use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LoadingIcon;
 use leptos::prelude::*;
 use leptos::html;
+use leptos::html::ElementType;
+use leptos::wasm_bindgen::JsCast;
+use web_sys::Element;
 
 pub fn action_has_error<
     T: Send + Sync + 'static,
@@ -148,13 +151,22 @@ pub fn handle_initial_load<T: Clone + Send + Sync + 'static>(
     };
 }
 
-pub fn reset_additional_load<T: Clone + Send + Sync + 'static>(
+pub fn reset_additional_load<T, R>(
     additional_vec: RwSignal<Vec<T>>,
-    list_ref: Option<NodeRef<html::Ul>>,
-) {
+    additional_load_count: RwSignal<i64>,
+    node_ref: Option<NodeRef<R>>,
+)
+where
+    T: Clone + Send + Sync + 'static,
+    R: ElementType,
+    R::Output: Clone + AsRef<Element> + JsCast + 'static,
+{
     additional_vec.write().clear();
-    if let Some(Some(list_ref)) = list_ref.map(|list_ref| list_ref.get_untracked()) {
-        list_ref.set_scroll_top(0);
+    additional_load_count.set(0);
+    if let Some(Some(node_ref)) = node_ref.map(|list_ref| list_ref.get_untracked()) {
+        if let Some(element) = node_ref.dyn_ref::<Element>() {
+            element.set_scroll_top(0);
+        }
     }
 }
 

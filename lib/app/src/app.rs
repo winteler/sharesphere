@@ -1,5 +1,5 @@
 use leptos::ev::TouchEvent;
-use leptos::html;
+use leptos::html::Div;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
@@ -24,6 +24,8 @@ use sharesphere_core::state::GlobalState;
 use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
+use sharesphere_utils::node_utils::is_fully_scrolled;
+use sharesphere_utils::widget::RefreshButton;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -220,9 +222,19 @@ fn LoginGuard() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let refresh_count = RwSignal::new(0);
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let div_ref = NodeRef::<Div>::new();
 
     view! {
-        <div class="flex flex-col flex-1 w-full overflow-y-auto px-2">
+        <div
+            class="flex flex-col flex-1 w-full overflow-y-auto px-2"
+            on:scroll=move |_| if is_fully_scrolled(div_ref) && !is_loading.get_untracked() {
+                additional_load_count.update(|value| *value += 1);
+            }
+            node_ref=div_ref
+        >
             <div
                 class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center"
             >
@@ -231,15 +243,16 @@ fn HomePage() -> impl IntoView {
                     <span class="text-2xl 2xl:text-4xl select-none">"ShareSphere"</span>
                 </div>
             </div>
-            <div class="sticky top-0 bg-base-100 py-2">
+            <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
                 <PostSortWidget sort_signal=state.post_sort_type/>
+                <RefreshButton refresh_count/>
             </div>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || Suspend::new(async move {
                         match state.user.await {
-                            Ok(Some(user)) => view! { <UserHomePage user/> }.into_any(),
-                            _ => view! { <DefaultHomePage/> }.into_any(),
+                            Ok(Some(user)) => view! { <UserHomePage user refresh_count additional_load_count is_loading div_ref/> }.into_any(),
+                            _ => view! { <DefaultHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
                         }
                     })
                 }
@@ -251,20 +264,26 @@ fn HomePage() -> impl IntoView {
 
 /// Renders the home page anonymous users.
 #[component]
-fn DefaultHomePage() -> impl IntoView {
+fn DefaultHomePage(
+    refresh_count: RwSignal<usize>,
+    additional_load_count: RwSignal<i64>,
+    is_loading: RwSignal<bool>,
+    div_ref: NodeRef<Div>,
+) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
-    let refresh_count = RwSignal::new(0);
-    let additional_load_count = RwSignal::new(0);
-    let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
-    let list_ref = NodeRef::<html::Ul>::new();
 
     let post_vec_resource = Resource::new(
         move || (state.post_sort_type.get(), refresh_count.get()),
         move |(sort_type, _)| async move {
-            reset_additional_load(additional_post_vec, Some(list_ref));
-            get_sorted_post_vec(sort_type, 0).await
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
+            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
+            let result = get_sorted_post_vec(sort_type, 0).await;
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            result
         }
     );
 
@@ -286,8 +305,6 @@ fn DefaultHomePage() -> impl IntoView {
             additional_post_vec
             is_loading=is_loading
             load_error=load_error
-            additional_load_count=additional_load_count
-            list_ref=list_ref
             add_y_overflow_auto=false
         />
     }
@@ -295,21 +312,28 @@ fn DefaultHomePage() -> impl IntoView {
 
 /// Renders the home page of a given user.
 #[component]
-fn UserHomePage(user: User) -> impl IntoView {
+fn UserHomePage(
+    user: User,
+    refresh_count: RwSignal<usize>,
+    additional_load_count: RwSignal<i64>,
+    is_loading: RwSignal<bool>,
+    div_ref: NodeRef<Div>,
+) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
     let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
-    let refresh_count = RwSignal::new(0);
-    let additional_load_count = RwSignal::new(0);
-    let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
-    let list_ref = NodeRef::<html::Ul>::new();
 
     let post_vec_resource = Resource::new(
         move || (state.post_sort_type.get(), refresh_count.get()),
-        move |(sort_type, _)| async move {
-            reset_additional_load(additional_post_vec, Some(list_ref));
-            get_subscribed_post_vec(user_id, sort_type, 0).await
+        move |(sort_type, _)|  async move {
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
+            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
+            let result = get_subscribed_post_vec(user_id, sort_type, 0).await;
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            result
         }
     );
 
@@ -331,8 +355,6 @@ fn UserHomePage(user: User) -> impl IntoView {
             additional_post_vec
             is_loading
             load_error
-            additional_load_count
-            list_ref
             add_y_overflow_auto=false
         />
     }

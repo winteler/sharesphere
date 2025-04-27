@@ -471,12 +471,12 @@ pub fn MinimizeMaximizeWidget(
 #[component]
 pub fn RefreshButton(
     /// signal counting the number of reloads
-    reload_count: RwSignal<usize>,
+    refresh_count: RwSignal<usize>,
 ) -> impl IntoView {
     view! {
         <button
-            class="button-rounded-ghost"
-            on:click=|_| reload_count.write() += 1,
+            class="button-rounded-ghost w-fit"
+            on:click=move |_| refresh_count.update(|count| *count += 1)
         >
             <RefreshIcon/>
         </button>

@@ -7,6 +7,7 @@ pub mod errors;
 pub mod error_template;
 pub mod form;
 pub mod icons;
+pub mod node_utils;
 pub mod unpack;
 pub mod routes;
 pub mod widget;

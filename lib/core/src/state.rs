@@ -34,6 +34,7 @@ pub struct GlobalState {
 pub struct SphereState {
     pub sphere_name: Memo<String>,
     pub sphere_category_filter: RwSignal<SphereCategoryFilter>,
+    pub post_refresh_count: RwSignal<usize>,
     pub permission_level: Signal<PermissionLevel>,
     pub sphere_resource: Resource<Result<Sphere, AppError>>,
     pub satellite_vec_resource: Resource<Result<Vec<Satellite>, AppError>>,

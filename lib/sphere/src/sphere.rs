@@ -24,7 +24,7 @@ use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
 use sharesphere_core::sphere::{get_sphere_by_name, get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
-
+use sharesphere_utils::widget::RefreshButton;
 use crate::satellite::{ActiveSatelliteList};
 use crate::sphere_category::{get_sphere_category_header_map};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
@@ -47,6 +47,7 @@ pub fn SphereBanner() -> impl IntoView {
     let sphere_state = SphereState {
         sphere_name,
         sphere_category_filter: RwSignal::new(SphereCategoryFilter::All),
+        post_refresh_count: RwSignal::new(0),
         permission_level: Signal::derive(
             move || match &(*state.user.read()) {
                 Some(Ok(Some(user))) => user.get_sphere_permission_level(&*sphere_name.read()),
@@ -160,18 +161,24 @@ pub fn SphereContents() -> impl IntoView {
             sphere_name.get(),
             sphere_state.sphere_category_filter.get(),
             state.post_sort_type.get(),
+            sphere_state.post_refresh_count.get(),
         ),
-        move |(sphere_name, sphere_category_filter, sort_type)| async move {
+        move |(sphere_name, sphere_category_filter, sort_type, _)| async move {
             // TODO return map in resource directly?
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
             let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
             // TODO check no unnecessary loads
-            reset_additional_load(additional_post_vec, Some(list_ref));
-            get_post_vec_by_sphere_name(
+            reset_additional_load(additional_post_vec, additional_load_count, Some(list_ref));
+            let result = get_post_vec_by_sphere_name(
                 sphere_name,
                 sphere_category_filter,
                 sort_type,
                 0,
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None))
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            result
         }
     );
 
@@ -239,6 +246,7 @@ pub fn SphereToolbar<'a>(
                         <SettingsIcon class="sphere-toolbar-icon-size"/>
                     </A>
                 </AuthorizedShow>
+                <RefreshButton refresh_count=sphere_state.post_refresh_count/>
                 <SphereSearchButton/>
                 <div class="tooltip" data-tip="New">
                     <LoginGuardButton

@@ -30,6 +30,7 @@ use {
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
 };
+use sharesphere_utils::node_utils::is_fully_scrolled;
 use sharesphere_utils::unpack::SuspenseUnpack;
 
 pub const POST_BATCH_SIZE: i64 = 50;
@@ -1003,8 +1004,10 @@ pub fn PostListWithInitLoad(
     #[prop(into)]
     load_error: Signal<Option<AppError>>,
     /// signal to request loading additional posts
+    #[prop(optional)]
     additional_load_count: RwSignal<i64>,
     /// reference to the container of the posts in order to reset scroll position when context changes
+    #[prop(optional)]
     list_ref: NodeRef<html::Ul>,
     #[prop(default = true)]
     show_sphere_header: bool,
@@ -1018,13 +1021,8 @@ pub fn PostListWithInitLoad(
     };
     view! {
         <ul class=list_class
-            on:scroll=move |_| match list_ref.get() {
-                Some(node_ref) => {
-                    if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
-                        additional_load_count.update(|value| *value += 1);
-                    }
-                },
-                None => log::error!("Post container 'ul' node failed to load."),
+            on:scroll=move |_| if is_fully_scrolled(list_ref) && !is_loading.get_untracked() {
+                additional_load_count.update(|value| *value += 1);
             }
             node_ref=list_ref
         >

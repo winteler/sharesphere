@@ -113,8 +113,13 @@ pub fn UserPosts() -> impl IntoView {
     let post_vec_resource = Resource::new(
         move || (username.get(), sort_signal.get()),
         move |(username, sort_type)| async move {
-            reset_additional_load(additional_post_vec, Some(list_ref));
-            get_user_post_vec(username, sort_type, 0).await
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
+            reset_additional_load(additional_post_vec, additional_load_count, Some(list_ref));
+            let result = get_user_post_vec(username, sort_type, 0).await;
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            result
         }
     );
 

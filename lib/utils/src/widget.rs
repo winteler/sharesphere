@@ -16,7 +16,7 @@ use crate::constants::{
 };
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError};
-use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, ScoreIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -464,6 +464,22 @@ pub fn MinimizeMaximizeWidget(
                 <MaximizeIcon/>
             </div>
         </div>
+    }
+}
+
+/// Reload button updating a signal upon clicking
+#[component]
+pub fn RefreshButton(
+    /// signal counting the number of reloads
+    reload_count: RwSignal<usize>,
+) -> impl IntoView {
+    view! {
+        <button
+            class="button-rounded-ghost"
+            on:click=|_| reload_count.write() += 1,
+        >
+            <RefreshIcon/>
+        </button>
     }
 }
 

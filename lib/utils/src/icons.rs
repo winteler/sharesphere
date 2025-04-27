@@ -378,6 +378,13 @@ pub fn QuoteIcon(#[prop(default = "editor-button-size")] class: &'static str) ->
 }
 
 #[component]
+pub fn RefreshIcon(#[prop(default = "sphere-toolbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/refresh.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn SaveIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/form/save.svg" class=class/>

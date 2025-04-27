@@ -254,14 +254,15 @@ fn HomePage() -> impl IntoView {
 fn DefaultHomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
     let post_vec_resource = Resource::new(
-        move || state.post_sort_type.get(),
-        move |sort_type| async move {
+        move || (state.post_sort_type.get(), refresh_count.get()),
+        move |(sort_type, _)| async move {
             reset_additional_load(additional_post_vec, Some(list_ref));
             get_sorted_post_vec(sort_type, 0).await
         }
@@ -298,14 +299,15 @@ fn UserHomePage(user: User) -> impl IntoView {
     let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
     let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
     let post_vec_resource = Resource::new(
-        move || state.post_sort_type.get(),
-        move |sort_type| async move {
+        move || (state.post_sort_type.get(), refresh_count.get()),
+        move |(sort_type, _)| async move {
             reset_additional_load(additional_post_vec, Some(list_ref));
             get_subscribed_post_vec(user_id, sort_type, 0).await
         }

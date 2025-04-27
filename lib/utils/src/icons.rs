@@ -237,7 +237,7 @@ pub fn ListNumberIcon(#[prop(default = "editor-button-size")] class: &'static st
 
 /// Renders a loading icon
 #[component]
-pub fn LoadingIcon(#[prop(default = "h-7 w-7 my-5")] class: &'static str) -> impl IntoView {
+pub fn LoadingIcon(#[prop(default = "loading-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <div class="w-full flex items-center justify-center">
             <img src="/svg/loading.svg" class=class/>

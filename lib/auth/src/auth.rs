@@ -479,6 +479,8 @@ pub fn LoginGuardButton<
     #[prop(into)]
     login_button_content: ViewFn,
     redirect_path_fn: &'static G,
+    #[prop(default = "loading-icon-size")]
+    loading_icon_class: &'static str,
     children: F,
 ) -> impl IntoView {
     let user_state = expect_context::<UserState>();
@@ -486,7 +488,7 @@ pub fn LoginGuardButton<
     let login_button_content = StoredValue::new(login_button_content);
 
     view! {
-        <Transition fallback=move || view! { <LoadingIcon/> }>
+        <Transition fallback=move || view! { <LoadingIcon class=loading_icon_class/> }>
         {
             move || Suspend::new(async move {
                 match &user_state.user.await {
@@ -510,6 +512,8 @@ pub fn LoginGuardedButton<A, IV>(
     button_class: Signal<&'static str>,
     button_action: A,
     children: TypedChildrenFn<IV>,
+    #[prop(default = "loading-icon-size")]
+    loading_icon_class: &'static str,
 ) -> impl IntoView
 where
     A: Fn(MouseEvent) -> () + Clone + Send + Sync + 'static,
@@ -519,7 +523,7 @@ where
     let children = StoredValue::new(children.into_inner());
     let button_action = StoredValue::new(button_action);
     view! {
-        <Transition fallback=move || view! { <LoadingIcon/> }>
+        <Transition fallback=move || view! { <LoadingIcon class=loading_icon_class/> }>
         {
             move || Suspend::new(async move {
                 let children_view = children.with_value(|children| children());

@@ -222,16 +222,18 @@ fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2">
+        <div class="flex flex-col flex-1 w-full overflow-y-auto px-2">
             <div
-                class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-16 2xl:h-40 flex items-center justify-center"
+                class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center"
             >
                 <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
                     <LogoIcon class="h-8 w-8 2xl:h-12 2xl:w-12"/>
                     <span class="text-2xl 2xl:text-4xl select-none">"ShareSphere"</span>
                 </div>
             </div>
-            <PostSortWidget sort_signal=state.post_sort_type/>
+            <div class="sticky top-0 bg-base-100 py-2">
+                <PostSortWidget sort_signal=state.post_sort_type/>
+            </div>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || Suspend::new(async move {
@@ -285,6 +287,7 @@ fn DefaultHomePage() -> impl IntoView {
             load_error=load_error
             additional_load_count=additional_load_count
             list_ref=list_ref
+            add_y_overflow_auto=false
         />
     }
 }
@@ -328,6 +331,7 @@ fn UserHomePage(user: User) -> impl IntoView {
             load_error
             additional_load_count
             list_ref
+            add_y_overflow_auto=false
         />
     }
 }

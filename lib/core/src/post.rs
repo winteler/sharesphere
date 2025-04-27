@@ -2,6 +2,7 @@ use std::collections::{HashMap};
 use leptos::html;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
+use server_fn::const_format::concatcp;
 use sharesphere_utils::embed::{EmbedPreview, EmbedType, Link};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::routes::get_post_path;
@@ -1007,9 +1008,16 @@ pub fn PostListWithInitLoad(
     list_ref: NodeRef<html::Ul>,
     #[prop(default = true)]
     show_sphere_header: bool,
+    #[prop(default = true)]
+    add_y_overflow_auto: bool,
 ) -> impl IntoView {
+    const BASE_LIST_CLASS: &str = "flex flex-col w-full pr-2 divide-y divide-base-content/20";
+    let list_class = match add_y_overflow_auto {
+        true => concatcp!(BASE_LIST_CLASS, " overflow-y-auto"),
+        false => BASE_LIST_CLASS,
+    };
     view! {
-        <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20"
+        <ul class=list_class
             on:scroll=move |_| match list_ref.get() {
                 Some(node_ref) => {
                     if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {

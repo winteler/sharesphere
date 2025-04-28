@@ -70,7 +70,7 @@ pub fn Post() -> impl IntoView {
                 <div class="card">
                     <div class="card-body">
                         <div class="flex flex-col gap-1 2xl:gap-2">
-                            <h2 class="card-title">
+                            <h2 class="card-title text-wrap wrap-anywhere">
                             { match post_with_info.post.is_active() {
                                 true => post_with_info.post.title.clone(),
                                 false => DELETED_MESSAGE.to_string()

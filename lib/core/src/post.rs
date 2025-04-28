@@ -1014,9 +1014,9 @@ pub fn PostListWithInitLoad(
     #[prop(default = true)]
     add_y_overflow_auto: bool,
 ) -> impl IntoView {
-    const BASE_LIST_CLASS: &str = "flex flex-col w-full pr-2 divide-y divide-base-content/20";
+    const BASE_LIST_CLASS: &str = "flex flex-col w-full pr-2 divide-y divide-base-content/20 ";
     let list_class = match add_y_overflow_auto {
-        true => concatcp!(BASE_LIST_CLASS, " overflow-y-auto"),
+        true => concatcp!(BASE_LIST_CLASS, "overflow-y-auto"),
         false => BASE_LIST_CLASS,
     };
     view! {
@@ -1096,7 +1096,7 @@ pub fn PostMiniatureList(
                     <li>
                         <a href=post_path>
                             <div class="flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-200">
-                                <h2 class="card-title pl-1">{post.title.clone()}</h2>
+                                <h2 class="card-title pl-1 w-full whitespace-pre-wrap text-wrap wrap-anywhere">{post.title.clone()}</h2>
                                 <PostBadgeList
                                     sphere_header
                                     sphere_category=post_info.sphere_category

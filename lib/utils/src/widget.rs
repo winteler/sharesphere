@@ -416,7 +416,7 @@ pub fn ContentBody(
 ) -> impl IntoView {
     let class = match is_markdown {
         true => "",
-        false => "whitespace-pre-wrap text-wrap",
+        false => "whitespace-pre-wrap text-wrap wrap-anywhere",
     };
 
     view! {

@@ -399,9 +399,16 @@ pub fn ScoreIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static 
 }
 
 #[component]
-pub fn SettingsIcon(#[prop(default = "h-4 w-4")] class: &'static str) -> impl IntoView {
+pub fn SettingsIcon(#[prop(default = "sphere-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/settings_gear.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn ShareIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/toolbar/share.svg" class=class/>
     }
 }
 

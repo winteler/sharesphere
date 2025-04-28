@@ -16,7 +16,7 @@ use crate::constants::{
 };
 use crate::error_template::ErrorTemplate;
 use crate::errors::{AppError};
-use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -405,6 +405,22 @@ pub fn TimeSinceEditWidget(
                 }
             </div>
         </Show>
+    }
+}
+
+/// Button to share content that copies the input `link` to the clipboard
+#[component]
+pub fn ShareButton(
+    link: String,
+) -> impl IntoView {
+    view! {
+        <button
+            type="button"
+            class="button-rounded-neutral"
+            on:click=move |_| log::info!("Copy link to clipboard: {link}")
+        >
+            <ShareIcon/>
+        </button>
     }
 }
 

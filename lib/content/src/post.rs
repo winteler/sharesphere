@@ -8,9 +8,9 @@ use sharesphere_utils::constants::{DELETED_MESSAGE};
 use sharesphere_utils::editor::{TextareaData};
 use sharesphere_utils::embed::{Embed, EmbedType, LinkType};
 use sharesphere_utils::icons::{EditIcon};
-use sharesphere_utils::routes::{get_post_id_memo, CREATE_POST_SPHERE_QUERY_PARAM};
+use sharesphere_utils::routes::{get_post_id_memo, get_post_path, CREATE_POST_SPHERE_QUERY_PARAM};
 use sharesphere_utils::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
-use sharesphere_utils::widget::{ContentBody, DotMenu, ModalDialog, ModalFormButtons, ModeratorWidget, ScoreIndicator, TimeSinceEditWidget, TimeSinceWidget};
+use sharesphere_utils::widget::{ContentBody, DotMenu, ModalDialog, ModalFormButtons, ModeratorWidget, ScoreIndicator, ShareButton, TimeSinceEditWidget, TimeSinceWidget};
 
 use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton};
 use sharesphere_core::comment::{CommentWithChildren, COMMENT_BATCH_SIZE};
@@ -136,6 +136,7 @@ fn PostWidgetBar<'a>(
     let post_id = post.post.post_id;
     let author_id = post.post.creator_id;
     let is_active = post.post.is_active();
+    let post_link = get_post_path(&post.post.sphere_name, post.post.satellite_id, post.post.post_id);
     let stored_post = StoredValue::new(post.post.clone());
     view! {
         <div class="flex gap-1 items-center">
@@ -169,6 +170,7 @@ fn PostWidgetBar<'a>(
 
                 })}
                 <ModerationInfoButton content=Content::Post(stored_post.get_value())/>
+                <ShareButton link=post_link.clone()/>
             </DotMenu>
         </div>
     }

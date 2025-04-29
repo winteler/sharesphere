@@ -248,7 +248,6 @@ pub fn CommentBox(
                 >
                 { move || match collapse_children.get() {
                     true => {
-                        log::info!("{} hidden child comments len: {}", comment.read_untracked().body.clone(), child_comments.read_untracked().len());
                         let post_path = get_post_path(
                             &*sphere_state.sphere_name.read_untracked(),
                             satellite_state.map(|state| state.satellite_id.get_untracked()),
@@ -262,7 +261,6 @@ pub fn CommentBox(
                         })
                     },
                     false => {
-                        log::info!("{} child comments len: {}", comment.read_untracked().body.clone(), child_comments.read_untracked().len());
                         Either::Right(view! {
                             <For
                                 each= move || child_comments.get().into_iter().enumerate()

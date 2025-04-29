@@ -52,7 +52,7 @@
     }
 
     .button-neutral {
-        @apply p-1 2xl:p-2 rounded-xs bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply p-1 2xl:p-2 rounded-xs bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none disabled:bg-gray-500/50 cursor-pointer text-sm active:scale-95 transition duration-250;
     }
 
     .button-ghost-sm {
@@ -76,7 +76,7 @@
     }
 
     .button-rounded-neutral {
-        @apply p-2 rounded-full bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply p-2 rounded-full bg-base-content/10 shadow-md/30 cursor-pointer text-sm hover:bg-base-content/20 hover:shadow-none active:scale-95 disabled:bg-gray-800/50 disabled:cursor-not-allowed transition duration-250;
     }
 
     .button-rounded-primary {

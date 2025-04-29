@@ -4,7 +4,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
-use leptos_use::{breakpoints_tailwind, use_breakpoints};
+use leptos_use::{breakpoints_tailwind, use_breakpoints, use_clipboard};
 use leptos_use::BreakpointsTailwind::Xxl;
 use strum::IntoEnumIterator;
 
@@ -413,14 +413,43 @@ pub fn TimeSinceEditWidget(
 pub fn ShareButton(
     link: String,
 ) -> impl IntoView {
+    let link = StoredValue::new(link);
+    let use_clipboard = use_clipboard();
+    let show_notification = RwSignal::new(false);
+
     view! {
         <button
             type="button"
             class="button-rounded-neutral"
-            on:click=move |_| log::info!("Copy link to clipboard: {link}")
+            on:click= move |_| {
+                show_notification.set(true);
+                if use_clipboard.is_supported.get() {
+                    log::info!("Copied link to clipboard: {}", link.read_value());
+                    (use_clipboard.copy)(&*link.read_value());
+                } else {
+                    log::warn!("Clipboard API not supported in your browser.");
+                }
+                set_timeout(move || show_notification.set(false), std::time::Duration::from_secs(3));
+            }
         >
             <ShareIcon/>
         </button>
+        <Show
+            when=move || use_clipboard.is_supported.get()
+            fallback=move || view! {
+                <div class="toast toast-center">
+                    <div class="alert alert-error" class=("hidden", move || !show_notification.get())>
+                        <span>"Clipboard API not supported in your browser."</span>
+                    </div>
+                </div>
+            }
+        >
+            <div class="toast toast-center">
+                <div class="alert alert-info" class=("hidden", move || !show_notification.get())>
+                    <span>"Copied link to clipboard."</span>
+                </div>
+            </div>
+        </Show>
     }
 }
 

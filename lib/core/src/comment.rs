@@ -18,11 +18,10 @@ use {
     crate::ranking::{ssr::vote_on_content, VoteValue}
 };
 use sharesphere_auth::auth_widget::AuthorWidget;
-use sharesphere_utils::routes::get_post_path;
+use sharesphere_utils::routes::{get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::widget::{ContentBody, IsPinnedWidget, LoadIndicators, ScoreIndicator, TimeSinceWidget};
 use crate::moderation::ModeratedBody;
 
-pub const COMMENT_ID_QUERY_PARAM: &str = "comment_id";
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]

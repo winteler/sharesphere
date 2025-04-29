@@ -8,18 +8,18 @@ use leptos_use::BreakpointsTailwind::Xxl;
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
+use sharesphere_utils::routes::{get_comment_link, get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge};
+use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton};
 
 use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
 use sharesphere_auth::role::IsPinnedCheckbox;
 
-use sharesphere_core::comment::{get_comment_tree_by_id, get_post_comment_tree, Comment, CommentBody, CommentWithChildren, CreateComment, DeleteComment, EditComment, COMMENT_ID_QUERY_PARAM};
+use sharesphere_core::comment::{get_comment_tree_by_id, get_post_comment_tree, Comment, CommentBody, CommentWithChildren, CreateComment, DeleteComment, EditComment};
 use sharesphere_core::moderation::Content;
 use sharesphere_core::ranking::{CommentSortWidget, Vote};
 use sharesphere_core::satellite::SatelliteState;
 use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_utils::routes::get_post_path;
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
 
@@ -165,7 +165,7 @@ pub fn CommentTree(
 
     view! {
         <Form method="GET" action="">
-            <button class="button-neutral">
+            <button class="button-secondary mt-1">
                 "Single comment tree view. Back to post."
             </button>
         </Form>
@@ -231,7 +231,7 @@ pub fn CommentBox(
                 </Show>
             </div>
             <div class="flex flex-col gap-1">
-                <div class="flex flex-col gap-1 p-1 rounded-sm" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
+                <div class="flex flex-col gap-1 p-1" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
                     <Show when=maximize>
                         <CommentBody comment/>
                     </Show>
@@ -241,7 +241,6 @@ pub fn CommentBox(
                         vote=comment_with_children.vote
                         child_comments
                     />
-                    <div>{depth}</div>
                 </div>
                 <div
                     class="flex flex-col"
@@ -295,6 +294,8 @@ pub fn CommentWidgetBar(
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let satellite_state = use_context::<SatelliteState>();
     let vote = vote;
     let (comment_id, post_id, score, author_id, author) =
         comment.with_untracked(|comment| {
@@ -306,6 +307,12 @@ pub fn CommentWidgetBar(
                 comment.creator_name.clone(),
             )
         });
+    let comment_link = get_comment_link(
+        &*sphere_state.sphere_name.read_untracked(),
+        satellite_state.map(|state| state.satellite_id.get_untracked()),
+        post_id,
+        comment_id,
+    );
     let timestamp = Signal::derive(move || comment.read().create_timestamp);
     let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
     let moderator = Signal::derive(move || comment.read().moderator_name.clone());
@@ -354,6 +361,7 @@ pub fn CommentWidgetBar(
                     <DeleteCommentButton comment_id author_id comment/>
                 })}
                 <ModerationInfoButton content/>
+                <ShareButton link=comment_link.clone()/>
             </DotMenu>
         </div>
     }.into_any()

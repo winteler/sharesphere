@@ -1,8 +1,12 @@
+#[cfg(feature = "ssr")]
+use std::env;
 use const_format::concatcp;
 use leptos::prelude::{window, Memo, Read, RwSignal, Set, Update};
 use leptos_router::params::ParamsMap;
 use crate::constants::SITE_ROOT;
+use crate::errors::AppError;
 
+pub const APP_ORIGIN_ENV: &str = "APP_ORIGIN";
 pub const PUBLISH_ROUTE: &str = "/publish";
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";
@@ -17,8 +21,19 @@ pub const CREATE_POST_ROUTE: &str = concatcp!(PUBLISH_ROUTE, CREATE_POST_SUFFIX)
 pub const CREATE_POST_SPHERE_QUERY_PARAM: &str = "sphere";
 pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
+pub const COMMENT_ID_QUERY_PARAM: &str = "comment_id";
 pub const SEARCH_ROUTE: &str = "/search";
 pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
+
+#[cfg(feature = "ssr")]
+pub fn get_app_origin() -> Result<String, AppError> {
+    Ok(env::var(APP_ORIGIN_ENV)?)
+}
+
+#[cfg(not(feature = "ssr"))]
+pub fn get_app_origin() -> Result<String, AppError> {
+    window().location().origin().map_err(|_| AppError::new("Failed to get base url"))
+}
 
 pub fn get_current_url(url: RwSignal<String>) {
     let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));
@@ -149,7 +164,7 @@ pub fn get_create_post_path(create_post_route: RwSignal<String>) {
 /// use sharesphere_utils::routes::get_post_path;
 ///
 /// assert_eq!(get_post_path("test", None, 1), "/spheres/test/posts/1");
-/// assert_eq!(get_post_path("test", Some(1), 1), "/spheres/test/satellites/1/posts/1");
+/// assert_eq!(get_post_path("test", Some(1), 2), "/spheres/test/satellites/1/posts/2");
 /// ```
 pub fn get_post_path(
     sphere_name: &str,
@@ -163,6 +178,65 @@ pub fn get_post_path(
         ),
         None => format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}{POST_ROUTE_PREFIX}/{}", post_id)
     }
+}
+
+/// # Returns the url to a post given its id, sphere and optional satellite
+///
+/// ```
+/// use sharesphere_utils::routes::{get_app_origin, get_post_link};
+/// let origin = get_app_origin().unwrap_or_default();
+/// assert_eq!(get_post_link("test", None, 1), format!("{origin}/spheres/test/posts/1"));
+/// assert_eq!(get_post_link("test", Some(1), 2), format!("{origin}/spheres/test/satellites/1/posts/2"));
+/// ```
+pub fn get_post_link(
+    sphere_name: &str,
+    satellite_id: Option<i64>,
+    post_id: i64,
+) -> String {
+    let base_url = get_app_origin().unwrap_or_default();
+    let post_path = get_post_path(sphere_name, satellite_id, post_id);
+    format!("{base_url}{post_path}")
+}
+
+/// # Returns the path to a comment given its id, post_id, sphere and optional satellite
+///
+/// ```
+/// use sharesphere_utils::routes::get_comment_path;
+///
+/// assert_eq!(get_comment_path("test", None, 1, 2), "/spheres/test/posts/1?comment_id=2");
+/// assert_eq!(get_comment_path("test", Some(1), 2, 3), "/spheres/test/satellites/1/posts/2?comment_id=3");
+/// ```
+pub fn get_comment_path(
+    sphere_name: &str,
+    satellite_id: Option<i64>,
+    post_id: i64,
+    comment_id: i64,
+) -> String {
+    match satellite_id {
+        Some(satellite_id) => format!(
+            "{SPHERE_ROUTE_PREFIX}/{sphere_name}{SATELLITE_ROUTE_PREFIX}/{satellite_id}{POST_ROUTE_PREFIX}/{post_id}?{COMMENT_ID_QUERY_PARAM}={comment_id}"
+        ),
+        None => format!("{SPHERE_ROUTE_PREFIX}/{sphere_name}{POST_ROUTE_PREFIX}/{post_id}?{COMMENT_ID_QUERY_PARAM}={comment_id}")
+    }
+}
+
+/// # Returns the url to a comment given its id, post_id, sphere and optional satellite
+///
+/// ```
+/// use sharesphere_utils::routes::{get_app_origin, get_comment_link};
+/// let origin = get_app_origin().unwrap_or_default();
+/// assert_eq!(get_comment_link("test", None, 1, 2), format!("{origin}/spheres/test/posts/1?comment_id=2"));
+/// assert_eq!(get_comment_link("test", Some(1), 2, 3), format!("{origin}/spheres/test/satellites/1/posts/2?comment_id=3"));
+/// ```
+pub fn get_comment_link(
+    sphere_name: &str,
+    satellite_id: Option<i64>,
+    post_id: i64,
+    comment_id: i64,
+) -> String {
+    let base_url = get_app_origin().unwrap_or_default();
+    let comment_path = get_comment_path(sphere_name, satellite_id, post_id, comment_id);
+    format!("{base_url}{comment_path}")
 }
 
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages

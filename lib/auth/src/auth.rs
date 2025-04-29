@@ -14,7 +14,7 @@ use {
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::LoadingIcon;
 use sharesphere_utils::unpack::SuspenseUnpack;
-use sharesphere_utils::routes::get_current_path;
+use sharesphere_utils::routes::{get_current_path};
 
 use crate::user::{User, UserState};
 
@@ -22,6 +22,7 @@ use crate::user::{User, UserState};
 use {
     sharesphere_utils::{
         constants::SITE_ROOT,
+        routes::get_app_origin,
     },
     crate::{
         auth::ssr::{get_oidc_http_client, get_provider_metadata},
@@ -29,12 +30,11 @@ use {
     }
 };
 
-pub const BASE_URL_ENV: &str = "BASE_URL";
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_URL";
 pub const OIDC_ISSUER_ADMIN_URL_ENV: &str = "OIDC_ISSUER_ADMIN_URL";
 pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
-pub const AUTH_CALLBACK_ROUTE: &str = "/authback";
+pub const AUTH_CALLBACK_ROUTE: &str = "authback";
 pub const PKCE_KEY: &str = "pkce";
 pub const NONCE_KEY: &str = "nonce";
 pub const OIDC_TOKEN_KEY: &str = "oidc_token";
@@ -95,16 +95,12 @@ pub mod ssr {
         Ok(oidc::ClientSecret::new(env::var(AUTH_CLIENT_SECRET_ENV)?))
     }
 
-    fn get_base_url() -> Result<String, AppError> {
-        Ok(env::var(BASE_URL_ENV)?)
-    }
-
     pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
-        Ok(oidc::RedirectUrl::new(get_base_url()? + AUTH_CALLBACK_ROUTE)?)
+        Ok(oidc::RedirectUrl::new(get_app_origin()? + AUTH_CALLBACK_ROUTE)?)
     }
 
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
-        Ok(oidc::PostLogoutRedirectUrl::new(get_base_url()?)?)
+        Ok(oidc::PostLogoutRedirectUrl::new(get_app_origin()?)?)
     }
 
     pub fn get_oidc_http_client() -> Result<Client, AppError> {

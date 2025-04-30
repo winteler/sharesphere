@@ -2389,10 +2389,10 @@
     color: var(--color-error-content);
     --alert-color: var(--color-error);
   }
-  .alert-info {
-    border-color: var(--color-info);
-    color: var(--color-info-content);
-    --alert-color: var(--color-info);
+  .alert-success {
+    border-color: var(--color-success);
+    color: var(--color-success-content);
+    --alert-color: var(--color-success);
   }
   .border-base-100 {
     border-color: var(--color-base-100);
@@ -3837,7 +3837,7 @@ textarea::-webkit-scrollbar {
       --color-info: oklch(75.69% 0.1267 254.91);
       --color-info-content: oklch(29% 0.066 243.157);
       --color-success: oklch(72.27% 0.192 149.58);
-      --color-success-content: oklch(37% 0.077 168.94);
+      --color-success-content: oklch(0 0 0);
       --color-warning: oklch(82% 0.189 84.429);
       --color-warning-content: oklch(41% 0.112 45.904);
       --color-error: oklch(52% 0.245 27.325);
@@ -3871,7 +3871,7 @@ textarea::-webkit-scrollbar {
     --color-info: oklch(75.69% 0.1267 254.91);
     --color-info-content: oklch(29% 0.066 243.157);
     --color-success: oklch(72.27% 0.192 149.58);
-    --color-success-content: oklch(37% 0.077 168.94);
+    --color-success-content: oklch(0 0 0);
     --color-warning: oklch(82% 0.189 84.429);
     --color-warning-content: oklch(41% 0.112 45.904);
     --color-error: oklch(52% 0.245 27.325);

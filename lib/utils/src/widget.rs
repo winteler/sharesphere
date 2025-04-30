@@ -445,7 +445,7 @@ pub fn ShareButton(
             }
         >
             <div class="toast toast-center">
-                <div class="alert alert-info" class=("hidden", move || !show_notification.get())>
+                <div class="alert alert-success" class=("hidden", move || !show_notification.get())>
                     <span>"Copied link to clipboard."</span>
                 </div>
             </div>

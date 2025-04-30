@@ -413,7 +413,7 @@ pub fn HelpButton() -> impl IntoView {
             </Show>
             <button
                 type="button"
-                class="button-ghost p-2"
+                class="button-rounded-ghost p-2"
                 on:click=move |_| show_help.set(true)
             >
                 <HelpIcon/>

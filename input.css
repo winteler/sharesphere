@@ -44,51 +44,164 @@
     --color-primary-hover: oklch(46% 0.15 240);
     --color-secondary-hover: oklch(32.5% 0.14 150);
     --color-error-hover: oklch(32% 0.245 27.325);
+    --color-disabled: oklch(0.475 0.015 245);
+    --color-disabled-content: oklch(0.7 0.015 245);
 }
 
 @layer components {
     .button-ghost {
-        @apply p-1 2xl:p-2 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
-    }
-
-    .button-neutral {
-        @apply p-1 2xl:p-2 rounded-xs bg-base-content/10 shadow-md/30 hover:bg-base-content/20 hover:shadow-none disabled:bg-gray-500/50 cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-1 2xl:p-2
+            rounded-xs
+            text-sm
+            cursor-pointer
+            hover:bg-base-content/20
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content disabled:cursor-not-allowed disabled:active:scale-100
+            transform transition duration-250;
     }
 
     .button-ghost-sm {
-        @apply p-1 rounded-xs hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-1
+            rounded-xs
+            text-sm
+            cursor-pointer
+            hover:bg-base-content/20
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content disabled:cursor-not-allowed disabled:active:scale-100
+            transform transition duration-250;
+    }
+
+    .button-neutral {
+        @apply
+        p-1 2xl:p-2
+        rounded-xs
+        bg-base-content/10
+        shadow-md/30
+        text-sm
+        cursor-pointer
+        hover:bg-base-content/20 hover:shadow-none
+        active:scale-95
+        disabled:bg-disabled disabled:text-disabled-content
+        disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+        transform transition duration-250;
     }
 
     .button-primary {
-        @apply p-1 2xl:p-2 rounded-xs bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-1 2xl:p-2
+            rounded-xs
+            bg-primary
+            shadow-md/30
+            text-sm
+            cursor-pointer
+            hover:bg-primary-hover hover:shadow-none
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content
+            disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+            transform transition duration-250;
     }
 
     .button-secondary {
-        @apply p-1 2xl:p-2 rounded-xs bg-secondary hover:bg-secondary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-1 2xl:p-2
+            rounded-xs
+            bg-secondary
+            shadow-md/30
+            text-sm
+            cursor-pointer
+            hover:bg-secondary-hover hover:shadow-none
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content
+            disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+            transform transition duration-250;
     }
 
     .button-error {
-        @apply p-1 2xl:p-2 rounded-xs bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-1 2xl:p-2
+            rounded-xs
+            bg-error
+            shadow-md/30
+            text-sm
+            cursor-pointer
+            hover:bg-error-hover hover:shadow-none
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content
+            disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+            transform transition duration-250;
     }
 
     .button-rounded-ghost {
-        @apply p-1 2xl:p-2 rounded-full hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-1 2xl:p-2
+            rounded-full
+            text-sm
+            cursor-pointer
+            hover:bg-base-content/20 hover:shadow-none
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content
+            disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+            transform transition duration-250;
     }
 
     .button-rounded-neutral {
-        @apply p-2 rounded-full bg-base-content/10 shadow-md/30 cursor-pointer text-sm hover:bg-base-content/20 hover:shadow-none active:scale-95 disabled:bg-gray-800/50 disabled:cursor-not-allowed transition duration-250;
+        @apply
+            p-2
+            rounded-full
+            bg-base-content/10
+            shadow-md/30
+            text-sm
+            cursor-pointer
+            hover:bg-base-content/20 hover:shadow-none
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content
+            disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+            transform transition duration-250;
     }
 
     .button-rounded-primary {
-        @apply p-2 rounded-full bg-primary hover:bg-primary-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-2
+            rounded-full
+            bg-primary
+            shadow-md/30
+            text-sm
+            cursor-pointer
+            hover:bg-primary-hover hover:shadow-none
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content
+            disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+            transform transition duration-250;
     }
 
     .button-rounded-error {
-        @apply p-2 rounded-full bg-error hover:bg-error-hover cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-2
+            rounded-full
+            bg-error
+            shadow-md/30
+            text-sm
+            cursor-pointer
+            hover:bg-error-hover hover:shadow-none
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content
+            disabled:cursor-not-allowed disabled:active:scale-100 disabled:shadow-none
+            transform transition duration-250;
     }
 
     .button-navbar-activated {
-        @apply p-1 2xl:p-2 rounded-full bg-base-100 hover:bg-base-content/20 cursor-pointer text-sm active:scale-95 transition duration-250;
+        @apply
+            p-1 2xl:p-2
+            rounded-full
+            bg-base-100
+            text-sm
+            cursor-pointer
+            hover:bg-base-content/20
+            active:scale-95
+            disabled:bg-disabled disabled:text-disabled-content disabled:cursor-not-allowed disabled:active:scale-100
+            transform transition duration-250;
     }
 
     .navbar-icon-size {
@@ -116,11 +229,20 @@
     }
 
     .left_sidebar_base_class {
-        @apply flex flex-col justify-start w-60 h-full overflow-y-auto p-2 max-2xl:bg-base-300 max-2xl:absolute max-2xl:z-1 max-2xl:top-0 max-2xl:left-0;
+        @apply
+            flex flex-col justify-start
+            w-60 h-full
+            overflow-y-auto
+            p-2
+            max-2xl:bg-base-300 max-2xl:absolute max-2xl:z-1 max-2xl:top-0 max-2xl:left-0;
     }
 
     .right_sidebar_base_class {
-        @apply flex flex-col justify-start w-80 h-full overflow-y-auto px-3 py-2 max-2xl:bg-base-300 max-2xl:absolute max-2xl:z-1 max-2xl:top-0 max-2xl:right-0;
+        @apply
+            flex flex-col justify-start
+            w-60 h-full overflow-y-auto
+            px-3 py-2
+            max-2xl:bg-base-300 max-2xl:absolute max-2xl:z-1 max-2xl:top-0 max-2xl:right-0;
     }
 }
 

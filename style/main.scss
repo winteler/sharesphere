@@ -3829,6 +3829,9 @@
     @media (width < 96rem) {
       background-color: var(--color-base-300);
     }
+    @media (width >= 96rem) {
+      width: calc(var(--spacing) * 80);
+    }
   }
 }
 .spoiler-checkbox:checked + .spoiler-text {

@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 use std::env;
 use std::num::NonZeroUsize;
 use std::str::FromStr;

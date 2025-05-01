@@ -1,4 +1,4 @@
-use crate::error_template::ErrorTemplate;
+use leptos::either::Either;
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LoadingIcon;
 use leptos::prelude::*;
@@ -78,8 +78,8 @@ async fn unpack_resource<
     children: StoredValue<F>,
 ) -> impl IntoView {
     match &resource.await {
-        Ok(value) => Ok(children.with_value(|children| children(value))),
-        Err(e) => Err(e.clone()),
+        Ok(value) => Either::Left(children.with_value(|children| children(value))),
+        Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),
     }
 }
 
@@ -96,13 +96,11 @@ pub fn SuspenseUnpack<
 
     view! {
         <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
-            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
-                {
-                    move || Suspend::new(async move { 
-                        unpack_resource(resource, children).await
-                    })
-                }
-            </ErrorBoundary>
+        {
+            move || Suspend::new(async move {
+                unpack_resource(resource, children).await
+            })
+        }
         </Suspense>
     }.into_any()
 }
@@ -120,13 +118,11 @@ pub fn TransitionUnpack<
 
     view! {
         <Transition fallback=move || view! { <LoadingIcon/> }.into_any()>
-            <ErrorBoundary fallback=|errors| { view! { <ErrorTemplate errors=errors/> }.into_any() }>
-                {
-                    move || Suspend::new(async move { 
-                        unpack_resource(resource, children).await
-                    })
-                }
-            </ErrorBoundary>
+        {
+            move || Suspend::new(async move {
+                unpack_resource(resource, children).await
+            })
+        }
         </Transition>
     }.into_any()
 }

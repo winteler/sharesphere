@@ -19,22 +19,22 @@ lto = true
 opt-level = 'z'
 
 [workspace.dependencies]
-leptos = { version = "0.8.0-rc1", features = ["nightly", "nonce"] }
-leptos_meta = { version = "0.8.0-rc1" }
-leptos_router = { version = "0.8.0-rc1", features = ["nightly"] }
-leptos_axum = { version = "0.8.0-rc1" }
-server_fn = { version = "0.8.0-rc1", features = ["multipart"] }
+leptos = { version = "0.8.0-rc3", features = ["nightly", "nonce"] }
+leptos_meta = { version = "0.8.0-rc3" }
+leptos_router = { version = "0.8.0-rc3", features = ["nightly"] }
+leptos_axum = { version = "0.8.0-rc3" }
+server_fn = { version = "0.8.0-rc3", features = ["multipart"] }
 
 leptos-use = { version = "0.16.0-beta", features = ["use_breakpoints", "use_clipboard"] }
 
 anyhow = "*"
-axum = {  version = "0.8.3", features = [ "macros" ] }
+axum = {  version = "0.8.4", features = [ "macros" ] }
 axum_session = { version = "0.16.0" }
 axum_session_auth = { version = "0.16.0" }
 axum_session_sqlx = { version = "0.5.0" }
 console_error_panic_hook = "0.1.7"
 console_log = "1"
-chrono = { version = "0.4.40", features = [ "alloc", "serde" ] }
+chrono = { version = "0.4.41", features = [ "alloc", "serde" ] }
 http = "1"
 log = "0.4.27"
 lru = "0.14.0"

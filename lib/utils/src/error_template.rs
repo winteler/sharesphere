@@ -50,9 +50,9 @@ pub fn ErrorTemplate(
                 each= move || {errors.clone().into_iter().enumerate()}
                 key=|(index, _error)| *index
                 children=move |(_, error)| {
-                    view! { <ErrorDisplay error/> }.into_any()
+                    view! { <ErrorDisplay error/> }
                 }
             />
         </div>
-    }.into_any()
+    }
 }

@@ -28,8 +28,8 @@ pub fn ActionError<
         <Show when=action_has_error(action)>
         {
             match &*action.value().read() {
-                Some(Err(e)) => view! { <ErrorDisplay error=e.clone()/> }.into_any(),
-                _ => ().into_any(),
+                Some(Err(e)) => Some(view! { <ErrorDisplay error=e.clone()/> }),
+                _ => None,
             }
         }
         </Show>
@@ -66,7 +66,7 @@ pub fn UnpackAction<
                 None => None,
             }}
         </Suspense>
-    }.into_any()
+    }
 }
 
 async fn unpack_resource<
@@ -95,14 +95,14 @@ pub fn SuspenseUnpack<
     let children = StoredValue::new(children);
 
     view! {
-        <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+        <Suspense fallback=move || view! { <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
                 unpack_resource(resource, children).await
             })
         }
         </Suspense>
-    }.into_any()
+    }
 }
 
 #[component]
@@ -117,14 +117,14 @@ pub fn TransitionUnpack<
     let children = StoredValue::new(children);
 
     view! {
-        <Transition fallback=move || view! { <LoadingIcon/> }.into_any()>
+        <Transition fallback=move || view! { <LoadingIcon/> }>
         {
             move || Suspend::new(async move {
                 unpack_resource(resource, children).await
             })
         }
         </Transition>
-    }.into_any()
+    }
 }
 
 pub fn handle_initial_load<T: Clone + Send + Sync + 'static>(

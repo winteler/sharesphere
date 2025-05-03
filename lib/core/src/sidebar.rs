@@ -20,14 +20,15 @@ pub fn SphereLinkListCollapse(
     #[prop(default = true)]
     is_open: bool,
 ) -> impl IntoView {
-    if sphere_header_vec.is_empty() {
-        return ().into_any()
+    match sphere_header_vec.is_empty() {
+        true => None,
+        false => Some(view! {
+            <TitleCollapse title=title is_open>
+                <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
+            </TitleCollapse>
+        })
     }
-    view! {
-        <TitleCollapse title=title is_open>
-            <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
-        </TitleCollapse>
-    }.into_any()
+
 }
 
 /// Left sidebar component

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 
@@ -73,8 +74,8 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                             <div class="w-7 2xl:w-16 flex justify-center">
                                             {
                                                 match is_active {
-                                                    true => view! { <PlayIcon/> }.into_any(),
-                                                    false => view! { <PauseIcon/> }.into_any(),
+                                                    true => Either::Left(view! { <PlayIcon/> }),
+                                                    false => Either::Right(view! { <PauseIcon/> }),
                                                 }
                                             }
                                             </div>

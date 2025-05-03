@@ -131,13 +131,13 @@ pub fn SphereBanner() -> impl IntoView {
                             <span class="text-2xl 2xl:text-4xl">{sphere_state.sphere_name.get()}</span>
                         </div>
                     </a>
-                }.into_any()
+                }
             }
             </TransitionUnpack>
             <Outlet/>
         </div>
         <SphereSidebar/>
-    }.into_any()
+    }
 }
 
 /// Component to display a sphere's contents
@@ -217,7 +217,7 @@ pub fn SphereContents() -> impl IntoView {
             list_ref
             show_sphere_header=false
         />
-    }.into_any()
+    }
 }
 
 /// Component to display the sphere toolbar
@@ -251,7 +251,7 @@ pub fn SphereToolbar<'a>(
                 <div class="tooltip" data-tip="New">
                     <LoginGuardButton
                         login_button_class="button-rounded-ghost"
-                        login_button_content=move || view! { <PlusIcon class="sphere-toolbar-icon-size"/> }.into_any()
+                        login_button_content=move || view! { <PlusIcon class="sphere-toolbar-icon-size"/> }
                         redirect_path_fn=&get_create_post_path
                         let:_user
                     >
@@ -297,7 +297,7 @@ pub fn SphereToolbar<'a>(
                 </div>
             </div>
         </div>
-    }.into_any()
+    }
 }
 
 /// Button to navigate to the search page of a sphere
@@ -370,25 +370,25 @@ pub fn CreateSphere() -> impl IntoView {
                             move || is_sphere_available.map(|result| match result {
                                 None | Some(Ok(true)) => {
                                     is_name_taken.set(false);
-                                    view! {}.into_any()
+                                    None
                                 },
                                 Some(Ok(false)) => {
                                     is_name_taken.set(true);
-                                    view! {
+                                    Some(Either::Left(view! {
                                         <div class="alert alert-error flex items-center justify-center">
                                             <span class="font-semibold">"Unavailable"</span>
                                         </div>
-                                    }.into_any()
+                                    }))
                                 },
                                 Some(Err(e)) => {
                                     log::error!("Error while checking sphere existence: {e}");
                                     is_name_taken.set(true);
-                                    view! {
+                                    Some(Either::Right(view! {
                                         <div class="alert alert-error h-fit py-2 flex items-center justify-center">
                                             <InternalErrorIcon class="h-16 w-16"/>
                                             <span class="font-semibold">"Server error"</span>
                                         </div>
-                                    }.into_any()
+                                    }))
                                 },
                             })
 

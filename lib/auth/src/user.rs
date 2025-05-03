@@ -766,7 +766,7 @@ pub fn UserHeaderWidget<'a>(
                 }
             }
         </div>
-    }.into_any()
+    }
 }
 
 #[cfg(test)]

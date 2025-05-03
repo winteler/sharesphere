@@ -1,4 +1,4 @@
-use leptos::either::Either;
+use leptos::either::{Either, EitherOf3};
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map, use_query_map};
@@ -92,7 +92,7 @@ pub fn Post() -> impl IntoView {
             </TransitionUnpack>
             <CommentSection post_id comment_vec is_loading additional_load_count/>
         </div>
-    }.into_any()
+    }
 }
 
 /// Displays the body of a post
@@ -103,28 +103,28 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
         <div class="pb-2">
         {
             match (&post.delete_timestamp, &post.moderator_message, &post.infringed_rule_title) {
-                (Some(_), _, _) => view! {
+                (Some(_), _, _) => EitherOf3::A(view! {
                     <ContentBody
                         body=DELETED_MESSAGE.to_string()
                         is_markdown=false
                     />
-                }.into_any(),
-                (None, Some(moderator_message), Some(infringed_rule_title)) => view! {
+                }),
+                (None, Some(moderator_message), Some(infringed_rule_title)) => EitherOf3::B(view! {
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
                     />
-                }.into_any(),
-                _ => view! {
+                }),
+                _ => EitherOf3::C(view! {
                     <ContentBody
                         body=post.body.clone()
                         is_markdown=post.markdown_body.is_some()
                     />
-                }.into_any(),
+                }),
             }
         }
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to encapsulate the widgets associated with each post

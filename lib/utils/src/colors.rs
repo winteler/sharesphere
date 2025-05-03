@@ -97,8 +97,8 @@ pub fn ColorSelect(
     }
 
     let label_view = match label.is_empty() {
-        true => ().into_any(),
-        false => view! { <span class="pr-1 label-text">{label}</span> }.into_any()
+        true => None,
+        false => Some(view! { <span class="pr-1 label-text">{label}</span> })
     };
 
     view! {
@@ -125,7 +125,7 @@ pub fn ColorSelect(
                                     }>
                                         <ColorIndicator color/>
                                     </div>
-                                }.into_any()
+                                }
                             }).collect_view()
                         }}
                         </div>

@@ -215,9 +215,9 @@ pub fn SphereCategoryDropdown(
         {
             if sphere_category_vec.is_empty() || (!show_inactive && !sphere_category_vec.iter().any(|sphere_category| sphere_category.is_active)) {
                 log::debug!("No category to display.");
-                return ().into_any()
+                return None
             }
-            view! {
+            Some(view! {
                 <select
                     name=name
                     class=select_class
@@ -245,7 +245,7 @@ pub fn SphereCategoryDropdown(
                         }).collect_view()
                     }
                 </select>
-            }.into_any()
+            })
         }
         </TransitionUnpack>
     }

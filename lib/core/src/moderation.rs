@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use sharesphere_utils::errors::AppError;
@@ -347,7 +348,7 @@ pub fn ModeratedBody(
                 </div>
             </div>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to display the details of a moderation instance
@@ -360,7 +361,7 @@ pub fn ModerationInfoDialog<'a>(
             <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
             {
                 match &moderation_info.content {
-                    Content::Post(post) => view! {
+                    Content::Post(post) => Either::Left(view! {
                         <div class="flex flex-col gap-1 p-2 border-b">
                             <h1 class="font-bold text-2xl pl-6">"Content"</h1>
                             <div>{post.title.clone()}</div>
@@ -373,9 +374,9 @@ pub fn ModerationInfoDialog<'a>(
                             <h1 class="font-bold text-2xl pl-6">"Moderator message"</h1>
                             <div>{post.moderator_message.clone()}</div>
                         </div>
-                    }.into_any(),
+                    }),
                     Content::Comment(comment) => {
-                        view! {
+                        Either::Right(view! {
                             <div class="flex flex-col gap-1 p-2 border-b">
                                 <div class="font-bold text-2xl pl-6">"Content"</div>
                                 <ContentBody
@@ -387,7 +388,7 @@ pub fn ModerationInfoDialog<'a>(
                                 <div class="font-bold text-2xl pl-6">"Moderator message"</div>
                                 <div>{comment.moderator_message.clone()}</div>
                             </div>
-                        }.into_any()
+                        })
                     }
                 }
             }

@@ -448,14 +448,14 @@ pub fn SphereLinkItems(
 pub fn SphereLinkList(
     sphere_header_vec: Vec<SphereHeader>
 ) -> impl IntoView {
-    if sphere_header_vec.is_empty() {
-        return ().into_any()
+    match sphere_header_vec.is_empty() {
+        true => None,
+        false => Some(view! {
+            <ul class="flex flex-col p-1">
+                <SphereLinkItems sphere_header_vec/>
+            </ul>
+        })
     }
-    view! {
-        <ul class="flex flex-col p-1">
-            <SphereLinkItems sphere_header_vec/>
-        </ul>
-    }.into_any()
 }
 
 /// Component to display a collapsable list of sphere links
@@ -491,7 +491,7 @@ pub fn InfiniteSphereLinkList(
                 <LoadIndicators load_error is_loading/>
             </ul>
         </Show>
-    }.into_any()
+    }
 }
 
 /// # Returns whether a sphere name is valid. Valid characters are ascii alphanumeric, '-' and '_'

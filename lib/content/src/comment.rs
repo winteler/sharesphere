@@ -6,7 +6,6 @@ use leptos_router::hooks::use_query_map;
 use leptos_use::{breakpoints_tailwind, use_breakpoints};
 use leptos_use::BreakpointsTailwind::Xxl;
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
-use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use sharesphere_utils::routes::{get_comment_link, get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
@@ -20,6 +19,7 @@ use sharesphere_core::moderation::Content;
 use sharesphere_core::ranking::{CommentSortWidget, Vote};
 use sharesphere_core::satellite::SatelliteState;
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::errors::ErrorDisplay;
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
 
@@ -52,11 +52,11 @@ pub fn CommentSection(
         <CommentSortWidget sort_signal=state.comment_sort_type/>
         { move || {
             match query_comment_id() {
-                Some(comment_id) => view! { <CommentTree comment_id comment_vec is_loading/> }.into_any(),
-                None => view! { <CommentTreeVec post_id comment_vec is_loading additional_load_count/> }.into_any(),
+                Some(comment_id) => Either::Left(view! { <CommentTree comment_id comment_vec is_loading/> }),
+                None => Either::Right(view! { <CommentTreeVec post_id comment_vec is_loading additional_load_count/> }),
             }
         }}
-    }.into_any()
+    }
 }
 
 /// Component displaying a vector of comment trees
@@ -118,23 +118,22 @@ pub fn CommentTreeVec(
                             depth=0
                             ranking=index
                         />
-                    }.into_any()
+                    }
                 }
             />
         </div>
         <Show when=move || load_error.read().is_some()>
         {
-            let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(load_error.get().unwrap());
+            let error = load_error.get_untracked().unwrap();
             view! {
-                <div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div>
-            }.into_any()
+                <div class="flex justify-start py-4"><ErrorDisplay error/></div>
+            }
         }
         </Show>
         <Show when=is_loading>
             <LoadingIcon/>
         </Show>
-    }.into_any()
+    }
 }
 
 /// Component displaying a comment's tree
@@ -182,7 +181,7 @@ pub fn CommentTree(
         <Show when=is_loading>
             <LoadingIcon/>
         </Show>
-    }.into_any()
+    }
 }
 
 /// Comment box component
@@ -282,7 +281,7 @@ pub fn CommentBox(
                 </div>
             </div>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to encapsulate the widgets associated with each comment
@@ -362,7 +361,7 @@ pub fn CommentWidgetBar(
                 <ShareButton link=comment_link.clone()/>
             </DotMenu>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to open the comment form
@@ -394,7 +393,7 @@ pub fn CommentButton(
                 show_dialog
             />
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to open the comment form and indicate comment count
@@ -427,7 +426,7 @@ pub fn CommentButtonWithCount(
             comment_vec
             show_dialog
         />
-    }.into_any()
+    }
 }
 
 /// Dialog to publish a comment

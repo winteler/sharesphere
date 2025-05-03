@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 use leptos::server_fn::codec::PostUrl;
 use leptos::server_fn::Http;
@@ -66,25 +67,27 @@ pub fn AuthorWidget(
             aria-label=aria_label
         >
             { move || if is_moderator {
-                    view! { <ModeratorAuthorIcon/> }.into_any()
+                    Either::Left(view! { <ModeratorAuthorIcon/> })
                 } else {
-                    view! {
+                    Either::Right(view! {
                         <Transition fallback=move || view! { <LoadingIcon class="content-toolbar-icon-size"/> }>
                         {
                             move || Suspend::new(async move {
                                 match &user_state.user.await {
-                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
-                                    _ => view! { <AuthorIcon/> }.into_any(),
+                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => {
+                                        Either::Left(view! { <SelfAuthorIcon/> })
+                                    },
+                                    _ => Either::Right(view! { <AuthorIcon/> }),
                                 }
                             })
                         }
                         </Transition>
-                    }.into_any()
+                    })
                 }
             }
             <span class="pt-1 pb-1.5 text-sm">{author.get_value()}</span>
         </button>
-    }.into_any()
+    }
 }
 
 /// Component to display a button opening a modal dialog if the user

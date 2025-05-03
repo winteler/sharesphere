@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 
 #[component]
@@ -117,9 +118,9 @@ pub fn SphereIcon(
     match icon_url {
         Some(icon_url) => {
             let class = format!("rounded-full overflow-hidden {class}");
-            view! { <img src=icon_url class=class/> }.into_any()
+            Either::Left(view! { <img src=icon_url class=class/> })
         },
-        None => view! { <LogoIcon class/> }.into_any(),
+        None => Either::Right(view! { <LogoIcon class/> }),
     }
 }
 

@@ -310,7 +310,7 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
             }
         }
         </SuspenseUnpack>
-    }.into_any()
+    }
 }
 
 #[component]

@@ -383,7 +383,7 @@ pub fn SortWidgetOption(
                 {children()}
             </button>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to indicate how to sort posts
@@ -406,7 +406,7 @@ pub fn PostSortWidget(
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to indicate how to sort comments
@@ -423,7 +423,7 @@ pub fn CommentSortWidget(
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>
-    }.into_any()
+    }
 }
 
 #[cfg(test)]

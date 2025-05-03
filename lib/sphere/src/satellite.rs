@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
@@ -308,8 +309,8 @@ pub fn SatellitePanel() -> impl IntoView {
                                     <div class="w-20 flex justify-center items-center">
                                     {
                                         match satellite.disable_timestamp.is_none() {
-                                            true => view! { <PlayIcon/> }.into_any(),
-                                            false => view! { <PauseIcon/> }.into_any(),
+                                            true => Either::Left(view! { <PlayIcon/> }),
+                                            false => Either::Right(view! { <PauseIcon/> }),
                                         }
                                     }
                                     </div>

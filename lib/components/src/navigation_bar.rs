@@ -35,7 +35,7 @@ pub fn NavigationBar() -> impl IntoView
                 <UserMenu/>
             </div>
         </div>
-    }.into_any()
+    }
 }
 
 #[component]
@@ -43,13 +43,13 @@ pub fn UserMenu() -> impl IntoView {
     view! {
         <LoginGuardButton
             login_button_class="button-rounded-ghost"
-            login_button_content=move || view! { <UserIcon/> }.into_any()
+            login_button_content=move || view! { <UserIcon/> }
             redirect_path_fn=&get_current_path
             let:user
         >
             <LoggedInMenu username=user.username.clone()/>
         </LoginGuardButton>
-    }.into_any()
+    }
 }
 
 #[component]
@@ -78,7 +78,7 @@ pub fn LoggedInMenu(
                 <li class="button-ghost-sm"><span>{format!("Logged in as: {}", username)}</span></li>
             </ul>
         </DropdownButton>
-    }.into_any()
+    }
 }
 
 #[component]
@@ -95,7 +95,7 @@ pub fn PlusMenu() -> impl IntoView {
             <ul class="z-10 mt-4 p-2 bg-base-200 rounded-sm w-fit flex flex-col">
                 <li class="button-ghost-sm w-full">
                     <LoginGuardButton
-                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }.into_any()
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
                         redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.set(String::from(CREATE_SPHERE_ROUTE)))
                         let:_user
                     >
@@ -104,7 +104,7 @@ pub fn PlusMenu() -> impl IntoView {
                 </li>
                 <li class="button-ghost-sm w-full">
                     <LoginGuardButton
-                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }.into_any()
+                        login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
                         redirect_path_fn=&get_create_post_path
                         let:_user
                     >
@@ -118,7 +118,7 @@ pub fn PlusMenu() -> impl IntoView {
                 </li>
             </ul>
         </DropdownButton>
-    }.into_any()
+    }
 }
 
 #[component]

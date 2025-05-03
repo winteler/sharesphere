@@ -1,3 +1,4 @@
+use leptos::either::{Either, EitherOf4};
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
@@ -32,21 +33,21 @@ pub enum SphereSearchType {
 }
 
 impl ToView for SearchType {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
-            SearchType::Spheres => view! { <SearchSpheresWithContext/> }.into_any(),
-            SearchType::Posts => view! { <SearchPosts/> }.into_any(),
-            SearchType::Comments => view! { <SearchComments/> }.into_any(),
-            SearchType::Users => view! { <SearchUsers/> }.into_any(),
+            SearchType::Spheres => EitherOf4::A(view! { <SearchSpheresWithContext/> }),
+            SearchType::Posts => EitherOf4::B(view! { <SearchPosts/> }),
+            SearchType::Comments => EitherOf4::C(view! { <SearchComments/> }),
+            SearchType::Users =>EitherOf4::D( view! { <SearchUsers/> }),
         }
     }
 }
 
 impl ToView for SphereSearchType {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
-            SphereSearchType::Posts => view! { <SearchPosts/> }.into_any(),
-            SphereSearchType::Comments => view! { <SearchComments/> }.into_any(),
+            SphereSearchType::Posts => Either::Left(view! { <SearchPosts/> }),
+            SphereSearchType::Comments => Either::Right(view! { <SearchComments/> }),
         }
     }
 }

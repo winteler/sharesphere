@@ -1,4 +1,5 @@
 use std::env;
+use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 use leptos_router::params::Params;
@@ -488,16 +489,18 @@ pub fn LoginGuardButton<
         {
             move || Suspend::new(async move {
                 match &user_state.user.await {
-                    Ok(Some(user)) => children.with_value(|children| children(user)).into_any(),
+                    Ok(Some(user)) => Either::Left(children.with_value(|children| children(user))),
                     _ => {
                         let login_button_view = login_button_content.with_value(|content| content.run());
-                        view! { <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton> }.into_any()
+                        Either::Right(view! {
+                            <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton>
+                        })
                     },
                 }
             })
         }
         </Transition>
-    }.into_any()
+    }
 }
 
 /// Login guarded button component. If the user is logged in, a button with the given class and action will be rendered.
@@ -524,7 +527,7 @@ where
             move || Suspend::new(async move {
                 let children_view = children.with_value(|children| children());
                 match &user_state.user.await {
-                    Ok(Some(_)) => view! {
+                    Ok(Some(_)) => Either::Left(view! {
                         <button
                             class=button_class
                             aria-haspopup="dialog"
@@ -532,8 +535,10 @@ where
                         >
                             {children_view}
                         </button>
-                    }.into_any(),
-                    _ => view! { <LoginButton class=button_class redirect_path_fn=&get_current_path>{children_view}</LoginButton> }.into_any(),
+                    }),
+                    _ => Either::Right(view! {
+                        <LoginButton class=button_class redirect_path_fn=&get_current_path>{children_view}</LoginButton>
+                    }),
                 }
             })
         }
@@ -560,7 +565,7 @@ fn LoginButton<
                 {children()}
             </button>
         </ActionForm>
-    }.into_any()
+    }
 }
 
 /// Auth callback component
@@ -585,5 +590,5 @@ pub fn AuthCallback() -> impl IntoView {
                 log::debug!("Authenticated successfully");
             }
         </SuspenseUnpack>
-    }.into_any()
+    }
 }

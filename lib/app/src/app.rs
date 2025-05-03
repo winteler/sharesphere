@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::ev::TouchEvent;
 use leptos::html::Div;
 use leptos::prelude::*;
@@ -210,8 +211,8 @@ fn LoginGuard() -> impl IntoView {
         <SuspenseUnpack resource=state.user let:user>
         {
             match user {
-                Some(_) => view! { <Outlet/> }.into_any(),
-                None => view! { <LoginWindow/> }.into_any(),
+                Some(_) => Either::Left(view! { <Outlet/> }),
+                None => Either::Right(view! { <LoginWindow/> }),
             }
         }
         </SuspenseUnpack>
@@ -251,8 +252,8 @@ fn HomePage() -> impl IntoView {
                 {
                     move || Suspend::new(async move {
                         match state.user.await {
-                            Ok(Some(user)) => view! { <UserHomePage user refresh_count additional_load_count is_loading div_ref/> }.into_any(),
-                            _ => view! { <DefaultHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
+                            Ok(Some(user)) => Either::Left(view! { <UserHomePage user refresh_count additional_load_count is_loading div_ref/> }),
+                            _ => Either::Right(view! { <DefaultHomePage refresh_count additional_load_count is_loading div_ref/> }),
                         }
                     })
                 }

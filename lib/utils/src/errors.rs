@@ -5,6 +5,7 @@ use std::str::FromStr;
 use http::status::StatusCode;
 use leptos::prelude::*;
 use leptos::{component, view, IntoView};
+use leptos::either::EitherOf11;
 use leptos::server_fn::codec::JsonEncoding;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -204,19 +205,23 @@ pub fn AppErrorIcon(
     app_error: AppError,
 ) -> impl IntoView {
     match app_error {
-        AppError::AuthenticationError(_) => view! { <AuthErrorIcon/> }.into_any(),
-        AppError::NotAuthenticated => view! { <AuthErrorIcon/> }.into_any(),
-        AppError::InsufficientPrivileges => view! { <NotAuthorizedIcon/> }.into_any(),
-        AppError::SphereBanUntil(_) | AppError::PermanentSphereBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => view! { <BannedIcon/> }.into_any(),
-        AppError::CommunicationError(error) => match error {
-            ServerFnErrorErr::Args(_) | ServerFnErrorErr::MissingArg(_) => view! { <InvalidRequestIcon/> }.into_any(),
-            ServerFnErrorErr::Registration(_) | ServerFnErrorErr::Request(_) | ServerFnErrorErr::Response(_) => view! { <NetworkErrorIcon/> }.into_any(),
-            _ => view! { <InternalErrorIcon/> }.into_any(),
+        AppError::AuthenticationError(_) => EitherOf11::A(view! { <AuthErrorIcon/> }),
+        AppError::NotAuthenticated => EitherOf11::B(view! { <AuthErrorIcon/> }),
+        AppError::InsufficientPrivileges => EitherOf11::C(view! { <NotAuthorizedIcon/> }),
+        AppError::SphereBanUntil(_) | AppError::PermanentSphereBan | AppError::GlobalBanUntil(_) | AppError::PermanentGlobalBan => {
+            EitherOf11::D(view! { <BannedIcon/> })
         },
-        AppError::DatabaseError(_) => view! { <InternalErrorIcon/> }.into_any(),
-        AppError::InternalServerError(_) => view! { <InternalErrorIcon/> }.into_any(),
-        AppError::NotFound => view! { <NotFoundIcon/> }.into_any(),
-        AppError::PayloadTooLarge(_) => view! { <TooHeavyIcon/> }.into_any(),
+        AppError::CommunicationError(error) => match error {
+            ServerFnErrorErr::Args(_) | ServerFnErrorErr::MissingArg(_) => EitherOf11::E(view! { <InvalidRequestIcon/> }),
+            ServerFnErrorErr::Registration(_) | ServerFnErrorErr::Request(_) | ServerFnErrorErr::Response(_) => {
+                EitherOf11::F(view! { <NetworkErrorIcon/> })
+            },
+            _ => EitherOf11::G(view! { <InternalErrorIcon/> }),
+        },
+        AppError::DatabaseError(_) => EitherOf11::H(view! { <InternalErrorIcon/> }),
+        AppError::InternalServerError(_) => EitherOf11::I(view! { <InternalErrorIcon/> }),
+        AppError::NotFound => EitherOf11::J(view! { <NotFoundIcon/> }),
+        AppError::PayloadTooLarge(_) => EitherOf11::K(view! { <TooHeavyIcon/> }),
     }
 }
 
@@ -238,7 +243,7 @@ pub fn ErrorDisplay(
                 <h3 class="text-xl">{user_message}</h3>
             </div>
         </div>
-    }.into_any()
+    }
 }
 
 #[cfg(test)]

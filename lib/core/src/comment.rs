@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
@@ -685,31 +686,31 @@ pub fn CommentBody(
                 &comment.moderator_message,
                 &comment.infringed_rule_title
             ) {
-                (Some(_), _, _) => view! {
+                (Some(_), _, _) => Either::Left(view! {
                     <div class="pl-2 text-left">
                         <ContentBody
                             body=String::from(DELETED_MESSAGE)
                             is_markdown=false
                         />
                     </div>
-                }.into_any(),
-                (None, Some(moderator_message), Some(infringed_rule_title)) => view! {
+                }),
+                (None, Some(moderator_message), Some(infringed_rule_title)) => Either::Right(view! {
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
                     />
-                }.into_any(),
-                _ => view! {
+                }),
+                _ => Either::Left(view! {
                     <div class="pl-2 text-left">
                         <ContentBody
                             body=comment.body.clone()
                             is_markdown=comment.markdown_body.is_some()
                         />
                     </div>
-                }.into_any(),
+                }),
             })
         }
-    }.into_any()
+    }
 }
 
 /// Displays a comment with context (post title, sphere, score, etc.)

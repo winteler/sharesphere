@@ -1,4 +1,5 @@
 use chrono::SecondsFormat;
+use leptos::either::{Either, EitherOf3};
 use leptos::ev::{Event, SubmitEvent};
 use leptos::html;
 use leptos::prelude::*;
@@ -49,15 +50,15 @@ pub fn SphereCockpitGuard() -> impl IntoView {
             match user {
                 Some(user) => {
                     match user.check_permissions(&sphere_name.read_untracked(), PermissionLevel::Moderate) {
-                        Ok(_) => view! { <Outlet/> }.into_any(),
-                        Err(error) => view! { <ErrorDisplay error/> }.into_any(),
+                        Ok(_) => EitherOf3::A(view! { <Outlet/> }),
+                        Err(error) => EitherOf3::B(view! { <ErrorDisplay error/> }),
                     }
                 },
-                None => view! { <LoginWindow/> }.into_any(),
+                None => EitherOf3::C(view! { <LoginWindow/> }),
             }
         }
         </SuspenseUnpack>
-    }.into_any()
+    }
 }
 
 /// Component to manage a sphere
@@ -75,7 +76,7 @@ pub fn SphereCockpit() -> impl IntoView {
             <SphereRulesPanel/>
             <BanPanel/>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to edit a sphere's description
@@ -262,7 +263,7 @@ pub fn SphereImageForm(
                 if cfg!(feature = "hydrate") {
                     if action.pending().get()
                     {
-                        view! { <LoadingIcon/> }.into_any()
+                        Some(Either::Left(view! { <LoadingIcon/> }))
                     } else {
                         match action.value().get()
                         {
@@ -270,14 +271,14 @@ pub fn SphereImageForm(
                                 if let Some(state) = use_context::<GlobalState>() {
                                     state.sphere_reload_signal.update(|value| *value += 1);
                                 }
-                                ().into_any()
+                                None
                             }
-                            Some(Err(e)) => view! { <ErrorDisplay error=e.into()/> }.into_any(),
-                            None => ().into_any()
+                            Some(Err(e)) => Some(Either::Right(view! { <ErrorDisplay error=e.into()/> })),
+                            None => None
                         }
                     }
                 } else {
-                    ().into_any()
+                    None
                 }
             }}
         </form>

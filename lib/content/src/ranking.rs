@@ -16,7 +16,7 @@ pub fn DynScoreIndicator(
                 {move || score.get()}
             </div>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to display and modify a content's score
@@ -88,7 +88,7 @@ pub fn VotePanel(
                 <MinusIcon/>
             </LoginGuardedButton>
         </div>
-    }.into_any()
+    }
 }
 
 // Function to react to an post's upvote or downvote button being clicked.

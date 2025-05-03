@@ -14,15 +14,14 @@ use leptos_use::on_click_outside;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::error_template::ErrorTemplate;
-use crate::errors::{AppError};
+use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
 
 pub trait ToView {
-    fn to_view(self) -> AnyView;
+    fn to_view(self) -> impl IntoView + 'static;
 }
 
 enum TimeScale {
@@ -83,7 +82,7 @@ pub fn ModalDialog(
                 </div>
             </div>
         </Show>
-    }.into_any()
+    }
 }
 
 /// Button that displays its children in a dropdown when clicked
@@ -122,7 +121,7 @@ pub fn DropdownButton<C: IntoView + 'static>(
             </button>
             <Dropdown show_dropdown align_right children/>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component that displays its children in a dropdown when the input show_dropdown is true
@@ -146,7 +145,7 @@ pub fn Dropdown<C: IntoView + 'static>(
             }
             </div>
         </Show>
-    }.into_any()
+    }
 }
 
 /// Form to update query parameter `query_param` with the value `title` upon clicking
@@ -191,10 +190,10 @@ where
                 view! {
                     <QueryTab query_param query_value=enum_value.into() is_selected/>
                 }
-            }.into_any()).collect_view()
+            }).collect_view()
         }
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to display the view of the enum selected by the query parameter `query_param`
@@ -215,7 +214,7 @@ where
                 .unwrap_or_default()
                 .to_view()
         }}
-    }.into_any()
+    }
 }
 
 /// Component to display tabs based on the `query_enum_iter` and upon clicking them, update
@@ -256,10 +255,10 @@ where
             node_ref=select_ref
         >
         {
-            enum_iter.into_iter().map(|enum_val| view! {<option>{enum_val.into()}</option>}.into_any()).collect_view()
+            enum_iter.into_iter().map(|enum_val| view! {<option>{enum_val.into()}</option>}).collect_view()
         }
         </select>
-    }.into_any()
+    }
 }
 
 /// Component to display a button with a three-dot icon opening a menu displaying the children of the component when clicked
@@ -278,7 +277,7 @@ pub fn DotMenu<C: IntoView + 'static>(
             }
             </div>
         </DropdownButton>
-    }.into_any()
+    }
 }
 
 /// Component to display a badge, i.e. an icon with associated text
@@ -297,7 +296,7 @@ where
             {children.into_inner()()}
             <div class="pt-1 pb-1.5 text-sm">{move || text.get()}</div>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to display the number of comments in a post
@@ -310,7 +309,7 @@ pub fn CommentCountWidget(
             <CommentIcon/>
             {count}
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to display the moderator of a post or comment
@@ -328,7 +327,7 @@ pub fn ModeratorWidget(
                 }
             </div>
         </Show>
-    }.into_any()
+    }
 }
 
 /// Component to conditionally display a pin icon
@@ -386,7 +385,7 @@ pub fn TimeSinceWidget(
                 move || get_elapsed_time_string(timestamp.get(), use_fullname.get())
             }
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to display the edit time of a post or comment
@@ -469,7 +468,7 @@ pub fn ContentBody(
             class=class
             inner_html=body
         />
-    }.into_any()
+    }
 }
 
 /// Component to display a post's score
@@ -482,7 +481,7 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
                 {score}
             </div>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to display a "minimize" or "maximize" icon with transitions
@@ -665,10 +664,9 @@ pub fn LoadIndicators(
     view! {
         <Show when=move || load_error.read().is_some()>
         {
-            let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(load_error.get().unwrap());
+            let error = load_error.get_untracked().unwrap();
             view! {
-                <li><div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div></li>
+                <li><div class="flex justify-start py-4"><ErrorDisplay error/></div></li>
             }
         }
         </Show>

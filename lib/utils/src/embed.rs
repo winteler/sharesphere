@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use ammonia::Builder;
 use lazy_static::lazy_static;
+use leptos::either::{Either, EitherOf3, EitherOf5};
 use leptos::html;
 use leptos::prelude::*;
 use mime_guess::{from_path, mime};
@@ -239,15 +240,17 @@ pub fn Embed(
     match (link.link_type, link.link_url, link.link_embed, link.link_thumbnail_url) {
         (LinkType::None, _, _, _) => None,
         (_, None, _, _) => None,
-        (LinkType::Link, Some(link_url), None, thumbnail_url) => Url::parse(&link_url).ok().map(|url| view! {
-            <LinkEmbed url thumbnail_url align_center/>
-        }.into_any()),
-        (link_type, Some(link_url), None, _) => Some(view! {
+        (LinkType::Link, Some(link_url), None, thumbnail_url) => {
+            Url::parse(&link_url).ok().map(|url| EitherOf3::A(view! {
+                <LinkEmbed url thumbnail_url align_center/>
+            }))
+        },
+        (link_type, Some(link_url), None, _) => Some(EitherOf3::B(view! {
             <NaiveEmbed link_input=link_url link_type align_center/>
-        }.into_any()),
-        (_, Some(_), Some(link_embed), _) => Some(view! {
+        })),
+        (_, Some(_), Some(link_embed), _) => Some(EitherOf3::C(view! {
             <HtmlEmbed html=link_embed align_center/>
-        }.into_any()),
+        })),
     }
 }
 
@@ -264,11 +267,11 @@ pub fn NaiveEmbed(
         { move || {
             match (link_type, Url::parse(&link_input.read())) {
                 (LinkType::None, _) => None,
-                (_, Err(e)) => Some(view! { <ErrorDisplay error=AppError::new(format!("Invalid link: {e}"))/> }.into_any()),
-                (LinkType::Link, Ok(url)) => Some(view! { <LinkEmbed url align_center/> }.into_any()),
-                (LinkType::Image, Ok(url)) => Some(view! { <ImageEmbed url=url.to_string() align_center/> }.into_any()),
-                (LinkType::Video, Ok(url)) => Some(view! { <VideoEmbed url=url.to_string() align_center/> }.into_any()),
-                (LinkType::Rich, Ok(url)) => Some(view! { <LinkEmbed url align_center/> }.into_any()),
+                (_, Err(e)) => Some(EitherOf5::A(view! { <ErrorDisplay error=AppError::new(format!("Invalid link: {e}"))/> })),
+                (LinkType::Link, Ok(url)) => Some(EitherOf5::B(view! { <LinkEmbed url align_center/> })),
+                (LinkType::Image, Ok(url)) => Some(EitherOf5::C(view! { <ImageEmbed url=url.to_string() align_center/> })),
+                (LinkType::Video, Ok(url)) => Some(EitherOf5::D(view! { <VideoEmbed url=url.to_string() align_center/> })),
+                (LinkType::Rich, Ok(url)) => Some(EitherOf5::E(view! { <LinkEmbed url align_center/> })),
             }
         }}
     }
@@ -293,19 +296,21 @@ pub fn LinkEmbed(
                 true => domain[4..].to_string(),
                 false => domain.to_string(),
             };
-            view! {
+            Either::Left(view! {
                 <div class=class>
                     <a href=url.to_string() class="w-fit flex items-center gap-2 px-2 py-1 bg-primary rounded-sm hover:bg-base-content/50">
                         { match thumbnail_url {
-                            Some(thumbnail_url) => view! { <img src=thumbnail_url class=THUMBNAIL_CLASS/> }.into_any(),
-                            None => view! { <LinkIcon/> }.into_any(),
+                            Some(thumbnail_url) => Either::Left(
+                                view! { <img src=thumbnail_url class=THUMBNAIL_CLASS/> }
+                            ),
+                            None => Either::Right(view! { <LinkIcon/> }),
                         }}
                         <div>{clean_domain}</div>
                     </a>
                 </div>
-            }.into_any()
+            })
         },
-        None => view! { <ErrorDisplay error=AppError::new("Invalid domain name")/> }.into_any(),
+        None => Either::Right(view! { <ErrorDisplay error=AppError::new("Invalid domain name")/> }),
     }
 }
 

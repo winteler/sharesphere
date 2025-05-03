@@ -1,3 +1,4 @@
+use leptos::either::{Either, EitherOf3};
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map};
@@ -39,20 +40,20 @@ pub enum SelfProfileTabs {
 }
 
 impl ToView for ProfileTabs {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
-            ProfileTabs::Posts => view! { <UserPosts/> }.into_any(),
-            ProfileTabs::Comments => view! { <UserComments/> }.into_any(),
+            ProfileTabs::Posts => Either::Left(view! { <UserPosts/> }),
+            ProfileTabs::Comments => Either::Right(view! { <UserComments/> }),
         }
     }
 }
 
 impl ToView for SelfProfileTabs {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
-            SelfProfileTabs::Posts => view! { <UserPosts/> }.into_any(),
-            SelfProfileTabs::Comments => view! { <UserComments/> }.into_any(),
-            SelfProfileTabs::Settings => view! { <UserSettings/> }.into_any(),
+            SelfProfileTabs::Posts => EitherOf3::A(view! { <UserPosts/> }),
+            SelfProfileTabs::Comments => EitherOf3::B(view! { <UserComments/> }),
+            SelfProfileTabs::Settings => EitherOf3::C(view! { <UserSettings/> }),
         }
     }
 }
@@ -74,18 +75,18 @@ pub fn UserProfile() -> impl IntoView {
                 { 
                     move || Suspend::new(async move { 
                         match state.user.await {
-                            Ok(Some(user)) if user.username == query_username.get() => view! { 
+                            Ok(Some(user)) if user.username == query_username.get() => Either::Left(view! {
                                 <EnumQueryTabs 
                                     query_param=PROFILE_TAB_QUERY_PARAM 
                                     query_enum_iter=SelfProfileTabs::iter()
                                 /> 
-                            }.into_any(),
-                            _ => view! { 
+                            }),
+                            _ => Either::Right(view! {
                                 <EnumQueryTabs 
                                     query_param=PROFILE_TAB_QUERY_PARAM 
                                     query_enum_iter=ProfileTabs::iter()
                                 /> 
-                            }.into_any(),
+                            }),
                         }
                     })
                 }
@@ -285,7 +286,7 @@ pub fn UserAccountButton() -> impl IntoView {
                 "Account"
             </button>
         </ActionForm>
-    }.into_any()
+    }
 }
 
 /// Component to display a user header and redirect to his profile upon click
@@ -298,5 +299,5 @@ pub fn UserHeaderLink<'a>(
         <a href=user_profile_path class="w-full h-fit p-2 rounded-sm hover:bg-base-200">
             <UserHeaderWidget user_header/>
         </a>
-    }.into_any()
+    }
 }

@@ -29,7 +29,7 @@ pub fn ModerateButton(show_dialog: RwSignal<bool>) -> impl IntoView {
         >
             <HammerIcon/>
         </button>
-    }.into_any()
+    }
 }
 
 /// Component to access a post's moderation dialog
@@ -47,7 +47,7 @@ pub fn ModeratePostButton(post_id: i64) -> impl IntoView {
                 />
             </div>
         </AuthorizedShow>
-    }.into_any()
+    }
 }
 
 /// Component to access a comment's moderation dialog
@@ -66,7 +66,7 @@ pub fn ModerateCommentButton(comment_id: i64, comment: RwSignal<Comment>) -> imp
                 />
             </div>
         </AuthorizedShow>
-    }.into_any()
+    }
 }
 
 /// Dialog to moderate a post
@@ -115,7 +115,7 @@ pub fn ModeratePostDialog(
                 <ActionError action=sphere_state.moderate_post_action.into()/>
             </div>
         </ModalDialog>
-    }.into_any()
+    }
 }
 
 /// Dialog to moderate a comment
@@ -174,7 +174,7 @@ pub fn ModerateCommentDialog(
                 <ActionError action=moderate_comment_action.into()/>
             </div>
         </ModalDialog>
-    }.into_any()
+    }
 }
 
 /// Dialog to select infringed rule
@@ -203,7 +203,7 @@ pub fn RuleSelect(
                 </TransitionUnpack>
             </select>
         </div>
-    }.into_any()
+    }
 }
 
 /// Dialog to input number of banned days
@@ -246,7 +246,7 @@ pub fn BanMenu() -> impl IntoView {
                 </select>
             </div>
         </AuthorizedShow>
-    }.into_any()
+    }
 }
 
 /// Displays the body of a moderated post or comment
@@ -301,7 +301,7 @@ pub fn ModerationInfoButton(
                 </ModalDialog>
             </Show>
         </Suspense>
-    }.into_any()
+    }
 }
 
 /// Component to display a button opening a modal dialog with a ban's details

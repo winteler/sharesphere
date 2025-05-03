@@ -39,7 +39,7 @@ pub enum SelfProfileTabs {
 }
 
 impl ToView for ProfileTabs {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
             ProfileTabs::Posts => view! { <UserPosts/> }.into_any(),
             ProfileTabs::Comments => view! { <UserComments/> }.into_any(),
@@ -48,7 +48,7 @@ impl ToView for ProfileTabs {
 }
 
 impl ToView for SelfProfileTabs {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
             SelfProfileTabs::Posts => view! { <UserPosts/> }.into_any(),
             SelfProfileTabs::Comments => view! { <UserComments/> }.into_any(),

@@ -22,7 +22,7 @@ pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
 
 pub trait ToView {
-    fn to_view(self) -> AnyView;
+    fn to_view(self) -> impl IntoView + 'static;
 }
 
 enum TimeScale {

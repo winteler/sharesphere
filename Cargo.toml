@@ -12,11 +12,12 @@ members = [
     "server",
 ]
 
-# need to be applied only to wasm build
-[profile.release]
-codegen-units = 1
-lto = true
+# profile for wasm build, optimizes size
+[profile.wasm-release]
+inherits = "release"
 opt-level = 'z'
+lto = true
+codegen-units = 1
 
 [workspace.dependencies]
 leptos = { version = "0.8.0-rc3", features = ["nightly", "nonce"] }
@@ -98,9 +99,6 @@ end2end-dir = "end2end"
 #  The browserlist query used for optimizing the CSS.
 browserquery = "defaults"
 
-# Set by cargo-leptos watch when building with that tool. Controls whether autoreload JS will be included in the head
-watch = false
-
 # The environment Leptos will run in, usually either "DEV" or "PROD"
 env = "DEV"
 
@@ -123,3 +121,8 @@ lib-features = []
 #
 # Optional. Defaults to false.
 lib-default-features = false
+
+# The profile to use for the lib target when compiling for release
+#
+# Optional. Defaults to "release".
+lib-profile-release = "wasm-release"

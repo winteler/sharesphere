@@ -32,7 +32,7 @@ pub enum SphereSearchType {
 }
 
 impl ToView for SearchType {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
             SearchType::Spheres => view! { <SearchSpheresWithContext/> }.into_any(),
             SearchType::Posts => view! { <SearchPosts/> }.into_any(),
@@ -43,7 +43,7 @@ impl ToView for SearchType {
 }
 
 impl ToView for SphereSearchType {
-    fn to_view(self) -> AnyView {
+    fn to_view(self) -> impl IntoView + 'static {
         match self {
             SphereSearchType::Posts => view! { <SearchPosts/> }.into_any(),
             SphereSearchType::Comments => view! { <SearchComments/> }.into_any(),

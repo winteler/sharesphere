@@ -1,5 +1,5 @@
 # Build using ShareSphere builder
-FROM ghcr.io/winteler/sharesphere-builder:main as builder
+FROM ghcr.io/winteler/sharesphere-builder:main AS builder
 
 WORKDIR /sharesphere
 COPY . .

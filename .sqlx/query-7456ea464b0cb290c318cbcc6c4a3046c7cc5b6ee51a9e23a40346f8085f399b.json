@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rules\n             SET delete_timestamp = CURRENT_TIMESTAMP\n             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7456ea464b0cb290c318cbcc6c4a3046c7cc5b6ee51a9e23a40346f8085f399b"
+}

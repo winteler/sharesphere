@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO satellites\n            (satellite_name, sphere_id, sphere_name, body, markdown_body, is_nsfw, is_spoiler, creator_id)\n            VALUES (\n                $1,\n                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                $2, $3, $4,\n                (\n                    CASE\n                        WHEN $5 THEN TRUE\n                        ELSE (SELECT is_nsfw FROM spheres WHERE sphere_name = $2)\n                    END\n                ),\n                $6, $7\n            )\n            RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "satellite_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "satellite_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "sphere_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "sphere_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "markdown_body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_spoiler",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "num_posts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "creator_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "disable_timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "54a22d458fe1f78423ccf2744233a9ea5d8b4a76a1c4af3242e3120fb5b69b78"
+}

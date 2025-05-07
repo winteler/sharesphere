@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users\n            SET\n                admin_role = $1,\n                timestamp = CURRENT_TIMESTAMP\n            WHERE user_id = $2\n            RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "oidc_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "admin_role",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "days_hide_spoiler",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "show_nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "delete_timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "67a007befd37a3d3c0371a91ed879709a13a81d70c105e5a6e7f5e58542eab29"
+}

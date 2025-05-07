@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE user_sphere_roles\n                    SET\n                        permission_level = $1,\n                        timestamp = CURRENT_TIMESTAMP\n                    WHERE\n                        user_id = $2 AND\n                        sphere_name = $3\n                    RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "role_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "sphere_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "sphere_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "permission_level",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "grantor_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "108d1dcd9a859f88f7e4a414971cf0c9d5091c271fed7846488706df0565637b"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE comments SET\n                body = '',\n                markdown_body = NULL,\n                is_pinned = false,\n                creator_name = '',\n                edit_timestamp = CURRENT_TIMESTAMP,\n                delete_timestamp = CURRENT_TIMESTAMP\n            WHERE creator_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a3f0a9c6562bcf83fde595dcfe4b4ae61883640583804f01b6b856dd16c00459"
+}

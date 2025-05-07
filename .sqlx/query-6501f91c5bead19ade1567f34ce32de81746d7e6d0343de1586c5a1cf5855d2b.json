@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.sphere_name, s.icon_url, s.is_nsfw\n            FROM spheres s\n            JOIN sphere_subscriptions sub ON\n                s.sphere_id = sub.sphere_id AND\n                sub.user_id = $1\n            ORDER BY sphere_name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sphere_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "icon_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_nsfw",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "6501f91c5bead19ade1567f34ce32de81746d7e6d0343de1586c5a1cf5855d2b"
+}

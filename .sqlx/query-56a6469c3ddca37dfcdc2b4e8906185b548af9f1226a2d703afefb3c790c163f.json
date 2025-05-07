@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET\n                is_nsfw = $1,\n                show_nsfw = $2,\n                days_hide_spoiler = $3\n            WHERE user_id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Bool",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "56a6469c3ddca37dfcdc2b4e8906185b548af9f1226a2d703afefb3c790c163f"
+}

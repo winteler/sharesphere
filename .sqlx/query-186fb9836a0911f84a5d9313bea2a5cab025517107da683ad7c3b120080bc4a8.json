@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE votes SET value = $1\n                        WHERE vote_id = $2 AND\n                              post_id = $3 AND\n                              comment_id IS NOT DISTINCT FROM $4 AND\n                              user_id = $5\n                        RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "vote_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "post_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "comment_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "value",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "186fb9836a0911f84a5d9313bea2a5cab025517107da683ad7c3b120080bc4a8"
+}

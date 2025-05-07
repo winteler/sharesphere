@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE comments set score = score + $1, score_minus = score_minus + $2 where comment_id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ee87fbdfc158c05b418accd2d1fe12a611189006df89cb9657a1aa6ff55b5a5"
+}

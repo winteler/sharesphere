@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sphere_name, icon_url, is_nsfw\n            FROM spheres\n            where NOT is_nsfw\n            ORDER BY num_members DESC, sphere_name LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sphere_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "icon_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_nsfw",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b4ee30640153db872b4e6704f62f4eb4bb1722efadfa699e743bac8ef7befbde"
+}

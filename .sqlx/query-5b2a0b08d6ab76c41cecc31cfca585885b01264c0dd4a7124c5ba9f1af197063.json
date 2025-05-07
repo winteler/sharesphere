@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM satellites\n            WHERE satellite_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "satellite_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "satellite_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "sphere_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "sphere_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "markdown_body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_spoiler",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "num_posts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "creator_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "disable_timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "5b2a0b08d6ab76c41cecc31cfca585885b01264c0dd4a7124c5ba9f1af197063"
+}

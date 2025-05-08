@@ -14,8 +14,7 @@ use leptos_use::on_click_outside;
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::error_template::ErrorTemplate;
-use crate::errors::{AppError};
+use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
@@ -665,10 +664,9 @@ pub fn LoadIndicators(
     view! {
         <Show when=move || load_error.read().is_some()>
         {
-            let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(load_error.get().unwrap());
+            let error = load_error.get_untracked().unwrap();
             view! {
-                <li><div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div></li>
+                <li><div class="flex justify-start py-4"><ErrorDisplay error/></div></li>
             }
         }
         </Show>

@@ -6,7 +6,7 @@ use leptos_router::hooks::use_query_map;
 use leptos_use::{breakpoints_tailwind, use_breakpoints};
 use leptos_use::BreakpointsTailwind::Xxl;
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
-use sharesphere_utils::error_template::ErrorTemplate;
+use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use sharesphere_utils::routes::{get_comment_link, get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
@@ -124,11 +124,10 @@ pub fn CommentTreeVec(
         </div>
         <Show when=move || load_error.read().is_some()>
         {
-            let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(load_error.get().unwrap());
+            let error = load_error.get().unwrap();
             view! {
-                <div class="flex justify-start py-4"><ErrorTemplate outside_errors/></div>
-            }.into_any()
+                <div class="flex justify-start py-4"><ErrorDisplay error/></div>
+            }
         }
         </Show>
         <Show when=is_loading>

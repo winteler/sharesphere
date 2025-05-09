@@ -75,7 +75,7 @@ pub fn SphereCockpit() -> impl IntoView {
             <SphereRulesPanel/>
             <BanPanel/>
         </div>
-    }.into_any()
+    }
 }
 
 /// Component to edit a sphere's description

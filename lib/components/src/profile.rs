@@ -285,7 +285,7 @@ pub fn UserAccountButton() -> impl IntoView {
                 "Account"
             </button>
         </ActionForm>
-    }.into_any()
+    }
 }
 
 /// Component to display a user header and redirect to his profile upon click

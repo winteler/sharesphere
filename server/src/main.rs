@@ -15,6 +15,7 @@ use axum::{
 use axum_session::{Key, SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer};
 use axum_session_sqlx::SessionPgPool;
+use base64::{Engine, engine::general_purpose};
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
@@ -42,7 +43,7 @@ pub fn get_session_key() -> Key {
     match env::var(SESSION_KEY_ENV) {
         Ok(key) => {
             log::debug!("Got session key from env variable.");
-            Key::from(&key.into_bytes())
+            Key::from(&general_purpose::STANDARD.decode(key).expect("Failed to decode session key"))
         },
         Err(_) => {
             log::info!("Could not find session key in env variable, generate one.");
@@ -55,7 +56,7 @@ pub fn get_session_db_key() -> Key {
     match env::var(SESSION_DB_KEY_ENV) {
         Ok(key) => {
             log::debug!("Got session db key from env variable.");
-            Key::from(&key.into_bytes())
+            Key::from(&general_purpose::STANDARD.decode(key).expect("Failed to decode session db key"))
         },
         Err(_) => {
             log::info!("Could not find session db key in env variable, generate one.");
@@ -170,7 +171,9 @@ async fn main() {
         .with_database_key(get_session_db_key());
 
     let auth_config = AuthConfig::<i64>::default();
-    let session_store = SessionStore::<SessionPgPool>::new(Some(pool.clone().into()), session_config).await.unwrap();
+    let session_store = SessionStore::<SessionPgPool>::new(
+        Some(pool.clone().into()), session_config
+    ).await.unwrap();
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:

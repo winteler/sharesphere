@@ -3580,6 +3580,7 @@ dependencies = [
  "axum_session",
  "axum_session_auth",
  "axum_session_sqlx",
+ "base64 0.22.1",
  "leptos",
  "leptos_axum",
  "log",

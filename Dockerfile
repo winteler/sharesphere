@@ -15,13 +15,13 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y libssl3 ca-certificates && apt-get clean
 
 # Copy binary from builder
-COPY --from=builder /sharesphere/target/release/server /usr/local/bin/server
+COPY --from=builder /sharesphere/target/release/server /usr/local/bin/sharesphere
 COPY --from=builder /sharesphere/target/site /usr/local/bin/site
 
-ENV LEPTOS_OUTPUT_NAME="server"
+ENV LEPTOS_OUTPUT_NAME="sharesphere"
 ENV LEPTOS_SITE_ROOT="site"
 ENV LEPTOS_SITE_PKG_DIR="pkg"
-ENV LEPTOS_SITE_ADDR="127.0.0.1:3000"
+ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
 
 EXPOSE 3000
-ENTRYPOINT ["server"]
+ENTRYPOINT ["sharesphere"]

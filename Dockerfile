@@ -19,7 +19,7 @@ COPY --from=builder /sharesphere/target/release/server /usr/local/bin/sharespher
 COPY --from=builder /sharesphere/target/site /usr/local/bin/site
 
 ENV LEPTOS_OUTPUT_NAME="sharesphere"
-ENV LEPTOS_SITE_ROOT="site"
+ENV LEPTOS_SITE_ROOT="/usr/local/bin/site"
 ENV LEPTOS_SITE_PKG_DIR="pkg"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
 

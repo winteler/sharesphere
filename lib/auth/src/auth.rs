@@ -404,20 +404,24 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), AppError> {
         .get(REDIRECT_URL_KEY)
         .unwrap_or(String::from(SITE_ROOT));
 
-    let http_client = get_oidc_http_client()?;
-    let client = ssr::get_oidc_client(&http_client).await?;
+    if let Some(user) = auth_session.current_user {
+        log::info!("User {} was already authenticated", user.username);
+    } else {
+        let http_client = get_oidc_http_client()?;
+        let client = ssr::get_oidc_client(&http_client).await?;
 
-    // Now you can exchange it for an access token and ID token.
-    let token_response = client
-        .exchange_code(oidc::AuthorizationCode::new(auth_code))
-        .map_err(AppError::from)?
-        .request_async(&http_client)
-        .await
-        .map_err(AppError::from)?;
+        // Now you can exchange it for an access token and ID token.
+        let token_response = client
+            .exchange_code(oidc::AuthorizationCode::new(auth_code))
+            .map_err(AppError::from)?
+            .request_async(&http_client)
+            .await
+            .map_err(AppError::from)?;
 
-    let sql_user = ssr::process_oidc_token_response(token_response, auth_session.clone(), client).await?;
-    auth_session.login_user(sql_user.user_id);
-    auth_session.remember_user(true);
+        let sql_user = ssr::process_oidc_token_response(token_response, auth_session.clone(), client).await?;
+        auth_session.login_user(sql_user.user_id);
+        auth_session.remember_user(true);
+    }
 
     leptos_axum::redirect(redirect_url.as_ref());
     Ok(())
@@ -567,7 +571,7 @@ fn LoginButton<
 #[component]
 pub fn AuthCallback() -> impl IntoView {
     let query = use_query_map();
-    let code = move || query.read_untracked().get("code").unwrap().to_string();
+    let code = move || query.read_untracked().get("code").unwrap_or_default().to_string();
     let auth_resource = Resource::new_blocking(
         || (),
         move |_| {

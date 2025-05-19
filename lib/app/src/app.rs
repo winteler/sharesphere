@@ -195,9 +195,7 @@ pub fn App() -> impl IntoView {
 fn LoginGuardHome() -> impl IntoView {
     view! {
         <LoginGuard/>
-        <div class="max-2xl:hidden">
-            <HomeSidebar/>
-        </div>
+        <HomeSidebar/>
     }
 }
 

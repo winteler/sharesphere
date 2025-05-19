@@ -92,9 +92,7 @@ pub fn UserProfile() -> impl IntoView {
                 </Transition>
             </div>
         </div>
-        <div class="max-2xl:hidden">
-            <HomeSidebar/>
-        </div>
+        <HomeSidebar/>
     }
 }
 

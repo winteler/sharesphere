@@ -84,9 +84,7 @@ pub fn Search() -> impl IntoView
                 />
             </div>
         </div>
-        <div class="max-2xl:hidden">
-            <HomeSidebar/>
-        </div>
+        <HomeSidebar/>
     }
 }
 

@@ -62,6 +62,7 @@ pub fn LoggedInMenu(
     view! {
         <DropdownButton
             button_class="button-rounded-ghost"
+            activated_button_class="button-navbar-activated"
             button_content=move || view! { <UserIcon/> }
             align_right=true
         >
@@ -89,6 +90,7 @@ pub fn PlusMenu() -> impl IntoView {
     view! {
         <DropdownButton
             button_class="button-rounded-ghost"
+            activated_button_class="button-navbar-activated"
             button_content=move || view! { <PlusIcon class="navbar-icon-size"/> }
             align_right=true
         >

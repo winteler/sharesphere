@@ -90,12 +90,14 @@ pub fn SuspenseUnpack<
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
     resource: Resource<Result<T, AppError>>,
+    #[prop(into, default = Box::new(|| view! { <LoadingIcon/> }.into_any()).into())]
+    fallback: ViewFnOnce,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
 
     view! {
-        <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+        <Suspense fallback>
         {
             move || Suspend::new(async move {
                 unpack_resource(resource, children).await
@@ -112,12 +114,14 @@ pub fn TransitionUnpack<
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
     resource: Resource<Result<T, AppError>>,
+    #[prop(into, default = Box::new(|| view! { <LoadingIcon/> }.into_any()).into())]
+    fallback: ViewFnOnce,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
 
     view! {
-        <Transition fallback=move || view! { <LoadingIcon/> }.into_any()>
+        <Transition fallback>
         {
             move || Suspend::new(async move {
                 unpack_resource(resource, children).await

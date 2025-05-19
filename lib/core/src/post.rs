@@ -1026,7 +1026,7 @@ pub fn PostListWithInitLoad(
             }
             node_ref=list_ref
         >
-            <SuspenseUnpack resource=post_vec_resource let:post_vec>
+            <SuspenseUnpack resource=post_vec_resource fallback= move || ().into_any() let:post_vec>
                 <PostMiniatureList post_vec=post_vec.clone() show_sphere_header/>
             </SuspenseUnpack>
             <PostMiniatureList post_vec=additional_post_vec show_sphere_header/>

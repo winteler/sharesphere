@@ -274,7 +274,6 @@ pub mod ssr {
 #[server]
 pub async fn is_sphere_available(sphere_name: String) -> Result<bool, AppError> {
     let db_pool = get_db_pool()?;
-    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
     let sphere_existence = ssr::is_sphere_available(&sphere_name, &db_pool).await?;
     Ok(sphere_existence)
 }

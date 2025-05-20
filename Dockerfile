@@ -12,7 +12,7 @@ RUN cargo leptos build --release --precompress
 FROM debian:bookworm-slim
 
 # Install any needed runtime libs
-RUN apt-get update && apt-get install -y libssl3 ca-certificates && apt-get clean
+RUN apt-get update && apt-get install -y --no-install-recommends libssl3 ca-certificates rsync && apt-get clean
 
 # Copy binary from builder
 COPY --from=builder /sharesphere/target/release/server /usr/local/bin/sharesphere

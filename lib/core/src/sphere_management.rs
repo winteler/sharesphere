@@ -1,3 +1,4 @@
+use std::env;
 use leptos::prelude::*;
 use server_fn::codec::{MultipartData, MultipartFormData};
 use sharesphere_auth::user::UserBan;
@@ -11,7 +12,7 @@ use {
     },
 };
 
-pub const ASSET_FOLDER: &str = "./public/";
+pub const LEPTOS_SITE_ROOT_ENV: &str = "LEPTOS_SITE_ROOT";
 pub const ICON_FOLDER: &str = "icons/";
 pub const BANNER_FOLDER: &str = "banners/";
 
@@ -231,7 +232,7 @@ pub async fn set_sphere_icon(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, icon_file_name) = ssr::store_sphere_image(ASSET_FOLDER, ICON_FOLDER, data, &user).await?;
+    let (sphere_name, icon_file_name) = ssr::store_sphere_image(&env::var(LEPTOS_SITE_ROOT_ENV)?, ICON_FOLDER, data, &user).await?;
     let icon_url = icon_file_name.map(|icon_file_name| format!("/{ICON_FOLDER}{icon_file_name}"));
     ssr::set_sphere_icon_url(&sphere_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
     Ok(())
@@ -244,7 +245,7 @@ pub async fn set_sphere_banner(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, banner_file_name) = ssr::store_sphere_image(ASSET_FOLDER, BANNER_FOLDER, data, &user).await?;
+    let (sphere_name, banner_file_name) = ssr::store_sphere_image(&env::var(LEPTOS_SITE_ROOT_ENV)?, BANNER_FOLDER, data, &user).await?;
     let banner_url = banner_file_name.map(|banner_file_name| format!("/{BANNER_FOLDER}{banner_file_name}"));
     ssr::set_sphere_banner_url(&sphere_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())

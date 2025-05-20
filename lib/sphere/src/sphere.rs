@@ -242,7 +242,7 @@ pub fn SphereToolbar<'a>(
             </div>
             <div class="flex items-center w-fit gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
-                    <A href=manage_path attr:class="button-rounded-ghost">
+                    <A href=manage_path attr:class="button-rounded-ghost tooltip" attr:data-tip="Manage">
                         <SettingsIcon class="sphere-toolbar-icon-size"/>
                     </A>
                 </AuthorizedShow>
@@ -307,7 +307,7 @@ pub fn SphereSearchButton() -> impl IntoView
     let sphere_state = expect_context::<SphereState>();
     let route = move || format!("{}{}", get_sphere_path(sphere_state.sphere_name.read_untracked().as_str()), SEARCH_ROUTE);
     view! {
-        <a href=route class="button-rounded-ghost">
+        <a href=route class="button-rounded-ghost tooltip" data-tip="Search">
             <MagnifierIcon class="sphere-toolbar-icon-size"/>
         </a>
     }

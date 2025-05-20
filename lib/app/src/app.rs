@@ -242,8 +242,8 @@ fn HomePage() -> impl IntoView {
                 </div>
             </div>
             <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
-                <PostSortWidget sort_signal=state.post_sort_type/>
-                <RefreshButton refresh_count/>
+                <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
+                <RefreshButton refresh_count is_tooltip_bottom=true/>
             </div>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {

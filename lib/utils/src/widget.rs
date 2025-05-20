@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 use std::str::FromStr;
+use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
@@ -516,10 +517,18 @@ pub fn MinimizeMaximizeWidget(
 pub fn RefreshButton(
     /// signal counting the number of reloads
     refresh_count: RwSignal<usize>,
+    #[prop(optional)]
+    is_tooltip_bottom: bool,
 ) -> impl IntoView {
+    const BASE_CLASS: &str = "button-rounded-ghost w-fit tooltip";
+    let button_class = match is_tooltip_bottom {
+        true => concatcp!(BASE_CLASS, " tooltip-bottom"),
+        false => BASE_CLASS,
+    };
     view! {
         <button
-            class="button-rounded-ghost w-fit"
+            class=button_class
+            data-tip="Refresh"
             on:click=move |_| refresh_count.update(|count| *count += 1)
         >
             <RefreshIcon/>

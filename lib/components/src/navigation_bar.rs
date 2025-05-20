@@ -66,12 +66,14 @@ pub fn LoggedInMenu(
             button_content=move || view! { <UserIcon/> }
             align_right=true
         >
-            <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm w-fit flex flex-col">
-                <li class="w-full button-ghost-sm"><a href=get_profile_path(&username)>"Profile"</a></li>
-                <li class="w-full button-ghost-sm">
+            <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col">
+                <li>
+                    <a href=get_profile_path(&username) class="button-ghost-sm block w-full">"Profile"</a>
+                </li>
+                <li>
                     <ActionForm action=state.logout_action attr:class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=current_url/>
-                        <button type="submit" class="text-left" on:click=move |_| get_current_url(current_url)>
+                        <button type="submit" class="button-ghost-sm text-left w-full" on:click=move |_| get_current_url(current_url)>
                             "Logout"
                         </button>
                     </ActionForm>

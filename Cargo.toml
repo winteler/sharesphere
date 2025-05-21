@@ -26,7 +26,7 @@ leptos_router = { version = "0.8.2", features = ["nightly"] }
 leptos_axum = { version = "0.8.2" }
 server_fn = { version = "0.8.2", features = ["multipart"] }
 
-leptos-use = { version = "0.16.0-beta", features = ["use_breakpoints", "use_clipboard"] }
+leptos-use = { version = "0.16.0-beta2", features = ["use_breakpoints", "use_clipboard"] }
 
 anyhow = "*"
 axum = {  version = "0.8.4", features = [ "macros" ] }
@@ -44,13 +44,13 @@ reqwest = { version = "0.12.15", features = ["json"] }
 serde = { version = "*", features = ["derive"] }
 serde_json = "1.0.140"
 simple_logger = "5.0.0"
-sqlx = { version = "0.8.5", features = [ "chrono", "postgres", "runtime-tokio", "tls-rustls" ] }
+sqlx = { version = "0.8.6", features = [ "chrono", "postgres", "runtime-tokio", "tls-rustls" ] }
 strum = "0.27.1"
 strum_macros = "0.27.1"
 thiserror = "2.0.12"
-tokio = { version = "1.44.2", features = ["rt-multi-thread"] }
+tokio = { version = "1.45.0", features = ["rt-multi-thread"] }
 tower = { version = "0.5.2", features = ["util"] }
-tower-http = { version = "0.6.2", features = ["fs"] }
+tower-http = { version = "0.6.4", features = ["fs"] }
 wasm-bindgen = "=0.2.100"
 web-sys = "0.3.77"
 

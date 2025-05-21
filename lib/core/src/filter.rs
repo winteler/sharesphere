@@ -69,7 +69,7 @@ pub fn PostFiltersButton() -> impl IntoView {
                 </button>
             </div>
             <Dropdown show_dropdown>
-                <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
+                <div class="bg-base-200 shadow-xl my-1 p-3 rounded-xs flex flex-col gap-3">
                     <div class="text-center font-bold text-2xl">"Post filters"</div>
                     <SphereCategoryFilter/>
                 </div>

@@ -16,7 +16,7 @@ use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::errors::{AppError, ErrorDisplay};
-use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -684,6 +684,30 @@ pub fn LoadIndicators(
         </Show>
     }
 }
+
+/// Component to display the content of a banner
+#[component]
+pub fn BannerContent(
+    #[prop(into)]
+    title: String,
+    icon_url: Option<String>,
+    banner_url: Option<String>,
+) -> impl IntoView {
+    view! {
+        <img
+            src=banner_url.unwrap_or(String::from("/banner.jpg"))
+            class="w-full h-full object-cover object-left"
+            alt="Sphere banner"
+        />
+        <div class="absolute inset-0 flex items-center justify-center">
+            <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
+                <SphereIcon icon_url class="h-8 w-8 2xl:h-12 2xl:w-12"/>
+                <span class="text-2xl 2xl:text-4xl">{title}</span>
+            </div>
+        </div>
+    }.into_any()
+}
+
 
 fn get_elapsed_time_string(
     timestamp: chrono::DateTime<chrono::Utc>,

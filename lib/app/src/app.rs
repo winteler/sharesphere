@@ -25,7 +25,7 @@ use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, Satell
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
 use sharesphere_utils::node_utils::is_fully_scrolled;
-use sharesphere_utils::widget::RefreshButton;
+use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -233,13 +233,8 @@ fn HomePage() -> impl IntoView {
             }
             node_ref=div_ref
         >
-            <div
-                class="flex-none bg-cover bg-left bg-no-repeat bg-[url('/banner.jpg')] rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center"
-            >
-                <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
-                    <LogoIcon class="h-8 w-8 2xl:h-12 2xl:w-12"/>
-                    <span class="text-2xl 2xl:text-4xl select-none">"ShareSphere"</span>
-                </div>
+            <div class="relative flex-none rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center">
+                <BannerContent title="ShareSphere" icon_url=None banner_url=None/>
             </div>
             <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
                 <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>

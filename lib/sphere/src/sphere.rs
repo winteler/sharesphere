@@ -7,7 +7,7 @@ use leptos_use::{signal_debounced};
 
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::icons::{InternalErrorIcon, LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SphereIcon, SubscribedIcon};
+use sharesphere_utils::icons::{InternalErrorIcon, LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
 
@@ -24,7 +24,7 @@ use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
 use sharesphere_core::sphere::{get_sphere_by_name, get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_utils::widget::RefreshButton;
+use sharesphere_utils::widget::{BannerContent, RefreshButton};
 use crate::satellite::{ActiveSatelliteList};
 use crate::sphere_category::{get_sphere_category_header_map};
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
@@ -122,17 +122,7 @@ pub fn SphereBanner() -> impl IntoView {
                         href=sphere_path()
                         class="relative flex-none rounded-sm w-full h-16 2xl:h-32 flex items-center justify-center"
                     >
-                        <img
-                            src=sphere.banner_url.clone().unwrap_or(String::from("/banner.jpg"))
-                            class="w-full h-full object-cover object-left"
-                            alt="Sphere banner"
-                        />
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
-                                <SphereIcon icon_url=sphere.icon_url.clone() class="h-8 w-8 2xl:h-12 2xl:w-12"/>
-                                <span class="text-2xl 2xl:text-4xl">{sphere_state.sphere_name.get()}</span>
-                            </div>
-                        </div>
+                        <BannerContent title=sphere.sphere_name.clone() icon_url=sphere.icon_url.clone() banner_url=sphere.banner_url.clone()/>
                     </a>
                 }.into_any()
             }

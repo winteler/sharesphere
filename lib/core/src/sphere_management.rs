@@ -18,6 +18,7 @@ pub const BANNER_FOLDER: &str = "banners/";
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use std::path::Path;
     use http::StatusCode;
     use leptos::prelude::use_context;
     use leptos_axum::ResponseOptions;
@@ -124,7 +125,9 @@ pub mod ssr {
             return Ok((sphere_name, None))
         }
 
-        let temp_file_path = format!("/tmp/image_{}", Uuid::new_v4());
+        let directory = Path::new(store_path).join(image_category);
+        tokio::fs::create_dir_all(&directory).await?;
+        let temp_file_path = directory.join(format!("image_{}", Uuid::new_v4()));
 
         let mut file = File::create(&temp_file_path).await?;
         let mut total_size = 0;
@@ -152,12 +155,11 @@ pub mod ssr {
             Err(e) => Err(AppError::from(e)),
         }?;
 
-        let image_path = format!("{}{}{}.{}", store_path, image_category, sphere_name.clone(), file_extension);
+        let file_name = format!("{}.{}", sphere_name, file_extension);
+        let image_path = directory.join(&file_name);
 
-        // TODO create folder?
         // TODO delete previous file? Here or somewhere else?
         rename(&temp_file_path, &image_path).await?;
-        let file_name = format!("{}.{}", sphere_name, file_extension);
         Ok((sphere_name, Some(file_name)))
     }
 

@@ -16,9 +16,5 @@ playwright/.cache/
 .env
 env.sh
 
-# ignore icon and banner files
-public/banners/
-public/icons/
-
 # RustRover
 .idea/

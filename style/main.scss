@@ -2661,9 +2661,6 @@
   .bg-\[url\(\'\/banner\.jpg\'\)\] {
     background-image: url('/banner.jpg');
   }
-  .bg-\[url\(\'\{\}\'\)\] {
-    background-image: url('{}');
-  }
   .bg-cover {
     background-size: cover;
   }
@@ -2675,6 +2672,12 @@
   }
   .object-contain {
     object-fit: contain;
+  }
+  .object-cover {
+    object-fit: cover;
+  }
+  .object-left {
+    object-position: left;
   }
   .p-0 {
     padding: calc(var(--spacing) * 0);

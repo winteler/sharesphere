@@ -12,16 +12,17 @@ use {
     },
 };
 
-pub const LEPTOS_SITE_ROOT_ENV: &str = "LEPTOS_SITE_ROOT";
-pub const ICON_FOLDER: &str = "icons/";
-pub const BANNER_FOLDER: &str = "banners/";
+pub const ICONS_BUCKET: &str = "sharesphere-icons";
+pub const BANNERS_BUCKET: &str = "sharesphere-banners";
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::path::Path;
     use http::StatusCode;
     use leptos::prelude::use_context;
     use leptos_axum::ResponseOptions;
+    use object_store::aws::{AmazonS3, AmazonS3Builder};
+    use object_store::ObjectStore;
+    use object_store::path::Path;
     use server_fn::codec::MultipartData;
     use sqlx::types::Uuid;
     use sqlx::PgPool;
@@ -95,8 +96,7 @@ pub mod ssr {
     /// Returns an error if the sphere name or file cannot be found, if the file does not contain a valid image file or
     /// if directories in the path <store_path><image_category> do not exist.
     pub async fn store_sphere_image(
-        store_path: &str,
-        image_category: &str,
+        bucket_name: &str,
         data: MultipartData,
         user: &User,
     ) -> Result<(String, Option<String>), AppError> {
@@ -125,9 +125,7 @@ pub mod ssr {
             return Ok((sphere_name, None))
         }
 
-        let directory = Path::new(store_path).join(image_category);
-        tokio::fs::create_dir_all(&directory).await?;
-        let temp_file_path = directory.join(format!("image_{}", Uuid::new_v4()));
+        let temp_file_path = format!("/tmp/image_{}", Uuid::new_v4());
 
         let mut file = File::create(&temp_file_path).await?;
         let mut total_size = 0;
@@ -155,12 +153,19 @@ pub mod ssr {
             Err(e) => Err(AppError::from(e)),
         }?;
 
-        let file_name = format!("{}.{}", sphere_name, file_extension);
-        let image_path = directory.join(&file_name);
+
+        let store: AmazonS3 = AmazonS3Builder::from_env()
+            .with_bucket_name(bucket_name)
+            .build()
+            .map_err(|e| AppError::from(e))?;
+
+        let file_name = &format!("{}.{}", sphere_name, file_extension);
+        let mut file = File::open(&temp_file_path).await?;
+        let file_path = Path::parse(&file_name).map_err(|e| AppError::from(e))?;
+        let put_result = store.put(&file_path, file.into()).await.map_err(|e| AppError::from(e))?;
 
         // TODO delete previous file? Here or somewhere else?
-        rename(&temp_file_path, &image_path).await?;
-        Ok((sphere_name, Some(file_name)))
+        Ok((sphere_name, put_result.e_tag))
     }
 
     pub async fn set_sphere_icon_url(
@@ -234,7 +239,7 @@ pub async fn set_sphere_icon(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, icon_file_name) = ssr::store_sphere_image(&env::var(LEPTOS_SITE_ROOT_ENV)?, ICON_FOLDER, data, &user).await?;
+    let (sphere_name, icon_file_name) = ssr::store_sphere_image(ICONS_BUCKET, data, &user).await?;
     let icon_url = icon_file_name.map(|icon_file_name| format!("/{ICON_FOLDER}{icon_file_name}"));
     ssr::set_sphere_icon_url(&sphere_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
     Ok(())
@@ -247,7 +252,7 @@ pub async fn set_sphere_banner(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, banner_file_name) = ssr::store_sphere_image(&env::var(LEPTOS_SITE_ROOT_ENV)?, BANNER_FOLDER, data, &user).await?;
+    let (sphere_name, banner_file_name) = ssr::store_sphere_image(BANNERS_BUCKET, data, &user).await?;
     let banner_url = banner_file_name.map(|banner_file_name| format!("/{BANNER_FOLDER}{banner_file_name}"));
     ssr::set_sphere_banner_url(&sphere_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())

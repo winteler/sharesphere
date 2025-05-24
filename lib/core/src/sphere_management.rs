@@ -12,21 +12,22 @@ use {
     },
 };
 
-pub const ICONS_BUCKET: &str = "sharesphere-icons";
-pub const BANNERS_BUCKET: &str = "sharesphere-banners";
+pub const OBJECT_CONTAINER_ENV: &str = "OBJECT_CONTAINER";
+pub const ICON_BUCKET_ENV: &str = "ICON_BUCKET";
+pub const BANNER_BUCKET_ENV: &str = "BANNER_BUCKET";
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use std::env;
     use http::StatusCode;
     use leptos::prelude::use_context;
     use leptos_axum::ResponseOptions;
     use object_store::aws::{AmazonS3, AmazonS3Builder};
-    use object_store::ObjectStore;
-    use object_store::path::Path;
+    use object_store::{ObjectStore, PutPayload};
     use server_fn::codec::MultipartData;
     use sqlx::types::Uuid;
     use sqlx::PgPool;
-    use tokio::fs::{rename, File};
+    use tokio::fs::{File};
     use tokio::io::AsyncWriteExt;
 
     use sharesphere_utils::constants::IMAGE_TYPE;
@@ -35,6 +36,7 @@ pub mod ssr {
 
     use sharesphere_auth::role::{AdminRole, PermissionLevel};
     use sharesphere_auth::user::{User, UserBan};
+    use crate::sphere_management::OBJECT_CONTAINER_ENV;
 
     pub const MAX_IMAGE_MB_SIZE: usize = 5; // 5 MB
     pub const MAX_IMAGE_SIZE: usize = MAX_IMAGE_MB_SIZE * 1024 * 1024; // 5 MB in bytes
@@ -157,15 +159,19 @@ pub mod ssr {
         let store: AmazonS3 = AmazonS3Builder::from_env()
             .with_bucket_name(bucket_name)
             .build()
-            .map_err(|e| AppError::from(e))?;
+            .map_err(|e| AppError::new(format!("Error while building object store: {e}")))?;
 
-        let file_name = &format!("{}.{}", sphere_name, file_extension);
+        let file_name = format!("{}.{}", sphere_name, file_extension);
         let mut file = File::open(&temp_file_path).await?;
-        let file_path = Path::parse(&file_name).map_err(|e| AppError::from(e))?;
-        let put_result = store.put(&file_path, file.into()).await.map_err(|e| AppError::from(e))?;
+        let file_path = object_store::path::Path::parse(&file_name)
+            .map_err(|e| AppError::new(format!("Error while writing to object store: {e}")))?;
+        store.put(&file_path, PutPayload(file.into())).await.map_err(|e| AppError::new(format!("Error while building object store: {e}")))?;
 
+        let url = std::path::Path::new(&env::var(OBJECT_CONTAINER_ENV)?)
+            .join(bucket_name)
+            .join(file_name);
         // TODO delete previous file? Here or somewhere else?
-        Ok((sphere_name, put_result.e_tag))
+        Ok((sphere_name, Some(url.to_string_lossy().to_string())))
     }
 
     pub async fn set_sphere_icon_url(
@@ -239,8 +245,7 @@ pub async fn set_sphere_icon(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, icon_file_name) = ssr::store_sphere_image(ICONS_BUCKET, data, &user).await?;
-    let icon_url = icon_file_name.map(|icon_file_name| format!("/{ICON_FOLDER}{icon_file_name}"));
+    let (sphere_name, icon_url) = ssr::store_sphere_image(&env::var(ICON_BUCKET_ENV)?, data, &user).await?;
     ssr::set_sphere_icon_url(&sphere_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
@@ -252,8 +257,7 @@ pub async fn set_sphere_banner(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, banner_file_name) = ssr::store_sphere_image(BANNERS_BUCKET, data, &user).await?;
-    let banner_url = banner_file_name.map(|banner_file_name| format!("/{BANNER_FOLDER}{banner_file_name}"));
+    let (sphere_name, banner_url) = ssr::store_sphere_image(&env::var(BANNER_BUCKET_ENV)?, data, &user).await?;
     ssr::set_sphere_banner_url(&sphere_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }

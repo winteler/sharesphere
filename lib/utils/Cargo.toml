@@ -25,6 +25,7 @@ strum.workspace = true
 strum_macros.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, optional = true }
+url.workspace = true
 web-sys.workspace = true
 
 async-trait = { version = "*", optional = true }
@@ -37,7 +38,6 @@ markdown = { version = "1.0.0-alpha.20", optional = true }
 mime_guess = "2.0.5"
 quick-xml = { version = "0.37.1", optional = true }
 send_wrapper = { version = "0.6.0", features = ["futures"] }
-url = "*"
 
 [dev-dependencies]
 indoc = "2.0.5"

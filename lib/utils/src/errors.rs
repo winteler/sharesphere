@@ -75,7 +75,7 @@ impl AppError {
             AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
             AppError::InternalServerError(_) => String::from(INTERNAL_ERROR_MESSAGE),
             AppError::NotFound => String::from(NOT_FOUND_MESSAGE),
-            AppError::PayloadTooLarge(mb_limit) => format!("Payload exceeds the {mb_limit} MB limit."),
+            AppError::PayloadTooLarge(mb_limit) => format!("Payload exceeds the {mb_limit} Bytes limit."),
         }
     }
 

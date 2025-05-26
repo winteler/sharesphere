@@ -11,7 +11,7 @@ use {
         session::ssr::get_db_pool,
     },
     ssr::{
-        MAX_BANNER_SIZE, MAX_ICON_SIZE, SphereImageType
+        get_object_store, MAX_BANNER_SIZE, MAX_ICON_SIZE, SphereImageType
     }
 };
 
@@ -27,9 +27,6 @@ pub mod ssr {
     use server_fn::codec::MultipartData;
     use sqlx::types::Uuid;
     use sqlx::PgPool;
-    use tokio::fs;
-    use tokio::fs::{File};
-    use tokio::io::AsyncWriteExt;
     use url::Url;
 
     use sharesphere_utils::constants::IMAGE_TYPE;
@@ -136,17 +133,24 @@ pub mod ssr {
         Ok(user_ban)
     }
 
-    async fn delete_sphere_image(
+    pub fn get_object_store(image_type: SphereImageType) -> Result<AmazonS3, AppError> {
+        AmazonS3Builder::from_env()
+            .with_bucket_name(image_type.get_bucket_name()?.clone())
+            .build()
+            .map_err(|e| AppError::new(format!("Error while building object store: {e}")))
+    }
+
+    pub(crate) async fn delete_sphere_image<T: ObjectStore>(
         sphere_name: &str,
         image_type: SphereImageType,
-        store: &AmazonS3,
+        object_store: &T,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
         let sphere = get_sphere_by_name(&sphere_name, db_pool).await?;
         if let Some(current_image_url) = get_sphere_image_url(&sphere, image_type) {
             if let Ok(Some(current_image_name)) = get_file_name_from_url(current_image_url) {
                 let object_path = object_store::path::Path::from(current_image_name);
-                if let Err(e) = store.delete(&object_path).await {
+                if let Err(e) = object_store.delete(&object_path).await {
                     log::error!("Error while deleting current image: {e}");
                 };
             } else {
@@ -163,12 +167,12 @@ pub mod ssr {
     /// The image will be stored locally on the server with the following path: <store_path><image_category><file_name>.
     /// Returns an error if the sphere name or file cannot be found, if the file does not contain a valid image file or
     /// if directories in the path <store_path><image_category> do not exist.
-    pub async fn store_sphere_image(
+    pub async fn store_sphere_image<T: ObjectStore>(
         image_type: SphereImageType,
         data: MultipartData,
         max_image_size: usize,
+        object_store: &T,
         user: &User,
-        db_pool: &PgPool,
     ) -> Result<(String, Option<String>), AppError> {
         // `.into_inner()` returns the inner `multer` stream
         // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
@@ -192,21 +196,14 @@ pub mod ssr {
         user.check_permissions(&sphere_name, PermissionLevel::Manage)?;
 
         let bucket_name = image_type.get_bucket_name()?;
-        let store: AmazonS3 = AmazonS3Builder::from_env()
-            .with_bucket_name(bucket_name.clone())
-            .build()
-            .map_err(|e| AppError::new(format!("Error while building object store: {e}")))?;
 
         if file_field.file_name().unwrap_or_default().is_empty() {
-            // Clear previous image if it exists
-            delete_sphere_image(&sphere_name, image_type, &store, &db_pool).await?;
             return Ok((sphere_name, None))
         }
 
         let image_identifier = Uuid::new_v4();
-        let temp_file_path = format!("/tmp/image_{}", image_identifier);
 
-        let mut file = File::create(&temp_file_path).await?;
+        let mut input_file_buffer = Vec::<u8>::new();
         let mut total_size = 0;
         while let Ok(Some(chunk)) = file_field.chunk().await {
             total_size += chunk.len();
@@ -218,18 +215,16 @@ pub mod ssr {
                 }
                 return Err(AppError::PayloadTooLarge(max_image_size));
             }
-            file.write_all(&chunk).await?;
+            input_file_buffer.append(chunk.to_vec().as_mut());
         }
-        file.flush().await?;
 
-        let file_extension = match infer::get_from_path(temp_file_path.clone()) {
-            Ok(Some(file_type)) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(file_type.extension()),
-            Ok(Some(file_type)) => {
+        let file_extension = match infer::get(&input_file_buffer) {
+            Some(file_type) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(file_type.extension()),
+            Some(file_type) => {
                 log::info!("Invalid file type: {}, extension: {}", file_type.mime_type(), file_type.extension());
                 Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR))
             },
-            Ok(None) => Err(AppError::new(BANNER_FILE_INFER_ERROR_STR)),
-            Err(e) => Err(AppError::from(e)),
+            None => Err(AppError::new(BANNER_FILE_INFER_ERROR_STR)),
         }?;
 
         // TODO compress image if needed?
@@ -239,16 +234,10 @@ pub mod ssr {
             .join(bucket_name)
             .join(&file_name);
 
-        // Clear previous image if it exists
-        delete_sphere_image(&sphere_name, image_type, &store, &db_pool).await?;
-
-        let file = fs::read(&temp_file_path).await?;
-        store.put(
+        object_store.put(
             &object_store::path::Path::from(file_name),
-            PutPayload::from_bytes(file.into())
+            PutPayload::from_bytes(input_file_buffer.into())
         ).await.map_err(|e| AppError::new(format!("Error while uploading to object store: {e}")))?;
-
-        fs::remove_file(temp_file_path).await?;
 
         Ok((sphere_name, Some(file_url.to_string_lossy().to_string())))
     }
@@ -324,7 +313,11 @@ pub async fn set_sphere_icon(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, icon_url) = ssr::store_sphere_image(SphereImageType::ICON, data, MAX_ICON_SIZE, &user, &db_pool).await?;
+    let image_type = SphereImageType::ICON;
+    let object_store = ssr::get_object_store(image_type)?;
+    let (sphere_name, icon_url) = ssr::store_sphere_image(SphereImageType::ICON, data, MAX_ICON_SIZE, &object_store, &user).await?;
+    // Clear previous image if it exists
+    ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await?;
     ssr::set_sphere_icon_url(&sphere_name.clone(), icon_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }
@@ -336,7 +329,11 @@ pub async fn set_sphere_banner(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (sphere_name, banner_url) = ssr::store_sphere_image(SphereImageType::BANNER, data, MAX_BANNER_SIZE, &user, &db_pool).await?;
+    let image_type = SphereImageType::BANNER;
+    let object_store = get_object_store(image_type)?;
+    let (sphere_name, banner_url) = ssr::store_sphere_image(SphereImageType::BANNER, data, MAX_BANNER_SIZE, &object_store, &user).await?;
+    // Clear previous image if it exists
+    ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await?;
     ssr::set_sphere_banner_url(&sphere_name.clone(), banner_url.as_deref(), &user, &db_pool).await?;
     Ok(())
 }

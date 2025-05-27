@@ -1,6 +1,7 @@
 use chrono::Days;
 use std::ops::Add;
-
+use object_store::memory::InMemory;
+use object_store::ObjectStore;
 use crate::common::*;
 use crate::data_factory::{create_sphere_with_post, create_sphere_with_post_and_comment};
 use crate::utils::*;
@@ -8,7 +9,7 @@ use sharesphere_core::comment::ssr::create_comment;
 use sharesphere_core::moderation::ssr::moderate_comment;
 use sharesphere_core::post::ssr::create_post;
 use sharesphere_core::sphere::ssr::{create_sphere, get_sphere_by_name};
-use sharesphere_core::sphere_management::ssr::{get_sphere_ban_vec, remove_user_ban, set_sphere_banner_url, set_sphere_icon_url, store_sphere_image};
+use sharesphere_core::sphere_management::ssr::{delete_sphere_image, get_sphere_ban_vec, remove_user_ban, set_sphere_banner_url, set_sphere_icon_url, store_sphere_image, SphereImageType, MAX_ICON_SIZE};
 use sharesphere_core::sphere_management::ssr::{BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_SPHERE_STR};
 use sharesphere_auth::role::ssr::{is_user_sphere_moderator, set_user_admin_role};
 use sharesphere_auth::role::AdminRole;
@@ -300,60 +301,86 @@ async fn test_is_user_sphere_moderator() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_store_sphere_image() -> Result<(), AppError> {
+async fn test_delete_sphere_image() {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
-    let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await?;
-    let store_path = "/tmp/";
-    let image_category = "test_";
+    let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await.expect("Should create sphere");
+    let object_store = InMemory::new();
+    // reload user to have updated permissions
+    let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
+
+    let (sphere_name, image_file_name) = store_sphere_image(
+        get_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+        MAX_ICON_SIZE,
+        &object_store,
+        &user,
+    ).await.expect("Should store image");
+    set_sphere_icon_url(
+        &sphere_name.clone(),
+        image_file_name.clone().map(|file_name| format!("https://test.com/{file_name}")).as_deref(),
+        &user,
+        &db_pool
+    ).await.expect("Should set sphere icon url");
+    let image_file_name = image_file_name.expect("Should have file name.");
+    assert!(object_store.get(&object_store::path::Path::from(image_file_name.clone())).await.is_ok());
+    delete_sphere_image(&sphere_name, SphereImageType::ICON, &object_store, &db_pool).await.expect("Should delete Sphere icon");
+    assert!(object_store.get(&object_store::path::Path::from(image_file_name)).await.is_err());
+}
+
+#[tokio::test]
+async fn test_store_sphere_image() {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+    let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await.expect("Should create sphere");
+    let object_store = InMemory::new();
     // reload user to have updated permissions
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
     
     let (sphere_name, image_file_name) = store_sphere_image(
-        store_path,
-        image_category,
         get_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+        MAX_ICON_SIZE,
+        &object_store,
         &user,
-    ).await?;
+    ).await.expect("Should store image");
     assert_eq!(sphere_name, sphere.sphere_name);
-    assert_eq!(image_file_name, Some(format!("{sphere_name}.png")));
+    assert!(image_file_name.clone().is_some_and(|file_name| file_name.starts_with(&sphere_name) && file_name.ends_with(".png")));
+    assert!(object_store.get(&object_store::path::Path::from(image_file_name.unwrap())).await.is_ok());
     assert_eq!(
         store_sphere_image(
-            store_path,
-            image_category,
             get_multipart_image(IMAGE_FILE_PARAM).await,
+            MAX_ICON_SIZE,
+            &object_store,
             &user,
         ).await,
         Err(AppError::new(MISSING_SPHERE_STR))
     );
     assert_eq!(
         store_sphere_image(
-            store_path,
-            image_category,
             get_multipart_string(SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+            MAX_ICON_SIZE,
+            &object_store,
             &user,
         ).await,
         Err(AppError::new(MISSING_BANNER_FILE_STR))
     );
     assert_eq!(
         store_sphere_image(
-            store_path,
-            image_category,
             get_multipart_pdf_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+            MAX_ICON_SIZE,
+            &object_store,
             &user,
         ).await,
         Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR))
     );
     assert_eq!(
         store_sphere_image(
-            store_path,
-            image_category,
             get_invalid_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+            MAX_ICON_SIZE,
+            &object_store,
             &user,
         ).await,
         Err(AppError::new(BANNER_FILE_INFER_ERROR_STR))
     );
-    Ok(())
 }
 
 #[tokio::test]

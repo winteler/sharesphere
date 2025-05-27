@@ -76,7 +76,7 @@ pub mod ssr {
         let url = Url::parse(url_str)?;
         let file_name = match url.path_segments() {
             Some(s) => match s.last() {
-                Some(ls) if ls.is_empty() => None,
+                Some(ls) if ls.is_empty() || !ls.contains(".") => None,
                 Some(ls) => Some(ls.to_string()),
                 None => None,
             },
@@ -281,28 +281,71 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use crate::sphere_management::ssr::get_file_name_from_url;
+        use sealed_test::prelude::*;
+        use crate::sphere::Sphere;
+        use crate::sphere_management::ssr::{get_file_name_from_url, SphereImageType, BANNER_BUCKET_ENV, ICON_BUCKET_ENV};
 
-        #[test]
+        #[sealed_test]
         fn test_sphere_image_type_get_bucket_name() {
-
+            std::env::set_var(ICON_BUCKET_ENV, "a");
+            std::env::remove_var(BANNER_BUCKET_ENV);
+            let icon = SphereImageType::ICON;
+            let banner = SphereImageType::BANNER;
+            assert_eq!(icon.get_bucket_name(), Ok(String::from("a")));
+            assert!(banner.get_bucket_name().is_err());
         }
 
         #[test]
         fn test_sphere_image_type_get_sphere_image_url() {
+            let icon = SphereImageType::ICON;
+            let banner = SphereImageType::BANNER;
 
+            let sphere = Sphere {
+                sphere_id: 0,
+                sphere_name: "a".to_string(),
+                normalized_sphere_name: "a".to_string(),
+                description: "b".to_string(),
+                is_nsfw: false,
+                is_banned: false,
+                icon_url: Some("icon.png".to_string()),
+                banner_url: Some("banner.jpg".to_string()),
+                num_members: 0,
+                creator_id: 0,
+                create_timestamp: Default::default(),
+                timestamp: Default::default(),
+            };
+
+            let sphere2 = Sphere {
+                sphere_id: 1,
+                sphere_name: "1".to_string(),
+                normalized_sphere_name: "1".to_string(),
+                description: "2".to_string(),
+                is_nsfw: false,
+                is_banned: false,
+                icon_url: None,
+                banner_url: None,
+                num_members: 0,
+                creator_id: 0,
+                create_timestamp: Default::default(),
+                timestamp: Default::default(),
+            };
+
+            assert_eq!(*icon.get_sphere_image_url(&sphere), Some(String::from("icon.png")));
+            assert_eq!(*banner.get_sphere_image_url(&sphere), Some(String::from("banner.jpg")));
+            assert_eq!(*icon.get_sphere_image_url(&sphere2), None);
+            assert_eq!(*banner.get_sphere_image_url(&sphere2), None);
         }
 
         #[test]
         fn test_get_file_name_from_url() {
-            let file_name = String::from("test_image.jpg");
-            let file_url = format!("https://storage.com/image/{file_name}");
-            matches!(
+            let expected_file_name = String::from("test_image.jpg");
+            let file_url = format!("https://storage.com/image/{expected_file_name}");
+            assert_eq!(
                 get_file_name_from_url(&file_url),
-                Ok(Some(file_name))
+                Ok(Some(expected_file_name))
             );
             let no_file_url = "https://storage.com/image/just/an/url";
-            matches!(
+            assert_eq!(
                 get_file_name_from_url(&no_file_url),
                 Ok(None)
             );
@@ -346,7 +389,9 @@ pub async fn set_sphere_icon(
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_ICON_SIZE, &object_store, &user).await?;
     // Clear previous image if it exists
-    ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await?;
+    if let Err(e) = ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await {
+        log::warn!("Failed to delete Sphere icon: {:?}", e);
+    }
 
     let icon_url = file_name.map(|file_name| {
         Path::new(&object_container_url)
@@ -372,7 +417,9 @@ pub async fn set_sphere_banner(
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_BANNER_SIZE, &object_store, &user).await?;
     // Clear previous image if it exists
-    ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await?;
+    if let Err(e) = ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await  {
+        log::warn!("Failed to delete Sphere banner: {:?}", e);
+    }
     let banner_url = file_name.map(|file_name| {
         Path::new(&object_container_url)
             .join(bucket_name)

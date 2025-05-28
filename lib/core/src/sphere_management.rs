@@ -12,7 +12,7 @@ use {
         session::ssr::get_db_pool,
     },
     ssr::{
-        MAX_BANNER_SIZE, MAX_ICON_SIZE, OBJECT_CONTAINER_ENV, SphereImageType
+        MAX_BANNER_SIZE, MAX_ICON_SIZE, OBJECT_CONTAINER_URL_ENV, SphereImageType
     }
 };
 
@@ -38,7 +38,7 @@ pub mod ssr {
     use crate::sphere::Sphere;
     use crate::sphere::ssr::get_sphere_by_name;
 
-    pub const OBJECT_CONTAINER_ENV: &str = "OBJECT_CONTAINER";
+    pub const OBJECT_CONTAINER_URL_ENV: &str = "OBJECT_CONTAINER_URL";
     pub const ICON_BUCKET_ENV: &str = "ICON_BUCKET";
     pub const BANNER_BUCKET_ENV: &str = "BANNER_BUCKET";
     pub const MAX_ICON_SIZE: usize = 256 * 1024; // 0.25 MB in bytes
@@ -384,7 +384,7 @@ pub async fn set_sphere_icon(
     let db_pool = get_db_pool()?;
 
     let image_type = SphereImageType::ICON;
-    let object_container_url = env::var(OBJECT_CONTAINER_ENV)?;
+    let object_container_url = env::var(OBJECT_CONTAINER_URL_ENV)?;
     let bucket_name = image_type.get_bucket_name()?;
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_ICON_SIZE, &object_store, &user).await?;
@@ -412,7 +412,7 @@ pub async fn set_sphere_banner(
     let db_pool = get_db_pool()?;
 
     let image_type = SphereImageType::BANNER;
-    let object_container_url = env::var(OBJECT_CONTAINER_ENV)?;
+    let object_container_url = env::var(OBJECT_CONTAINER_URL_ENV)?;
     let bucket_name = image_type.get_bucket_name()?;
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_BANNER_SIZE, &object_store, &user).await?;

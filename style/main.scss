@@ -3929,6 +3929,7 @@
     width: calc(var(--spacing) * 60);
     flex-direction: column;
     justify-content: flex-start;
+    gap: calc(var(--spacing) * 2);
     overflow-y: auto;
     padding-inline: calc(var(--spacing) * 3);
     padding-block: calc(var(--spacing) * 2);

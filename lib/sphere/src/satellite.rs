@@ -314,14 +314,14 @@ pub fn SatellitePanel() -> impl IntoView {
                                     }
                                     </div>
                                     <div class="w-20 flex justify-center items-center">
-                                        <a href=satellite_link class="p-2 rounded-full hover:bg-base-200">
+                                        <a href=satellite_link class="button-rounded-ghost">
                                             <LinkIcon/>
                                         </a>
                                     </div>
                                 </div>
                                 <div class="flex gap-1 justify-end">
                                     <button
-                                        class="h-fit p-1 text-sm bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
+                                        class="button-secondary"
                                         on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                     >
                                         <EditIcon/>
@@ -451,7 +451,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Add a satellite"</div>
+                <div class="text-center font-bold text-2xl">"Add a satellite"</div>
                 <ActionForm
                     action=sphere_state.create_satellite_action
                     on:submit=move |_| show_dialog.set(false)
@@ -484,21 +484,19 @@ pub fn SatelliteInputs(
     is_spoiler: bool,
 ) -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-1 items-center">
-            <FormTextEditor
-                name="satellite_name"
-                placeholder="Name"
-                data=title_data
-            />
-            <FormMarkdownEditor
-                name="body"
-                placeholder="Body"
-                is_markdown_name="is_markdown"
-                data=body_data
-                is_markdown=is_markdown_body
-            />
-            <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
-            <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
-        </div>
+        <FormTextEditor
+            name="satellite_name"
+            placeholder="Name"
+            data=title_data
+        />
+        <FormMarkdownEditor
+            name="body"
+            placeholder="Body"
+            is_markdown_name="is_markdown"
+            data=body_data
+            is_markdown=is_markdown_body
+        />
+        <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
+        <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
     }
 }

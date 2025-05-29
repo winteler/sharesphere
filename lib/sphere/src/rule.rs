@@ -47,7 +47,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                         </div>
                                         <div class="flex gap-1 justify-end">
                                             <button
-                                                class="h-fit p-1 text-sm bg-secondary rounded-xs hover:bg-secondary/75 active:scale-90 transition duration-250"
+                                                class="button-secondary"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                             >
                                                 <EditIcon/>
@@ -96,7 +96,7 @@ pub fn DeleteRuleButton(
                     class="hidden"
                     value=rule.with_value(|rule| rule.priority)
                 />
-                <button class="p-1 rounded-xs bg-error hover:bg-error/75 active:scale-90 transition duration-250">
+                <button class="button-error">
                     <CrossIcon/>
                 </button>
             </ActionForm>

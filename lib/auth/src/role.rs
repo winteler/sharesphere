@@ -103,7 +103,7 @@ pub mod ssr {
         user_id: i64,
         sphere: &str,
         db_pool: &PgPool,
-    ) -> std::result::Result<bool, AppError> {
+    ) -> Result<bool, AppError> {
         match User::get(user_id, db_pool).await {
             Some(user) => Ok(user.check_permissions(sphere, PermissionLevel::Moderate).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),

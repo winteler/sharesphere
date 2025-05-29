@@ -43,7 +43,7 @@ pub fn LabeledFormCheckbox(
         <div class=class>
             <input type="text" name=name value=is_checked_string class="hidden"/>
             <label class="cursor-pointer flex justify-between">
-                <span class="label">{label}</span>
+                <span class="label text-white">{label}</span>
                 <input
                     type="checkbox"
                     class=checkbox_class

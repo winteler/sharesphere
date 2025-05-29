@@ -11,7 +11,7 @@ use crate::errors::AppError;
 use crate::icons::*;
 use crate::unpack::TransitionUnpack;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FormatType {
     Bold,
     Italic,
@@ -71,7 +71,7 @@ pub mod ssr {
                         b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
                         b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
                         b"code" => {
-                            elem.push_attribute(("class", "rounded-md bg-black p-0.5 px-1 mx-0.5"))
+                            elem.push_attribute(("class", "block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5"))
                         }
                         b"table" => elem.push_attribute(("class", "table")),
                         b"blockquote" => elem.push_attribute((
@@ -337,7 +337,7 @@ pub fn FormatButton(
                         (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
                             let selection_start = selection_start as usize;
                             let selection_end = selection_end as usize;
-                            format_textarea_content(
+                            let cursor_position = format_textarea_content(
                                 &mut data.content.write(),
                                 selection_start,
                                 selection_end,
@@ -348,6 +348,10 @@ pub fn FormatButton(
                                 is_markdown_mode.set(true);
                             }
                             let _ = textarea_ref.focus();
+                            if let Some(position) = cursor_position {
+                                let _ = textarea_ref.set_selection_start(Some(position as u32));
+                                let _ = textarea_ref.set_selection_end(Some(position as u32));
+                            }
                         },
                         _ => log::debug!("Failed to get textarea selections."),
                     };
@@ -422,12 +426,14 @@ pub fn HelpButton() -> impl IntoView {
     }
 }
 
+/// Formats the input `content` with the markdown syntax corresponding to `format_type`
+/// If no text is selected, returns the position to set the cursor at
 fn format_textarea_content(
     content: &mut String,
     mut selection_start: usize,
     mut selection_end: usize,
     format_type: FormatType,
-) {
+) -> Option<usize> {
     let selected_content = &content[selection_start..selection_end];
     let leading_whitespace = selected_content
         .chars()
@@ -442,55 +448,73 @@ fn format_textarea_content(
     selection_start += leading_whitespace;
     selection_end -= ending_whitespace;
 
-    match format_type {
+    let text_offset = match format_type {
         FormatType::Bold => {
             content.insert_str(selection_end, "**");
             content.insert_str(selection_start, "**");
+            2
         }
         FormatType::Italic => {
             content.insert_str(selection_end, "*");
             content.insert_str(selection_start, "*");
+            1
         }
         FormatType::Strikethrough => {
             content.insert_str(selection_end, "~~");
             content.insert_str(selection_start, "~~");
+            2
         }
         FormatType::Header1 => {
             content.insert_str(get_line_start_for_position(content, selection_start), "# ");
+            2
         }
         FormatType::Header2 => {
             content.insert_str(get_line_start_for_position(content, selection_start), "## ");
+            3
         }
         FormatType::List => {
             content.insert_str(get_line_start_for_position(content, selection_start), "* ");
+            2
         }
         FormatType::NumberedList => {
             content.insert_str(get_line_start_for_position(content, selection_start), "1. ");
+            3
         }
         FormatType::CodeBlock => {
             content.insert_str(selection_end, "```");
             content.insert_str(selection_start, "```");
+            3
         }
         FormatType::Spoiler => {
             content.insert_str(selection_end, SPOILER_TAG);
             content.insert_str(selection_start, SPOILER_TAG);
+            SPOILER_TAG.len()
         }
         FormatType::BlockQuote => {
             content.insert_str(get_line_start_for_position(content, selection_start), "> ");
+            2
         }
         FormatType::Link => {
             content.insert_str(
-                get_line_start_for_position(content, selection_start),
+                selection_start,
                 "[link text](https://www.your_link.com)",
             );
+            1
         }
         FormatType::Image => {
             content.insert_str(
-                get_line_start_for_position(content, selection_start),
+                selection_start,
                 "![](https://image_url.png)",
             );
+            2
         }
     };
+
+    (
+        selection_start == selection_end ||
+        format_type == FormatType::Link ||
+        format_type == FormatType::Image
+    ).then_some(selection_start + text_offset)
 }
 
 /// Given the input String, returns the starting byte index of the line containing the [position] byte index.
@@ -516,7 +540,7 @@ mod tests {
     use leptos::prelude::ServerFnError;
 
     use crate::editor::ssr::get_html_and_markdown_bodies;
-    use crate::editor::{get_styled_html_from_markdown, ssr::style_html_user_content};
+    use crate::editor::{format_textarea_content, get_styled_html_from_markdown, ssr::style_html_user_content, FormatType};
 
     #[tokio::test]
     async fn test_get_html_and_markdown_bodies() -> Result<(), ServerFnError> {
@@ -753,5 +777,140 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_format_textarea_content() {
+        // Bold
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Bold);
+        assert_eq!(cursor_position, Some(25));
+        assert_eq!(content, "This is some user text ****");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Bold);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "This is **some** user text ");
+
+        // Italic
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Italic);
+        assert_eq!(cursor_position, Some(24));
+        assert_eq!(content, "This is some user text **");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Italic);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "This is *some* user text ");
+
+        // Strikethrough,
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Strikethrough);
+        assert_eq!(cursor_position, Some(25));
+        assert_eq!(content, "This is some user text ~~~~");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Strikethrough);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "This is ~~some~~ user text ");
+
+        // Header1
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Header1);
+        assert_eq!(cursor_position, Some(25));
+        assert_eq!(content, "# This is some user text ");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Header1);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "# This is some user text ");
+
+        // Header2
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Header2);
+        assert_eq!(cursor_position, Some(26));
+        assert_eq!(content, "## This is some user text ");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Header2);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "## This is some user text ");
+
+        // List
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::List);
+        assert_eq!(cursor_position, Some(25));
+        assert_eq!(content, "* This is some user text ");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::List);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "* This is some user text ");
+
+        // NumberedList
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::NumberedList);
+        assert_eq!(cursor_position, Some(26));
+        assert_eq!(content, "1. This is some user text ");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::NumberedList);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "1. This is some user text ");
+
+        // CodeBlock
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::CodeBlock);
+        assert_eq!(cursor_position, Some(26));
+        assert_eq!(content, "This is some user text ``````");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::CodeBlock);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "This is ```some``` user text ");
+
+        // Spoiler
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Spoiler);
+        assert_eq!(cursor_position, Some(25));
+        assert_eq!(content, "This is some user text ||||");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Spoiler);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "This is ||some|| user text ");
+
+        // BlockQuote
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::BlockQuote);
+        assert_eq!(cursor_position, Some(25));
+        assert_eq!(content, "> This is some user text ");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::BlockQuote);
+        assert_eq!(cursor_position, None);
+        assert_eq!(content, "> This is some user text ");
+
+        // Link
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Link);
+        assert_eq!(cursor_position, Some(24));
+        assert_eq!(content, "This is some user text [link text](https://www.your_link.com)");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Link);
+        assert_eq!(cursor_position, Some(9));
+        assert_eq!(content, "This is [link text](https://www.your_link.com)some user text ");
+
+        // Image
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Image);
+        assert_eq!(cursor_position, Some(25));
+        assert_eq!(content, "This is some user text ![](https://image_url.png)");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Image);
+        assert_eq!(cursor_position, Some(10));
+        assert_eq!(content, "This is ![](https://image_url.png)some user text ");
     }
 }

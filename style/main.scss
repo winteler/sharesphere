@@ -2631,9 +2631,6 @@
   .bg-red-600 {
     background-color: var(--color-red-600);
   }
-  .bg-secondary {
-    background-color: var(--color-secondary);
-  }
   .bg-slate-600 {
     background-color: var(--color-slate-600);
   }
@@ -3014,16 +3011,6 @@
       }
     }
   }
-  .hover\:bg-secondary\/75 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: var(--color-secondary);
-        @supports (color: color-mix(in lab, red, red)) {
-          background-color: color-mix(in oklab, var(--color-secondary) 75%, transparent);
-        }
-      }
-    }
-  }
   .hover\:bg-success {
     &:hover {
       @media (hover: hover) {
@@ -3037,14 +3024,6 @@
         --tw-shadow: 0 0 #0000;
         box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
       }
-    }
-  }
-  .active\:scale-90 {
-    &:active {
-      --tw-scale-x: 90%;
-      --tw-scale-y: 90%;
-      --tw-scale-z: 90%;
-      scale: var(--tw-scale-x) var(--tw-scale-y);
     }
   }
   .active\:scale-95 {

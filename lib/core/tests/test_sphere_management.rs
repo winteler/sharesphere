@@ -304,6 +304,7 @@ async fn test_is_user_sphere_moderator() -> Result<(), AppError> {
 async fn test_delete_sphere_image() {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
+    let base_user = create_user("base", &db_pool).await;
     let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await.expect("Should create sphere");
     let object_store = InMemory::new();
     // reload user to have updated permissions
@@ -323,7 +324,23 @@ async fn test_delete_sphere_image() {
     ).await.expect("Should set sphere icon url");
     let image_file_name = image_file_name.expect("Should have file name.");
     assert!(object_store.get(&object_store::path::Path::from(image_file_name.clone())).await.is_ok());
-    delete_sphere_image(&sphere_name, SphereImageType::ICON, &object_store, &db_pool).await.expect("Should delete Sphere icon");
+
+    delete_sphere_image(
+        &sphere_name,
+        SphereImageType::ICON,
+        &object_store,
+        &base_user,
+        &db_pool
+    ).await.expect_err("Base user should not have permission to store sphere image");
+
+    delete_sphere_image(
+        &sphere_name,
+        SphereImageType::ICON,
+        &object_store,
+        &user,
+        &db_pool
+    ).await.expect("Should delete Sphere icon");
+
     assert!(object_store.get(&object_store::path::Path::from(image_file_name)).await.is_err());
 }
 
@@ -331,11 +348,21 @@ async fn test_delete_sphere_image() {
 async fn test_store_sphere_image() {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
+    let base_user = create_user("base", &db_pool).await;
     let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await.expect("Should create sphere");
     let object_store = InMemory::new();
     // reload user to have updated permissions
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
-    
+
+    // Test need manage permissions to store image
+
+    store_sphere_image(
+        get_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+        MAX_ICON_SIZE,
+        &object_store,
+        &base_user,
+    ).await.expect_err("Base user should not have permission to store sphere image");
+
     let (sphere_name, image_file_name) = store_sphere_image(
         get_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
         MAX_ICON_SIZE,
@@ -387,6 +414,7 @@ async fn test_store_sphere_image() {
 async fn test_set_sphere_icon_url() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
+    let base_user = create_user("base", &db_pool).await;
     let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await?;
     // reload user to have updated permissions
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
@@ -396,6 +424,9 @@ async fn test_set_sphere_icon_url() -> Result<(), AppError> {
     set_sphere_icon_url(&sphere.sphere_name, Some(icon_url), &user, &db_pool).await?;
     let sphere = get_sphere_by_name(&sphere.sphere_name, &db_pool).await?;
     assert_eq!(sphere.icon_url, Some(String::from(icon_url)));
+
+    set_sphere_icon_url(&sphere.sphere_name, Some(icon_url), &base_user, &db_pool).await.expect_err("Base user should not have permission to set sphere icon url");
+
     Ok(())
 }
 
@@ -403,6 +434,7 @@ async fn test_set_sphere_icon_url() -> Result<(), AppError> {
 async fn test_set_sphere_banner_url() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
+    let base_user = create_user("base", &db_pool).await;
     let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await?;
     // reload user to have updated permissions
     let user = User::get(user.user_id, &db_pool).await.expect("Should reload user.");
@@ -412,5 +444,8 @@ async fn test_set_sphere_banner_url() -> Result<(), AppError> {
     set_sphere_banner_url(&sphere.sphere_name, Some(banner_url), &user, &db_pool).await?;
     let sphere = get_sphere_by_name(&sphere.sphere_name, &db_pool).await?;
     assert_eq!(sphere.banner_url, Some(String::from(banner_url)));
+
+    set_sphere_banner_url(&sphere.sphere_name, Some(banner_url), &base_user, &db_pool).await.expect_err("Base user should not have permission to set sphere banner url");
+
     Ok(())
 }

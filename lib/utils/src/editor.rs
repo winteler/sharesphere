@@ -592,7 +592,7 @@ mod tests {
         );
         assert_eq!(
             style_html_user_content("<code></code>")?,
-            r#"<code class="rounded-md bg-black p-0.5 px-1 mx-0.5"></code>"#
+            r#"<code class="block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5"></code>"#
         );
         assert_eq!(
             style_html_user_content("<table></table>")?,
@@ -635,7 +635,7 @@ mod tests {
             `code blocks`
         "#};
         let expected_html = indoc! {r#"
-            <p><code class="rounded-md bg-black p-0.5 px-1 mx-0.5">code blocks</code></p>
+            <p><code class="block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5">code blocks</code></p>
         "#};
         assert_eq!(
             get_styled_html_from_markdown(markdown.to_string()).await?,

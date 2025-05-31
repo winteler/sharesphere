@@ -707,11 +707,10 @@ pub mod ssr {
     mod tests {
         use sharesphere_auth::user::User;
         use sharesphere_utils::colors::Color;
-        use sharesphere_utils::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
 
         use crate::post::ssr::PostJoinInfo;
         use crate::post::Post;
-        use crate::ranking::{PostSortType, VoteValue};
+        use crate::ranking::{VoteValue};
 
         #[test]
         fn test_post_join_vote_into_post_with_info() {
@@ -779,14 +778,6 @@ pub mod ssr {
             assert_eq!(user_vote.post_id, other_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Down);
             assert_eq!(user_vote.comment_id, None);
-        }
-
-        #[test]
-        fn test_post_sort_type_to_order_by_code() {
-            assert_eq!(PostSortType::Hot.to_order_by_code(), HOT_ORDER_BY_COLUMN);
-            assert_eq!(PostSortType::Trending.to_order_by_code(), TRENDING_ORDER_BY_COLUMN);
-            assert_eq!(PostSortType::Best.to_order_by_code(), BEST_ORDER_BY_COLUMN);
-            assert_eq!(PostSortType::Recent.to_order_by_code(), RECENT_ORDER_BY_COLUMN);
         }
     }
 }
@@ -1287,10 +1278,11 @@ pub fn add_sphere_info_to_post_vec(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::embed::Link;
 
-    use crate::post::{Post, PostWithSphereInfo};
+    use crate::post::{add_sphere_info_to_post_vec, Post, PostWithSphereInfo};
     use crate::sphere_category::SphereCategoryHeader;
 
     fn create_post_with_category(sphere_name: &str, title: &str, category_id: Option<i64>) -> Post {
@@ -1367,6 +1359,46 @@ mod tests {
     }
     #[test]
     fn test_add_sphere_info_to_post_vec() {
-        // TODO
+        let sphere_icon_url = String::from("https://www.image.com/sphere_icon.jpg");
+        let sphere_category_1 = SphereCategoryHeader {
+            category_name: "red".to_string(),
+            category_color: Color::Red,
+        };
+        let sphere_category_2 = SphereCategoryHeader {
+            category_name: "blue".to_string(),
+            category_color: Color::Blue,
+        };
+        let sphere_category_map = HashMap::from([
+            (
+                1,
+                sphere_category_1.clone(),
+            ),
+            (
+                2,
+                sphere_category_2.clone(),
+            ),
+        ]);
+        let post_vec = vec![
+            create_post_with_category("a", "Red", Some(1)),
+            create_post_with_category("a", "Blue", Some(2)),
+            create_post_with_category("a", "Other", None),
+        ];
+
+        let post_with_sphere_info_vec = add_sphere_info_to_post_vec(
+            post_vec.clone(),
+            sphere_category_map,
+            Some(sphere_icon_url.clone())
+        );
+        assert_eq!(post_with_sphere_info_vec[0].post, post_vec[0]);
+        assert_eq!(post_with_sphere_info_vec[1].post, post_vec[1]);
+        assert_eq!(post_with_sphere_info_vec[2].post, post_vec[2]);
+
+        assert_eq!(post_with_sphere_info_vec[0].sphere_category, Some(sphere_category_1));
+        assert_eq!(post_with_sphere_info_vec[1].sphere_category, Some(sphere_category_2));
+        assert_eq!(post_with_sphere_info_vec[2].sphere_category, None);
+
+        assert_eq!(post_with_sphere_info_vec[0].sphere_icon_url, Some(sphere_icon_url.clone()));
+        assert_eq!(post_with_sphere_info_vec[1].sphere_icon_url, Some(sphere_icon_url.clone()));
+        assert_eq!(post_with_sphere_info_vec[2].sphere_icon_url, Some(sphere_icon_url));
     }
 }

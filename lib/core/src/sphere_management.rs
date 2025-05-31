@@ -145,8 +145,10 @@ pub mod ssr {
         sphere_name: &str,
         image_type: SphereImageType,
         object_store: &T,
+        user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
+        user.check_permissions(&sphere_name, PermissionLevel::Manage)?;
         let sphere = get_sphere_by_name(&sphere_name, db_pool).await?;
         if let Some(current_image_url) = image_type.get_sphere_image_url(&sphere) {
             if let Ok(Some(current_image_name)) = get_file_name_from_url(current_image_url) {
@@ -175,8 +177,7 @@ pub mod ssr {
         user: &User,
     ) -> Result<(String, Option<String>), AppError> {
         // `.into_inner()` returns the inner `multer` stream
-        // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
-        // unwrap
+        // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to unwrap
         let mut data = data.into_inner().unwrap();
         let mut sphere_name = Err(AppError::new(MISSING_SPHERE_STR));
         let mut file_field = Err(AppError::new(MISSING_BANNER_FILE_STR));
@@ -287,8 +288,10 @@ pub mod ssr {
 
         #[sealed_test]
         fn test_sphere_image_type_get_bucket_name() {
-            std::env::set_var(ICON_BUCKET_ENV, "a");
-            std::env::remove_var(BANNER_BUCKET_ENV);
+            unsafe {
+                std::env::set_var(ICON_BUCKET_ENV, "a");
+                std::env::remove_var(BANNER_BUCKET_ENV);
+            }
             let icon = SphereImageType::ICON;
             let banner = SphereImageType::BANNER;
             assert_eq!(icon.get_bucket_name(), Ok(String::from("a")));
@@ -389,7 +392,7 @@ pub async fn set_sphere_icon(
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_ICON_SIZE, &object_store, &user).await?;
     // Clear previous image if it exists
-    if let Err(e) = ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await {
+    if let Err(e) = ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &user, &db_pool).await {
         log::warn!("Failed to delete Sphere icon: {:?}", e);
     }
 
@@ -417,7 +420,7 @@ pub async fn set_sphere_banner(
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_BANNER_SIZE, &object_store, &user).await?;
     // Clear previous image if it exists
-    if let Err(e) = ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &db_pool).await  {
+    if let Err(e) = ssr::delete_sphere_image(&sphere_name, image_type, &object_store, &user, &db_pool).await  {
         log::warn!("Failed to delete Sphere banner: {:?}", e);
     }
     let banner_url = file_name.map(|file_name| {

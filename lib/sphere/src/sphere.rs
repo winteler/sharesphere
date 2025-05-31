@@ -241,7 +241,7 @@ pub fn SphereToolbar<'a>(
                 </AuthorizedShow>
                 <RefreshButton refresh_count=sphere_state.post_refresh_count/>
                 <SphereSearchButton/>
-                <div class="tooltip" data-tip="New">
+                <div class="tooltip flex" data-tip="New">
                     <LoginGuardButton
                         login_button_class="button-rounded-ghost"
                         login_button_content=move || view! { <PlusIcon class="sphere-toolbar-icon-size"/> }.into_any()

@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos::html::Div;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
+use sharesphere_utils::routes::{PRIVACY_POLICY_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{Collapse, TitleCollapse};
 
@@ -110,6 +111,8 @@ pub fn HomeSidebar() -> impl IntoView {
                     <p>"ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."</p>
                     <p>"ShareSphere is a non-profit, open source website. You can find more information on the website and its rules below."</p>
                 </div>
+                <a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary text-center">"Terms and conditions"</a>
+                <a href=PRIVACY_POLICY_ROUTE class="link text-primary text-center">"Privacy Policy"</a>
             </div>
         </div>
         <Show when=state.show_right_sidebar>

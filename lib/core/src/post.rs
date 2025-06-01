@@ -1154,12 +1154,7 @@ pub fn PostForm(
 ) -> impl IntoView {
     let (is_markdown, is_spoiler, is_nsfw, is_pinned, category_id) = match current_post {
         Some(post) => post.with_value(|post| {
-            let (current_body, is_markdown) = match &post.markdown_body {
-                Some(body) => (body.clone(), true),
-                None => (post.body.clone(), false),
-            };
-            body_data.content.set(current_body);
-            (is_markdown, post.is_spoiler, post.is_nsfw, post.is_pinned, post.category_id)
+            (post.markdown_body.is_some(), post.is_spoiler, post.is_nsfw, post.is_pinned, post.category_id)
         }),
         None => (false, false, false, false, None),
     };

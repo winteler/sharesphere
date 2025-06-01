@@ -179,6 +179,8 @@ pub fn FormTextEditor(
 ) -> impl IntoView {
     let class = format!("group max-w-full p-2 border border-primary bg-base-100 {class}");
 
+    Effect::new(move || adjust_textarea_height(data.textarea_ref));
+
     view! {
         <div class=class>
             <div class="w-full rounded-t-lg">
@@ -241,6 +243,8 @@ pub fn FormMarkdownEditor(
             }
         },
     );
+
+    Effect::new(move || adjust_textarea_height(data.textarea_ref));
 
     view! {
         <div class="flex flex-col gap-2">
@@ -528,6 +532,8 @@ fn get_line_start_for_position(string: &String, position: usize) -> usize {
 /// Adjust the height of `textarea_ref` so that all its content is displayed without a scrollbar.
 pub fn adjust_textarea_height(textarea_ref: NodeRef<Textarea>) {
     if let Some(textarea_ref) = textarea_ref.get() {
+        // First get the scroll height, as it seems in some case (in a suspense?) the height is set to 0 otherwise
+        let _ = textarea_ref.scroll_height();
         textarea_ref.style(("height", "auto"));
         let scroll_height = format!("{}px", textarea_ref.scroll_height());
         textarea_ref.style(("height", scroll_height));

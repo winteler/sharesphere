@@ -591,7 +591,7 @@ pub fn EditCommentDialog(
 ) -> impl IntoView {
     view! {
         <ModalDialog
-            class="w-full max-w-xl"
+            class="w-full flex justify-center"
             show_dialog
         >
             <EditCommentForm
@@ -636,7 +636,7 @@ pub fn EditCommentForm(
     });
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full 2xl:w-2/5">
             <div class="text-center font-bold text-2xl">"Edit your comment"</div>
             <ActionForm action=edit_comment_action>
                 <div class="flex flex-col gap-3 w-full">

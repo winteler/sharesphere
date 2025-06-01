@@ -5,7 +5,7 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_use::{signal_debounced};
 
 use sharesphere_utils::constants::{DELETED_MESSAGE};
-use sharesphere_utils::editor::{TextareaData};
+use sharesphere_utils::editor::{adjust_textarea_height, TextareaData};
 use sharesphere_utils::embed::{Embed, EmbedType, LinkType};
 use sharesphere_utils::icons::{EditIcon};
 use sharesphere_utils::routes::{get_post_id_memo, get_post_link, CREATE_POST_SPHERE_QUERY_PARAM};
@@ -371,16 +371,20 @@ pub fn EditPostForm(
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
 
-    let (post_id, title, link_type, link_url) = post.with_value(|post| (
+    let (post_id, title, body, link_type, link_url) = post.with_value(|post| (
         post.post_id,
         post.title.clone(),
+        match &post.markdown_body {
+            Some(body) => body.clone(),
+            None => post.body.clone(),
+        },
         post.link.link_type,
         post.link.link_url.clone(),
     ));
     let title_input = RwSignal::new(title);
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_data = TextareaData {
-        content: RwSignal::new(String::new()),
+        content: RwSignal::new(body),
         textarea_ref,
     };
     let embed_type_input = RwSignal::new(match link_type {
@@ -404,6 +408,9 @@ pub fn EditPostForm(
         move || (),
         move |_| get_post_inherited_attributes(post_id)
     );
+
+    // effect also needed here as the one in editor.rs somehow doesn't work inside a suspense
+    Effect::new(move || adjust_textarea_height(body_data.textarea_ref));
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full 2xl:w-2/5">

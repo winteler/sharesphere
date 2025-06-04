@@ -252,3 +252,15 @@ CREATE TABLE user_bans (
     CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
+
+-- add functional user
+INSERT INTO users (oidc_id, username, email)
+VALUES ('', 'sharesphere-function-user', '');
+
+-- add base rules
+INSERT INTO rules (sphere_id, sphere_name, priority, title, description, user_id)
+VALUES
+    (null, null, 0,'Be respectful and considerate',
+     'Treat all members of the community with respect. Healthy debate and differing opinions are welcome, ' ||
+     'but personal attacks, insults, or hostile behavior will not be tolerated. Focus on ideas, not individuals. ' ||
+     'Always aim to contribute constructively and make ShareSphere a space where everyone feels safe to participate.');

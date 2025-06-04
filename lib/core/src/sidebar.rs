@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::html::Div;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
-use sharesphere_utils::routes::{PRIVACY_POLICY_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
+use sharesphere_utils::routes::{PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{Collapse, TitleCollapse};
 
@@ -113,6 +113,7 @@ pub fn HomeSidebar() -> impl IntoView {
                 </div>
                 <a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary text-center">"Terms and conditions"</a>
                 <a href=PRIVACY_POLICY_ROUTE class="link text-primary text-center">"Privacy Policy"</a>
+                <a href=RULES_ROUTE class="link text-primary text-center">"Rules"</a>
             </div>
         </div>
         <Show when=state.show_right_sidebar>

@@ -260,13 +260,23 @@ VALUES ('', 'sharesphere-function-user', '');
 -- add base rules
 INSERT INTO rules (sphere_id, sphere_name, priority, title, description, user_id)
 VALUES
-    (null, null, 0,'Be respectful and considerate',
-     'Treat all members of the community with respect. Healthy debate and differing opinions are welcome, ' ||
-     'but personal attacks, insults, or hostile behavior will not be tolerated. ' ||
-     'Always aim to contribute constructively and make ShareSphere a space where everyone feels safe to participate.'),
-    (null, null, 1,'Respect community rules',
-     ''),
+    (
+        null, null, 0,'Be respectful and considerate',
+        'Treat all members of the community with respect. Healthy debate and differing opinions are welcome, ' ||
+        'but personal attacks, insults, or hostile behavior will not be tolerated. ' ||
+        'Always aim to contribute constructively and make ShareSphere a space where everyone feels safe to participate.',
+        1
+     ),
+    (
+        null, null, 1,'Respect community rules',
+        '',
+        1
+    ),
     (null, null, 2,'No illegal or malicious content',
-     ''),
+     '',
+     1
+    ),
     (null, null, 3,'Don''t compromise the integrity of the platform',
-     '');
+     '',
+     1
+    );

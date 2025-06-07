@@ -174,7 +174,7 @@ pub fn SphereRuleList() -> impl IntoView {
                         let title_view = move || view! {
                             <div class="flex gap-4 items-center">
                                 <div>{index}</div>
-                                <div>{title}</div>
+                                <div class="text-left">{title}</div>
                             </div>
                         };
                         index += 1;
@@ -183,7 +183,7 @@ pub fn SphereRuleList() -> impl IntoView {
                                 title_view
                                 is_open=false
                             >
-                                <div class="pl-2 text-sm">{description.get_value()}</div>
+                                <div class="pl-2 text-sm text-left whitespace-pre-line">{description.get_value()}</div>
                             </Collapse>
                         }
                     }).collect_view()

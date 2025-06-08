@@ -268,13 +268,34 @@ Always aim to contribute constructively and make ShareSphere a space where every
 1
 ),
 (
-null, null, 1,'Respect community rules',
-'',
+null, null, 1,'Respect sphere rules and label your posts',
+$$Users must respect the rules of the sphere they are participating in. This means respecting all existing rules at the time of the contribution, including correctly labelling your posts.
+
+Furthermore, NSFW and spoiler content labelling are mandatory in all communities.
+
+Mature content not suitable for children (sexually explicit or violent) should be labelled as NSFW.
+
+Content that could spoil information to other users, such as the result of a competition or the content of a book or movie must keep any information out of its title and has to be labelled with the spoiler tag. In addition, the title must make it clear spoilers will be contained in the body of the post. Spoiler information in comments should be hidden using markdown formatting.
+$$,
 1
 ),
 (
 null, null, 2,'No illegal or malicious content',
-'',
+$$Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited.
+
+This includes:
+- sexual, abusive or suggestive content of minors or individuals that did not give their consent.
+- human trafficking
+- paid services involving physical sexual contact
+- personal or confidential information of other individuals
+- impersonating other individuals
+- trade of stolen goods
+- falsified documents or currency
+- phishing, scams and other fraudulent schemes
+- malware or viruses
+- promotion or support of terrorism, hate crimes or any other violent ideologies
+
+Violating this rule will lead to immediate removal of content and a permanent ban. Depending on the infraction, it can also be reported to authorities.$$,
 1
 ),
 (

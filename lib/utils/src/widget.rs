@@ -570,7 +570,7 @@ pub fn ModalFormButtons(
 pub fn RotatingArrow(
     #[prop(into)]
     point_up: Signal<bool>,
-    #[prop(default = "h-3 w-3")]
+    #[prop(default = "h-5 w-5 p-1")]
     class: &'static str,
 ) -> impl IntoView {
     let arrow_class = Signal::derive(move || match point_up.get() {
@@ -603,9 +603,9 @@ where
     };
     
     view! {
-        <div class="flex flex-col">
+        <div class="flex flex-col gap-1">
             <button
-                class="p-1 rounded-md hover:bg-base-200"
+                class="p-1 rounded-md hover:bg-base-content/20"
                 on:click=move |_| show_children.update(|value| *value = !*value)
             >
                 <div class="flex justify-between items-center">
@@ -640,10 +640,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
         true => "transition duration-500 opacity-100 visible",
         false => "opacity-0 invisible h-0 max-h-0 overflow-hidden",
     };
-    let arrow_class = Signal::derive(move || match show_children.get() {
-        true => "h-3 w-3 transition duration-200",
-        false => "h-3 w-3 transition duration-200 rotate-180",
-    });
+
     view! {
         <div class="flex flex-col shrink-0 relative">
             <button
@@ -652,7 +649,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
             >
                 <div class="flex justify-between items-center">
                     <div class=title_class>{title}</div>
-                    <ArrowUpIcon class=arrow_class/>
+                    <RotatingArrow point_up=show_children/>
                 </div>
             </button>
             <div class=children_class>

@@ -167,17 +167,15 @@ pub fn SphereRuleList() -> impl IntoView {
             <div class="flex flex-col pl-2 pt-1">
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
                 {
-                    let mut index = 0usize;
-                    sphere_rule_vec.iter().map(|rule| {
+                    sphere_rule_vec.iter().enumerate().map(|(index, rule)| {
                         let description = StoredValue::new(rule.description.clone());
                         let title = rule.title.clone();
                         let title_view = move || view! {
                             <div class="flex gap-4 items-center">
-                                <div>{index}</div>
+                                <div>{index+1}</div>
                                 <div class="text-left">{title}</div>
                             </div>
                         };
-                        index += 1;
                         view! {
                             <Collapse
                                 title_view

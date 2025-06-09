@@ -20,6 +20,7 @@ pub struct Rule {
     pub priority: i16,
     pub title: String,
     pub description: String,
+    pub markdown_description: Option<String>,
     pub user_id: i64,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,

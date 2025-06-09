@@ -111,6 +111,7 @@ CREATE TABLE rules (
     priority SMALLINT NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
+    markdown_description TEXT,
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
@@ -263,43 +264,23 @@ VALUES
 (
 null, null, 0,'Be respectful and considerate',
 $$Treat all members of the community with respect. Healthy debate and differing opinions are welcome, but personal attacks, insults, or hostile behavior will not be tolerated.
-
 Always aim to contribute constructively and make ShareSphere a space where everyone feels safe to participate.$$,
 1
 ),
 (
-null, null, 1,'Respect sphere rules and label your posts',
-$$Users must respect the rules of the sphere they are participating in. This means respecting all existing rules at the time of the contribution, including correctly labelling your posts.
-
-Furthermore, NSFW and spoiler content labelling are mandatory in all communities.
-
-Mature content not suitable for children (sexually explicit or violent) should be labelled as NSFW.
-
-Content that could spoil information to other users, such as the result of a competition or the content of a book or movie must keep any information out of its title and has to be labelled with the spoiler tag. In addition, the title must make it clear spoilers will be contained in the body of the post. Spoiler information in comments should be hidden using markdown formatting.
-$$,
+null, null, 1,'Respect community rules and label your posts',
+$$Post in the appropriate communities and follow their rules. Make sure to use accurate titles, tags, and categories to help others understand the topic of your post. Stay on-topic and contribute in good faith on topics where you have a genuine interest - this helps keep communities organized, relevant, and welcoming for everyone.
+Furthermore, mature content that is not suitable for children (sexually explicit, graphic, violent or offensive) and spoilers must be labelled as NSFW and Spoilers respectively. You can find more details in our Content Policy.$$,
 1
 ),
 (
 null, null, 2,'No illegal or malicious content',
-$$Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited.
-
-This includes:
-- sexual, abusive or suggestive content of minors or individuals that did not give their consent.
-- human trafficking
-- paid services involving physical sexual contact
-- personal or confidential information of other individuals
-- impersonating other individuals
-- trade of stolen goods
-- falsified documents or currency
-- phishing, scams and other fraudulent schemes
-- malware or viruses
-- promotion or support of terrorism, hate crimes or any other violent ideologies
-
+$$Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited. More detail can be found in our Content Policy.
 Violating this rule will lead to immediate removal of content and a permanent ban. Depending on the infraction, it can also be reported to authorities.$$,
 1
 ),
 (
 null, null, 3,'Don''t compromise the integrity of the platform',
-'',
+$$Do not engage in any activity that harms, disrupts, or undermines the platform or its users. This includes (but is not limited to) inserting malicious code, exploiting bugs, evading bans, bypassing security measures, or helping others do so. Do not attempt to deceive users, manipulating votes or reputation systems, or make the site harder to use through spam, flooding, or disruptive behavior. Keep the platform safe, fair, and accessible for everyone.$$,
 1
 );

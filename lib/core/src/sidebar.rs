@@ -4,7 +4,7 @@ use leptos::html::Div;
 use leptos_use::on_click_outside;
 use sharesphere_utils::routes::{PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::TransitionUnpack;
-use sharesphere_utils::widget::{Collapse, TitleCollapse};
+use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
 
 use crate::sphere::{SphereHeader, SphereLinkList};
 
@@ -164,14 +164,18 @@ pub fn SphereRuleList() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     view! {
         <TitleCollapse title="Rules">
-            <div class="flex flex-col pl-2 pt-1">
+            <div class="flex flex-col pl-2 pt-1 gap-1">
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
                 {
                     sphere_rule_vec.iter().enumerate().map(|(index, rule)| {
-                        let description = StoredValue::new(rule.description.clone());
+                        let description = StoredValue::new(match &rule.markdown_description {
+                            Some(description) => description.clone(),
+                            None => rule.description.clone(),
+                        });
+                        let is_markdown = rule.markdown_description.is_some();
                         let title = rule.title.clone();
                         let title_view = move || view! {
-                            <div class="flex gap-4 items-center">
+                            <div class="flex gap-2">
                                 <div>{index+1}</div>
                                 <div class="text-left">{title}</div>
                             </div>
@@ -181,7 +185,7 @@ pub fn SphereRuleList() -> impl IntoView {
                                 title_view
                                 is_open=false
                             >
-                                <div class="pl-2 text-sm text-left whitespace-pre-line">{description.get_value()}</div>
+                                <ContentBody body=description.get_value() is_markdown/>
                             </Collapse>
                         }
                     }).collect_view()

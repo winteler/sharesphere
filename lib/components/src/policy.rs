@@ -47,11 +47,17 @@ pub fn PrivacyPolicy() -> impl IntoView {
 }
 
 #[component]
+pub fn ContentPolicy() -> impl IntoView {
+
+}
+
+#[component]
 pub fn Rules() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
                 <h1 class="text-3xl font-bold text-center">"Rules"</h1>
+
             </div>
         </div>
         <HomeSidebar/>

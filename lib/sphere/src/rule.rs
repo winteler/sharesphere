@@ -5,7 +5,7 @@ use leptos::prelude::*;
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::icons::{CrossIcon, EditIcon, PlusIcon};
 use sharesphere_utils::unpack::{TransitionUnpack};
-use sharesphere_utils::widget::{ModalDialog, ModalFormButtons};
+use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons};
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
@@ -41,9 +41,11 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                 view! {
                                     <div class="flex gap-1 justify-between rounded-sm pl-1">
                                         <div class="w-5/6 flex gap-1">
-                                            <div class="w-1/12 select-none">{rule.get_value().priority}</div>
-                                            <div class="w-5/12 select-none">{rule.get_value().title}</div>
-                                            <div class="w-6/12 select-none">{rule.get_value().description}</div>
+                                            <div class="w-1/12 select-none">{rule.read_value().priority}</div>
+                                            <div class="w-5/12 select-none">{rule.read_value().title.clone()}</div>
+                                            <div class="w-6/12 select-none">
+                                                <ContentBody body=rule.read_value().description.clone() is_markdown=rule.read_value().markdown_description.is_some()/>
+                                            </div>
                                         </div>
                                         <div class="flex gap-1 justify-end">
                                             <button

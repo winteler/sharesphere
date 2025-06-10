@@ -20,6 +20,10 @@ async fn get_main_db_pool() -> PgPool {
         .expect("Should be able to connect to Test DB.")
 }
 
+async fn clear_base_rules(db_pool: &PgPool) {
+    sqlx::query!("DELETE FROM rules WHERE sphere_id IS NULL").execute(db_pool).await.expect("Should delete base rules");
+}
+
 pub async fn get_db_pool() -> PgPool {
     let mut db_num = DB_NUM.lock().unwrap();
     let db_name = format!("test{db_num}");
@@ -51,6 +55,9 @@ pub async fn get_db_pool() -> PgPool {
         .run(&db_pool)
         .await
         .expect("SQLx migrations should be executed.");
+
+    // Clear base rules that are created in migrations
+    clear_base_rules(&db_pool).await;
 
     db_pool
 }

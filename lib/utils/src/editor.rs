@@ -30,7 +30,7 @@ pub enum FormatType {
 #[derive(Clone, Copy, Debug)]
 pub struct TextareaData {
     pub content: RwSignal<String>,
-    pub textarea_ref: NodeRef<html::Textarea>
+    pub textarea_ref: NodeRef<Textarea>
 }
 
 #[cfg(feature = "ssr")]
@@ -44,7 +44,7 @@ pub mod ssr {
     use crate::editor::get_styled_html_from_markdown;
     use crate::errors::AppError;
 
-    pub async fn get_html_and_markdown_bodies(body: String, is_markdown: bool) -> Result<(String, Option<String>), AppError> {
+    pub async fn get_html_and_markdown_strings(body: String, is_markdown: bool) -> Result<(String, Option<String>), AppError> {
         match is_markdown {
             true => Ok((
                 get_styled_html_from_markdown(body.clone()).await?,
@@ -220,6 +220,9 @@ pub fn FormMarkdownEditor(
     /// Initial state for markdown rendering
     #[prop(default = false)]
     is_markdown: bool,
+    /// Additional css classes
+    #[prop(default = "w-full")]
+    class: &'static str,
 ) -> impl IntoView {
     let is_markdown_mode = RwSignal::new(is_markdown);
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
@@ -247,7 +250,7 @@ pub fn FormMarkdownEditor(
     Effect::new(move || adjust_textarea_height(data.textarea_ref));
 
     view! {
-        <div class="flex flex-col gap-2">
+        <div class=format!("flex flex-col gap-2 {class}")>
             <div class="group w-full max-w-full p-1 2xl:p-2 border border-primary">
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for=name class="sr-only">
@@ -545,22 +548,22 @@ mod tests {
     use indoc::indoc;
     use leptos::prelude::ServerFnError;
 
-    use crate::editor::ssr::get_html_and_markdown_bodies;
+    use crate::editor::ssr::get_html_and_markdown_strings;
     use crate::editor::{format_textarea_content, get_styled_html_from_markdown, ssr::style_html_user_content, FormatType};
 
     #[tokio::test]
-    async fn test_get_html_and_markdown_bodies() -> Result<(), ServerFnError> {
+    async fn test_get_html_and_markdown_strings() -> Result<(), ServerFnError> {
         let text_body = "hello world";
         let markdown_body = "#this is a header";
         
-        let (html_text_body, markdown_text_body) = get_html_and_markdown_bodies(
+        let (html_text_body, markdown_text_body) = get_html_and_markdown_strings(
             text_body.to_string(), 
             false
         ).await.expect("Should get text body");
         assert_eq!(html_text_body, text_body);
         assert_eq!(markdown_text_body, None);
 
-        let (html_markdown_body, markdown_markdown_body) = get_html_and_markdown_bodies(
+        let (html_markdown_body, markdown_markdown_body) = get_html_and_markdown_strings(
             markdown_body.to_string(), 
             true
         ).await.expect("Should get text body");

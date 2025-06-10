@@ -8,6 +8,7 @@ use {
         auth::ssr::check_user,
         session::ssr::get_db_pool,
     },
+    sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
 };
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -72,6 +73,7 @@ pub mod ssr {
         priority: i16,
         title: &str,
         description: &str,
+        markdown_description: Option<&str>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
@@ -93,15 +95,16 @@ pub mod ssr {
         let rule = sqlx::query_as!(
             Rule,
             "INSERT INTO rules
-            (sphere_id, sphere_name, priority, title, description, user_id)
+            (sphere_id, sphere_name, priority, title, description, markdown_description, user_id)
             VALUES (
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $1),
-                $1, $2, $3, $4, $5
+                $1, $2, $3, $4, $5, $6
             ) RETURNING *",
             sphere_name,
             priority,
             title,
             description,
+            markdown_description,
             user.user_id,
         )
             .fetch_one(db_pool)
@@ -116,6 +119,7 @@ pub mod ssr {
         priority: i16,
         title: &str,
         description: &str,
+        markdown_description: Option<&str>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
@@ -163,17 +167,18 @@ pub mod ssr {
         let new_rule = sqlx::query_as!(
             Rule,
             "INSERT INTO rules
-            (rule_key, sphere_id, sphere_name, priority, title, description, user_id)
+            (rule_key, sphere_id, sphere_name, priority, title, description, markdown_description, user_id)
             VALUES (
                 $1,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                $2, $3, $4, $5, $6
+                $2, $3, $4, $5, $6, $7
             ) RETURNING *",
             current_rule.rule_key,
             sphere_name,
             priority,
             title,
             description,
+            markdown_description,
             user.user_id,
         )
             .fetch_one(db_pool)
@@ -241,10 +246,22 @@ pub async fn add_rule(
     priority: i16,
     title: String,
     description: String,
+    is_markdown: bool,
 ) -> Result<Rule, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    let rule = ssr::add_rule(sphere_name.as_ref().map(String::as_str), priority, &title, &description, &user, &db_pool).await?;
+    let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
+
+    let rule = ssr::add_rule(
+        sphere_name.as_ref().map(String::as_str),
+        priority,
+        &title,
+        &description,
+        markdown_description.as_deref(),
+        &user,
+        &db_pool
+    ).await?;
+
     Ok(rule)
 }
 
@@ -255,10 +272,23 @@ pub async fn update_rule(
     priority: i16,
     title: String,
     description: String,
+    is_markdown: bool,
 ) -> Result<Rule, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    let rule = ssr::update_rule(sphere_name.as_ref().map(String::as_str), current_priority, priority, &title, &description, &user, &db_pool).await?;
+    let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
+
+    let rule = ssr::update_rule(
+        sphere_name.as_ref().map(String::as_str),
+        current_priority,
+        priority,
+        &title,
+        &description,
+        markdown_description.as_deref(),
+        &user,
+        &db_pool
+    ).await?;
+
     Ok(rule)
 }
 

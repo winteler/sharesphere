@@ -168,10 +168,7 @@ pub fn SphereRuleList() -> impl IntoView {
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
                 {
                     sphere_rule_vec.iter().enumerate().map(|(index, rule)| {
-                        let description = StoredValue::new(match &rule.markdown_description {
-                            Some(description) => description.clone(),
-                            None => rule.description.clone(),
-                        });
+                        let description = StoredValue::new(rule.description.clone());
                         let is_markdown = rule.markdown_description.is_some();
                         let title = rule.title.clone();
                         let title_view = move || view! {

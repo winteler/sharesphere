@@ -2022,7 +2022,7 @@ async fn test_update_post() -> Result<(), AppError> {
     assert_eq!(updated_nsfw_post.delete_timestamp, None);
 
     // Cannot update moderator post
-    let rule = add_rule(Some(&sphere.sphere_name), 0, "1", "2", &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(Some(&sphere.sphere_name), 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
     moderate_post(post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
     assert_eq!(
         update_post(
@@ -2248,7 +2248,7 @@ async fn test_delete_post() {
             deleted_post.delete_timestamp.unwrap() > deleted_post.create_timestamp
     );
 
-    let rule = add_rule(Some(sphere_name), 0, "1", "2", &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(Some(sphere_name), 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
     let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
     let post = moderate_post(post.post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
     assert_eq!(

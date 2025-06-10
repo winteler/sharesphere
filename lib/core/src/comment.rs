@@ -14,7 +14,7 @@ use {
         auth::{get_user, ssr::check_user},
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::editor::ssr::get_html_and_markdown_bodies,
+    sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
     crate::ranking::{ssr::vote_on_content, VoteValue}
 };
 use sharesphere_auth::auth_widget::AuthorWidget;
@@ -598,7 +598,7 @@ pub async fn create_comment(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (comment, markdown_comment) = get_html_and_markdown_bodies(comment, is_markdown).await?;
+    let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown).await?;
 
     let mut comment = ssr::create_comment(
         post_id,
@@ -640,7 +640,7 @@ pub async fn edit_comment(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (comment, markdown_comment) = get_html_and_markdown_bodies(comment, is_markdown).await?;
+    let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown).await?;
 
     let comment = ssr::update_comment(
         comment_id,

@@ -8,7 +8,7 @@ use {
         auth::ssr::check_user,
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::editor::ssr::get_html_and_markdown_bodies,
+    sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
     crate::satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
 use crate::ranking::SortType;
@@ -240,7 +240,7 @@ pub async fn create_satellite(
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 
-    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
+    let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
 
     let satellite = ssr::create_satellite(
         &sphere_name,
@@ -267,7 +267,7 @@ pub async fn update_satellite(
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 
-    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
+    let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
 
     let satellite = ssr::update_satellite(
         satellite_id,

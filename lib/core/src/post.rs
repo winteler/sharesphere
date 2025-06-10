@@ -25,7 +25,7 @@ use {
         session::ssr::get_db_pool,
     },
     sharesphere_utils::{
-        editor::ssr::get_html_and_markdown_bodies,
+        editor::ssr::get_html_and_markdown_strings,
         embed::verify_link_and_get_embed,
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
@@ -895,7 +895,7 @@ pub async fn create_post(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
+    let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
 
     let (link, _) = match (embed_type, link) {
         (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
@@ -943,7 +943,7 @@ pub async fn edit_post(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (body, markdown_body) = get_html_and_markdown_bodies(body, is_markdown).await?;
+    let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
 
     let (link, _) = match (embed_type, link) {
         (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,

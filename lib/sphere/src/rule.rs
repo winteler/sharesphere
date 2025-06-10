@@ -2,7 +2,7 @@ use leptos::form::ActionForm;
 use leptos::html;
 use leptos::prelude::*;
 
-use sharesphere_utils::editor::{FormTextEditor, TextareaData};
+use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use sharesphere_utils::icons::{CrossIcon, EditIcon, PlusIcon};
 use sharesphere_utils::unpack::{TransitionUnpack};
 use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons};
@@ -20,7 +20,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">"Rules"</div>
-            <div class="w-full flex flex-col gap-1">
+            <div class="w-full flex flex-col">
                 <div class="border-b border-base-content/20 pl-1">
                     <div class="w-5/6 flex gap-1">
                         <div class="w-1/12 py-2 font-bold">"N°"</div>
@@ -39,7 +39,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                 let rule = StoredValue::new(rule);
                                 let show_edit_form = RwSignal::new(false);
                                 view! {
-                                    <div class="flex gap-1 justify-between rounded-sm pl-1">
+                                    <div class="flex gap-1 justify-between rounded-sm pl-1 pt-1">
                                         <div class="w-5/6 flex gap-1">
                                             <div class="w-1/12 select-none">{rule.read_value().priority}</div>
                                             <div class="w-5/12 select-none">{rule.read_value().title.clone()}</div>
@@ -47,9 +47,9 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                                 <ContentBody body=rule.read_value().description.clone() is_markdown=rule.read_value().markdown_description.is_some()/>
                                             </div>
                                         </div>
-                                        <div class="flex gap-1 justify-end">
+                                        <div class="flex gap-1 justify-end align-start">
                                             <button
-                                                class="button-secondary"
+                                                class="button-secondary h-fit"
                                                 on:click=move |_| show_edit_form.update(|value| *value = !*value)
                                             >
                                                 <EditIcon/>
@@ -113,16 +113,24 @@ pub fn EditRuleForm(
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
-    let rule_priority = rule.with_value(|rule| rule.priority);
+    let (rule_priority, title, description, is_description_markdown)  = rule.with_value(|rule| (
+        rule.priority,
+        rule.title.clone(),
+        match &rule.markdown_description {
+            Some(description) => description.clone(),
+            None => rule.description.clone(),
+        },
+        rule.markdown_description.is_some()
+    ));
     let priority = RwSignal::new(rule_priority.to_string());
     let title_ref = NodeRef::<html::Textarea>::new();
     let title_data = TextareaData {
-        content: RwSignal::new(String::new()),
+        content: RwSignal::new(title),
         textarea_ref: title_ref,
     };
     let description_ref = NodeRef::<html::Textarea>::new();
     let description_data = TextareaData {
-        content: RwSignal::new(String::new()),
+        content: RwSignal::new(description),
         textarea_ref: description_ref,
     };
     let invalid_inputs = Signal::derive(move || {
@@ -144,7 +152,7 @@ pub fn EditRuleForm(
                     value=rule_priority
                 />
                 <div class="flex flex-col gap-3 w-full">
-                    <RuleInputs priority title_data description_data/>
+                    <RuleInputs priority title_data description_data is_description_markdown/>
                     <ModalFormButtons
                         disable_publish=invalid_inputs
                         show_form
@@ -216,30 +224,34 @@ pub fn RuleInputs(
     priority: RwSignal<String>,
     title_data: TextareaData,
     description_data: TextareaData,
+    #[prop(optional)]
+    is_description_markdown: bool,
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-1 items-center">
-            <input
-                tabindex="0"
-                type="number"
-                name="priority"
-                placeholder="N°"
-                autocomplete="off"
-                class="input input-primary no-spinner px-1 w-1/12"
-                value=priority
-                on:input=move |ev| priority.set(event_target_value(&ev))
-            />
-            <FormTextEditor
-                name="title"
-                placeholder="Title"
-                data=title_data
-                class="w-5/12"
-            />
-            <FormTextEditor
+        <div class="flex flex-col gap-2">
+            <div class="flex gap-2 items-center">
+                <input
+                    tabindex="0"
+                    type="number"
+                    name="priority"
+                    placeholder="N°"
+                    autocomplete="off"
+                    class="input input-primary no-spinner px-1 w-1/12"
+                    value=priority
+                    on:input=move |ev| priority.set(event_target_value(&ev))
+                />
+                <FormTextEditor
+                    name="title"
+                    placeholder="Title"
+                    data=title_data
+                />
+            </div>
+            <FormMarkdownEditor
                 name="description"
+                is_markdown_name="is_markdown"
                 placeholder="Description"
                 data=description_data
-                class="w-6/12"
+                is_markdown=is_description_markdown
             />
         </div>
     }

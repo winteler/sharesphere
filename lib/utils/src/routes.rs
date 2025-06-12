@@ -26,6 +26,7 @@ pub const SEARCH_ROUTE: &str = "/search";
 pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
 pub const TERMS_AND_CONDITIONS_ROUTE: &str = "/terms_and_conditions";
 pub const PRIVACY_POLICY_ROUTE: &str = "/privacy_policy";
+pub const CONTENT_POLICY_ROUTE: &str = "/content_policy";
 pub const RULES_ROUTE: &str = "/rules";
 
 #[cfg(feature = "ssr")]

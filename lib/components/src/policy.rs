@@ -8,7 +8,7 @@ pub fn TermsAndConditions() -> impl IntoView {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
                 <h1 class="text-3xl font-bold text-center">"Terms and Conditions"</h1>
-                <ShareSpherInfo/>
+                <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
                 <DescriptionOfService/>
                 <UserResponsabilities/>
@@ -30,7 +30,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
                 <h1 class="text-3xl font-bold text-center">"Privacy Policy"</h1>
-                <ShareSpherInfo/>
+                <ShareSphereInfo/>
                 <AboutPrivacyPolicy/>
                 <DataCollection/>
                 <DataCollectionPurpose/>
@@ -48,7 +48,15 @@ pub fn PrivacyPolicy() -> impl IntoView {
 
 #[component]
 pub fn ContentPolicy() -> impl IntoView {
+    view! {
+        <div class="w-full overflow-y-auto">
+            <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
+                <h1 class="text-3xl font-bold text-center">"Content Policy"</h1>
 
+            </div>
+        </div>
+        <HomeSidebar/>
+    }
 }
 
 #[component]
@@ -65,7 +73,7 @@ pub fn Rules() -> impl IntoView {
 }
 
 #[component]
-fn ShareSpherInfo() -> impl IntoView {
+fn ShareSphereInfo() -> impl IntoView {
     view! {
         <div class="flex flex-col items-center gap-1">
             <p>"Effective Date: 01.06.2025"</p>

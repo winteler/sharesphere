@@ -51,14 +51,14 @@ pub mod ssr {
         Ok(rule)
     }
 
-    pub async fn get_sphere_rule_vec(
-        sphere_name: &str,
+    pub async fn get_rule_vec(
+        sphere_name: Option<&str>,
         db_pool: &PgPool,
     ) -> Result<Vec<Rule>, AppError> {
         let sphere_rule_vec = sqlx::query_as!(
             Rule,
             "SELECT * FROM rules
-            WHERE COALESCE(sphere_name, $1) = $1 AND delete_timestamp IS NULL
+            WHERE COALESCE(sphere_name, $1) IS NOT DISTINCT FROM $1 AND delete_timestamp IS NULL
             ORDER BY sphere_name NULLS FIRST, priority, create_timestamp",
             sphere_name
         )
@@ -232,11 +232,11 @@ pub async fn get_rule_by_id(
 }
 
 #[server]
-pub async fn get_sphere_rule_vec(
-    sphere_name: String
+pub async fn get_rule_vec(
+    sphere_name: Option<String>
 ) -> Result<Vec<Rule>, AppError> {
     let db_pool = get_db_pool()?;
-    let rule_vec = ssr::get_sphere_rule_vec(&sphere_name, &db_pool).await?;
+    let rule_vec = ssr::get_rule_vec(sphere_name.as_deref(), &db_pool).await?;
     Ok(rule_vec)
 }
 

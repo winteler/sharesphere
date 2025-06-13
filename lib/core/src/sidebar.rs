@@ -107,7 +107,7 @@ pub fn HomeSidebar() -> impl IntoView {
         <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
                 <div class="text-2xl text-center">"Welcome to ShareSphere!"</div>
-                <div class="flex flex-col gap-1 text-justify">
+                <div class="flex flex-col gap-1">
                     <p>"ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."</p>
                     <p>"ShareSphere is a non-profit, open source website. You can find more information on the website and its rules below."</p>
                 </div>

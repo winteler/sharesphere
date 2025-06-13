@@ -17,7 +17,7 @@ use sharesphere_core::filter::{PostFiltersButton, SphereCategoryFilter};
 use sharesphere_core::ranking::{PostSortWidget, SortType};
 use sharesphere_core::moderation::ModeratePost;
 use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
-use sharesphere_core::rule::{get_sphere_rule_vec, AddRule, RemoveRule, UpdateRule};
+use sharesphere_core::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, SatelliteState, UpdateSatellite};
 use sharesphere_core::sidebar::SphereSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
@@ -90,7 +90,7 @@ pub fn SphereBanner() -> impl IntoView {
                 update_rule_action.version().get(),
                 remove_rule_action.version().get()
             ),
-            move |(sphere_name, _, _, _)| get_sphere_rule_vec(sphere_name),
+            move |(sphere_name, _, _, _)| get_rule_vec(Some(sphere_name)),
         ),
         create_satellite_action,
         update_satellite_action,

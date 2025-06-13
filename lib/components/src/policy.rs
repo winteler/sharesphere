@@ -1,12 +1,18 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_utils::routes::PRIVACY_POLICY_ROUTE;
+
+use sharesphere_core::rule::{get_rule_vec};
+use sharesphere_utils::errors::{ErrorDisplay};
+use sharesphere_utils::icons::LoadingIcon;
+use sharesphere_utils::widget::ContentBody;
 
 #[component]
 pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
                 <h1 class="text-3xl font-bold text-center">"Terms and Conditions"</h1>
                 <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
@@ -28,7 +34,7 @@ pub fn TermsAndConditions() -> impl IntoView {
 pub fn PrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
                 <h1 class="text-3xl font-bold text-center">"Privacy Policy"</h1>
                 <ShareSphereInfo/>
                 <AboutPrivacyPolicy/>
@@ -50,7 +56,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
 pub fn ContentPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
                 <h1 class="text-3xl font-bold text-center">"Content Policy"</h1>
 
             </div>
@@ -61,11 +67,33 @@ pub fn ContentPolicy() -> impl IntoView {
 
 #[component]
 pub fn Rules() -> impl IntoView {
+    let rule_vec_resource = OnceResource::new(get_rule_vec(None));
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-full 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
                 <h1 class="text-3xl font-bold text-center">"Rules"</h1>
-
+                <p>
+                    "ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. \
+                    Each community can decide upon its own set of rules but a set of base rules is enforced site-wide to ensure \
+                    all communities remain safe, welcoming and compatible with ShareSphere's values."
+                </p>
+                <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+                {
+                    move || Suspend::new(async move {
+                        match &rule_vec_resource.await {
+                            Ok(rule_vec) => {
+                                Either::Left(rule_vec.iter().enumerate().map(|(index, rule)| view! {
+                                    <div class="flex flex-col gap-1">
+                                        <h2 class="text-xl font-semibold">{format!("{}. {}", index + 1, rule.title)}</h2>
+                                        <ContentBody body=rule.description.clone() is_markdown=rule.markdown_description.is_some()/>
+                                    </div>
+                                }).collect_view())
+                            },
+                            Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),
+                        }
+                    })
+                }
+                </Suspense>
             </div>
         </div>
         <HomeSidebar/>

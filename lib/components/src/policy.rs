@@ -5,14 +5,14 @@ use sharesphere_utils::routes::PRIVACY_POLICY_ROUTE;
 
 use sharesphere_core::rule::{get_rule_vec};
 use sharesphere_utils::errors::{ErrorDisplay};
-use sharesphere_utils::icons::LoadingIcon;
+use sharesphere_utils::icons::{LoadingIcon, NsfwIcon, SpoilerIcon};
 use sharesphere_utils::widget::ContentBody;
 
 #[component]
 pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Terms and Conditions"</h1>
                 <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
@@ -34,7 +34,7 @@ pub fn TermsAndConditions() -> impl IntoView {
 pub fn PrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Privacy Policy"</h1>
                 <ShareSphereInfo/>
                 <AboutPrivacyPolicy/>
@@ -56,9 +56,51 @@ pub fn PrivacyPolicy() -> impl IntoView {
 pub fn ContentPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-4 w-4/5 2xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Content Policy"</h1>
-
+                <p class="text-justify">
+                    "To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and other problematic content, as well as properly label sensitive content.\
+                    This page documents which content are forbidden or sensitive, as well as how sensitive content should be labeled."
+                </p>
+                <div class="flex flex-col gap-2">
+                    <h2 class="text-xl font-semibold">"Banned Content"</h2>
+                    <p>"The following contents are strictly prohibited on ShareSphere. It will be immediately removed and lead to a permanent ban."</p>
+                    <ul class="list-disc list-inside">
+                        <li>"sexual, abusive or suggestive content of minors or individuals that did not give their consent"</li>
+                        <li>"human trafficking"</li>
+                        <li>"paid services involving physical sexual contact"</li>
+                        <li>"personal or confidential information of other individuals"</li>
+                        <li>"impersonating other individuals"</li>
+                        <li>"trade of stolen goods"</li>
+                        <li>"falsified documents or currency"</li>
+                        <li>"phishing, scams and other fraudulent schemes"</li>
+                        <li>"malware or viruses"</li>
+                        <li>"promotion or support of terrorism, hate crimes or any other violent ideologies"</li>
+                    </ul>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <h2 class="text-xl font-semibold">"Sensitive Content"</h2>
+                    <h3 class="text-lg font-semibold">"Mature Content"</h3>
+                    <div>
+                        "Content that is not suitable for minors, such as sexually explicit, graphic, violent or offensive contents must be labelled with the 'NSFW' tag: "
+                        <NsfwIcon class="inline-flex"/>
+                    </div>
+                    <h3 class="text-lg font-semibold">"Spoiler Content"</h3>
+                    <div>
+                        "Content that could spoil information to other users, such as the content of a book or movie \
+                        must keep any information out of its title and has to be labelled with the 'Spoiler' tag: "
+                        <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full inline-flex relative top-1"><SpoilerIcon/></div>
+                    </div>
+                    <p>"The labelling rules for different content types are as follows:"</p>
+                    <ul class="list-disc list-inside">
+                        <li>"Any plot relevant information of books, movie, games, TV shows must always be labelled as spoiler."</li>
+                        <li>"Results of competitions (sports, e-sport, games, etc.) and other live events must be labelled as spoiler in the week following the result."</li>
+                    </ul>
+                    <p>
+                        "In addition, the title must make it clear spoilers will be contained in the body of the post. \
+                        Spoilers in comments should be hidden using markdown formatting. Communities can also set stricter rules for spoilers."
+                    </p>
+                </div>
             </div>
         </div>
         <HomeSidebar/>
@@ -70,9 +112,9 @@ pub fn Rules() -> impl IntoView {
     let rule_vec_resource = OnceResource::new(get_rule_vec(None));
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-3 items-center w-4/5 2xl:w-2/5 mx-auto">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Rules"</h1>
-                <p>
+                <p class="text-justify">
                     "ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. \
                     Each community can decide upon its own set of rules but a set of base rules is enforced site-wide to ensure \
                     all communities remain safe, welcoming and compatible with ShareSphere's values."
@@ -83,9 +125,13 @@ pub fn Rules() -> impl IntoView {
                         match &rule_vec_resource.await {
                             Ok(rule_vec) => {
                                 Either::Left(rule_vec.iter().enumerate().map(|(index, rule)| view! {
-                                    <div class="flex flex-col gap-1">
+                                    <div class="flex flex-col gap-2">
                                         <h2 class="text-xl font-semibold">{format!("{}. {}", index + 1, rule.title)}</h2>
-                                        <ContentBody body=rule.description.clone() is_markdown=rule.markdown_description.is_some()/>
+                                        <ContentBody
+                                            body=rule.description.clone()
+                                            is_markdown=rule.markdown_description.is_some()
+                                            attr:class="text-justify"
+                                        />
                                     </div>
                                 }).collect_view())
                             },
@@ -115,7 +161,7 @@ fn AcceptanceOfTerms() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"1. Acceptance of Terms"</h2>
-            <p class="">
+            <p >
                 "By accessing or using ShareSphere (“we”, “us”, or “the Website”), you agree to be bound by these Terms and Conditions. \
                 If you do not agree, please do not use the Website."
             </p>
@@ -128,7 +174,7 @@ fn DescriptionOfService() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"2. Description of Service"</h2>
-            <p class="">"ShareSphere provides an online platform for users to create, join, and participate in discussion forums"</p>
+            <p >"ShareSphere provides an online platform for users to create, join, and participate in discussion forums"</p>
         </div>
     }
 }
@@ -155,7 +201,7 @@ fn Moderation() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"4. Moderation"</h2>
-            <p class="">
+            <p >
                 "We reserve the right to remove any content that violates these Terms or applicable laws and \
                 to suspend or terminate user accounts without prior notice for misconduct."
             </p>
@@ -168,7 +214,7 @@ fn IntellectualProperty() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"5. Intellectual Property"</h2>
-            <p class="">"We retain ownership of all site content. Users grant a non-exclusive license to display their posts."</p>
+            <p >"We retain ownership of all site content. Users grant a non-exclusive license to display their posts."</p>
         </div>
     }
 }
@@ -178,8 +224,8 @@ fn LimitationOfLiability() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"8. Amendments"</h2>
-            <p class="">"We do not guarantee uninterrupted access or error-free operation of the Website."</p>
-            <p class="">"We are not liable for:"</p>
+            <p >"We do not guarantee uninterrupted access or error-free operation of the Website."</p>
+            <p >"We are not liable for:"</p>
             <ul class="list-disc list-inside">
                 <li>"User-generated content."</li>
                 <li>"Loss of data, revenue, or reputation due to site use."</li>
@@ -194,7 +240,7 @@ fn DataProtection() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"9. Governing Law"</h2>
-            <p class="">
+            <p >
                 "See our "
                 <a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a>
                 "."
@@ -208,7 +254,7 @@ fn Amendments() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"8. Amendments"</h2>
-            <p class="">"We may update these Terms at any time. You will be notified of significant changes. Continued use of the Website means you accept the revised Terms."</p>
+            <p >"We may update these Terms at any time. You will be notified of significant changes. Continued use of the Website means you accept the revised Terms."</p>
         </div>
     }
 }
@@ -218,7 +264,7 @@ fn GoverningLaw() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"9. Governing Law"</h2>
-            <p class="">"These Terms are governed by Swiss law. Jurisdiction: Zurich."</p>
+            <p >"These Terms are governed by Swiss law. Jurisdiction: Zurich."</p>
         </div>
     }
 }
@@ -228,7 +274,7 @@ fn AboutPrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"1. About ShareSphere's Privacy Policy"</h2>
-            <p class="">"This Privacy Policy explains how we collect, use, and protect your personal data when you use ShareSphere."</p>
+            <p >"This Privacy Policy explains how we collect, use, and protect your personal data when you use ShareSphere."</p>
         </div>
     }
 }
@@ -238,7 +284,7 @@ fn DataCollection() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"2. Data ShareSphere Collects"</h2>
-            <p class="">"ShareSphere collects the following information:"</p>
+            <p >"ShareSphere collects the following information:"</p>
             <ul class="list-disc list-inside">
                 <li>"Account data: username, email address, password (encrypted)."</li>
                 <li>"IP address (for security)."</li>
@@ -254,7 +300,7 @@ fn DataCollectionPurpose() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"3. Purpose of Data Collection"</h2>
-            <p class="">"ShareSphere uses your data to:"</p>
+            <p >"ShareSphere uses your data to:"</p>
             <ul class="list-disc list-inside">
                 <li>"Provide forum services."</li>
                 <li>"Ensure security and prevent abuse."</li>
@@ -270,7 +316,7 @@ fn LegalBasis() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"4. Legal Basis"</h2>
-            <p class="">"ShareSphere processes personal data based on:"</p>
+            <p >"ShareSphere processes personal data based on:"</p>
             <ul class="list-disc list-inside">
                 <li>"Your consent (e.g., when registering)."</li>
                 <li>"Our legitimate interest in running a secure forum."</li>
@@ -286,7 +332,7 @@ fn Cookies() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"5. Cookies"</h2>
-            <p class="">"ShareSphere uses cookies for:"</p>
+            <p >"ShareSphere uses cookies for:"</p>
             <ul class="list-disc list-inside">
                 <li>"Login sessions."</li>
             </ul>
@@ -299,7 +345,7 @@ fn DataSharing() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"6. Data Sharing"</h2>
-            <p class="">"ShareSphere does not sell your data. If required, ShareSphere might share your data with:"</p>
+            <p >"ShareSphere does not sell your data. If required, ShareSphere might share your data with:"</p>
             <ul class="list-disc list-inside">
                 <li>"Authorities."</li>
                 <li>"Hosting providers."</li>
@@ -313,7 +359,7 @@ fn DataStorage() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"7. Data Storage"</h2>
-            <p class="">"ShareSphere stores data on server located in Switzerland following industry-standard encryption and security practices."</p>
+            <p >"ShareSphere stores data on server located in Switzerland following industry-standard encryption and security practices."</p>
         </div>
     }
 }
@@ -323,14 +369,14 @@ fn UserRights() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"8. Your rights"</h2>
-            <p class="">"You have the right to::"</p>
+            <p >"You have the right to::"</p>
             <ul class="list-disc list-inside">
                 <li>"Access your personal data."</li>
                 <li>"Request correction or deletion."</li>
                 <li>"Withdraw consent at any time."</li>
                 <li>"Lodge a complaint with the Swiss Federal Data Protection and Information Commissioner (FDPIC)."</li>
             </ul>
-            <p class="">"To exercise these rights, email us at help@sharesphere.space"</p>
+            <p >"To exercise these rights, email us at help@sharesphere.space"</p>
         </div>
     }
 }
@@ -340,7 +386,7 @@ fn PrivacyPolicyChanges() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"9. Changes to This Policy"</h2>
-            <p class="">"We may update this Privacy Policy. We will notify you of significant changes."</p>
+            <p >"We may update this Privacy Policy. We will notify you of significant changes."</p>
         </div>
     }
 }

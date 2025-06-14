@@ -70,18 +70,23 @@ async fn test_get_rule_vec() -> Result<(), AppError> {
         Some(&sphere_2.sphere_name), 1, "sphere_2_rule_1", "test", None, &user, &db_pool
     ).await.expect("Rule should be created.");
 
-    let sphere_1_rule_vec = get_rule_vec(&sphere_1.sphere_name, &db_pool).await.expect("Sphere rules should be loaded");
+    let sphere_1_rule_vec = get_rule_vec(Some(&sphere_1.sphere_name), &db_pool).await.expect("Sphere rules should be loaded");
     assert_eq!(sphere_1_rule_vec.len(), 4);
     assert_eq!(sphere_1_rule_vec.first(), Some(&common_rule_1));
     assert_eq!(sphere_1_rule_vec.get(1), Some(&common_rule_2));
     assert_eq!(sphere_1_rule_vec.get(2), Some(&sphere_1_rule_1));
     assert_eq!(sphere_1_rule_vec.get(3), Some(&sphere_1_rule_2));
 
-    let sphere_2_rule_vec = get_rule_vec(&sphere_2.sphere_name, &db_pool).await.expect("Sphere rules should be loaded");
+    let sphere_2_rule_vec = get_rule_vec(Some(&sphere_2.sphere_name), &db_pool).await.expect("Sphere rules should be loaded");
     assert_eq!(sphere_2_rule_vec.len(), 3);
     assert_eq!(sphere_2_rule_vec.first(), Some(&common_rule_1));
     assert_eq!(sphere_2_rule_vec.get(1), Some(&common_rule_2));
     assert_eq!(sphere_2_rule_vec.get(2), Some(&sphere_2_rule_1));
+
+    let common_rule_vec = get_rule_vec(None, &db_pool).await.expect("Common rules should be loaded");
+    assert_eq!(common_rule_vec.len(), 2);
+    assert_eq!(common_rule_vec.first(), Some(&common_rule_1));
+    assert_eq!(common_rule_vec.get(1), Some(&common_rule_2));
 
     Ok(())
 }
@@ -132,7 +137,7 @@ async fn test_add_rule() -> Result<(), AppError> {
     assert_eq!(rule_2.user_id, admin.user_id);
 
     let common_rule_2 = add_rule(None, 0, title, description, Some("common_md"), &admin, &db_pool).await.expect("Rule should be created.");
-    let sphere_rule_vec = get_rule_vec(&sphere.sphere_name, &db_pool).await.expect("Sphere rules should be loaded");
+    let sphere_rule_vec = get_rule_vec(Some(&sphere.sphere_name), &db_pool).await.expect("Sphere rules should be loaded");
     assert_eq!(sphere_rule_vec.len(), 4);
     assert_eq!(sphere_rule_vec.first(), Some(&common_rule_2));
     assert_eq!(sphere_rule_vec.get(1).unwrap().rule_id, common_rule_1.rule_id);
@@ -196,7 +201,7 @@ async fn test_update_rule() -> Result<(), AppError> {
     assert_eq!(rule_3_updated.description, updated_desc);
     assert_eq!(rule_3_updated.markdown_description, None);
 
-    let sphere_rule_vec = get_rule_vec(&sphere.sphere_name, &db_pool).await.expect("Sphere rules should be loaded");
+    let sphere_rule_vec = get_rule_vec(Some(&sphere.sphere_name), &db_pool).await.expect("Sphere rules should be loaded");
     assert_eq!(sphere_rule_vec.len(), 6);
     assert_eq!(sphere_rule_vec.first().unwrap().rule_id, common_rule_2.rule_id);
     assert_eq!(sphere_rule_vec.get(1), Some(&common_rule_1_updated));
@@ -233,7 +238,7 @@ async fn test_remove_rule() -> Result<(), AppError> {
     assert_eq!(remove_rule(Some(&sphere.sphere_name), 0, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
     assert_eq!(remove_rule(Some(&sphere.sphere_name), 0, &lead, &db_pool).await, Ok(()));
 
-    let sphere_rule_vec = get_rule_vec(&sphere.sphere_name, &db_pool).await.expect("Sphere rules should be loaded");
+    let sphere_rule_vec = get_rule_vec(Some(&sphere.sphere_name), &db_pool).await.expect("Sphere rules should be loaded");
     assert_eq!(sphere_rule_vec.len(), 2);
     assert_eq!(sphere_rule_vec.first().unwrap().rule_id, common_rule_2.rule_id);
     assert_eq!(sphere_rule_vec.first().unwrap().priority, 0);
@@ -242,7 +247,7 @@ async fn test_remove_rule() -> Result<(), AppError> {
 
     assert_eq!(remove_rule(Some(&sphere.sphere_name), 0, &admin, &db_pool).await, Ok(()));
 
-    let sphere_rule_vec = get_rule_vec(&sphere.sphere_name, &db_pool).await.expect("Sphere rules should be loaded");
+    let sphere_rule_vec = get_rule_vec(Some(&sphere.sphere_name), &db_pool).await.expect("Sphere rules should be loaded");
     assert_eq!(sphere_rule_vec.len(), 1);
     assert_eq!(sphere_rule_vec.first().unwrap().rule_id, common_rule_2.rule_id);
 

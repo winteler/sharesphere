@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::html::Div;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
-use sharesphere_utils::routes::{PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
+use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
 
@@ -106,14 +106,22 @@ pub fn HomeSidebar() -> impl IntoView {
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
-                <div class="text-2xl text-center">"Welcome to ShareSphere!"</div>
-                <div class="flex flex-col gap-1">
-                    <p>"ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."</p>
-                    <p>"ShareSphere is a non-profit, open source website. You can find more information on the website and its rules below."</p>
+                <h1 class="text-2xl font-semibold text-center">"Welcome to ShareSphere!"</h1>
+                <div class="flex flex-col gap-2">
+                    <p class="text-justify">
+                        "ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."
+                    </p>
+                    <p class="text-justify">
+                        "ShareSphere is a non-profit, open source website. You can find more information on the website and its rules below."
+                    </p>
                 </div>
-                <a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary text-center">"Terms and conditions"</a>
-                <a href=PRIVACY_POLICY_ROUTE class="link text-primary text-center">"Privacy Policy"</a>
-                <a href=RULES_ROUTE class="link text-primary text-center">"Rules"</a>
+                <h2 class="text-xl font-semibold text-center">"Policies"</h2>
+                <ul class="list-disc list-inside">
+                    <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">"Terms and conditions"</a></li>
+                    <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a></li>
+                    <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a></li>
+                    <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>
+                </ul>
             </div>
         </div>
         <Show when=state.show_right_sidebar>

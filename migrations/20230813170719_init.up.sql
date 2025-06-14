@@ -273,18 +273,18 @@ null,
 null, null, 1,'Respect community rules and label your posts',
 $$<p>Post in the appropriate communities and follow their rules. Make sure to use accurate titles, tags, and categories to help others understand the topic of your post. Stay on-topic and contribute in good faith on topics where you have a genuine interest - this helps keep communities organized, relevant, and welcoming for everyone.<br>
 <br>
-Furthermore, mature content that is not suitable for children (sexually explicit, graphic, violent or offensive) and spoilers must be labelled as NSFW and Spoilers respectively. You can find more details in our <a href="https://sharesphere.space/content_policy" class="link text-primary">Content Policy</a>.</p>$$,
+Furthermore, mature content that is not suitable for children (sexually explicit, graphic, violent or offensive) and spoilers must be labelled as NSFW and Spoilers respectively. You can find more details in our <a href="/content_policy" class="link text-primary">Content Policy</a>.</p>$$,
 $$Post in the appropriate communities and follow their rules. Make sure to use accurate titles, tags, and categories to help others understand the topic of your post. Stay on-topic and contribute in good faith on topics where you have a genuine interest - this helps keep communities organized, relevant, and welcoming for everyone.\
 \
-Furthermore, mature content that is not suitable for children (sexually explicit, graphic, violent or offensive) and spoilers must be labelled as NSFW and Spoilers respectively. You can find more details in our [Content Policy](https://sharesphere.space/content_policy).$$,
+Furthermore, mature content that is not suitable for children (sexually explicit, graphic, violent or offensive) and spoilers must be labelled as NSFW and Spoilers respectively. You can find more details in our [Content Policy](/content_policy).$$,
 1
 ),
 (
 null, null, 2,'No illegal or malicious content',
-$$<p>Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited. More detail can be found in our <a href="https://sharesphere.space/content_policy" class="link text-primary">Content Policy</a>.<br>
+$$<p>Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited. More detail can be found in our <a href="/content_policy" class="link text-primary">Content Policy</a>.<br>
 <br>
 Violating this rule will lead to immediate removal of content and a permanent ban. Depending on the infraction, it can also be reported to authorities.</p>$$,
-$$Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited. More detail can be found in our [Content Policy](https://sharesphere.space/content_policy).\
+$$Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited. More detail can be found in our [Content Policy](/content_policy).\
 \
 Violating this rule will lead to immediate removal of content and a permanent ban. Depending on the infraction, it can also be reported to authorities.$$,
 1

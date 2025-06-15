@@ -2,10 +2,11 @@ use leptos::prelude::*;
 use leptos::html::Div;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
-use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
+use sharesphere_utils::errors::AppError;
+use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
-
+use crate::rule::{get_rule_vec, Rule};
 use crate::sphere::{SphereHeader, SphereLinkList};
 
 use crate::state::{GlobalState, SphereState};
@@ -103,6 +104,10 @@ pub fn HomeSidebar() -> impl IntoView {
         // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
         let _ = on_click_outside(sidebar_ref, move |_| state.show_right_sidebar.set(false));
     }
+    let rule_resource = Resource::new(
+        || (),
+        |_| get_rule_vec(None)
+    );
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
@@ -112,16 +117,18 @@ pub fn HomeSidebar() -> impl IntoView {
                         "ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."
                     </p>
                     <p class="text-justify">
-                        "ShareSphere is a non-profit, open source website. You can find more information on the website and its rules below."
+                        "ShareSphere is a non-profit, add-free, open source website with a focus on transparency, privacy and community empowerment. \
+                        You can find more information on the website and its rules below."
                     </p>
                 </div>
-                <h2 class="text-xl font-semibold text-center">"Policies"</h2>
                 <ul class="list-disc list-inside">
+                    <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">"About ShareSphere"</a></li>
                     <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">"Terms and conditions"</a></li>
                     <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a></li>
                     <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a></li>
                     <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>
                 </ul>
+                <RuleList rule_resource=rule_resource.into()/>
             </div>
         </div>
         <Show when=state.show_right_sidebar>
@@ -154,7 +161,7 @@ pub fn SphereSidebar() -> impl IntoView {
                 </TransitionUnpack>
             </div>
             <div class="border-b border-primary/80"/>
-            <SphereRuleList/>
+            <RuleList rule_resource=sphere_state.sphere_rules_resource/>
             <div class="border-b border-primary/80"/>
             <SphereCategoryList/>
             <div class="border-b border-primary/80"/>
@@ -166,16 +173,17 @@ pub fn SphereSidebar() -> impl IntoView {
     }
 }
 
-/// List of moderators for a sphere
+/// List of rules given in the input resource
 #[component]
-pub fn SphereRuleList() -> impl IntoView {
-    let sphere_state = expect_context::<SphereState>();
+fn RuleList(
+    rule_resource: Resource<Result<Vec<Rule>, AppError>>
+) -> impl IntoView {
     view! {
         <TitleCollapse title="Rules">
             <div class="flex flex-col pl-2 pt-1 gap-1">
-                <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
+                <TransitionUnpack resource=rule_resource let:rule_vec>
                 {
-                    sphere_rule_vec.iter().enumerate().map(|(index, rule)| {
+                    rule_vec.iter().enumerate().map(|(index, rule)| {
                         let description = StoredValue::new(rule.description.clone());
                         let is_markdown = rule.markdown_description.is_some();
                         let title = rule.title.clone();

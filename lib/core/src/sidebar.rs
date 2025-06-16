@@ -2,9 +2,9 @@ use leptos::prelude::*;
 use leptos::html::Div;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
-use sharesphere_utils::errors::AppError;
+use sharesphere_utils::errors::{AppError};
 use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
-use sharesphere_utils::unpack::TransitionUnpack;
+use sharesphere_utils::unpack::{TransitionUnpack};
 use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
 use crate::rule::{get_rule_vec, Rule};
 use crate::sphere::{SphereHeader, SphereLinkList};
@@ -108,6 +108,7 @@ pub fn HomeSidebar() -> impl IntoView {
         || (),
         |_| get_rule_vec(None)
     );
+
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
@@ -142,6 +143,7 @@ pub fn HomeSidebar() -> impl IntoView {
 pub fn SphereSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
+
     let sidebar_class = move || match state.show_right_sidebar.get() {
         true => "right_sidebar_base_class max-2xl:translate-x-0 transition-transform duration-300 ease-in-out",
         false => "right_sidebar_base_class max-2xl:translate-x-100 transition-transform duration-300 ease-in-out",

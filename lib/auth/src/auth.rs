@@ -1,6 +1,6 @@
 use std::env;
 use leptos::prelude::*;
-use leptos_router::hooks::use_query_map;
+use leptos_router::hooks::{use_location, use_query_map};
 use leptos_router::params::Params;
 use web_sys::MouseEvent;
 
@@ -14,7 +14,6 @@ use {
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::LoadingIcon;
 use sharesphere_utils::unpack::SuspenseUnpack;
-use sharesphere_utils::routes::{get_current_path};
 
 use crate::user::{User, UserState};
 
@@ -472,13 +471,13 @@ pub async fn end_session(redirect_url: String) -> Result<(), AppError> {
 pub fn LoginGuardButton<
     F: Fn(&User) -> IV + Clone + Send + Sync + 'static,
     IV: IntoView + 'static,
-    G: Fn(RwSignal<String>) + Send + Sync + 'static
 >(
     #[prop(default = "")]
     login_button_class: &'static str,
     #[prop(into)]
     login_button_content: ViewFn,
-    redirect_path_fn: &'static G,
+    #[prop(into, default=use_location().pathname.into())]
+    redirect_path: Signal<String>,
     #[prop(default = "loading-icon-size")]
     loading_icon_class: &'static str,
     children: F,
@@ -495,7 +494,7 @@ pub fn LoginGuardButton<
                     Ok(Some(user)) => children.with_value(|children| children(user)).into_any(),
                     _ => {
                         let login_button_view = login_button_content.with_value(|content| content.run());
-                        view! { <LoginButton class=login_button_class redirect_path_fn>{login_button_view}</LoginButton> }.into_any()
+                        view! { <LoginButton class=login_button_class redirect_path>{login_button_view}</LoginButton> }.into_any()
                     },
                 }
             })
@@ -537,7 +536,7 @@ where
                             {children_view}
                         </button>
                     }.into_any(),
-                    _ => view! { <LoginButton class=button_class redirect_path_fn=&get_current_path>{children_view}</LoginButton> }.into_any(),
+                    _ => view! { <LoginButton class=button_class redirect_path=use_location().pathname>{children_view}</LoginButton> }.into_any(),
                 }
             })
         }
@@ -546,21 +545,19 @@ where
 }
 
 #[component]
-fn LoginButton<
-    F: Fn(RwSignal<String>) + Send + Sync + 'static
->(
+fn LoginButton(
     #[prop(into)]
     class: Signal<&'static str>,
-    redirect_path_fn: &'static F,
+    #[prop(into)]
+    redirect_path: Signal<String>,
     children: Children,
 ) -> impl IntoView {
     let user_state = expect_context::<UserState>();
-    let redirect_path = RwSignal::new(String::default());
 
     view! {
         <ActionForm action=user_state.login_action attr:class="flex items-center">
             <input type="text" name="redirect_url" class="hidden" value=redirect_path/>
-            <button type="submit" class=class on:click=move |_| redirect_path_fn(redirect_path)>
+            <button type="submit" class=class>
                 {children()}
             </button>
         </ActionForm>

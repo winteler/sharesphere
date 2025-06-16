@@ -245,7 +245,7 @@ pub fn SphereToolbar<'a>(
                     <LoginGuardButton
                         login_button_class="button-rounded-ghost"
                         login_button_content=move || view! { <PlusIcon class="sphere-toolbar-icon-size"/> }.into_any()
-                        redirect_path_fn=&get_create_post_path
+                        redirect_path=get_create_post_path()
                         let:_user
                     >
                     { move || match satellite_state {

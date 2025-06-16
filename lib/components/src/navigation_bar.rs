@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::Form;
 
 use sharesphere_utils::icons::*;
-use sharesphere_utils::routes::{get_create_post_path, get_current_path, get_current_url, get_profile_path, get_sphere_name, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_SPHERE_ROUTE};
+use sharesphere_utils::routes::{get_create_post_path, get_current_url, get_profile_path, get_sphere_name, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_SPHERE_ROUTE};
 
 use sharesphere_auth::auth::LoginGuardButton;
 use sharesphere_core::state::GlobalState;
@@ -44,7 +44,6 @@ pub fn UserMenu() -> impl IntoView {
         <LoginGuardButton
             login_button_class="button-rounded-ghost"
             login_button_content=move || view! { <UserIcon/> }
-            redirect_path_fn=&get_current_path
             let:user
         >
             <LoggedInMenu username=user.username.clone()/>
@@ -57,7 +56,6 @@ pub fn LoggedInMenu(
     username: String,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let current_url = RwSignal::new(String::default());
 
     view! {
         <DropdownButton
@@ -72,8 +70,8 @@ pub fn LoggedInMenu(
                 </li>
                 <li>
                     <ActionForm action=state.logout_action attr:class="flex">
-                        <input type="text" name="redirect_url" class="hidden" value=current_url/>
-                        <button type="submit" class="button-ghost-sm text-left w-full" on:click=move |_| get_current_url(current_url)>
+                        <input type="text" name="redirect_url" class="hidden" value=get_current_url()/>
+                        <button type="submit" class="button-ghost-sm text-left w-full">
                             "Logout"
                         </button>
                     </ActionForm>
@@ -100,7 +98,7 @@ pub fn PlusMenu() -> impl IntoView {
                 <li class="button-ghost-sm w-full">
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_sphere_str}</span> }
-                        redirect_path_fn=&(|redirect_path: RwSignal<String>| redirect_path.set(String::from(CREATE_SPHERE_ROUTE)))
+                        redirect_path=String::from(CREATE_SPHERE_ROUTE)
                         let:_user
                     >
                         <a href=CREATE_SPHERE_ROUTE class="whitespace-nowrap">{create_sphere_str}</a>
@@ -109,7 +107,7 @@ pub fn PlusMenu() -> impl IntoView {
                 <li class="button-ghost-sm w-full">
                     <LoginGuardButton
                         login_button_content=move || view! { <span class="whitespace-nowrap">{create_post_str}</span> }
-                        redirect_path_fn=&get_create_post_path
+                        redirect_path=get_create_post_path()
                         let:_user
                     >
                         <Form method="GET" action=CREATE_POST_ROUTE attr:class="flex">

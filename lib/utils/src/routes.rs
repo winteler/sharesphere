@@ -1,9 +1,9 @@
 #[cfg(feature = "ssr")]
 use std::env;
 use const_format::concatcp;
-use leptos::prelude::{window, Memo, Read, RwSignal, Set, Update};
+use leptos::prelude::*;
+use leptos_router::hooks::use_location;
 use leptos_router::params::ParamsMap;
-use crate::constants::SITE_ROOT;
 use crate::errors::AppError;
 
 pub const APP_ORIGIN_ENV: &str = "APP_ORIGIN";
@@ -40,16 +40,10 @@ pub fn get_app_origin() -> Result<String, AppError> {
     window().location().origin().map_err(|_| AppError::new("Failed to get base url"))
 }
 
-pub fn get_current_url(url: RwSignal<String>) {
-    let url_str = window().location().href().unwrap_or(String::from(SITE_ROOT));
-    log::debug!("Current url: {url_str}");
-    url.update(|value| *value = url_str);
-}
-
-pub fn get_current_path(path: RwSignal<String>) {
-    let path_str = window().location().pathname().unwrap_or(String::from(SITE_ROOT));
-    log::debug!("Current path: {path_str}");
-    path.update(|value | *value = path_str);
+pub fn get_current_url() -> Signal<String> {
+    Signal::derive(|| {
+        format!("{}{}", get_app_origin().unwrap_or_default(), use_location().pathname.get())
+    })
 }
 
 pub fn get_profile_path(
@@ -150,17 +144,15 @@ pub fn get_satellite_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
     })
 }
 
-pub fn get_create_post_path(create_post_route: RwSignal<String>) {
-    let path = window().location().pathname().unwrap_or_default();
-    log::debug!("Current path: {path}");
-
-    let current_sphere = get_sphere_from_path(&path);
-
-    if let Some(sphere_name) = current_sphere {
-        create_post_route.set(format!("{CREATE_POST_ROUTE}?{CREATE_POST_SPHERE_QUERY_PARAM}={sphere_name}"));
-    } else {
-        create_post_route.set(String::from(CREATE_POST_ROUTE));
-    };
+pub fn get_create_post_path() -> Signal<String> {
+    Signal::derive(|| {
+        let current_sphere = get_sphere_from_path(&*use_location().pathname.read());
+        if let Some(sphere_name) = current_sphere {
+            format!("{CREATE_POST_ROUTE}?{CREATE_POST_SPHERE_QUERY_PARAM}={sphere_name}")
+        } else {
+            String::from(CREATE_POST_ROUTE)
+        }
+    })
 }
 
 /// # Returns the path to a post given its id, sphere and optional satellite

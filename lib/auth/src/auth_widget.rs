@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos::server_fn::codec::PostUrl;
 use leptos::server_fn::Http;
-use leptos_router::hooks::use_navigate;
+use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::NavigateOptions;
 use serde::de::DeserializeOwned;
 use server_fn::client::Client;
@@ -12,7 +12,7 @@ use web_sys::FormData;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledSignalCheckbox;
 use sharesphere_utils::icons::{AuthErrorIcon, AuthorIcon, DeleteIcon, LoadingIcon, ModeratorAuthorIcon, SelfAuthorIcon};
-use sharesphere_utils::routes::{get_current_path, get_profile_path};
+use sharesphere_utils::routes::{get_profile_path};
 use sharesphere_utils::unpack::ActionError;
 use sharesphere_utils::widget::{ModalDialog, ModalFormButtons};
 use crate::auth::LoginGuardedButton;
@@ -22,7 +22,6 @@ use crate::user::UserState;
 #[component]
 pub fn LoginWindow() -> impl IntoView {
     let user_state = expect_context::<UserState>();
-    let current_path = RwSignal::new(String::default());
 
     view! {
         <div class="hero">
@@ -33,8 +32,8 @@ pub fn LoginWindow() -> impl IntoView {
                     <p class="pt-4">"Sorry, we had some trouble identifying you."</p>
                     <p class="pb-4">"Please login to access this page."</p>
                     <ActionForm action=user_state.login_action>
-                        <input type="text" name="redirect_url" class="hidden" value=current_path/>
-                        <button type="submit" class="button-primary w-full" on:click=move |_| get_current_path(current_path)>
+                        <input type="text" name="redirect_url" class="hidden" value=use_location().pathname/>
+                        <button type="submit" class="button-primary w-full">
                             "Login"
                         </button>
                     </ActionForm>

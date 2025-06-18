@@ -2,8 +2,8 @@ use leptos::ev::TouchEvent;
 use leptos::html::Div;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
-use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
-
+use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, SsrMode, StaticSegment};
+use leptos_router::static_routes::StaticRoute;
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
@@ -183,11 +183,11 @@ pub fn App() -> impl IntoView {
                                 <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
                             </ParentRoute>
                             <Route path=StaticSegment(SEARCH_ROUTE) view=Search/>
-                            <Route path=StaticSegment(ABOUT_SHARESPHERE_ROUTE) view=AboutShareSphere/>
-                            <Route path=StaticSegment(TERMS_AND_CONDITIONS_ROUTE) view=TermsAndConditions/>
-                            <Route path=StaticSegment(PRIVACY_POLICY_ROUTE) view=PrivacyPolicy/>
-                            <Route path=StaticSegment(CONTENT_POLICY_ROUTE) view=ContentPolicy/>
-                            <Route path=StaticSegment(RULES_ROUTE) view=Rules/>
+                            <Route path=StaticSegment(ABOUT_SHARESPHERE_ROUTE) view=AboutShareSphere ssr=SsrMode::Static(StaticRoute::new())/>
+                            <Route path=StaticSegment(TERMS_AND_CONDITIONS_ROUTE) view=TermsAndConditions ssr=SsrMode::Static(StaticRoute::new())/>
+                            <Route path=StaticSegment(PRIVACY_POLICY_ROUTE) view=PrivacyPolicy ssr=SsrMode::Static(StaticRoute::new())/>
+                            <Route path=StaticSegment(CONTENT_POLICY_ROUTE) view=ContentPolicy ssr=SsrMode::Static(StaticRoute::new())/>
+                            <Route path=StaticSegment(RULES_ROUTE) view=Rules ssr=SsrMode::Static(StaticRoute::new())/>
                         </Routes>
                     </div>
                 </div>

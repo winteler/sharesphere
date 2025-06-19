@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO rules\n            (rule_key, sphere_id, sphere_name, priority, title, description, user_id)\n            VALUES (\n                $1,\n                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                $2, $3, $4, $5, $6\n            ) RETURNING *",
+  "query": "INSERT INTO rules\n            (sphere_id, sphere_name, priority, title, description, markdown_description, user_id)\n            VALUES (\n                (SELECT sphere_id FROM spheres WHERE sphere_name = $1),\n                $1, $2, $3, $4, $5, $6\n            ) RETURNING *",
   "describe": {
     "columns": [
       {
@@ -40,25 +40,30 @@
       },
       {
         "ordinal": 7,
+        "name": "markdown_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "user_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "create_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "delete_timestamp",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
         "Int2",
+        "Text",
         "Text",
         "Text",
         "Int8"
@@ -72,10 +77,11 @@
       false,
       false,
       false,
+      true,
       false,
       false,
       true
     ]
   },
-  "hash": "0b3384c7e68d5499228e551ca15934a71d339af05e989bdccb8042c068fa95e1"
+  "hash": "c7698c1a1b37337ca912b469640240db5703d22cdfb443e02db8ea427f4dfa2d"
 }

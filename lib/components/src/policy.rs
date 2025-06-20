@@ -161,7 +161,7 @@ pub fn Rules() -> impl IntoView {
     let rule_vec_resource = OnceResource::new(get_rule_vec(None));
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-6">
                 <h1 class="text-3xl font-bold text-center">"Rules"</h1>
                 <p class="text-justify">
                     "ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. \

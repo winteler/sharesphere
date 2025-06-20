@@ -1,7 +1,7 @@
 use leptos::ev::TouchEvent;
 use leptos::html::Div;
 use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
+use leptos_meta::{provide_meta_context, HashedStylesheet, Meta, MetaTags, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, SsrMode, StaticSegment};
 use leptos_router::static_routes::StaticRoute;
 use sharesphere_utils::error_template::ErrorTemplate;
@@ -54,7 +54,9 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                     }
                 />
                 <AutoReload options=options.clone() />
-                <HydrationScripts options/>
+                <HydrationScripts options=options.clone() />
+                // id=leptos means cargo-leptos will hot-reload this stylesheet
+                <HashedStylesheet id="leptos" options/>
                 <MetaTags/>
             </head>
             <body>
@@ -137,10 +139,6 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-        // injects a stylesheet into the document <head>
-        // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/sharesphere.css"/>
-
         // sets the document title
         <Title text="Welcome to ShareSphere"/>
         <Router>

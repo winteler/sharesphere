@@ -4,6 +4,9 @@ FROM ghcr.io/winteler/sharesphere-builder:main AS builder
 WORKDIR /sharesphere
 COPY . .
 
+ENV LEPTOS_ENV=PROD
+ENV LEPTOS_HASH_FILES=true
+
 RUN npm install & npm run build
 
 RUN cargo leptos build --release --precompress

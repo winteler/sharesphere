@@ -4,6 +4,7 @@ use axum::{
     http::{Request, Response, StatusCode, Uri},
     response::{IntoResponse, Response as AxumResponse},
 };
+use axum::http::{header, HeaderValue};
 use leptos::prelude::{Errors, LeptosOptions};
 use leptos::view;
 use tower::util::ServiceExt;
@@ -39,5 +40,14 @@ async fn get_static_file(uri: Uri, root: &str) -> Result<Response<Body>, (Status
         .unwrap();
     // `ServeDir` implements `tower::Service` so we can call it with `tower::ServiceExt::oneshot`
     // This path is relative to the cargo root
-    Ok(ServeDir::new(root).oneshot(req).await.unwrap_or_else(|err| match err {}).into_response())
+    
+    let mut response = ServeDir::new(root)
+        .oneshot(req)
+        .await
+        .unwrap_or_else(|err| match err {})
+        .into_response();
+    
+    response.headers_mut().append(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
+    
+    Ok(response)
 }

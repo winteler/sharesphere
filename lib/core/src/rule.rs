@@ -1,6 +1,7 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use sharesphere_utils::errors::AppError;
+use sharesphere_utils::errors::{AppError, ErrorDisplay};
 
 #[cfg(feature = "ssr")]
 use {
@@ -10,6 +11,9 @@ use {
     },
     sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
 };
+use sharesphere_utils::icons::LoadingIcon;
+use sharesphere_utils::widget::{Collapse, ContentBody};
+use crate::state::GlobalState;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -301,4 +305,56 @@ pub async fn remove_rule(
     let user = check_user().await?;
     ssr::remove_rule(sphere_name.as_deref(), priority, &user, &db_pool).await?;
     Ok(())
+}
+
+/// List of collapsable rules
+#[component]
+pub fn BaseRuleList() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    view! {
+        <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+        {
+            move || Suspend::new(async move {
+                match &state.base_rules.await {
+                    Ok(rule_vec) => Either::Left(view!{
+                        <RuleList rule_vec/>
+                    }),
+                    Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),
+                }
+            })
+        }
+        </Suspense>
+    }
+}
+
+/// List of collapsable rules
+#[component]
+pub fn RuleList<'a>(
+    rule_vec: &'a Vec<Rule>
+) -> impl IntoView {
+    let rule_elems = rule_vec.iter().enumerate().map(|(index, rule)| {
+        let description = StoredValue::new(rule.description.clone());
+        let is_markdown = rule.markdown_description.is_some();
+        let title = rule.title.clone();
+        let title_view = move || view! {
+            <div class="flex gap-2">
+                <div>{index+1}</div>
+                <div class="text-left">{title}</div>
+            </div>
+        };
+        view! {
+            <Collapse
+                title_view
+                is_open=false
+            >
+                <ContentBody body=description.get_value() is_markdown/>
+            </Collapse>
+        }
+    }).collect_view();
+
+    view! {
+        <div class="flex flex-col pl-2 pt-1 gap-1">
+        {rule_elems}
+        </div>
+    }
 }

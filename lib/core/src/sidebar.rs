@@ -5,8 +5,8 @@ use leptos_use::on_click_outside;
 use sharesphere_utils::errors::{AppError};
 use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::{TransitionUnpack};
-use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
-use crate::rule::{get_rule_vec, Rule};
+use sharesphere_utils::widget::{Collapse, TitleCollapse};
+use crate::rule::{BaseRuleList, Rule, RuleList};
 use crate::sphere::{SphereHeader, SphereLinkList};
 
 use crate::state::{GlobalState, SphereState};
@@ -104,10 +104,6 @@ pub fn HomeSidebar() -> impl IntoView {
         // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
         let _ = on_click_outside(sidebar_ref, move |_| state.show_right_sidebar.set(false));
     }
-    let rule_resource = Resource::new(
-        || (),
-        |_| get_rule_vec(None)
-    );
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
@@ -128,7 +124,7 @@ pub fn HomeSidebar() -> impl IntoView {
                     <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a></li>
                     <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>
                 </ul>
-                <RuleList rule_resource=rule_resource.into()/>
+                <BaseRuleList/>
         </div>
         <Show when=state.show_right_sidebar>
             <div class="absolute top-0 left-0 h-full w-full bg-base-200/50"/>
@@ -161,7 +157,7 @@ pub fn SphereSidebar() -> impl IntoView {
                 </TransitionUnpack>
             </div>
             <div class="border-b border-primary/80"/>
-            <RuleList rule_resource=sphere_state.sphere_rules_resource/>
+            <SphereRuleList rule_resource=sphere_state.sphere_rules_resource/>
             <div class="border-b border-primary/80"/>
             <SphereCategoryList/>
             <div class="border-b border-primary/80"/>
@@ -175,34 +171,14 @@ pub fn SphereSidebar() -> impl IntoView {
 
 /// List of rules given in the input resource
 #[component]
-fn RuleList(
+fn SphereRuleList(
     rule_resource: Resource<Result<Vec<Rule>, AppError>>
 ) -> impl IntoView {
     view! {
         <TitleCollapse title="Rules">
             <div class="flex flex-col pl-2 pt-1 gap-1">
                 <TransitionUnpack resource=rule_resource let:rule_vec>
-                {
-                    rule_vec.iter().enumerate().map(|(index, rule)| {
-                        let description = StoredValue::new(rule.description.clone());
-                        let is_markdown = rule.markdown_description.is_some();
-                        let title = rule.title.clone();
-                        let title_view = move || view! {
-                            <div class="flex gap-2">
-                                <div>{index+1}</div>
-                                <div class="text-left">{title}</div>
-                            </div>
-                        };
-                        view! {
-                            <Collapse
-                                title_view
-                                is_open=false
-                            >
-                                <ContentBody body=description.get_value() is_markdown/>
-                            </Collapse>
-                        }
-                    }).collect_view()
-                }
+                    <RuleList rule_vec/>
                 </TransitionUnpack>
             </div>
         </TitleCollapse>

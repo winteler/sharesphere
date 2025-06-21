@@ -1,4 +1,4 @@
-use leptos::prelude::{Memo, Resource, RwSignal, ServerAction, Signal};
+use leptos::prelude::{Memo, OnceResource, Resource, RwSignal, ServerAction, Signal};
 use sharesphere_auth::auth::EndSession;
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
@@ -7,7 +7,7 @@ use crate::filter::SphereCategoryFilter;
 use crate::moderation::ModeratePost;
 use crate::post::{DeletePost, EditPost};
 use crate::ranking::{CommentSortType, PostSortType, SortType};
-use crate::rule::{AddRule, RemoveRule, Rule, UpdateRule};
+use crate::rule::{get_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
 use crate::satellite::{CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
 use crate::sphere::{CreateSphere, Sphere, Subscribe, Unsubscribe, UpdateSphereDescription};
 use crate::sphere_category::{DeleteSphereCategory, SetSphereCategory, SphereCategory};
@@ -28,6 +28,7 @@ pub struct GlobalState {
     pub show_left_sidebar: RwSignal<bool>,
     pub show_right_sidebar: RwSignal<bool>,
     pub user: Resource<Result<Option<User>, AppError>>,
+    pub base_rules: OnceResource<Result<Vec<Rule>, AppError>>,
 }
 
 #[derive(Copy, Clone)]
@@ -77,6 +78,7 @@ impl GlobalState {
             show_left_sidebar: RwSignal::new(false),
             show_right_sidebar: RwSignal::new(false),
             user,
+            base_rules: OnceResource::new(get_rule_vec(None))
         }
     }
 }

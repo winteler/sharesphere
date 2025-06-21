@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE};
 
-use sharesphere_core::rule::{get_rule_vec};
+use sharesphere_core::state::GlobalState;
 use sharesphere_utils::errors::{ErrorDisplay};
 use sharesphere_utils::icons::{LoadingIcon, NsfwIcon, SpoilerIcon};
 use sharesphere_utils::widget::ContentBody;
@@ -178,7 +178,7 @@ pub fn OriginsAndGoals() -> impl IntoView {
 
 #[component]
 pub fn Rules() -> impl IntoView {
-    let rule_vec_resource = OnceResource::new(get_rule_vec(None));
+    let state = expect_context::<GlobalState>();
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
@@ -191,7 +191,7 @@ pub fn Rules() -> impl IntoView {
                 <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
                 {
                     move || Suspend::new(async move {
-                        match &rule_vec_resource.await {
+                        match &state.base_rules.await {
                             Ok(rule_vec) => {
                                 Either::Left(rule_vec.iter().enumerate().map(|(index, rule)| view! {
                                     <div class="flex flex-col gap-2">

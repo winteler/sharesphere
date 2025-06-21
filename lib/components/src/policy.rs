@@ -1,7 +1,7 @@
 use leptos::either::Either;
 use leptos::prelude::*;
 use sharesphere_core::sidebar::HomeSidebar;
-use sharesphere_utils::routes::{PRIVACY_POLICY_ROUTE, RULES_ROUTE};
+use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE};
 
 use sharesphere_core::rule::{get_rule_vec};
 use sharesphere_utils::errors::{ErrorDisplay};
@@ -12,7 +12,7 @@ use sharesphere_utils::widget::ContentBody;
 pub fn AboutShareSphere() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"About ShareSphere"</h1>
                 <p class="text-justify">
                     "ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. \
@@ -61,7 +61,7 @@ pub fn AboutShareSphere() -> impl IntoView {
 pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Terms and Conditions"</h1>
                 <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
@@ -83,7 +83,7 @@ pub fn TermsAndConditions() -> impl IntoView {
 pub fn PrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Privacy Policy"</h1>
                 <ShareSphereInfo/>
                 <AboutPrivacyPolicy/>
@@ -105,7 +105,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
 pub fn ContentPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 w-4/5 2xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Content Policy"</h1>
                 <p class="text-justify">
                     "To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and other problematic content, as well as properly label sensitive content.\
@@ -161,7 +161,7 @@ pub fn Rules() -> impl IntoView {
     let rule_vec_resource = OnceResource::new(get_rule_vec(None));
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-6">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Rules"</h1>
                 <p class="text-justify">
                     "ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. \
@@ -236,6 +236,10 @@ fn UserResponsabilities() -> impl IntoView {
             <p>"You agree not to:"</p>
             <ul class="list-disc list-inside text-justify">
                 <li>"Post illegal, harmful, offensive, or misleading content."</li>
+                <li>"Infringe ShareSphere's " <a href=RULES_ROUTE class="link text-primary">"Rules"</a>
+                    ", ShareSphere's " <a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a>
+                    " and specific community rules."
+                </li>
                 <li>"Infringe on third-party rights, including copyright and data protection laws."</li>
                 <li>"Use the site to distribute spam, malware, or phishing links."</li>
                 <li>"Impersonate others or create multiple accounts for abuse."</li>
@@ -273,8 +277,7 @@ fn LimitationOfLiability() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"6. Limitation of Liability"</h2>
-            <p class="text-justify">"We do not guarantee uninterrupted access or error-free operation of the Website."</p>
-            <p>"We are not liable for:"</p>
+            <p class="text-justify">"We do not guarantee uninterrupted access or error-free operation of the Website. We are not liable for:"</p>
             <ul class="list-disc list-inside text-justify">
                 <li>"User-generated content."</li>
                 <li>"Loss of data, revenue, or reputation due to site use."</li>

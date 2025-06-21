@@ -3229,6 +3229,11 @@
       line-height: var(--tw-leading, var(--text-sm--line-height));
     }
   }
+  .\33 xl\:w-2\/5 {
+    @media (width >= 136rem) {
+      width: calc(2/5 * 100%);
+    }
+  }
 }
 @layer components {
   .button-ghost {
@@ -3901,6 +3906,7 @@
     display: flex;
     height: 100%;
     width: calc(var(--spacing) * 60);
+    flex-shrink: 0;
     flex-direction: column;
     justify-content: flex-start;
     overflow-y: auto;
@@ -3931,6 +3937,7 @@
     display: flex;
     height: 100%;
     width: calc(var(--spacing) * 60);
+    flex-shrink: 0;
     flex-direction: column;
     justify-content: flex-start;
     gap: calc(var(--spacing) * 2);

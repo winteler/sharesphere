@@ -12,45 +12,21 @@ use sharesphere_utils::widget::ContentBody;
 pub fn AboutShareSphere() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"About ShareSphere"</h1>
                 <p class="text-justify">
                     "ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. \
                     ShareSphere is a non-profit, ad-free, open source website with a focus on transparency, privacy and community empowerment. \
                     ShareSphere's goal is to run by relying solely on donations and to provide a better user experience than ad-based platforms."
                 </p>
-                <h2 class="text-xl font-semibold text-center">"Rules & Moderation"</h2>
+                <h2 class="text-xl font-semibold">"Rules & Moderation"</h2>
                 <p class="text-justify">
                     "ShareSphere aims to be a place for positive and constructive exchanges. In order to make it so, a"
                     <a href=RULES_ROUTE>"base set of rules"</a>
                     " needs to be respected site-wide. Communities can define additional rules to define what content is appropriate and how users should behave."
                 </p>
-                <h2 class="text-xl font-semibold text-center">"Origin & Goals"</h2>
-                <p class="text-justify">
-                    "I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base. \
-                    I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their \
-                    ad-based profit model is fundamentally incompatible with a good user experience."
-                </p>
-                <p class="text-justify">
-                    "This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency. \
-                    Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to \
-                    generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much \
-                    greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant."
-                </p>
-                <p class="text-justify">
-                    "In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received \
-                    and how this money is used, for instance for operating costs and salaries. ShareSphere is also open source, enabling the community to know how the site \
-                    functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal."
-                </p>
-                <p class="text-justify">
-                    "Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and \
-                    leverage their help to deal with bots and bad actors. This is a long term idea and its implementation is not yet defined but the basic idea is to have a vote \
-                    based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked."
-                </p>
-                <p class="text-justify">
-                    "ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters \
-                    and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform."
-                </p>
+                <Roadmap/>
+                <OriginsAndGoals/>
             </div>
         </div>
         <HomeSidebar/>
@@ -157,11 +133,55 @@ pub fn ContentPolicy() -> impl IntoView {
 }
 
 #[component]
+pub fn Roadmap() -> impl IntoView {
+    view! {
+        <h2 class="text-xl font-semibold">"Roadmap"</h2>
+        <ul class="list-disc list-inside text-justify">
+            <li>"Time filters"</li>
+            <li>"Private messages"</li>
+            <li>"Additional moderation tools"</li>
+            <li>"Memberships - users can become contributors that get access to additional features"</li>
+        </ul>
+    }
+}
+#[component]
+pub fn OriginsAndGoals() -> impl IntoView {
+    view! {
+        <h2 class="text-xl font-semibold">"Origin & Goals"</h2>
+        <p class="text-justify">
+            "I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base. \
+            I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their \
+            ad-based profit model is fundamentally incompatible with a good user experience."
+        </p>
+        <p class="text-justify">
+            "This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency. \
+            Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to \
+            generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much \
+            greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant."
+        </p>
+        <p class="text-justify">
+            "In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received \
+            and how this money is used, for instance for operating costs and salaries. ShareSphere is also open source, enabling the community to know how the site \
+            functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal."
+        </p>
+        <p class="text-justify">
+            "Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and \
+            leverage their help to deal with bots and bad actors. This is a long term idea and its implementation is not yet defined but the basic idea is to have a vote \
+            based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked."
+        </p>
+        <p class="text-justify">
+            "ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters \
+            and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform."
+        </p>
+    }
+}
+
+#[component]
 pub fn Rules() -> impl IntoView {
     let rule_vec_resource = OnceResource::new(get_rule_vec(None));
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Rules"</h1>
                 <p class="text-justify">
                     "ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. \

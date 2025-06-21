@@ -598,8 +598,12 @@ where
     let children = StoredValue::new(children.into_inner());
     let show_children = RwSignal::new(is_open);
     let children_class = move || match show_children.get() {
-        true => "transition duration-500 opacity-100 visible",
-        false => "opacity-0 invisible h-0",
+        true => "transition-all duration-500 overflow-hidden",
+        false => "transition-all duration-500 overflow-hidden h-0",
+    };
+    let children_class_inner = move || match show_children.get() {
+        true => "transition-all duration-500 opacity-100 visible",
+        false => "transition-all duration-500 opacity-0 invisible",
     };
     
     view! {
@@ -609,14 +613,16 @@ where
                 on:click=move |_| show_children.update(|value| *value = !*value)
             >
                 <div class="flex justify-between items-center">
-                    <div>{title_view.run()}</div>
+                   {title_view.run()}
                     <RotatingArrow point_up=show_children/>
                 </div>
             </button>
             <div class=children_class>
-            {
-                children.with_value(|children| children())
-            }
+                <div class=children_class_inner>
+                {
+                    children.with_value(|children| children())
+                }
+                </div>
             </div>
         </div>
     }

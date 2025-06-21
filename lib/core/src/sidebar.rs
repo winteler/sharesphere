@@ -111,7 +111,6 @@ pub fn HomeSidebar() -> impl IntoView {
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
-            <div class="flex flex-col gap-2">
                 <h1 class="text-2xl font-semibold text-center">"Welcome to ShareSphere!"</h1>
                 <div class="flex flex-col gap-2">
                     <p class="text-justify">
@@ -130,7 +129,6 @@ pub fn HomeSidebar() -> impl IntoView {
                     <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>
                 </ul>
                 <RuleList rule_resource=rule_resource.into()/>
-            </div>
         </div>
         <Show when=state.show_right_sidebar>
             <div class="absolute top-0 left-0 h-full w-full bg-base-200/50"/>

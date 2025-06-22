@@ -25,7 +25,7 @@ pub fn AboutShareSphere() -> impl IntoView {
                     <a href=RULES_ROUTE>"base set of rules"</a>
                     " needs to be respected site-wide. Communities can define additional rules to define what content is appropriate and how users should behave."
                 </p>
-                <Roadmap/>
+                <PlannedImprovements/>
                 <OriginsAndGoals/>
             </div>
         </div>
@@ -133,14 +133,15 @@ pub fn ContentPolicy() -> impl IntoView {
 }
 
 #[component]
-pub fn Roadmap() -> impl IntoView {
+pub fn PlannedImprovements() -> impl IntoView {
     view! {
-        <h2 class="text-xl font-semibold">"Roadmap"</h2>
+        <h2 class="text-xl font-semibold">"Planned Improvements"</h2>
         <ul class="list-disc list-inside text-justify">
             <li>"Time filters"</li>
             <li>"Private messages"</li>
             <li>"Additional moderation tools"</li>
             <li>"Memberships - users can become contributors that get access to additional features"</li>
+            <li>"Private communities"</li>
         </ul>
     }
 }

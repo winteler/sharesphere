@@ -119,7 +119,7 @@ pub fn HomeSidebar() -> impl IntoView {
                 </div>
                 <ul class="list-disc list-inside">
                     <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">"About ShareSphere"</a></li>
-                    <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">"Terms and conditions"</a></li>
+                    <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">"Terms and Conditions"</a></li>
                     <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a></li>
                     <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a></li>
                     <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>

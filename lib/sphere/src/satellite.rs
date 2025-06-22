@@ -2,7 +2,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_params_map;
-
+use url::Url;
 use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use sharesphere_utils::embed::EmbedType;
 use sharesphere_utils::form::LabeledFormCheckbox;
@@ -221,7 +221,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
                             *embed_type_input.read() == EmbedType::None
                         ) || (
                             *embed_type_input.read() != EmbedType::None &&
-                            link_input.read().is_empty() // TODO check valid url?
+                            link_input.with(|link| link.is_empty() || Url::parse(link).is_err())
                         )
                     }>
                         "Submit"

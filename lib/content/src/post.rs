@@ -3,6 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_use::{signal_debounced};
+use url::Url;
 
 use sharesphere_utils::constants::{DELETED_MESSAGE};
 use sharesphere_utils::editor::{adjust_textarea_height, TextareaData};
@@ -330,7 +331,7 @@ pub fn CreatePost() -> impl IntoView {
                             *embed_type_input.read() == EmbedType::None
                         ) || (
                             *embed_type_input.read() != EmbedType::None &&
-                            link_input.read().is_empty() // TODO check valid url?
+                            link_input.with(|link| link.is_empty() || Url::parse(link).is_err())
                         )
                     }>
                         "Submit"

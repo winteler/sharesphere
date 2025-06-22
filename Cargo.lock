@@ -3895,6 +3895,7 @@ dependencies = [
  "sharesphere_auth",
  "sharesphere_core",
  "sharesphere_utils",
+ "url",
 ]
 
 [[package]]
@@ -3941,6 +3942,7 @@ dependencies = [
  "sharesphere_core",
  "sharesphere_utils",
  "strum",
+ "url",
  "web-sys",
 ]
 

@@ -207,7 +207,6 @@ pub fn EmbedPreview(
     title_input: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
 ) -> impl IntoView {
-    // TODO try to simplify with new verify_link_and_get_embed function
     let link_resource = Resource::new(
         move || (embed_type_input.get(), link_input.get()),
         move |(embed_type, url)| async move {

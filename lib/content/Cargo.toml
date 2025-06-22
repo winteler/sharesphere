@@ -18,6 +18,7 @@ leptos-use.workspace = true
 
 chrono.workspace = true
 log.workspace = true
+url.workspace = true
 
 [features]
 default = []

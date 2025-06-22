@@ -107,24 +107,24 @@ pub fn HomeSidebar() -> impl IntoView {
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
-                <h1 class="text-2xl font-semibold text-center">"Welcome to ShareSphere!"</h1>
-                <div class="flex flex-col gap-2">
-                    <p class="text-justify">
-                        "ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."
-                    </p>
-                    <p class="text-justify">
-                        "ShareSphere is a non-profit, add-free, open source website with a focus on transparency, privacy and community empowerment. \
-                        You can find more information on the website and its rules below."
-                    </p>
-                </div>
-                <ul class="list-disc list-inside">
-                    <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">"About ShareSphere"</a></li>
-                    <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">"Terms and Conditions"</a></li>
-                    <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a></li>
-                    <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a></li>
-                    <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>
-                </ul>
-                <BaseRuleList/>
+            <h1 class="text-2xl font-semibold text-center">"Welcome to ShareSphere!"</h1>
+            <div class="flex flex-col gap-2">
+                <p class="text-justify">
+                    "ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."
+                </p>
+                <p class="text-justify">
+                    "ShareSphere is a non-profit, add-free, open source website with a focus on transparency, privacy and community empowerment. \
+                    You can find more information on the website and its rules below."
+                </p>
+            </div>
+            <ul class="list-disc list-inside">
+                <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">"About ShareSphere"</a></li>
+                <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">"Terms and Conditions"</a></li>
+                <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a></li>
+                <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a></li>
+                <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>
+            </ul>
+            <BaseRuleList/>
         </div>
         <Show when=state.show_right_sidebar>
             <div class="absolute top-0 left-0 h-full w-full bg-base-200/50"/>

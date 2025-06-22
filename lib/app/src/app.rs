@@ -140,8 +140,7 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-        // sets the document title
-        <Title text="Welcome to ShareSphere"/>
+        <Title text="ShareSphere"/>
         <Router>
             <main
                 class="h-screen w-screen overflow-hidden text-white relative"

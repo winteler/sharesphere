@@ -288,7 +288,8 @@ fn IntellectualProperty() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
             <h2 class="text-2xl font-semibold">"5. Intellectual Property"</h2>
-            <p class="text-justify">"We retain ownership of all site content. Users grant a non-exclusive license to display their posts."</p>
+            <p class="text-justify">"All content on ShareSphere, except user submissions, is the property of ShareSphere and may not be used without permission."</p>
+            <p class="text-justify">"By posting content, you grant us a non-exclusive, royalty-free, worldwide license to use, display, and distribute your content on the platform."</p>
         </div>
     }
 }

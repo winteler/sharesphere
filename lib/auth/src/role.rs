@@ -46,7 +46,8 @@ pub struct UserSphereRole {
     pub sphere_name: String,
     pub permission_level: PermissionLevel,
     pub grantor_id: i64,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub create_timestamp: chrono::DateTime<chrono::Utc>,
+    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 impl From<String> for PermissionLevel {
@@ -89,7 +90,8 @@ pub mod ssr {
             UserSphereRole,
             "SELECT * FROM user_sphere_roles
             WHERE user_id = $1 AND
-                  sphere_name = $2",
+                  sphere_name = $2 AND
+                  delete_timestamp IS NULL",
             user_id,
             sphere_name,
         )
@@ -119,7 +121,8 @@ pub mod ssr {
             "SELECT * FROM user_sphere_roles
             WHERE
                 sphere_name = $1 AND
-                permission_level != 'None'",
+                permission_level != 'None' AND
+                delete_timestamp IS NULL",
             sphere_name,
         )
             .fetch_all(db_pool)
@@ -138,7 +141,6 @@ pub mod ssr {
         if permission_level == PermissionLevel::Lead {
             set_sphere_leader(user_id, sphere_name, grantor, db_pool).await
         } else {
-            grantor.check_can_set_user_sphere_role(permission_level, user_id, sphere_name, db_pool).await?;
             let user_sphere_role = insert_user_sphere_role(
                 user_id,
                 sphere_name,
@@ -155,45 +157,67 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserSphereRole, Option<i64>), AppError> {
-        match grantor.check_is_sphere_leader(sphere_name).is_ok() {
-            true => {
-                let manage_level_str: &str = PermissionLevel::Manage.into();
-                sqlx::query_as!(
-                    UserSphereRole,
-                    "UPDATE user_sphere_roles
-                    SET
-                        permission_level = $1,
-                        timestamp = CURRENT_TIMESTAMP
-                    WHERE
-                        user_id = $2 AND
-                        sphere_name = $3
-                    RETURNING *",
-                    manage_level_str,
-                    grantor.user_id,
-                    sphere_name,
-                )
-                    .fetch_one(db_pool)
-                    .await?;
-                let user_sphere_role = insert_user_sphere_role(
-                    user_id,
-                    sphere_name,
-                    PermissionLevel::Lead,
-                    grantor,
-                    db_pool,
-                ).await?;
-                Ok((user_sphere_role, Some(grantor.user_id)))
-            },
-            false => {
-                let user_sphere_role = insert_user_sphere_role(
-                    user_id,
-                    sphere_name,
-                    PermissionLevel::Lead,
-                    grantor,
-                    db_pool,
-                ).await?;
-                Ok((user_sphere_role, None))
-            },
+        grantor.check_can_set_sphere_leader(sphere_name)?;
+        let lead_level_str: &str = PermissionLevel::Lead.into();
+        let manage_level_str: &str = PermissionLevel::Manage.into();
+
+        sqlx::query!(
+            "UPDATE user_sphere_roles SET delete_timestamp = now()
+            WHERE sphere_name = $1 AND permission_level = $2 AND delete_timestamp IS NULL",
+            sphere_name,
+            lead_level_str,
+        ).execute(db_pool).await?;
+
+        sqlx::query!(
+            "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
+            VALUES ($1,
+                (SELECT username from users where user_id = $1),
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
+                $2, $3, $1)",
+            grantor.user_id,
+            sphere_name,
+            manage_level_str,
+        ).execute(db_pool).await?;
+
+        let user_sphere_role = insert_user_sphere_role(
+            user_id,
+            sphere_name,
+            PermissionLevel::Lead,
+            grantor,
+            db_pool,
+        ).await?;
+
+        Ok((user_sphere_role, Some(grantor.user_id)))
+    }
+
+    pub async fn init_sphere_leader(
+        user_id: i64,
+        sphere_name: &str,
+        db_pool: &PgPool,
+    ) -> Result<UserSphereRole, AppError> {
+        let sphere_role_vec = get_sphere_role_vec(&sphere_name, &db_pool).await?;
+
+        if !sphere_role_vec.is_empty() {
+            return Err(AppError::new("Cannot initialize sphere leader in sphere with existing roles."));
         }
+
+        let permission_level_str: &str = PermissionLevel::Lead.into();
+        let user_sphere_role = sqlx::query_as!(
+            UserSphereRole,
+            "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
+            VALUES ($1,
+                (SELECT username from users where user_id = $1),
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
+                $2, $3, $4)
+            RETURNING *",
+            user_id,
+            sphere_name,
+            permission_level_str,
+            user_id,
+        )
+            .fetch_one(db_pool)
+            .await?;
+        Ok(user_sphere_role)
     }
 
     async fn insert_user_sphere_role(
@@ -203,28 +227,37 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<UserSphereRole, AppError> {
+        match permission_level {
+            PermissionLevel::Lead => grantor.check_can_set_sphere_leader(sphere_name)?,
+            _ => grantor.check_can_set_user_sphere_role(permission_level, user_id, sphere_name, db_pool).await?,
+        }
+
         if user_id == grantor.user_id && grantor.check_is_sphere_leader(sphere_name).is_ok() {
             return Err(AppError::InternalServerError(String::from("Sphere leader cannot lower his permissions, must designate another leader.")))
         }
         let permission_level_str: &str = permission_level.into();
+
+        sqlx::query!(
+            "UPDATE user_sphere_roles SET delete_timestamp = now()
+            WHERE user_id = $1 AND sphere_name = $2 AND delete_timestamp IS NULL",
+            user_id,
+            sphere_name,
+        ).execute(db_pool).await?;
+
         let user_sphere_role = sqlx::query_as!(
-                UserSphereRole,
-                "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
-                VALUES ($1,
-                    (SELECT username from users where user_id = $1),
-                    (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                    $2, $3, $4)
-                ON CONFLICT (user_id, sphere_id) DO UPDATE
-                SET permission_level = EXCLUDED.permission_level,
-                    timestamp = CURRENT_TIMESTAMP
-                RETURNING *",
-                user_id,
-                sphere_name,
-                permission_level_str,
-                grantor.user_id,
-            )
-            .fetch_one(db_pool)
-            .await?;
+            UserSphereRole,
+            "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
+            VALUES ($1,
+                (SELECT username from users where user_id = $1),
+                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
+                $2, $3, $4)
+            RETURNING *",
+            user_id,
+            sphere_name,
+            permission_level_str,
+            grantor.user_id,
+        ).fetch_one(db_pool).await?;
+
         Ok(user_sphere_role)
     }
 
@@ -276,7 +309,7 @@ pub async fn set_user_sphere_role(
 
     let assigned_user = SqlUser::get_by_username(&username, &db_pool).await?;
 
-    let (sphere_role, _) = ssr::set_user_sphere_role(
+    let (sphere_role, prev_sphere_leader_id) = ssr::set_user_sphere_role(
         assigned_user.user_id,
         &sphere_name,
         permission_level,
@@ -285,6 +318,11 @@ pub async fn set_user_sphere_role(
     ).await?;
 
     reload_user(sphere_role.user_id)?;
+
+    if let Some(prev_leader_id) = prev_sphere_leader_id {
+        // In case the sphere leader changed, also reload previous leader
+        reload_user(prev_leader_id)?;
+    };
 
     Ok(sphere_role)
 }

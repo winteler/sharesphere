@@ -93,15 +93,18 @@ CREATE TABLE user_sphere_roles (
     sphere_name TEXT NOT NULL,
     permission_level TEXT NOT NULL CHECK (permission_level IN ('None', 'Moderate', 'Ban', 'Manage', 'Lead')),
     grantor_id BIGINT NOT NULL REFERENCES users (user_id),
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_role UNIQUE (user_id, sphere_id),
+    create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delete_timestamp TIMESTAMPTZ,
     CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
 
+-- index to guarantee there is only one role per user and sphere
+CREATE UNIQUE INDEX unique_sphere_role ON user_sphere_roles (user_id, sphere_id)
+    WHERE user_sphere_roles.delete_timestamp IS NULL;
 -- index to guarantee maximum 1 leader per sphere
 CREATE UNIQUE INDEX unique_sphere_leader ON user_sphere_roles (sphere_id, permission_level)
-    WHERE user_sphere_roles.permission_level = 'Lead';
+    WHERE user_sphere_roles.permission_level = 'Lead' AND user_sphere_roles.delete_timestamp IS NULL;
 
 CREATE TABLE rules (
     rule_id BIGSERIAL PRIMARY KEY,
@@ -250,6 +253,7 @@ CREATE TABLE user_bans (
     moderator_id BIGINT NOT NULL REFERENCES users (user_id),
     until_timestamp TIMESTAMPTZ,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delete_timestamp TIMESTAMPTZ,
     CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );

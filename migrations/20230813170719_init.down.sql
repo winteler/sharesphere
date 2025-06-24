@@ -1,9 +1,11 @@
-DROP TABLE users;
-DROP TABLE spheres;
-DROP TABLE sphere_subscriptions;
-DROP TABLE posts;
 DROP TABLE comments;
-DROP TABLE votes;
-DROP TABLE user_sphere_roles;
+DROP TABLE posts;
 DROP TABLE rules;
+DROP TABLE satellites;
+DROP TABLE sphere_categories;
+DROP TABLE sphere_subscriptions;
+DROP TABLE spheres;
 DROP TABLE user_bans;
+DROP TABLE user_sphere_roles;
+DROP TABLE users;
+DROP TABLE votes;

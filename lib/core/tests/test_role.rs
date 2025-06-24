@@ -144,9 +144,8 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
         PermissionLevel::Moderate,
         &lead_user,
         &db_pool,
-    )
-        .await
-        .expect("Moderate role should be assignable by lead_user.");
+    ).await.expect("Moderate role should be assignable by lead_user.");
+
     assert_eq!(moderate_role.user_id, moderator.user_id);
     assert_eq!(moderate_role.sphere_id, sphere.sphere_id);
     assert_eq!(moderate_role.sphere_name, sphere.sphere_name);
@@ -173,16 +172,15 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
         Err(AppError::InsufficientPrivileges)
     );
 
-    // test change permission level to Elect
+    // test change permission level to Manage
     let (moderate_role, prev_leader_id) = set_user_sphere_role(
         moderator.user_id,
         sphere_name,
         PermissionLevel::Manage,
         &lead_user,
         &db_pool,
-    )
-        .await
-        .expect("lead_user should be able to update role to Manage.");
+    ).await.expect("lead_user should be able to update role to Manage.");
+
     assert_eq!(moderate_role.user_id, moderator.user_id);
     assert_eq!(moderate_role.sphere_id, sphere.sphere_id);
     assert_eq!(moderate_role.sphere_name, sphere.sphere_name);
@@ -248,14 +246,12 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
         PermissionLevel::Lead,
         &lead_user,
         &db_pool,
-    )
-        .await
-        .expect("lead_user should be able to elect new leader.");
+    ).await.expect("lead_user should be able to elect new leader.");
 
     assert_eq!(new_lead_role.user_id, ordinary_user.user_id);
     assert_eq!(new_lead_role.sphere_id, sphere.sphere_id);
     assert_eq!(new_lead_role.sphere_name, sphere.sphere_name);
-    assert_eq!(new_lead_role.grantor_id, moderator.user_id);
+    assert_eq!(new_lead_role.grantor_id, lead_user.user_id);
     assert_eq!(new_lead_role.permission_level, PermissionLevel::Lead);
     assert_eq!(prev_leader_id, Some(lead_user.user_id));
     let ordinary_user = User::get(ordinary_user.user_id, &db_pool)

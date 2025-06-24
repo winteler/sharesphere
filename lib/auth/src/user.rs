@@ -69,6 +69,7 @@ pub struct UserBan {
     pub moderator_id: i64,
     pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
+    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Copy, Clone)]
@@ -135,6 +136,13 @@ impl User {
 
     pub fn check_is_sphere_leader(&self, sphere_name: &str) -> Result<(), AppError> {
         self.check_sphere_permissions(sphere_name, PermissionLevel::Lead)
+    }
+
+    pub fn check_can_set_sphere_leader(&self, sphere_name: &str) -> Result<(), AppError> {
+        match self.get_sphere_permission_level(sphere_name) == PermissionLevel::Lead {
+            true => Ok(()),
+            false => Err(AppError::InsufficientPrivileges),
+        }
     }
 
     pub fn get_sphere_permission_level(&self, sphere_name: &str) -> PermissionLevel {
@@ -558,7 +566,7 @@ pub mod ssr {
             UserSphereRole,
             "SELECT *
             FROM user_sphere_roles
-            WHERE user_id = $1",
+            WHERE user_id = $1 AND delete_timestamp IS NULL",
             user_id
         )
             .fetch_all(db_pool)
@@ -570,8 +578,12 @@ pub mod ssr {
     async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
-            "SELECT * FROM user_bans WHERE user_id = $1 AND (until_timestamp > CURRENT_TIMESTAMP or until_timestamp IS NULL)",
-            user_id
+            "SELECT * FROM user_bans
+            WHERE
+                user_id = $1 AND
+                (until_timestamp > CURRENT_TIMESTAMP OR until_timestamp IS NULL) AND
+                delete_timestamp IS NULL",
+            user_id,
         )
             .fetch_all(db_pool)
             .await?;
@@ -612,7 +624,8 @@ pub mod ssr {
                     sphere_name: String::from("0"),
                     permission_level: PermissionLevel::Moderate,
                     grantor_id: 0,
-                    timestamp: past_timestamp,
+                    create_timestamp: past_timestamp,
+                    delete_timestamp: None,
                 },
                 UserSphereRole {
                     role_id: 0,
@@ -622,7 +635,8 @@ pub mod ssr {
                     sphere_name: String::from("1"),
                     permission_level: PermissionLevel::Lead,
                     grantor_id: 0,
-                    timestamp: past_timestamp,
+                    create_timestamp: past_timestamp,
+                    delete_timestamp: None,
                 },
             ];
             let user_ban_vec = vec![
@@ -638,6 +652,7 @@ pub mod ssr {
                     moderator_id: 0,
                     until_timestamp: Some(past_timestamp),
                     create_timestamp: Default::default(),
+                    delete_timestamp: None,
                 },
                 UserBan {
                     ban_id: 1,
@@ -651,6 +666,7 @@ pub mod ssr {
                     moderator_id: 0,
                     until_timestamp: Some(past_timestamp),
                     create_timestamp: Default::default(),
+                    delete_timestamp: None,
                 },
                 UserBan {
                     ban_id: 2,
@@ -664,6 +680,7 @@ pub mod ssr {
                     moderator_id: 0,
                     until_timestamp: Some(future_timestamp),
                     create_timestamp: Default::default(),
+                    delete_timestamp: None,
                 },
                 UserBan {
                     ban_id: 3,
@@ -677,6 +694,7 @@ pub mod ssr {
                     moderator_id: 0,
                     until_timestamp: None,
                     create_timestamp: Default::default(),
+                    delete_timestamp: None,
                 },
             ];
             let user_1 = sql_user.clone().into_user(user_sphere_role_vec.clone(), user_ban_vec);
@@ -712,6 +730,7 @@ pub mod ssr {
                 moderator_id: 0,
                 until_timestamp: Some(future_timestamp),
                 create_timestamp: Default::default(),
+                delete_timestamp: None,
             }];
             let user_2 = sql_user.into_user(user_sphere_role_vec, user_2_ban_vec);
             assert_eq!(user_2.ban_status, BanStatus::Until(future_timestamp));
@@ -952,6 +971,22 @@ mod tests {
         assert_eq!(admin.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
+    }
+
+    #[test]
+    fn test_user_check_can_set_sphere_leader() {
+        let mut user = User::default();
+        user.permission_by_sphere_map = get_user_permission_map();
+        assert_eq!(user.check_can_set_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_set_sphere_leader("b"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_set_sphere_leader("c"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_set_sphere_leader("d"), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_can_set_sphere_leader("e"), Ok(()));
+        let mut admin = User::default();
+        admin.admin_role = AdminRole::Moderator;
+        assert_eq!(admin.check_can_set_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
+        admin.admin_role = AdminRole::Admin;
+        assert_eq!(admin.check_can_set_sphere_leader("a"), Ok(()));
     }
 
     #[test]

@@ -84,7 +84,7 @@ impl SphereHeader {
 pub mod ssr {
     use sqlx::PgPool;
     use sharesphere_auth::role::PermissionLevel;
-    use sharesphere_auth::role::ssr::set_user_sphere_role;
+    use sharesphere_auth::role::ssr::init_sphere_leader;
     use sharesphere_auth::user::User;
     use sharesphere_utils::errors::AppError;
     use sharesphere_utils::errors::AppError::InternalServerError;
@@ -204,7 +204,7 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
-        set_user_sphere_role(user.user_id, &sphere.sphere_name, PermissionLevel::Lead, user, &db_pool).await?;
+        init_sphere_leader(user.user_id, &sphere.sphere_name, &db_pool).await?;
 
         Ok(sphere)
     }

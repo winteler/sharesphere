@@ -94,7 +94,8 @@ pub mod ssr {
             UserBan,
             "SELECT * FROM user_bans
             WHERE sphere_name = $1 AND
-                  username like $2
+                  username like $2 AND
+                  delete_timestamp IS NULL
             ORDER BY until_timestamp DESC",
             sphere_name,
             format!("{username_prefix}%"),
@@ -124,7 +125,7 @@ pub mod ssr {
         }?;
 
         sqlx::query!(
-            "DELETE FROM user_bans WHERE ban_id = $1",
+            "UPDATE user_bans SET delete_timestamp = CURRENT_TIMESTAMP WHERE ban_id = $1",
             ban_id
         )
             .execute(db_pool)

@@ -5,8 +5,11 @@ use sharesphere_auth::user::User;
 use sharesphere_utils::errors::AppError;
 
 use crate::common::{create_user, get_db_pool};
+use crate::utils::*;
 
 mod common;
+mod utils;
+
 
 #[tokio::test]
 async fn test_get_user_sphere_role() -> Result<(), AppError> {
@@ -125,17 +128,25 @@ async fn test_get_sphere_role_vec() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_set_user_sphere_role() -> Result<(), AppError> {
+async fn test_set_user_sphere_role() {
     let db_pool = get_db_pool().await;
     let lead_user = create_user("lead", &db_pool).await;
     let ordinary_user = create_user("a", &db_pool).await;
     let moderator = create_user("mod", &db_pool).await;
 
     let sphere_name = "sphere";
-    let sphere = sphere::ssr::create_sphere(sphere_name, "sphere", false, &lead_user, &db_pool).await?;
+    let sphere = sphere::ssr::create_sphere(
+        sphere_name,
+        "sphere",
+        false,
+        &lead_user,
+        &db_pool
+    ).await.expect("Should create sphere");
     let lead_user = User::get(lead_user.user_id, &db_pool)
         .await
         .expect("Should be able to reload lead_user.");
+
+    let lead_role = get_user_sphere_role(lead_user.user_id, &sphere.sphere_name, &db_pool).await.expect("Should get lead role");
 
     // test elect moderator
     let (moderate_role, prev_leader_id) = set_user_sphere_role(
@@ -151,6 +162,7 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
     assert_eq!(moderate_role.sphere_name, sphere.sphere_name);
     assert_eq!(moderate_role.grantor_id, lead_user.user_id);
     assert_eq!(moderate_role.permission_level, PermissionLevel::Moderate);
+    assert_eq!(moderate_role.delete_timestamp, None);
     assert_eq!(prev_leader_id, None);
     let moderator = User::get(moderator.user_id, &db_pool)
         .await
@@ -173,7 +185,7 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
     );
 
     // test change permission level to Manage
-    let (moderate_role, prev_leader_id) = set_user_sphere_role(
+    let (manage_role, prev_leader_id) = set_user_sphere_role(
         moderator.user_id,
         sphere_name,
         PermissionLevel::Manage,
@@ -181,11 +193,12 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("lead_user should be able to update role to Manage.");
 
-    assert_eq!(moderate_role.user_id, moderator.user_id);
-    assert_eq!(moderate_role.sphere_id, sphere.sphere_id);
-    assert_eq!(moderate_role.sphere_name, sphere.sphere_name);
-    assert_eq!(moderate_role.grantor_id, lead_user.user_id);
-    assert_eq!(moderate_role.permission_level, PermissionLevel::Manage);
+    assert_eq!(manage_role.user_id, moderator.user_id);
+    assert_eq!(manage_role.sphere_id, sphere.sphere_id);
+    assert_eq!(manage_role.sphere_name, sphere.sphere_name);
+    assert_eq!(manage_role.grantor_id, lead_user.user_id);
+    assert_eq!(manage_role.permission_level, PermissionLevel::Manage);
+    assert_eq!(manage_role.delete_timestamp, None);
     assert_eq!(prev_leader_id, None);
     let moderator = User::get(moderator.user_id, &db_pool)
         .await
@@ -195,20 +208,32 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
         Some(&PermissionLevel::Manage)
     );
 
+    // Check that moderator role has been updated and has a deleted timestamp
+    let deleted_moderator_role = get_user_role_by_id(moderate_role.role_id, &db_pool).await.expect("Should load deleted mod role");
+
+    assert_eq!(deleted_moderator_role.role_id, moderate_role.role_id);
+    assert_eq!(deleted_moderator_role.user_id, moderate_role.user_id);
+    assert_eq!(deleted_moderator_role.username, moderate_role.username);
+    assert_eq!(deleted_moderator_role.sphere_id, moderate_role.sphere_id);
+    assert_eq!(deleted_moderator_role.sphere_name, moderate_role.sphere_name);
+    assert_eq!(deleted_moderator_role.grantor_id, moderate_role.grantor_id);
+    assert_eq!(deleted_moderator_role.permission_level, PermissionLevel::Moderate);
+    assert!(deleted_moderator_role.delete_timestamp.is_some_and(|delete_timestamp| delete_timestamp > moderate_role.create_timestamp));
+
     // test can now elect other moderators
-    let (moderate_role, prev_leader_id) = set_user_sphere_role(
+    let (moderate_role_2, prev_leader_id) = set_user_sphere_role(
         ordinary_user.user_id,
         sphere_name,
         PermissionLevel::Moderate,
         &moderator,
         &db_pool,
-    )
-        .await?;
-    assert_eq!(moderate_role.user_id, ordinary_user.user_id);
-    assert_eq!(moderate_role.sphere_id, sphere.sphere_id);
-    assert_eq!(moderate_role.sphere_name, sphere.sphere_name);
-    assert_eq!(moderate_role.grantor_id, moderator.user_id);
-    assert_eq!(moderate_role.permission_level, PermissionLevel::Moderate);
+    ).await.expect("Should set moderator role");
+
+    assert_eq!(moderate_role_2.user_id, ordinary_user.user_id);
+    assert_eq!(moderate_role_2.sphere_id, sphere.sphere_id);
+    assert_eq!(moderate_role_2.sphere_name, sphere.sphere_name);
+    assert_eq!(moderate_role_2.grantor_id, moderator.user_id);
+    assert_eq!(moderate_role_2.permission_level, PermissionLevel::Moderate);
     assert_eq!(prev_leader_id, None);
     let ordinary_user = User::get(ordinary_user.user_id, &db_pool)
         .await
@@ -269,7 +294,29 @@ async fn test_set_user_sphere_role() -> Result<(), AppError> {
         Some(&PermissionLevel::Manage)
     );
 
-    Ok(())
+    // Check that roles that have been updated now have a deleted timestamp
+    let deleted_mod_role_2 = get_user_role_by_id(moderate_role_2.role_id, &db_pool).await.expect("Should load deleted mod role");
+
+    assert_eq!(deleted_mod_role_2.role_id, moderate_role_2.role_id);
+    assert_eq!(deleted_mod_role_2.user_id, moderate_role_2.user_id);
+    assert_eq!(deleted_mod_role_2.username, moderate_role_2.username);
+    assert_eq!(deleted_mod_role_2.sphere_id, moderate_role_2.sphere_id);
+    assert_eq!(deleted_mod_role_2.sphere_name, moderate_role_2.sphere_name);
+    assert_eq!(deleted_mod_role_2.grantor_id, moderate_role_2.grantor_id);
+    assert_eq!(deleted_mod_role_2.permission_level, PermissionLevel::Moderate);
+    assert!(deleted_mod_role_2.delete_timestamp.is_some_and(|delete_timestamp| delete_timestamp > moderate_role_2.create_timestamp));
+
+    // Check that roles that have been updated now have a deleted timestamp
+    let deleted_lead_role = get_user_role_by_id(lead_role.role_id, &db_pool).await.expect("Should load deleted lead role");
+
+    assert_eq!(deleted_lead_role.role_id, lead_role.role_id);
+    assert_eq!(deleted_lead_role.user_id, lead_role.user_id);
+    assert_eq!(deleted_lead_role.username, lead_role.username);
+    assert_eq!(deleted_lead_role.sphere_id, lead_role.sphere_id);
+    assert_eq!(deleted_lead_role.sphere_name, lead_role.sphere_name);
+    assert_eq!(deleted_lead_role.grantor_id, lead_role.grantor_id);
+    assert_eq!(deleted_lead_role.permission_level, PermissionLevel::Lead);
+    assert!(deleted_lead_role.delete_timestamp.is_some_and(|delete_timestamp| delete_timestamp > lead_role.create_timestamp));
 }
 
 #[tokio::test]

@@ -8,7 +8,7 @@ use sharesphere_core::post::PostWithSphereInfo;
 use sharesphere_core::ranking::ssr::vote_on_content;
 use sharesphere_core::ranking::{Vote, VoteValue};
 use sharesphere_core::sphere::ssr::create_sphere;
-use sharesphere_auth::user::User;
+use sharesphere_auth::user::{User};
 use sharesphere_core::comment::Comment;
 use sharesphere_core::moderation::ssr::moderate_post;
 use sharesphere_core::post::Post;

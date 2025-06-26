@@ -120,10 +120,23 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
     assert_eq!(banned_user_vec.len(), 1);
     assert!(banned_user_vec.contains(&ban_user_1));
 
-    assert_eq!(remove_user_ban(ban_user_1.ban_id, &global_mod, &db_pool).await, Ok(ban_user_1));
+    assert_eq!(remove_user_ban(ban_user_1.ban_id, &global_mod, &db_pool).await, Ok(ban_user_1.clone()));
 
     let banned_user_vec = get_sphere_ban_vec(&sphere.sphere_name, "", &db_pool).await.expect("Should load sphere bans");
     assert!(banned_user_vec.is_empty());
+
+    let removed_ban = get_user_ban_by_id(ban_user_1.ban_id, &db_pool).await?;
+    assert_eq!(removed_ban.ban_id, ban_user_1.ban_id);
+    assert_eq!(removed_ban.user_id, ban_user_1.user_id);
+    assert_eq!(removed_ban.username, ban_user_1.username);
+    assert_eq!(removed_ban.sphere_id, ban_user_1.sphere_id);
+    assert_eq!(removed_ban.sphere_name, ban_user_1.sphere_name);
+    assert_eq!(removed_ban.post_id, ban_user_1.post_id);
+    assert_eq!(removed_ban.comment_id, ban_user_1.comment_id);
+    assert_eq!(removed_ban.infringed_rule_id, ban_user_1.infringed_rule_id);
+    assert_eq!(removed_ban.moderator_id, ban_user_1.moderator_id);
+    assert_eq!(removed_ban.until_timestamp, ban_user_1.until_timestamp);
+    assert!(removed_ban.delete_timestamp.is_some_and(|delete_timestamp| delete_timestamp > removed_ban.create_timestamp));
 
     // TODO add test to remove global ban when possible to create it
 

@@ -15,6 +15,8 @@ use sqlx::PgPool;
 use std::cmp::Ordering;
 use std::convert::Infallible;
 use std::iter::zip;
+use sharesphere_auth::role::UserSphereRole;
+use sharesphere_auth::user::UserBan;
 
 pub const POST_SORT_TYPE_ARRAY: [PostSortType; 4] = [
     PostSortType::Hot,
@@ -193,6 +195,32 @@ pub async fn get_user_comment_vote(
         .await?;
 
     Ok(vote)
+}
+
+pub async fn get_user_role_by_id(
+    role_id: i64,
+    db_pool: &PgPool,
+) -> Result<UserSphereRole, AppError> {
+    let role = sqlx::query_as!(
+        UserSphereRole,
+        "SELECT * FROM user_sphere_roles WHERE role_id = $1",
+        role_id
+    ).fetch_one(db_pool).await?;
+
+    Ok(role)
+}
+
+pub async fn get_user_ban_by_id(
+    ban_id: i64,
+    db_pool: &PgPool,
+) -> Result<UserBan, AppError> {
+    let user_ban = sqlx::query_as!(
+        UserBan,
+        "SELECT * FROM user_bans WHERE ban_id = $1",
+        ban_id
+    ).fetch_one(db_pool).await?;
+
+    Ok(user_ban)
 }
 
 pub fn get_png_data() -> &'static[u8] {

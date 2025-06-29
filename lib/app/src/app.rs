@@ -29,6 +29,11 @@ use sharesphere_utils::node_utils::is_fully_scrolled;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
+    let connect_src_csp = match cfg!(debug_assertions) {
+        true => "connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/;",
+        false => "",
+    };
+
     view! {
         <!DOCTYPE html>
         <html lang="en">
@@ -42,13 +47,13 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                         // this will insert the CSP with nonce on the server, be empty on client
                         use_nonce().map(|nonce| {
                             format!(
-                                "default-src 'self';
+                                "default-src 'none';
                                 script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';
                                 img-src 'self' https: data:;
                                 media-src 'self' https:;
                                 frame-src 'self' https:;
                                 style-src 'self' 'nonce-{nonce}';
-                                connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/;"
+                                {connect_src_csp}"
                             )
                         }).unwrap_or_default()
                     }

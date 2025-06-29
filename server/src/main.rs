@@ -4,14 +4,9 @@ use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use axum::{
-    body::Body as AxumBody,
-    extract::{Path, State},
-    http::Request,
-    response::{IntoResponse, Response},
-    routing::get,
-    Router,
-};
+use axum::{body::Body as AxumBody, extract::{Path, State}, http::Request, response::{IntoResponse, Response}, routing::get, Router};
+use axum::body::Body;
+use axum::http::HeaderValue;
 use axum_session::{Key, SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer};
 use axum_session_sqlx::SessionPgPool;
@@ -100,29 +95,46 @@ async fn server_fn_handler(
             provide_context(app_state.user_lock_cache.clone());
         },
         request,
-    )
-    .await
+    ).await
 }
 
- async fn leptos_routes_handler(
-     auth_session: AuthSession,
-     app_state: State<AppState>,
-     req: Request<AxumBody>,
- ) -> Response {
-     let leptos_options = app_state.leptos_options.clone();
-     let db_pool = app_state.db_pool.clone();
-     let user_lock_cache = app_state.user_lock_cache.clone();
-     let handler = leptos_axum::render_route_with_context(
-         app_state.routes.clone(),
-         move || {
-             provide_context(auth_session.clone());
-             provide_context(db_pool.clone());
-             provide_context(user_lock_cache.clone());
-         },
-         move || shell(leptos_options.clone()),
-     );
-     handler(app_state, req).await.into_response()
- }
+async fn leptos_routes_handler(
+ auth_session: AuthSession,
+ app_state: State<AppState>,
+ req: Request<AxumBody>,
+) -> Response {
+    let leptos_options = app_state.leptos_options.clone();
+    let db_pool = app_state.db_pool.clone();
+    let user_lock_cache = app_state.user_lock_cache.clone();
+    let handler = leptos_axum::render_route_with_context(
+        app_state.routes.clone(),
+        move || {
+            provide_context(auth_session.clone());
+            provide_context(db_pool.clone());
+            provide_context(user_lock_cache.clone());
+        },
+        move || shell(leptos_options.clone()),
+    );
+    let mut response = handler(app_state, req).await.into_response();
+    add_security_headers(&mut response);
+    response
+}
+
+fn add_security_headers(response: &mut Response<Body>) {
+    let headers = response.headers_mut();
+
+    headers.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
+    headers.insert("X-Frame-Options", HeaderValue::from_static("SAMEORIGIN"));
+    headers.insert("Referrer-Policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
+    headers.insert("Permissions-Policy", HeaderValue::from_static("geolocation=(), microphone=(), camera=(), fullscreen=(self)"));
+    headers.insert("Cross-Origin-Opener-Policy", HeaderValue::from_static("same-origin"));
+    headers.insert("Cross-Origin-Resource-Policy", HeaderValue::from_static("same-origin"));
+    headers.insert("X-XSS-Protection", HeaderValue::from_static("0")); // legacy, but harmless
+    headers.insert(
+        "Strict-Transport-Security",
+        HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
+    );
+}
 
 async fn update_post_scores_loop(db_pool: PgPool) {
     let default_interval_seconds = 5 * 60;
@@ -168,7 +180,8 @@ async fn main() {
         .with_key(get_session_key())
         // This is how we would Set a Database Key to encrypt as store our per session keys.
         // This MUST be set in order to use SecurityMode::PerSession.
-        .with_database_key(get_session_db_key());
+        .with_database_key(get_session_db_key())
+        .with_secure(true);
 
     let auth_config = AuthConfig::<i64>::default();
     let session_store = SessionStore::<SessionPgPool>::new(

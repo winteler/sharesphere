@@ -194,7 +194,7 @@ pub mod ssr {
         let satellite = sqlx::query_as!(
             Satellite,
             "UPDATE satellites
-            SET disable_timestamp = CURRENT_TIMESTAMP
+            SET disable_timestamp = NOW()
             WHERE satellite_id = $1
             RETURNING *",
             satellite_id,

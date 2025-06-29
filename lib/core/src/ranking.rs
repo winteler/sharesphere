@@ -228,7 +228,7 @@ pub mod ssr {
                     .await?;
             } else {
                 sqlx::query!(
-                    "UPDATE posts set score = score + $1, score_minus = score_minus + $2, scoring_timestamp = CURRENT_TIMESTAMP where post_id = $3",
+                    "UPDATE posts set score = score + $1, score_minus = score_minus + $2, scoring_timestamp = NOW() where post_id = $3",
                     score_delta,
                     minus_delta,
                     post_id,

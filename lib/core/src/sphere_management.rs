@@ -128,7 +128,7 @@ pub mod ssr {
         }?;
 
         sqlx::query!(
-            "UPDATE user_bans SET delete_timestamp = CURRENT_TIMESTAMP WHERE ban_id = $1",
+            "UPDATE user_bans SET delete_timestamp = NOW() WHERE ban_id = $1",
             ban_id
         )
             .execute(db_pool)
@@ -252,7 +252,7 @@ pub mod ssr {
         sqlx::query!(
             "UPDATE spheres
              SET icon_url = $1,
-                 timestamp = CURRENT_TIMESTAMP
+                 timestamp = NOW()
              WHERE sphere_name = $2",
             icon_url,
             sphere_name,
@@ -273,7 +273,7 @@ pub mod ssr {
         sqlx::query!(
             "UPDATE spheres
              SET banner_url = $1,
-                 timestamp = CURRENT_TIMESTAMP
+                 timestamp = NOW()
              WHERE sphere_name = $2",
             banner_url,
             sphere_name,

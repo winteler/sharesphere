@@ -135,7 +135,7 @@ pub mod ssr {
         let current_rule = sqlx::query_as!(
             Rule,
             "UPDATE rules
-             SET delete_timestamp = CURRENT_TIMESTAMP
+             SET delete_timestamp = NOW()
              WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL
              RETURNING *",
             sphere_name,
@@ -204,7 +204,7 @@ pub mod ssr {
 
         sqlx::query!(
             "UPDATE rules
-             SET delete_timestamp = CURRENT_TIMESTAMP
+             SET delete_timestamp = NOW()
              WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL",
             sphere_name,
             priority,

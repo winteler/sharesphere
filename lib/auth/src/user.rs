@@ -443,8 +443,8 @@ pub mod ssr {
                  admin_role = 'None',
                  days_hide_spoiler = NULL,
                  show_nsfw = false,
-                 timestamp = CURRENT_TIMESTAMP,
-                 delete_timestamp = CURRENT_TIMESTAMP
+                 timestamp = NOW(),
+                 delete_timestamp = NOW()
             WHERE user_id = $1",
             user.user_id,
         )
@@ -472,8 +472,8 @@ pub mod ssr {
                 is_pinned = false,
                 category_id = NULL,
                 creator_name = '',
-                edit_timestamp = CURRENT_TIMESTAMP,
-                delete_timestamp = CURRENT_TIMESTAMP
+                edit_timestamp = NOW(),
+                delete_timestamp = NOW()
             WHERE creator_id = $1",
             user.user_id,
         )
@@ -493,8 +493,8 @@ pub mod ssr {
                 markdown_body = NULL,
                 is_pinned = false,
                 creator_name = '',
-                edit_timestamp = CURRENT_TIMESTAMP,
-                delete_timestamp = CURRENT_TIMESTAMP
+                edit_timestamp = NOW(),
+                delete_timestamp = NOW()
             WHERE creator_id = $1",
             user.user_id,
         )
@@ -512,7 +512,7 @@ pub mod ssr {
         sqlx::query!(
             "UPDATE user_sphere_roles
             SET delete_timestamp = NOW()
-            WHERE user_id = $1 AND delete_timestamp IS NOT NULL",
+            WHERE user_id = $1 AND delete_timestamp IS NULL",
             user.user_id,
         )
             .execute(db_pool)
@@ -527,7 +527,9 @@ pub mod ssr {
     ) -> Result<(), AppError> {
         // TODO enable update with SCD2 and removing username?
         sqlx::query!(
-            "DELETE FROM user_bans WHERE user_id = $1",
+            "UPDATE user_bans
+            SET delete_timestamp = NOW()
+            WHERE user_id = $1 AND delete_timestamp IS NULL",
             user.user_id
         )
             .execute(db_pool)
@@ -584,7 +586,7 @@ pub mod ssr {
             JOIN users u on u.user_id = b.user_id
             WHERE
                 b.user_id = $1 AND
-                (b.until_timestamp > CURRENT_TIMESTAMP OR b.until_timestamp IS NULL) AND
+                (b.until_timestamp > NOW() OR b.until_timestamp IS NULL) AND
                 b.delete_timestamp IS NULL",
             user_id,
         )

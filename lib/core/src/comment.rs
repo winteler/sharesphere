@@ -445,7 +445,7 @@ pub mod ssr {
                 body = $1,
                 markdown_body = $2,
                 is_pinned = $3,
-                edit_timestamp = CURRENT_TIMESTAMP
+                edit_timestamp = NOW()
             WHERE
                 comment_id = $4 AND
                 creator_id = $5 AND
@@ -475,8 +475,8 @@ pub mod ssr {
                 markdown_body = NULL,
                 is_pinned = false,
                 creator_name = '',
-                edit_timestamp = CURRENT_TIMESTAMP,
-                delete_timestamp = CURRENT_TIMESTAMP
+                edit_timestamp = NOW(),
+                delete_timestamp = NOW()
             WHERE
                 comment_id = $1 AND
                 creator_id = $2 AND

@@ -103,7 +103,7 @@ pub mod ssr {
                 SET description = EXCLUDED.description,
                     category_color = EXCLUDED.category_color,
                     is_active = EXCLUDED.is_active,
-                    timestamp = CURRENT_TIMESTAMP
+                    timestamp = NOW()
             RETURNING *",
             sphere_name,
             category_name,

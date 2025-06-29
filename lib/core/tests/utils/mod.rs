@@ -203,7 +203,9 @@ pub async fn get_user_role_by_id(
 ) -> Result<UserSphereRole, AppError> {
     let role = sqlx::query_as!(
         UserSphereRole,
-        "SELECT * FROM user_sphere_roles WHERE role_id = $1",
+        "SELECT r.*, u.username FROM user_sphere_roles r
+         JOIN users u ON u.user_id = r.user_id
+         WHERE r.role_id = $1",
         role_id
     ).fetch_one(db_pool).await?;
 
@@ -216,7 +218,9 @@ pub async fn get_user_ban_by_id(
 ) -> Result<UserBan, AppError> {
     let user_ban = sqlx::query_as!(
         UserBan,
-        "SELECT * FROM user_bans WHERE ban_id = $1",
+        "SELECT b.*, u.username FROM user_bans b
+         JOIN users u ON u.user_id = b.user_id
+         WHERE b.ban_id = $1",
         ban_id
     ).fetch_one(db_pool).await?;
 

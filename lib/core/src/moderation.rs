@@ -55,7 +55,7 @@ pub mod ssr {
                     moderator_message = $1,
                     infringed_rule_id = $2,
                     infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = CURRENT_TIMESTAMP,
+                    edit_timestamp = NOW(),
                     moderator_id = $3,
                     moderator_name = $4
                 WHERE
@@ -75,7 +75,7 @@ pub mod ssr {
                     moderator_message = $1,
                     infringed_rule_id = $2,
                     infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = CURRENT_TIMESTAMP,
+                    edit_timestamp = NOW(),
                     moderator_id = $3,
                     moderator_name = $4
                 WHERE
@@ -113,7 +113,7 @@ pub mod ssr {
                     moderator_message = $1,
                     infringed_rule_id = $2,
                     infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = CURRENT_TIMESTAMP,
+                    edit_timestamp = NOW(),
                     moderator_id = $3,
                     moderator_name = $4
                 WHERE
@@ -134,7 +134,7 @@ pub mod ssr {
                     moderator_message = $1,
                     infringed_rule_id = $2,
                     infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = CURRENT_TIMESTAMP,
+                    edit_timestamp = NOW(),
                     moderator_id = $3,
                     moderator_name = $4
                 WHERE
@@ -181,7 +181,7 @@ pub mod ssr {
                              VALUES (
                                 $1,
                                 (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                                $2, $3, $4, $5, $6, CURRENT_TIMESTAMP + $7 * interval '1 day'
+                                $2, $3, $4, $5, $6, NOW() + $7 * interval '1 day'
                             ) RETURNING *
                         )
                         SELECT b.*, u.username FROM ban b

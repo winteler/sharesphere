@@ -311,7 +311,7 @@ pub mod ssr {
                     p.delete_timestamp IS NULL AND
                     p.satellite_id IS NULL AND
                     (
-                        $5 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $5)
+                        $5 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $5)
                     ) AND
                     (
                         $6 OR NOT p.is_nsfw
@@ -362,7 +362,7 @@ pub mod ssr {
                     p.moderator_id IS NULL AND
                     p.delete_timestamp IS NULL AND
                     (
-                        $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $3)
+                        $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $3)
                     ) AND
                     (
                         $4 OR NOT p.is_nsfw
@@ -407,7 +407,7 @@ pub mod ssr {
                     p.delete_timestamp IS NULL AND
                     p.satellite_id IS NULL AND
                     (
-                        $1 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $1)
+                        $1 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $1)
                     ) AND
                     (
                         $2 OR NOT p.is_nsfw
@@ -453,7 +453,7 @@ pub mod ssr {
                     p.delete_timestamp IS NULL AND
                     p.satellite_id IS NULL AND
                     (
-                        $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < CURRENT_TIMESTAMP - (INTERVAL '1 day' * $2)
+                        $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
                     ) AND
                     (
                         $3 OR NOT p.is_nsfw
@@ -612,7 +612,7 @@ pub mod ssr {
                 ),
                 is_pinned = $10,
                 category_id = $11,
-                edit_timestamp = CURRENT_TIMESTAMP
+                edit_timestamp = NOW()
             WHERE
                 post_id = $12 AND
                 creator_id = $13 AND
@@ -658,8 +658,8 @@ pub mod ssr {
                 is_pinned = false,
                 category_id = NULL,
                 creator_name = '',
-                edit_timestamp = CURRENT_TIMESTAMP,
-                delete_timestamp = CURRENT_TIMESTAMP
+                edit_timestamp = NOW(),
+                delete_timestamp = NOW()
             WHERE
                 post_id = $1 AND
                 creator_id = $2 AND
@@ -694,8 +694,8 @@ pub mod ssr {
     pub async fn update_post_scores(db_pool: &PgPool) -> Result<(), AppError> {
         sqlx::query!(
             "UPDATE posts
-            SET scoring_timestamp = CURRENT_TIMESTAMP
-            WHERE create_timestamp > (CURRENT_TIMESTAMP - INTERVAL '2 days')",
+            SET scoring_timestamp = NOW()
+            WHERE create_timestamp > (NOW() - INTERVAL '2 days')",
         )
             .execute(db_pool)
             .await?;

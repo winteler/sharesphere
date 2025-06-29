@@ -431,7 +431,7 @@ pub async fn set_sphere_num_members(
     db_pool: &PgPool,
 ) -> Result<Sphere, AppError> {
     let sphere = sqlx::query_as::<_, Sphere>(
-        "UPDATE spheres SET num_members = $1, timestamp = CURRENT_TIMESTAMP WHERE sphere_id = $2 RETURNING *",
+        "UPDATE spheres SET num_members = $1, timestamp = NOW() WHERE sphere_id = $2 RETURNING *",
     )
         .bind(num_members)
         .bind(sphere_id)
@@ -447,7 +447,7 @@ pub async fn set_post_score(
     db_pool: &PgPool,
 ) -> Result<Post, AppError> {
     let post = sqlx::query_as::<_, Post>(
-        "UPDATE posts SET score = $1, scoring_timestamp = CURRENT_TIMESTAMP WHERE post_id = $2 RETURNING *",
+        "UPDATE posts SET score = $1, scoring_timestamp = NOW() WHERE post_id = $2 RETURNING *",
     )
         .bind(score)
         .bind(post_id)
@@ -465,7 +465,7 @@ pub async fn set_post_timestamp(
     let post = sqlx::query_as::<_, Post>(
         "UPDATE posts
         SET create_timestamp = create_timestamp + (INTERVAL '1 day' * $1), 
-        scoring_timestamp = CURRENT_TIMESTAMP 
+        scoring_timestamp = NOW()
         WHERE post_id = $2 RETURNING *",
     )
         .bind(day_offset)

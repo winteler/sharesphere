@@ -285,7 +285,7 @@ pub mod ssr {
             "UPDATE users
             SET
                 admin_role = $1,
-                timestamp = CURRENT_TIMESTAMP
+                timestamp = NOW()
             WHERE user_id = $2
             RETURNING *",
             admin_role_str,

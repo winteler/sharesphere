@@ -217,7 +217,7 @@ pub mod ssr {
     ) -> Result<Sphere, AppError> {
         user.check_permissions(sphere_name, PermissionLevel::Manage)?;
         let sphere = sqlx::query_as::<_, Sphere>(
-            "UPDATE spheres SET description = $1, timestamp = CURRENT_TIMESTAMP WHERE sphere_name = $2 RETURNING *"
+            "UPDATE spheres SET description = $1, timestamp = NOW() WHERE sphere_name = $2 RETURNING *"
         )
             .bind(description)
             .bind(sphere_name)

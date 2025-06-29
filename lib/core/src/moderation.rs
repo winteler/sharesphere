@@ -176,13 +176,16 @@ pub mod ssr {
                 Some(ban_duration) => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, username, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
-                         VALUES (
-                            $1,
-                            (SELECT username FROM users WHERE user_id = $1),
-                            (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                            $2, $3, $4, $5, $6, CURRENT_TIMESTAMP + $7 * interval '1 day'
-                        ) RETURNING *",
+                        "WITH ban AS (
+                            INSERT INTO user_bans (user_id, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
+                             VALUES (
+                                $1,
+                                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
+                                $2, $3, $4, $5, $6, CURRENT_TIMESTAMP + $7 * interval '1 day'
+                            ) RETURNING *
+                        )
+                        SELECT b.*, u.username FROM ban b
+                        JOIN users u ON u.user_id = b.user_id",
                         user_id,
                         sphere_name,
                         post_id,
@@ -197,13 +200,16 @@ pub mod ssr {
                 None => {
                     Some(sqlx::query_as!(
                         UserBan,
-                        "INSERT INTO user_bans (user_id, username, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id)
-                         VALUES (
-                            $1,
-                            (SELECT username FROM users WHERE user_id = $1),
-                            (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                            $2, $3, $4, $5, $6
-                        ) RETURNING *",
+                        "WITH ban AS (
+                            INSERT INTO user_bans (user_id, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id)
+                             VALUES (
+                                $1,
+                                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
+                                $2, $3, $4, $5, $6
+                            ) RETURNING *
+                        )
+                        SELECT b.*, u.username FROM ban b
+                        JOIN users u ON u.user_id = b.user_id",
                         user_id,
                         sphere_name,
                         post_id,

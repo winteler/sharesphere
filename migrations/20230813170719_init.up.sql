@@ -87,15 +87,13 @@ CREATE UNIQUE INDEX unique_satellite ON satellites (satellite_name, sphere_id)
 
 CREATE TABLE user_sphere_roles (
     role_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    username TEXT NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
     sphere_id BIGINT NOT NULL,
     sphere_name TEXT NOT NULL,
     permission_level TEXT NOT NULL CHECK (permission_level IN ('None', 'Moderate', 'Ban', 'Manage', 'Lead')),
     grantor_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
 
@@ -243,8 +241,7 @@ CREATE TABLE votes (
 
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    username TEXT NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
     sphere_id BIGINT,
     sphere_name TEXT,
     post_id BIGINT NOT NULL,
@@ -254,7 +251,6 @@ CREATE TABLE user_bans (
     until_timestamp TIMESTAMPTZ,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_user FOREIGN KEY (user_id, username) REFERENCES users (user_id, username) MATCH FULL,
     CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
 );
 

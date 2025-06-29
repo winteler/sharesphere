@@ -510,8 +510,9 @@ pub mod ssr {
     ) -> Result<(), AppError> {
         // TODO enable update with SCD2 and removing username?
         sqlx::query!(
-            "DELETE FROM user_sphere_roles
-            WHERE user_id = $1",
+            "UPDATE user_sphere_roles
+            SET delete_timestamp = NOW()
+            WHERE user_id = $1 AND delete_timestamp IS NOT NULL",
             user.user_id,
         )
             .execute(db_pool)
@@ -564,9 +565,10 @@ pub mod ssr {
     ) -> Result<Vec<UserSphereRole>, AppError> {
         let user_sphere_role_vec = sqlx::query_as!(
             UserSphereRole,
-            "SELECT *
-            FROM user_sphere_roles
-            WHERE user_id = $1 AND delete_timestamp IS NULL",
+            "SELECT r.*, u.username
+            FROM user_sphere_roles r
+            JOIN users u ON u.user_id = r.user_id
+            WHERE r.user_id = $1 AND r.delete_timestamp IS NULL",
             user_id
         )
             .fetch_all(db_pool)
@@ -578,11 +580,12 @@ pub mod ssr {
     async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
-            "SELECT * FROM user_bans
+            "SELECT b.*, u.username FROM user_bans b
+            JOIN users u on u.user_id = b.user_id
             WHERE
-                user_id = $1 AND
-                (until_timestamp > CURRENT_TIMESTAMP OR until_timestamp IS NULL) AND
-                delete_timestamp IS NULL",
+                b.user_id = $1 AND
+                (b.until_timestamp > CURRENT_TIMESTAMP OR b.until_timestamp IS NULL) AND
+                b.delete_timestamp IS NULL",
             user_id,
         )
             .fetch_all(db_pool)

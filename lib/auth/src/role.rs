@@ -36,7 +36,6 @@ pub enum PermissionLevel {
     Lead = 4,
 }
 
-// TODO: add SCD2
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UserSphereRole {
     pub role_id: i64,
@@ -88,10 +87,11 @@ pub mod ssr {
     ) -> Result<UserSphereRole, AppError> {
         let user_sphere_role = sqlx::query_as!(
             UserSphereRole,
-            "SELECT * FROM user_sphere_roles
-            WHERE user_id = $1 AND
-                  sphere_name = $2 AND
-                  delete_timestamp IS NULL",
+            "SELECT r.*, u.username FROM user_sphere_roles r
+            JOIN users u ON u.user_id = r.user_id
+            WHERE r.user_id = $1 AND
+                  r.sphere_name = $2 AND
+                  r.delete_timestamp IS NULL",
             user_id,
             sphere_name,
         )
@@ -118,11 +118,12 @@ pub mod ssr {
     ) -> Result<Vec<UserSphereRole>, AppError> {
         let sphere_role_vec = sqlx::query_as!(
             UserSphereRole,
-            "SELECT * FROM user_sphere_roles
+            "SELECT r.*, u.username FROM user_sphere_roles r
+            JOIN users u ON u.user_id = r.user_id
             WHERE
-                sphere_name = $1 AND
-                permission_level != 'None' AND
-                delete_timestamp IS NULL",
+                r.sphere_name = $1 AND
+                r.permission_level != 'None' AND
+                r.delete_timestamp IS NULL",
             sphere_name,
         )
             .fetch_all(db_pool)
@@ -162,16 +163,15 @@ pub mod ssr {
         let manage_level_str: &str = PermissionLevel::Manage.into();
 
         sqlx::query!(
-            "UPDATE user_sphere_roles SET delete_timestamp = now()
+            "UPDATE user_sphere_roles SET delete_timestamp = NOW()
             WHERE sphere_name = $1 AND permission_level = $2 AND delete_timestamp IS NULL",
             sphere_name,
             lead_level_str,
         ).execute(db_pool).await?;
 
         sqlx::query!(
-            "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
+            "INSERT INTO user_sphere_roles (user_id, sphere_id, sphere_name, permission_level, grantor_id)
             VALUES ($1,
-                (SELECT username from users where user_id = $1),
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
                 $2, $3, $1)",
             grantor.user_id,
@@ -201,23 +201,13 @@ pub mod ssr {
             return Err(AppError::new("Cannot initialize sphere leader in sphere with existing roles."));
         }
 
-        let permission_level_str: &str = PermissionLevel::Lead.into();
-        let user_sphere_role = sqlx::query_as!(
-            UserSphereRole,
-            "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
-            VALUES ($1,
-                (SELECT username from users where user_id = $1),
-                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                $2, $3, $4)
-            RETURNING *",
+        insert_user_sphere_role_returning(
             user_id,
             sphere_name,
-            permission_level_str,
+            PermissionLevel::Lead,
             user_id,
-        )
-            .fetch_one(db_pool)
-            .await?;
-        Ok(user_sphere_role)
+            db_pool,
+        ).await
     }
 
     async fn insert_user_sphere_role(
@@ -235,27 +225,48 @@ pub mod ssr {
         if user_id == grantor.user_id && grantor.check_is_sphere_leader(sphere_name).is_ok() {
             return Err(AppError::InternalServerError(String::from("Sphere leader cannot lower his permissions, must designate another leader.")))
         }
-        let permission_level_str: &str = permission_level.into();
+
 
         sqlx::query!(
-            "UPDATE user_sphere_roles SET delete_timestamp = now()
+            "UPDATE user_sphere_roles SET delete_timestamp = NOW()
             WHERE user_id = $1 AND sphere_name = $2 AND delete_timestamp IS NULL",
             user_id,
             sphere_name,
         ).execute(db_pool).await?;
 
+        insert_user_sphere_role_returning(
+            user_id,
+            sphere_name,
+            permission_level,
+            grantor.user_id,
+            db_pool,
+        ).await
+    }
+
+    async fn insert_user_sphere_role_returning(
+        user_id: i64,
+        sphere_name: &str,
+        permission_level: PermissionLevel,
+        grantor_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<UserSphereRole, AppError> {
+        let permission_level_str: &str = permission_level.into();
+
         let user_sphere_role = sqlx::query_as!(
             UserSphereRole,
-            "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)
-            VALUES ($1,
-                (SELECT username from users where user_id = $1),
-                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                $2, $3, $4)
-            RETURNING *",
+            "WITH new_role AS (
+                INSERT INTO user_sphere_roles (user_id, sphere_id, sphere_name, permission_level, grantor_id)
+                VALUES ($1,
+                    (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
+                    $2, $3, $4)
+                RETURNING *
+            )
+            SELECT r.*, u.username FROM new_role r
+            JOIN users u ON u.user_id = r.user_id",
             user_id,
             sphere_name,
             permission_level_str,
-            grantor.user_id,
+            grantor_id,
         ).fetch_one(db_pool).await?;
 
         Ok(user_sphere_role)

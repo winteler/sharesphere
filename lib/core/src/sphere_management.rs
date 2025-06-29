@@ -92,11 +92,12 @@ pub mod ssr {
     ) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
-            "SELECT * FROM user_bans
-            WHERE sphere_name = $1 AND
-                  username like $2 AND
-                  delete_timestamp IS NULL
-            ORDER BY until_timestamp DESC",
+            "SELECT b.*, u.username FROM user_bans b
+            JOIN users u ON u.user_id = b.user_id
+            WHERE b.sphere_name = $1 AND
+                  u.username like $2 AND
+                  b.delete_timestamp IS NULL
+            ORDER BY b.until_timestamp DESC",
             sphere_name,
             format!("{username_prefix}%"),
         )
@@ -113,7 +114,9 @@ pub mod ssr {
     ) -> Result<UserBan, AppError> {
         let user_ban = sqlx::query_as!(
             UserBan,
-            "SELECT * FROM user_bans WHERE ban_id = $1",
+            "SELECT b.*, u.username FROM user_bans b
+            JOIN users u ON u.user_id = b.user_id
+            WHERE ban_id = $1",
             ban_id
         )
             .fetch_one(db_pool)

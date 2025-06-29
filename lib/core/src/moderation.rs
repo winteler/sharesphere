@@ -173,7 +173,7 @@ pub mod ssr {
         if user.check_permissions(&sphere_name, PermissionLevel::Moderate).is_ok() && user.user_id != user_id && !is_user_sphere_moderator(user_id, sphere_name, &db_pool).await? {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
-                Some(ban_duration) => {
+                ban_duration => {
                     Some(sqlx::query_as!(
                         UserBan,
                         "WITH ban AS (
@@ -192,30 +192,7 @@ pub mod ssr {
                         comment_id,
                         rule_id,
                         user.user_id,
-                        ban_duration as f64,
-                    )
-                        .fetch_one(db_pool)
-                        .await?)
-                }
-                None => {
-                    Some(sqlx::query_as!(
-                        UserBan,
-                        "WITH ban AS (
-                            INSERT INTO user_bans (user_id, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id)
-                             VALUES (
-                                $1,
-                                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                                $2, $3, $4, $5, $6
-                            ) RETURNING *
-                        )
-                        SELECT b.*, u.username FROM ban b
-                        JOIN users u ON u.user_id = b.user_id",
-                        user_id,
-                        sphere_name,
-                        post_id,
-                        comment_id,
-                        rule_id,
-                        user.user_id,
+                        ban_duration.map(|duration| duration as f64),
                     )
                         .fetch_one(db_pool)
                         .await?)

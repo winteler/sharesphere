@@ -1,3 +1,4 @@
+use std::env;
 use axum::{
     body::Body,
     extract::State,
@@ -46,8 +47,10 @@ async fn get_static_file(uri: Uri, root: &str) -> Result<Response<Body>, (Status
         .await
         .unwrap_or_else(|err| match err {})
         .into_response();
-    
-    response.headers_mut().append(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
+
+    if env::var("LEPTOS_ENV").is_ok_and(|leptos_env| leptos_env == "PROD" ) {
+        response.headers_mut().append(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
+    }
     
     Ok(response)
 }

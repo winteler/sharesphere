@@ -163,11 +163,9 @@ pub fn CommentTree(
     );
 
     view! {
-        <Form method="GET" action="">
-            <button class="button-secondary mt-1">
-                "Single comment tree view. Back to post."
-            </button>
-        </Form>
+        <a href="?" class="button-secondary mt-1 w-fit">
+            "Single comment tree view. Back to post."
+        </a>
         { move || comment_vec.read().first().map(|comment| view! {
                 <div class="flex flex-col h-fit">
                     <CommentBox

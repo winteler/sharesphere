@@ -26,7 +26,7 @@ leptos_router = { version = "0.8.2", features = ["nightly"] }
 leptos_axum = { version = "0.8.2" }
 server_fn = { version = "0.8.2", features = ["multipart"] }
 
-leptos-use = { version = "0.16.0-beta2", features = ["use_breakpoints", "use_clipboard"] }
+leptos-use = { version = "0.16.2", features = ["use_breakpoints", "use_clipboard", "signal_debounced", "signal_throttled"] }
 
 anyhow = "*"
 axum = {  version = "0.8.4", features = [ "macros" ] }

@@ -13,6 +13,7 @@ pub mod ssr {
     use crate::user::User;
 
     pub const DB_URL_ENV: &str = "DATABASE_URL";
+    pub const LEPTOS_ENV_KEY: &str = "LEPTOS_ENV";
 
     pub type AuthSession = axum_session_auth::AuthSession<User, i64, SessionPgPool, PgPool>;
 
@@ -26,6 +27,10 @@ pub mod ssr {
 
     pub fn get_user_lock_cache() -> Result<Arc<UserLockCache>, AppError> {
         use_context::<Arc<UserLockCache>>().ok_or_else(|| AppError::new("User lock cache missing."))
+    }
+
+    pub fn is_prod_mode() -> bool {
+        env::var(LEPTOS_ENV_KEY).is_ok_and(|leptos_env| leptos_env == "PROD" )
     }
 
     pub async fn create_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {

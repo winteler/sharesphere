@@ -15,7 +15,7 @@ use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
 
-use sharesphere_auth::session::ssr::{create_db_pool, AuthSession};
+use sharesphere_auth::session::ssr::{create_db_pool, is_prod_mode, AuthSession};
 use sharesphere_auth::user::ssr::UserLockCache;
 use sharesphere_auth::user::User;
 
@@ -181,7 +181,7 @@ async fn main() {
         // This is how we would Set a Database Key to encrypt as store our per session keys.
         // This MUST be set in order to use SecurityMode::PerSession.
         .with_database_key(get_session_db_key())
-        .with_secure(true);
+        .with_secure(is_prod_mode());
 
     let auth_config = AuthConfig::<i64>::default();
     let session_store = SessionStore::<SessionPgPool>::new(

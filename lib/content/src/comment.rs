@@ -3,7 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
-use leptos_use::{breakpoints_tailwind, use_breakpoints};
+use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
 use leptos_use::BreakpointsTailwind::Xxl;
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::errors::ErrorDisplay;
@@ -86,9 +86,15 @@ pub fn CommentTreeVec(
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+    3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_comments_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let num_post = comment_vec.read_untracked().len();
                 let additional_load = get_post_comment_tree(

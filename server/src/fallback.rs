@@ -1,4 +1,3 @@
-use std::env;
 use axum::{
     body::Body,
     extract::State,
@@ -10,7 +9,7 @@ use leptos::prelude::{Errors, LeptosOptions};
 use leptos::view;
 use tower::util::ServiceExt;
 use tower_http::services::ServeDir;
-
+use sharesphere_auth::session::ssr::is_prod_mode;
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 
@@ -48,7 +47,7 @@ async fn get_static_file(uri: Uri, root: &str) -> Result<Response<Body>, (Status
         .unwrap_or_else(|err| match err {})
         .into_response();
 
-    if env::var("LEPTOS_ENV").is_ok_and(|leptos_env| leptos_env == "PROD" ) {
+    if is_prod_mode() {
         response.headers_mut().append(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
     }
     

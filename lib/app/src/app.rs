@@ -4,6 +4,7 @@ use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, SsrMode, StaticSegment};
 use leptos_router::static_routes::StaticRoute;
+use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
@@ -268,7 +269,7 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn DefaultHomePage(
     refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i32>,
     is_loading: RwSignal<bool>,
     div_ref: NodeRef<Div>,
 ) -> impl IntoView {
@@ -289,9 +290,15 @@ fn DefaultHomePage(
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_post_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_sorted_post_vec(state.post_sort_type.get_untracked(), num_post).await;
@@ -317,7 +324,7 @@ fn DefaultHomePage(
 fn UserHomePage(
     user: User,
     refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i32>,
     is_loading: RwSignal<bool>,
     div_ref: NodeRef<Div>,
 ) -> impl IntoView {
@@ -339,9 +346,15 @@ fn UserHomePage(
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_post_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), num_post).await;

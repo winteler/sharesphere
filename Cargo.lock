@@ -3828,6 +3828,7 @@ name = "sharesphere_app"
 version = "0.1.0"
 dependencies = [
  "leptos",
+ "leptos-use",
  "leptos_meta",
  "leptos_router",
  "log",
@@ -3872,6 +3873,7 @@ name = "sharesphere_components"
 version = "0.1.0"
 dependencies = [
  "leptos",
+ "leptos-use",
  "leptos_meta",
  "leptos_router",
  "serde",

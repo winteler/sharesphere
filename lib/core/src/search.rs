@@ -1,6 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
-use leptos_use::signal_debounced;
+use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
 use sharesphere_auth::user::UserHeader;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledSignalCheckbox;
@@ -319,9 +319,15 @@ pub fn SearchSpheres(
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_sphere_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let sphere_count = sphere_header_vec.read_untracked().len();
                 let search_input = search_state.search_input_debounced.get_untracked();

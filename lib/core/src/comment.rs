@@ -758,7 +758,7 @@ pub fn CommentMiniatureList(
     #[prop(into)]
     load_error: Signal<Option<AppError>>,
     /// signal to request loading additional comments
-    additional_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i32>,
     /// reference to the container of the comments in order to reset scroll position when context changes
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {

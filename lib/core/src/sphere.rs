@@ -469,7 +469,7 @@ pub fn InfiniteSphereLinkList(
     #[prop(into)]
     load_error: Signal<Option<AppError>>,
     /// signal to request loading additional sphere headers
-    additional_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i32>,
     /// reference to the container of the sphere headers in order to reset scroll position when context changes
     list_ref: NodeRef<html::Ul>,
 ) -> impl IntoView {

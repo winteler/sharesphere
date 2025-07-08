@@ -2,6 +2,7 @@ use leptos::either::{Either, EitherOf4};
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Form;
+use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
@@ -145,9 +146,15 @@ pub fn SearchPosts() -> impl IntoView
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_post_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let additional_load = search_posts(
                     search_state.search_input_debounced.get(),
@@ -204,9 +211,15 @@ pub fn SearchComments() -> impl IntoView
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_comment_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let additional_load = search_comments(
                     search_state.search_input_debounced.get_untracked(),

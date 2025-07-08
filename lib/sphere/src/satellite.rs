@@ -2,6 +2,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_params_map;
+use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use url::Url;
 use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use sharesphere_utils::embed::EmbedType;
@@ -118,9 +119,15 @@ pub fn SatelliteContent() -> impl IntoView {
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_post_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();

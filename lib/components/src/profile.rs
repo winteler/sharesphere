@@ -1,6 +1,7 @@
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_params_map};
+use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
@@ -121,9 +122,15 @@ pub fn UserPosts() -> impl IntoView {
         }
     );
 
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
     let _additional_post_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_user_post_vec(username.get_untracked(), sort_signal.get_untracked(), num_post).await;
@@ -165,6 +172,12 @@ pub fn UserComments() -> impl IntoView {
             handle_initial_load(initial_load, comment_vec, load_error, Some(list_ref));
             is_loading.set(false);
         }
+    );
+
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        3000.0,
+        ThrottleOptions::default().leading(true).trailing(false)
     );
 
     let _additional_comment_resource = LocalResource::new(

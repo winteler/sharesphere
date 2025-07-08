@@ -153,7 +153,7 @@ pub fn handle_initial_load<T: Clone + Send + Sync + 'static>(
 
 pub fn reset_additional_load<T, R>(
     additional_vec: RwSignal<Vec<T>>,
-    additional_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i32>,
     node_ref: Option<NodeRef<R>>,
 )
 where

@@ -996,7 +996,7 @@ pub fn PostListWithInitLoad(
     load_error: Signal<Option<AppError>>,
     /// signal to request loading additional posts
     #[prop(optional)]
-    additional_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i32>,
     /// reference to the container of the posts in order to reset scroll position when context changes
     #[prop(optional)]
     list_ref: NodeRef<html::Ul>,
@@ -1039,7 +1039,7 @@ pub fn PostListWithIndicators(
     #[prop(into)]
     load_error: Signal<Option<AppError>>,
     /// signal to request loading additional posts
-    additional_load_count: RwSignal<i64>,
+    additional_load_count: RwSignal<i32>,
     /// reference to the container of the posts in order to reset scroll position when context changes
     list_ref: NodeRef<html::Ul>,
     #[prop(default = true)]

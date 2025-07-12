@@ -33,7 +33,7 @@ use sharesphere_utils::widget::{BannerContent, RefreshButton};
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     let connect_src_csp = match cfg!(debug_assertions) {
         true => "connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/;",
-        false => "",
+        false => "connect-src 'self'",
     };
 
     view! {

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE user_sphere_roles SET delete_timestamp = NOW()\n            WHERE user_id = $1 AND sphere_name = $2 AND delete_timestamp IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "20a770af88149ef5bc018cfda8582fd099921193763ef30c559c48cd2b1c1cad"
+}

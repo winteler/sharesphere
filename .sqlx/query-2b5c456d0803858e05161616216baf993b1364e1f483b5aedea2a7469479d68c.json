@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET\n                 username = '',\n                 email = '',\n                 is_nsfw = false,\n                 admin_role = 'None',\n                 days_hide_spoiler = NULL,\n                 show_nsfw = false,\n                 timestamp = NOW(),\n                 delete_timestamp = NOW()\n            WHERE user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2b5c456d0803858e05161616216baf993b1364e1f483b5aedea2a7469479d68c"
+}

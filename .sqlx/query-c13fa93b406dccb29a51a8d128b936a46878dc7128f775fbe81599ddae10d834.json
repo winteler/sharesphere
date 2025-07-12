@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO user_sphere_roles (user_id, username, sphere_id, sphere_name, permission_level, grantor_id)\n                VALUES ($1,\n                    (SELECT username from users where user_id = $1),\n                    (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                    $2, $3, $4)\n                ON CONFLICT (user_id, sphere_id) DO UPDATE\n                SET permission_level = EXCLUDED.permission_level,\n                    timestamp = CURRENT_TIMESTAMP\n                RETURNING *",
+  "query": "WITH new_role AS (\n                INSERT INTO user_sphere_roles (user_id, sphere_id, sphere_name, permission_level, grantor_id)\n                VALUES ($1,\n                    (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                    $2, $3, $4)\n                RETURNING *\n            )\n            SELECT r.*, u.username FROM new_role r\n            JOIN users u ON u.user_id = r.user_id",
   "describe": {
     "columns": [
       {
@@ -15,33 +15,38 @@
       },
       {
         "ordinal": 2,
-        "name": "username",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 3,
         "name": "sphere_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "sphere_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "permission_level",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "grantor_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 7,
-        "name": "timestamp",
+        "ordinal": 6,
+        "name": "create_timestamp",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "delete_timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "username",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -60,8 +65,9 @@
       false,
       false,
       false,
+      true,
       false
     ]
   },
-  "hash": "4793410c6eeeda2a3a54e002304343673a3369d35cac9f7578ebf9fd430cd916"
+  "hash": "c13fa93b406dccb29a51a8d128b936a46878dc7128f775fbe81599ddae10d834"
 }

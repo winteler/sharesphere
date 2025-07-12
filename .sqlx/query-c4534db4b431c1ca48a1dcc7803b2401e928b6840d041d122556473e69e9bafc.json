@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM user_bans WHERE ban_id = $1",
+  "query": "UPDATE users\n            SET\n                admin_role = $1,\n                timestamp = NOW()\n            WHERE user_id = $2\n            RETURNING *",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "ban_id",
+        "name": "user_id",
         "type_info": "Int8"
       },
       {
         "ordinal": 1,
-        "name": "user_id",
-        "type_info": "Int8"
+        "name": "oidc_id",
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
@@ -20,47 +20,43 @@
       },
       {
         "ordinal": 3,
-        "name": "sphere_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 4,
-        "name": "sphere_name",
+        "name": "email",
         "type_info": "Text"
       },
       {
+        "ordinal": 4,
+        "name": "is_nsfw",
+        "type_info": "Bool"
+      },
+      {
         "ordinal": 5,
-        "name": "post_id",
-        "type_info": "Int8"
+        "name": "admin_role",
+        "type_info": "Text"
       },
       {
         "ordinal": 6,
-        "name": "comment_id",
-        "type_info": "Int8"
+        "name": "days_hide_spoiler",
+        "type_info": "Int4"
       },
       {
         "ordinal": 7,
-        "name": "infringed_rule_id",
-        "type_info": "Int8"
+        "name": "show_nsfw",
+        "type_info": "Bool"
       },
       {
         "ordinal": 8,
-        "name": "moderator_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 9,
-        "name": "until_timestamp",
+        "name": "timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
-        "name": "create_timestamp",
+        "ordinal": 9,
+        "name": "delete_timestamp",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Int8"
       ]
     },
@@ -68,15 +64,14 @@
       false,
       false,
       false,
-      true,
-      true,
+      false,
+      false,
       false,
       true,
       false,
       false,
-      true,
-      false
+      true
     ]
   },
-  "hash": "b704f7e35b1489ea6bb309d2659315467db7a30f48836c16c46505a91541915e"
+  "hash": "c4534db4b431c1ca48a1dcc7803b2401e928b6840d041d122556473e69e9bafc"
 }

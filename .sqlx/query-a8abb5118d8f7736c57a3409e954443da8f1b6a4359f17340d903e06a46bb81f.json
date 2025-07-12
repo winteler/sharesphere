@@ -1,62 +1,71 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE users\n            SET\n                admin_role = $1,\n                timestamp = CURRENT_TIMESTAMP\n            WHERE user_id = $2\n            RETURNING *",
+  "query": "UPDATE satellites\n            SET disable_timestamp = NOW()\n            WHERE satellite_id = $1\n            RETURNING *",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "user_id",
+        "name": "satellite_id",
         "type_info": "Int8"
       },
       {
         "ordinal": 1,
-        "name": "oidc_id",
+        "name": "satellite_name",
         "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "username",
-        "type_info": "Text"
+        "name": "sphere_id",
+        "type_info": "Int8"
       },
       {
         "ordinal": 3,
-        "name": "email",
+        "name": "sphere_name",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "is_nsfw",
-        "type_info": "Bool"
+        "name": "body",
+        "type_info": "Text"
       },
       {
         "ordinal": 5,
-        "name": "admin_role",
+        "name": "markdown_body",
         "type_info": "Text"
       },
       {
         "ordinal": 6,
-        "name": "days_hide_spoiler",
-        "type_info": "Int4"
+        "name": "is_nsfw",
+        "type_info": "Bool"
       },
       {
         "ordinal": 7,
-        "name": "show_nsfw",
+        "name": "is_spoiler",
         "type_info": "Bool"
       },
       {
         "ordinal": 8,
+        "name": "num_posts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "creator_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
         "name": "timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
-        "name": "delete_timestamp",
+        "ordinal": 11,
+        "name": "disable_timestamp",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
         "Int8"
       ]
     },
@@ -66,12 +75,14 @@
       false,
       false,
       false,
-      false,
       true,
+      false,
+      false,
+      false,
       false,
       false,
       true
     ]
   },
-  "hash": "67a007befd37a3d3c0371a91ed879709a13a81d70c105e5a6e7f5e58542eab29"
+  "hash": "a8abb5118d8f7736c57a3409e954443da8f1b6a4359f17340d903e06a46bb81f"
 }

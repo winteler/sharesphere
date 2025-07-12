@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE posts\n            SET scoring_timestamp = NOW()\n            WHERE create_timestamp > (NOW() - INTERVAL '2 days')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "2f77278e7a2778c7b5d177d620e8a3a20b452c8f0a764ccf6beddc2200dba2dc"
+}

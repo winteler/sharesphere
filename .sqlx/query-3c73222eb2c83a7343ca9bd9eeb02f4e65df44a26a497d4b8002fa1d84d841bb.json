@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM user_bans WHERE user_id = $1",
+  "query": "UPDATE user_bans SET delete_timestamp = NOW() WHERE ban_id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "a8c284d2c6164b5b84c8f46aa4f28167021660631acd140b9f62e27abf328020"
+  "hash": "3c73222eb2c83a7343ca9bd9eeb02f4e65df44a26a497d4b8002fa1d84d841bb"
 }

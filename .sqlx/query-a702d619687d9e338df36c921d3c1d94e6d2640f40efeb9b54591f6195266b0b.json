@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO user_bans (user_id, username, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id)\n                         VALUES (\n                            $1,\n                            (SELECT username FROM users WHERE user_id = $1),\n                            (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                            $2, $3, $4, $5, $6\n                        ) RETURNING *",
+  "query": "SELECT b.*, u.username FROM user_bans b\n            JOIN users u ON u.user_id = b.user_id\n            WHERE ban_id = $1",
   "describe": {
     "columns": [
       {
@@ -15,73 +15,74 @@
       },
       {
         "ordinal": 2,
-        "name": "username",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 3,
         "name": "sphere_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "sphere_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "post_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "comment_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "infringed_rule_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "moderator_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "until_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "create_timestamp",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "delete_timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "username",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Text",
-        "Int8",
-        "Int8",
-        "Int8",
         "Int8"
       ]
     },
     "nullable": [
       false,
       false,
-      false,
       true,
       true,
       false,
       true,
       false,
+      false,
+      true,
       false,
       true,
       false
     ]
   },
-  "hash": "5a05fef6331b18dad3786b5f357d3634c6694e2ccd1ecca778035550eeb57294"
+  "hash": "a702d619687d9e338df36c921d3c1d94e6d2640f40efeb9b54591f6195266b0b"
 }

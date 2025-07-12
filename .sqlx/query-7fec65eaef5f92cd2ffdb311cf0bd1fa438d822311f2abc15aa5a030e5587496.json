@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE user_bans\n            SET delete_timestamp = NOW()\n            WHERE user_id = $1 AND delete_timestamp IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7fec65eaef5f92cd2ffdb311cf0bd1fa438d822311f2abc15aa5a030e5587496"
+}

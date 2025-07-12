@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE spheres\n             SET banner_url = $1,\n                 timestamp = NOW()\n             WHERE sphere_name = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "79b52ea103063a7d8cb2834cb677fefb46e45ea0a43b9547889c73ebf100bc07"
+}

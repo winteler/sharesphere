@@ -18,6 +18,7 @@ use {
     crate::post::POST_BATCH_SIZE,
     crate::comment::COMMENT_BATCH_SIZE,
 };
+use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 
 #[derive(Clone, Debug)]
 pub struct SearchState {
@@ -321,7 +322,7 @@ pub fn SearchSpheres(
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 

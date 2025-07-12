@@ -26,7 +26,8 @@ use sharesphere_core::state::GlobalState;
 use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-use sharesphere_utils::node_utils::is_fully_scrolled;
+use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -238,7 +239,7 @@ fn HomePage() -> impl IntoView {
     view! {
         <div
             class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2"
-            on:scroll=move |_| if is_fully_scrolled(div_ref) && !is_loading.get_untracked() {
+            on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
                 additional_load_count.update(|value| *value += 1);
             }
             node_ref=div_ref
@@ -292,7 +293,7 @@ fn DefaultHomePage(
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 
@@ -348,7 +349,7 @@ fn UserHomePage(
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 

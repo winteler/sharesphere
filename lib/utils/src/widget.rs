@@ -670,21 +670,27 @@ pub fn TitleCollapse<C: IntoView + 'static>(
 /// Component to display a loading indicator or error depending on the input signals
 #[component]
 pub fn LoadIndicators(
-    load_error: Signal<Option<AppError>>,
+    #[prop(into)]
     is_loading: Signal<bool>,
+    #[prop(into)]
+    load_error: Signal<Option<AppError>>,
 ) -> impl IntoView {
     view! {
         <Show when=move || load_error.read().is_some()>
         {
             let error = load_error.get_untracked().unwrap();
             view! {
-                <li><div class="flex justify-start py-4"><ErrorDisplay error/></div></li>
+                <div class="flex justify-start py-4"><ErrorDisplay error/></div>
             }
         }
         </Show>
-        <Show when=is_loading>
-            <li><LoadingIcon/></li>
-        </Show>
+        <div class="w-full min-h-9 2xl:min-h-17">
+            <Show
+                when=is_loading
+            >
+                <LoadingIcon/>
+            </Show>
+        </div>
     }
 }
 

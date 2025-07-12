@@ -16,6 +16,7 @@ use {
     },
 };
 use sharesphere_utils::icons::SphereIcon;
+use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::get_sphere_path;
 use sharesphere_utils::widget::{LoadIndicators, Badge};
 use crate::state::GlobalState;
@@ -476,19 +477,14 @@ pub fn InfiniteSphereLinkList(
     view! {
         <Show when=move || !sphere_header_vec.read().is_empty()>
             <ul class="flex flex-col overflow-y-auto max-h-full w-full p-1"
-                on:scroll=move |_| match list_ref.get() {
-                    Some(node_ref) => {
-                        if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
-                            additional_load_count.update(|value| *value += 1);
-                        }
-                    },
-                    None => log::error!("Sphere container 'ul' node failed to load."),
+                on:scroll=move |_| if has_reached_scroll_load_threshold(list_ref) && !is_loading.get_untracked() {
+                    additional_load_count.update(|value| *value += 1);
                 }
                 node_ref=list_ref
             >
                 <SphereLinkItems sphere_header_vec=sphere_header_vec.get()/>
-                <LoadIndicators load_error is_loading/>
             </ul>
+            <LoadIndicators load_error is_loading/>
         </Show>
     }.into_any()
 }

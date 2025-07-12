@@ -20,7 +20,7 @@ use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphe
 use sharesphere_core::sphere::get_sphere_with_user_info;
 use sharesphere_core::sphere_category::get_sphere_category_vec;
 use sharesphere_core::state::SphereState;
-
+use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 use crate::sphere::{SphereToolbar};
 use crate::sphere_category::{get_sphere_category_header_map};
 
@@ -121,7 +121,7 @@ pub fn SatelliteContent() -> impl IntoView {
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 

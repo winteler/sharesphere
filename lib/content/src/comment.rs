@@ -10,7 +10,7 @@ use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use sharesphere_utils::routes::{get_comment_link, get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton};
+use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
 
 use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
 use sharesphere_auth::role::IsPinnedCheckbox;
@@ -20,6 +20,7 @@ use sharesphere_core::moderation::Content;
 use sharesphere_core::ranking::{CommentSortWidget, Vote};
 use sharesphere_core::satellite::SatelliteState;
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
 
@@ -88,7 +89,7 @@ pub fn CommentTreeVec(
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-    3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 
@@ -136,9 +137,7 @@ pub fn CommentTreeVec(
             }
         }
         </Show>
-        <Show when=is_loading>
-            <LoadingIcon/>
-        </Show>
+        <LoadIndicators is_loading load_error/>
     }.into_any()
 }
 

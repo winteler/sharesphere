@@ -21,12 +21,12 @@ use sharesphere_core::search::get_matching_sphere_header_vec;
 use sharesphere_core::sphere::{SphereHeader};
 use sharesphere_core::sphere_category::{get_sphere_category_vec};
 use sharesphere_core::state::{GlobalState, SphereState};
-
+use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use crate::comment::{CommentButtonWithCount, CommentSection};
 use crate::moderation::{ModeratePostButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
 
-/// Component to display a content
+/// Component to display a post
 #[component]
 pub fn Post() -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -57,13 +57,8 @@ pub fn Post() -> impl IntoView {
     view! {
         <div
             class="grow flex flex-col content-start gap-1 overflow-x-hidden overflow-y-auto px-0.5"
-            on:scroll=move |_| match container_ref.get() {
-                Some(node_ref) => {
-                    if !is_loading.get_untracked() && node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() {
-                        additional_load_count.update(|value| *value += 1);
-                    }
-                },
-                None => log::error!("Post container 'div' node failed to load."),
+            on:scroll=move |_| if has_reached_scroll_load_threshold(container_ref) && !is_loading.get_untracked() {
+                additional_load_count.update(|value| *value += 1);
             }
             node_ref=container_ref
         >

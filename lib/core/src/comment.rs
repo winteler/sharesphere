@@ -18,6 +18,7 @@ use {
     crate::ranking::{ssr::vote_on_content, VoteValue}
 };
 use sharesphere_auth::auth_widget::AuthorWidget;
+use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::{get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::widget::{ContentBody, IsPinnedWidget, LoadIndicators, ScoreIndicator, TimeSinceWidget};
 use crate::moderation::ModeratedBody;
@@ -764,13 +765,8 @@ pub fn CommentMiniatureList(
 ) -> impl IntoView {
     view! {
         <ul class="flex flex-col overflow-y-auto w-full pr-2 divide-y divide-base-content/20"
-            on:scroll=move |_| match list_ref.get() {
-                Some(node_ref) => {
-                    if node_ref.scroll_top() + node_ref.offset_height() >= node_ref.scroll_height() && !is_loading.get_untracked() {
-                        additional_load_count.update(|value| *value += 1);
-                    }
-                },
-                None => log::error!("Comment container 'ul' node failed to load."),
+            on:scroll=move |_| if has_reached_scroll_load_threshold(list_ref) && !is_loading.get_untracked() {
+                additional_load_count.update(|value| *value += 1);
             }
             node_ref=list_ref
         >
@@ -783,7 +779,7 @@ pub fn CommentMiniatureList(
                     <CommentWithContext comment/>
                 </li>
             </For>
-            <LoadIndicators load_error is_loading/>
         </ul>
+        <LoadIndicators load_error is_loading/>
     }
 }

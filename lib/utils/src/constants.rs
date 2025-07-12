@@ -20,3 +20,4 @@ pub const RECENT_ORDER_BY_COLUMN: &str = "create_timestamp";
 pub const SITE_ROOT: &str = "/";
 pub const IMAGE_TYPE: &str = "image/";
 pub const DELETED_MESSAGE: &str = "Deleted";
+pub const SCROLL_LOAD_THROTTLE_DELAY: f64 = 3000.0;

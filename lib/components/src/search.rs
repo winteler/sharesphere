@@ -11,6 +11,7 @@ use sharesphere_core::post::{PostListWithIndicators};
 use sharesphere_core::search::{get_matching_user_header_vec, search_comments, search_posts, SearchForm, SearchSpheres, SearchState};
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_core::state::SphereState;
+use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 use sharesphere_utils::icons::MagnifierIcon;
 use sharesphere_utils::routes::{SEARCH_ROUTE, SEARCH_TAB_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
@@ -148,7 +149,7 @@ pub fn SearchPosts() -> impl IntoView
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 
@@ -213,7 +214,7 @@ pub fn SearchComments() -> impl IntoView
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 

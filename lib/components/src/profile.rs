@@ -21,6 +21,7 @@ use sharesphere_core::profile::{get_user_comment_vec, get_user_post_vec};
 use sharesphere_core::ranking::{CommentSortType, CommentSortWidget, PostSortType, PostSortWidget, SortType};
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_core::state::GlobalState;
+use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 
 pub const PROFILE_TAB_QUERY_PARAM: &str = "tab";
 
@@ -124,7 +125,7 @@ pub fn UserPosts() -> impl IntoView {
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 
@@ -176,13 +177,13 @@ pub fn UserComments() -> impl IntoView {
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 
     let _additional_comment_resource = LocalResource::new(
         move || async move {
-            if additional_load_count.get() > 0 {
+            if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let additional_load = get_user_comment_vec(
                     username.get_untracked(),

@@ -24,6 +24,7 @@ use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
 use sharesphere_core::sphere::{get_sphere_by_name, get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 use crate::satellite::{ActiveSatelliteList};
 use crate::sphere_category::{get_sphere_category_header_map};
@@ -177,7 +178,7 @@ pub fn SphereContents() -> impl IntoView {
 
     let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
         additional_load_count,
-        3000.0,
+        SCROLL_LOAD_THROTTLE_DELAY,
         ThrottleOptions::default().leading(true).trailing(false)
     );
 

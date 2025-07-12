@@ -176,7 +176,11 @@ pub fn handle_additional_load<T: Clone + Send + Sync + 'static>(
     load_error: RwSignal<Option<AppError>>,
 ) {
     match load_result {
-        Ok(ref mut additional_vec) => loaded_vec.update(|loaded_vec| loaded_vec.append(additional_vec)),
+        Ok(ref mut additional_vec) => {
+            if !additional_vec.is_empty() {
+                loaded_vec.update(|loaded_vec| loaded_vec.append(additional_vec))
+            }
+        },
         Err(ref e) => load_error.set(Some(AppError::from(e.clone()))),
     }
 }

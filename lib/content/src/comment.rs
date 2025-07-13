@@ -231,10 +231,9 @@ pub fn CommentBox(
             </div>
             <div class="flex flex-col gap-1 pl-1" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
                 <Show when=maximize>
-                    <CommentTopWidgetBar comment/>
                     <CommentBody comment/>
                 </Show>
-                <CommentBottomWidgetBar
+                <CommentWidgetBar
                     comment=comment
                     vote=comment_with_children.vote
                     child_comments
@@ -281,36 +280,9 @@ pub fn CommentBox(
     }.into_any()
 }
 
-/// Component to encapsulate the widgets displayed at the top of each comment
-#[component]
-pub fn CommentTopWidgetBar(
-    comment: RwSignal<Comment>,
-) -> impl IntoView {
-    let author = comment.read_untracked().creator_name.clone();
-    let timestamp = Signal::derive(move || comment.read().create_timestamp);
-    let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
-    let moderator = Signal::derive(move || comment.read().moderator_name.clone());
-    let is_active = Signal::derive(move || comment.read().is_active());
-    let is_moderator_comment = comment.read_untracked().is_creator_moderator;
-    let is_pinned = Signal::derive(move || comment.read().is_pinned);
-    view! {
-        <div class="flex gap-1 items-center">
-            {
-                move || is_active.get().then_some(view! {
-                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
-                })
-            }
-            <ModeratorWidget moderator/>
-            <IsPinnedWidget is_pinned/>
-            <TimeSinceWidget timestamp/>
-            <TimeSinceEditWidget edit_timestamp/>
-        </div>
-    }.into_any()
-}
-
 /// Component to encapsulate the widgets displayed at the bottom of each comment
 #[component]
-pub fn CommentBottomWidgetBar(
+pub fn CommentWidgetBar(
     comment: RwSignal<Comment>,
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
@@ -318,13 +290,14 @@ pub fn CommentBottomWidgetBar(
     let sphere_state = expect_context::<SphereState>();
     let satellite_state = use_context::<SatelliteState>();
     let vote = vote;
-    let (comment_id, post_id, score, author_id) =
+    let (comment_id, post_id, score, author_id, author) =
         comment.with_untracked(|comment| {
             (
                 comment.comment_id,
                 comment.post_id,
                 comment.score,
                 comment.creator_id,
+                comment.creator_name.clone(),
             )
         });
     let comment_link = get_comment_link(
@@ -333,44 +306,64 @@ pub fn CommentBottomWidgetBar(
         post_id,
         comment_id,
     );
+    let timestamp = Signal::derive(move || comment.read().create_timestamp);
+    let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
+    let moderator = Signal::derive(move || comment.read().moderator_name.clone());
     let content = Signal::derive(move || Content::Comment(comment.get()));
     let is_active = Signal::derive(move || comment.read().is_active());
+    let is_moderator_comment = comment.read_untracked().is_creator_moderator;
     view! {
-        <div class="flex gap-1 items-center">
-            { move || match is_active.get() {
-                true => Either::Left(view! {
-                    <VotePanel
+        <div class="flex gap-1">
+            <div class="flex max-2xl:flex-col gap-1">
+                <div class="flex gap-1 items-center 2xl:order-2">
+                    {
+                        move || is_active.get().then_some(view! {
+                            <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
+                        })
+                    }
+                    <ModeratorWidget moderator/>
+                    <TimeSinceWidget timestamp/>
+                    <TimeSinceEditWidget edit_timestamp/>
+                </div>
+                <div class="flex gap-1 items-center 2xl:order-1">
+                    { move || match is_active.get() {
+                        true => Either::Left(view! {
+                            <VotePanel
+                                post_id
+                                comment_id=Some(comment_id)
+                                score
+                                vote=vote.clone()
+                            />
+                        }),
+                        false => Either::Right(view! {
+                            <ScoreIndicator score/>
+                        }),
+                    }}
+                    <CommentButton
                         post_id
-                        comment_id=Some(comment_id)
-                        score
-                        vote=vote.clone()
+                        comment_vec=child_comments
+                        parent_comment_id=Some(comment_id)
                     />
-                }),
-                false => Either::Right(view! {
-                    <ScoreIndicator score/>
-                }),
-            }}
-            <CommentButton
-                post_id
-                comment_vec=child_comments
-                parent_comment_id=Some(comment_id)
-            />
-            <DotMenu>
-                { move || is_active.get().then_some(view!{
-                    <EditCommentButton
-                        comment_id
-                        author_id
-                        comment
-                    />
-                    <ModerateCommentButton
-                        comment_id
-                        comment
-                    />
-                    <DeleteCommentButton comment_id author_id comment/>
-                })}
-                <ModerationInfoButton content/>
-                <ShareButton link=comment_link.clone()/>
-            </DotMenu>
+                </div>
+            </div>
+            <div class="self-end">
+                <DotMenu>
+                    { move || is_active.get().then_some(view!{
+                        <EditCommentButton
+                            comment_id
+                            author_id
+                            comment
+                        />
+                        <ModerateCommentButton
+                            comment_id
+                            comment
+                        />
+                        <DeleteCommentButton comment_id author_id comment/>
+                    })}
+                    <ModerationInfoButton content/>
+                    <ShareButton link=comment_link.clone()/>
+                </DotMenu>
+            </div>
         </div>
     }.into_any()
 }

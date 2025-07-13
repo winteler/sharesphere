@@ -278,7 +278,7 @@ pub fn MaximizeIcon(#[prop(default = "h-4 w-4 2xl:h-6 2xl:w-6")] class: &'static
 }
 
 #[component]
-pub fn MinimizeIcon(#[prop(default = "h-4 w-4 2xl:h-6 2xl:w-6")] class: &'static str) -> impl IntoView {
+pub fn MinimizeIcon(#[prop(default = "h-5 w-5 2xl:h-6 2xl:w-6")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/minimize.svg"/>

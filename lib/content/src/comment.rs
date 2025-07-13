@@ -203,12 +203,11 @@ pub fn CommentBox(
     let comment = RwSignal::new(comment_with_children.comment);
     let child_comments = RwSignal::new(comment_with_children.child_comments);
     let maximize = RwSignal::new(true);
-    let is_pinned = Signal::derive(move || comment.read().is_pinned);
     let sidebar_css = move || {
         if *maximize.read() {
-            "2xl:p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-start items-center gap-1"
+            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-start items-center gap-1"
         } else {
-            "2xl:p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-center items-center"
+            "p-0.5 rounded-sm hover:bg-base-200 flex flex-col justify-center items-center"
         }
     };
     let color_bar_css = format!(
@@ -220,7 +219,7 @@ pub fn CommentBox(
     let collapse_children = Memo::new(move |_| depth >= get_max_comment_depth(is_mobile.get()) && !child_comments.read().is_empty());
 
     view! {
-        <div class="flex 2xl:gap-1 py-1">
+        <div class="flex 2xl:gap-1 pt-4">
             <div
                 class=sidebar_css
                 on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
@@ -230,19 +229,16 @@ pub fn CommentBox(
                     <div class=color_bar_css.clone()/>
                 </Show>
             </div>
-            <div class="flex flex-col gap-1">
-                <div class="flex flex-col gap-1 p-1" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
-                    <Show when=maximize>
-                        <CommentTopWidgetBar comment/>
-                        <CommentBody comment/>
-                    </Show>
-                    <IsPinnedWidget is_pinned/>
-                    <CommentBottomWidgetBar
-                        comment=comment
-                        vote=comment_with_children.vote
-                        child_comments
-                    />
-                </div>
+            <div class="flex flex-col gap-1 pl-1" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
+                <Show when=maximize>
+                    <CommentTopWidgetBar comment/>
+                    <CommentBody comment/>
+                </Show>
+                <CommentBottomWidgetBar
+                    comment=comment
+                    vote=comment_with_children.vote
+                    child_comments
+                />
                 <div
                     class="flex flex-col"
                     class:hidden=move || !*maximize.read()
@@ -279,7 +275,6 @@ pub fn CommentBox(
                         })
                     },
                 }}
-
                 </div>
             </div>
         </div>
@@ -297,6 +292,7 @@ pub fn CommentTopWidgetBar(
     let moderator = Signal::derive(move || comment.read().moderator_name.clone());
     let is_active = Signal::derive(move || comment.read().is_active());
     let is_moderator_comment = comment.read_untracked().is_creator_moderator;
+    let is_pinned = Signal::derive(move || comment.read().is_pinned);
     view! {
         <div class="flex gap-1 items-center">
             {
@@ -305,6 +301,7 @@ pub fn CommentTopWidgetBar(
                 })
             }
             <ModeratorWidget moderator/>
+            <IsPinnedWidget is_pinned/>
             <TimeSinceWidget timestamp/>
             <TimeSinceEditWidget edit_timestamp/>
         </div>

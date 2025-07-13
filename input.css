@@ -212,7 +212,7 @@
     }
 
     .filter-icon-size {
-        @apply h-4 w-4 2xl:h-7 2xl:w-7;
+        @apply h-5 w-5 2xl:h-7 2xl:w-7;
     }
 
     .sphere-toolbar-icon-size {

@@ -732,8 +732,8 @@ pub fn CommentWithContext(
                 <CommentBody comment=comment.comment/>
                 <div class="flex gap-1 items-center">
                     <SphereHeader sphere_header=comment.sphere_header/>
-                    <div class="pt-1 pb-1.5 text-sm">"-"</div>
-                    <div class="pt-1 pb-1.5 text-sm">{comment.post_title}</div>
+                    <div class="pt-0.5 pb-1 text-sm">"-"</div>
+                    <div class="pt-0.5 pb-1 text-sm">{comment.post_title}</div>
                     <IsPinnedWidget is_pinned/>
                 </div>
                 <div class="flex gap-1">

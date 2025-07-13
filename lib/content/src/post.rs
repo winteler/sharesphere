@@ -135,39 +135,47 @@ fn PostWidgetBar<'a>(
     let post_link = get_post_link(&post.post.sphere_name, post.post.satellite_id, post.post.post_id);
     let stored_post = StoredValue::new(post.post.clone());
     view! {
-        <div class="flex gap-1 items-center">
-            { match is_active {
-                true => Either::Left(view! {
-                    <VotePanel
-                        post_id=post.post.post_id
-                        comment_id=None
-                        score=post.post.score
-                        vote=post.vote.clone()
-                    />
-                }),
-                false => Either::Right(view! {
-                    <ScoreIndicator score=post.post.score/>
-                }),
-            }}
-            <CommentButtonWithCount post_id comment_vec count=post.post.num_comments/>
-            {
-                is_active.then_some(view! {
-                    <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
-                })
-            }
-            <ModeratorWidget moderator=post.post.moderator_name.clone()/>
-            <TimeSinceWidget timestamp=post.post.create_timestamp/>
-            <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
-            <DotMenu>
-                { is_active.then_some(view! {
-                    <EditPostButton author_id post=stored_post/>
-                    <ModeratePostButton post_id/>
-                    <DeletePostButton post_id author_id/>
+        <div class="flex gap-1">
+            <div class="flex max-2xl:flex-col gap-1">
+                <div class="flex gap-1 items-center 2xl:order-2">
+                    {
+                        is_active.then_some(view! {
+                            <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
+                        })
+                    }
+                    <ModeratorWidget moderator=post.post.moderator_name.clone()/>
+                    <TimeSinceWidget timestamp=post.post.create_timestamp/>
+                    <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
+                </div>
+                <div class="flex gap-1 items-center 2xl:order-1">
+                    { match is_active {
+                        true => Either::Left(view! {
+                            <VotePanel
+                                post_id=post.post.post_id
+                                comment_id=None
+                                score=post.post.score
+                                vote=post.vote.clone()
+                            />
+                        }),
+                        false => Either::Right(view! {
+                            <ScoreIndicator score=post.post.score/>
+                        }),
+                    }}
+                    <CommentButtonWithCount post_id comment_vec count=post.post.num_comments/>
+                </div>
+            </div>
+            <div class="self-end">
+                <DotMenu>
+                    { is_active.then_some(view! {
+                        <EditPostButton author_id post=stored_post/>
+                        <ModeratePostButton post_id/>
+                        <DeletePostButton post_id author_id/>
 
-                })}
-                <ModerationInfoButton content=Content::Post(stored_post.get_value())/>
-                <ShareButton link=post_link.clone()/>
-            </DotMenu>
+                    })}
+                    <ModerationInfoButton content=Content::Post(stored_post.get_value())/>
+                    <ShareButton link=post_link.clone()/>
+                </DotMenu>
+            </div>
         </div>
     }
 }

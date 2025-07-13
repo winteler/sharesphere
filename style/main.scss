@@ -2685,6 +2685,9 @@
   .px-1 {
     padding-inline: calc(var(--spacing) * 1);
   }
+  .px-1\.5 {
+    padding-inline: calc(var(--spacing) * 1.5);
+  }
   .px-2 {
     padding-inline: calc(var(--spacing) * 2);
   }
@@ -2706,6 +2709,9 @@
   .py-4 {
     padding-block: calc(var(--spacing) * 4);
   }
+  .pt-0\.5 {
+    padding-top: calc(var(--spacing) * 0.5);
+  }
   .pt-1 {
     padding-top: calc(var(--spacing) * 1);
   }
@@ -2720,6 +2726,9 @@
   }
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
+  }
+  .pb-1 {
+    padding-bottom: calc(var(--spacing) * 1);
   }
   .pb-1\.5 {
     padding-bottom: calc(var(--spacing) * 1.5);
@@ -3065,6 +3074,11 @@
       translate: var(--tw-translate-x) var(--tw-translate-y);
     }
   }
+  .max-2xl\:flex-col {
+    @media (width < 96rem) {
+      flex-direction: column;
+    }
+  }
   .max-2xl\:items-center {
     @media (width < 96rem) {
       align-items: center;
@@ -3074,6 +3088,16 @@
     @media (width < 96rem) {
       padding: 0.1875rem;
       --size: calc(var(--size-selector, 0.25rem) * 5);
+    }
+  }
+  .\32 xl\:order-1 {
+    @media (width >= 96rem) {
+      order: 1;
+    }
+  }
+  .\32 xl\:order-2 {
+    @media (width >= 96rem) {
+      order: 2;
     }
   }
   .\32 xl\:hidden {
@@ -3849,8 +3873,8 @@
     }
   }
   .filter-icon-size {
-    height: calc(var(--spacing) * 4);
-    width: calc(var(--spacing) * 4);
+    height: calc(var(--spacing) * 5);
+    width: calc(var(--spacing) * 5);
     @media (width >= 96rem) {
       height: calc(var(--spacing) * 7);
     }

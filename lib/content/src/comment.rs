@@ -226,19 +226,18 @@ pub fn CommentBox(
                 on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
             >
                 <MinimizeMaximizeWidget is_maximized=maximize/>
-                <Show
-                    when=maximize
-                >
+                <Show when=maximize>
                     <div class=color_bar_css.clone()/>
                 </Show>
             </div>
             <div class="flex flex-col gap-1">
                 <div class="flex flex-col gap-1 p-1" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
                     <Show when=maximize>
+                        <CommentTopWidgetBar comment/>
                         <CommentBody comment/>
                     </Show>
                     <IsPinnedWidget is_pinned/>
-                    <CommentWidgetBar
+                    <CommentBottomWidgetBar
                         comment=comment
                         vote=comment_with_children.vote
                         child_comments
@@ -287,9 +286,34 @@ pub fn CommentBox(
     }.into_any()
 }
 
-/// Component to encapsulate the widgets associated with each comment
+/// Component to encapsulate the widgets displayed at the top of each comment
 #[component]
-pub fn CommentWidgetBar(
+pub fn CommentTopWidgetBar(
+    comment: RwSignal<Comment>,
+) -> impl IntoView {
+    let author = comment.read_untracked().creator_name.clone();
+    let timestamp = Signal::derive(move || comment.read().create_timestamp);
+    let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
+    let moderator = Signal::derive(move || comment.read().moderator_name.clone());
+    let is_active = Signal::derive(move || comment.read().is_active());
+    let is_moderator_comment = comment.read_untracked().is_creator_moderator;
+    view! {
+        <div class="flex gap-1 items-center">
+            {
+                move || is_active.get().then_some(view! {
+                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
+                })
+            }
+            <ModeratorWidget moderator/>
+            <TimeSinceWidget timestamp/>
+            <TimeSinceEditWidget edit_timestamp/>
+        </div>
+    }.into_any()
+}
+
+/// Component to encapsulate the widgets displayed at the bottom of each comment
+#[component]
+pub fn CommentBottomWidgetBar(
     comment: RwSignal<Comment>,
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
@@ -297,14 +321,13 @@ pub fn CommentWidgetBar(
     let sphere_state = expect_context::<SphereState>();
     let satellite_state = use_context::<SatelliteState>();
     let vote = vote;
-    let (comment_id, post_id, score, author_id, author) =
+    let (comment_id, post_id, score, author_id) =
         comment.with_untracked(|comment| {
             (
                 comment.comment_id,
                 comment.post_id,
                 comment.score,
                 comment.creator_id,
-                comment.creator_name.clone(),
             )
         });
     let comment_link = get_comment_link(
@@ -313,12 +336,8 @@ pub fn CommentWidgetBar(
         post_id,
         comment_id,
     );
-    let timestamp = Signal::derive(move || comment.read().create_timestamp);
-    let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
-    let moderator = Signal::derive(move || comment.read().moderator_name.clone());
     let content = Signal::derive(move || Content::Comment(comment.get()));
     let is_active = Signal::derive(move || comment.read().is_active());
-    let is_moderator_comment = comment.read_untracked().is_creator_moderator;
     view! {
         <div class="flex gap-1 items-center">
             { move || match is_active.get() {
@@ -339,14 +358,6 @@ pub fn CommentWidgetBar(
                 comment_vec=child_comments
                 parent_comment_id=Some(comment_id)
             />
-            {
-                move || is_active.get().then_some(view! {
-                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
-                })
-            }
-            <ModeratorWidget moderator/>
-            <TimeSinceWidget timestamp/>
-            <TimeSinceEditWidget edit_timestamp/>
             <DotMenu>
                 { move || is_active.get().then_some(view!{
                     <EditCommentButton
@@ -377,8 +388,8 @@ pub fn CommentButton(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "button-rounded-primary",
-        false => "button-rounded-neutral",
+        true => "button-rounded-primary py-1",
+        false => "button-rounded-neutral py-1",
     });
 
     view! {

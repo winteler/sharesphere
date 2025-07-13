@@ -38,7 +38,7 @@ impl TimeScale {
     pub fn to_str(&self, is_plural: bool, use_fullname: bool) -> &'static str {
         match (use_fullname, self) {
             (false, TimeScale::Seconds) => "s",
-            (false, TimeScale::Minutes) => "min",
+            (false, TimeScale::Minutes) => "m",
             (false, TimeScale::Hours) => "h",
             (false, TimeScale::Days) => "d",
             (false, TimeScale::Months) => "mo",
@@ -271,6 +271,8 @@ pub fn DotMenu<C: IntoView + 'static>(
     view! {
         <DropdownButton
             button_content=move || view! { <DotMenuIcon/> }
+            button_class="button-rounded-neutral px-1.5 py-1"
+            activated_button_class="button-rounded-primary px-1.5 py-1"
         >
             <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 flex flex-col gap-1">
             {
@@ -295,7 +297,7 @@ where
     view! {
         <div class="flex gap-1.5 items-center">
             {children.into_inner()()}
-            <div class="pt-1 pb-1.5 text-sm">{move || text.get()}</div>
+            <div class="pt-0.5 pb-1 text-sm">{move || text.get()}</div>
         </div>
     }.into_any()
 }

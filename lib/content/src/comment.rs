@@ -10,7 +10,7 @@ use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use sharesphere_utils::routes::{get_comment_link, get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
-use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
+use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
 
 use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
 use sharesphere_auth::role::IsPinnedCheckbox;
@@ -237,6 +237,7 @@ pub fn CommentBox(
                     comment=comment
                     vote=comment_with_children.vote
                     child_comments
+                    maximize
                 />
                 <div
                     class="flex flex-col"
@@ -286,6 +287,8 @@ pub fn CommentWidgetBar(
     comment: RwSignal<Comment>,
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
+    #[prop(into)]
+    maximize: Signal<bool>,
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let satellite_state = use_context::<SatelliteState>();
@@ -315,7 +318,7 @@ pub fn CommentWidgetBar(
     view! {
         <div class="flex gap-1">
             <div class="flex max-2xl:flex-col gap-1">
-                <div class="flex gap-1 items-center 2xl:order-2">
+                <div class="flex gap-1 items-center 2xl:order-2" class=("max-2xl:hidden", move || !maximize.get())>
                     {
                         move || is_active.get().then_some(view! {
                             <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>

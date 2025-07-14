@@ -1773,6 +1773,12 @@
   .z-40 {
     z-index: 40;
   }
+  .order-1 {
+    order: 1;
+  }
+  .order-2 {
+    order: 2;
+  }
   .hero {
     display: grid;
     width: 100%;
@@ -3193,11 +3199,6 @@
   .\32 xl\:gap-2 {
     @media (width >= 96rem) {
       gap: calc(var(--spacing) * 2);
-    }
-  }
-  .\32 xl\:p-0\.5 {
-    @media (width >= 96rem) {
-      padding: calc(var(--spacing) * 0.5);
     }
   }
   .\32 xl\:p-1 {

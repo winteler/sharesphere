@@ -492,8 +492,8 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
 pub fn MinimizeMaximizeWidget(
     is_maximized: RwSignal<bool>,
 ) -> impl IntoView {
-    let invisible_class = "transition opacity-0 invisible h-0 w-0";
-    let visible_class = "transition rotate-90 duration-300 opacity-100 visible";
+    let invisible_class = "transition-transform opacity-0 invisible h-0 w-0 order-2";
+    let visible_class = "transition-transform rotate-90 duration-300 opacity-100 visible order-1";
     let minimize_class = move || match is_maximized.get() {
         true => visible_class,
         false => invisible_class,
@@ -503,7 +503,7 @@ pub fn MinimizeMaximizeWidget(
         false => visible_class,
     };
     view! {
-        <div>
+        <div class="flex flex-col">
             <div class=minimize_class>
                 <MinimizeIcon/>
             </div>

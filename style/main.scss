@@ -3062,6 +3062,11 @@
       display: none;
     }
   }
+  .max-2xl\:inline-block {
+    @media (width < 96rem) {
+      display: inline-block;
+    }
+  }
   .max-2xl\:-translate-x-100 {
     @media (width < 96rem) {
       --tw-translate-x: calc(var(--spacing) * -100);
@@ -3078,11 +3083,6 @@
     @media (width < 96rem) {
       --tw-translate-x: calc(var(--spacing) * 100);
       translate: var(--tw-translate-x) var(--tw-translate-y);
-    }
-  }
-  .max-2xl\:flex-col {
-    @media (width < 96rem) {
-      flex-direction: column;
     }
   }
   .max-2xl\:items-center {
@@ -3104,6 +3104,16 @@
   .\32 xl\:order-2 {
     @media (width >= 96rem) {
       order: 2;
+    }
+  }
+  .\32 xl\:order-3 {
+    @media (width >= 96rem) {
+      order: 3;
+    }
+  }
+  .\32 xl\:flex {
+    @media (width >= 96rem) {
+      display: flex;
     }
   }
   .\32 xl\:hidden {

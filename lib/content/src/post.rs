@@ -66,6 +66,7 @@ pub fn Post() -> impl IntoView {
                 <div class="card">
                     <div class="card-body">
                         <div class="flex flex-col gap-1 2xl:gap-2">
+                            <PostTopWidgetBar post=post_with_info/>
                             <h2 class="card-title text-wrap wrap-anywhere">
                             { match post_with_info.post.is_active() {
                                 true => post_with_info.post.title.clone(),
@@ -81,7 +82,7 @@ pub fn Post() -> impl IntoView {
                                 is_nsfw=post_with_info.post.is_nsfw
                                 is_pinned=post_with_info.post.is_pinned
                             />
-                            <PostWidgetBar post=post_with_info comment_vec/>
+                            <PostBottomWidgetBar post=post_with_info comment_vec/>
                         </div>
                     </div>
                 </div>
@@ -123,9 +124,27 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
     }.into_any()
 }
 
-/// Component to encapsulate the widgets associated with each post
+/// Component to encapsulate the widgets displayed at the top of each post
 #[component]
-fn PostWidgetBar<'a>(
+fn PostTopWidgetBar<'a>(post: &'a PostWithInfo) -> impl IntoView {
+    let is_active = post.post.is_active();
+    view! {
+        <div class="flex gap-1">
+            {
+                is_active.then_some(view! {
+                    <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
+                })
+            }
+            <ModeratorWidget moderator=post.post.moderator_name.clone()/>
+            <TimeSinceWidget timestamp=post.post.create_timestamp/>
+            <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
+        </div>
+    }
+}
+
+/// Component to encapsulate the widgets displayed at the bottom of each comment
+#[component]
+fn PostBottomWidgetBar<'a>(
     post: &'a PostWithInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
@@ -136,46 +155,29 @@ fn PostWidgetBar<'a>(
     let stored_post = StoredValue::new(post.post.clone());
     view! {
         <div class="flex gap-1">
-            <div class="flex max-2xl:flex-col gap-1">
-                <div class="flex gap-1 items-center 2xl:order-2">
-                    {
-                        is_active.then_some(view! {
-                            <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
-                        })
-                    }
-                    <ModeratorWidget moderator=post.post.moderator_name.clone()/>
-                    <TimeSinceWidget timestamp=post.post.create_timestamp/>
-                    <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
-                </div>
-                <div class="flex gap-1 items-center 2xl:order-1">
-                    { match is_active {
-                        true => Either::Left(view! {
-                            <VotePanel
-                                post_id=post.post.post_id
-                                comment_id=None
-                                score=post.post.score
-                                vote=post.vote.clone()
-                            />
-                        }),
-                        false => Either::Right(view! {
-                            <ScoreIndicator score=post.post.score/>
-                        }),
-                    }}
-                    <CommentButtonWithCount post_id comment_vec count=post.post.num_comments/>
-                </div>
-            </div>
-            <div class="self-end">
-                <DotMenu>
-                    { is_active.then_some(view! {
-                        <EditPostButton author_id post=stored_post/>
-                        <ModeratePostButton post_id/>
-                        <DeletePostButton post_id author_id/>
-
-                    })}
-                    <ModerationInfoButton content=Content::Post(stored_post.get_value())/>
-                    <ShareButton link=post_link.clone()/>
-                </DotMenu>
-            </div>
+            { match is_active {
+                true => Either::Left(view! {
+                    <VotePanel
+                        post_id=post.post.post_id
+                        comment_id=None
+                        score=post.post.score
+                        vote=post.vote.clone()
+                    />
+                }),
+                false => Either::Right(view! {
+                    <ScoreIndicator score=post.post.score/>
+                }),
+            }}
+            <CommentButtonWithCount post_id comment_vec count=post.post.num_comments/>
+            <DotMenu>
+                { is_active.then_some(view! {
+                    <EditPostButton author_id post=stored_post/>
+                    <ModeratePostButton post_id/>
+                    <DeletePostButton post_id author_id/>
+                })}
+                <ModerationInfoButton content=Content::Post(stored_post.get_value())/>
+                <ShareButton link=post_link.clone()/>
+            </DotMenu>
         </div>
     }
 }

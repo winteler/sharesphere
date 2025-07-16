@@ -55,6 +55,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                                 media-src 'self' https:;
                                 frame-src 'self' https:;
                                 style-src 'self' 'nonce-{nonce}';
+                                frame-ancestors 'none'
                                 {connect_src_csp}"
                             )
                         }).unwrap_or_default()

@@ -124,7 +124,7 @@ fn add_security_headers(response: &mut Response<Body>) {
     let headers = response.headers_mut();
 
     headers.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
-    headers.insert("X-Frame-Options", HeaderValue::from_static("SAMEORIGIN"));
+    headers.insert("X-Frame-Options", HeaderValue::from_static("DENY"));
     headers.insert("Referrer-Policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
     headers.insert("Permissions-Policy", HeaderValue::from_static("geolocation=(), microphone=(), camera=(), fullscreen=(self)"));
     headers.insert("Cross-Origin-Opener-Policy", HeaderValue::from_static("same-origin"));

@@ -94,8 +94,6 @@ pub async fn get_user_post_vec(
 ) -> Result<Vec<PostWithSphereInfo>, AppError> {
     let db_pool = get_db_pool()?;
 
-    // TODO check if private profile
-
     let post_vec = ssr::get_user_post_vec(
         &username,
         sort_type,
@@ -114,8 +112,6 @@ pub async fn get_user_comment_vec(
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithContext>, AppError> {
     let db_pool = get_db_pool()?;
-
-    // TODO check if private profile
 
     let comment_vec = ssr::get_user_comment_vec(
         &username,

@@ -71,7 +71,6 @@ pub struct Post {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-// TODO try with flatten on option
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithInfo {
     pub post: Post,
@@ -141,7 +140,7 @@ pub mod ssr {
     #[derive(Clone, Debug, PartialEq, sqlx::FromRow, PartialOrd, Serialize, Deserialize)]
     pub struct PostJoinInfo {
         #[sqlx(flatten)]
-        pub post: super::Post,
+        pub post: Post,
         pub category_name: Option<String>,
         pub category_color: Option<Color>,
         pub vote_id: Option<i64>,

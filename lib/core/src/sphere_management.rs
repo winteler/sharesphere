@@ -19,7 +19,9 @@ use {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::env;
+    use std::io::Cursor;
     use http::StatusCode;
+    use image::{ImageReader};
     use leptos::prelude::use_context;
     use leptos_axum::ResponseOptions;
     use object_store::aws::{AmazonS3, AmazonS3Builder};
@@ -28,7 +30,7 @@ pub mod ssr {
     use sqlx::types::Uuid;
     use sqlx::PgPool;
     use url::Url;
-
+    use webp::Encoder;
     use sharesphere_utils::constants::IMAGE_TYPE;
     use sharesphere_utils::errors::AppError;
     use sharesphere_utils::widget::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
@@ -164,7 +166,7 @@ pub mod ssr {
                 log::warn!("Could not parse file name for current image path: {}", current_image_url);
             }
         } else {
-            log::info!("No image found for {sphere_name}");
+            log::debug!("No image to delete for {sphere_name}");
         }
         Ok(())
     }
@@ -221,8 +223,8 @@ pub mod ssr {
             input_file_buffer.append(chunk.to_vec().as_mut());
         }
 
-        let file_extension = match infer::get(&input_file_buffer) {
-            Some(file_type) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(file_type.extension()),
+        match infer::get(&input_file_buffer) {
+            Some(file_type) if file_type.mime_type().starts_with(IMAGE_TYPE) => Ok(()),
             Some(file_type) => {
                 log::info!("Invalid file type: {}, extension: {}", file_type.mime_type(), file_type.extension());
                 Err(AppError::new(INCORRECT_BANNER_FILE_TYPE_STR))
@@ -230,13 +232,18 @@ pub mod ssr {
             None => Err(AppError::new(BANNER_FILE_INFER_ERROR_STR)),
         }?;
 
-        // TODO compress image if needed?
+        let img = ImageReader::new(Cursor::new(input_file_buffer))
+            .with_guessed_format()?
+            .decode().map_err(|e| AppError::new(format!("Error while decoding image: {e}")))?;
+        let rgb = img.to_rgb8();
+        let encoder = Encoder::from_rgb(&rgb, img.width(), img.height());
+        let webp_data = encoder.encode(75.0).to_vec(); // 75% quality
 
-        let file_name = format!("{}_{}.{}", sphere_name, image_identifier, file_extension);
+        let file_name = format!("{}_{}.webp", sphere_name, image_identifier);
 
         object_store.put(
             &object_store::path::Path::from(file_name.clone()),
-            PutPayload::from_bytes(input_file_buffer.into())
+            PutPayload::from_bytes(webp_data.into())
         ).await.map_err(|e| AppError::new(format!("Error while uploading to object store: {e}")))?;
 
         Ok((sphere_name, Some(file_name)))

@@ -95,7 +95,7 @@ pub mod ssr {
                     writer.write_event(Event::Empty(elem))?;
                 }
                 Ok(Event::Text(e)) => {
-                    let text = e.unescape().unwrap().into_owned();
+                    let text = e.decode().map_err(|e| AppError::new(format!("Error while decoding text: {e}")))?.into_owned();
                     let spoiler_split_text = text.split(SPOILER_TAG);
                     let mut is_current_text_spoiler = None;
                     for text in spoiler_split_text {

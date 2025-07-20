@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
@@ -27,7 +28,7 @@ use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 use crate::satellite::{ActiveSatelliteList};
-use crate::sphere_category::{get_sphere_category_header_map};
+use crate::sphere_category::get_sphere_category_header_map;
 use crate::sphere_management::MANAGE_SPHERE_ROUTE;
 
 /// Component to display a sphere's banner
@@ -150,6 +151,9 @@ pub fn SphereContents() -> impl IntoView {
         move |(sphere_name,)| get_sphere_with_user_info(sphere_name),
     );
 
+    let is_category_map_loaded = RwSignal::new(false);
+    let sphere_category_header_map = RwSignal::new(HashMap::new());
+
     let post_vec_resource = Resource::new(
         move || (
             sphere_name.get(),
@@ -161,7 +165,8 @@ pub fn SphereContents() -> impl IntoView {
             // TODO return map in resource directly?
             #[cfg(feature = "hydrate")]
             is_loading.set(true);
-            let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
+            sphere_category_header_map.set(get_sphere_category_header_map(sphere_state.sphere_categories_resource.clone().await));
+            is_category_map_loaded.set(true);
             // TODO check no unnecessary loads
             reset_additional_load(additional_post_vec, additional_load_count, Some(list_ref));
             let result = get_post_vec_by_sphere_name(
@@ -169,7 +174,7 @@ pub fn SphereContents() -> impl IntoView {
                 sphere_category_filter,
                 sort_type,
                 0,
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
             #[cfg(feature = "hydrate")]
             is_loading.set(false);
             result
@@ -186,14 +191,17 @@ pub fn SphereContents() -> impl IntoView {
         move || async move {
             if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
-                let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
+                if is_category_map_loaded.get_untracked() {
+                    sphere_category_header_map.set(get_sphere_category_header_map(sphere_state.sphere_categories_resource.clone().await));
+                    is_category_map_loaded.set(true);
+                }
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_post_vec_by_sphere_name(
                     sphere_name.get_untracked(),
                     sphere_state.sphere_category_filter.get_untracked(),
                     state.post_sort_type.get_untracked(),
                     num_post
-                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
                 handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }

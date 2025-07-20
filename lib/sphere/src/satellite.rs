@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Outlet;
@@ -93,6 +94,9 @@ pub fn SatelliteContent() -> impl IntoView {
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
+    let is_category_map_loaded = RwSignal::new(false);
+    let sphere_category_header_map = RwSignal::new(HashMap::new());
+
     let post_vec_resource = Resource::new(
         move || (
             satellite_state.satellite_id.get(),
@@ -101,18 +105,20 @@ pub fn SatelliteContent() -> impl IntoView {
             sphere_state.post_refresh_count.get(),
         ),
         move |(satellite_id, category_id, sort_type, _)| async move {
-            // TODO return map in resource directly?
+            // TODO return map in resource directly? Derived signal with map to not recompute it every time?
             #[cfg(feature = "hydrate")]
             is_loading.set(true);
             reset_additional_load(additional_post_vec, additional_load_count, Some(list_ref));
-            let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
+
+            sphere_category_header_map.set(get_sphere_category_header_map(sphere_state.sphere_categories_resource.clone().await));
+            is_category_map_loaded.set(true);
 
             let result = get_post_vec_by_satellite_id(
                 satellite_id,
                 category_id,
                 sort_type,
                 0
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
             #[cfg(feature = "hydrate")]
             is_loading.set(false);
             result
@@ -129,14 +135,17 @@ pub fn SatelliteContent() -> impl IntoView {
         move || async move {
             if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
-                let sphere_category_map = get_sphere_category_header_map(sphere_state.sphere_categories_resource.await);
+                if is_category_map_loaded.get_untracked() {
+                    sphere_category_header_map.set(get_sphere_category_header_map(sphere_state.sphere_categories_resource.clone().await));
+                    is_category_map_loaded.set(true);
+                }
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_post_vec_by_satellite_id(
                     satellite_state.satellite_id.get_untracked(),
                     category_id_signal.get_untracked(),
                     sort_signal.get_untracked(),
                     num_post
-                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, sphere_category_map, None));
+                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
                 handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }

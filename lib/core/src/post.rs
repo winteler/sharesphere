@@ -1253,7 +1253,7 @@ pub fn LinkForm(
 
 pub fn add_sphere_info_to_post_vec(
     post_vec: Vec<Post>,
-    sphere_category_map: HashMap<i64, SphereCategoryHeader>,
+    sphere_category_map: &HashMap<i64, SphereCategoryHeader>,
     sphere_icon_url: Option<String>,
 ) -> Vec<PostWithSphereInfo> {
     post_vec.into_iter().map(|post| {

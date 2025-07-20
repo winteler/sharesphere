@@ -162,7 +162,6 @@ pub fn SphereContents() -> impl IntoView {
             sphere_state.post_refresh_count.get(),
         ),
         move |(sphere_name, sphere_category_filter, sort_type, _)| async move {
-            // TODO return map in resource directly?
             #[cfg(feature = "hydrate")]
             is_loading.set(true);
             sphere_category_header_map.set(get_sphere_category_header_map(sphere_state.sphere_categories_resource.clone().await));
@@ -191,7 +190,7 @@ pub fn SphereContents() -> impl IntoView {
         move || async move {
             if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
-                if is_category_map_loaded.get_untracked() {
+                if !is_category_map_loaded.get_untracked() {
                     sphere_category_header_map.set(get_sphere_category_header_map(sphere_state.sphere_categories_resource.clone().await));
                     is_category_map_loaded.set(true);
                 }

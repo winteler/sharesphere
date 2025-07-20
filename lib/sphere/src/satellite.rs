@@ -105,7 +105,6 @@ pub fn SatelliteContent() -> impl IntoView {
             sphere_state.post_refresh_count.get(),
         ),
         move |(satellite_id, category_id, sort_type, _)| async move {
-            // TODO return map in resource directly? Derived signal with map to not recompute it every time?
             #[cfg(feature = "hydrate")]
             is_loading.set(true);
             reset_additional_load(additional_post_vec, additional_load_count, Some(list_ref));
@@ -135,7 +134,7 @@ pub fn SatelliteContent() -> impl IntoView {
         move || async move {
             if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
-                if is_category_map_loaded.get_untracked() {
+                if !is_category_map_loaded.get_untracked() {
                     sphere_category_header_map.set(get_sphere_category_header_map(sphere_state.sphere_categories_resource.clone().await));
                     is_category_map_loaded.set(true);
                 }

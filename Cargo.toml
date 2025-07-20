@@ -20,11 +20,11 @@ lto = true
 codegen-units = 1
 
 [workspace.dependencies]
-leptos = { version = "0.8.2", features = ["nightly", "nonce"] }
-leptos_meta = { version = "0.8.2" }
-leptos_router = { version = "0.8.2", features = ["nightly"] }
-leptos_axum = { version = "0.8.2" }
-server_fn = { version = "0.8.2", features = ["multipart"] }
+leptos = { version = "0.8.4", features = ["nightly", "nonce"] }
+leptos_meta = { version = "0.8.4" }
+leptos_router = { version = "0.8.4", features = ["nightly"] }
+leptos_axum = { version = "0.8.4" }
+server_fn = { version = "0.8.4", features = ["multipart"] }
 
 leptos-use = { version = "0.16.2", features = ["use_breakpoints", "use_clipboard", "signal_debounced", "signal_throttled"] }
 

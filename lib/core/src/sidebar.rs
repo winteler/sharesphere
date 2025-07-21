@@ -152,8 +152,8 @@ pub fn SphereSidebar() -> impl IntoView {
         <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
                 <div class="text-2xl font-semibold text-center">{sphere_state.sphere_name}</div>
-                <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
-                    <div class="pl-4 whitespace-pre-wrap">{sphere.description.clone()}</div>
+                <TransitionUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
+                    <div class="pl-4 whitespace-pre-wrap">{sphere_with_user_info.sphere.description.clone()}</div>
                 </TransitionUnpack>
             </div>
             <div class="border-b border-primary/80"/>

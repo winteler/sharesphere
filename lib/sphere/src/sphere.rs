@@ -22,7 +22,7 @@ use sharesphere_core::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, SatelliteState, UpdateSatellite};
 use sharesphere_core::sidebar::SphereSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
-use sharesphere_core::sphere::{get_sphere_by_name, get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
+use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
@@ -56,13 +56,13 @@ pub fn SphereBanner() -> impl IntoView {
                 _ => PermissionLevel::None,
             }
         ),
-        sphere_resource: Resource::new(
+        sphere_with_user_info_resource: Resource::new(
             move || (
                 sphere_name.get(),
                 update_sphere_desc_action.version().get(),
                 state.sphere_reload_signal.get(),
             ),
-            move |(sphere_name, _, _)| get_sphere_by_name(sphere_name)
+            move |(sphere_name, _, _)| get_sphere_with_user_info(sphere_name)
         ),
         satellite_vec_resource: Resource::new(
             move || (
@@ -117,14 +117,18 @@ pub fn SphereBanner() -> impl IntoView {
 
     view! {
         <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 gap-2 overflow-hidden">
-            <TransitionUnpack resource=sphere_state.sphere_resource let:sphere>
+            <TransitionUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
             {
                 view! {
                     <a
                         href=sphere_path()
                         class="relative flex-none rounded-sm w-full h-16 2xl:h-32 flex items-center justify-center"
                     >
-                        <BannerContent title=sphere.sphere_name.clone() icon_url=sphere.icon_url.clone() banner_url=sphere.banner_url.clone()/>
+                        <BannerContent
+                            title=sphere_with_user_info.sphere.sphere_name.clone()
+                            icon_url=sphere_with_user_info.sphere.icon_url.clone()
+                            banner_url=sphere_with_user_info.sphere.banner_url.clone()
+                        />
                     </a>
                 }.into_any()
             }
@@ -146,10 +150,6 @@ pub fn SphereContents() -> impl IntoView {
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
-    let sphere_with_sub_resource = Resource::new(
-        move || (sphere_name(),),
-        move |(sphere_name,)| get_sphere_with_user_info(sphere_name),
-    );
 
     let is_category_map_loaded = RwSignal::new(false);
     let sphere_category_header_map = RwSignal::new(HashMap::new());
@@ -209,7 +209,7 @@ pub fn SphereContents() -> impl IntoView {
 
     view! {
         <ActiveSatelliteList/>
-        <SuspenseUnpack resource=sphere_with_sub_resource let:sphere>
+        <SuspenseUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere>
             <SphereToolbar
                 sphere
                 sort_signal=state.post_sort_type

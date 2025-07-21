@@ -9,7 +9,7 @@ use crate::post::{DeletePost, EditPost};
 use crate::ranking::{CommentSortType, PostSortType, SortType};
 use crate::rule::{get_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
 use crate::satellite::{CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
-use crate::sphere::{CreateSphere, Sphere, Subscribe, Unsubscribe, UpdateSphereDescription};
+use crate::sphere::{CreateSphere, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use crate::sphere_category::{DeleteSphereCategory, SetSphereCategory, SphereCategory};
 
 #[derive(Copy, Clone)]
@@ -37,7 +37,7 @@ pub struct SphereState {
     pub sphere_category_filter: RwSignal<SphereCategoryFilter>,
     pub post_refresh_count: RwSignal<usize>,
     pub permission_level: Signal<PermissionLevel>,
-    pub sphere_resource: Resource<Result<Sphere, AppError>>,
+    pub sphere_with_user_info_resource: Resource<Result<SphereWithUserInfo, AppError>>,
     pub satellite_vec_resource: Resource<Result<Vec<Satellite>, AppError>>,
     pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, AppError>>,
     pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, AppError>>,

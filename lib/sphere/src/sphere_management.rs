@@ -88,8 +88,8 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
             // TODO add overflow-y-auto max-h-full?
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere description"</div>
-                <SuspenseUnpack resource=sphere_state.sphere_resource let:sphere>
-                    <SphereDescriptionForm sphere=sphere/>
+                <SuspenseUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
+                    <SphereDescriptionForm sphere=&sphere_with_user_info.sphere/>
                 </SuspenseUnpack>
             </div>
         </AuthorizedShow>

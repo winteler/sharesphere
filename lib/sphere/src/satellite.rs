@@ -43,7 +43,7 @@ pub fn SatelliteBanner() -> impl IntoView {
 
     view! {
         <TransitionUnpack resource=satellite_state.satellite_resource let:satellite>
-            <div class="w-1/2 2xl:w-1/4">
+            <div class="w-1/2 lg:w-1/4">
                 <SatelliteHeader
                     satellite_name=satellite.satellite_name.clone()
                     satellite_link=get_satellite_path(&satellite.sphere_name, satellite.satellite_id)
@@ -201,7 +201,7 @@ pub fn CreateSatellitePost() -> impl IntoView {
     );
 
     view! {
-        <div class="w-full 2xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+        <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
@@ -273,7 +273,7 @@ pub fn ActiveSatelliteList() -> impl IntoView {
                     }).collect_view();
 
                     Some(view! {
-                        <div class="grid grid-cols-2 2xl:grid-cols-4 gap-2">
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
                             {satellite_list}
                         </div>
                     })

@@ -122,7 +122,7 @@ pub fn SphereBanner() -> impl IntoView {
                 view! {
                     <a
                         href=sphere_path()
-                        class="relative flex-none rounded-sm w-full h-16 2xl:h-32 flex items-center justify-center"
+                        class="relative flex-none rounded-sm w-full h-16 lg:h-32 flex items-center justify-center"
                     >
                         <BannerContent
                             title=sphere_with_user_info.sphere.sphere_name.clone()
@@ -355,7 +355,7 @@ pub fn CreateSphere() -> impl IntoView {
     });
 
     view! {
-        <div class="w-full 2xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+        <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=state.create_sphere_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>

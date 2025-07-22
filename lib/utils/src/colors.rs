@@ -107,7 +107,7 @@ pub fn ColorSelect(
             {label_view}
             <div class="h-full w-fit relative">
                 <div
-                    class="h-full flex items-center 2xl:gap-1 pr-2 border border-primary bg-base-100 hover:bg-base-200"
+                    class="h-full flex items-center lg:gap-1 pr-2 border border-primary bg-base-100 hover:bg-base-200"
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
                     <ColorIndicator color=color_input/>

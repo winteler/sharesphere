@@ -55,8 +55,8 @@ pub fn LeftSidebar() -> impl IntoView {
     );
 
     let sidebar_class = move || match state.show_left_sidebar.get() {
-        true => "left_sidebar_base_class max-2xl:translate-x-0 transition-transform duration-300 ease-in-out",
-        false => "left_sidebar_base_class max-2xl:-translate-x-100 transition-transform duration-300 ease-in-out",
+        true => "left_sidebar_base_class max-lg:translate-x-0 transition-transform duration-300 ease-in-out",
+        false => "left_sidebar_base_class max-lg:-translate-x-100 transition-transform duration-300 ease-in-out",
     };
     let sidebar_ref = NodeRef::<Div>::new();
     #[cfg(feature = "hydrate")]
@@ -95,8 +95,8 @@ pub fn LeftSidebar() -> impl IntoView {
 pub fn HomeSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sidebar_class = move || match state.show_right_sidebar.get() {
-        true => "right_sidebar_base_class max-2xl:translate-x-0 transition-transform duration-300 ease-in-out",
-        false => "right_sidebar_base_class max-2xl:translate-x-100 transition-transform duration-300 ease-in-out",
+        true => "right_sidebar_base_class max-lg:translate-x-0 transition-transform duration-300 ease-in-out",
+        false => "right_sidebar_base_class max-lg:translate-x-100 transition-transform duration-300 ease-in-out",
     };
     let sidebar_ref = NodeRef::<Div>::new();
     #[cfg(feature = "hydrate")]
@@ -139,8 +139,8 @@ pub fn SphereSidebar() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
 
     let sidebar_class = move || match state.show_right_sidebar.get() {
-        true => "right_sidebar_base_class max-2xl:translate-x-0 transition-transform duration-300 ease-in-out",
-        false => "right_sidebar_base_class max-2xl:translate-x-100 transition-transform duration-300 ease-in-out",
+        true => "right_sidebar_base_class max-lg:translate-x-0 transition-transform duration-300 ease-in-out",
+        false => "right_sidebar_base_class max-lg:translate-x-100 transition-transform duration-300 ease-in-out",
     };
     let sidebar_ref = NodeRef::<Div>::new();
     #[cfg(feature = "hydrate")]

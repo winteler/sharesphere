@@ -12,7 +12,7 @@ use sharesphere_utils::widget::ContentBody;
 pub fn AboutShareSphere() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"About ShareSphere"</h1>
                 <p class="text-justify">
                     "ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. \
@@ -37,7 +37,7 @@ pub fn AboutShareSphere() -> impl IntoView {
 pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Terms and Conditions"</h1>
                 <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
@@ -59,7 +59,7 @@ pub fn TermsAndConditions() -> impl IntoView {
 pub fn PrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Privacy Policy"</h1>
                 <ShareSphereInfo/>
                 <AboutPrivacyPolicy/>
@@ -81,7 +81,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
 pub fn ContentPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Content Policy"</h1>
                 <p class="text-justify">
                     "To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and other problematic content, as well as properly label sensitive content.\
@@ -182,7 +182,7 @@ pub fn Rules() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 2xl:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">"Rules"</h1>
                 <p class="text-justify">
                     "ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. \

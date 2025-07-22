@@ -251,7 +251,7 @@ pub fn FormMarkdownEditor(
 
     view! {
         <div class=format!("flex flex-col gap-2 {class}")>
-            <div class="group w-full max-w-full p-1 2xl:p-2 border border-primary">
+            <div class="group w-full max-w-full p-1 lg:p-2 border border-primary">
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for=name class="sr-only">
                         {placeholder}
@@ -329,7 +329,7 @@ pub fn FormatButton(
     hide_for_mobile: bool,
 ) -> impl IntoView {
     let class = match hide_for_mobile {
-        true => "button-ghost p-2 max-2xl:hidden",
+        true => "button-ghost p-2 max-lg:hidden",
         false => "button-ghost p-2",
     };
     view! {
@@ -401,10 +401,10 @@ pub fn HelpButton() -> impl IntoView {
             <Show when=show_help>
                 <div class="relative z-30">
                     <div
-                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-86 2xl:w-128 bg-base-200/90 rounded-sm"
+                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200/90 rounded-sm"
                         node_ref=modal_ref
                     >
-                        <div class="relative flex flex-col gap-2 leading-snug text-justify text-xs 2xl:text-sm">
+                        <div class="relative flex flex-col gap-2 leading-snug text-justify text-xs lg:text-sm">
                             <p>
                                 "To add formatting to your content, the 'Markdown mode' must be activated with the following button: "
                                 <span class="inline-flex align-bottom w-fit p-1 mt-1 rounded-md bg-base-content/20"><MarkdownIcon/></span>

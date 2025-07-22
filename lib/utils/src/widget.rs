@@ -686,7 +686,7 @@ pub fn LoadIndicators(
             }
         }
         </Show>
-        <div class="w-full min-h-9 2xl:min-h-17">
+        <div class="w-full min-h-9 lg:min-h-17">
             <Show
                 when=is_loading
             >
@@ -712,8 +712,8 @@ pub fn BannerContent(
         />
         <div class="absolute inset-0 flex items-center justify-center">
             <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
-                <SphereIcon icon_url class="h-8 w-8 2xl:h-12 2xl:w-12"/>
-                <span class="text-2xl 2xl:text-4xl">{title}</span>
+                <SphereIcon icon_url class="h-8 w-8 lg:h-12 lg:w-12"/>
+                <span class="text-2xl lg:text-4xl">{title}</span>
             </div>
         </div>
     }.into_any()

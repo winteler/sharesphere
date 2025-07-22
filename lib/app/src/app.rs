@@ -153,7 +153,7 @@ pub fn App() -> impl IntoView {
                 on:touchstart=on_touch_start
                 on:touchend=on_touch_end
             >
-                <div class="h-full flex flex-col max-2xl:items-center">
+                <div class="h-full flex flex-col max-lg:items-center">
                     <NavigationBar/>
                     <div class="grow flex w-full overflow-hidden min-h-0">
                         <LeftSidebar/>
@@ -243,7 +243,7 @@ fn HomePage() -> impl IntoView {
             }
             node_ref=div_ref
         >
-            <div class="relative flex-none rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center">
+            <div class="relative flex-none rounded-sm w-full h-16 lg:h-32 mt-2 flex items-center justify-center">
                 <BannerContent title="ShareSphere" icon_url=None banner_url=None/>
             </div>
             <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">

@@ -219,7 +219,7 @@ pub fn CommentBox(
     let collapse_children = Memo::new(move |_| depth >= get_max_comment_depth(is_mobile.get()) && !child_comments.read().is_empty());
 
     view! {
-        <div class="flex 2xl:gap-1 pt-4">
+        <div class="flex lg:gap-1 pt-4">
             <div
                 class=sidebar_css
                 on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
@@ -647,7 +647,7 @@ pub fn EditCommentForm(
     });
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full 2xl:w-2/5">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">
             <div class="text-center font-bold text-2xl">"Edit your comment"</div>
             <ActionForm action=edit_comment_action>
                 <div class="flex flex-col gap-3 w-full">

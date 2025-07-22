@@ -65,7 +65,7 @@ pub fn Post() -> impl IntoView {
             <TransitionUnpack resource=post_resource let:post_with_info>
                 <div class="card">
                     <div class="card-body">
-                        <div class="flex flex-col gap-1 2xl:gap-2">
+                        <div class="flex flex-col gap-1 lg:gap-2">
                             <PostTopWidgetBar post=post_with_info/>
                             <h2 class="card-title text-wrap wrap-anywhere">
                             { match post_with_info.post.is_active() {
@@ -271,7 +271,7 @@ pub fn CreatePost() -> impl IntoView {
     );
 
     view! {
-        <div class="w-full 2xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+        <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
@@ -419,7 +419,7 @@ pub fn EditPostForm(
     Effect::new(move || adjust_textarea_height(body_data.textarea_ref));
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full 2xl:w-2/5">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">
             <div class="text-center font-bold text-2xl">"Edit your post"</div>
             <ActionForm action=state.edit_post_action>
                 <div class="flex flex-col gap-3 w-full">

@@ -34,15 +34,15 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere categories"</div>
                 <div class="w-full flex flex-col">
-                    <div class="border-b border-base-content/20 2xl:pl-2">
+                    <div class="border-b border-base-content/20 lg:pl-2">
                         <div class="w-19/20 flex gap-1 p-1">
                             <div class="w-3/12 py-2 font-bold">"Category"</div>
-                            <div class="w-12 2xl:w-16 py-2 flex justify-center font-bold">"Color"</div>
+                            <div class="w-12 lg:w-16 py-2 flex justify-center font-bold">"Color"</div>
                             <div class="w-3/6 py-2 font-bold">"Description"</div>
-                            <div class="w-7 2xl:w-16 py-2 font-bold 2xl:text-center"><div class="max-2xl:hidden">"Active"</div></div>
+                            <div class="w-7 lg:w-16 py-2 font-bold lg:text-center"><div class="max-lg:hidden">"Active"</div></div>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-1 2xl:pl-2">
+                    <div class="flex flex-col gap-1 lg:pl-2">
                         <TransitionUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
                         {
                             sphere_category_vec.iter().map(|sphere_category| {
@@ -52,7 +52,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                 let is_active = sphere_category.is_active;
                                 view! {
                                     <div
-                                        class="flex justify-between items-center 2xl:gap-1"
+                                        class="flex justify-between items-center lg:gap-1"
                                     >
                                         <div
                                             class="w-19/20 flex items-center gap-1 p-1 rounded-sm hover:bg-base-200 active:scale-95 transition duration-250"
@@ -68,9 +68,9 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                             }
                                         >
                                             <div class="w-3/12 select-none text-sm">{category_name.clone()}</div>
-                                            <div class="w-12 2xl:w-16 flex justify-center"><ColorIndicator color/></div>
+                                            <div class="w-12 lg:w-16 flex justify-center"><ColorIndicator color/></div>
                                             <div class="w-3/6 select-none whitespace-pre-wrap text-sm">{description.clone()}</div>
-                                            <div class="w-7 2xl:w-16 flex justify-center">
+                                            <div class="w-7 lg:w-16 flex justify-center">
                                             {
                                                 match is_active {
                                                     true => view! { <PlayIcon/> }.into_any(),
@@ -113,8 +113,8 @@ pub fn SetCategoryForm(
                     class="hidden"
                     value=sphere_name
                 />
-                <div class="w-full flex gap-1 justify-between items-stretch 2xl:pl-2">
-                    <div class="w-19/20 flex items-center gap-1 2xl:p-1">
+                <div class="w-full flex gap-1 justify-between items-stretch lg:pl-2">
+                    <div class="w-19/20 flex items-center gap-1 lg:p-1">
                         <input
                             tabindex="0"
                             type="text"
@@ -127,7 +127,7 @@ pub fn SetCategoryForm(
                             }
                             prop:value=category_input
                         />
-                        <ColorSelect name="category_color" color_input class="h-input-md w-12 2xl:w-16 flex justify-center"/>
+                        <ColorSelect name="category_color" color_input class="h-input-md w-12 lg:w-16 flex justify-center"/>
                         <FormTextEditor
                             name="description"
                             placeholder="Description"
@@ -137,8 +137,8 @@ pub fn SetCategoryForm(
                         <FormCheckbox
                             name="is_active"
                             is_checked=activated_input
-                            class="w-7 2xl:w-16 flex justify-center"
-                            checkbox_class="checkbox checkbox-primary max-2xl:checkbox-sm"
+                            class="w-7 lg:w-16 flex justify-center"
+                            checkbox_class="checkbox checkbox-primary max-lg:checkbox-sm"
                         />
                     </div>
                     <button

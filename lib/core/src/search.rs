@@ -290,7 +290,7 @@ pub async fn get_matching_user_header_vec(
 #[component]
 pub fn SearchSpheres(
     search_state: SearchState,
-    #[prop(default = "gap-4 w-3/4 2xl:w-1/2")]
+    #[prop(default = "gap-4 w-3/4 lg:w-1/2")]
     class: &'static str,
     #[prop(default = "w-full")]
     form_class: &'static str,
@@ -364,7 +364,7 @@ pub fn SearchSpheres(
 pub fn SearchForm(
     search_state: SearchState,
     show_spoiler_checkbox: bool,
-    #[prop(default = "w-3/4 2xl:w-1/2")]
+    #[prop(default = "w-3/4 lg:w-1/2")]
     class: &'static str,
     #[prop(default = true)]
     autofocus: bool,

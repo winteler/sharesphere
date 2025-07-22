@@ -64,7 +64,7 @@ pub fn SphereCockpitGuard() -> impl IntoView {
 #[component]
 pub fn SphereCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-2/3 mx-auto">
+        <div class="flex flex-col gap-5 overflow-y-auto w-full lg:w-2/3 mx-auto">
             <div class="text-2xl text-center">"Sphere Cockpit"</div>
             <SphereDescriptionDialog/>
             <SphereIconDialog/>

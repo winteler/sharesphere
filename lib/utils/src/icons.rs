@@ -269,7 +269,7 @@ pub fn MarkdownIcon(#[prop(default = "h-4 w-8")] class: &'static str) -> impl In
 }
 
 #[component]
-pub fn MaximizeIcon(#[prop(default = "h-4 w-4 2xl:h-6 2xl:w-6")] class: &'static str) -> impl IntoView {
+pub fn MaximizeIcon(#[prop(default = "h-4 w-4 lg:h-6 lg:w-6")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/maximize.svg"/>
@@ -278,7 +278,7 @@ pub fn MaximizeIcon(#[prop(default = "h-4 w-4 2xl:h-6 2xl:w-6")] class: &'static
 }
 
 #[component]
-pub fn MinimizeIcon(#[prop(default = "h-5 w-5 2xl:h-6 2xl:w-6")] class: &'static str) -> impl IntoView {
+pub fn MinimizeIcon(#[prop(default = "h-5 w-5 lg:h-6 lg:w-6")] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
             <img src="/svg/minimize.svg"/>

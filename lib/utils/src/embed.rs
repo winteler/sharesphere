@@ -286,7 +286,7 @@ pub fn LinkEmbed(
         Some(domain) => {
             let class = match align_center {
                 true => "flex justify-center items-center h-fit w-full",
-                false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+                false => "flex justify-center lg:justify-start items-center h-fit w-full",
             };
             let clean_domain = match domain.starts_with("www.") {
                 true => domain[4..].to_string(),
@@ -317,7 +317,7 @@ pub fn ImageEmbed(
 ) -> impl IntoView {
     let class = match align_center {
         true => "flex justify-center items-center h-fit w-full",
-        false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+        false => "flex justify-center lg:justify-start items-center h-fit w-full",
     };
     view! {
         <div class=class>
@@ -335,7 +335,7 @@ pub fn VideoEmbed(
 ) -> impl IntoView {
     let class = match align_center {
         true => "flex justify-center items-center h-fit w-full",
-        false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+        false => "flex justify-center lg:justify-start items-center h-fit w-full",
     };
     view! {
         <div class=class>
@@ -359,7 +359,7 @@ pub fn HtmlEmbed(
 ) -> impl IntoView {
     let class = match align_center {
         true => "flex justify-center items-center h-fit w-full",
-        false => "flex justify-center 2xl:justify-start items-center h-fit w-full",
+        false => "flex justify-center lg:justify-start items-center h-fit w-full",
     };
     view! {
         <div class=class inner_html=html/>

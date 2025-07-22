@@ -16,19 +16,19 @@ pub fn NavigationBar() -> impl IntoView
     let state = expect_context::<GlobalState>();
     view! {
         <div class="flex-none flex justify-between items-center w-full p-2 bg-blue-500">
-            <div class="flex items-center gap-1 2xl:gap-2">
+            <div class="flex items-center gap-1 lg:gap-2">
                 <button
-                    class="drawer-button 2xl:hidden button-rounded-ghost"
+                    class="drawer-button lg:hidden button-rounded-ghost"
                     on:click=move |_| state.show_left_sidebar.update(|value| *value = !*value)
                 >
                     <SideBarIcon/>
                 </button>
                 <a href="/" class="button-ghost flex gap-1.5 items-center">
                     <LogoIcon/>
-                    <div class="2xl:pt-1 2xl:pb-1.5 font-semibold">"ShareSphere"</div>
+                    <div class="lg:pt-1 lg:pb-1.5 font-semibold">"ShareSphere"</div>
                 </a>
             </div>
-            <div class="flex items-center gap-1 2xl:gap-2">
+            <div class="flex items-center gap-1 lg:gap-2">
                 <RightSidebarButton/>
                 <SearchButton class="button-rounded-ghost"/>
                 <PlusMenu/>
@@ -127,8 +127,8 @@ pub fn PlusMenu() -> impl IntoView {
 pub fn RightSidebarButton() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let button_class = move || match state.show_right_sidebar.get() {
-        true => "2xl:hidden button-navbar-activated",
-        false => "2xl:hidden button-rounded-ghost",
+        true => "lg:hidden button-navbar-activated",
+        false => "lg:hidden button-rounded-ghost",
     };
     view! {
         <button

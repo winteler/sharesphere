@@ -9,7 +9,7 @@ use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
-use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE};
+use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE, POPULAR_ROUTE};
 use sharesphere_auth::auth::*;
 use sharesphere_auth::auth_widget::LoginWindow;
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User, UserState};
@@ -165,6 +165,7 @@ pub fn App() -> impl IntoView {
                             }
                         }>
                             <Route path=StaticSegment("") view=HomePage/>
+                            <Route path=StaticSegment(POPULAR_ROUTE) view=PopularPage/>
                             <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
                                 <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=SatelliteBanner>
                                     <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
@@ -226,7 +227,7 @@ fn LoginGuard() -> impl IntoView {
     }
 }
 
-/// Renders the home page of your application.
+/// Renders the home page of ShareSphere.
 #[component]
 fn HomePage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -260,6 +261,36 @@ fn HomePage() -> impl IntoView {
                     })
                 }
             </Transition>
+        </div>
+        <HomeSidebar/>
+    }
+}
+
+/// Renders a page with the most popular content of ShareSphere.
+#[component]
+fn PopularPage() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let refresh_count = RwSignal::new(0);
+    let additional_load_count = RwSignal::new(0);
+    let is_loading = RwSignal::new(false);
+    let div_ref = NodeRef::<Div>::new();
+
+    view! {
+        <div
+            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2"
+            on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
+                additional_load_count.update(|value| *value += 1);
+            }
+            node_ref=div_ref
+        >
+            <div class="relative flex-none rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center">
+                <BannerContent title="ShareSphere" icon_url=None banner_url=None/>
+            </div>
+            <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
+                <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
+                <RefreshButton refresh_count is_tooltip_bottom=true/>
+            </div>
+            <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
         </div>
         <HomeSidebar/>
     }

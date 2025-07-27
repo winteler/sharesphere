@@ -173,6 +173,13 @@ pub fn HelpIcon(#[prop(default = "editor-button-size")] class: &'static str) -> 
 }
 
 #[component]
+pub fn HomeIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/home.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn HourglassIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/hourglass.svg" class=class/>

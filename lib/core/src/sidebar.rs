@@ -3,9 +3,10 @@ use leptos::html::Div;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
 use sharesphere_utils::errors::{AppError};
-use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
+use sharesphere_utils::icons::{FlameIcon, HomeIcon};
+use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::{TransitionUnpack};
-use sharesphere_utils::widget::{Collapse, TitleCollapse};
+use sharesphere_utils::widget::{Badge, Collapse, TitleCollapse};
 use crate::rule::{BaseRuleList, Rule, RuleList};
 use crate::sphere::{SphereHeader, SphereLinkList};
 
@@ -30,6 +31,34 @@ pub fn SphereLinkListCollapse(
             <SphereLinkList sphere_header_vec=sphere_header_vec.clone()/>
         </TitleCollapse>
     }.into_any()
+}
+
+/// Component showing links to homepage and popular posts
+#[component]
+pub fn BaseLinks() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    view! {
+        <div class="flex flex-col gap-1">
+            <a
+                href="/"
+                on:click=move |_| state.show_left_sidebar.set(false)
+                class="px-2 py-1 rounded-sm hover:bg-base-content/20"
+            >
+                <Badge text="Home">
+                    <HomeIcon/>
+                </Badge>
+            </a>
+            <a
+                href=POPULAR_ROUTE
+                on:click=move |_| state.show_left_sidebar.set(false)
+                class="px-2 py-1 rounded-sm hover:bg-base-content/20"
+            >
+                <Badge text="Popular">
+                    <FlameIcon class="filter-icon-size"/>
+                </Badge>
+            </a>
+        </div>
+    }
 }
 
 /// Left sidebar component
@@ -67,6 +96,7 @@ pub fn LeftSidebar() -> impl IntoView {
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
+            <BaseLinks/>
             <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
                 <SphereLinkListCollapse
                     title="Subscribed"
@@ -107,7 +137,7 @@ pub fn HomeSidebar() -> impl IntoView {
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
-            <h1 class="text-2xl font-semibold text-center">"Welcome to ShareSphere!"</h1>
+            <h1 class="text-xl font-semibold text-center">"Welcome to ShareSphere!"</h1>
             <div class="flex flex-col gap-2">
                 <p class="text-justify">
                     "ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."
@@ -151,7 +181,7 @@ pub fn SphereSidebar() -> impl IntoView {
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
             <div class="flex flex-col gap-2">
-                <div class="text-2xl font-semibold text-center">{sphere_state.sphere_name}</div>
+                <div class="text-xl font-semibold text-center">{sphere_state.sphere_name}</div>
                 <TransitionUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
                     <div class="pl-4 whitespace-pre-wrap">{sphere_with_user_info.sphere.description.clone()}</div>
                 </TransitionUnpack>

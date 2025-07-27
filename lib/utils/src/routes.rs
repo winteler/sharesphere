@@ -7,6 +7,7 @@ use leptos_router::params::ParamsMap;
 use crate::errors::AppError;
 
 pub const APP_ORIGIN_ENV: &str = "APP_ORIGIN";
+pub const POPULAR_ROUTE: &str = "/popular";
 pub const PUBLISH_ROUTE: &str = "/publish";
 pub const USER_ROUTE_PREFIX: &str = "/users";
 pub const USER_ROUTE_PARAM_NAME: &str = "username";

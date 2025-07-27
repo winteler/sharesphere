@@ -636,7 +636,7 @@ where
 pub fn TitleCollapse<C: IntoView + 'static>(
     #[prop(into)]
     title: String,
-    #[prop(default = "text-xl font-semibold")]
+    #[prop(default = "text-lg font-semibold")]
     title_class: &'static str,
     #[prop(default = true)]
     is_open: bool,

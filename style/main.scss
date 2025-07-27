@@ -1464,6 +1464,9 @@
     :where(.dropdown-content) {
       inset-inline-end: calc(0.25rem * 0);
       translate: 0 0;
+      [dir="rtl"] & {
+        translate: 0 0;
+      }
     }
     &.dropdown-left {
       --anchor-h: left;
@@ -3229,6 +3232,11 @@
       line-height: var(--tw-leading, var(--text-sm--line-height));
     }
   }
+  .\32 xl\:h-32 {
+    @media (width >= 96rem) {
+      height: calc(var(--spacing) * 32);
+    }
+  }
   .\33 xl\:w-2\/5 {
     @media (width >= 136rem) {
       width: calc(2/5 * 100%);
@@ -4132,18 +4140,9 @@ textarea::-webkit-scrollbar {
   }
 }
 @layer base {
-  @property --radialprogress {
-    syntax: "<percentage>";
-    inherits: true;
-    initial-value: 0%;
-  }
-}
-@layer base {
-  :root {
-    scrollbar-color: currentColor #0000;
-    @supports (color: color-mix(in lab, red, red)) {
-      scrollbar-color: color-mix(in oklch, currentColor 35%, #0000) #0000;
-    }
+  :root, [data-theme] {
+    background-color: var(--root-bg, var(--color-base-100));
+    color: var(--color-base-content);
   }
 }
 @layer base {
@@ -4152,8 +4151,10 @@ textarea::-webkit-scrollbar {
   }
 }
 @layer base {
-  :root:has( .modal-open, .modal[open], .modal:target, .modal-toggle:checked, .drawer:not([class*="drawer-open"]) > .drawer-toggle:checked ) {
-    overflow: hidden;
+  @property --radialprogress {
+    syntax: "<percentage>";
+    inherits: true;
+    initial-value: 0%;
   }
 }
 @layer base {
@@ -4170,9 +4171,21 @@ textarea::-webkit-scrollbar {
   }
 }
 @layer base {
-  :root, [data-theme] {
-    background-color: var(--root-bg, var(--color-base-100));
-    color: var(--color-base-content);
+  :root {
+    scrollbar-color: currentColor #0000;
+    @supports (color: color-mix(in lab, red, red)) {
+      scrollbar-color: color-mix(in oklch, currentColor 35%, #0000) #0000;
+    }
+  }
+}
+@layer base {
+  :root:has( .modal-open, .modal[open], .modal:target, .modal-toggle:checked, .drawer:not([class*="drawer-open"]) > .drawer-toggle:checked ) {
+    overflow: hidden;
+  }
+}
+@keyframes progress {
+  50% {
+    background-position-x: -115%;
   }
 }
 @keyframes radio {
@@ -4181,19 +4194,6 @@ textarea::-webkit-scrollbar {
   }
   50% {
     padding: 3px;
-  }
-}
-@keyframes skeleton {
-  0% {
-    background-position: 150%;
-  }
-  100% {
-    background-position: -50%;
-  }
-}
-@keyframes progress {
-  50% {
-    background-position-x: -115%;
   }
 }
 @keyframes toast {
@@ -4215,6 +4215,14 @@ textarea::-webkit-scrollbar {
   0%, 40% {
     scale: 1.1;
     filter: brightness(1.05) contrast(1.05);
+  }
+}
+@keyframes skeleton {
+  0% {
+    background-position: 150%;
+  }
+  100% {
+    background-position: -50%;
   }
 }
 @layer base {

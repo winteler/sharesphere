@@ -7,8 +7,8 @@
      stroke-linejoin="round"
      xmlns="http://www.w3.org/2000/svg"
 >
-    <path stroke="#80D6FA" fill="#80D6FA" d="M24 4 l18 16 v25 h-36 v-25 Z"/>
-    <rect fill="white" x="19" y="17" width="10" height="10" rx="2" ry="2"/>
-    <path stroke="#B71C1C" fill="none" stroke-width="5" d="M3 19 l21 -16 l21 16"/>
-    <path fill="#B71C1C" d="M20,34h8a2,2,0,0,1,2,2V46a0,0,0,0,1,0,0H18a0,0,0,0,1,0,0V36A2,2,0,0,1,20,34Z"/>
+    <path stroke="#FFFFE1" fill="#FFFFE1" d="M24 4 l18 16 v25 h-36 v-25 Z"/>
+    <rect fill="#FFC352" x="18" y="17" width="12" height="10" rx="2" ry="2"/>
+    <path stroke="#BA4928" fill="none" stroke-width="6" d="M3 19 l21 -16 l21 16"/>
+    <path fill="#CD7D20" d="M20 33 h8 a1 1 0 0 1 1 1 v12 h-10 v-12 a1 1 0 0 1 1 -1Z"/>
 </svg>

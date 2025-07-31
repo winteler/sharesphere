@@ -339,7 +339,7 @@ pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl 
 pub fn NsfwIcon(#[prop(optional)] class: &'static str) -> impl IntoView {
     view! {
         <div class=class>
-            <div class="rounded-full px-1 pt-0.5 pb-1 bg-black text-sm font-semibold leading-none w-fit h-fit">
+            <div class="rounded-full p-1 bg-black text-sm font-semibold leading-none w-fit h-fit">
                 "18+"
             </div>
         </div>

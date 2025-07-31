@@ -404,7 +404,7 @@ pub fn SphereHeaderLink(
     let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
     view! {
         <button
-            class="button-rounded-neutral p-0 px-2"
+            class="button-rounded-neutral px-2 py-1"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(sphere_path.as_str(), NavigateOptions::default());
@@ -429,7 +429,7 @@ pub fn SphereLinkItems(
             children=move |sphere_header| {
                 let sphere_path = get_sphere_path(&sphere_header.sphere_name);
                 view! {
-                    <li class="px-2 rounded-sm hover:bg-base-content/20">
+                    <li class="px-2 py-1 rounded-sm hover:bg-base-content/20">
                         <a
                             href=sphere_path
                             on:click=move |_| state.show_left_sidebar.set(false)

@@ -297,7 +297,7 @@ where
     view! {
         <div class="flex gap-1.5 items-center">
             {children.into_inner()()}
-            <div class="pt-0.5 pb-1 text-sm">{move || text.get()}</div>
+            <div class="text-sm">{move || text.get()}</div>
         </div>
     }.into_any()
 }
@@ -711,7 +711,7 @@ pub fn BannerContent(
             alt="Sphere banner"
         />
         <div class="absolute inset-0 flex items-center justify-center">
-            <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center gap-3">
+            <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center items-center gap-3">
                 <SphereIcon icon_url class="h-8 w-8 lg:h-12 lg:w-12"/>
                 <span class="text-2xl lg:text-4xl">{title}</span>
             </div>

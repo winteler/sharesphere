@@ -53,7 +53,7 @@ pub fn BaseLinks() -> impl IntoView {
                 on:click=move |_| state.show_left_sidebar.set(false)
                 class="px-2 py-1 rounded-sm hover:bg-base-content/20"
             >
-                <Badge text="Popular">
+                <Badge text="Hot">
                     <FlameIcon class="filter-icon-size"/>
                 </Badge>
             </a>

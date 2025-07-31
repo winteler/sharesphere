@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use crate::constants::LOGO_ICON_PATH;
 
 #[component]
 pub fn AddCommentIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
@@ -105,21 +106,6 @@ pub fn EditIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static s
 pub fn EditTimeIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/edit_time.svg" class=class/>
-    }
-}
-
-#[component]
-pub fn SphereIcon(
-    icon_url: Option<String>,
-    #[prop(default = "h-7 w-7")]
-    class: &'static str
-) -> impl IntoView {
-    match icon_url {
-        Some(icon_url) => {
-            let class = format!("rounded-full overflow-hidden {class}");
-            view! { <img src=icon_url class=class/> }.into_any()
-        },
-        None => view! { <LogoIcon class/> }.into_any(),
     }
 }
 
@@ -255,7 +241,7 @@ pub fn LoadingIcon(#[prop(default = "loading-icon-size")] class: &'static str) -
 #[component]
 pub fn LogoIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/planet.svg" class=class/>
+        <img src=LOGO_ICON_PATH class=class/>
     }
 }
 
@@ -431,6 +417,34 @@ pub fn SideBarIcon(#[prop(default = "navbar-icon-size")] class: &'static str) ->
 }
 
 #[component]
+pub fn SphereIcon(
+    sphere_id: i64,
+    icon_url: Option<String>,
+    #[prop(default = "h-7 w-7")]
+    class: &'static str
+) -> impl IntoView {
+    const ICON_MAPPING_SIZE: usize = 6;
+    const ICON_MAPPING: [&str; ICON_MAPPING_SIZE] = [
+        "/svg/sphere_icons/venus.svg",
+        "/svg/sphere_icons/mars.svg",
+        "/svg/sphere_icons/jupiter.svg",
+        "/svg/sphere_icons/saturn.svg",
+        "/svg/sphere_icons/uranus.svg",
+        "/svg/sphere_icons/neptune.svg",
+    ];
+    match icon_url {
+        Some(icon_url) => {
+            let class = format!("rounded-full overflow-hidden {class}");
+            view! { <img src=icon_url class=class/> }.into_any()
+        },
+        None => {
+            let icon_url: &str = ICON_MAPPING[sphere_id as usize % ICON_MAPPING.len()];
+            view! { <img src=icon_url class=class/> }.into_any()
+        },
+    }
+}
+
+#[component]
 pub fn SpoilerIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/spoiler.svg" class=class/>
@@ -464,7 +478,7 @@ pub fn SubscribedIcon(
     show_color: RwSignal<bool>,
 ) -> impl IntoView {
     let svg_path = move || match show_color.get() {
-        true => "/svg/planet.svg",
+        true => LOGO_ICON_PATH,
         false => "/svg/planet_disabled.svg",
     };
     view! {

@@ -1073,7 +1073,7 @@ pub fn PostMiniatureList(
             children=move |post_info| {
                 let post = post_info.post;
                 let sphere_header = match show_sphere_header {
-                    true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
+                    true => Some(SphereHeader::new(post.sphere_id, post.sphere_name.clone(), post_info.sphere_icon_url, false)),
                     false => None,
                 };
                 let post_path = get_post_path(&post.sphere_name, post.satellite_id, post.post_id);

@@ -26,7 +26,7 @@ use sharesphere_core::state::GlobalState;
 use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::constants::{LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
@@ -165,7 +165,7 @@ pub fn App() -> impl IntoView {
                             }
                         }>
                             <Route path=StaticSegment("") view=HomePage/>
-                            <Route path=StaticSegment(POPULAR_ROUTE) view=PopularPage/>
+                            <Route path=StaticSegment(POPULAR_ROUTE) view=HotPage/>
                             <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
                                 <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=SatelliteBanner>
                                     <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
@@ -245,7 +245,7 @@ fn HomePage() -> impl IntoView {
             node_ref=div_ref
         >
             <div class="relative flex-none rounded-sm w-full h-16 lg:h-32 mt-2 flex items-center justify-center">
-                <BannerContent title="ShareSphere" icon_url=None banner_url=None/>
+                <BannerContent sphere_id=0 title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
             </div>
             <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
                 <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
@@ -268,7 +268,7 @@ fn HomePage() -> impl IntoView {
 
 /// Renders a page with the most popular content of ShareSphere.
 #[component]
-fn PopularPage() -> impl IntoView {
+fn HotPage() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
@@ -284,7 +284,7 @@ fn PopularPage() -> impl IntoView {
             node_ref=div_ref
         >
             <div class="relative flex-none rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center">
-                <BannerContent title="ShareSphere" icon_url=None banner_url=None/>
+                <BannerContent sphere_id=0 title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
             </div>
             <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
                 <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>

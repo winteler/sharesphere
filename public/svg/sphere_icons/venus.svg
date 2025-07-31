@@ -1,0 +1,22 @@
+<!-- Vectors and icons by <a href="https://dribbble.com/JulesRenvoise?ref=svgrepo.com" target="_blank">Jrdesign</a> in CC Attribution License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
+<svg width="800px" height="800px" viewBox="0 0 97.095 97.095" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clip-path">
+      <circle  cx="48.548" cy="48.548" r="48.548" transform="translate(347.403 42.939)" fill="none"/>
+    </clipPath>
+  </defs>
+  <g id="Venus" transform="translate(-347.403 -42.939)">
+    <g>
+      <circle  cx="48.548" cy="48.548" r="48.548" transform="translate(347.403 42.939)" fill="#e2ba8f"/>
+      <g>
+        <g  clip-path="url(#clip-path)">
+          <path d="M343.209,70.009s39.5-15.353,62.474-29.725,21.152,2.911,21.152,2.911-70.9,41.773-86.972,39.171S343.209,70.009,343.209,70.009Z" fill="#f0f5f9" opacity="0.4"/>
+          <path d="M354.237,113.121s22.074,21.207,88.884-26.644c15.928-11.407,12.425,1.093,12.425,1.093s-80.018,52.272-103.627,31.19C341.69,109.626,354.237,113.121,354.237,113.121Z" fill="#cba780" opacity="0.7"/>
+          <path d="M433.478,146.049s-13.506-27.471-92.64-5.312c-18.866,5.283-11.305-5.27-11.305-5.27s93.059-21.8,108.049,6.072C444.077,153.618,433.478,146.049,433.478,146.049Z" fill="#cba780" opacity="0.4"/>
+          <path d="M344.156,87.014s66.509-7.523,95.1-24.075,6.62,5.116,6.62,5.116-41.229,11.737-102.02,24.677S344.156,87.014,344.156,87.014Z" fill="#f0f5f9" opacity="0.2"/>
+        </g>
+      </g>
+      <path d="M395.951,140.034A48.547,48.547,0,0,0,428.5,55.469a48.077,48.077,0,0,1,12.529,32.55c-.13,26.882-25.571,51.676-52.079,51.514" opacity="0.1" style="mix-blend-mode: darken;isolation: isolate"/>
+    </g>
+  </g>
+</svg>

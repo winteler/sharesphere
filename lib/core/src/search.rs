@@ -56,7 +56,7 @@ pub mod ssr {
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
-            "SELECT sphere_name, icon_url, is_nsfw
+            "SELECT sphere_id, sphere_name, icon_url, is_nsfw
             FROM spheres
             WHERE sphere_name LIKE $1
             ORDER BY sphere_name LIMIT $2",

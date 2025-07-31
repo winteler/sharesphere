@@ -60,6 +60,7 @@ pub struct SphereWithUserInfo {
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct SphereHeader {
+    pub sphere_id: i64,
     pub sphere_name: String,
     pub icon_url: Option<String>,
     pub is_nsfw: bool,
@@ -67,13 +68,14 @@ pub struct SphereHeader {
 
 impl From<&Sphere> for SphereHeader {
     fn from(sphere: &Sphere) -> Self {
-        Self::new(sphere.sphere_name.clone(), sphere.icon_url.clone(), sphere.is_nsfw)
+        Self::new(sphere.sphere_id, sphere.sphere_name.clone(), sphere.icon_url.clone(), sphere.is_nsfw)
     }
 }
 
 impl SphereHeader {
-    pub fn new(sphere_name: String, icon_url: Option<String>, is_nsfw: bool) -> Self {
+    pub fn new(sphere_id: i64, sphere_name: String, icon_url: Option<String>, is_nsfw: bool) -> Self {
         Self {
+            sphere_id,
             sphere_name,
             icon_url,
             is_nsfw,
@@ -144,7 +146,7 @@ pub mod ssr {
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
-            "SELECT sphere_name, icon_url, is_nsfw
+            "SELECT sphere_id, sphere_name, icon_url, is_nsfw
             FROM spheres
             where NOT is_nsfw
             ORDER BY num_members DESC, sphere_name LIMIT $1",
@@ -162,7 +164,7 @@ pub mod ssr {
     ) -> Result<Vec<SphereHeader>, AppError> {
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
-            "SELECT s.sphere_name, s.icon_url, s.is_nsfw
+            "SELECT s.sphere_id, s.sphere_name, s.icon_url, s.is_nsfw
             FROM spheres s
             JOIN sphere_subscriptions sub ON
                 s.sphere_id = sub.sphere_id AND
@@ -388,7 +390,11 @@ pub fn SphereHeader(
 ) -> impl IntoView {
     view! {
         <Badge text=sphere_header.sphere_name>
-            <SphereIcon icon_url=sphere_header.icon_url class="content-toolbar-icon-size"/>
+            <SphereIcon
+                sphere_id=sphere_header.sphere_id
+                icon_url=sphere_header.icon_url
+                class="content-toolbar-icon-size"
+            />
         </Badge>
     }
 }

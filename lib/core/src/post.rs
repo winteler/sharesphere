@@ -1073,7 +1073,7 @@ pub fn PostMiniatureList(
             children=move |post_info| {
                 let post = post_info.post;
                 let sphere_header = match show_sphere_header {
-                    true => Some(SphereHeader::new(post.sphere_id, post.sphere_name.clone(), post_info.sphere_icon_url, false)),
+                    true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
                     false => None,
                 };
                 let post_path = get_post_path(&post.sphere_name, post.satellite_id, post.post_id);
@@ -1375,7 +1375,7 @@ mod tests {
 
         let post_with_sphere_info_vec = add_sphere_info_to_post_vec(
             post_vec.clone(),
-            sphere_category_map,
+            &sphere_category_map,
             Some(sphere_icon_url.clone())
         );
         assert_eq!(post_with_sphere_info_vec[0].post, post_vec[0]);

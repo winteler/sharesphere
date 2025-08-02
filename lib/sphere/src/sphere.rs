@@ -125,7 +125,6 @@ pub fn SphereBanner() -> impl IntoView {
                         class="relative flex-none rounded-sm w-full h-16 lg:h-32 flex items-center justify-center"
                     >
                         <BannerContent
-                            sphere_id=sphere_with_user_info.sphere.sphere_id
                             title=sphere_with_user_info.sphere.sphere_name.clone()
                             icon_url=sphere_with_user_info.sphere.icon_url.clone()
                             banner_url=sphere_with_user_info.sphere.banner_url.clone()

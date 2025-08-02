@@ -245,7 +245,7 @@ fn HomePage() -> impl IntoView {
             node_ref=div_ref
         >
             <div class="relative flex-none rounded-sm w-full h-16 lg:h-32 mt-2 flex items-center justify-center">
-                <BannerContent sphere_id=0 title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
+                <BannerContent title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
             </div>
             <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
                 <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
@@ -284,7 +284,7 @@ fn HotPage() -> impl IntoView {
             node_ref=div_ref
         >
             <div class="relative flex-none rounded-sm w-full h-16 2xl:h-32 mt-2 flex items-center justify-center">
-                <BannerContent sphere_id=0 title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
+                <BannerContent title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
             </div>
             <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
                 <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>

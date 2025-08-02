@@ -229,25 +229,37 @@ pub async fn get_user_ban_by_id(
 
 pub fn get_png_data() -> &'static[u8] {
     &[
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
-        0x00, 0x00, 0x00, 0x0D, // IHDR length
-        0x49, 0x48, 0x44, 0x52, // IHDR chunk type
-        0x00, 0x00, 0x00, 0x01, // width (1 pixel)
-        0x00, 0x00, 0x00, 0x01, // height (1 pixel)
-        0x08,                   // bit depth
-        0x06,                   // color type (RGBA)
-        0x00,                   // compression method
-        0x00,                   // filter method
-        0x00,                   // interlace method
-        0xDE, 0xAD, 0xBE, 0xEF, // IHDR CRC (computed)
-        0x00, 0x00, 0x00, 0x0A, // IDAT length
-        0x49, 0x44, 0x41, 0x54, // IDAT chunk type
-        0x08, 0x1D, 0x01, 0x00, // compressed pixel data (1 pixel, fully opaque)
-        0x00, 0x00, 0x00,       // end of IDAT
-        0x7D, 0xA8, 0xF8, 0x0C, // IDAT CRC (computed)
-        0x00, 0x00, 0x00, 0x00, // IEND length
-        0x49, 0x45, 0x4E, 0x44, // IEND chunk type
-        0xAE, 0x42, 0x60, 0x82, // IEND CRC (computed)
+        // PNG signature
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+        // IHDR chunk (Image Header)
+        0x00, 0x00, 0x00, 0x0D, // Length of the IHDR data
+        0x49, 0x48, 0x44, 0x52, // Chunk type: IHDR
+        0x00, 0x00, 0x00, 0x01, // Width: 1 pixel
+        0x00, 0x00, 0x00, 0x01, // Height: 1 pixel
+        0x01, // Bit depth: 1 bit per sample (since it's a palette image)
+        0x03, // Color type: Indexed-color (palette-based)
+        0x00, 0x00, 0x00, // Compression method, filter method, and interleaving method
+        0x25, 0xDB, 0x56, 0xCA, // CRC for the IHDR chunk
+        // PLTE chunk (Palette)
+        0x00, 0x00, 0x00, 0x03, // Length of the PLTE data
+        0x50, 0x4C, 0x54, 0x45, // Chunk type: PLTE
+        0x00, 0x00, 0x00, // Palette entry for index 0: Black
+        0xA7, 0x7A, 0x3D, // Palette entry for index 1: Some color
+        0xDA, 0x00, 0x00, // Palette entry for index 2: Another color
+        // tRNS chunk (Transparency)
+        0x00, 0x01, // Length of the tRNS data
+        0x74, 0x52, 0x4E, 0x53, // Chunk type: tRNS
+        0x00, // Alpha value for palette index 0
+        0x40, 0xE6, 0xD8, 0x66, // CRC for the tRNS chunk
+        // IDAT chunk (Image Data)
+        0x00, 0x00, 0x00, 0x0A, // Length of the IDAT data
+        0x49, 0x44, 0x41, 0x54, // Chunk type: IDAT
+        0x08, 0xD7, 0x63, 0x60, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, // Compressed image data
+        0xE2, 0x21, 0xBC, 0x33, // CRC for the IDAT chunk
+        // IEND chunk (Image End)
+        0x00, 0x00, 0x00, 0x00, // Length of the IEND data
+        0x49, 0x45, 0x4E, 0x44, // Chunk type: IEND
+        0xAE, 0x42, 0x60, 0x82, // CRC for the IEND chunk
     ]
 }
 
@@ -279,7 +291,7 @@ pub async fn get_multipart_image(
          Content-Disposition: form-data; name=\"{image_field_name}\"; filename=\"test.png\"\r\n\
          Content-Type: image/png\r\n\r\n"
     ).as_bytes());
-    body.extend_from_slice(get_png_data()); // PNG magic bytes
+    body.extend_from_slice(get_png_data());
     body.extend_from_slice(
         format!("\r\n--{boundary}--\r\n").as_bytes(),
     );

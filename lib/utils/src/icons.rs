@@ -418,14 +418,16 @@ pub fn SideBarIcon(#[prop(default = "navbar-icon-size")] class: &'static str) ->
 
 #[component]
 pub fn SphereIcon(
-    sphere_id: i64,
     icon_url: Option<String>,
+    #[prop(into)]
+    default_icon_index: usize,
     #[prop(default = "h-7 w-7")]
     class: &'static str
 ) -> impl IntoView {
-    const ICON_MAPPING_SIZE: usize = 6;
+    const ICON_MAPPING_SIZE: usize = 7;
     const ICON_MAPPING: [&str; ICON_MAPPING_SIZE] = [
         "/svg/sphere_icons/venus.svg",
+        "/svg/sphere_icons/moon.svg",
         "/svg/sphere_icons/mars.svg",
         "/svg/sphere_icons/jupiter.svg",
         "/svg/sphere_icons/saturn.svg",
@@ -438,7 +440,7 @@ pub fn SphereIcon(
             view! { <img src=icon_url class=class/> }.into_any()
         },
         None => {
-            let icon_url: &str = ICON_MAPPING[sphere_id as usize % ICON_MAPPING.len()];
+            let icon_url: &str = ICON_MAPPING[default_icon_index % ICON_MAPPING.len()];
             view! { <img src=icon_url class=class/> }.into_any()
         },
     }

@@ -329,12 +329,14 @@ async fn test_delete_sphere_image() {
         &object_store,
         &user,
     ).await.expect("Should store image");
+
     set_sphere_icon_url(
         &sphere_name.clone(),
         image_file_name.clone().map(|file_name| format!("https://test.com/{file_name}")).as_deref(),
         &user,
         &db_pool
     ).await.expect("Should set sphere icon url");
+
     let image_file_name = image_file_name.expect("Should have file name.");
     assert!(object_store.get(&object_store::path::Path::from(image_file_name.clone())).await.is_ok());
 
@@ -383,7 +385,7 @@ async fn test_store_sphere_image() {
         &user,
     ).await.expect("Should store image");
     assert_eq!(sphere_name, sphere.sphere_name);
-    assert!(image_file_name.clone().is_some_and(|file_name| file_name.starts_with(&sphere_name) && file_name.ends_with(".png")));
+    assert!(image_file_name.clone().is_some_and(|file_name| file_name.starts_with(&sphere_name) && file_name.ends_with(".webp")));
     assert!(object_store.get(&object_store::path::Path::from(image_file_name.unwrap())).await.is_ok());
     assert_eq!(
         store_sphere_image(

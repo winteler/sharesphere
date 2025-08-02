@@ -699,12 +699,12 @@ pub fn LoadIndicators(
 /// Component to display the content of a banner
 #[component]
 pub fn BannerContent(
-    sphere_id: i64,
     #[prop(into)]
     title: String,
     icon_url: Option<String>,
     banner_url: Option<String>,
 ) -> impl IntoView {
+    let default_icon_index = title.as_bytes().first().cloned().unwrap_or_default();
     view! {
         <img
             src=banner_url.unwrap_or(String::from("/banner.jpg"))
@@ -713,7 +713,7 @@ pub fn BannerContent(
         />
         <div class="absolute inset-0 flex items-center justify-center">
             <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center items-center gap-3">
-                <SphereIcon sphere_id icon_url class="h-8 w-8 lg:h-12 lg:w-12"/>
+                <SphereIcon icon_url default_icon_index class="h-8 w-8 lg:h-12 lg:w-12"/>
                 <span class="text-2xl lg:text-4xl">{title}</span>
             </div>
         </div>

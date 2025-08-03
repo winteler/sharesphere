@@ -26,7 +26,7 @@ use sharesphere_core::state::GlobalState;
 use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-use sharesphere_utils::constants::{LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
@@ -244,13 +244,7 @@ fn HomePage() -> impl IntoView {
             }
             node_ref=div_ref
         >
-            <div class="relative flex-none rounded-sm w-full h-16 lg:h-32 mt-2 flex items-center justify-center">
-                <BannerContent title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
-            </div>
-            <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
-                <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
-                <RefreshButton refresh_count is_tooltip_bottom=true/>
-            </div>
+            <BannerWithWidgets title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None refresh_count/>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || Suspend::new(async move {
@@ -269,7 +263,6 @@ fn HomePage() -> impl IntoView {
 /// Renders a page with the most popular content of ShareSphere.
 #[component]
 fn HotPage() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
@@ -283,16 +276,31 @@ fn HotPage() -> impl IntoView {
             }
             node_ref=div_ref
         >
-            <div class="relative flex-none rounded-sm w-full h-16 lg:h-32 mt-2 flex items-center justify-center">
-                <BannerContent title="Hot" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None/>
-            </div>
-            <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
-                <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
-                <RefreshButton refresh_count is_tooltip_bottom=true/>
-            </div>
+            <BannerWithWidgets title="Hot" icon_url=Some(String::from(FLAME_ICON_PATH)) banner_url=None refresh_count/>
             <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
         </div>
         <HomeSidebar/>
+    }
+}
+
+/// Component to display the content of a banner
+#[component]
+pub fn BannerWithWidgets(
+    #[prop(into)]
+    title: String,
+    icon_url: Option<String>,
+    banner_url: Option<String>,
+    refresh_count: RwSignal<usize>,
+) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    view! {
+        <div class="relative flex-none rounded-sm w-full h-16 lg:h-32 mt-2 flex items-center justify-center">
+            <BannerContent title icon_url banner_url/>
+        </div>
+        <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
+            <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
+            <RefreshButton refresh_count is_tooltip_bottom=true/>
+        </div>
     }
 }
 

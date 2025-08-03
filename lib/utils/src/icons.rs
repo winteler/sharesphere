@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use crate::constants::LOGO_ICON_PATH;
+use crate::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH};
 
 #[component]
 pub fn AddCommentIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
@@ -119,7 +119,7 @@ pub fn FiltersIcon(#[prop(default = "filter-icon-size")] class: &'static str) ->
 #[component]
 pub fn FlameIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/flame.svg" class=class/>
+        <img src=FLAME_ICON_PATH class=class/>
     }
 }
 

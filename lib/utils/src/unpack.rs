@@ -185,11 +185,22 @@ pub fn handle_additional_load<T: Clone + Send + Sync + 'static>(
     }
 }
 
+pub fn handle_dialog_action_result<T: Clone + Send + Sync + 'static>(
+    action_result: Option<Result<T, AppError>>,
+    signal: RwSignal<T>,
+    show_dialog: RwSignal<bool>,
+) {
+    if let Some(Ok(result)) = action_result {
+        signal.set(result);
+        show_dialog.set(false);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use leptos::prelude::*;
     use crate::errors::AppError;
-    use crate::unpack::{handle_additional_load, handle_initial_load};
+    use crate::unpack::{handle_additional_load, handle_dialog_action_result, handle_initial_load};
 
     #[test]
     fn test_handle_initial_load() {
@@ -231,5 +242,29 @@ mod tests {
         handle_additional_load(Err(error.clone()), loaded_vec, load_error);
         assert_eq!(loaded_vec.read().as_slice(), &[1, 2, 3, 4, 5, 6]);
         assert_eq!(load_error.read(), Some(error));
+    }
+
+    #[test]
+    fn test_handle_dialog_action_result() {
+        let owner = Owner::new();
+        owner.set();
+
+        let value = RwSignal::new(0);
+        let show_dialog = RwSignal::new(true);
+
+        handle_dialog_action_result(None, value, show_dialog);
+
+        assert_eq!(value.get_untracked(), 0);
+        assert_eq!(show_dialog.get_untracked(), true);
+
+        handle_dialog_action_result(Some(Err(AppError::NotFound)), value, show_dialog);
+
+        assert_eq!(value.get_untracked(), 0);
+        assert_eq!(show_dialog.get_untracked(), true);
+
+        handle_dialog_action_result(Some(Ok(1)), value, show_dialog);
+
+        assert_eq!(value.get_untracked(), 1);
+        assert_eq!(show_dialog.get_untracked(), false);
     }
 }

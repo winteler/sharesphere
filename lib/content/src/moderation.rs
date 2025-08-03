@@ -12,6 +12,7 @@ use sharesphere_core::comment::Comment;
 use sharesphere_core::moderation::{Content, ModerateComment, ModerationInfo, ModerationInfoDialog};
 use sharesphere_core::rule::get_rule_by_id;
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::unpack::handle_dialog_action_result;
 
 /// Component to moderate a post
 #[component]
@@ -136,12 +137,7 @@ pub fn ModerateCommentDialog(
 
     let moderate_result = moderate_comment_action.value();
 
-    Effect::new(move |_| {
-        if let Some(Ok(moderated_comment)) = moderate_result.get() {
-            comment.set(moderated_comment);
-            show_dialog.set(false);
-        }
-    });
+    Effect::new(move |_| handle_dialog_action_result(moderate_result.get(), comment, show_dialog));
 
     view! {
         <ModalDialog

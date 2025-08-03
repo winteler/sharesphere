@@ -26,7 +26,6 @@ use {
     },
     sharesphere_utils::{
         editor::ssr::get_html_and_markdown_strings,
-        embed::verify_link_and_get_embed,
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
 };
@@ -119,7 +118,7 @@ pub mod ssr {
     use sharesphere_auth::role::PermissionLevel;
     use sharesphere_auth::user::User;
     use sharesphere_utils::colors::Color;
-    use sharesphere_utils::embed::Link;
+    use sharesphere_utils::embed::{verify_link_and_get_embed, EmbedType, Link};
     use sharesphere_utils::errors::AppError;
     use crate::filter::SphereCategoryFilter;
     use crate::post::{Post, PostInheritedAttributes, PostWithInfo, PostWithSphereInfo};
@@ -702,12 +701,20 @@ pub mod ssr {
         Ok(())
     }
 
+    pub(super) async fn process_embed_link(embed_type: EmbedType, link: Option<String>) -> Link {
+        let (link, _) = match (embed_type, link) {
+            (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
+            _ => (Link::default(), None),
+        };
+        link
+    }
+
     #[cfg(test)]
     mod tests {
         use sharesphere_auth::user::User;
         use sharesphere_utils::colors::Color;
-
-        use crate::post::ssr::PostJoinInfo;
+        use sharesphere_utils::embed::{EmbedType, Link, LinkType};
+        use crate::post::ssr::{PostJoinInfo, process_embed_link};
         use crate::post::Post;
         use crate::ranking::{VoteValue};
 
@@ -777,6 +784,16 @@ pub mod ssr {
             assert_eq!(user_vote.post_id, other_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Down);
             assert_eq!(user_vote.comment_id, None);
+        }
+
+        #[tokio::test]
+        async fn test_process_embed_link() {
+            let default_link = process_embed_link(EmbedType::None, None).await;
+            assert_eq!(default_link, Link::default());
+
+            let link_url = String::from("https://test.com/");
+            let simple_link = process_embed_link(EmbedType::Link, Some(link_url.clone())).await;
+            assert_eq!(simple_link, Link::new(LinkType::Link, Some(link_url), None, None));
         }
     }
 }
@@ -896,10 +913,7 @@ pub async fn create_post(
 
     let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
 
-    let (link, _) = match (embed_type, link) {
-        (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
-        _ => (Link::default(), None),
-    };
+    let link = ssr::process_embed_link(embed_type, link).await;
 
     let post = ssr::create_post(
         sphere.as_str(),
@@ -944,10 +958,7 @@ pub async fn edit_post(
 
     let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
 
-    let (link, _) = match (embed_type, link) {
-        (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
-        _ => (Link::default(), None),
-    };
+    let link = ssr::process_embed_link(embed_type, link).await;
 
     let post = ssr::update_post(
         post_id,

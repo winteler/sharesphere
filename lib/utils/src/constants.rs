@@ -22,3 +22,4 @@ pub const IMAGE_TYPE: &str = "image/";
 pub const DELETED_MESSAGE: &str = "Deleted";
 pub const SCROLL_LOAD_THROTTLE_DELAY: f64 = 3000.0;
 pub const LOGO_ICON_PATH: &str = "/svg/planet.svg";
+pub const FLAME_ICON_PATH: &str = "/svg/flame.svg";

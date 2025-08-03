@@ -133,9 +133,7 @@ pub fn EditRuleForm(
         content: RwSignal::new(description),
         textarea_ref: description_ref,
     };
-    let invalid_inputs = Signal::derive(move || {
-        priority.read().is_empty() || title_data.content.read().is_empty() || description_data.content.read().is_empty()
-    });
+    let invalid_inputs = Signal::derive(move || is_invalid_rule_inputs(priority, title_data.content, description_data.content));
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
@@ -179,9 +177,7 @@ pub fn CreateRuleForm() -> impl IntoView {
         content: RwSignal::new(String::new()),
         textarea_ref: description_ref,
     };
-    let invalid_inputs = Signal::derive(move || {
-        priority.read().is_empty() || title_data.content.read().is_empty() || description_data.content.read().is_empty()
-    });
+    let invalid_inputs = Signal::derive(move || is_invalid_rule_inputs(priority, title_data.content, description_data.content));
 
     view! {
         <button
@@ -254,5 +250,53 @@ pub fn RuleInputs(
                 is_markdown=is_description_markdown
             />
         </div>
+    }
+}
+
+fn is_invalid_rule_inputs(
+    priority: RwSignal<String>,
+    title: RwSignal<String>,
+    description: RwSignal<String>
+) -> bool {
+    priority.read().is_empty() || title.read().is_empty() || description.read().is_empty()
+}
+
+#[cfg(test)]
+mod tests {
+    use leptos::prelude::{Owner, RwSignal, Set};
+    use crate::rule::is_invalid_rule_inputs;
+
+    #[test]
+    fn test_is_invalid_rule_inputs() {
+        let owner = Owner::new();
+        owner.set();
+
+        let priority = RwSignal::new(String::from("1"));
+        let title = RwSignal::new(String::from("title"));
+        let description = RwSignal::new(String::from("description"));
+
+        let is_invalid_rule = move || is_invalid_rule_inputs(priority, title, description);
+
+        assert_eq!(is_invalid_rule(), false);
+
+        priority.set(String::default());
+
+        assert_eq!(is_invalid_rule(), true);
+
+        priority.set(String::from("1"));
+        title.set(String::default());
+
+        assert_eq!(is_invalid_rule(), true);
+
+        title.set(String::from("title"));
+        description.set(String::default());
+
+        assert_eq!(is_invalid_rule(), true);
+
+        priority.set(String::default());
+        title.set(String::default());
+        description.set(String::default());
+
+        assert_eq!(is_invalid_rule(), true);
     }
 }

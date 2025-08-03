@@ -21,6 +21,7 @@ use sharesphere_core::ranking::{CommentSortWidget, Vote};
 use sharesphere_core::satellite::SatelliteState;
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::unpack::handle_dialog_action_result;
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
 
@@ -639,12 +640,7 @@ pub fn EditCommentForm(
 
     let edit_comment_result = edit_comment_action.value();
 
-    Effect::new(move |_| {
-        if let Some(Ok(edited_comment)) = edit_comment_result.get() {
-            comment.set(edited_comment);
-            show_form.set(false);
-        }
-    });
+    Effect::new(move |_| handle_dialog_action_result(edit_comment_result.get(), comment, show_form));
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">

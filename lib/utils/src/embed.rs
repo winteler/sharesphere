@@ -559,7 +559,7 @@ pub fn clean_html(
 /// Check the input `link`'s validity and returns Link and an optional title.
 /// If embed_type is EmbedType::Link, the link is always embedded as a simple link,
 /// otherwise the link type will be inferred using the oEmbed API or the file extension.
-/// If the type cannot be inferred, it will fallback to a link.
+/// If the type cannot be inferred, it will fall back to a link.
 pub async fn verify_link_and_get_embed(
     embed_type: EmbedType,
     link: &str,

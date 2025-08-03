@@ -138,8 +138,8 @@ mod ssr {
         }
     }
 
-    impl From<openidconnect::url::ParseError> for AppError {
-        fn from(error: openidconnect::url::ParseError) -> Self {
+    impl From<url::ParseError> for AppError {
+        fn from(error: url::ParseError) -> Self {
             AppError::AuthenticationError(error.to_string())
         }
     }
@@ -404,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_app_error_from_openidconnect_url_parse_error() {
-        let error = openidconnect::url::ParseError::InvalidDomainCharacter;
+        let error = url::ParseError::InvalidDomainCharacter;
         assert_eq!(AppError::from(error), AppError::AuthenticationError(error.to_string()));
     }
 

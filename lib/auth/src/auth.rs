@@ -73,7 +73,7 @@ pub mod ssr {
     struct NoNonceVerifier;
 
     impl NonceVerifier for NoNonceVerifier {
-        fn verify(self, _nonce: Option<&openidconnect::Nonce>) -> std::result::Result<(), String> {
+        fn verify(self, _nonce: Option<&openidconnect::Nonce>) -> Result<(), String> {
             Ok(())
         }
     }

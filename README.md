@@ -1,6 +1,6 @@
 # Sharesphere
 
-## Setting up sharesphere
+## Setting up Sharesphere
 
 1. [Install Rust](https://www.rust-lang.org/tools/install)
 2. `rustup toolchain install nightly --allow-downgrade` - make sure you have Rust nightly
@@ -19,7 +19,7 @@
    * SESSION_DB_KEY - DB key to persist session data
    * TEST_DATABASE_URL - Test DB url, used in integration tests
 
-## Running sharesphere
+## Running Sharesphere
 
 ```bash
 cargo leptos watch
@@ -39,7 +39,7 @@ Will generate your server binary in target/server/release and your site package 
 cargo test -F ssr
 ```
 
-### End to end tests
+### End-to-end tests
 Run `npm install` in the end2end subdirectory before testing
 ```bash
 cargo leptos end-to-end

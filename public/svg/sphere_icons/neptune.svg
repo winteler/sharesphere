@@ -1,5 +1,5 @@
 <!-- Vectors and icons by <a href="https://dribbble.com/JulesRenvoise?ref=svgrepo.com" target="_blank">Jrdesign</a> in CC Attribution License via <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a> -->
-<svg width="800px" height="800px" viewBox="0 0 97.095 97.095" xmlns="http://www.w3.org/2000/svg">
+<svg width="800px" height="800px" viewBox="-1 -1 99 99" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <clipPath id="clip-path">
       <circle  cx="48.548" cy="48.548" r="48.548" transform="translate(125.612 414.812)" fill="none"/>
@@ -7,17 +7,17 @@
   </defs>
   <g id="Neptune" transform="translate(-125.612 -414.812)">
     <g>
-      <circle  cx="48.548" cy="48.548" r="48.548" transform="translate(125.612 414.812)" fill="#4462ab"/>
+      <circle  cx="48.548" cy="48.548" r="48.548" transform="translate(125.612 414.812)" fill="#56A0E1"/>
       <g>
         <g  clip-path="url(#clip-path)">
-          <path d="M123.372,437.768s69.518,4.883,102.923,0-3.588,11.19-3.588,11.19-42.49-2.035-97.1,5.9S123.372,437.768,123.372,437.768Z" opacity="0.07" style="mix-blend-mode: darken;isolation: isolate"/>
-          <path d="M119.04,477.58s68.308,13.81,102.064,13.277-5,10.634-5,10.634-41.873-7.5-97.045-6.674S119.04,477.58,119.04,477.58Z" opacity="0.07" style="mix-blend-mode: darken;isolation: isolate"/>
-          <path d="M125.282,403.668s68.259,16.269,102.435,10.019-5.7,21.426-5.7,21.426-41.9-8.1-97.757,2.029S125.282,403.668,125.282,403.668Z" fill="#ffffff" opacity="0.1"/>
-          <path d="M215.971,487.259S147.712,470.99,113.537,477.24s5.7-21.425,5.7-21.425,41.9,8.1,97.758-2.03S215.971,487.259,215.971,487.259Z" fill="#ffffff" opacity="0.1"/>
-          <path d="M213.387,534.777s-66.531-22.306-101.129-19.137,7.594-20.83,7.594-20.83,41.01,11.809,97.547,6.719S213.387,534.777,213.387,534.777Z" fill="#ffffff" opacity="0.1"/>
+          <path d="M123.372,437.768s69.518,4.883,102.923,0-3.588,11.19-3.588,11.19-42.49-2.035-97.1,5.9S123.372,437.768,123.372,437.768Z" opacity="0.15" style="mix-blend-mode: darken;isolation: isolate"/>
+          <path d="M119.04,477.58s68.308,13.81,102.064,13.277-5,10.634-5,10.634-41.873-7.5-97.045-6.674S119.04,477.58,119.04,477.58Z" opacity="0.15" style="mix-blend-mode: darken;isolation: isolate"/>
+          <path d="M125.282,403.668s68.259,16.269,102.435,10.019-5.7,21.426-5.7,21.426-41.9-8.1-97.757,2.029S125.282,403.668,125.282,403.668Z" fill="#ffffff" opacity="0.2"/>
+          <path d="M215.971,487.259S147.712,470.99,113.537,477.24s5.7-21.425,5.7-21.425,41.9,8.1,97.758-2.03S215.971,487.259,215.971,487.259Z" fill="#ffffff" opacity="0.2"/>
+          <path d="M213.387,534.777s-66.531-22.306-101.129-19.137,7.594-20.83,7.594-20.83,41.01,11.809,97.547,6.719S213.387,534.777,213.387,534.777Z" fill="#ffffff" opacity="0.2"/>
         </g>
       </g>
-      <path d="M174.127,511.907a48.391,48.391,0,0,0,32.446-84.294,48.211,48.211,0,0,1,12.49,32.445c0,26.727-25.187,51.349-51.913,51.349" opacity="0.2" style="mix-blend-mode: darken;isolation: isolate"/>
+      <path d="M174.5625,511.907 A48.548,48.548,0,0,0,205,425.865 A55,55,0,0,1,174.5625,511.907" opacity="0.4"/>
     </g>
   </g>
 </svg>

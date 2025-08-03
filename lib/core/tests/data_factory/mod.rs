@@ -154,8 +154,8 @@ pub async fn create_posts(
             }
         }
 
-        let sphere_category_header = match (category_id, sphere_category) {
-            (Some(_), Some(sphere_category)) => Some(sphere_category.clone().into()),
+        let sphere_category_header = match (category_id, sphere_category.cloned()) {
+            (Some(_), Some(sphere_category)) => Some(sphere_category.into()),
             _ => None,
         };
         expected_post_vec.push(PostWithSphereInfo::from_post(post, sphere_category_header, sphere.icon_url.clone()));

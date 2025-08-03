@@ -91,7 +91,7 @@ pub fn VotePanel(
     }.into_any()
 }
 
-// Function to react to an post's upvote or downvote button being clicked.
+// Function to react to a post's upvote or downvote button being clicked.
 pub fn on_content_vote(
     vote: RwSignal<VoteValue>,
     vote_id: Memo<Option<i64>>,

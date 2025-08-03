@@ -349,7 +349,7 @@ async fn test_get_comment_tree_by_id() {
     let depth_1_comment_1_elem_2 = depth_1_comment_1_tree.child_comments.get(1).expect("Should get depth_1_comment_1_tree 2nd child");
     assert_eq!(depth_1_comment_1_elem_1.comment, comment_1_2);
     assert_eq!(depth_1_comment_1_elem_2.comment, comment_1_1);
-    assert!(depth_1_comment_1_elem_1.child_comments.len() == 1);
+    assert_eq!(depth_1_comment_1_elem_1.child_comments.len(), 1);
     assert!(depth_1_comment_1_elem_2.child_comments.is_empty());
 
     let depth_2_comment_1_elem_1 = depth_1_comment_1_elem_1.child_comments.first().expect("Should get depth_1_comment_1_elem_1 1st child");

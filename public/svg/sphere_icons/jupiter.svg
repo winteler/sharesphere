@@ -21,9 +21,7 @@
                     <path  d="M313.462,276.043l31.253,3.734a420.4,420.4,0,0,0,99.566,0l31.254-3.734" fill="none" stroke="#ef8f4d" stroke-miterlimit="10" stroke-width="1.806"/>
                 </g>
             </g>
-            <path  d="M395.951,333.6A64.549,64.549,0,0,0,439.23,221.154a64.31,64.31,0,0,1,16.661,43.28c0,35.65-33.6,68.495-69.248,68.495" opacity="0.2" style="mix-blend-mode: darken;isolation: isolate"/>
-            <path  d="M460.5,269.045" fill="none"/>
-            <path  d="M331.4,269.045" fill="none"/>
+            <path  d="M395.951,333.597 A64.551,64.551,0,0,0,439.23,221.152 A75,75,0,0,1,395.951,333.597" opacity="0.4" style="mix-blend-mode: darken;isolation: isolate"/>
             <ellipse  cx="6.342" cy="13.184" rx="6.342" ry="13.184" transform="matrix(0.059, -0.998, 0.998, 0.059, 352.542, 303.227)" fill="#ef8f4d" stroke="#f3cda6" stroke-miterlimit="10" stroke-width="2.349"/>
         </g>
     </g>

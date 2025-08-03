@@ -3,7 +3,7 @@
     <g id="Mars" transform="translate(-122.305 -206.956)">
         <g>
             <ellipse cx="51.203" cy="48.911" rx="51.203" ry="48.911" transform="translate(122.305 230.163)" fill="#ec3d1e"/>
-            <path d="M173.508,327.986c28.279,0,51.2-21.9,51.2-48.912a47.845,47.845,0,0,0-16.873-36.287,47.532,47.532,0,0,1,13.216,32.794c0,27.013-26.65,51.9-54.929,51.9" opacity="0.3" style="mix-blend-mode: darken;isolation: isolate"/>
+            <path d="M173.508,327.986 a51.203,48.911,0,0,0,20,-93.938 a55,53,0,0,1,-20,93.938" opacity="0.4" style="mix-blend-mode: darken;isolation: isolate"/>
             <g opacity="0.8">
                 <circle cx="3.77" cy="3.77" r="3.77" transform="translate(154.188 242.043)" fill="#312449" opacity="0.4" style="mix-blend-mode: darken;isolation: isolate"/>
                 <path d="M155.332,245.813a3.76,3.76,0,0,1,3.2-3.712,3.721,3.721,0,0,0-.572-.058,3.77,3.77,0,1,0,0,7.539,3.849,3.849,0,0,0,.572-.057A3.761,3.761,0,0,1,155.332,245.813Z" fill="#312449" opacity="0.4" style="mix-blend-mode: darken;isolation: isolate"/>

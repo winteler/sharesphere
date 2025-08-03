@@ -433,7 +433,7 @@ pub fn HelpButton() -> impl IntoView {
     }
 }
 
-/// Formats the input `content` with the markdown syntax corresponding to `format_type`
+/// Formats the input `content` with the Markdown syntax corresponding to `format_type`
 /// If no text is selected, returns the position to set the cursor at
 fn format_textarea_content(
     content: &mut String,

@@ -23,7 +23,7 @@ async fn test_is_sphere_available() -> Result<(), AppError> {
     let test_user = create_test_user(&db_pool).await;
 
     let sphere_name = "sphere-";
-    sphere::ssr::create_sphere(
+    create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -57,7 +57,7 @@ async fn test_get_sphere_by_name() -> Result<(), AppError> {
     let test_user = create_test_user(&db_pool).await;
 
     let sphere_name = "sphere";
-    let expected_sphere = sphere::ssr::create_sphere(
+    let expected_sphere = create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -85,7 +85,7 @@ async fn test_get_popular_sphere_headers() -> Result<(), AppError> {
     let num_sphere = 30;
     let num_sphere_fetch = 20usize;
     for i in 0..num_sphere {
-        let sphere = sphere::ssr::create_sphere(
+        let sphere = create_sphere(
             i.to_string().as_str(),
             "sphere",
             false,
@@ -109,7 +109,7 @@ async fn test_get_popular_sphere_headers() -> Result<(), AppError> {
         expected_sphere_num -= 1;
     }
 
-    let nsfw_sphere = sphere::ssr::create_sphere(
+    let nsfw_sphere = create_sphere(
         "nsfw",
         "sphere",
         true,
@@ -137,7 +137,7 @@ async fn test_get_subscribed_sphere_headers() -> Result<(), AppError> {
     let mut expected_create_sub_sphere_vec = Vec::<SphereHeader>::new();
     let mut expected_member_sub_sphere_vec = Vec::<SphereHeader>::new();
     for i in 0..num_sphere {
-        let sphere = sphere::ssr::create_sphere(
+        let sphere = create_sphere(
             i.to_string().as_str(),
             "sphere",
             i % 2 == 0,
@@ -190,7 +190,7 @@ async fn test_get_sphere_with_user_info() -> Result<(), AppError> {
     let test_user = create_test_user(&db_pool).await;
 
     let sphere_name = "sphere";
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         sphere_name,
         "sphere",
         false,
@@ -218,7 +218,7 @@ async fn test_get_sphere_with_user_info() -> Result<(), AppError> {
     .await?;
     assert!(sphere_with_subscription.subscription_id.is_none());
 
-    sphere::ssr::subscribe(sphere.sphere_id, test_user.user_id, &db_pool).await?;
+    subscribe(sphere.sphere_id, test_user.user_id, &db_pool).await?;
     let sphere_with_subscription = sphere::ssr::get_sphere_with_user_info(
         sphere_name,
         Some(test_user.user_id),
@@ -227,7 +227,7 @@ async fn test_get_sphere_with_user_info() -> Result<(), AppError> {
     .await?;
     assert!(sphere_with_subscription.subscription_id.is_some());
 
-    sphere::ssr::unsubscribe(sphere.sphere_id, test_user.user_id, &db_pool).await?;
+    unsubscribe(sphere.sphere_id, test_user.user_id, &db_pool).await?;
     let sphere_with_subscription = sphere::ssr::get_sphere_with_user_info(
         sphere_name,
         Some(test_user.user_id),
@@ -246,7 +246,7 @@ async fn test_create_sphere() -> Result<(), AppError> {
 
     let sphere_name = "camelCase_snake_case123-";
     let sphere_description = "a";
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         sphere_name,
         sphere_description,
         false,
@@ -268,37 +268,37 @@ async fn test_create_sphere() -> Result<(), AppError> {
     assert_eq!(*sphere_permission, PermissionLevel::Lead);
 
     assert!(
-        sphere::ssr::create_sphere(&sphere_name, "a", false, &test_user, &db_pool)
+        create_sphere(&sphere_name, "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        sphere::ssr::create_sphere("camelCase-snake-case123-", "a", false, &test_user, &db_pool)
+        create_sphere("camelCase-snake-case123-", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        sphere::ssr::create_sphere("camelcase_snake_case123-", "a", false, &test_user, &db_pool)
+        create_sphere("camelcase_snake_case123-", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        sphere::ssr::create_sphere("camelCase_Snake_Case123-", "a", false, &test_user, &db_pool)
+        create_sphere("camelCase_Snake_Case123-", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        sphere::ssr::create_sphere("", "a", false, &test_user, &db_pool)
+        create_sphere("", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        sphere::ssr::create_sphere(" ", "a", false, &test_user, &db_pool)
+        create_sphere(" ", "a", false, &test_user, &db_pool)
             .await
             .is_err()
     );
     assert!(
-        sphere::ssr::create_sphere("b", "b", false, &test_user, &db_pool)
+        create_sphere("b", "b", false, &test_user, &db_pool)
             .await
             .is_ok()
     );
@@ -311,7 +311,7 @@ async fn test_update_sphere_description() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let lead = create_user("lead", &db_pool).await;
     let ordinary_user = create_user("user", &db_pool).await;
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         "test",
         "first",
         false,
@@ -353,7 +353,7 @@ async fn test_subscribe() -> Result<(), AppError> {
 
     let sphere_name = "a";
     let sphere_description = "a";
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         sphere_name,
         sphere_description,
         false,
@@ -380,7 +380,7 @@ async fn test_unsubscribe() -> Result<(), AppError> {
 
     let sphere_name = "a";
     let sphere_description = "a";
-    let sphere = sphere::ssr::create_sphere(
+    let sphere = create_sphere(
         sphere_name,
         sphere_description,
         false,

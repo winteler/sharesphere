@@ -210,7 +210,7 @@ fn LoginGuardHome() -> impl IntoView {
     }
 }
 
-/// Component to guard pages requiring a login, and enable the user to login with a redirect
+/// Component to guard pages requiring a login, and enable the user to log in with a redirect
 #[component]
 fn LoginGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();

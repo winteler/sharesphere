@@ -226,7 +226,6 @@ pub mod ssr {
             return Err(AppError::InternalServerError(String::from("Sphere leader cannot lower his permissions, must designate another leader.")))
         }
 
-
         sqlx::query!(
             "UPDATE user_sphere_roles SET delete_timestamp = NOW()
             WHERE user_id = $1 AND sphere_name = $2 AND delete_timestamp IS NULL",

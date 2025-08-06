@@ -142,6 +142,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Option<Vote>, AppError> {
+        // TODO prevent banned user from voting
         let (prev_vote_value, vote) = if let Some(vote_id) = vote_id {
             let current_vote = get_user_vote_on_content(post_id,  comment_id, vote_id, user, db_pool).await?;
             if current_vote.value == vote_value {

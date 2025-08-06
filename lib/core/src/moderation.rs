@@ -84,7 +84,8 @@ pub mod ssr {
                         SELECT * FROM user_sphere_roles r
                         WHERE
                             r.sphere_id = p.sphere_id AND
-                            r.user_id = $3
+                            r.user_id = $3 AND
+                            r.permission_level != 'None'
                     )
                 RETURNING *",
             )
@@ -144,7 +145,8 @@ pub mod ssr {
                         JOIN posts p ON p.sphere_id = r.sphere_id
                         WHERE
                             p.post_id = c.post_id AND
-                            r.user_id = $3
+                            r.user_id = $3  AND
+                            r.permission_level != 'None'
                     )
                 RETURNING *",
             )
@@ -170,7 +172,11 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: &PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.check_permissions(&sphere_name, PermissionLevel::Moderate).is_ok() && user.user_id != user_id && !is_user_sphere_moderator(user_id, sphere_name, &db_pool).await? {
+        if (
+            user.check_permissions(&sphere_name, PermissionLevel::Moderate).is_ok() &&
+            user.user_id != user_id &&
+            !is_user_sphere_moderator(user_id, sphere_name, &db_pool).await?
+        ) {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
                 ban_duration => {

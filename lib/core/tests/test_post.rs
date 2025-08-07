@@ -443,11 +443,10 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     ).await.expect("Should create sphere 2 with posts.");
 
     let post_vec = get_subscribed_post_vec(
-        user.user_id,
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
-        None,
+        &user,
         &db_pool,
     ).await?;
     assert!(post_vec.is_empty());
@@ -456,11 +455,10 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec = get_subscribed_post_vec(
-            user.user_id,
             SortType::Post(sort_type),
             num_post as i64,
             0,
-            None,
+            &user,
             &db_pool,
         ).await?;
         sort_post_vec(&mut expected_post_vec, sort_type, true);
@@ -471,11 +469,10 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     let (moderated_post, deleted_post) = get_moderated_and_deleted_posts(sphere1_name, &user, &db_pool).await;
 
     let post_vec = get_subscribed_post_vec(
-        user.user_id,
         SortType::Post(PostSortType::Recent),
         num_post as i64,
         0,
-        None,
+        &user,
         &db_pool,
     ).await?;
 
@@ -485,11 +482,10 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     // test no posts are returned after unsubscribing
     unsubscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
     let post_vec = get_subscribed_post_vec(
-        user.user_id,
         SortType::Post(PostSortType::Hot),
         num_post as i64,
         0,
-        None,
+        &user,
         &db_pool,
     ).await?;
     assert!(post_vec.is_empty());
@@ -537,11 +533,10 @@ async fn test_get_subscribed_post_vec_with_filters() {
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = get_subscribed_post_vec(
-            user.user_id,
             SortType::Post(sort_type),
             (2*num_post) as i64,
             0,
-            Some(&user),
+            &user,
             &db_pool,
         )
             .await
@@ -558,11 +553,10 @@ async fn test_get_subscribed_post_vec_with_filters() {
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = get_subscribed_post_vec(
-            user.user_id,
             SortType::Post(sort_type),
             (2*num_post) as i64,
             0,
-            Some(&user),
+            &user,
             &db_pool,
         )
             .await
@@ -578,11 +572,10 @@ async fn test_get_subscribed_post_vec_with_filters() {
 
     for sort_type in POST_SORT_TYPE_ARRAY {
         let post_vec: Vec<PostWithSphereInfo> = get_subscribed_post_vec(
-            user.user_id,
             SortType::Post(sort_type),
             (2*num_post) as i64,
             0,
-            Some(&user),
+            &user,
             &db_pool,
         )
             .await

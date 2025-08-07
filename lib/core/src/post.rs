@@ -429,15 +429,13 @@ pub mod ssr {
     }
 
     pub async fn get_subscribed_post_vec(
-        user_id: i64,
         sort_type: SortType,
         limit: i64,
         offset: i64,
-        user: Option<&User>,
+        user: &User,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
-        // TODO: make user not optional?
-        let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
+        let posts_filters = user.get_posts_filter();
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
                 "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
@@ -464,7 +462,7 @@ pub mod ssr {
             )
                 .as_str(),
         )
-            .bind(user_id)
+            .bind(user.user_id)
             .bind(posts_filters.days_hide_spoiler)
             .bind(posts_filters.show_nsfw)
             .bind(limit)
@@ -833,19 +831,17 @@ pub async fn get_sorted_post_vec(
 
 #[server]
 pub async fn get_subscribed_post_vec(
-    user_id: i64,
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, AppError> {
-    let user = get_user().await.unwrap_or(None);
+    let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_subscribed_post_vec(
-        user_id,
         sort_type,
         POST_BATCH_SIZE,
         num_already_loaded as i64,
-        user.as_ref(),
+        &user,
         &db_pool,
     ).await?;
 

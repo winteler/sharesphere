@@ -12,7 +12,7 @@ use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, S
 use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE, POPULAR_ROUTE};
 use sharesphere_auth::auth::*;
 use sharesphere_auth::auth_widget::LoginWindow;
-use sharesphere_auth::user::{DeleteUser, SetUserSettings, User, UserState};
+use sharesphere_auth::user::{DeleteUser, SetUserSettings, UserState};
 use sharesphere_components::policy::{AboutShareSphere, ContentPolicy, PrivacyPolicy, Rules, TermsAndConditions};
 use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
@@ -249,7 +249,7 @@ fn HomePage() -> impl IntoView {
                 {
                     move || Suspend::new(async move {
                         match state.user.await {
-                            Ok(Some(user)) => view! { <UserHomePage user refresh_count additional_load_count is_loading div_ref/> }.into_any(),
+                            Ok(Some(_)) => view! { <UserHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
                             _ => view! { <DefaultHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
                         }
                     })
@@ -361,13 +361,11 @@ fn DefaultHomePage(
 /// Renders the home page of a given user.
 #[component]
 fn UserHomePage(
-    user: User,
     refresh_count: RwSignal<usize>,
     additional_load_count: RwSignal<i32>,
     is_loading: RwSignal<bool>,
     div_ref: NodeRef<Div>,
 ) -> impl IntoView {
-    let user_id = user.user_id;
     let state = expect_context::<GlobalState>();
     let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let load_error = RwSignal::new(None);
@@ -378,7 +376,7 @@ fn UserHomePage(
             #[cfg(feature = "hydrate")]
             is_loading.set(true);
             reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
-            let result = get_subscribed_post_vec(user_id, sort_type, 0).await;
+            let result = get_subscribed_post_vec(sort_type, 0).await;
             #[cfg(feature = "hydrate")]
             is_loading.set(false);
             result
@@ -396,7 +394,7 @@ fn UserHomePage(
             if additional_load_count_throttled.get() > 0 {
                 is_loading.set(true);
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
-                let additional_load = get_subscribed_post_vec(user_id, state.post_sort_type.get_untracked(), num_post).await;
+                let additional_load = get_subscribed_post_vec(state.post_sort_type.get_untracked(), num_post).await;
                 handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }

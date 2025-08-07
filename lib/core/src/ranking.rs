@@ -142,7 +142,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Option<Vote>, AppError> {
-        // TODO prevent banned user from voting
+        user.check_can_publish()?;
         let (prev_vote_value, vote) = if let Some(vote_id) = vote_id {
             let current_vote = get_user_vote_on_content(post_id,  comment_id, vote_id, user, db_pool).await?;
             if current_vote.value == vote_value {
@@ -153,10 +153,17 @@ pub mod ssr {
                 let vote = sqlx::query_as!(
                         Vote,
                         "UPDATE votes SET value = $1
-                        WHERE vote_id = $2 AND
-                              post_id = $3 AND
-                              comment_id IS NOT DISTINCT FROM $4 AND
-                              user_id = $5
+                        WHERE
+                            vote_id = $2 AND
+                            post_id = $3 AND
+                            comment_id IS NOT DISTINCT FROM $4 AND
+                            user_id = $5 AND
+                            NOT EXISTS (
+                                SELECT * FROM user_bans b
+                                JOIN spheres s ON s.sphere_id = b.sphere_id
+                                JOIN posts p ON p.sphere_id = s.sphere_id
+                                WHERE p.post_id = $3 AND b.user_id = $5
+                            )
                         RETURNING *",
                         vote_value as i16,
                         vote_id,
@@ -186,7 +193,14 @@ pub mod ssr {
             log::debug!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
             let vote = sqlx::query_as!(
                     Vote,
-                    "INSERT INTO votes (post_id, comment_id, user_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
+                    "INSERT INTO votes (post_id, comment_id, user_id, value) 
+                    SELECT $1, $2, $3, $4
+                    WHERE NOT EXISTS (
+                        SELECT * FROM user_bans b
+                        JOIN spheres s ON s.sphere_id = b.sphere_id
+                        JOIN posts p ON p.sphere_id = s.sphere_id
+                        WHERE p.post_id = $1 AND b.user_id = $3
+                    ) RETURNING *",
                     post_id,
                     comment_id,
                     user.user_id,

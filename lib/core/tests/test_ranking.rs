@@ -1,5 +1,9 @@
+use sharesphere_auth::role::AdminRole;
+use sharesphere_auth::user::{BanStatus, User};
 use sharesphere_core::ranking::VoteValue;
 use sharesphere_core::{post, ranking};
+use sharesphere_core::moderation::ssr::ban_user_from_sphere;
+use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_utils::errors::AppError;
 
 use crate::common::*;
@@ -99,7 +103,7 @@ async fn test_vote_on_content_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (_, _, init_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (sphere, _, init_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let comment = get_comment_by_id(init_comment.comment_id, &db_pool).await?;
 
@@ -173,6 +177,100 @@ async fn test_vote_on_content_comment() -> Result<(), AppError> {
     let comment = get_comment_by_id(comment.comment_id, &db_pool).await?;
     assert_eq!(get_user_comment_vote(&comment, user.user_id, &db_pool).await, Err(AppError::NotFound));
     assert_eq!(init_comment.score, comment.score);
-
     Ok(())
+}
+
+#[tokio::test]
+async fn test_vote_on_content_with_ban() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let mut user = User::get(user.user_id, &db_pool).await.expect("User should be found.");
+    user.admin_role = AdminRole::Admin;
+
+    let (_, post_2, comment_2) = create_sphere_with_post_and_comment("sphere_2", &mut user, &db_pool).await;
+    let sphere_rule = add_rule(
+        Some(&sphere.sphere_name), 0, "test", "test", None, &user, &db_pool
+    ).await.expect("Shere rule should be added.");
+
+    let user_1 = create_user("1", &db_pool).await;
+    ban_user_from_sphere(
+        user_1.user_id, &sphere.sphere_name, comment.post_id, Some(comment.comment_id), sphere_rule.rule_id, &user, None, &db_pool
+    ).await.expect("User should be banned.");
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment.post_id,
+        None,
+        None,
+        &user_1,
+        &db_pool,
+    ).await.expect_err("User 1 cannot vote in banned sphere.");
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment.post_id,
+        Some(comment.comment_id),
+        None,
+        &user_1,
+        &db_pool,
+    ).await.expect_err("User 1 cannot vote in banned sphere.");
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment_2.post_id,
+        None,
+        None,
+        &user_1,
+        &db_pool,
+    ).await.expect("User 1 can still vote in other spheres.");
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment_2.post_id,
+        Some(comment_2.comment_id),
+        None,
+        &user_1,
+        &db_pool,
+    ).await.expect("User 1 can still vote in other spheres.");
+
+    let mut user_2 = create_user("2", &db_pool).await;
+    user_2.ban_status = BanStatus::Permanent;
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment.post_id,
+        None,
+        None,
+        &user_2,
+        &db_pool,
+    ).await.expect_err("User 2 cannot vote anywhere.");
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment.post_id,
+        Some(comment.comment_id),
+        None,
+        &user_2,
+        &db_pool,
+    ).await.expect_err("User 2 cannot vote anywhere.");
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment_2.post_id,
+        None,
+        None,
+        &user_2,
+        &db_pool,
+    ).await.expect_err("User 2 cannot vote anywhere.");
+
+    ranking::ssr::vote_on_content(
+        VoteValue::Up,
+        comment_2.post_id,
+        Some(comment_2.comment_id),
+        None,
+        &user_2,
+        &db_pool,
+    ).await.expect_err("User 2 cannot vote anywhere.");
 }

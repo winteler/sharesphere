@@ -15,6 +15,8 @@ use {
         session::ssr::get_db_pool,
     },
 };
+use sharesphere_utils::checks::check_string_length;
+use sharesphere_utils::constants::MAX_SPHERE_NAME_LENGTH;
 use sharesphere_utils::icons::SphereIcon;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::get_sphere_path;
@@ -504,5 +506,6 @@ pub fn InfiniteSphereLinkList(
 /// assert_eq!(is_valid_sphere_name("name%"), false);
 /// ```
 pub fn is_valid_sphere_name(name: &str) -> bool {
-    name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') &&
+        check_string_length(name, "Sphere name", MAX_SPHERE_NAME_LENGTH).is_ok()
 }

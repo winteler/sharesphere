@@ -1,4 +1,5 @@
 #![recursion_limit = "256"]
+pub mod checks;
 pub mod colors;
 pub mod constants;
 pub mod editor;

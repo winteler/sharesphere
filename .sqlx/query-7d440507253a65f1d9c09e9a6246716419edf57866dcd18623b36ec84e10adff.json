@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE votes SET value = $1\n                        WHERE vote_id = $2 AND\n                              post_id = $3 AND\n                              comment_id IS NOT DISTINCT FROM $4 AND\n                              user_id = $5\n                        RETURNING *",
+  "query": "UPDATE votes SET value = $1\n                        WHERE\n                            vote_id = $2 AND\n                            post_id = $3 AND\n                            comment_id IS NOT DISTINCT FROM $4 AND\n                            user_id = $5 AND\n                            NOT EXISTS (\n                                SELECT * FROM user_bans b\n                                JOIN spheres s ON s.sphere_id = b.sphere_id\n                                JOIN posts p ON p.sphere_id = s.sphere_id\n                                WHERE p.post_id = $3 AND b.user_id = $5\n                            )\n                        RETURNING *",
   "describe": {
     "columns": [
       {
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "186fb9836a0911f84a5d9313bea2a5cab025517107da683ad7c3b120080bc4a8"
+  "hash": "7d440507253a65f1d9c09e9a6246716419edf57866dcd18623b36ec84e10adff"
 }

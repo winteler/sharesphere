@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO votes (post_id, comment_id, user_id, value) VALUES ($1, $2, $3, $4) RETURNING *",
+  "query": "INSERT INTO votes (post_id, comment_id, user_id, value) \n                    SELECT $1, $2, $3, $4\n                    WHERE NOT EXISTS (\n                        SELECT * FROM user_bans b\n                        JOIN spheres s ON s.sphere_id = b.sphere_id\n                        JOIN posts p ON p.sphere_id = s.sphere_id\n                        WHERE p.post_id = $1 AND b.user_id = $3\n                    ) RETURNING *",
   "describe": {
     "columns": [
       {
@@ -51,5 +51,5 @@
       false
     ]
   },
-  "hash": "52ce0a1599e3a53a77728e2e8fb9671370620f6422566a16b969d74f157d9ff4"
+  "hash": "7c997e92eeb7812156c8a2c3ee39e0343182295ab1501e77a3ae0c05d226b927"
 }

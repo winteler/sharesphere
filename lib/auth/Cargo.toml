@@ -32,6 +32,9 @@ web-sys.workspace = true
 
 async-trait = { version = "*", optional = true }
 
+[dev-dependencies]
+sealed_test = "1.1.0"
+
 [features]
 default = []
 hydrate = [

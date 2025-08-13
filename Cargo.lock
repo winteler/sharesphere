@@ -4406,6 +4406,7 @@ dependencies = [
  "lru",
  "openidconnect",
  "reqwest",
+ "sealed_test",
  "serde",
  "serde_json",
  "sharesphere_utils",

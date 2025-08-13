@@ -91,7 +91,7 @@ pub mod ssr {
     use sharesphere_auth::user::User;
     use sharesphere_utils::errors::AppError;
     use sharesphere_utils::errors::AppError::InternalServerError;
-    use crate::sphere::{is_valid_sphere_name, Sphere, SphereHeader, SphereWithUserInfo};
+    use crate::sphere::{check_sphere_name, Sphere, SphereHeader, SphereWithUserInfo};
 
     pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
         let sphere = sqlx::query_as::<_, Sphere>(
@@ -186,16 +186,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Sphere, AppError> {
         user.check_can_publish()?;
-        if name.is_empty() {
-            return Err(AppError::new("Cannot create Sphere with empty name."));
-        }
-
-        if !is_valid_sphere_name(&name)
-        {
-            return Err(AppError::new(
-                "Sphere name can only contain alphanumeric lowercase characters.",
-            ));
-        }
+        check_sphere_name(name)?;
 
         let sphere = sqlx::query_as::<_, Sphere>(
             "INSERT INTO spheres (sphere_name, description, is_nsfw, creator_id) VALUES ($1, $2, $3, $4) RETURNING *"
@@ -496,16 +487,27 @@ pub fn InfiniteSphereLinkList(
     }.into_any()
 }
 
-/// # Returns whether a sphere name is valid. Valid characters are ascii alphanumeric, '-' and '_'
+/// # Returns whether a sphere name is valid.
+///
+/// # Valid names contain only ascii alphanumeric characters, '-', '_' and have a maximum length of `MAX_SPHERE_NAME_LENGTH`
 ///
 /// ```
-/// use sharesphere_core::sphere::is_valid_sphere_name;
+/// use sharesphere_core::sphere::{check_sphere_name};
+/// use sharesphere_utils::constants::MAX_SPHERE_NAME_LENGTH;
+/// use sharesphere_utils::errors::AppError;
 ///
-/// assert_eq!(is_valid_sphere_name("-Abc123_"), true);
-/// assert_eq!(is_valid_sphere_name(" name"), false);
-/// assert_eq!(is_valid_sphere_name("name%"), false);
+/// assert!(check_sphere_name("-Abc123_").is_ok());
+/// assert!(check_sphere_name(" name").is_err());
+/// assert!(check_sphere_name("name%").is_err());
+/// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH)).is_ok());
+/// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH + 1)).is_err());
 /// ```
-pub fn is_valid_sphere_name(name: &str) -> bool {
-    name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') &&
-        check_string_length(name, "Sphere name", MAX_SPHERE_NAME_LENGTH).is_ok()
+pub fn check_sphere_name(name: &str) -> Result<(), AppError> {
+    if name.is_empty() {
+        Err(AppError::new("Sphere name cannot be empty."))
+    } else if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        Err(AppError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
+    } else {
+        check_string_length(name, "Sphere name", MAX_SPHERE_NAME_LENGTH)
+    }
 }

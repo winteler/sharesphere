@@ -79,6 +79,28 @@ impl AppError {
         }
     }
 
+    pub fn error_detail(&self) -> String {
+        match self {
+            AppError::AuthenticationError(e) => e.clone(),
+            AppError::NotAuthenticated => String::from(NOT_AUTHENTICATED_MESSAGE),
+            AppError::InsufficientPrivileges => String::from("Insufficient privileges"),
+            AppError::SphereBanUntil(timestamp) => format!("{} {}", SPHERE_BAN_UNTIL_MESSAGE, timestamp),
+            AppError::PermanentSphereBan => String::from(PERMANENT_SPHERE_BAN_MESSAGE),
+            AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp),
+            AppError::PermanentGlobalBan => String::from(PERMANENT_GLOBAL_BAN_MESSAGE),
+            AppError::CommunicationError(error) => match error {
+                ServerFnErrorErr::Args(e) | ServerFnErrorErr::MissingArg(e) |
+                ServerFnErrorErr::Serialization(e) | ServerFnErrorErr::Deserialization(e) => e.clone(),
+                ServerFnErrorErr::Registration(e) | ServerFnErrorErr::Request(e) | ServerFnErrorErr::Response(e) => e.clone(),
+                _ => String::from(INTERNAL_ERROR_MESSAGE),
+            },
+            AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
+            AppError::InternalServerError(e) => e.clone(),
+            AppError::NotFound => String::from(NOT_FOUND_MESSAGE),
+            AppError::PayloadTooLarge(mb_limit) => format!("Payload exceeds the {mb_limit} Bytes limit."),
+        }
+    }
+
     /// Constructs a new [`AppError::InternalServerError`] from some other type.
     pub fn new(msg: impl ToString) -> Self {
         Self::InternalServerError(msg.to_string())
@@ -104,7 +126,7 @@ impl FromServerFnError for AppError {
 
     fn from_server_fn_error(error: ServerFnErrorErr) -> Self {
         match error {
-            ServerFnErrorErr::ServerError(message) => AppError::from_str(message.as_str()).unwrap_or(AppError::InternalServerError(message.clone())),
+            ServerFnErrorErr::ServerError(message) => serde_json::from_str(message.as_str()).unwrap_or(AppError::InternalServerError(message.clone())),
             _ => AppError::CommunicationError(error),
         }
     }

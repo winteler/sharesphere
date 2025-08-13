@@ -8,7 +8,7 @@ use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOption
 
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::icons::{InternalErrorIcon, LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SubscribedIcon};
+use sharesphere_utils::icons::{LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
 
@@ -22,10 +22,11 @@ use sharesphere_core::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, SatelliteState, UpdateSatellite};
 use sharesphere_core::sidebar::SphereSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
-use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, is_valid_sphere_name, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
+use sharesphere_core::sphere::{check_sphere_name, get_sphere_with_user_info, is_sphere_available, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 use crate::satellite::{ActiveSatelliteList};
 use crate::sphere_category::get_sphere_category_header_map;
@@ -330,7 +331,7 @@ pub fn CreateSphere() -> impl IntoView {
     let is_sphere_available = Resource::new(
         move || sphere_name_debounced.get(),
         move |sphere_name| async {
-            if sphere_name.is_empty() {
+            if sphere_name.is_empty() || check_sphere_name(&sphere_name).is_err() {
                 None
             } else {
                 Some(is_sphere_available(sphere_name).await)
@@ -344,13 +345,10 @@ pub fn CreateSphere() -> impl IntoView {
         content: RwSignal::new(String::new()),
         textarea_ref,
     };
-    let is_name_empty = move || sphere_name.read().is_empty();
-    let is_name_alphanumeric =
-        move || is_valid_sphere_name(&sphere_name.read());
+    let is_valid_sphere_name = move || check_sphere_name(&*sphere_name_debounced.read());
     let are_inputs_invalid = Memo::new(move |_| {
-        is_name_empty()
+        is_valid_sphere_name().is_err()
             || is_name_taken.get()
-            || !is_name_alphanumeric()
             || description_data.content.read().is_empty()
     });
 
@@ -359,7 +357,7 @@ pub fn CreateSphere() -> impl IntoView {
             <ActionForm action=state.create_sphere_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>
-                    <div class="h-full flex gap-2">
+                    <div class="h-full flex gap-2 items-center">
                         <input
                             type="text"
                             name="sphere_name"
@@ -374,12 +372,14 @@ pub fn CreateSphere() -> impl IntoView {
                         />
                         <Suspense fallback=move || view! { <LoadingIcon class="h-7 w-7"/> }>
                         {
-                            move || is_sphere_available.map(|result| match result {
-                                None | Some(Ok(true)) => {
-                                    is_name_taken.set(false);
-                                    view! {}.into_any()
-                                },
-                                Some(Ok(false)) => {
+                            move || match (sphere_name_debounced.read().is_empty(), is_valid_sphere_name(), is_sphere_available.get()) {
+                                (true, _, _) => ().into_any(),
+                                (_, Err(e), _) => view! {
+                                    <div class="alert alert-error flex items-center">
+                                        <span>{e.error_detail()}</span>
+                                    </div>
+                                }.into_any(),
+                                (_, _, Some(Some(Ok(false)))) => {
                                     is_name_taken.set(true);
                                     view! {
                                         <div class="alert alert-error flex items-center justify-center">
@@ -387,24 +387,22 @@ pub fn CreateSphere() -> impl IntoView {
                                         </div>
                                     }.into_any()
                                 },
-                                Some(Err(e)) => {
+                                (_, _, Some(Some(Err(e)))) => {
                                     log::error!("Error while checking sphere existence: {e}");
                                     is_name_taken.set(true);
                                     view! {
                                         <div class="alert alert-error h-fit py-2 flex items-center justify-center">
-                                            <InternalErrorIcon class="h-16 w-16"/>
-                                            <span class="font-semibold">"Server error"</span>
+                                            <ErrorDisplay error=e.clone()/>
                                         </div>
                                     }.into_any()
                                 },
-                            })
-
+                                _ => {
+                                    is_name_taken.set(false);
+                                    ().into_any()
+                                }
+                            }
                         }
                         </Suspense>
-                        <div class="alert alert-error flex items-center" class:hidden=move || is_name_empty() || is_name_alphanumeric()>
-                            <InternalErrorIcon class="h-16 w-16"/>
-                            <span>"Only alphanumeric characters."</span>
-                        </div>
                     </div>
                     <FormTextEditor
                         name="description"

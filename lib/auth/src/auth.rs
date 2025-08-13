@@ -24,7 +24,7 @@ use {
         routes::get_app_origin,
     },
     crate::{
-        auth::ssr::{get_oidc_http_client, get_provider_metadata},
+        auth::ssr::{get_oidc_http_client, get_provider_metadata, validate_redirect_url},
         session::ssr::get_session,
     }
 };
@@ -368,10 +368,35 @@ pub mod ssr {
             false => Err(AppError::new(format!("Failed to delete user: {:?}", response.text().await?))),
         }
     }
+
+    pub(super) fn validate_redirect_url(redirect_url: &str) -> Result<(), AppError> {
+        match redirect_url.starts_with(&get_app_origin()?) {
+            true => Ok(()),
+            false => Err(AppError::new("The redirect url must have ShareSphere's origin."))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use sealed_test::prelude::*;
+        use sharesphere_utils::routes::APP_ORIGIN_ENV;
+        use crate::auth::ssr::validate_redirect_url;
+
+        #[sealed_test]
+        fn test_validate_redirect_url() {
+            unsafe {
+                std::env::set_var(APP_ORIGIN_ENV, "https://sharesphere.space/");
+            }
+            assert!(validate_redirect_url("https://sharesphere.space/valid/url").is_ok());
+            assert!(validate_redirect_url("http://sharesphere.space/valid/url").is_err());
+            assert!(validate_redirect_url("https://invalid.redirect/").is_err());
+        }
+    }
 }
 
 #[server]
 pub async fn login(redirect_url: String) -> Result<Option<User>, AppError> {
+    validate_redirect_url(&redirect_url)?;
     let current_user = get_user().await;
 
     if let Ok(Some(current_user)) = current_user
@@ -435,7 +460,7 @@ pub async fn get_user() -> Result<Option<User>, AppError> {
 #[server]
 pub async fn end_session(redirect_url: String) -> Result<(), AppError> {
     log::debug!("Logout, redirect_url: {redirect_url}");
-
+    validate_redirect_url(&redirect_url)?;
     let http_client = get_oidc_http_client()?;
     let auth_session = get_session()?;
     let token_response: oidc::core::CoreTokenResponse =

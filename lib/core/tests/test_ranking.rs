@@ -103,7 +103,7 @@ async fn test_vote_on_content_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (sphere, _, init_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (_, _, init_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let comment = get_comment_by_id(init_comment.comment_id, &db_pool).await?;
 
@@ -185,11 +185,11 @@ async fn test_vote_on_content_with_ban() {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (sphere, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (sphere, _, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
     let mut user = User::get(user.user_id, &db_pool).await.expect("User should be found.");
     user.admin_role = AdminRole::Admin;
 
-    let (_, post_2, comment_2) = create_sphere_with_post_and_comment("sphere_2", &mut user, &db_pool).await;
+    let (_, _, comment_2) = create_sphere_with_post_and_comment("sphere_2", &mut user, &db_pool).await;
     let sphere_rule = add_rule(
         Some(&sphere.sphere_name), 0, "test", "test", None, &user, &db_pool
     ).await.expect("Shere rule should be added.");

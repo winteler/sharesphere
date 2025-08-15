@@ -20,11 +20,12 @@ use crate::user::{User, UserState};
 #[cfg(feature = "ssr")]
 use {
     sharesphere_utils::{
+        checks::validate_redirect_url,
         constants::SITE_ROOT,
         routes::get_app_origin,
     },
     crate::{
-        auth::ssr::{get_oidc_http_client, get_provider_metadata, validate_redirect_url},
+        auth::ssr::{get_oidc_http_client, get_provider_metadata},
         session::ssr::get_session,
     }
 };
@@ -315,6 +316,7 @@ pub mod ssr {
     }
 
     pub async fn redirect_to_oidc_provider(redirect_url: String) -> Result<(), AppError> {
+        validate_redirect_url(&redirect_url)?;
         let client = get_oidc_client(&get_oidc_http_client()?).await?;
         // Generate the full authorization URL.
         let (auth_url, _csrf_token, nonce) = client
@@ -368,35 +370,10 @@ pub mod ssr {
             false => Err(AppError::new(format!("Failed to delete user: {:?}", response.text().await?))),
         }
     }
-
-    pub(super) fn validate_redirect_url(redirect_url: &str) -> Result<(), AppError> {
-        match redirect_url.starts_with(&get_app_origin()?) {
-            true => Ok(()),
-            false => Err(AppError::new("The redirect url must have ShareSphere's origin."))
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use sealed_test::prelude::*;
-        use sharesphere_utils::routes::APP_ORIGIN_ENV;
-        use crate::auth::ssr::validate_redirect_url;
-
-        #[sealed_test]
-        fn test_validate_redirect_url() {
-            unsafe {
-                std::env::set_var(APP_ORIGIN_ENV, "https://sharesphere.space/");
-            }
-            assert!(validate_redirect_url("https://sharesphere.space/valid/url").is_ok());
-            assert!(validate_redirect_url("http://sharesphere.space/valid/url").is_err());
-            assert!(validate_redirect_url("https://invalid.redirect/").is_err());
-        }
-    }
 }
 
 #[server]
 pub async fn login(redirect_url: String) -> Result<Option<User>, AppError> {
-    validate_redirect_url(&redirect_url)?;
     let current_user = get_user().await;
 
     if let Ok(Some(current_user)) = current_user
@@ -427,6 +404,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), AppError> {
         .session
         .get(REDIRECT_URL_KEY)
         .unwrap_or(String::from(SITE_ROOT));
+    validate_redirect_url(&redirect_url)?;
 
     if let Some(user) = auth_session.current_user {
         log::info!("User {} was already authenticated", user.username);

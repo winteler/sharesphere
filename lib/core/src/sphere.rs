@@ -15,8 +15,6 @@ use {
         session::ssr::get_db_pool,
     },
 };
-use sharesphere_utils::checks::check_string_length;
-use sharesphere_utils::constants::MAX_SPHERE_NAME_LENGTH;
 use sharesphere_utils::icons::SphereIcon;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::get_sphere_path;
@@ -91,7 +89,8 @@ pub mod ssr {
     use sharesphere_auth::user::User;
     use sharesphere_utils::errors::AppError;
     use sharesphere_utils::errors::AppError::InternalServerError;
-    use crate::sphere::{check_sphere_name, Sphere, SphereHeader, SphereWithUserInfo};
+    use sharesphere_utils::checks::check_sphere_name;
+    use crate::sphere::{Sphere, SphereHeader, SphereWithUserInfo};
 
     pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
         let sphere = sqlx::query_as::<_, Sphere>(
@@ -485,29 +484,4 @@ pub fn InfiniteSphereLinkList(
             <LoadIndicators load_error is_loading/>
         </Show>
     }.into_any()
-}
-
-/// # Returns whether a sphere name is valid.
-///
-/// # Valid names contain only ascii alphanumeric characters, '-', '_' and have a maximum length of `MAX_SPHERE_NAME_LENGTH`
-///
-/// ```
-/// use sharesphere_core::sphere::{check_sphere_name};
-/// use sharesphere_utils::constants::MAX_SPHERE_NAME_LENGTH;
-/// use sharesphere_utils::errors::AppError;
-///
-/// assert!(check_sphere_name("-Abc123_").is_ok());
-/// assert!(check_sphere_name(" name").is_err());
-/// assert!(check_sphere_name("name%").is_err());
-/// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH)).is_ok());
-/// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH + 1)).is_err());
-/// ```
-pub fn check_sphere_name(name: &str) -> Result<(), AppError> {
-    if name.is_empty() {
-        Err(AppError::new("Sphere name cannot be empty."))
-    } else if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-        Err(AppError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
-    } else {
-        check_string_length(name, "Sphere name", MAX_SPHERE_NAME_LENGTH)
-    }
 }

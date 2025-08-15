@@ -12,10 +12,13 @@ use sharesphere_utils::unpack::SuspenseUnpack;
 use crate::user::UserState;
 
 #[cfg(feature = "ssr")]
-use crate::{
-    auth::ssr::{check_user, reload_user},
-    user::ssr::SqlUser,
-    session::ssr::get_db_pool,
+use {
+    sharesphere_utils::checks::check_sphere_name,
+    crate::{
+        auth::ssr::{check_user, reload_user},
+        user::ssr::SqlUser,
+        session::ssr::get_db_pool,
+    }
 };
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -116,6 +119,7 @@ pub mod ssr {
         sphere_name: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<UserSphereRole>, AppError> {
+        check_sphere_name(&sphere_name)?;
         let sphere_role_vec = sqlx::query_as!(
             UserSphereRole,
             "SELECT r.*, u.username FROM user_sphere_roles r
@@ -139,6 +143,7 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserSphereRole, Option<i64>), AppError> {
+        check_sphere_name(&sphere_name)?;
         if permission_level == PermissionLevel::Lead {
             set_sphere_leader(user_id, sphere_name, grantor, db_pool).await
         } else {

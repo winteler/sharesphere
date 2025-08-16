@@ -4,7 +4,7 @@ use crate::utils::{sort_comment_vec, sort_post_vec, COMMENT_SORT_TYPE_ARRAY, POS
 use sharesphere_core::comment::ssr::create_comment;
 use sharesphere_core::comment::{CommentWithContext};
 use sharesphere_core::post::ssr::create_post;
-use sharesphere_core::post::{PostWithSphereInfo};
+use sharesphere_core::post::{PostTags, PostWithSphereInfo};
 use sharesphere_core::profile::ssr::{get_user_comment_vec, get_user_post_vec};
 use sharesphere_core::ranking::{CommentSortType, PostSortType, SortType, VoteValue};
 use sharesphere_core::satellite::ssr::create_satellite;
@@ -43,10 +43,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         "satellite",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user_1,
         &db_pool,
     ).await.expect("Should create satellite post");
@@ -70,10 +67,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         "sphere_2",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user_1,
         &db_pool,
     ).await.expect("Should create satellite post");

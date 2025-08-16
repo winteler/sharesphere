@@ -3,7 +3,7 @@ use crate::data_factory::{create_simple_post, set_sphere_num_members};
 use sharesphere_core::comment::ssr::create_comment;
 use sharesphere_core::comment::CommentWithContext;
 use sharesphere_core::post::ssr::create_post;
-use sharesphere_core::post::PostWithSphereInfo;
+use sharesphere_core::post::{PostTags, PostWithSphereInfo};
 use sharesphere_core::search::ssr::{get_matching_sphere_header_vec, get_matching_user_header_vec, search_comments, search_posts, search_spheres};
 use sharesphere_core::sphere::ssr::create_sphere;
 use sharesphere_core::sphere::SphereHeader;
@@ -221,10 +221,7 @@ async fn test_search_posts() {
             "ça veut dire bonjour.",
             None,
             Link::default(),
-            true,
-            false,
-            false,
-            None,
+            PostTags::default(),
             &user,
             &db_pool
         ).await.expect("Sphere 4 should be created."),
@@ -238,10 +235,7 @@ async fn test_search_posts() {
             "Me souhaitez vous le bonjour ou constatez vous que c’est une bonne journée, que je le veuille ou non, ou encore que c’est une journée où il faut être bon ?",
             None,
             Link::default(),
-            false,
-            true,
-            false,
-            None,
+            PostTags::new(false, true, false, None),
             &user,
             &db_pool
         ).await.expect("Sphere 5 should be created."),

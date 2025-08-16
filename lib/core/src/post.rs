@@ -74,22 +74,35 @@ pub struct Post {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
-pub struct PostInputs {
+pub struct CreatePostInputs {
     #[validate(custom(function = "check_sphere_name"))]
     sphere: String,
     #[validate(range(min = 1))]
     satellite_id: Option<i64>,
-    #[validate(length(min = 1, max = MAX_TITLE_LENGTH as u64))]
+    #[validate(nested)]
+    post_data: PostDataInputs,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
+pub struct PostDataInputs {
+    #[validate(length(min = 1, max = MAX_TITLE_LENGTH))]
     title: String,
-    #[validate(length(min = 1, max = 20000))]
+    #[validate(length(min = 1, max = MAX_CONTENT_LENGTH))]
     body: String,
-    embed_type: EmbedType,
-    #[validate(length(min = 1, max = 500))]
-    link: Option<String>,
     is_markdown: bool,
+    embed_type: EmbedType,
+    #[validate(length(min = 1, max = MAX_LINK_LENGTH))]
+    link: Option<String>,
+    #[validate(nested)]
+    post_tags: PostTags
+}
+
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
+pub struct PostTags {
     is_spoiler: bool,
     is_nsfw: bool,
-    is_pinned: Option<bool>,
+    #[serde(default)]
+    is_pinned: bool,
     #[validate(range(min = 1))]
     category_id: Option<i64>,
 }
@@ -121,6 +134,22 @@ impl Post {
     }
 }
 
+impl PostTags {
+    pub fn new(
+        is_spoiler: bool,
+        is_nsfw: bool,
+        is_pinned: bool,
+        category_id: Option<i64>,
+    ) -> Self {
+        Self {
+            is_spoiler,
+            is_nsfw,
+            is_pinned,
+            category_id,
+        }
+    }
+}
+
 impl PostWithSphereInfo {
     pub fn from_post(
         post: Post,
@@ -146,7 +175,7 @@ pub mod ssr {
     use sharesphere_utils::embed::{verify_link_and_get_embed, EmbedType, Link};
     use sharesphere_utils::errors::AppError;
     use crate::filter::SphereCategoryFilter;
-    use crate::post::{Post, PostInheritedAttributes, PostWithInfo, PostWithSphereInfo};
+    use crate::post::{Post, PostInheritedAttributes, PostTags, PostWithInfo, PostWithSphereInfo};
     use crate::ranking::{SortType, Vote, VoteValue};
     use crate::sphere::Sphere;
     use crate::sphere_category::SphereCategoryHeader;
@@ -508,10 +537,7 @@ pub mod ssr {
         post_body: &str,
         post_markdown_body: Option<&str>,
         link: Link,
-        is_spoiler: bool,
-        is_nsfw: bool,
-        is_pinned: bool,
-        category_id: Option<i64>,
+        post_tags: PostTags,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
@@ -521,7 +547,7 @@ pub mod ssr {
                 "Cannot create post without a valid sphere and title.",
             ));
         }
-        if is_pinned {
+        if post_tags.is_pinned {
             user.check_permissions(sphere_name, PermissionLevel::Moderate)?;
         }
 
@@ -565,12 +591,12 @@ pub mod ssr {
             .bind(link.link_url)
             .bind(link.link_embed)
             .bind(link.link_thumbnail_url)
-            .bind(is_nsfw)
-            .bind(is_spoiler)
-            .bind(category_id)
+            .bind(post_tags.is_nsfw)
+            .bind(post_tags.is_spoiler)
+            .bind(post_tags.category_id)
             .bind(sphere_name)
             .bind(satellite_id)
-            .bind(is_pinned)
+            .bind(post_tags.is_pinned)
             .bind(user.user_id)
             .bind(user.username.clone())
             .bind(user.check_permissions(sphere_name, PermissionLevel::Moderate).is_ok())
@@ -586,10 +612,7 @@ pub mod ssr {
         post_body: &str,
         post_markdown_body: Option<&str>,
         link: Link,
-        is_spoiler: bool,
-        is_nsfw: bool,
-        is_pinned: bool,
-        category_id: Option<i64>,
+        post_tags: PostTags,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
@@ -598,7 +621,7 @@ pub mod ssr {
                 "Cannot update post without a valid title.",
             ));
         }
-        if is_pinned {
+        if post_tags.is_pinned {
             let post = get_post_by_id(post_id, db_pool).await?;
             user.check_permissions(&post.sphere_name, PermissionLevel::Moderate)?;
         }
@@ -650,10 +673,10 @@ pub mod ssr {
             .bind(link.link_url)
             .bind(link.link_embed)
             .bind(link.link_thumbnail_url)
-            .bind(is_nsfw)
-            .bind(is_spoiler)
-            .bind(is_pinned)
-            .bind(category_id)
+            .bind(post_tags.is_nsfw)
+            .bind(post_tags.is_spoiler)
+            .bind(post_tags.is_pinned)
+            .bind(post_tags.category_id)
             .bind(post_id)
             .bind(user.user_id)
             .fetch_one(db_pool)
@@ -918,37 +941,24 @@ pub async fn get_post_vec_by_satellite_id(
 }
 
 #[server]
-pub async fn create_post(
-    sphere: String,
-    satellite_id: Option<i64>,
-    title: String,
-    body: String,
-    embed_type: EmbedType,
-    link: Option<String>,
-    is_markdown: bool,
-    is_spoiler: bool,
-    is_nsfw: bool,
-    is_pinned: Option<bool>,
-    category_id: Option<i64>,
-) -> Result<(), AppError> {
+pub async fn create_post(post_inputs: CreatePostInputs) -> Result<(), AppError> {
+    post_inputs.validate()?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
+    let post_data = post_inputs.post_data;
 
-    let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
+    let (body, markdown_body) = get_html_and_markdown_strings(post_data.body, post_data.is_markdown).await?;
 
-    let link = ssr::process_embed_link(embed_type, link).await;
+    let link = ssr::process_embed_link(post_data.embed_type, post_data.link).await;
 
     let post = ssr::create_post(
-        sphere.as_str(),
-        satellite_id,
-        title.as_str(),
+        post_inputs.sphere.as_str(),
+        post_inputs.satellite_id,
+        post_data.title.as_str(),
         body.as_str(),
         markdown_body.as_deref(),
         link,
-        is_spoiler,
-        is_nsfw,
-        is_pinned.unwrap_or(false),
-        category_id,
+        post_data.post_tags,
         &user,
         &db_pool,
     ).await?;
@@ -956,7 +966,7 @@ pub async fn create_post(
     let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
 
     log::trace!("Created post with id: {}", post.post_id);
-    let new_post_path = get_post_path(&sphere, satellite_id, post.post_id);
+    let new_post_path = get_post_path(&post_inputs.sphere, post_inputs.satellite_id, post.post_id);
 
     leptos_axum::redirect(new_post_path.as_str());
     Ok(())
@@ -965,34 +975,27 @@ pub async fn create_post(
 #[server]
 pub async fn edit_post(
     post_id: i64,
-    title: String,
-    body: String,
-    embed_type: EmbedType,
-    link: Option<String>,
-    is_markdown: bool,
-    is_spoiler: bool,
-    is_nsfw: bool,
-    is_pinned: Option<bool>,
-    category_id: Option<i64>,
+    post_inputs: PostDataInputs,
 ) -> Result<Post, AppError> {
-    log::trace!("Edit post {post_id}, title = {title}");
+    post_inputs.validate()?;
+    log::trace!("Edit post {post_id}, title = {}", post_inputs.title);
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown).await?;
+    let (body, markdown_body) = get_html_and_markdown_strings(
+        post_inputs.body,
+        post_inputs.is_markdown,
+    ).await?;
 
-    let link = ssr::process_embed_link(embed_type, link).await;
+    let link = ssr::process_embed_link(post_inputs.embed_type, post_inputs.link).await;
 
     let post = ssr::update_post(
         post_id,
-        title.as_str(),
+        post_inputs.title.as_str(),
         body.as_str(),
         markdown_body.as_deref(),
         link,
-        is_spoiler,
-        is_nsfw,
-        is_pinned.unwrap_or(false),
-        category_id,
+        post_inputs.post_tags,
         &user,
         &db_pool,
     ).await?;

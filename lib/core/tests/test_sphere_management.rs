@@ -15,6 +15,7 @@ use sharesphere_auth::role::ssr::{is_user_sphere_moderator, set_user_admin_role}
 use sharesphere_auth::role::AdminRole;
 use sharesphere_auth::user::User;
 use sharesphere_core::moderation::ssr::{ban_user_from_sphere, moderate_post};
+use sharesphere_core::post::PostTags;
 use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_utils::embed::Link;
 use sharesphere_utils::errors::AppError;
@@ -225,7 +226,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     // ban with 0 days has no effect
     assert_eq!(ban_user_from_sphere(unauthorized_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &user, Some(0), &db_pool).await?, None);
     let post = create_post(
-        &sphere.sphere_name, None,"a", "b", None, Link::default(),false, false, false, None, &unauthorized_user, &db_pool
+        &sphere.sphere_name, None,"a", "b", None, Link::default(),PostTags::default(), &unauthorized_user, &db_pool
     ).await?;
 
     // cannot ban moderators
@@ -247,7 +248,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     assert!(
         matches!(
             create_post(
-                &sphere.sphere_name, None,"c", "d", None, Link::default(), false, false, false, None, &unauthorized_user, &db_pool
+                &sphere.sphere_name, None,"c", "d", None, Link::default(), PostTags::default(), &unauthorized_user, &db_pool
             ).await,
             Err(AppError::SphereBanUntil(_)),
         )
@@ -278,7 +279,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     // banned user cannot create new content
     let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Should be possible to reload banned user.");
     assert_eq!(
-        create_post(&sphere.sphere_name, None,"c", "d", None, Link::default(), false, false, false, None, &banned_user, &db_pool).await,
+        create_post(&sphere.sphere_name, None,"c", "d", None, Link::default(), PostTags::default(), &banned_user, &db_pool).await,
         Err(AppError::PermanentSphereBan),
     );
     assert_eq!(

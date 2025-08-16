@@ -8,7 +8,7 @@ use leptos::{component, view, IntoView};
 use leptos::server_fn::codec::JsonEncoding;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use validator::ValidationError;
+use validator::{ValidationError, ValidationErrors};
 use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthorizedIcon, NotFoundIcon, TooHeavyIcon};
 
 const NOT_AUTHENTICATED_MESSAGE: &str = "Please authenticate yourself.";
@@ -135,6 +135,12 @@ impl FromServerFnError for AppError {
 impl From<ValidationError> for AppError {
     fn from(error: ValidationError) -> Self {
         AppError::new(error)
+    }
+}
+
+impl From<ValidationErrors> for AppError {
+    fn from(errors: ValidationErrors) -> Self {
+        AppError::new(errors)
     }
 }
 

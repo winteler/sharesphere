@@ -4,7 +4,7 @@ use sharesphere_core::comment::ssr::{create_comment, delete_comment};
 use sharesphere_core::comment::CommentWithChildren;
 use sharesphere_core::moderation::ssr::moderate_comment;
 use sharesphere_core::post::ssr::{create_post, delete_post};
-use sharesphere_core::post::PostWithSphereInfo;
+use sharesphere_core::post::{PostTags, PostWithSphereInfo};
 use sharesphere_core::ranking::ssr::vote_on_content;
 use sharesphere_core::ranking::{Vote, VoteValue};
 use sharesphere_core::sphere::ssr::create_sphere;
@@ -47,10 +47,7 @@ pub async fn create_sphere_with_post(
         "body",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None, 
+        PostTags::default(),
         user,
         db_pool,
     ).await.expect("Should be able to create post.");
@@ -140,10 +137,7 @@ pub async fn create_posts(
             "body",
             None,
             Link::default(),
-            false,
-            false,
-            false,
-            category_id,
+            PostTags::new(false, false, false, category_id),
             &user,
             db_pool,
         ).await?;
@@ -247,10 +241,7 @@ pub async fn create_simple_post(
         post_body,
         post_markdown_body,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         user,
         db_pool,
     ).await.expect("Post should be created");
@@ -275,10 +266,7 @@ pub async fn create_post_with_comments(
         "body",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         user,
         db_pool,
     ).await.expect("Post should be created");

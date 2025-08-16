@@ -3,7 +3,7 @@ use rand::Rng;
 use sharesphere_core::comment::ssr::create_comment;
 use sharesphere_core::filter::{CategorySetFilter, SphereCategoryFilter};
 use sharesphere_core::post::ssr::{create_post, delete_post, get_post_by_id, get_post_inherited_attributes, get_post_sphere, get_post_vec_by_satellite_id, get_post_vec_by_sphere_name, get_post_with_info_by_id, get_sorted_post_vec, get_subscribed_post_vec, update_post, update_post_scores};
-use sharesphere_core::post::{PostWithSphereInfo};
+use sharesphere_core::post::{PostTags, PostWithSphereInfo};
 use sharesphere_core::ranking::ssr::vote_on_content;
 use sharesphere_core::ranking::{PostSortType, SortType, VoteValue};
 use sharesphere_core::sphere::ssr::{create_sphere, subscribe, unsubscribe};
@@ -69,10 +69,7 @@ async fn create_sphere_with_filter_posts(
         "a",
         None,
         Link::default(),
-        true,
-        false,
-        false,
-        None,
+        PostTags::new(true, false, false, None),
         user,
         db_pool,
     ).await.expect("new spoiler post should be created.");
@@ -84,10 +81,7 @@ async fn create_sphere_with_filter_posts(
         "a",
         None,
         Link::default(),
-        true,
-        false,
-        false,
-        None,
+        PostTags::new(true, false, false, None),
         user,
         db_pool,
     ).await.expect("old spoiler post should be created.");
@@ -101,10 +95,7 @@ async fn create_sphere_with_filter_posts(
         "a",
         None,
         Link::default(),
-        false,
-        true,
-        false,
-        None,
+        PostTags::new(false, true, false, None),
         user,
         db_pool,
     ).await.expect("nsfw_post should be created.");
@@ -130,14 +121,14 @@ async fn test_get_post_by_id() -> Result<(), AppError> {
     let post_1_title = "1";
     let post_1_body = "test";
     let expected_post_1 = create_post(
-        &sphere.sphere_name, None, post_1_title, post_1_body, None, Link::default(),false, false, false, None, &user, &db_pool
+        &sphere.sphere_name, None, post_1_title, post_1_body, None, Link::default(),PostTags::default(), &user, &db_pool
     ).await.expect("Should be able to create post 1.");
 
     let post_2_title = "1";
     let post_2_body = "test";
     let post_2_markdown_body = "test";
     let expected_post_2 = create_post(
-        &sphere.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), Link::default(),false, false, false, None, &user, &db_pool
+        &sphere.sphere_name, None, post_2_title, post_2_body, Some(post_2_markdown_body), Link::default(),PostTags::default(), &user, &db_pool
     ).await.expect("Should be able to create post 2.");
 
     let post_1 = get_post_by_id(expected_post_1.post_id, &db_pool).await.expect("Should be able to load post 1.");
@@ -175,10 +166,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
         post_1_body,
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        Some(sphere_category.category_id),
+        PostTags::new(false, false, false, Some(sphere_category.category_id)),
         &user,
         &db_pool
     ).await.expect("Should be able to create post 1.");
@@ -193,10 +181,7 @@ async fn test_get_post_with_info_by_id() -> Result<(), AppError> {
         post_2_body,
         Some(post_2_markdown_body),
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await.expect("Should be able to create post 2.");
@@ -285,10 +270,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "1",
         None,
         Link::default(),
-        true,
-        true,
-        false,
-        None,
+        PostTags::new(true, true, false, None),
         &user,
         &db_pool
     ).await.expect("Should be able to create sphere 1 post.");
@@ -307,10 +289,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "2",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await.expect("Should be able to create nsfw post.");
@@ -329,10 +308,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "3",
         None,
         Link::default(),
-        false,
-        true,
-        false,
-        None,
+        PostTags::new(false, true, false, None),
         &user,
         &db_pool
     ).await.expect("Should be able to create satellite 1 post.");
@@ -351,10 +327,7 @@ async fn test_get_post_inherited_attributes() -> Result<(), AppError> {
         "4",
         None,
         Link::default(),
-        true,
-        false,
-        false,
-        None,
+        PostTags::new(true, false, false, None),
         &user,
         &db_pool
     ).await.expect("Should be able to create satellite 2 post.");
@@ -376,7 +349,7 @@ async fn test_get_post_sphere() -> Result<(), AppError> {
 
     let sphere = create_sphere("a", "sphere", false, &user, &db_pool).await?;
     let post = create_post(
-        &sphere.sphere_name, None, "1", "test", None, Link::default(),false, false, false, None, &user, &db_pool
+        &sphere.sphere_name, None, "1", "test", None, Link::default(),PostTags::default(), &user, &db_pool
     ).await.expect("Should be able to create post.");
 
     let result_sphere = get_post_sphere(post.post_id, &db_pool).await.expect("Post sphere should be available.");
@@ -423,10 +396,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         "satellite",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool,
     ).await.expect("Should create satellite post.");
@@ -625,10 +595,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         "nsfw",
         None,
         Link::default(),
-        false,
-        true,
-        false,
-        None,
+        PostTags::new(false, true, false, None),
         &user,
         &db_pool,
     ).await.expect("nsfw_post should be created.");
@@ -652,10 +619,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         "satellite",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool,
     ).await.expect("Should create satellite post.");
@@ -796,10 +760,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         "1",
         None,
         Link::default(),
-        true,
-        true,
-        false,
-        Some(sphere_category_2.category_id),
+        PostTags::new(true, true, false, Some(sphere_category_2.category_id)),
         &user,
         &db_pool
     ).await.expect("Post 1 with category should be created.");
@@ -831,10 +792,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         "satellite",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool,
     ).await.expect("Should create satellite post.");
@@ -925,10 +883,7 @@ async fn test_get_post_vec_by_sphere_name_with_pinned_post() -> Result<(), AppEr
         "a",
         None,
         Link::default(),
-        false,
-        false,
-        true,
-        None,
+        PostTags::new(false, false, true, None),
         &user,
         &db_pool
     ).await.expect("Pinned post should be created");
@@ -989,10 +944,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         "1",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        Some(sphere_category.category_id),
+        PostTags::new(false, false, false, Some(sphere_category.category_id)),
         &user,
         &db_pool
     ).await.expect("Post 1 with category should be created.");
@@ -1004,10 +956,7 @@ async fn test_get_post_vec_by_sphere_name_with_category() -> Result<(), AppError
         "2",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        Some(sphere_category.category_id),
+        PostTags::new(false, false, false, Some(sphere_category.category_id)),
         &user,
         &db_pool
     ).await.expect("Post 2 with category should be created.");
@@ -1233,10 +1182,7 @@ async fn test_get_post_vec_by_satellite_id() -> Result<(), AppError> {
         "1",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await.expect("Sphere post should be created.");
@@ -1335,10 +1281,7 @@ async fn test_get_post_vec_by_satellite_id_with_pinned_post() -> Result<(), AppE
         "a",
         None,
         Link::default(),
-        false,
-        false,
-        true,
-        None,
+        PostTags::new(false, false, true, None),
         &user,
         &db_pool
     ).await.expect("Pinned post should be created");
@@ -1417,10 +1360,7 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
         "1",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        Some(sphere_category.category_id),
+        PostTags::new(false, false, false, Some(sphere_category.category_id)),
         &user,
         &db_pool
     ).await.expect("Post 1 with category should be created.");
@@ -1432,10 +1372,7 @@ async fn test_get_post_vec_by_satellite_id_with_category() -> Result<(), AppErro
         "2",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        Some(sphere_category.category_id),
+        PostTags::new(false, false, false, Some(sphere_category.category_id)),
         &user,
         &db_pool
     ).await.expect("Post 2 with category should be created.");
@@ -1629,10 +1566,7 @@ async fn test_create_post() -> Result<(), AppError> {
         post_1_body,
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await.expect("Should be able to create post 1.");
@@ -1663,7 +1597,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_post(&sphere_1.sphere_name, None, post_1_title, post_1_body, None, Link::default(), false, false, true, None, &user, &db_pool).await,
+        create_post(&sphere_1.sphere_name, None, post_1_title, post_1_body, None, Link::default(), PostTags::default(), &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -1684,10 +1618,7 @@ async fn test_create_post() -> Result<(), AppError> {
         post_2_body,
         Some(post_2_markdown_body),
         post_2_link.clone(),
-        true,
-        true,
-        true,
-        None,
+        PostTags::new(true, true, true, None),
         &user,
         &db_pool
     ).await.expect("Should be able to create post 2.");
@@ -1732,10 +1663,7 @@ async fn test_create_post() -> Result<(), AppError> {
         nsfw_post_body, 
         None,
         nsfw_link.clone(),
-        false, 
-        false, 
-        false, 
-        None, 
+        PostTags::default(),
         &user, 
         &db_pool
     ).await.expect("Should be able to create nsfw post.");
@@ -1803,10 +1731,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
         "1",
         None,
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await.expect("Should be able to create post in satellite 1.");
@@ -1858,10 +1783,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
         "2",
         None,
         link.clone(),
-        false,
-        false,
-        true,
-        None,
+        PostTags::new(false, false, true, None),
         &user,
         &db_pool
     ).await.expect("Should be able to create post in satellite 2.");
@@ -1900,10 +1822,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
                 "b",
                 None,
                 Link::default(),
-                false,
-                false,
-                false,
-                None,
+                PostTags::default(),
                 &user,
                 &db_pool
             ).await,
@@ -1948,10 +1867,7 @@ async fn test_update_post() -> Result<(), AppError> {
         &updated_html_body,
         Some(updated_markdown_body),
         updated_link.clone(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await?;
@@ -1979,10 +1895,7 @@ async fn test_update_post() -> Result<(), AppError> {
             Some(String::from("embed")),
             Some(String::from("thumbnail")),
         ),
-        false,
-        true,
-        false,
-        None,
+        PostTags::new(false, true, false, None),
         &user,
         &db_pool,
     ).await?;
@@ -1993,10 +1906,7 @@ async fn test_update_post() -> Result<(), AppError> {
         &updated_html_body,
         Some(updated_markdown_body),
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await?;
@@ -2024,10 +1934,7 @@ async fn test_update_post() -> Result<(), AppError> {
             &updated_html_body,
             Some(updated_markdown_body),
             Link::default(),
-            false,
-            false,
-            false,
-            None,
+            PostTags::default(),
             &user,
             &db_pool
         ).await,
@@ -2043,10 +1950,7 @@ async fn test_update_post() -> Result<(), AppError> {
             &updated_html_body,
             Some(updated_markdown_body),
             Link::default(),
-            false,
-            false,
-            false,
-            None,
+            PostTags::default(),
             &user,
             &db_pool
         ).await,
@@ -2077,10 +1981,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
         "1",
         None,
         Link::default(),
-        true,
-        true,
-        false,
-        None,
+        PostTags::new(true, true, false, None),
         &user,
         &db_pool
     ).await.expect("Should be able to create post in");
@@ -2101,10 +2002,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
         &updated_html_body,
         Some(updated_markdown_body),
         updated_link.clone(),
-        false,
-        false,
-        true,
-        None,
+        PostTags::new(false, false, true, None),
         &user,
         &db_pool
     ).await.expect("Should be able to update post");
@@ -2140,10 +2038,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
         "2",
         None,
         Link::default(),
-        true,
-        true,
-        false,
-        None,
+        PostTags::new(true, true, false, None),
         &user,
         &db_pool
     ).await.expect("Should be able to create post in");
@@ -2154,10 +2049,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
         &updated_html_body,
         Some(updated_markdown_body),
         Link::default(),
-        false,
-        false,
-        false,
-        None,
+        PostTags::default(),
         &user,
         &db_pool
     ).await.expect("Should be able to update post");
@@ -2207,10 +2099,7 @@ async fn test_delete_post() {
             Some(String::from("embed")),
             Some(String::from("thumbnail")),
         ),
-        true,
-        true,
-        true,
-        None,
+        PostTags::new(true, true, true, None),
         &user,
         &db_pool,
     ).await.expect("Should create post");

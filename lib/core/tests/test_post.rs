@@ -1597,7 +1597,7 @@ async fn test_create_post() -> Result<(), AppError> {
 
     // cannot create pinned comment without moderator permissions (need to reload user to actualize them)
     assert_eq!(
-        create_post(&sphere_1.sphere_name, None, post_1_title, post_1_body, None, Link::default(), PostTags::default(), &user, &db_pool).await,
+        create_post(&sphere_1.sphere_name, None, post_1_title, post_1_body, None, Link::default(), PostTags::new(false, false, true, None), &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 

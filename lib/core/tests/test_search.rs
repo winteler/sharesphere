@@ -221,7 +221,7 @@ async fn test_search_posts() {
             "ça veut dire bonjour.",
             None,
             Link::default(),
-            PostTags::default(),
+            PostTags::new(true, false, false, None),
             &user,
             &db_pool
         ).await.expect("Sphere 4 should be created."),

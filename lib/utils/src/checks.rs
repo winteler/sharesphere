@@ -1,4 +1,6 @@
+use const_format::formatcp;
 use url::Url;
+use validator::ValidationError;
 use crate::constants::{MAX_SPHERE_NAME_LENGTH, MAX_USERNAME_LENGTH};
 use crate::errors::AppError;
 use crate::routes::get_app_origin;
@@ -8,9 +10,9 @@ pub fn check_string_length(
     input_name: &str,
     max_length: usize,
 ) -> Result<(), AppError> {
-    match input.len() {
-        x if x > max_length => Err(AppError::new(format!("{input_name} exceeds the maximum length {max_length}."))),
-        _ => Ok(()),
+    match input.len() > max_length {
+        true => Err(AppError::new(format!("{input_name} exceeds the maximum length {max_length}."))),
+        false => Ok(()),
     }
 }
 
@@ -29,13 +31,15 @@ pub fn check_string_length(
 /// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH)).is_ok());
 /// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH + 1)).is_err());
 /// ```
-pub fn check_sphere_name(name: &str) -> Result<(), AppError> {
+pub fn check_sphere_name(name: &str) -> Result<(), ValidationError> {
     if name.is_empty() {
-        Err(AppError::new("Sphere name cannot be empty."))
+        Err(ValidationError::new("Sphere name cannot be empty."))
     } else if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-        Err(AppError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
+        Err(ValidationError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
+    } else if name.len() > MAX_SPHERE_NAME_LENGTH {
+        Err(ValidationError::new(formatcp!("Sphere name cannot exceed {MAX_SPHERE_NAME_LENGTH} characters.")))
     } else {
-        check_string_length(name, "Sphere name", MAX_SPHERE_NAME_LENGTH)
+        Ok(())
     }
 }
 

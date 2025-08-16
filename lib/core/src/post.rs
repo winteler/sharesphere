@@ -3,6 +3,9 @@ use leptos::html;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use server_fn::const_format::concatcp;
+use validator::{Validate};
+use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
+use sharesphere_utils::checks::{check_sphere_name};
 use sharesphere_utils::embed::{EmbedPreview, EmbedType, Link};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::routes::get_post_path;
@@ -70,6 +73,27 @@ pub struct Post {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
+pub struct PostInputs {
+    #[validate(custom(function = "check_sphere_name"))]
+    sphere: String,
+    #[validate(range(min = 1))]
+    satellite_id: Option<i64>,
+    #[validate(length(min = 1, max = MAX_TITLE_LENGTH as u64))]
+    title: String,
+    #[validate(length(min = 1, max = 20000))]
+    body: String,
+    embed_type: EmbedType,
+    #[validate(length(min = 1, max = 500))]
+    link: Option<String>,
+    is_markdown: bool,
+    is_spoiler: bool,
+    is_nsfw: bool,
+    is_pinned: Option<bool>,
+    #[validate(range(min = 1))]
+    category_id: Option<i64>,
+}
+
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithInfo {
     pub post: Post,
@@ -117,6 +141,7 @@ pub mod ssr {
     use sqlx::PgPool;
     use sharesphere_auth::role::PermissionLevel;
     use sharesphere_auth::user::User;
+    use sharesphere_utils::checks::check_sphere_name;
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::embed::{verify_link_and_get_embed, EmbedType, Link};
     use sharesphere_utils::errors::AppError;
@@ -291,6 +316,7 @@ pub mod ssr {
         user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
+        check_sphere_name(sphere_name)?;
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(

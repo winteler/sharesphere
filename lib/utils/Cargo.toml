@@ -26,6 +26,7 @@ strum_macros.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, optional = true }
 url.workspace = true
+validator.workspace = true
 web-sys.workspace = true
 
 async-trait = { version = "*", optional = true }

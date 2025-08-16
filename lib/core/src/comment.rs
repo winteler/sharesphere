@@ -14,8 +14,12 @@ use {
         auth::{get_user, ssr::check_user},
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
-    crate::ranking::{ssr::vote_on_content, VoteValue}
+    sharesphere_utils::{
+        checks::check_string_length,
+        constants::MAX_CONTENT_LENGTH,
+        editor::ssr::get_html_and_markdown_strings,
+    },
+    crate::ranking::{ssr::vote_on_content, VoteValue},
 };
 use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
@@ -400,6 +404,10 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
+        match markdown_comment {
+            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH)?,
+            None => check_string_length(comment, "Comment", MAX_CONTENT_LENGTH)?,
+        };
         let sphere = get_post_sphere(post_id, &db_pool).await?;
         user.check_can_publish_on_sphere(&sphere.sphere_name)?;
         if comment.is_empty() {
@@ -437,6 +445,10 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
+        match comment_markdown_body {
+            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH)?,
+            None => check_string_length(comment_body, "Comment", MAX_CONTENT_LENGTH)?,
+        };
         if is_pinned {
             let sphere = get_comment_sphere(comment_id, &db_pool).await?;
             user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
@@ -596,6 +608,7 @@ pub async fn create_comment(
     is_pinned: Option<bool>,
 ) -> Result<CommentWithChildren, AppError> {
     log::trace!("Create comment for post {post_id}");
+    check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -638,6 +651,7 @@ pub async fn edit_comment(
     is_pinned: Option<bool>,
 ) -> Result<Comment, AppError> {
     log::trace!("Edit comment {comment_id}");
+    check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

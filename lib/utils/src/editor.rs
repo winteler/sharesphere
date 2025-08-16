@@ -173,10 +173,17 @@ pub fn FormTextEditor(
     placeholder: &'static str,
     /// Signals and node ref to control textarea content
     data: TextareaData,
+    /// Optional maximum text length
+    #[prop(default = None)]
+    maxlength: Option<usize>,
     /// Additional css classes
     #[prop(default = "w-full")]
     class: &'static str,
 ) -> impl IntoView {
+    let maxlength = match maxlength {
+        Some(len) => len as i32,
+        None => -1,
+    };
     let class = format!("group max-w-full p-2 border border-primary bg-base-100 {class}");
 
     Effect::new(move || adjust_textarea_height(data.textarea_ref));
@@ -197,6 +204,7 @@ pub fn FormTextEditor(
                         data.content.set(event_target_value(&ev));
                         adjust_textarea_height(data.textarea_ref);
                     }
+                    maxlength=maxlength
                     node_ref=data.textarea_ref
                 >
                     {data.content}
@@ -220,6 +228,9 @@ pub fn FormMarkdownEditor(
     /// Initial state for markdown rendering
     #[prop(default = false)]
     is_markdown: bool,
+    /// Optional maximum text length
+    #[prop(default = None)]
+    maxlength: Option<usize>,
     /// Additional css classes
     #[prop(default = "w-full")]
     class: &'static str,
@@ -229,6 +240,11 @@ pub fn FormMarkdownEditor(
     let markdown_button_class = move || match is_markdown_mode.get() {
         true => "button-primary p-2",
         false => "button-ghost p-2",
+    };
+
+    let maxlength = match maxlength {
+        Some(len) => len as i32,
+        None => -1,
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -267,6 +283,7 @@ pub fn FormMarkdownEditor(
                             data.content.set(event_target_value(&ev));
                             adjust_textarea_height(data.textarea_ref);
                         }
+                        maxlength=maxlength
                         node_ref=data.textarea_ref
                     >
                         {data.content}

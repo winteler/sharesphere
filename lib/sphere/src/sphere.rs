@@ -377,7 +377,7 @@ pub fn CreateSphere() -> impl IntoView {
                                 (true, _, _) => ().into_any(),
                                 (_, Err(e), _) => view! {
                                     <div class="alert alert-error flex items-center">
-                                        <span>{e.error_detail()}</span>
+                                        <span>{e.message}</span>
                                     </div>
                                 }.into_any(),
                                 (_, _, Some(Some(Ok(false)))) => {

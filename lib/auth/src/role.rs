@@ -370,12 +370,14 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
 pub fn IsPinnedCheckbox(
     #[prop(into)]
     sphere_name: Signal<String>,
+    #[prop(default = "is_pinned")]
+    name: &'static str,
     #[prop(default = false)]
     value: bool,
 ) -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
-            <LabeledFormCheckbox name="is_pinned" label="Pinned" value/>
+            <LabeledFormCheckbox name label="Pinned" value/>
         </AuthorizedShow>
     }
 }

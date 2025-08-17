@@ -207,13 +207,13 @@ pub fn CreateSatellitePost() -> impl IntoView {
                     <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
                     <input
                         type="text"
-                        name="sphere"
+                        name="post_location[sphere]"
                         class="hidden"
                         value=sphere_state.sphere_name
                     />
                     <input
                         type="text"
-                        name="satellite_id"
+                        name="post_location[satellite_id]"
                         class="hidden"
                         value=satellite_state.satellite_id
                     />

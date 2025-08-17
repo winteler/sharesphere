@@ -74,13 +74,11 @@ pub struct Post {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
-pub struct CreatePostInputs {
+pub struct PostLocation {
     #[validate(custom(function = "check_sphere_name"))]
     sphere: String,
     #[validate(range(min = 1))]
     satellite_id: Option<i64>,
-    #[validate(nested)]
-    post_data: PostDataInputs,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
@@ -941,24 +939,27 @@ pub async fn get_post_vec_by_satellite_id(
 }
 
 #[server]
-pub async fn create_post(post_inputs: CreatePostInputs) -> Result<(), AppError> {
+pub async fn create_post(
+    post_location: PostLocation,
+    post_inputs: PostDataInputs
+) -> Result<(), AppError> {
+    post_location.validate()?;
     post_inputs.validate()?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
-    let post_data = post_inputs.post_data;
 
-    let (body, markdown_body) = get_html_and_markdown_strings(post_data.body, post_data.is_markdown).await?;
+    let (body, markdown_body) = get_html_and_markdown_strings(post_inputs.body, post_inputs.is_markdown).await?;
 
-    let link = ssr::process_embed_link(post_data.embed_type, post_data.link).await;
+    let link = ssr::process_embed_link(post_inputs.embed_type, post_inputs.link).await;
 
     let post = ssr::create_post(
-        post_inputs.sphere.as_str(),
-        post_inputs.satellite_id,
-        post_data.title.as_str(),
+        post_location.sphere.as_str(),
+        post_location.satellite_id,
+        post_inputs.title.as_str(),
         body.as_str(),
         markdown_body.as_deref(),
         link,
-        post_data.post_tags,
+        post_inputs.post_tags,
         &user,
         &db_pool,
     ).await?;
@@ -966,7 +967,7 @@ pub async fn create_post(post_inputs: CreatePostInputs) -> Result<(), AppError> 
     let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
 
     log::trace!("Created post with id: {}", post.post_id);
-    let new_post_path = get_post_path(&post_inputs.sphere, post_inputs.satellite_id, post.post_id);
+    let new_post_path = get_post_path(&post_location.sphere, post_location.satellite_id, post.post_id);
 
     leptos_axum::redirect(new_post_path.as_str());
     Ok(())
@@ -1193,7 +1194,7 @@ pub fn PostForm(
     view! {
         <input
             type="text"
-            name="title"
+            name="post_inputs[title]"
             placeholder="Title"
             class="input input-primary w-full"
             value=title_input
@@ -1202,8 +1203,8 @@ pub fn PostForm(
             on:input=move |ev| title_input.set(event_target_value(&ev))
         />
         <FormMarkdownEditor
-            name="body"
-            is_markdown_name="is_markdown"
+            name="post_inputs[body]"
+            is_markdown_name="post_inputs[is_markdown]"
             placeholder="Content"
             data=body_data
             is_markdown
@@ -1211,18 +1212,18 @@ pub fn PostForm(
         <LinkForm link_input embed_type_input title_input/>
         { move || {
             match is_parent_spoiler.get() {
-                true => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=true disabled=true/> },
-                false => view! { <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/> },
+                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label="Spoiler" value=true disabled=true/> },
+                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label="Spoiler" value=is_spoiler/> },
             }
         }}
         { move || {
             match is_parent_nsfw.get() {
-                true => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=true disabled=true/> },
-                false => view! { <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/> },
+                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label="NSFW content" value=true disabled=true/> },
+                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label="NSFW content" value=is_nsfw/> },
             }
         }}
-        <IsPinnedCheckbox sphere_name value=is_pinned/>
-        <SphereCategoryDropdown category_vec_resource init_category_id=category_id name="category_id" show_inactive=false/>
+        <IsPinnedCheckbox sphere_name name="post_inputs[post_tags][is_pinned]" value=is_pinned/>
+        <SphereCategoryDropdown category_vec_resource init_category_id=category_id name="post_inputs[post_tags][category_id]" show_inactive=false/>
     }
 }
 
@@ -1240,7 +1241,7 @@ pub fn LinkForm(
             <div class="h-full flex gap-2 items-center">
                 <span class="label-text w-fit">"Link"</span>
                 <select
-                    name="embed_type"
+                    name="post_inputs[embed_type]"
                     class="select w-fit"
                     node_ref=select_ref
                 >
@@ -1271,7 +1272,7 @@ pub fn LinkForm(
                 </select>
                 <input
                     type="text"
-                    name="link"
+                    name="post_inputs[link]"
                     placeholder="Url"
                     class="input input-primary grow"
                     value=link_input

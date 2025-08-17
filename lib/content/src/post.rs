@@ -279,7 +279,7 @@ pub fn CreatePost() -> impl IntoView {
                         <input
                             tabindex="0"
                             type="text"
-                            name="sphere"
+                            name="post_location[sphere]"
                             placeholder="Sphere"
                             autocomplete="off"
                             class="input input-primary w-full"

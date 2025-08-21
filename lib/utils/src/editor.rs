@@ -164,12 +164,76 @@ pub async fn get_styled_html_from_markdown(
     Ok(styled_html_output)
 }
 
+/// Component for an input with an optional minimum and maximum length
+#[component]
+pub fn LengthLimitedInput(
+    /// Name of the input in the form that contains this component, must correspond to the parameter of the associated server function
+    name: &'static str,
+    /// Placeholder for the textarea
+    placeholder: &'static str,
+    /// Signals and node ref to control textarea content
+    content: RwSignal<String>,
+    /// Set autocomplete
+    #[prop(default = "off")]
+    autocomplete: &'static str,
+    /// Set autofocus
+    #[prop(default = false)]
+    autofocus: bool,
+    /// Optional minimum text length
+    #[prop(default = None)]
+    minlength: Option<usize>,
+    /// Optional maximum text length
+    #[prop(default = None)]
+    maxlength: Option<usize>,
+    /// Additional css classes
+    #[prop(default = "w-full p-3 text-sm")]
+    class: &'static str,
+) -> impl IntoView {
+    let is_length_ok = move || {
+        let content_len = content.read().len();
+        match (minlength, maxlength) {
+            (Some(minlength), _) if content_len < minlength => false,
+            (_, Some(maxlength)) if content_len > maxlength => false,
+            _ => true,
+        }
+    };
+
+    let minlength = match minlength {
+        Some(len) => len as i32,
+        None => -1,
+    };
+
+    let maxlength = match maxlength {
+        Some(len) => len as i32,
+        None => -1,
+    };
+
+    view! {
+        <fieldset class="fieldset">
+            <input
+                type="text"
+                name=name
+                placeholder=placeholder
+                class=class
+                class=("input_primary", move || is_length_ok())
+                class=("input_error", move || !is_length_ok())
+                autofocus=autofocus
+                autocomplete=autocomplete
+                bind:value=content
+                minlength=minlength
+                maxlength=maxlength
+            />
+            <p class="label">{move || format!("{}/{}", content.read().len(), maxlength)}</p>
+        </fieldset>
+    }
+}
+
 /// Component for a textarea that can render simple text
 #[component]
 pub fn FormTextEditor(
     /// name of the textarea in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
-    /// name of the hidden checkbox indicating whether markdown mode is enabled, must correspond to the parameter of the associated server function
+    /// Placeholder for the textarea
     placeholder: &'static str,
     /// Signals and node ref to control textarea content
     data: TextareaData,
@@ -231,6 +295,9 @@ pub fn FormMarkdownEditor(
     /// Optional maximum text length
     #[prop(default = None)]
     maxlength: Option<usize>,
+    /// Indicates if a red outline should be added when the textarea is empty
+    #[prop(into)]
+    is_empty_ok: Signal<bool>,
     /// Additional css classes
     #[prop(default = "w-full")]
     class: &'static str,
@@ -265,9 +332,15 @@ pub fn FormMarkdownEditor(
 
     Effect::new(move || adjust_textarea_height(data.textarea_ref));
 
+    let is_border_error = move || !is_empty_ok.get() && data.content.read().is_empty();
+
     view! {
         <div class=format!("flex flex-col gap-2 {class}")>
-            <div class="group w-full max-w-full p-1 lg:p-2 border border-primary">
+            <div
+                class="group w-full max-w-full p-1 lg:p-2"
+                class=("input_border_primary", move || !is_border_error())
+                class=("input_border_error", move || is_border_error())
+            >
                 <div class="w-full mb-1 rounded-t-lg">
                     <label for=name class="sr-only">
                         {placeholder}

@@ -12,7 +12,7 @@ use sharesphere_utils::routes::get_post_path;
 
 use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_auth::role::IsPinnedCheckbox;
-use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
+use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::widget::{CommentCountWidget, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
 
@@ -1192,15 +1192,13 @@ pub fn PostForm(
     };
 
     view! {
-        <input
-            type="text"
+        <LengthLimitedInput
             name="post_inputs[title]"
             placeholder="Title"
-            class="input input-primary w-full"
-            value=title_input
-            autofocus
-            autocomplete="off"
-            on:input=move |ev| title_input.set(event_target_value(&ev))
+            content=title_input
+            autofocus=true
+            minlength=Some(1)
+            maxlength=Some(MAX_TITLE_LENGTH as usize)
         />
         <FormMarkdownEditor
             name="post_inputs[body]"
@@ -1208,6 +1206,8 @@ pub fn PostForm(
             placeholder="Content"
             data=body_data
             is_markdown
+            maxlength=Some(MAX_CONTENT_LENGTH as usize)
+            is_empty_ok=false
         />
         <LinkForm link_input embed_type_input title_input/>
         { move || {

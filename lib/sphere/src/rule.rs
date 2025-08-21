@@ -248,6 +248,7 @@ pub fn RuleInputs(
                 placeholder="Description"
                 data=description_data
                 is_markdown=is_description_markdown
+                is_empty_ok=false
             />
         </div>
     }

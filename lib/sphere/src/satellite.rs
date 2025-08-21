@@ -510,6 +510,7 @@ pub fn SatelliteInputs(
             is_markdown_name="is_markdown"
             data=body_data
             is_markdown=is_markdown_body
+            is_empty_ok=false
         />
         <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
         <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>

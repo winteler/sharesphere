@@ -248,6 +248,40 @@
             px-3 py-2
             max-lg:bg-base-300 max-lg:absolute max-lg:z-1 max-lg:top-0 max-lg:right-0;
     }
+
+    .input_outline_primary {
+        @apply
+        outline outline-primary outline-1 focus-within:outline-2
+    }
+
+    .input_outline_error {
+        @apply
+        outline outline-error outline-1 focus-within:outline-2
+    }
+
+    .input_border_primary {
+        @apply
+        rounded-none border border-1 border-primary
+        outline outline-offset-0 outline-primary outline-0 focus-within:outline-1
+    }
+
+    .input_border_error {
+        @apply
+        p-3 text-sm rounded-none border border-1 border-error
+        outline outline-offset-0 outline-error outline-0 focus-within:outline-1
+    }
+
+    .input_primary {
+        @apply
+            p-3 text-sm rounded-none border border-1 border-primary
+            outline outline-offset-0 outline-primary outline-0 focus-within:outline-1
+    }
+
+    .input_error {
+        @apply
+            p-3 text-sm rounded-none border border-1 border-error
+            outline outline-offset-0 outline-error outline-0 focus-within:outline-1
+    }
 }
 
 /* Styles for the spoiler blocks */

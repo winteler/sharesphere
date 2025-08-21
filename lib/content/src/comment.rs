@@ -20,7 +20,7 @@ use sharesphere_core::moderation::Content;
 use sharesphere_core::ranking::{CommentSortWidget, Vote};
 use sharesphere_core::satellite::SatelliteState;
 use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::unpack::handle_dialog_action_result;
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
@@ -512,6 +512,8 @@ pub fn CommentForm(
                         is_markdown_name="is_markdown"
                         placeholder="Your comment..."
                         data=comment_data
+                        is_empty_ok=false
+                        maxlength=Some(MAX_CONTENT_LENGTH as usize)
                     />
                     <IsPinnedCheckbox sphere_name=sphere_name/>
                     <ModalFormButtons
@@ -659,6 +661,7 @@ pub fn EditCommentForm(
                         placeholder="Your comment..."
                         data=comment_data
                         is_markdown
+                        is_empty_ok=false
                     />
                     <IsPinnedCheckbox sphere_name value=comment.read_untracked().is_pinned/>
                     <ModalFormButtons

@@ -5,7 +5,7 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_use::{signal_debounced};
 use url::Url;
 
-use sharesphere_utils::constants::{DELETED_MESSAGE};
+use sharesphere_utils::constants::{DELETED_MESSAGE, MAX_CONTENT_LENGTH};
 use sharesphere_utils::editor::{adjust_textarea_height, TextareaData};
 use sharesphere_utils::embed::{Embed, EmbedType, LinkType};
 use sharesphere_utils::icons::{EditIcon};
@@ -275,20 +275,21 @@ pub fn CreatePost() -> impl IntoView {
             <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
-                    <div class="dropdown dropdown-end">
+                    <div class="dropdown dropdown-end input_outline_primary">
                         <input
                             tabindex="0"
                             type="text"
                             name="post_location[sphere]"
                             placeholder="Sphere"
                             autocomplete="off"
-                            class="input input-primary w-full"
+                            class="w-full p-3 text-sm rounded-none"
                             on:input=move |ev| {
                                 sphere_name_input.set(event_target_value(&ev).to_lowercase());
                             }
+                            maxlength=MAX_CONTENT_LENGTH
                             prop:value=sphere_name_input
                         />
-                        <ul tabindex="0" class="dropdown-content z-1 menu p-2 shadow-sm bg-base-200 rounded-xs w-full">
+                        <ul tabindex="0" class="dropdown-content z-1 menu p-2 mt-1 shadow-sm bg-base-200 rounded-xs w-full">
                             <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
                             {
                                 match sphere_header_vec.first() {

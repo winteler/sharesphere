@@ -116,11 +116,51 @@ pub fn DropdownButton<C: IntoView + 'static>(
         <div class="h-full relative" node_ref=dropdown_ref>
             <button
                 class=button_class
+                type="button"
                 on:click= move |_| show_dropdown.update(|value| *value = !*value)
             >
                 {button_content.run()}
             </button>
             <Dropdown show_dropdown align_right children/>
+        </div>
+    }.into_any()
+}
+
+/// Input that displays its children in a dropdown when clicked
+#[component]
+pub fn DropdownInput<C: IntoView + 'static>(
+    #[prop(default="button-rounded-neutral")]
+    button_class: &'static str,
+    #[prop(default="button-rounded-primary")]
+    activated_button_class: &'static str,
+    name: &'static str,
+    #[prop(into)]
+    value: Signal<String>,
+    children: TypedChildrenFn<C>,
+    #[prop(optional)]
+    dropdown_ref: NodeRef<html::Div>,
+) -> impl IntoView {
+    let show_dropdown = RwSignal::new(false);
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+    }
+    let button_class = move || match show_dropdown.get() {
+        true => activated_button_class,
+        false => button_class,
+    };
+
+    view! {
+        <div class="h-full relative" node_ref=dropdown_ref>
+            <input
+                class=button_class
+                type="button"
+                name=name
+                value=value
+                on:click= move |_| show_dropdown.update(|value| *value = !*value)
+            />
+            <Dropdown show_dropdown children/>
         </div>
     }.into_any()
 }

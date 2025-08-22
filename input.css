@@ -251,40 +251,40 @@
 
     .input_outline_primary {
         @apply
-        outline outline-primary outline-1 focus-within:outline-2
+        outline outline-primary outline-1 focus-within:outline-3
     }
 
     .input_outline_error {
         @apply
-        outline outline-error outline-1 focus-within:outline-2
+        outline outline-error outline-1 focus-within:outline-3
     }
 
     .input_border_primary {
         @apply
         rounded-none border border-1 border-primary
-        outline outline-offset-0 outline-primary outline-0 focus-within:outline-1
+        outline outline-offset-0 outline-primary outline-0 focus-within:outline-2
     }
 
     .input_border_error {
         @apply
         p-3 text-sm rounded-none border border-1 border-error
-        outline outline-offset-0 outline-error outline-0 focus-within:outline-1
+        outline outline-offset-0 outline-error outline-0 focus-within:outline-2
     }
 
     .input_primary {
         @apply
             p-3 text-sm rounded-none border border-1 border-primary
-            outline outline-offset-0 outline-primary outline-0 focus-within:outline-1
+            outline outline-offset-0 outline-primary outline-0 focus-within:outline-2
     }
 
     .input_error {
         @apply
             p-3 text-sm rounded-none border border-1 border-error
-            outline outline-offset-0 outline-error outline-0 focus-within:outline-1
+            outline outline-offset-0 outline-error outline-0 focus-within:outline-2
     }
 }
 
-/* Styles for the spoiler blocks */
+/* Styles for the spoiler blocks */S
 .spoiler-checkbox {
 }
 

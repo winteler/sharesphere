@@ -14,7 +14,7 @@ use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_auth::role::IsPinnedCheckbox;
 use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::widget::{CommentCountWidget, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
+use sharesphere_utils::widget::{CommentCountWidget, DropdownButton, DropdownInput, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
 use crate::ranking::{SortType, Vote};
@@ -1236,40 +1236,48 @@ pub fn LinkForm(
 ) -> impl IntoView {
     let select_ref = NodeRef::<html::Select>::new();
     let input_ref = NodeRef::<html::Input>::new();
+
+    let embed_type_string = move || embed_type_input.get().to_string();
+    let link_button_view = move || view! {
+        <div class="w-full text-center">{embed_type_string}</div>
+    };
+
     view! {
         <div class="w-full flex flex-col gap-2">
             <div class="h-full flex gap-2 items-center">
                 <span class="label-text w-fit">"Link"</span>
-                <select
+                <DropdownInput
                     name="post_inputs[embed_type]"
-                    class="select w-fit"
-                    node_ref=select_ref
+                    button_class="input_primary"
+                    activated_button_class="input_primary"
+                    value=embed_type_string
                 >
-                    <option
-                        selected=move || embed_type_input.get_untracked() == EmbedType::None
-                        on:click=move |_| {
-                            embed_type_input.set(EmbedType::None);
-                            link_input.set(String::default());
-                            if let Some(link_input_ref) = input_ref.get_untracked() {
-                                link_input_ref.set_value("");
-                            }
-                        }
-                    >
-                        "None"
-                    </option>
-                    <option
-                        selected=move || embed_type_input.get_untracked() == EmbedType::Link
-                        on:click=move |_| embed_type_input.set(EmbedType::Link)
-                    >
-                        "Link"
-                    </option>
-                    <option
-                        selected=move || embed_type_input.get_untracked() == EmbedType::Embed
-                        on:click=move |_| embed_type_input.set(EmbedType::Embed)
-                    >
-                        "Embed"
-                    </option>
-                </select>
+                    <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col">
+                        <li>
+                            <div
+                                on:click=move |_| {
+                                    embed_type_input.set(EmbedType::None);
+                                    link_input.set(String::default());
+                                    if let Some(link_input_ref) = input_ref.get_untracked() {
+                                        link_input_ref.set_value("");
+                                    }
+                                }
+                            >
+                                "None"
+                            </div>
+                        </li>
+                        <li>
+                            <div on:click=move |_| embed_type_input.set(EmbedType::Link)>
+                                "Link"
+                            </div>
+                        </li>
+                        <li>
+                            <div on:click=move |_| embed_type_input.set(EmbedType::Embed)>
+                                "Embed"
+                            </div>
+                        </li>
+                    </ul>
+                </DropdownInput>
                 <input
                     type="text"
                     name="post_inputs[link]"

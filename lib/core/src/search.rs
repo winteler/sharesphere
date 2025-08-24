@@ -54,6 +54,7 @@ pub mod ssr {
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
+        // TODO search against normalized name instead?
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
             "SELECT sphere_name, icon_url, is_nsfw

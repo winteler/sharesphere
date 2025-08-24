@@ -270,12 +270,17 @@ pub fn CreatePost() -> impl IntoView {
         move |sphere_name| get_sphere_category_vec(sphere_name)
     );
 
+    // TODO: make sphere input into a component with a callback argument when clicking?
+
     view! {
         <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
-                    <div class="dropdown dropdown-end input_outline_primary">
+                    <div
+                        class="dropdown dropdown-end input_outline_primary"
+                        class=("input_outline_error", move || !is_sphere_selected.get())
+                    >
                         <input
                             tabindex="0"
                             type="text"
@@ -284,6 +289,7 @@ pub fn CreatePost() -> impl IntoView {
                             autocomplete="off"
                             class="w-full p-3 text-sm rounded-none"
                             on:input=move |ev| {
+
                                 sphere_name_input.set(event_target_value(&ev).to_lowercase());
                             }
                             maxlength=MAX_CONTENT_LENGTH
@@ -304,11 +310,16 @@ pub fn CreatePost() -> impl IntoView {
                                 };
                                 sphere_header_vec.clone().into_iter().map(|sphere_header| {
                                     let sphere_name = sphere_header.sphere_name.clone();
+                                    let is_nsfw = sphere_header.is_nsfw;
                                     view! {
                                         <li>
                                             <button
                                                 type="button"
-                                                on:click=move |_| sphere_name_input.set(sphere_name.clone())
+                                                on:click=move |_| {
+                                                    is_sphere_nsfw.set(is_nsfw);
+                                                    is_sphere_selected.set(true);
+                                                    sphere_name_input.set(sphere_name.clone())
+                                                }
                                             >
                                                 <SphereHeader sphere_header/>
                                             </button>

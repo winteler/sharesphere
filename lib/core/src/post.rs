@@ -1242,7 +1242,7 @@ pub fn LinkForm(
                 <span class="label-text w-fit">"Link"</span>
                 <select
                     name="post_inputs[embed_type]"
-                    class="select w-fit"
+                    class="w-fit input_primary"
                     node_ref=select_ref
                 >
                     <option
@@ -1270,18 +1270,13 @@ pub fn LinkForm(
                         "Embed"
                     </option>
                 </select>
-                <input
-                    type="text"
+                <LengthLimitedInput
                     name="post_inputs[link]"
                     placeholder="Url"
-                    class="input input-primary grow"
-                    value=link_input
-                    autofocus
-                    autocomplete="off"
-                    on:input=move |ev| {
-                        link_input.set(event_target_value(&ev));
-                    }
-                    node_ref=input_ref
+                    content=link_input
+                    minlength=Some(1)
+                    maxlength=Some(MAX_LINK_LENGTH as usize)
+                    input_ref
                 />
             </div>
             <EmbedPreview embed_type_input link_input title_input select_ref/>

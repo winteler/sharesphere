@@ -186,8 +186,11 @@ pub fn LengthLimitedInput(
     #[prop(default = None)]
     maxlength: Option<usize>,
     /// Additional css classes
-    #[prop(default = "w-full p-3 text-sm")]
+    #[prop(default = "w-full p-3 text-sm input_primary")]
     class: &'static str,
+    /// reference to the input node
+    #[prop(optional)]
+    input_ref: NodeRef<html::Input>,
 ) -> impl IntoView {
     let is_length_ok = move || {
         let content_len = content.read().len();
@@ -215,13 +218,13 @@ pub fn LengthLimitedInput(
                 name=name
                 placeholder=placeholder
                 class=class
-                class=("input_primary", move || is_length_ok())
                 class=("input_error", move || !is_length_ok())
                 autofocus=autofocus
                 autocomplete=autocomplete
                 bind:value=content
                 minlength=minlength
                 maxlength=maxlength
+                node_ref=input_ref
             />
             <p class="label">{move || format!("{}/{}", content.read().len(), maxlength)}</p>
         </fieldset>
@@ -337,8 +340,7 @@ pub fn FormMarkdownEditor(
     view! {
         <div class=format!("flex flex-col gap-2 {class}")>
             <div
-                class="group w-full max-w-full p-1 lg:p-2"
-                class=("input_border_primary", move || !is_border_error())
+                class="group w-full max-w-full p-1 lg:p-2 input_border_primary"
                 class=("input_border_error", move || is_border_error())
             >
                 <div class="w-full mb-1 rounded-t-lg">

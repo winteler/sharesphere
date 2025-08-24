@@ -116,6 +116,7 @@ pub fn DropdownButton<C: IntoView + 'static>(
         <div class="h-full relative" node_ref=dropdown_ref>
             <button
                 class=button_class
+                type="button"
                 on:click= move |_| show_dropdown.update(|value| *value = !*value)
             >
                 {button_content.run()}

@@ -14,7 +14,7 @@ use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_auth::role::IsPinnedCheckbox;
 use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::widget::{CommentCountWidget, DropdownButton, DropdownInput, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
+use sharesphere_utils::widget::{CommentCountWidget, DropdownInput, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
 use crate::ranking::{SortType, Vote};
@@ -1237,10 +1237,7 @@ pub fn LinkForm(
     let select_ref = NodeRef::<html::Select>::new();
     let input_ref = NodeRef::<html::Input>::new();
 
-    let embed_type_string = move || embed_type_input.get().to_string();
-    let link_button_view = move || view! {
-        <div class="w-full text-center">{embed_type_string}</div>
-    };
+    let embed_type_string = Signal::derive(move || embed_type_input.get().to_string());
 
     view! {
         <div class="w-full flex flex-col gap-2">
@@ -1252,9 +1249,11 @@ pub fn LinkForm(
                     activated_button_class="input_primary"
                     value=embed_type_string
                 >
-                    <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col">
+                    <ul class="mt-1 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col">
                         <li>
-                            <div
+                            <button
+                                class="button-ghost w-full"
+                                type="button"
                                 on:click=move |_| {
                                     embed_type_input.set(EmbedType::None);
                                     link_input.set(String::default());
@@ -1263,18 +1262,26 @@ pub fn LinkForm(
                                     }
                                 }
                             >
-                                "None"
-                            </div>
+                                {EmbedType::None.to_string()}
+                            </button>
                         </li>
                         <li>
-                            <div on:click=move |_| embed_type_input.set(EmbedType::Link)>
-                                "Link"
-                            </div>
+                            <button
+                                class="button-ghost w-full"
+                                type="button"
+                                on:click=move |_| embed_type_input.set(EmbedType::Link)
+                            >
+                                {EmbedType::Link.to_string()}
+                            </button>
                         </li>
                         <li>
-                            <div on:click=move |_| embed_type_input.set(EmbedType::Embed)>
-                                "Embed"
-                            </div>
+                            <button
+                                class="button-ghost w-full"
+                                type="button"
+                                on:click=move |_| embed_type_input.set(EmbedType::Embed)
+                            >
+                                {EmbedType::Embed.to_string()}
+                            </button>
                         </li>
                     </ul>
                 </DropdownInput>

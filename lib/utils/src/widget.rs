@@ -147,19 +147,23 @@ pub fn DropdownInput<C: IntoView + 'static>(
         let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
     }
     let button_class = move || match show_dropdown.get() {
-        true => activated_button_class,
-        false => button_class,
+        true => format!("flex justify-between items-center gap-2 {}", activated_button_class),
+        false => format!("flex justify-between items-center gap-2 {}", button_class),
     };
 
     view! {
         <div class="h-full relative" node_ref=dropdown_ref>
-            <input
+            <div
                 class=button_class
-                type="button"
-                name=name
-                value=value
                 on:click= move |_| show_dropdown.update(|value| *value = !*value)
-            />
+            >
+                <input
+                    type="button"
+                    name=name
+                    value=value
+                />
+                <RotatingArrow point_up=show_dropdown/>
+            </div>
             <Dropdown show_dropdown children/>
         </div>
     }.into_any()
@@ -175,8 +179,8 @@ pub fn Dropdown<C: IntoView + 'static>(
 ) -> impl IntoView {
     let children = StoredValue::new(children.into_inner());
     let class = match align_right {
-        true => "absolute z-10 origin-bottom right-0 min-w-max",
-        false => "absolute z-10 origin-bottom left-0 min-w-max",
+        true => "absolute z-10 origin-bottom right-0 w-full",
+        false => "absolute z-10 origin-bottom left-0 w-full",
     };
     view! {
         <Show when=show_dropdown>

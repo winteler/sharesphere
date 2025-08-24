@@ -1242,7 +1242,7 @@ pub fn LinkForm(
                 <span class="label-text w-fit">"Link"</span>
                 <select
                     name="post_inputs[embed_type]"
-                    class="w-fit input_primary"
+                    class="w-fit input_primary bg-base-100"
                     node_ref=select_ref
                 >
                     <option

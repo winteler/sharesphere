@@ -1237,12 +1237,12 @@ pub fn LinkForm(
     let select_ref = NodeRef::<html::Select>::new();
     let input_ref = NodeRef::<html::Input>::new();
     view! {
-        <div class="w-full flex flex-col gap-2">
-            <div class="h-full flex gap-2 items-center">
+        <div class="flex flex-col gap-2">
+            <div class="flex gap-2 items-center">
                 <span class="label-text w-fit">"Link"</span>
                 <select
                     name="post_inputs[embed_type]"
-                    class="w-fit input_primary bg-base-100"
+                    class="input_primary bg-base-100 appearance-none bg-[url('/svg/arrow_down.svg')] bg-[length:12px_12px] bg-no-repeat bg-position-[center_right_1rem] pr-8"
                     node_ref=select_ref
                 >
                     <option
@@ -1274,7 +1274,6 @@ pub fn LinkForm(
                     name="post_inputs[link]"
                     placeholder="Url"
                     content=link_input
-                    minlength=Some(1)
                     maxlength=Some(MAX_LINK_LENGTH as usize)
                     input_ref
                 />

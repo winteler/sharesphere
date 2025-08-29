@@ -164,6 +164,28 @@ pub async fn get_styled_html_from_markdown(
     Ok(styled_html_output)
 }
 
+/// Component to indicate the current number of characters in `content` and the maximum length
+#[component]
+pub fn CharLimitIndicator(
+    /// Signals and node ref to control textarea content
+    content: RwSignal<String>,
+    /// Optional maximum text length
+    #[prop(default = None)]
+    maxlength: Option<usize>,
+    /// css classes
+    #[prop(optional)]
+    class: &'static str,
+) -> impl IntoView {
+    view! {
+        <div
+            class=format!("self-end w-fit text-sm text-base-content/50 {class}")
+            class=("hidden", move || maxlength.is_some_and(|l| content.read().len() < l*4/5))
+        >
+            {move || format!("{}/{}", content.read().len(), maxlength.unwrap_or(0))}
+        </div>
+    }
+}
+
 /// Component for an input with an optional minimum and maximum length
 #[component]
 pub fn LengthLimitedInput(
@@ -186,7 +208,7 @@ pub fn LengthLimitedInput(
     #[prop(default = None)]
     maxlength: Option<usize>,
     /// Additional css classes
-    #[prop(default = "w-full p-3 text-sm input_primary")]
+    #[prop(default = "input_primary")]
     class: &'static str,
     /// reference to the input node
     #[prop(optional)]
@@ -201,18 +223,8 @@ pub fn LengthLimitedInput(
         }
     };
 
-    let minlength = match minlength {
-        Some(len) => len as i32,
-        None => -1,
-    };
-
-    let maxlength = match maxlength {
-        Some(len) => len as i32,
-        None => -1,
-    };
-
     view! {
-        <fieldset class="fieldset">
+        <div class="w-full flex flex-col gap-1">
             <input
                 type="text"
                 name=name
@@ -222,12 +234,12 @@ pub fn LengthLimitedInput(
                 autofocus=autofocus
                 autocomplete=autocomplete
                 bind:value=content
-                minlength=minlength
-                maxlength=maxlength
+                minlength=minlength.map(|l| l as i32).unwrap_or(-1)
+                maxlength=maxlength.map(|l| l as i32).unwrap_or(-1)
                 node_ref=input_ref
             />
-            <p class="label">{move || format!("{}/{}", content.read().len(), maxlength)}</p>
-        </fieldset>
+            <CharLimitIndicator content maxlength/>
+        </div>
     }
 }
 
@@ -312,11 +324,6 @@ pub fn FormMarkdownEditor(
         false => "button-ghost p-2",
     };
 
-    let maxlength = match maxlength {
-        Some(len) => len as i32,
-        None => -1,
-    };
-
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
     // we wait for the debounced
     let content_debounced: Signal<String> = signal_debounced(data.content, 500.0);
@@ -340,10 +347,10 @@ pub fn FormMarkdownEditor(
     view! {
         <div class=format!("flex flex-col gap-2 {class}")>
             <div
-                class="group w-full max-w-full p-1 lg:p-2 input_border_primary"
+                class="flex flex-col w-full max-w-full p-1 lg:p-2 input_border_primary"
                 class=("input_border_error", move || is_border_error())
             >
-                <div class="w-full mb-1 rounded-t-lg">
+                <div class="w-full rounded-t-lg">
                     <label for=name class="sr-only">
                         {placeholder}
                     </label>
@@ -358,13 +365,14 @@ pub fn FormMarkdownEditor(
                             data.content.set(event_target_value(&ev));
                             adjust_textarea_height(data.textarea_ref);
                         }
-                        maxlength=maxlength
+                        maxlength=maxlength.map(|l| l as i32).unwrap_or(-1)
                         node_ref=data.textarea_ref
                     >
                         {data.content}
                     </textarea>
                 </div>
-                <div class="flex justify-between items-center">
+                <CharLimitIndicator content=data.content maxlength class="px-1"/>
+                <div class="flex justify-between items-center mt-1">
                     <div class="flex items-center bg-base-300 rounded-xs">
                         <label>
                             <input

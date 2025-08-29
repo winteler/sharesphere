@@ -267,7 +267,7 @@
 
     .input_border_error {
         @apply
-        p-3 text-sm rounded-none border border-1 border-error
+        rounded-none border border-1 border-error
         outline outline-offset-0 outline-error outline-0 focus-within:outline-2
     }
 

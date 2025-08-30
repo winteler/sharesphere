@@ -348,7 +348,7 @@ pub fn FormMarkdownEditor(
         <div class=format!("flex flex-col gap-2 {class}")>
             <div
                 class="flex flex-col w-full max-w-full p-1 lg:p-2 input_border_primary"
-                class=("input_border_error", move || is_border_error())
+                class=("input_border_error", is_border_error)
             >
                 <div class="w-full rounded-t-lg">
                     <label for=name class="sr-only">

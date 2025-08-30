@@ -204,13 +204,15 @@ pub fn EmbedPreview(
     embed_type_input: RwSignal<EmbedType>,
     #[prop(into)]
     link_input: Signal<String>,
+    #[prop(into)]
+    select_trigger: Signal<usize>,
     title_input: RwSignal<String>,
     select_ref: NodeRef<html::Select>,
 ) -> impl IntoView {
     let link_resource = Resource::new(
-        move || (embed_type_input.get(), link_input.get()),
-        move |(embed_type, url)| async move {
-            verify_link_and_get_embed(embed_type, &url).await
+        move || (select_trigger.get(), link_input.get()),
+        move |(_, url)| async move {
+            verify_link_and_get_embed(embed_type_input.get_untracked(), &url).await
         },
     );
 
@@ -471,7 +473,7 @@ fn select_embed_type(
     select_ref: NodeRef<html::Select>
 ) {
     let new_embed_type = link_type.into();
-    link_embed.update_untracked(|embed_type| *embed_type = new_embed_type);
+    link_embed.update(|embed_type| *embed_type = new_embed_type);
     if let Some(select_ref) = select_ref.get_untracked() {
         select_ref.set_selected_index(new_embed_type as i32);
     };

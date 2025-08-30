@@ -1207,7 +1207,7 @@ pub fn PostForm(
             data=body_data
             is_markdown
             maxlength=Some(MAX_CONTENT_LENGTH as usize)
-            is_empty_ok=false
+            is_empty_ok=Signal::derive(move || embed_type_input.read() != EmbedType::None)
         />
         <LinkForm link_input embed_type_input title_input/>
         { move || {
@@ -1234,6 +1234,7 @@ pub fn LinkForm(
     link_input: RwSignal<String>,
     title_input: RwSignal<String>,
 ) -> impl IntoView {
+    let select_trigger = RwSignal::new(0);
     let select_ref = NodeRef::<html::Select>::new();
     let input_ref = NodeRef::<html::Input>::new();
     view! {
@@ -1253,19 +1254,26 @@ pub fn LinkForm(
                             if let Some(link_input_ref) = input_ref.get_untracked() {
                                 link_input_ref.set_value("");
                             }
+                            *select_trigger.write() += 1;
                         }
                     >
                         "None"
                     </option>
                     <option
                         selected=move || embed_type_input.get_untracked() == EmbedType::Link
-                        on:click=move |_| embed_type_input.set(EmbedType::Link)
+                        on:click=move |_| {
+                            embed_type_input.set(EmbedType::Link);
+                            *select_trigger.write() += 1;
+                        }
                     >
                         "Link"
                     </option>
                     <option
                         selected=move || embed_type_input.get_untracked() == EmbedType::Embed
-                        on:click=move |_| embed_type_input.set(EmbedType::Embed)
+                        on:click=move |_| {
+                            embed_type_input.set(EmbedType::Embed);
+                            *select_trigger.write() += 1;
+                        }
                     >
                         "Embed"
                     </option>
@@ -1278,7 +1286,7 @@ pub fn LinkForm(
                     input_ref
                 />
             </div>
-            <EmbedPreview embed_type_input link_input title_input select_ref/>
+            <EmbedPreview embed_type_input link_input select_trigger title_input select_ref/>
         </div>
     }
 }

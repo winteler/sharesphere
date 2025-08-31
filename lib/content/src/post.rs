@@ -400,10 +400,12 @@ pub fn EditPostForm(
         post.link.link_url.clone(),
     ));
     let title_input = RwSignal::new(title);
-    let textarea_ref = NodeRef::<html::Textarea>::new();
+    let title_textarea_ref = NodeRef::<html::Textarea>::new();
+    let body_textarea_ref = NodeRef::<html::Textarea>::new();
+    let link_textarea_ref = NodeRef::<html::Textarea>::new();
     let body_data = TextareaData {
         content: RwSignal::new(body),
-        textarea_ref,
+        textarea_ref: body_textarea_ref,
     };
     let embed_type_input = RwSignal::new(match link_type {
         LinkType::None => EmbedType::None,
@@ -428,7 +430,9 @@ pub fn EditPostForm(
     );
 
     // effect also needed here as the one in editor.rs somehow doesn't work inside a suspense
+    Effect::new(move || adjust_textarea_height(title_textarea_ref));
     Effect::new(move || adjust_textarea_height(body_data.textarea_ref));
+    Effect::new(move || adjust_textarea_height(link_textarea_ref));
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">
@@ -452,6 +456,8 @@ pub fn EditPostForm(
                             is_parent_nsfw=inherited_post_attr.is_nsfw
                             category_vec_resource=sphere_state.sphere_categories_resource
                             current_post=Some(post)
+                            title_textarea_ref
+                            link_textarea_ref
                         />
                     </SuspenseUnpack>
                     <ModalFormButtons

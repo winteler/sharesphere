@@ -195,9 +195,6 @@ pub fn LengthLimitedInput(
     placeholder: &'static str,
     /// Signals and node ref to control textarea content
     content: RwSignal<String>,
-    /// Set autocomplete
-    #[prop(default = "off")]
-    autocomplete: &'static str,
     /// Set autofocus
     #[prop(default = false)]
     autofocus: bool,
@@ -208,11 +205,11 @@ pub fn LengthLimitedInput(
     #[prop(default = None)]
     maxlength: Option<usize>,
     /// Additional css classes
-    #[prop(default = "input_primary")]
+    #[prop(default = "input_primary resize-none")]
     class: &'static str,
-    /// reference to the input node
+    /// reference to the textarea node
     #[prop(optional)]
-    input_ref: NodeRef<html::Input>,
+    textarea_ref: NodeRef<html::Textarea>,
 ) -> impl IntoView {
     let is_length_ok = move || {
         let content_len = content.read().len();
@@ -223,21 +220,32 @@ pub fn LengthLimitedInput(
         }
     };
 
+    Effect::new(move || adjust_textarea_height(textarea_ref));
+
     view! {
         <div class="w-full flex flex-col gap-1">
-            <input
-                type="text"
+            <textarea
                 name=name
                 placeholder=placeholder
                 class=class
                 class=("input_error", move || !is_length_ok())
                 autofocus=autofocus
-                autocomplete=autocomplete
-                bind:value=content
+                on:input=move |ev| {
+                    let input = event_target_value(&ev);
+                    let input = input.replace(&['\r', '\n'][..], "");
+                    content.set(input.clone());
+                    if let Some(textarea_ref) = textarea_ref.get_untracked() {
+                        textarea_ref.set_value(&input);
+                    }
+                    adjust_textarea_height(textarea_ref);
+                }
+                rows=1
                 minlength=minlength.map(|l| l as i32).unwrap_or(-1)
                 maxlength=maxlength.map(|l| l as i32).unwrap_or(-1)
-                node_ref=input_ref
-            />
+                node_ref=textarea_ref
+            >
+                {content}
+            </textarea>
             <CharLimitIndicator content maxlength/>
         </div>
     }

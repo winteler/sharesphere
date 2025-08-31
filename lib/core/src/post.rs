@@ -85,7 +85,7 @@ pub struct PostLocation {
 pub struct PostDataInputs {
     #[validate(length(min = 1, max = MAX_TITLE_LENGTH))]
     title: String,
-    #[validate(length(min = 1, max = MAX_CONTENT_LENGTH))]
+    #[validate(length(max = MAX_CONTENT_LENGTH))]
     body: String,
     is_markdown: bool,
     embed_type: EmbedType,
@@ -1183,6 +1183,12 @@ pub fn PostForm(
     category_vec_resource: Resource<Result<Vec<SphereCategory>, AppError>>,
     #[prop(default = None)]
     current_post: Option<StoredValue<Post>>,
+    /// reference to the title textarea node
+    #[prop(optional)]
+    title_textarea_ref: NodeRef<html::Textarea>,
+    /// reference to the link textarea node
+    #[prop(optional)]
+    link_textarea_ref: NodeRef<html::Textarea>,
 ) -> impl IntoView {
     let (is_markdown, is_spoiler, is_nsfw, is_pinned, category_id) = match current_post {
         Some(post) => post.with_value(|post| {
@@ -1199,6 +1205,7 @@ pub fn PostForm(
             autofocus=true
             minlength=Some(1)
             maxlength=Some(MAX_TITLE_LENGTH as usize)
+            textarea_ref=title_textarea_ref
         />
         <FormMarkdownEditor
             name="post_inputs[body]"
@@ -1209,7 +1216,7 @@ pub fn PostForm(
             maxlength=Some(MAX_CONTENT_LENGTH as usize)
             is_empty_ok=Signal::derive(move || embed_type_input.read() != EmbedType::None)
         />
-        <LinkForm link_input embed_type_input title_input/>
+        <LinkForm link_input embed_type_input title_input textarea_ref=link_textarea_ref/>
         { move || {
             match is_parent_spoiler.get() {
                 true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label="Spoiler" value=true disabled=true/> },
@@ -1233,10 +1240,12 @@ pub fn LinkForm(
     embed_type_input: RwSignal<EmbedType>,
     link_input: RwSignal<String>,
     title_input: RwSignal<String>,
+    /// reference to the textarea node
+    #[prop(optional)]
+    textarea_ref: NodeRef<html::Textarea>,
 ) -> impl IntoView {
     let select_trigger = RwSignal::new(0);
     let select_ref = NodeRef::<html::Select>::new();
-    let input_ref = NodeRef::<html::Input>::new();
     view! {
         <div class="flex flex-col gap-2">
             <div class="flex gap-2 items-center">
@@ -1251,8 +1260,8 @@ pub fn LinkForm(
                         on:click=move |_| {
                             embed_type_input.set(EmbedType::None);
                             link_input.set(String::default());
-                            if let Some(link_input_ref) = input_ref.get_untracked() {
-                                link_input_ref.set_value("");
+                            if let Some(link_textarea_ref) = textarea_ref.get_untracked() {
+                                link_textarea_ref.set_value("");
                             }
                             *select_trigger.write() += 1;
                         }
@@ -1283,7 +1292,7 @@ pub fn LinkForm(
                     placeholder="Url"
                     content=link_input
                     maxlength=Some(MAX_LINK_LENGTH as usize)
-                    input_ref
+                    textarea_ref
                 />
             </div>
             <EmbedPreview embed_type_input link_input select_trigger title_input select_ref/>

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use server_fn::const_format::concatcp;
 use validator::{Validate};
 use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
-use sharesphere_utils::checks::{check_sphere_name};
+use sharesphere_utils::checks::{check_post_title, check_sphere_name};
 use sharesphere_utils::embed::{EmbedPreview, EmbedType, Link};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::routes::get_post_path;
@@ -28,6 +28,7 @@ use {
         session::ssr::get_db_pool,
     },
     sharesphere_utils::{
+        editor::clear_newlines,
         editor::ssr::get_html_and_markdown_strings,
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
@@ -83,7 +84,7 @@ pub struct PostLocation {
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
 pub struct PostDataInputs {
-    #[validate(length(min = 1, max = MAX_TITLE_LENGTH))]
+    #[validate(custom(function = "check_post_title"))]
     title: String,
     #[validate(length(max = MAX_CONTENT_LENGTH))]
     body: String,
@@ -945,6 +946,7 @@ pub async fn create_post(
 ) -> Result<(), AppError> {
     post_location.validate()?;
     post_inputs.validate()?;
+
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -955,7 +957,7 @@ pub async fn create_post(
     let post = ssr::create_post(
         post_location.sphere.as_str(),
         post_location.satellite_id,
-        post_inputs.title.as_str(),
+        clear_newlines(post_inputs.title).as_str(),
         body.as_str(),
         markdown_body.as_deref(),
         link,

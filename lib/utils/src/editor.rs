@@ -232,7 +232,7 @@ pub fn LengthLimitedInput(
                 autofocus=autofocus
                 on:input=move |ev| {
                     let input = event_target_value(&ev);
-                    let input = input.replace(&['\r', '\n'][..], "");
+                    let input = clear_newlines(input);
                     content.set(input.clone());
                     if let Some(textarea_ref) = textarea_ref.get_untracked() {
                         textarea_ref.set_value(&input);
@@ -638,6 +638,18 @@ fn get_line_start_for_position(string: &String, position: usize) -> usize {
         Some(line_start) => line_start + 1,
         None => 0,
     }
+}
+
+/// Returns input `string` without any newlines.
+///
+/// ```
+/// use sharesphere_utils::editor::clear_newlines;
+///
+/// assert_eq!(clear_newlines(String::from("test")), String::from("test"));
+/// assert_eq!(clear_newlines(String::from("test\r\nsecond line\nthird line")), String::from("test  second line third line"));
+/// ```
+pub fn clear_newlines(string: String) -> String {
+    string.replace(&['\r', '\n'][..], " ")
 }
 
 /// Adjust the height of `textarea_ref` so that all its content is displayed without a scrollbar.

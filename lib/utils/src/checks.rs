@@ -1,7 +1,7 @@
 use const_format::formatcp;
 use url::Url;
 use validator::ValidationError;
-use crate::constants::{MAX_SPHERE_NAME_LENGTH, MAX_USERNAME_LENGTH};
+use crate::constants::{MAX_SPHERE_NAME_LENGTH, MAX_TITLE_LENGTH, MAX_USERNAME_LENGTH};
 use crate::errors::AppError;
 use crate::routes::get_app_origin;
 
@@ -26,6 +26,7 @@ pub fn check_string_length(
 /// use sharesphere_utils::errors::AppError;
 ///
 /// assert!(check_sphere_name("-Abc123_").is_ok());
+/// assert!(check_sphere_name("").is_err());
 /// assert!(check_sphere_name(" name").is_err());
 /// assert!(check_sphere_name("name%").is_err());
 /// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH)).is_ok());
@@ -38,6 +39,32 @@ pub fn check_sphere_name(name: &str) -> Result<(), ValidationError> {
         Err(ValidationError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
     } else if name.len() > MAX_SPHERE_NAME_LENGTH {
         Err(ValidationError::new(formatcp!("Sphere name cannot exceed {MAX_SPHERE_NAME_LENGTH} characters.")))
+    } else {
+        Ok(())
+    }
+}
+
+/// # Returns whether a post's title is valid.
+///
+/// ```
+/// use sharesphere_utils::checks::{check_post_title};
+/// use sharesphere_utils::constants::MAX_TITLE_LENGTH;
+/// use sharesphere_utils::errors::AppError;
+///
+/// assert!(check_post_title("title").is_ok());
+/// assert!(check_post_title("").is_err());
+/// assert!(check_post_title("invalid\ntitle").is_err());
+/// assert!(check_post_title("also invalid\rtitle").is_err());
+/// assert!(check_post_title(&"a".repeat(MAX_TITLE_LENGTH as usize)).is_ok());
+/// assert!(check_post_title(&"a".repeat(MAX_TITLE_LENGTH as usize + 1)).is_err());
+/// ```
+pub fn check_post_title(title: &str) -> Result<(), ValidationError> {
+    if title.is_empty() {
+        Err(ValidationError::new("Post title cannot be empty."))
+    } else if title.len() > MAX_TITLE_LENGTH as usize {
+        Err(ValidationError::new(formatcp!("Post title cannot exceed {MAX_TITLE_LENGTH} characters.")))
+    } else if title.contains(&['\r', '\n'][..]) {
+        Err(ValidationError::new(formatcp!("Post title cannot contain newlines.")))
     } else {
         Ok(())
     }

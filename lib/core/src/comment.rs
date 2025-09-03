@@ -405,8 +405,8 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         match markdown_comment {
-            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH as usize)?,
-            None => check_string_length(comment, "Comment", MAX_CONTENT_LENGTH as usize)?,
+            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
+            None => check_string_length(comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
         };
         let sphere = get_post_sphere(post_id, &db_pool).await?;
         user.check_can_publish_on_sphere(&sphere.sphere_name)?;
@@ -446,8 +446,8 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         match comment_markdown_body {
-            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH as usize)?,
-            None => check_string_length(comment_body, "Comment", MAX_CONTENT_LENGTH as usize)?,
+            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
+            None => check_string_length(comment_body, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
         };
         if is_pinned {
             let sphere = get_comment_sphere(comment_id, &db_pool).await?;
@@ -608,7 +608,7 @@ pub async fn create_comment(
     is_pinned: Option<bool>,
 ) -> Result<CommentWithChildren, AppError> {
     log::trace!("Create comment for post {post_id}");
-    check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize)?;
+    check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
@@ -651,7 +651,7 @@ pub async fn edit_comment(
     is_pinned: Option<bool>,
 ) -> Result<Comment, AppError> {
     log::trace!("Edit comment {comment_id}");
-    check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize)?;
+    check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

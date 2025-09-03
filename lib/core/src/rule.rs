@@ -9,6 +9,8 @@ use {
         auth::ssr::check_user,
         session::ssr::get_db_pool,
     },
+    sharesphere_utils::checks::{check_sphere_name, check_string_length},
+    sharesphere_utils::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_TITLE_LENGTH},
     sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
 };
 use sharesphere_utils::icons::LoadingIcon;
@@ -239,6 +241,9 @@ pub async fn get_rule_by_id(
 pub async fn get_rule_vec(
     sphere_name: Option<String>
 ) -> Result<Vec<Rule>, AppError> {
+    if let Some(sphere_name) = &sphere_name {
+        check_sphere_name(&sphere_name)?;
+    }
     let db_pool = get_db_pool()?;
     let rule_vec = ssr::get_rule_vec(sphere_name.as_deref(), &db_pool).await?;
     Ok(rule_vec)
@@ -252,6 +257,11 @@ pub async fn add_rule(
     description: String,
     is_markdown: bool,
 ) -> Result<Rule, AppError> {
+    if let Some(sphere_name) = &sphere_name {
+        check_sphere_name(sphere_name)?;
+    }
+    check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
+    check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
@@ -278,6 +288,11 @@ pub async fn update_rule(
     description: String,
     is_markdown: bool,
 ) -> Result<Rule, AppError> {
+    if let Some(sphere_name) = &sphere_name {
+        check_sphere_name(sphere_name)?;
+    }
+    check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
+    check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
@@ -301,6 +316,9 @@ pub async fn remove_rule(
     sphere_name: Option<String>,
     priority: i16,
 ) -> Result<(), AppError> {
+    if let Some(sphere_name) = &sphere_name {
+        check_sphere_name(sphere_name)?;
+    }
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
     ssr::remove_rule(sphere_name.as_deref(), priority, &user, &db_pool).await?;

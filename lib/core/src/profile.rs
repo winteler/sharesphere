@@ -7,6 +7,7 @@ use crate::ranking::SortType;
 #[cfg(feature = "ssr")]
 use {
     sharesphere_auth::session::ssr::get_db_pool,
+    sharesphere_utils::checks::check_username,
     crate::comment::{COMMENT_BATCH_SIZE},
     crate::post::{POST_BATCH_SIZE},
 };
@@ -92,6 +93,7 @@ pub async fn get_user_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, AppError> {
+    check_username(&username)?;
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_user_post_vec(
@@ -111,6 +113,7 @@ pub async fn get_user_comment_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithContext>, AppError> {
+    check_username(&username)?;
     let db_pool = get_db_pool()?;
 
     let comment_vec = ssr::get_user_comment_vec(

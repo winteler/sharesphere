@@ -114,7 +114,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        check_string_length(&moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH)?;
+        check_string_length(&moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH, false)?;
         let comment = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as::<_, Comment>(
                 "UPDATE comments SET
@@ -295,7 +295,7 @@ pub async fn moderate_comment(
     ban_duration_days: Option<usize>,
 ) -> Result<Comment, AppError> {
     log::trace!("Moderate comment {comment_id}");
-    check_string_length(&moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH)?;
+    check_string_length(&moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH, false)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

@@ -9,10 +9,12 @@ pub fn check_string_length(
     input: &str,
     input_name: &str,
     max_length: usize,
+    is_empty_ok: bool,
 ) -> Result<(), AppError> {
-    match input.len() > max_length {
-        true => Err(AppError::new(format!("{input_name} exceeds the maximum length {max_length}."))),
-        false => Ok(()),
+    match (input.len() > max_length, is_empty_ok || !input.is_empty()) {
+        (true, _) => Err(AppError::new(format!("{input_name} exceeds the maximum length {max_length}."))),
+        (_, true) => Err(AppError::new(format!("{input_name} cannot be empty."))),
+        (false, false) => Ok(()),
     }
 }
 
@@ -86,12 +88,10 @@ pub fn check_post_title(title: &str) -> Result<(), ValidationError> {
 /// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH + 1)).is_err());
 /// ```
 pub fn check_username(name: &str) -> Result<(), AppError> {
-    if name.is_empty() {
-        Err(AppError::new("Username cannot be empty."))
-    } else if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+    if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
         Err(AppError::new("Username can only contain alphanumeric characters, dashes and underscores."))
     } else {
-        check_string_length(name, "Username", MAX_USERNAME_LENGTH)
+        check_string_length(name, "Username", MAX_USERNAME_LENGTH, false)
     }
 }
 

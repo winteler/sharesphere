@@ -21,7 +21,8 @@ use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphe
 use sharesphere_core::sphere::get_sphere_with_user_info;
 use sharesphere_core::sphere_category::get_sphere_category_vec;
 use sharesphere_core::state::SphereState;
-use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::checks::{check_satellite_name, check_string_length};
+use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
 use crate::sphere::{SphereToolbar};
 use crate::sphere_category::{get_sphere_category_header_map};
 
@@ -410,9 +411,7 @@ pub fn EditSatelliteForm(
         textarea_ref: body_ref,
     };
 
-    let invalid_inputs = Signal::derive(move || {
-        title_data.content.read().is_empty() || body_data.content.read().is_empty()
-    });
+    let invalid_inputs = are_satellite_inputs_invalid(title_data.content.into(), body_data.content.into());
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
@@ -450,9 +449,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
         content: RwSignal::new(String::default()),
         textarea_ref: body_ref,
     };
-    let invalid_inputs = Signal::derive(move || {
-        title_data.content.read().is_empty() || body_data.content.read().is_empty()
-    });
+    let invalid_inputs = are_satellite_inputs_invalid(title_data.content.into(), body_data.content.into());
 
     view! {
         <button
@@ -503,6 +500,7 @@ pub fn SatelliteInputs(
             name="satellite_name"
             placeholder="Name"
             data=title_data
+            maxlength=Some(MAX_SATELLITE_NAME_LENGTH)
         />
         <FormMarkdownEditor
             name="body"
@@ -511,8 +509,62 @@ pub fn SatelliteInputs(
             data=body_data
             is_markdown=is_markdown_body
             is_empty_ok=false
+            maxlength=Some(MAX_CONTENT_LENGTH as usize)
         />
         <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
         <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
+    }
+}
+
+fn are_satellite_inputs_invalid(satellite_name: Signal<String>, satellite_body: Signal<String>) -> Signal<bool> {
+    Signal::derive(move || {
+        check_satellite_name(&*satellite_name.read()).is_err() ||
+            check_string_length(
+                &*satellite_body.read(),
+                "Satellite body",
+                MAX_CONTENT_LENGTH as usize,
+                false
+            ).is_err()
+    })
+}
+
+#[cfg(test)]
+mod test {
+    use leptos::prelude::{GetUntracked, Owner, RwSignal, Set};
+    use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH};
+    use crate::satellite::are_satellite_inputs_invalid;
+
+    #[test]
+    fn test_are_satellite_inputs_invalid() {
+        let owner = Owner::new();
+        owner.set();
+        let satellite_name = RwSignal::new(String::from("satellite"));
+        let satellite_body = RwSignal::new(String::from("body"));
+        let invalid_inputs = are_satellite_inputs_invalid(satellite_name.into(), satellite_body.into());
+        assert_eq!(invalid_inputs.get_untracked(), false);
+
+        satellite_name.set(String::from("satellite name"));
+        assert_eq!(invalid_inputs.get_untracked(), true);
+
+        satellite_name.set(String::from("satellite%name"));
+        assert_eq!(invalid_inputs.get_untracked(), true);
+
+        satellite_name.set(String::from(&"a".repeat(MAX_SATELLITE_NAME_LENGTH + 1)));
+        assert_eq!(invalid_inputs.get_untracked(), true);
+
+        satellite_name.set(String::from(&"a".repeat(MAX_SATELLITE_NAME_LENGTH)));
+        assert_eq!(invalid_inputs.get_untracked(), false);
+
+        satellite_name.set(String::from("this_isA-valid_satellite"));
+        assert_eq!(invalid_inputs.get_untracked(), false);
+
+        satellite_body.set(String::from("This is a valid satellite body, it can contain special ch@racter$.\nAnd span multiple lines."));
+        assert_eq!(invalid_inputs.get_untracked(), false);
+
+        satellite_body.set(String::from(&"a".repeat(MAX_CONTENT_LENGTH as usize)));
+        assert_eq!(invalid_inputs.get_untracked(), false);
+
+        satellite_body.set(String::from(&"a".repeat(MAX_CONTENT_LENGTH  as usize + 1)));
+        assert_eq!(invalid_inputs.get_untracked(), true);
     }
 }

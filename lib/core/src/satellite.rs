@@ -8,6 +8,8 @@ use {
         auth::ssr::check_user,
         session::ssr::get_db_pool,
     },
+    sharesphere_utils::checks::{check_satellite_name, check_sphere_name, check_string_length},
+    sharesphere_utils::constants::MAX_CONTENT_LENGTH,
     sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
     crate::satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
@@ -220,6 +222,7 @@ pub async fn get_satellite_vec_by_sphere_name(
     sphere_name: String,
     only_active: bool,
 ) -> Result<Vec<Satellite>, AppError> {
+    check_sphere_name(&sphere_name)?;
     let db_pool = get_db_pool()?;
     let satellite_vec = match only_active {
         true => get_active_satellite_vec_by_sphere_name(&sphere_name, &db_pool).await?,
@@ -237,6 +240,9 @@ pub async fn create_satellite(
     is_nsfw: bool,
     is_spoiler: bool,
 ) -> Result<Satellite, AppError> {
+    check_sphere_name(&sphere_name)?;
+    check_satellite_name(&satellite_name)?;
+    check_string_length(&body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 
@@ -264,6 +270,8 @@ pub async fn update_satellite(
     is_nsfw: bool,
     is_spoiler: bool,
 ) -> Result<Satellite, AppError> {
+    check_satellite_name(&satellite_name)?;
+    check_string_length(&body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
 

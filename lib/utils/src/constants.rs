@@ -36,6 +36,7 @@ pub const FLAME_ICON_PATH: &str = "/svg/flame.svg";
 
 
 pub const MAX_SPHERE_NAME_LENGTH: usize = 50;
+pub const MAX_SATELLITE_NAME_LENGTH: usize = 50;
 pub const MAX_USERNAME_LENGTH: usize = 30;
 pub const MAX_TITLE_LENGTH: u64 = 250;
 pub const MAX_CONTENT_LENGTH: u64 = 20000;

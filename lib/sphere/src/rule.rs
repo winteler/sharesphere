@@ -11,6 +11,7 @@ use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::rule::Rule;
 use sharesphere_core::state::SphereState;
+use sharesphere_utils::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_TITLE_LENGTH};
 
 /// Component to manage sphere rules
 #[component]
@@ -240,6 +241,7 @@ pub fn RuleInputs(
                     name="title"
                     placeholder="Title"
                     data=title_data
+                    maxlength=Some(MAX_TITLE_LENGTH as usize)
                 />
             </div>
             <FormMarkdownEditor
@@ -249,6 +251,7 @@ pub fn RuleInputs(
                 data=description_data
                 is_markdown=is_description_markdown
                 is_empty_ok=false
+                maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
             />
         </div>
     }
@@ -259,7 +262,9 @@ fn is_invalid_rule_inputs(
     title: RwSignal<String>,
     description: RwSignal<String>
 ) -> bool {
-    priority.read().is_empty() || title.read().is_empty() || description.read().is_empty()
+    priority.read().is_empty() ||
+        title.with(|title| title.is_empty() || title.len() > MAX_TITLE_LENGTH as usize) ||
+        description.with(|desc| desc.is_empty() || desc.len() > MAX_MOD_MESSAGE_LENGTH)
 }
 
 #[cfg(test)]

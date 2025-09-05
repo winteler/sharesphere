@@ -1,18 +1,28 @@
 use const_format::formatcp;
 use url::Url;
 use validator::ValidationError;
-use crate::constants::{MAX_SPHERE_NAME_LENGTH, MAX_TITLE_LENGTH, MAX_USERNAME_LENGTH};
+use crate::constants::{MAX_SATELLITE_NAME_LENGTH, MAX_SPHERE_NAME_LENGTH, MAX_TITLE_LENGTH, MAX_USERNAME_LENGTH};
 use crate::errors::AppError;
 use crate::routes::get_app_origin;
 
+/// # Returns whether the given string `input` is shorter or equal than the given max length and, if not `is_empty_ok` than it's not empty
+///
+/// ```
+/// use sharesphere_utils::checks::{check_string_length};
+/// use sharesphere_utils::errors::AppError;
+///
+/// assert!(check_string_length("hello", "input", 5, false).is_ok());
+/// assert_eq!(check_string_length("hello", "input", 4, false), Err(AppError::new("input exceeds the maximum length: 4.")));
+/// assert_eq!(check_string_length("", "input", 4, false), Err(AppError::new("input cannot be empty.")));
+/// ```
 pub fn check_string_length(
     input: &str,
     input_name: &str,
     max_length: usize,
     is_empty_ok: bool,
 ) -> Result<(), AppError> {
-    match (input.len() > max_length, is_empty_ok || !input.is_empty()) {
-        (true, _) => Err(AppError::new(format!("{input_name} exceeds the maximum length {max_length}."))),
+    match (input.len() > max_length, !is_empty_ok && input.is_empty()) {
+        (true, _) => Err(AppError::new(format!("{input_name} exceeds the maximum length: {max_length}."))),
         (_, true) => Err(AppError::new(format!("{input_name} cannot be empty."))),
         (false, false) => Ok(()),
     }
@@ -41,6 +51,34 @@ pub fn check_sphere_name(name: &str) -> Result<(), ValidationError> {
         Err(ValidationError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
     } else if name.len() > MAX_SPHERE_NAME_LENGTH {
         Err(ValidationError::new(formatcp!("Sphere name cannot exceed {MAX_SPHERE_NAME_LENGTH} characters.")))
+    } else {
+        Ok(())
+    }
+}
+
+/// # Returns whether a satellite name is valid.
+///
+/// # Valid satellite names contain only ascii alphanumeric characters, '-', '_' and have a maximum length of `MAX_SPHERE_NAME_LENGTH`
+///
+/// ```
+/// use sharesphere_utils::checks::{check_satellite_name};
+/// use sharesphere_utils::constants::MAX_SPHERE_NAME_LENGTH;
+/// use sharesphere_utils::errors::AppError;
+///
+/// assert!(check_satellite_name("-Abc123_").is_ok());
+/// assert!(check_satellite_name("").is_err());
+/// assert!(check_satellite_name(" name").is_err());
+/// assert!(check_satellite_name("name%").is_err());
+/// assert!(check_satellite_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH)).is_ok());
+/// assert!(check_satellite_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH + 1)).is_err());
+/// ```
+pub fn check_satellite_name(name: &str) -> Result<(), ValidationError> {
+    if name.is_empty() {
+        Err(ValidationError::new("Satellite name cannot be empty."))
+    } else if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        Err(ValidationError::new("Satellite name can only contain alphanumeric characters, dashes and underscores."))
+    } else if name.len() > MAX_SATELLITE_NAME_LENGTH {
+        Err(ValidationError::new(formatcp!("Satellite name cannot exceed {MAX_SPHERE_NAME_LENGTH} characters.")))
     } else {
         Ok(())
     }
@@ -84,6 +122,7 @@ pub fn check_post_title(title: &str) -> Result<(), ValidationError> {
 /// assert!(check_username("-Abc123_").is_ok());
 /// assert!(check_username(" name").is_err());
 /// assert!(check_username("name%").is_err());
+/// assert!(check_username("").is_err());
 /// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH)).is_ok());
 /// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH + 1)).is_err());
 /// ```

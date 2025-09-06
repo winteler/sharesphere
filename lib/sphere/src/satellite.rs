@@ -508,7 +508,6 @@ pub fn SatelliteInputs(
             is_markdown_name="is_markdown"
             data=body_data
             is_markdown=is_markdown_body
-            is_empty_ok=false
             maxlength=Some(MAX_CONTENT_LENGTH as usize)
         />
         <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>

@@ -250,7 +250,6 @@ pub fn RuleInputs(
                 placeholder="Description"
                 data=description_data
                 is_markdown=is_description_markdown
-                is_empty_ok=false
                 maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
             />
         </div>

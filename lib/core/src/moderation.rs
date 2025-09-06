@@ -42,8 +42,6 @@ pub mod ssr {
     use sharesphere_auth::role::{AdminRole, PermissionLevel};
     use sharesphere_auth::role::ssr::is_user_sphere_moderator;
     use sharesphere_auth::user::{User, UserBan};
-    use sharesphere_utils::checks::check_string_length;
-    use sharesphere_utils::constants::MAX_MOD_MESSAGE_LENGTH;
     use sharesphere_utils::errors::AppError;
     use crate::comment::Comment;
     use crate::post::Post;
@@ -114,7 +112,6 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        check_string_length(&moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH, false)?;
         let comment = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as::<_, Comment>(
                 "UPDATE comments SET
@@ -256,6 +253,7 @@ pub async fn moderate_post(
     ban_duration_days: Option<usize>,
 ) -> Result<Post, AppError> {
     log::debug!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
+    check_string_length(&moderator_message, "Moderator message", MAX_MOD_MESSAGE_LENGTH, true)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

@@ -169,7 +169,6 @@ pub mod ssr {
     use sqlx::PgPool;
     use sharesphere_auth::role::PermissionLevel;
     use sharesphere_auth::user::User;
-    use sharesphere_utils::checks::check_sphere_name;
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::embed::{verify_link_and_get_embed, EmbedType, Link};
     use sharesphere_utils::errors::AppError;
@@ -269,7 +268,6 @@ pub mod ssr {
         user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<PostWithInfo, AppError> {
-
         let user_id = user.map(|user| user.user_id);
 
         let post_join_vote = sqlx::query_as::<_, PostJoinInfo>(
@@ -344,7 +342,6 @@ pub mod ssr {
         user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
-        check_sphere_name(sphere_name)?;
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
@@ -903,6 +900,7 @@ pub async fn get_post_vec_by_sphere_name(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<Post>, AppError> {
+    check_sphere_name(&sphere_name)?;
     let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
     let post_vec = ssr::get_post_vec_by_sphere_name(
@@ -1254,7 +1252,7 @@ pub fn LinkForm(
                 <span class="label-text w-fit">"Link"</span>
                 <select
                     name="post_inputs[embed_type]"
-                    class="input_primary bg-base-100 appearance-none bg-[url('/svg/arrow_down.svg')] bg-[length:12px_12px] bg-no-repeat bg-position-[center_right_1rem] pr-8"
+                    class="select_input"
                     node_ref=select_ref
                 >
                     <option

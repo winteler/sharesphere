@@ -14,6 +14,8 @@ use {
         },
         session::ssr::get_db_pool,
     },
+    sharesphere_utils::checks::{check_sphere_name, check_string_length},
+    sharesphere_utils::constants::MAX_MOD_MESSAGE_LENGTH,
 };
 use sharesphere_utils::icons::SphereIcon;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
@@ -266,6 +268,7 @@ pub mod ssr {
 
 #[server]
 pub async fn is_sphere_available(sphere_name: String) -> Result<bool, AppError> {
+    check_sphere_name(&sphere_name)?;
     let db_pool = get_db_pool()?;
     let sphere_existence = ssr::is_sphere_available(&sphere_name, &db_pool).await?;
     Ok(sphere_existence)
@@ -273,6 +276,7 @@ pub async fn is_sphere_available(sphere_name: String) -> Result<bool, AppError> 
 
 #[server]
 pub async fn get_sphere_by_name(sphere_name: String) -> Result<Sphere, AppError> {
+    check_sphere_name(&sphere_name)?;
     let db_pool = get_db_pool()?;
     let sphere = ssr::get_sphere_by_name(&sphere_name, &db_pool).await?;
     Ok(sphere)
@@ -301,6 +305,7 @@ pub async fn get_popular_sphere_headers() -> Result<Vec<SphereHeader>, AppError>
 pub async fn get_sphere_with_user_info(
     sphere_name: String,
 ) -> Result<SphereWithUserInfo, AppError> {
+    check_sphere_name(&sphere_name)?;
     let db_pool = get_db_pool()?;
     let user_id = match get_user().await {
         Ok(Some(user)) => Some(user.user_id),
@@ -318,6 +323,8 @@ pub async fn create_sphere(
     description: String,
     is_nsfw: bool,
 ) -> Result<(), AppError> {
+    check_sphere_name(&sphere_name)?;
+    check_string_length(&description, "Sphere description", MAX_MOD_MESSAGE_LENGTH, false)?;
     log::trace!("Create Sphere '{sphere_name}', {description}, {is_nsfw}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -346,6 +353,8 @@ pub async fn update_sphere_description(
     sphere_name: String,
     description: String,
 ) -> Result<(), AppError> {
+    check_sphere_name(&sphere_name)?;
+    check_string_length(&description, "Sphere description", MAX_MOD_MESSAGE_LENGTH, false)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

@@ -251,12 +251,12 @@
 
     .input_outline_primary {
         @apply
-        outline outline-primary outline-1 focus-within:outline-3
+            outline outline-primary outline-1 focus-within:outline-3
     }
 
     .input_outline_error {
         @apply
-        outline outline-error outline-1 focus-within:outline-3
+            outline outline-error outline-1 focus-within:outline-3
     }
 
     .input_border_primary {
@@ -281,6 +281,13 @@
         @apply
             p-3 text-sm rounded-none border border-1 border-error
             outline outline-offset-0 outline-error outline-0 focus-within:outline-2
+    }
+
+    .select_input {
+        @apply
+            p-3 text-sm rounded-none border border-1 border-primary
+            outline outline-offset-0 outline-primary outline-0 focus-within:outline-2 bg-base-100 appearance-none
+            bg-[url('/svg/arrow_down.svg')] bg-[length:12px_12px] bg-no-repeat bg-position-[center_right_1rem] pr-8
     }
 }
 

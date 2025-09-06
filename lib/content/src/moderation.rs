@@ -12,6 +12,8 @@ use sharesphere_core::comment::Comment;
 use sharesphere_core::moderation::{Content, ModerateComment, ModerationInfo, ModerationInfoDialog};
 use sharesphere_core::rule::get_rule_by_id;
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::checks::check_string_length;
+use sharesphere_utils::constants::MAX_MOD_MESSAGE_LENGTH;
 use sharesphere_utils::unpack::handle_dialog_action_result;
 
 /// Component to moderate a post
@@ -105,6 +107,7 @@ pub fn ModeratePostDialog(
                             name="moderator_message"
                             placeholder="Message"
                             data=body_data
+                            maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
                         />
                         <BanMenu/>
                         <ModalFormButtons
@@ -131,7 +134,9 @@ pub fn ModerateCommentDialog(
         content: RwSignal::new(String::new()),
         textarea_ref,
     };
-    let is_text_empty = Signal::derive(move || comment_data.content.read().is_empty());
+    let is_form_invalid = Signal::derive(move || {
+        check_string_length(&*comment_data.content.read(), "Moderator message", MAX_MOD_MESSAGE_LENGTH, false).is_err()
+    });
 
     let moderate_comment_action = ServerAction::<ModerateComment>::new();
 
@@ -159,10 +164,11 @@ pub fn ModerateCommentDialog(
                             name="moderator_message"
                             placeholder="Message"
                             data=comment_data
+                            maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
                         />
                         <BanMenu/>
                         <ModalFormButtons
-                            disable_publish=is_text_empty
+                            disable_publish=is_form_invalid
                             show_form=show_dialog
                         />
                     </div>
@@ -183,7 +189,7 @@ pub fn RuleSelect(
         <div class="flex items-center justify-between w-full">
             <span class="text-xl font-semibold">"Infringed rule:"</span>
             <select
-                class="select"
+                class="select_input"
                 name=name
             >
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:rules_vec>
@@ -220,7 +226,7 @@ pub fn BanMenu() -> impl IntoView {
             <div class="flex items-center justify-between w-full">
                 <span class="text-xl font-semibold">"Ban duration (days):"</span>
                 <select
-                    class="select"
+                    class="select_input"
                     on:change=move |ev| {
                         let value = event_target_value(&ev);
                         if let Ok(num_days_banned) = value.parse::<i32>() {

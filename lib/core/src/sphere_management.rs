@@ -11,6 +11,7 @@ use {
         auth::{ssr::check_user, ssr::reload_user},
         session::ssr::get_db_pool,
     },
+    sharesphere_utils::checks::{check_sphere_name, check_username},
     ssr::{
         MAX_BANNER_SIZE, MAX_ICON_SIZE, OBJECT_CONTAINER_URL_ENV, SphereImageType
     }
@@ -37,6 +38,7 @@ pub mod ssr {
 
     use sharesphere_auth::role::{AdminRole, PermissionLevel};
     use sharesphere_auth::user::{User, UserBan};
+    use sharesphere_utils::checks::check_sphere_name;
     use crate::sphere::Sphere;
     use crate::sphere::ssr::get_sphere_by_name;
 
@@ -198,6 +200,7 @@ pub mod ssr {
         }
 
         let sphere_name = sphere_name?;
+        check_sphere_name(&sphere_name)?;
         let mut file_field = file_field?;
 
         user.check_permissions(&sphere_name, PermissionLevel::Manage)?;
@@ -374,6 +377,8 @@ pub async fn get_sphere_ban_vec(
     sphere_name: String,
     username_prefix: String,
 ) -> Result<Vec<UserBan>, AppError> {
+    check_sphere_name(&sphere_name)?;
+    check_username(&username_prefix)?;
     let db_pool = get_db_pool()?;
     let ban_vec = ssr::get_sphere_ban_vec(&sphere_name, &username_prefix, &db_pool).await?;
     Ok(ban_vec)

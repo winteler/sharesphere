@@ -404,10 +404,6 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        match markdown_comment {
-            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
-            None => check_string_length(comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
-        };
         let sphere = get_post_sphere(post_id, &db_pool).await?;
         user.check_can_publish_on_sphere(&sphere.sphere_name)?;
         if comment.is_empty() {
@@ -445,10 +441,6 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
-        match comment_markdown_body {
-            Some(markdown_comment) => check_string_length(markdown_comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
-            None => check_string_length(comment_body, "Comment", MAX_CONTENT_LENGTH as usize, false)?,
-        };
         if is_pinned {
             let sphere = get_comment_sphere(comment_id, &db_pool).await?;
             user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;

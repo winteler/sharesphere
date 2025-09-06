@@ -203,7 +203,6 @@ pub mod ssr {
     use lru::LruCache;
     use sqlx::PgPool;
     use tokio::sync::Mutex;
-    use sharesphere_utils::checks::check_username;
     use sharesphere_utils::errors::AppError;
 
     use crate::role::ssr::get_user_sphere_role;
@@ -230,7 +229,6 @@ pub mod ssr {
             username: &str,
             db_pool: &PgPool,
         ) -> Result<SqlUser, AppError> {
-            check_username(username)?;
             let sql_user = sqlx::query_as!(
             SqlUser,
             "SELECT * FROM users WHERE username = $1",

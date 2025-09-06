@@ -5,11 +5,16 @@ use leptos_use::{signal_debounced};
 
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
-
-use crate::constants::SPOILER_TAG;
+use crate::constants::{SPOILER_TAG};
 use crate::errors::AppError;
 use crate::icons::*;
 use crate::unpack::TransitionUnpack;
+
+#[cfg(feature = "ssr")]
+use {
+    crate::checks::check_string_length,
+    crate::constants::MAX_CONTENT_LENGTH,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FormatType {
@@ -153,6 +158,7 @@ pub mod ssr {
 pub async fn get_styled_html_from_markdown(
     markdown_input: String,
 ) -> Result<String, AppError> {
+    check_string_length(&markdown_input, "Markdown input", MAX_CONTENT_LENGTH as usize, false)?;
     let html_from_markdown =
         markdown::to_html_with_options(markdown_input.as_str(), &markdown::Options::gfm())
             .or_else(|e| Err(AppError::new(e)))?;
@@ -266,17 +272,21 @@ pub fn FormTextEditor(
     /// Additional css classes
     #[prop(default = "w-full")]
     class: &'static str,
+    /// Indicates if a red outline should be added when the textarea is empty
+    #[prop(into, default = Signal::derive(|| false))]
+    is_empty_ok: Signal<bool>,
 ) -> impl IntoView {
-    let maxlength = match maxlength {
-        Some(len) => len as i32,
-        None => -1,
-    };
-    let class = format!("group max-w-full p-2 border border-primary bg-base-100 {class}");
+    let class = format!("flex flex-col w-full max-w-full p-1 lg:p-2 input_border_primary {class}");
+
+    let is_border_error = move || !is_empty_ok.get() && data.content.read().is_empty();
 
     Effect::new(move || adjust_textarea_height(data.textarea_ref));
 
     view! {
-        <div class=class>
+        <div
+            class=class
+            class=("input_border_error", is_border_error)
+        >
             <div class="w-full rounded-t-lg">
                 <label for=name class="sr-only">
                     {placeholder}
@@ -291,12 +301,13 @@ pub fn FormTextEditor(
                         data.content.set(event_target_value(&ev));
                         adjust_textarea_height(data.textarea_ref);
                     }
-                    maxlength=maxlength
+                    maxlength=maxlength.map(|l| l as i32).unwrap_or(-1)
                     node_ref=data.textarea_ref
                 >
                     {data.content}
                 </textarea>
             </div>
+            <CharLimitIndicator content=data.content maxlength class="px-1"/>
         </div>
     }.into_any()
 }
@@ -319,7 +330,7 @@ pub fn FormMarkdownEditor(
     #[prop(default = None)]
     maxlength: Option<usize>,
     /// Indicates if a red outline should be added when the textarea is empty
-    #[prop(into)]
+    #[prop(into, default = Signal::derive(|| false))]
     is_empty_ok: Signal<bool>,
     /// Additional css classes
     #[prop(default = "w-full")]

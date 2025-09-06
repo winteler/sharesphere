@@ -2,6 +2,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
 use sharesphere_auth::user::UserHeader;
+use sharesphere_utils::constants::{SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledSignalCheckbox;
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load};
@@ -15,10 +16,11 @@ use {
         auth::get_user,
         session::ssr::get_db_pool,
     },
+    sharesphere_utils::checks::{check_sphere_name, check_string_length, check_username},
+    sharesphere_utils::constants::{MAX_CONTENT_SEARCH_LENGTH},
     crate::post::POST_BATCH_SIZE,
     crate::comment::COMMENT_BATCH_SIZE,
 };
-use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 
 #[derive(Clone, Debug)]
 pub struct SearchState {
@@ -54,12 +56,11 @@ pub mod ssr {
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
-        // TODO search against normalized name instead?
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
             "SELECT sphere_name, icon_url, is_nsfw
             FROM spheres
-            WHERE sphere_name LIKE $1
+            WHERE normalized_sphere_name LIKE normalize_sphere_name($1)
             ORDER BY sphere_name LIMIT $2",
             format!("{sphere_prefix}%"),
             limit,
@@ -231,6 +232,7 @@ pub mod ssr {
 pub async fn get_matching_sphere_header_vec(
     sphere_prefix: String,
 ) -> Result<Vec<SphereHeader>, AppError> {
+    check_sphere_name(&sphere_prefix)?;
     let db_pool = get_db_pool()?;
     let sphere_header_vec = ssr::get_matching_sphere_header_vec(
         &sphere_prefix,
@@ -246,6 +248,7 @@ pub async fn search_spheres(
     load_count: usize,
     num_already_loaded: usize,
 ) -> Result<Vec<SphereHeader>, AppError> {
+    check_sphere_name(&search_query)?;
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, load_count as i64, num_already_loaded as i64, &db_pool).await?;
@@ -259,6 +262,10 @@ pub async fn search_posts(
     show_spoilers: bool,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, AppError> {
+    if let Some(sphere_name) = &sphere_name {
+        check_sphere_name(sphere_name)?;
+    }
+    check_string_length(&search_query, "Search query", MAX_CONTENT_SEARCH_LENGTH, false)?;
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let post_vec = ssr::search_posts(&search_query, sphere_name.as_deref(), show_spoilers, show_nsfw, POST_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
@@ -271,6 +278,10 @@ pub async fn search_comments(
     sphere_name: Option<String>,
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithContext>, AppError> {
+    if let Some(sphere_name) = &sphere_name {
+        check_sphere_name(sphere_name)?;
+    }
+    check_string_length(&search_query, "Search query", MAX_CONTENT_SEARCH_LENGTH, false)?;
     let db_pool = get_db_pool()?;
     let comment_vec = ssr::search_comments(&search_query, sphere_name.as_deref(), COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(comment_vec)
@@ -282,6 +293,7 @@ pub async fn get_matching_user_header_vec(
     show_nsfw: Option<bool>,
     load_count: usize,
 ) -> Result<Vec<UserHeader>, AppError> {
+    check_username(username_prefix.as_str())?;
     let db_pool = get_db_pool()?;
     let show_nsfw = show_nsfw.unwrap_or_default() || get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, load_count as i64, &db_pool).await?;

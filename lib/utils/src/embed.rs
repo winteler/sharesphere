@@ -10,11 +10,12 @@ use url::Url;
 
 #[cfg(feature = "ssr")]
 use {
-    reqwest::Client,
     http::header::{ACCEPT, USER_AGENT},
     http::{HeaderMap, HeaderValue},
+    reqwest::Client,
+    crate::checks::check_string_length,
+    crate::constants::MAX_LINK_LENGTH,
 };
-
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::LinkIcon;
 
@@ -182,6 +183,7 @@ impl OEmbedEndpoint {
 
 #[server]
 pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, AppError> {
+    check_string_length(&url, "Url", MAX_LINK_LENGTH as usize, false)?;
     let mut oembed_data = fetch_api::<OEmbedReply>(&url)
         .await
         .ok_or(AppError::new(format!("Cannot get oEmbed data at endpoint {url}")))?;

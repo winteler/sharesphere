@@ -265,20 +265,14 @@ pub fn SearchUsers() -> impl IntoView
     let search_user_resource = Resource::new(
         move || search_state.search_input_debounced.get(),
         move |search_input| async move {
-            match check_username(&search_input) {
+            match check_username(&search_input, false) {
                 Err(_) => Ok(Vec::new()),
                 Ok(()) => get_matching_user_header_vec(search_input, None, 50).await,
             }
         }
     );
 
-    let input_error = Signal::derive(move || {
-        let input = search_state.search_input.read();
-        match input.is_empty() {
-            true => None,
-            false => check_username(&*input).err(),
-        }
-    });
+    let input_error = Signal::derive(move || check_username(&*search_state.search_input.read(), true).err());
 
     view! {
         <SearchForm

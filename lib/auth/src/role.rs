@@ -318,7 +318,7 @@ pub async fn set_user_sphere_role(
     sphere_name: String,
     permission_level: PermissionLevel,
 ) -> Result<UserSphereRole, AppError> {
-    check_username(&username)?;
+    check_username(&username, false)?;
     check_sphere_name(&sphere_name)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;

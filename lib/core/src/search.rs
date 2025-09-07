@@ -304,7 +304,7 @@ pub async fn get_matching_user_header_vec(
     show_nsfw: Option<bool>,
     load_count: usize,
 ) -> Result<Vec<UserHeader>, AppError> {
-    check_username(username_prefix.as_str())?;
+    check_username(username_prefix.as_str(), false)?;
     let db_pool = get_db_pool()?;
     let show_nsfw = show_nsfw.unwrap_or_default() || get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, load_count as i64, &db_pool).await?;

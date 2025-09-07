@@ -9,7 +9,7 @@ use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced};
 use strum::IntoEnumIterator;
 
-use sharesphere_utils::editor::{FormTextEditor, TextareaData};
+use sharesphere_utils::editor::{FormTextEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::errors::{AppError, ErrorDisplay};
 use sharesphere_utils::icons::{CrossIcon, LoadingIcon, MagnifierIcon, SaveIcon};
 use sharesphere_utils::unpack::{SuspenseUnpack, TransitionUnpack};
@@ -28,6 +28,7 @@ use sharesphere_core::moderation::{get_moderation_info, ModerationInfoDialog};
 use sharesphere_core::search::get_matching_user_header_vec;
 use sharesphere_core::sphere_management::{get_sphere_ban_vec, set_sphere_banner, set_sphere_icon, RemoveUserBan};
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::constants::{MAX_SPHERE_DESCRIPTION_LENGTH, MAX_USERNAME_LENGTH};
 
 pub const MANAGE_SPHERE_ROUTE: &str = "/manage";
 pub const NONE_STR: &str = "None";
@@ -122,6 +123,7 @@ pub fn SphereDescriptionForm<'a>(
                 name="description"
                 placeholder="Description"
                 data=description_data
+                maxlength=Some(MAX_SPHERE_DESCRIPTION_LENGTH)
             />
             <button
                 type="submit"
@@ -246,7 +248,7 @@ pub fn SphereImageForm(
                 type="file"
                 name=IMAGE_FILE_PARAM
                 accept="image/*"
-                class="file-input file-input-primary w-full"
+                class="file-input file-input-primary !outline-offset-0 w-full"
                 on:change=on_file_change
             />
             <Show when=move || !preview_url.read().is_empty()>
@@ -367,17 +369,11 @@ pub fn PermissionLevelForm(
                 />
                 <div class="w-full flex gap-1 items-center">
                     <div class="dropdown dropdown-end w-2/5">
-                        <input
-                            tabindex="0"
-                            type="text"
-                            name="username"
+                        <LengthLimitedInput
                             placeholder="Username"
-                            autocomplete="off"
-                            class="input input-primary w-full"
-                            on:input=move |ev| {
-                                username_input.set(event_target_value(&ev).to_lowercase());
-                            }
-                            prop:value=username_input
+                            content=username_input
+                            minlength=Some(1)
+                            maxlength=Some(MAX_USERNAME_LENGTH)
                         />
                         <Show when=move || !username_input.read().is_empty()>
                             <TransitionUnpack resource=matching_user_resource let:user_header_vec>

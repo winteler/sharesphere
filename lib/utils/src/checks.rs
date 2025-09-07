@@ -126,11 +126,11 @@ pub fn check_post_title(title: &str) -> Result<(), ValidationError> {
 /// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH)).is_ok());
 /// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH + 1)).is_err());
 /// ```
-pub fn check_username(name: &str) -> Result<(), AppError> {
+pub fn check_username(name: &str, is_empty_ok: bool) -> Result<(), AppError> {
     if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
         Err(AppError::new("Username can only contain alphanumeric characters, dashes and underscores."))
     } else {
-        check_string_length(name, "Username", MAX_USERNAME_LENGTH, false)
+        check_string_length(name, "Username", MAX_USERNAME_LENGTH, is_empty_ok)
     }
 }
 

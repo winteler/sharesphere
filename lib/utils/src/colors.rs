@@ -83,12 +83,12 @@ pub fn ColorSelect(
     /// Label of the select
     #[prop(default = "")]
     label: &'static str,
-    #[prop(default = "")]
+    #[prop(default = "h-full")]
     class: &'static str,
 ) -> impl IntoView {
     let show_dropdown = RwSignal::new(false);
     let color_string = move || color_input.get().to_string();
-    let div_class = format!("h-full flex {class}");
+    let div_class = format!("flex {class}");
     let dropdown_ref = NodeRef::<html::Div>::new();
     #[cfg(feature = "hydrate")]
     {
@@ -107,7 +107,7 @@ pub fn ColorSelect(
             {label_view}
             <div class="h-full w-fit relative">
                 <div
-                    class="h-full flex items-center lg:gap-1 pr-2 border border-primary bg-base-100 hover:bg-base-200"
+                    class="h-full flex items-center lg:gap-1 pr-2 hover:bg-base-content/20 input_border_primary"
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
                     <ColorIndicator color=color_input/>

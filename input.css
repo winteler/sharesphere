@@ -261,14 +261,14 @@
 
     .input_border_primary {
         @apply
-        rounded-none border border-1 border-primary
-        outline outline-offset-0 outline-primary outline-0 focus-within:outline-2
+            rounded-none border border-1 border-primary
+            outline outline-offset-0 outline-primary outline-0 focus-within:outline-2
     }
 
     .input_border_error {
         @apply
-        rounded-none border border-1 border-error
-        outline outline-offset-0 outline-error outline-0 focus-within:outline-2
+            rounded-none border border-1 border-error
+            outline outline-offset-0 outline-error outline-0 focus-within:outline-2
     }
 
     .input_primary {

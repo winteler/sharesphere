@@ -378,7 +378,7 @@ pub async fn get_sphere_ban_vec(
     username_prefix: String,
 ) -> Result<Vec<UserBan>, AppError> {
     check_sphere_name(&sphere_name)?;
-    check_username(&username_prefix)?;
+    check_username(&username_prefix, true)?;
     let db_pool = get_db_pool()?;
     let ban_vec = ssr::get_sphere_ban_vec(&sphere_name, &username_prefix, &db_pool).await?;
     Ok(ban_vec)

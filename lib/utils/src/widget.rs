@@ -253,7 +253,7 @@ where
     view! {
         <select
             name=name
-            class="select w-fit"
+            class="select_input w-fit"
             node_ref=select_ref
         >
         {

@@ -93,7 +93,7 @@ pub async fn get_user_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, AppError> {
-    check_username(&username)?;
+    check_username(&username, false)?;
     let db_pool = get_db_pool()?;
 
     let post_vec = ssr::get_user_post_vec(
@@ -113,7 +113,7 @@ pub async fn get_user_comment_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<CommentWithContext>, AppError> {
-    check_username(&username)?;
+    check_username(&username, false)?;
     let db_pool = get_db_pool()?;
 
     let comment_vec = ssr::get_user_comment_vec(

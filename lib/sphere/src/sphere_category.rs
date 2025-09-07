@@ -3,7 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 
 use sharesphere_utils::colors::{Color, ColorIndicator, ColorSelect};
-use sharesphere_utils::editor::{adjust_textarea_height, FormTextEditor, TextareaData};
+use sharesphere_utils::editor::{adjust_textarea_height, FormTextEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::FormCheckbox;
 use sharesphere_utils::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
@@ -13,6 +13,7 @@ use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::sphere_category::{SphereCategory, SphereCategoryHeader};
 use sharesphere_core::state::SphereState;
+use sharesphere_utils::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH};
 
 /// Component to manage sphere categories
 #[component]
@@ -115,24 +116,21 @@ pub fn SetCategoryForm(
                 />
                 <div class="w-full flex gap-1 justify-between items-stretch lg:pl-2">
                     <div class="w-19/20 flex items-center gap-1 lg:p-1">
-                        <input
-                            tabindex="0"
-                            type="text"
+                        <LengthLimitedInput
                             name="category_name"
                             placeholder="Category"
-                            autocomplete="off"
-                            class="input input-primary w-3/12 text-sm"
-                            on:input=move |ev| {
-                                category_input.set(event_target_value(&ev));
-                            }
-                            prop:value=category_input
+                            content=category_input
+                            class="w-3/12 text-sm"
+                            minlength=Some(1)
+                            maxlength=Some(MAX_CATEGORY_NAME_LENGTH)
                         />
-                        <ColorSelect name="category_color" color_input class="h-input-md w-12 lg:w-16 flex justify-center"/>
+                        <ColorSelect name="category_color" color_input class="h-full w-12 lg:w-16 flex justify-center"/>
                         <FormTextEditor
                             name="description"
                             placeholder="Description"
                             data=description_data
                             class="w-3/6"
+                            maxlength=Some(MAX_CATEGORY_DESCRIPTION_LENGTH)
                         />
                         <FormCheckbox
                             name="is_active"

@@ -195,6 +195,7 @@ pub fn CharLimitIndicator(
 /// Component for an input with an optional minimum and maximum length
 #[component]
 pub fn LengthLimitedInput(
+    #[prop(optional)]
     /// Name of the input in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
     /// Placeholder for the textarea
@@ -211,7 +212,7 @@ pub fn LengthLimitedInput(
     #[prop(default = None)]
     maxlength: Option<usize>,
     /// Additional css classes
-    #[prop(default = "input_primary resize-none")]
+    #[prop(default = "w-full")]
     class: &'static str,
     /// reference to the textarea node
     #[prop(optional)]
@@ -229,11 +230,11 @@ pub fn LengthLimitedInput(
     Effect::new(move || adjust_textarea_height(textarea_ref));
 
     view! {
-        <div class="w-full flex flex-col gap-1">
+        <div class=format!("flex flex-col gap-1 {class}")>
             <textarea
                 name=name
                 placeholder=placeholder
-                class=class
+                class="input_primary resize-none"
                 class=("input_error", move || !is_length_ok())
                 autofocus=autofocus
                 on:input=move |ev| {

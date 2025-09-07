@@ -6,15 +6,18 @@ use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
+
 use sharesphere_core::comment::CommentMiniatureList;
 use sharesphere_core::post::{PostListWithIndicators};
-use sharesphere_core::search::{get_matching_user_header_vec, search_comments, search_posts, SearchForm, SearchSpheres, SearchState};
+use sharesphere_core::search::{get_matching_user_header_vec, is_content_search_valid, search_comments, search_posts, SearchForm, SearchSpheres, SearchState};
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_core::state::SphereState;
-use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::checks::{check_username};
+use sharesphere_utils::constants::{MAX_CONTENT_SEARCH_LENGTH, MAX_USERNAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::icons::MagnifierIcon;
 use sharesphere_utils::routes::{SEARCH_ROUTE, SEARCH_TAB_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
+
 use sharesphere_utils::widget::{EnumQueryTabs, ToView};
 use crate::profile::UserHeaderLink;
 
@@ -129,6 +132,8 @@ pub fn SearchPosts() -> impl IntoView
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
 
+    let input_error = is_content_search_valid(search_state.search_input.into());
+
     let _initial_post_resource = LocalResource::new(
         move || async move {
             is_loading.set(true);
@@ -172,6 +177,8 @@ pub fn SearchPosts() -> impl IntoView
         <SearchForm
             search_state
             show_spoiler_checkbox=true
+            maxlength=Some(MAX_CONTENT_SEARCH_LENGTH)
+            input_error
         />
         <PostListWithIndicators
             post_vec
@@ -194,6 +201,8 @@ pub fn SearchComments() -> impl IntoView
     let is_loading = RwSignal::new(false);
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
+
+    let input_error = is_content_search_valid(search_state.search_input.into());
 
     let _initial_comment_resource = LocalResource::new(
         move || async move {
@@ -236,6 +245,8 @@ pub fn SearchComments() -> impl IntoView
         <SearchForm
             search_state
             show_spoiler_checkbox=false
+            maxlength=Some(MAX_CONTENT_SEARCH_LENGTH)
+            input_error
         />
         <CommentMiniatureList
             comment_vec
@@ -254,16 +265,27 @@ pub fn SearchUsers() -> impl IntoView
     let search_user_resource = Resource::new(
         move || search_state.search_input_debounced.get(),
         move |search_input| async move {
-            match search_input.is_empty() {
-                true => Ok(Vec::new()),
-                false => get_matching_user_header_vec(search_input, None, 50).await,
+            match check_username(&search_input) {
+                Err(_) => Ok(Vec::new()),
+                Ok(()) => get_matching_user_header_vec(search_input, None, 50).await,
             }
         }
     );
+
+    let input_error = Signal::derive(move || {
+        let input = search_state.search_input.read();
+        match input.is_empty() {
+            true => None,
+            false => check_username(&*input).err(),
+        }
+    });
+
     view! {
         <SearchForm
             search_state
             show_spoiler_checkbox=false
+            maxlength=Some(MAX_USERNAME_LENGTH)
+            input_error
         />
         <TransitionUnpack resource=search_user_resource let:user_header_vec>
         { match user_header_vec.is_empty() {

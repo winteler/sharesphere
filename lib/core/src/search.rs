@@ -1,11 +1,14 @@
 use leptos::html;
 use leptos::prelude::*;
 use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
+
 use sharesphere_auth::user::UserHeader;
-use sharesphere_utils::constants::{SCROLL_LOAD_THROTTLE_DELAY};
-use sharesphere_utils::errors::AppError;
+use sharesphere_utils::checks::check_string_length;
+use sharesphere_utils::constants::{MAX_CONTENT_SEARCH_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_utils::errors::{AppError, ErrorDetail};
 use sharesphere_utils::form::LabeledSignalCheckbox;
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load};
+
 use crate::comment::{CommentWithContext};
 use crate::post::{PostWithSphereInfo};
 use crate::sphere::{InfiniteSphereLinkList, SphereHeader};
@@ -16,11 +19,11 @@ use {
         auth::get_user,
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::checks::{check_sphere_name, check_string_length, check_username},
-    sharesphere_utils::constants::{MAX_CONTENT_SEARCH_LENGTH},
+    sharesphere_utils::checks::{check_sphere_name, check_username},
     crate::post::POST_BATCH_SIZE,
     crate::comment::COMMENT_BATCH_SIZE,
 };
+use sharesphere_utils::editor::LengthLimitedInput;
 
 #[derive(Clone, Debug)]
 pub struct SearchState {
@@ -248,7 +251,7 @@ pub async fn search_spheres(
     load_count: usize,
     num_already_loaded: usize,
 ) -> Result<Vec<SphereHeader>, AppError> {
-    check_sphere_name(&search_query)?;
+    check_string_length(&search_query, "Sphere search", MAX_CONTENT_SEARCH_LENGTH, false)?;
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, load_count as i64, num_already_loaded as i64, &db_pool).await?;
@@ -268,7 +271,15 @@ pub async fn search_posts(
     check_string_length(&search_query, "Search query", MAX_CONTENT_SEARCH_LENGTH, false)?;
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
-    let post_vec = ssr::search_posts(&search_query, sphere_name.as_deref(), show_spoilers, show_nsfw, POST_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
+    let post_vec = ssr::search_posts(
+        &search_query,
+        sphere_name.as_deref(),
+        show_spoilers,
+        show_nsfw,
+        POST_BATCH_SIZE,
+        num_already_loaded as i64,
+        &db_pool
+    ).await?;
     Ok(post_vec)
 }
 
@@ -319,6 +330,7 @@ pub fn SearchSpheres(
     let load_error = RwSignal::new(None);
     let list_ref = NodeRef::<html::Ul>::new();
     let num_fetch_sphere = 50;
+    let input_error = is_content_search_valid(search_state.search_input.into());
 
     let _initial_sphere_resource = LocalResource::new(
         move || async move {
@@ -358,6 +370,8 @@ pub fn SearchSpheres(
                 show_spoiler_checkbox=false
                 class=form_class
                 autofocus
+                maxlength=Some(MAX_SPHERE_NAME_LENGTH)
+                input_error
             />
             <div class="bg-base-200 rounded-sm min-h-0 max-h-full">
                 <InfiniteSphereLinkList
@@ -381,24 +395,32 @@ pub fn SearchForm(
     class: &'static str,
     #[prop(default = true)]
     autofocus: bool,
+    /// Optional maximum search text length
+    #[prop(default = None)]
+    maxlength: Option<usize>,
+    /// Error message signal
+    #[prop(default = Signal::derive(|| None))]
+    input_error: Signal<Option<AppError>>,
 ) -> impl IntoView {
-    let input_ref = NodeRef::<html::Input>::new();
+    if let Some(maxlength) = maxlength {
+        if search_state.search_input.read_untracked().len() > maxlength {
+            search_state.search_input.write().clear();
+        }
+    };
+    let textarea_ref = NodeRef::<html::Textarea>::new();
     if autofocus {
-        Effect::new(move || if let Some(input) = input_ref.get() {
-            input.focus().ok();
+        Effect::new(move || if let Some(textarea_ref) = textarea_ref.get() {
+            textarea_ref.focus().ok();
         });
     }
     let class = format!("flex flex-col gap-2 self-center {class}");
     view! {
         <div class=class>
-            <input
-                type="text"
+            <LengthLimitedInput
                 placeholder="Search"
-                class="input input-primary w-full"
-                value=search_state.search_input
-                autofocus=autofocus
-                on:input=move |ev| search_state.search_input.set(event_target_value(&ev))
-                node_ref=input_ref
+                content=search_state.search_input
+                maxlength=maxlength
+                textarea_ref
             />
             { match show_spoiler_checkbox {
                 true => Some(view! {
@@ -406,6 +428,50 @@ pub fn SearchForm(
                 }),
                 false => None,
             }}
+            { move || {
+                input_error.read().as_ref().map(|error| view! {
+                    <ErrorDetail error=error.clone()/>
+                })
+            }}
         </div>
+    }
+}
+
+/// # Returns whether a search for content is valid
+pub fn is_content_search_valid(search_query: Signal<String>) -> Signal<Option<AppError>> {
+    Signal::derive(move || {
+        check_string_length(
+            &*search_query.read(),
+            "Sphere search",
+            MAX_CONTENT_SEARCH_LENGTH,
+            true
+        ).err()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use leptos::prelude::*;
+    use sharesphere_utils::constants::MAX_CONTENT_SEARCH_LENGTH;
+    use sharesphere_utils::errors::AppError;
+    use crate::search::is_content_search_valid;
+
+    #[test]
+    fn test_is_content_search_valid() {
+        let owner = Owner::new();
+        owner.set();
+
+        let search = RwSignal::new(String::new());
+        let is_search_valid = is_content_search_valid(search.into());
+        assert_eq!(is_search_valid.get_untracked(), None);
+
+        search.set(String::from(&"a".repeat(MAX_CONTENT_SEARCH_LENGTH)));
+        assert_eq!(is_search_valid.get_untracked(), None);
+
+        search.set(String::from(&"a".repeat(MAX_CONTENT_SEARCH_LENGTH + 1)));
+        assert_eq!(
+            is_search_valid.get_untracked(),
+            Some(AppError::new(format!("Sphere search exceeds the maximum length: {MAX_CONTENT_SEARCH_LENGTH}.")))
+        );
     }
 }

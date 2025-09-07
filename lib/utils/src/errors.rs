@@ -275,6 +275,24 @@ pub fn ErrorDisplay(
     }.into_any()
 }
 
+/// Displays an error with its detailed message
+#[component]
+pub fn ErrorDetail(
+    error: AppError
+) -> impl IntoView {
+    let error_string = error.to_string();
+    let status_code =  error.status_code().as_u16();
+    let error_detail = error.error_detail();
+
+    log::error!("Caught error, status_code: {status_code}, error message: {error_string}");
+    view! {
+        <div class="w-full flex items-center gap-2 justify-center">
+            <AppErrorIcon app_error=error/>
+            <div>{error_detail}</div>
+        </div>
+    }.into_any()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::errors::{AppError, AUTH_FAILED_MESSAGE, BAD_REQUEST_MESSAGE, GLOBAL_BAN_UNTIL_MESSAGE, INTERNAL_ERROR_MESSAGE, NOT_AUTHENTICATED_MESSAGE, NOT_AUTHORIZED_MESSAGE, NOT_FOUND_MESSAGE, PERMANENT_GLOBAL_BAN_MESSAGE, PERMANENT_SPHERE_BAN_MESSAGE, SPHERE_BAN_UNTIL_MESSAGE, UNAVAILABLE_MESSAGE};

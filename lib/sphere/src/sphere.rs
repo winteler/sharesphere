@@ -6,7 +6,7 @@ use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::{use_params_map};
 use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
 
-use sharesphere_utils::editor::{FormTextEditor, TextareaData};
+use sharesphere_utils::editor::{FormTextEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::icons::{LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
@@ -26,7 +26,7 @@ use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, S
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::checks::check_sphere_name;
-use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_utils::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 use crate::satellite::{ActiveSatelliteList};
@@ -359,17 +359,13 @@ pub fn CreateSphere() -> impl IntoView {
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>
                     <div class="h-full flex gap-2 items-center">
-                        <input
-                            type="text"
+                        <LengthLimitedInput
                             name="sphere_name"
                             placeholder="Name"
-                            autocomplete="off"
-                            class="input input-primary flex-none w-3/5"
-                            autofocus
-                            on:input=move |ev| {
-                                sphere_name.set(event_target_value(&ev));
-                            }
-                            prop:value=sphere_name
+                            content=sphere_name
+                            minlength=Some(1)
+                            maxlength=Some(MAX_SPHERE_NAME_LENGTH)
+                            class="flex-none w-3/5"
                         />
                         <Suspense fallback=move || view! { <LoadingIcon class="h-7 w-7"/> }>
                         {
@@ -377,7 +373,7 @@ pub fn CreateSphere() -> impl IntoView {
                                 (true, _, _) => ().into_any(),
                                 (_, Err(e), _) => view! {
                                     <div class="alert alert-error flex items-center">
-                                        <span>{e.message}</span>
+                                        <span>{format!("{}", e.code)}</span>
                                     </div>
                                 }.into_any(),
                                 (_, _, Some(Some(Ok(false)))) => {
@@ -409,6 +405,7 @@ pub fn CreateSphere() -> impl IntoView {
                         name="description"
                         placeholder="Description"
                         data=description_data
+                        maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
                     />
                     <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
                     <Suspense fallback=move || view! { <LoadingIcon/> }>

@@ -28,6 +28,7 @@ use sharesphere_core::moderation::{get_moderation_info, ModerationInfoDialog};
 use sharesphere_core::search::get_matching_user_header_vec;
 use sharesphere_core::sphere_management::{get_sphere_ban_vec, set_sphere_banner, set_sphere_icon, RemoveUserBan};
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::checks::check_username;
 use sharesphere_utils::constants::{MAX_SPHERE_DESCRIPTION_LENGTH, MAX_USERNAME_LENGTH};
 
 pub const MANAGE_SPHERE_ROUTE: &str = "/manage";
@@ -405,6 +406,7 @@ pub fn PermissionLevelForm(
                     <EnumDropdown
                         name="permission_level"
                         enum_iter=PermissionLevel::iter()
+                        class="select_input w-fit bg-base-200"
                         select_ref
                     />
                     <button
@@ -430,7 +432,12 @@ pub fn BanPanel() -> impl IntoView {
     let unban_action = ServerAction::<RemoveUserBan>::new();
     let banned_users_resource = Resource::new(
         move || (username_debounced.get(), unban_action.version().get()),
-        move |(username, _)| get_sphere_ban_vec(sphere_name.get_untracked(), username)
+        move |(username, _)| async move {
+            match check_username(&username, true) {
+                Ok(()) => get_sphere_ban_vec(sphere_name.get_untracked(), username).await,
+                Err(e) => Err(e),
+            }
+        }
     );
 
     view! {
@@ -440,16 +447,16 @@ pub fn BanPanel() -> impl IntoView {
             <div class="w-full flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">
                     <div class="flex">
-                        <input
-                            class="input input-primary px-6 w-2/5"
+                        <LengthLimitedInput
+                            content=username_input
+                            class="px-6 w-2/5"
                             placeholder="Username"
-                            value=username_input
-                            on:input=move |ev| username_input.set(event_target_value(&ev))
+                            maxlength=Some(MAX_USERNAME_LENGTH)
                         />
                         <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
                     </div>
                 </div>
-                <TransitionUnpack resource=banned_users_resource let:banned_user_vec>
+                <TransitionUnpack resource=banned_users_resource show_error_detail=true let:banned_user_vec>
                 {
                     banned_user_vec.iter().map(|user_ban| {
                         let duration_string = match user_ban.until_timestamp {

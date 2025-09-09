@@ -104,7 +104,7 @@ pub fn SetCategoryForm(
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = sphere_state.sphere_name;
-    let disable_submit = move || category_input.read().is_empty() && description_data.content.read().is_empty();
+    let disable_submit = move || category_input.read().is_empty() || description_data.content.read().is_empty();
 
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>

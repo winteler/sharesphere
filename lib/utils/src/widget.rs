@@ -244,6 +244,8 @@ where
 pub fn EnumDropdown<I, T>(
     name: &'static str,
     enum_iter: I,
+    #[prop(default = "select_input w-fit")]
+    class: &'static str,
     select_ref: NodeRef<html::Select>,
 ) -> impl IntoView
 where
@@ -253,7 +255,7 @@ where
     view! {
         <select
             name=name
-            class="select_input w-fit"
+            class=class
             node_ref=select_ref
         >
         {

@@ -105,7 +105,7 @@ pub fn ColorSelect(
         <div class=div_class node_ref=dropdown_ref>
             <input type="text" name=name value=color_string class="hidden"/>
             {label_view}
-            <div class="h-full w-fit relative">
+            <div class="h-full w-full relative">
                 <div
                     class="h-full flex items-center lg:gap-1 pr-2 hover:bg-base-content/20 input_border_primary"
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)

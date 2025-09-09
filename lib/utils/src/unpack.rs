@@ -1,5 +1,5 @@
-use leptos::either::Either;
-use crate::errors::{AppError, ErrorDisplay};
+use leptos::either::{EitherOf3};
+use crate::errors::{AppError, ErrorDetail, ErrorDisplay};
 use crate::icons::LoadingIcon;
 use leptos::prelude::*;
 use leptos::html;
@@ -75,11 +75,13 @@ async fn unpack_resource<
     F: Fn(&T) -> V + Clone + Send + Sync + 'static,
 >(
     resource: Resource<Result<T, AppError>>,
+    show_error_detail: bool,
     children: StoredValue<F>,
 ) -> impl IntoView {
-    match &resource.await {
-        Ok(value) => Either::Left(children.with_value(|children| children(value))),
-        Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),
+    match (&resource.await, show_error_detail) {
+        (Ok(value), _) => EitherOf3::A(children.with_value(|children| children(value))),
+        (Err(e), false) => EitherOf3::B(view! { <ErrorDisplay error=e.clone()/> } ),
+        (Err(e), true) => EitherOf3::C(view! { <ErrorDetail error=e.clone()/> } ),
     }
 }
 
@@ -92,6 +94,8 @@ pub fn SuspenseUnpack<
     resource: Resource<Result<T, AppError>>,
     #[prop(into, default = Box::new(|| view! { <LoadingIcon/> }.into_any()).into())]
     fallback: ViewFnOnce,
+    #[prop(default = false)]
+    show_error_detail: bool,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
@@ -100,7 +104,7 @@ pub fn SuspenseUnpack<
         <Suspense fallback>
         {
             move || Suspend::new(async move {
-                unpack_resource(resource, children).await
+                unpack_resource(resource, show_error_detail, children).await
             })
         }
         </Suspense>
@@ -116,6 +120,8 @@ pub fn TransitionUnpack<
     resource: Resource<Result<T, AppError>>,
     #[prop(into, default = Box::new(|| view! { <LoadingIcon/> }.into_any()).into())]
     fallback: ViewFnOnce,
+    #[prop(default = false)]
+    show_error_detail: bool,
     children: F,
 ) -> impl IntoView {
     let children = StoredValue::new(children);
@@ -124,7 +130,7 @@ pub fn TransitionUnpack<
         <Transition fallback>
         {
             move || Suspend::new(async move {
-                unpack_resource(resource, children).await
+                unpack_resource(resource, show_error_detail, children).await
             })
         }
         </Transition>

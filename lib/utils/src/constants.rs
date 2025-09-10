@@ -43,6 +43,6 @@ pub const MAX_TITLE_LENGTH: u64 = 250;
 pub const MAX_CONTENT_LENGTH: u64 = 20000;
 pub const MAX_LINK_LENGTH: u64 = 500;
 pub const MAX_MOD_MESSAGE_LENGTH: usize = 500;
-pub const MAX_CONTENT_SEARCH_LENGTH: usize = 200;
+pub const MAX_SEARCH_QUERY_LENGTH: usize = 200;
 pub const MAX_CATEGORY_NAME_LENGTH: usize = 50;
 pub const MAX_CATEGORY_DESCRIPTION_LENGTH: usize = 500;

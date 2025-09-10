@@ -4,7 +4,7 @@ use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOption
 
 use sharesphere_auth::user::UserHeader;
 use sharesphere_utils::checks::check_string_length;
-use sharesphere_utils::constants::{MAX_CONTENT_SEARCH_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_utils::constants::{MAX_SEARCH_QUERY_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::errors::{AppError, ErrorDetail};
 use sharesphere_utils::form::LabeledSignalCheckbox;
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load};
@@ -251,7 +251,7 @@ pub async fn search_spheres(
     load_count: usize,
     num_already_loaded: usize,
 ) -> Result<Vec<SphereHeader>, AppError> {
-    check_string_length(&search_query, "Sphere search", MAX_CONTENT_SEARCH_LENGTH, false)?;
+    check_string_length(&search_query, "Sphere search", MAX_SEARCH_QUERY_LENGTH, false)?;
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let sphere_header_vec = ssr::search_spheres(&search_query, show_nsfw, load_count as i64, num_already_loaded as i64, &db_pool).await?;
@@ -268,7 +268,7 @@ pub async fn search_posts(
     if let Some(sphere_name) = &sphere_name {
         check_sphere_name(sphere_name)?;
     }
-    check_string_length(&search_query, "Search query", MAX_CONTENT_SEARCH_LENGTH, false)?;
+    check_string_length(&search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
     let db_pool = get_db_pool()?;
     let show_nsfw = get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
     let post_vec = ssr::search_posts(
@@ -292,7 +292,7 @@ pub async fn search_comments(
     if let Some(sphere_name) = &sphere_name {
         check_sphere_name(sphere_name)?;
     }
-    check_string_length(&search_query, "Search query", MAX_CONTENT_SEARCH_LENGTH, false)?;
+    check_string_length(&search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
     let db_pool = get_db_pool()?;
     let comment_vec = ssr::search_comments(&search_query, sphere_name.as_deref(), COMMENT_BATCH_SIZE, num_already_loaded as i64, &db_pool).await?;
     Ok(comment_vec)
@@ -443,7 +443,7 @@ pub fn is_content_search_valid(search_query: Signal<String>) -> Signal<Option<Ap
         check_string_length(
             &*search_query.read(),
             "Sphere search",
-            MAX_CONTENT_SEARCH_LENGTH,
+            MAX_SEARCH_QUERY_LENGTH,
             true
         ).err()
     })
@@ -452,7 +452,7 @@ pub fn is_content_search_valid(search_query: Signal<String>) -> Signal<Option<Ap
 #[cfg(test)]
 mod tests {
     use leptos::prelude::*;
-    use sharesphere_utils::constants::MAX_CONTENT_SEARCH_LENGTH;
+    use sharesphere_utils::constants::MAX_SEARCH_QUERY_LENGTH;
     use sharesphere_utils::errors::AppError;
     use crate::search::is_content_search_valid;
 
@@ -465,13 +465,13 @@ mod tests {
         let is_search_valid = is_content_search_valid(search.into());
         assert_eq!(is_search_valid.get_untracked(), None);
 
-        search.set(String::from(&"a".repeat(MAX_CONTENT_SEARCH_LENGTH)));
+        search.set(String::from(&"a".repeat(MAX_SEARCH_QUERY_LENGTH)));
         assert_eq!(is_search_valid.get_untracked(), None);
 
-        search.set(String::from(&"a".repeat(MAX_CONTENT_SEARCH_LENGTH + 1)));
+        search.set(String::from(&"a".repeat(MAX_SEARCH_QUERY_LENGTH + 1)));
         assert_eq!(
             is_search_valid.get_untracked(),
-            Some(AppError::new(format!("Sphere search exceeds the maximum length: {MAX_CONTENT_SEARCH_LENGTH}.")))
+            Some(AppError::new(format!("Sphere search exceeds the maximum length: {MAX_SEARCH_QUERY_LENGTH}.")))
         );
     }
 }

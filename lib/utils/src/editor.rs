@@ -185,7 +185,7 @@ pub fn CharLimitIndicator(
     view! {
         <div
             class=format!("self-end w-fit text-sm text-base-content/50 {class}")
-            class=("hidden", move || maxlength.is_some_and(|l| content.read().len() < l*4/5))
+            class=("hidden", move || maxlength.is_none() || maxlength.is_some_and(|l| content.read().len() < l*4/5))
         >
             {move || format!("{}/{}", content.read().len(), maxlength.unwrap_or(0))}
         </div>

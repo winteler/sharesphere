@@ -660,6 +660,7 @@ pub fn EditCommentForm(
                         placeholder="Your comment..."
                         data=comment_data
                         is_markdown
+                        maxlength=Some(MAX_CONTENT_LENGTH as usize)
                     />
                     <IsPinnedCheckbox sphere_name value=comment.read_untracked().is_pinned/>
                     <ModalFormButtons

@@ -21,6 +21,7 @@ use sharesphere_core::search::get_matching_sphere_header_vec;
 use sharesphere_core::sphere::{SphereHeader};
 use sharesphere_core::sphere_category::{get_sphere_category_vec};
 use sharesphere_core::state::{GlobalState, SphereState};
+use sharesphere_utils::checks::check_sphere_name;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use crate::comment::{CommentButtonWithCount, CommentSection};
 use crate::moderation::{ModeratePostButton, ModerationInfoButton};
@@ -262,12 +263,22 @@ pub fn CreatePost() -> impl IntoView {
 
     let matching_spheres_resource = Resource::new(
         move || sphere_name_debounced.get(),
-        move |sphere_prefix| get_matching_sphere_header_vec(sphere_prefix),
+        move |sphere_prefix| async move {
+            match check_sphere_name(&sphere_prefix) {
+                Ok(()) => get_matching_sphere_header_vec(sphere_prefix).await,
+                Err(_) => Ok(Vec::new()),
+            }
+        },
     );
 
     let category_vec_resource = Resource::new(
         move || sphere_name_debounced.get(),
-        move |sphere_name| get_sphere_category_vec(sphere_name)
+        move |sphere_name| async move {
+            match check_sphere_name(&sphere_name) {
+                Ok(()) => get_sphere_category_vec(sphere_name).await,
+                Err(_) => Ok(Vec::new())
+            }
+        }
     );
 
     // TODO: make sphere input into a component with a callback argument when clicking?
@@ -295,8 +306,12 @@ pub fn CreatePost() -> impl IntoView {
                             maxlength=MAX_CONTENT_LENGTH
                             prop:value=sphere_name_input
                         />
-                        <ul tabindex="0" class="dropdown-content z-1 menu p-2 mt-1 shadow-sm bg-base-200 rounded-xs w-full">
-                            <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
+                        <TransitionUnpack resource=matching_spheres_resource let:sphere_header_vec>
+                            <ul
+                                tabindex="0"
+                                class="dropdown-content z-1 menu p-2 mt-1 shadow-sm bg-base-200 rounded-xs w-full"
+                                class=("hidden", sphere_header_vec.is_empty())
+                            >
                             {
                                 match sphere_header_vec.first() {
                                     Some(header) if header.sphere_name == sphere_name_input.get_untracked() => {
@@ -327,8 +342,8 @@ pub fn CreatePost() -> impl IntoView {
                                     }
                                 }).collect_view()
                             }
-                            </TransitionUnpack>
-                        </ul>
+                            </ul>
+                        </TransitionUnpack>
                     </div>
                     <PostForm
                         title_input

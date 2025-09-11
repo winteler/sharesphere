@@ -292,7 +292,7 @@ pub fn UserAccountButton() -> impl IntoView {
     let navigate_to_account_action = ServerAction::<NavigateToUserAccount>::new();
     view! {
         <ActionForm action=navigate_to_account_action attr:class="flex justify-center items-center">
-            <button type="submit" class="button-primary flex">
+            <button type="submit" class="button-primary flex items-center gap-2">
                 <UserSettingsIcon/>
                 "Account"
             </button>

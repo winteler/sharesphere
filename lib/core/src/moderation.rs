@@ -346,14 +346,16 @@ pub fn ModeratedBody(
 
 /// Component to display the details of a moderation instance
 #[component]
-pub fn ModerationInfoDialog<'a>(
-    moderation_info: &'a ModerationInfo,
+pub fn ModerationInfoDialog(
+    moderated_content: Content,
+    rule_title: String,
+    rule_description: String,
 ) -> impl IntoView {
     view! {
         <div class="flex flex-col gap-3">
             <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
             {
-                match &moderation_info.content {
+                match &moderated_content {
                     Content::Post(post) => view! {
                         <div class="flex flex-col gap-1 p-2 border-b">
                             <h1 class="font-bold text-2xl pl-6">"Content"</h1>
@@ -387,8 +389,8 @@ pub fn ModerationInfoDialog<'a>(
             }
             <div class="flex flex-col gap-1 p-2">
                 <h1 class="font-bold text-2xl pl-6">"Infringed rule"</h1>
-                <div class="text-lg font-semibold">{moderation_info.rule.title.clone()}</div>
-                <div>{moderation_info.rule.description.clone()}</div>
+                <div class="text-lg font-semibold">{rule_title.clone()}</div>
+                <div>{rule_description.clone()}</div>
             </div>
         </div>
     }

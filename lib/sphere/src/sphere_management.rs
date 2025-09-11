@@ -17,8 +17,6 @@ use sharesphere_utils::widget::{EnumDropdown, ModalDialog, IMAGE_FILE_PARAM, SPH
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
 
-use sharesphere_core::sphere::{Sphere};
-
 use crate::rule::SphereRulesPanel;
 use crate::satellite::SatellitePanel;
 use crate::sphere_category::SphereCategoriesDialog;
@@ -91,7 +89,7 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">"Sphere description"</div>
                 <SuspenseUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
-                    <SphereDescriptionForm sphere=&sphere_with_user_info.sphere/>
+                    <SphereDescriptionForm sphere_description=sphere_with_user_info.sphere.description.clone()/>
                 </SuspenseUnpack>
             </div>
         </AuthorizedShow>
@@ -100,13 +98,13 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
 
 /// Form to edit a sphere's description
 #[component]
-pub fn SphereDescriptionForm<'a>(
-    sphere: &'a Sphere,
+pub fn SphereDescriptionForm(
+    sphere_description: String,
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let description_data = TextareaData {
-        content: RwSignal::new(sphere.description.clone()),
+        content: RwSignal::new(sphere_description.clone()),
         textarea_ref
     };
     let disable_submit = move || description_data.content.read().is_empty();
@@ -523,7 +521,11 @@ pub fn BanInfoButton(
                 view! {
                     <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                         <SuspenseUnpack resource=ban_detail_resource let:moderation_info>
-                            <ModerationInfoDialog moderation_info/>
+                            <ModerationInfoDialog
+                                moderated_content=moderation_info.content.clone()
+                                rule_title=moderation_info.rule.title.clone()
+                                rule_description=moderation_info.rule.description.clone()
+                            />
                             <button
                                 type="button"
                                 class="button-error"

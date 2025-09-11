@@ -334,7 +334,11 @@ pub fn ContentModerationInfo(
 
     view! {
         <SuspenseUnpack resource=mod_info_resource let:moderation_info>
-            <ModerationInfoDialog moderation_info/>
+            <ModerationInfoDialog
+                moderated_content=moderation_info.content.clone()
+                rule_title=moderation_info.rule.title.clone()
+                rule_description=moderation_info.rule.description.clone()
+            />
         </SuspenseUnpack>
     }
 }

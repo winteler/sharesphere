@@ -22,7 +22,7 @@ use sharesphere_core::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, SatelliteState, UpdateSatellite};
 use sharesphere_core::sidebar::SphereSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
-use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
+use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::checks::check_sphere_name;
@@ -213,7 +213,9 @@ pub fn SphereContents() -> impl IntoView {
         <ActiveSatelliteList/>
         <SuspenseUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere>
             <SphereToolbar
-                sphere
+                sphere_id=sphere.sphere.sphere_id
+                sphere_name=sphere.sphere.sphere_name.clone()
+                subscription_id=sphere.subscription_id
                 sort_signal=state.post_sort_type
             />
         </SuspenseUnpack>
@@ -231,16 +233,17 @@ pub fn SphereContents() -> impl IntoView {
 
 /// Component to display the sphere toolbar
 #[component]
-pub fn SphereToolbar<'a>(
-    sphere: &'a SphereWithUserInfo,
+pub fn SphereToolbar(
+    sphere_id: i64,
+    sphere_name: String,
+    subscription_id: Option<i64>,
     sort_signal: RwSignal<SortType>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let satellite_state = use_context::<SatelliteState>();
-    let sphere_id = sphere.sphere.sphere_id;
-    let sphere_name = RwSignal::new(sphere.sphere.sphere_name.clone());
-    let is_subscribed = RwSignal::new(sphere.subscription_id.is_some());
+    let sphere_name = RwSignal::new(sphere_name.clone());
+    let is_subscribed = RwSignal::new(subscription_id.is_some());
     let manage_path = move || get_sphere_path(&sphere_name.get()) + MANAGE_SPHERE_ROUTE;
 
     view! {

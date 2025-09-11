@@ -163,7 +163,9 @@ pub fn SatelliteContent() -> impl IntoView {
         </TransitionUnpack>
         <SuspenseUnpack resource=sphere_with_sub_resource let:sphere>
             <SphereToolbar
-                sphere
+                sphere_id=sphere.sphere.sphere_id
+                sphere_name=sphere.sphere.sphere_name.clone()
+                subscription_id=sphere.subscription_id
                 sort_signal
             />
         </SuspenseUnpack>

@@ -192,7 +192,7 @@ fn on_change_category_input(
                             }
                             *filter = SphereCategoryFilter::CategorySet(CategorySetFilter::new(category_id));
                         },
-                        SphereCategoryFilter::CategorySet(ref mut filter_set) => {
+                        SphereCategoryFilter::CategorySet(filter_set) => {
                             filter_set.filters.insert(category_id);
                         },
                     }
@@ -200,7 +200,7 @@ fn on_change_category_input(
             },
             false => {
                 sphere_category_filter.update(|filter| {
-                    if let SphereCategoryFilter::CategorySet(ref mut filter_set) = filter {
+                    if let SphereCategoryFilter::CategorySet(filter_set) = filter {
                         filter_set.filters.remove(&category_id);
                     }
                 })
@@ -223,7 +223,7 @@ fn on_change_only_category_input(
             },
             false => {
                 sphere_category_filter.update(|filter| {
-                    if let SphereCategoryFilter::CategorySet(ref mut filter_set) = filter {
+                    if let SphereCategoryFilter::CategorySet(filter_set) = filter {
                         filter_set.only_category = false;
                     }
                 })

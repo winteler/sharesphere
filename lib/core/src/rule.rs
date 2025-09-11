@@ -335,7 +335,7 @@ pub fn BaseRuleList() -> impl IntoView {
             move || Suspend::new(async move {
                 match &state.base_rules.await {
                     Ok(rule_vec) => Either::Left(view!{
-                        <RuleList rule_vec/>
+                        <RuleList rule_vec=rule_vec.clone()/>
                     }),
                     Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),
                 }
@@ -347,8 +347,8 @@ pub fn BaseRuleList() -> impl IntoView {
 
 /// List of collapsable rules
 #[component]
-pub fn RuleList<'a>(
-    rule_vec: &'a Vec<Rule>
+pub fn RuleList(
+    rule_vec: Vec<Rule>
 ) -> impl IntoView {
     let rule_elems = rule_vec.iter().enumerate().map(|(index, rule)| {
         let description = StoredValue::new(rule.description.clone());

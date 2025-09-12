@@ -773,13 +773,13 @@ pub async fn set_user_settings(
 
 /// Component to display a user header
 #[component]
-pub fn UserHeaderWidget<'a>(
-    user_header: &'a UserHeader,
+pub fn UserHeaderWidget(
+    user_header: UserHeader,
 ) -> impl IntoView {
     view! {
         <div class="flex gap-1.5 items-center text-sm">
             <UserIcon/>
-            {user_header.username.clone()}
+            {user_header.username}
             {
                 match user_header.is_nsfw {
                     true => Some(view! { <NsfwIcon/> }),

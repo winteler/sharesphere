@@ -67,14 +67,27 @@ pub fn Post() -> impl IntoView {
                 <div class="card">
                     <div class="card-body">
                         <div class="flex flex-col gap-1 lg:gap-2">
-                            <PostTopWidgetBar post=post_with_info/>
+                            <PostTopWidgetBar
+                                creator_name=post_with_info.post.creator_name.clone()
+                                moderator_name=post_with_info.post.creator_name.clone()
+                                is_creator_moderator=post_with_info.post.is_creator_moderator
+                                create_timestamp=post_with_info.post.create_timestamp
+                                edit_timestamp=post_with_info.post.edit_timestamp
+                                is_active=post_with_info.post.is_active()
+                            />
                             <h2 class="card-title text-wrap wrap-anywhere">
                             { match post_with_info.post.is_active() {
                                 true => post_with_info.post.title.clone(),
                                 false => DELETED_MESSAGE.to_string()
                             }}
                             </h2>
-                            <PostBody post=&post_with_info.post/>
+                            <PostBody
+                                body=post_with_info.post.body.clone()
+                                markdown_body=post_with_info.post.markdown_body.clone()
+                                moderator_message=post_with_info.post.moderator_message.clone()
+                                infringed_rule_title=post_with_info.post.infringed_rule_title.clone()
+                                delete_timestamp=post_with_info.post.delete_timestamp
+                            />
                             <Embed link=post_with_info.post.link.clone()/>
                             <PostBadgeList
                                 sphere_header=None
@@ -83,7 +96,7 @@ pub fn Post() -> impl IntoView {
                                 is_nsfw=post_with_info.post.is_nsfw
                                 is_pinned=post_with_info.post.is_pinned
                             />
-                            <PostBottomWidgetBar post=post_with_info comment_vec/>
+                            <PostBottomWidgetBar post=post_with_info.clone() comment_vec/>
                         </div>
                     </div>
                 </div>
@@ -95,12 +108,18 @@ pub fn Post() -> impl IntoView {
 
 /// Displays the body of a post
 #[component]
-pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
+pub fn PostBody(
+    body: String,
+    markdown_body: Option<String>,
+    moderator_message: Option<String>,
+    infringed_rule_title: Option<String>,
+    delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+) -> impl IntoView {
 
     view! {
         <div class="pb-2">
         {
-            match (&post.delete_timestamp, &post.moderator_message, &post.infringed_rule_title) {
+            match (&delete_timestamp, &moderator_message, &infringed_rule_title) {
                 (Some(_), _, _) => view! {
                     <ContentBody
                         body=DELETED_MESSAGE.to_string()
@@ -115,8 +134,8 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
                 }.into_any(),
                 _ => view! {
                     <ContentBody
-                        body=post.body.clone()
-                        is_markdown=post.markdown_body.is_some()
+                        body=body
+                        is_markdown=markdown_body.is_some()
                     />
                 }.into_any(),
             }
@@ -127,26 +146,32 @@ pub fn PostBody<'a>(post: &'a Post) -> impl IntoView {
 
 /// Component to encapsulate the widgets displayed at the top of each post
 #[component]
-fn PostTopWidgetBar<'a>(post: &'a PostWithInfo) -> impl IntoView {
-    let is_active = post.post.is_active();
+fn PostTopWidgetBar(
+    creator_name: String,
+    moderator_name: String,
+    is_creator_moderator: bool,
+    create_timestamp: chrono::DateTime<chrono::Utc>,
+    edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    is_active: bool,
+) -> impl IntoView {
     view! {
         <div class="flex gap-1">
             {
                 is_active.then_some(view! {
-                    <AuthorWidget author=post.post.creator_name.clone() is_moderator=post.post.is_creator_moderator/>
+                    <AuthorWidget author=creator_name is_moderator=is_creator_moderator/>
                 })
             }
-            <ModeratorWidget moderator=post.post.moderator_name.clone()/>
-            <TimeSinceWidget timestamp=post.post.create_timestamp/>
-            <TimeSinceEditWidget edit_timestamp=post.post.edit_timestamp/>
+            <ModeratorWidget moderator=moderator_name/>
+            <TimeSinceWidget timestamp=create_timestamp/>
+            <TimeSinceEditWidget edit_timestamp=edit_timestamp/>
         </div>
     }
 }
 
 /// Component to encapsulate the widgets displayed at the bottom of each comment
 #[component]
-fn PostBottomWidgetBar<'a>(
-    post: &'a PostWithInfo,
+fn PostBottomWidgetBar(
+    post: PostWithInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     let post_id = post.post.post_id;

@@ -302,8 +302,8 @@ pub fn UserAccountButton() -> impl IntoView {
 
 /// Component to display a user header and redirect to his profile upon click
 #[component]
-pub fn UserHeaderLink<'a>(
-    user_header: &'a UserHeader,
+pub fn UserHeaderLink(
+    user_header: UserHeader,
 ) -> impl IntoView {
     let user_profile_path = get_profile_path(&user_header.username);
     view! {

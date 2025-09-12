@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {
     use sharesphere_app::app::*;

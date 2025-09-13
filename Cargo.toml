@@ -26,6 +26,7 @@ leptos_router = { version = "0.8.6", features = ["nightly"] }
 leptos_axum = { version = "0.8.6" }
 server_fn = { version = "0.8.6", features = ["multipart"] }
 
+leptos-fluent = "0.2.18"
 leptos-use = { version = "0.16.2", features = ["use_breakpoints", "use_clipboard", "signal_debounced", "signal_throttled"] }
 
 anyhow = "*"
@@ -128,3 +129,5 @@ lib-default-features = false
 #
 # Optional. Defaults to "release".
 lib-profile-release = "wasm-release"
+
+watch-additional-files = ["locales"]  # Relative to Cargo.toml

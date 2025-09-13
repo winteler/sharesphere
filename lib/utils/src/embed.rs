@@ -3,6 +3,7 @@ use ammonia::Builder;
 use lazy_static::lazy_static;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::tr;
 use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
@@ -16,7 +17,7 @@ use {
     crate::checks::check_string_length,
     crate::constants::MAX_LINK_LENGTH,
 };
-use crate::errors::{AppError, ErrorDisplay};
+use crate::errors::{AppError, ErrorDetail};
 use crate::icons::LinkIcon;
 
 const DEFAULT_MEDIA_CLASS: &str = "h-fit w-fit max-h-160 max-w-full object-contain";
@@ -267,7 +268,7 @@ pub fn NaiveEmbed(
         { move || {
             match (link_type, Url::parse(&link_input.read())) {
                 (LinkType::None, _) => None,
-                (_, Err(e)) => Some(view! { <ErrorDisplay error=AppError::new(format!("Invalid link: {e}"))/> }.into_any()),
+                (_, Err(e)) => Some(view! { <ErrorDetail error=AppError::new(format!("{}: {e}", tr!("invalid-link")))/> }.into_any()),
                 (LinkType::Link, Ok(url)) => Some(view! { <LinkEmbed url align_center/> }.into_any()),
                 (LinkType::Image, Ok(url)) => Some(view! { <ImageEmbed url=url.to_string() align_center/> }.into_any()),
                 (LinkType::Video, Ok(url)) => Some(view! { <VideoEmbed url=url.to_string() align_center/> }.into_any()),
@@ -308,7 +309,7 @@ pub fn LinkEmbed(
                 </div>
             }.into_any()
         },
-        None => view! { <ErrorDisplay error=AppError::new("Invalid domain name")/> }.into_any(),
+        None => view! { <ErrorDetail error=AppError::new(tr!("invalid-domain-name"))/> }.into_any(),
     }
 }
 
@@ -348,7 +349,7 @@ pub fn VideoEmbed(
                 class=DEFAULT_MEDIA_CLASS
                 controls
             >
-                "Your browser doesn't support this video's format."
+                tr!("invalid-video-format")
             </video>
         </div>
     }

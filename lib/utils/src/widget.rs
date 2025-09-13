@@ -3,6 +3,7 @@ use std::str::FromStr;
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
 use leptos_use::{breakpoints_tailwind, use_breakpoints, use_clipboard};
@@ -444,14 +445,14 @@ pub fn ShareButton(
             fallback=move || view! {
                 <div class="toast toast-center">
                     <div class="alert alert-error" class=("hidden", move || !show_notification.get())>
-                        <span>"Clipboard API not supported in your browser."</span>
+                        <span>{move_tr!("clipboard-error-message")}</span>
                     </div>
                 </div>
             }
         >
             <div class="toast toast-center">
                 <div class="alert alert-success" class=("hidden", move || !show_notification.get())>
-                    <span>"Copied link to clipboard."</span>
+                    <span>{move_tr!("copy-link-to-clipboard-message")}</span>
                 </div>
             </div>
         </Show>
@@ -533,7 +534,7 @@ pub fn RefreshButton(
     view! {
         <button
             class=button_class
-            data-tip="Refresh"
+            data-tip=move_tr!("refresh")
             on:click=move |_| refresh_count.update(|count| *count += 1)
         >
             <RefreshIcon/>
@@ -557,14 +558,14 @@ pub fn ModalFormButtons(
                 class="button-error"
                 on:click=move |_| show_form.set(false)
             >
-                "Cancel"
+                {move_tr!("cancel")}
             </button>
             <button
                 type="submit"
                 class="button-secondary"
                 disabled=disable_publish
             >
-                "Submit"
+                {move_tr!("submit")}
             </button>
         </div>
     }
@@ -712,7 +713,7 @@ pub fn BannerContent(
         <img
             src=banner_url.unwrap_or(String::from("/banner.jpg"))
             class="w-full h-full object-cover object-left"
-            alt="Sphere banner"
+            alt=move_tr!("sphere-banner")
         />
         <div class="absolute inset-0 flex items-center justify-center">
             <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex justify-center items-center gap-3">
@@ -730,6 +731,7 @@ fn get_elapsed_time_string(
 ) -> String {
     let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
     let seconds = elapsed_time.num_seconds();
+    // TODO use fluent
     match seconds {
         seconds if seconds < SECONDS_IN_MINUTE => format!("{} {}", seconds, TimeScale::Seconds.to_str(seconds > 1, use_fullname)),
         seconds if seconds < SECONDS_IN_HOUR => {

@@ -5,6 +5,7 @@ use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, 
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, SsrMode, StaticSegment};
 use leptos_router::static_routes::StaticRoute;
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
+use leptos_fluent::{leptos_fluent};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
@@ -146,58 +147,60 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-        <Title text="ShareSphere"/>
-        <Router>
-            <main
-                class="h-screen w-screen overflow-hidden text-white relative"
-                on:touchstart=on_touch_start
-                on:touchend=on_touch_end
-            >
-                <div class="h-full flex flex-col max-lg:items-center">
-                    <NavigationBar/>
-                    <div class="grow flex w-full overflow-hidden min-h-0">
-                        <LeftSidebar/>
-                        <Routes fallback=|| {
-                            let mut outside_errors = Errors::default();
-                            outside_errors.insert_with_default_key(AppError::NotFound);
-                            view! {
-                                <ErrorTemplate outside_errors/>
-                            }
-                        }>
-                            <Route path=StaticSegment("") view=HomePage/>
-                            <Route path=StaticSegment(POPULAR_ROUTE) view=HotPage/>
-                            <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
-                                <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=SatelliteBanner>
-                                    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
-                                    <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
-                                        <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreateSatellitePost/>
+        <I18nProvider>
+            <Title text="ShareSphere"/>
+            <Router>
+                <main
+                    class="h-screen w-screen overflow-hidden text-white relative"
+                    on:touchstart=on_touch_start
+                    on:touchend=on_touch_end
+                >
+                    <div class="h-full flex flex-col max-lg:items-center">
+                        <NavigationBar/>
+                        <div class="grow flex w-full overflow-hidden min-h-0">
+                            <LeftSidebar/>
+                            <Routes fallback=|| {
+                                let mut outside_errors = Errors::default();
+                                outside_errors.insert_with_default_key(AppError::NotFound);
+                                view! {
+                                    <ErrorTemplate outside_errors/>
+                                }
+                            }>
+                                <Route path=StaticSegment("") view=HomePage/>
+                                <Route path=StaticSegment(POPULAR_ROUTE) view=HotPage/>
+                                <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
+                                    <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=SatelliteBanner>
+                                        <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                                        <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
+                                            <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreateSatellitePost/>
+                                        </ParentRoute>
+                                        <Route path=StaticSegment("") view=SatelliteContent/>
                                     </ParentRoute>
-                                    <Route path=StaticSegment("") view=SatelliteContent/>
+                                    <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
+                                    <ParentRoute path=StaticSegment(MANAGE_SPHERE_ROUTE) view=SphereCockpitGuard>
+                                        <Route path=StaticSegment("") view=SphereCockpit/>
+                                    </ParentRoute>
+                                    <Route path=StaticSegment(SEARCH_ROUTE) view=SphereSearch/>
+                                    <Route path=StaticSegment("") view=SphereContents/>
                                 </ParentRoute>
-                                <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
-                                <ParentRoute path=StaticSegment(MANAGE_SPHERE_ROUTE) view=SphereCockpitGuard>
-                                    <Route path=StaticSegment("") view=SphereCockpit/>
+                                <Route path=(StaticSegment(USER_ROUTE_PREFIX), ParamSegment(USER_ROUTE_PARAM_NAME)) view=UserProfile/>
+                                <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
+                                <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuardHome>
+                                    <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>
+                                    <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
                                 </ParentRoute>
-                                <Route path=StaticSegment(SEARCH_ROUTE) view=SphereSearch/>
-                                <Route path=StaticSegment("") view=SphereContents/>
-                            </ParentRoute>
-                            <Route path=(StaticSegment(USER_ROUTE_PREFIX), ParamSegment(USER_ROUTE_PARAM_NAME)) view=UserProfile/>
-                            <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
-                            <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuardHome>
-                                <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>
-                                <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
-                            </ParentRoute>
-                            <Route path=StaticSegment(SEARCH_ROUTE) view=Search/>
-                            <Route path=StaticSegment(ABOUT_SHARESPHERE_ROUTE) view=AboutShareSphere ssr=SsrMode::Static(StaticRoute::new())/>
-                            <Route path=StaticSegment(TERMS_AND_CONDITIONS_ROUTE) view=TermsAndConditions ssr=SsrMode::Static(StaticRoute::new())/>
-                            <Route path=StaticSegment(PRIVACY_POLICY_ROUTE) view=PrivacyPolicy ssr=SsrMode::Static(StaticRoute::new())/>
-                            <Route path=StaticSegment(CONTENT_POLICY_ROUTE) view=ContentPolicy ssr=SsrMode::Static(StaticRoute::new())/>
-                            <Route path=StaticSegment(RULES_ROUTE) view=Rules ssr=SsrMode::Static(StaticRoute::new())/>
-                        </Routes>
+                                <Route path=StaticSegment(SEARCH_ROUTE) view=Search/>
+                                <Route path=StaticSegment(ABOUT_SHARESPHERE_ROUTE) view=AboutShareSphere ssr=SsrMode::Static(StaticRoute::new())/>
+                                <Route path=StaticSegment(TERMS_AND_CONDITIONS_ROUTE) view=TermsAndConditions ssr=SsrMode::Static(StaticRoute::new())/>
+                                <Route path=StaticSegment(PRIVACY_POLICY_ROUTE) view=PrivacyPolicy ssr=SsrMode::Static(StaticRoute::new())/>
+                                <Route path=StaticSegment(CONTENT_POLICY_ROUTE) view=ContentPolicy ssr=SsrMode::Static(StaticRoute::new())/>
+                                <Route path=StaticSegment(RULES_ROUTE) view=Rules ssr=SsrMode::Static(StaticRoute::new())/>
+                            </Routes>
+                        </div>
                     </div>
-                </div>
-            </main>
-        </Router>
+                </main>
+            </Router>
+        </I18nProvider>
     }
 }
 
@@ -412,6 +415,34 @@ fn UserHomePage(
     }
 }
 
+#[component]
+fn I18nProvider(children: Children) -> impl IntoView {
+    leptos_fluent! {
+        children: children(),
+        locales: "../../locales",
+        default_language: "en",
+        check_translations: "../**/*.rs",
+        sync_html_tag_lang: true,
+        sync_html_tag_dir: true,
+        cookie_name: "lang",
+        cookie_attrs: "SameSite=Strict; Secure; path=/; max-age=600",
+        initial_language_from_cookie: true,
+        initial_language_from_cookie_to_local_storage: true,
+        set_language_to_cookie: true,
+        url_param: "lang",
+        initial_language_from_url_param: true,
+        initial_language_from_url_param_to_local_storage: true,
+        initial_language_from_url_param_to_cookie: true,
+        set_language_to_url_param: true,
+        local_storage_key: "language",
+        initial_language_from_local_storage: true,
+        initial_language_from_local_storage_to_cookie: true,
+        set_language_to_local_storage: true,
+        initial_language_from_navigator: true,
+        initial_language_from_navigator_to_local_storage: true,
+        initial_language_from_accept_language_header: true,
+    }
+}
 fn handle_right_swipe(
     show_left_sidebar: RwSignal<bool>,
     show_right_sidebar: RwSignal<bool>,

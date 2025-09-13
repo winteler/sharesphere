@@ -1,7 +1,9 @@
 use leptos::prelude::*;
 use leptos::html::Div;
+use leptos_fluent::{move_tr};
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
+
 use sharesphere_utils::errors::{AppError};
 use sharesphere_utils::icons::{FlameIcon, HomeIcon};
 use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
@@ -137,7 +139,7 @@ pub fn HomeSidebar() -> impl IntoView {
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
-            <h1 class="text-xl font-semibold text-center">"Welcome to ShareSphere!"</h1>
+            <h1 class="text-xl font-semibold text-center">{move_tr!("welcome-to-sharesphere")}</h1>
             <div class="flex flex-col gap-2">
                 <p class="text-justify">
                     "ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."

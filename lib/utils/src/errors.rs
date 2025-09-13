@@ -6,22 +6,11 @@ use http::status::StatusCode;
 use leptos::prelude::*;
 use leptos::{component, view, IntoView};
 use leptos::server_fn::codec::JsonEncoding;
+use leptos_fluent::tr;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use validator::{ValidationError, ValidationErrors};
 use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthorizedIcon, NotFoundIcon, TooHeavyIcon};
-
-const NOT_AUTHENTICATED_MESSAGE: &str = "Please authenticate yourself.";
-const AUTH_FAILED_MESSAGE: &str = "Sorry, we had some trouble authenticating you.";
-const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong.";
-const NOT_AUTHORIZED_MESSAGE: &str = "You're in a restricted area, please do not resist.";
-const SPHERE_BAN_UNTIL_MESSAGE: &str = "You are banned from this sphere until";
-const PERMANENT_SPHERE_BAN_MESSAGE: &str = "You are permanently banned from this website.";
-const GLOBAL_BAN_UNTIL_MESSAGE: &str = "You are globally banned until";
-const PERMANENT_GLOBAL_BAN_MESSAGE: &str = "You are permanently banned from this website.";
-const BAD_REQUEST_MESSAGE: &str = "Sorry, we didn't understand your request.";
-const UNAVAILABLE_MESSAGE: &str = "Sorry, we've got noise on the line.";
-const NOT_FOUND_MESSAGE: &str = "There's nothing here";
 
 #[derive(Clone, Debug, Error, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AppError {
@@ -59,45 +48,37 @@ impl AppError {
 
     pub fn user_message(&self) -> String {
         match self {
-            AppError::AuthenticationError(_) => String::from(AUTH_FAILED_MESSAGE),
-            AppError::NotAuthenticated => String::from(NOT_AUTHENTICATED_MESSAGE),
-            AppError::InsufficientPrivileges => String::from(NOT_AUTHORIZED_MESSAGE),
-            AppError::SphereBanUntil(timestamp) => format!("{} {}", SPHERE_BAN_UNTIL_MESSAGE, timestamp),
-            AppError::PermanentSphereBan => String::from(PERMANENT_SPHERE_BAN_MESSAGE),
-            AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp),
-            AppError::PermanentGlobalBan => String::from(PERMANENT_GLOBAL_BAN_MESSAGE),
+            AppError::AuthenticationError(_) => String::from(tr!("authentication-failed-message")),
+            AppError::NotAuthenticated => String::from(tr!("not-authenticated-message")),
+            AppError::InsufficientPrivileges => String::from(tr!("not-authorized-message")),
+            AppError::SphereBanUntil(timestamp) => format!("{} {}", tr!("sphere-ban-until-message"), timestamp),
+            AppError::PermanentSphereBan => String::from(tr!("permanent-sphere-ban-message")),
+            AppError::GlobalBanUntil(timestamp) => format!("{} {}", tr!("global-ban-until-message"), timestamp),
+            AppError::PermanentGlobalBan => String::from(tr!("permanent-global-ban-message")),
             AppError::CommunicationError(error) => match error {
                 ServerFnErrorErr::Args(_) | ServerFnErrorErr::MissingArg(_) |
-                ServerFnErrorErr::Serialization(_) | ServerFnErrorErr::Deserialization(_) => String::from(BAD_REQUEST_MESSAGE),
-                ServerFnErrorErr::Registration(_) | ServerFnErrorErr::Request(_) | ServerFnErrorErr::Response(_) => String::from(UNAVAILABLE_MESSAGE),
-                _ => String::from(INTERNAL_ERROR_MESSAGE),
+                ServerFnErrorErr::Serialization(_) | ServerFnErrorErr::Deserialization(_) => String::from(tr!("bad-request-message")),
+                ServerFnErrorErr::Registration(_) | ServerFnErrorErr::Request(_) | ServerFnErrorErr::Response(_) => String::from(tr!("unavailable-message")),
+                _ => String::from(tr!("internal-error-message")),
             },
-            AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
-            AppError::InternalServerError(_) => String::from(INTERNAL_ERROR_MESSAGE),
-            AppError::NotFound => String::from(NOT_FOUND_MESSAGE),
-            AppError::PayloadTooLarge(mb_limit) => format!("Payload exceeds the {mb_limit} Bytes limit."),
+            AppError::DatabaseError(_) => String::from(tr!("internal-error-message")),
+            AppError::InternalServerError(_) => String::from(tr!("internal-error-message")),
+            AppError::NotFound => String::from(tr!("not-found-message")),
+            AppError::PayloadTooLarge(byte_limit) => String::from(tr!("payload-too-large-message", {"byte_limit" => byte_limit})),
         }
     }
 
     pub fn error_detail(&self) -> String {
         match self {
             AppError::AuthenticationError(e) => e.clone(),
-            AppError::NotAuthenticated => String::from(NOT_AUTHENTICATED_MESSAGE),
-            AppError::InsufficientPrivileges => String::from("Insufficient privileges"),
-            AppError::SphereBanUntil(timestamp) => format!("{} {}", SPHERE_BAN_UNTIL_MESSAGE, timestamp),
-            AppError::PermanentSphereBan => String::from(PERMANENT_SPHERE_BAN_MESSAGE),
-            AppError::GlobalBanUntil(timestamp) => format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, timestamp),
-            AppError::PermanentGlobalBan => String::from(PERMANENT_GLOBAL_BAN_MESSAGE),
             AppError::CommunicationError(error) => match error {
                 ServerFnErrorErr::Args(e) | ServerFnErrorErr::MissingArg(e) |
                 ServerFnErrorErr::Serialization(e) | ServerFnErrorErr::Deserialization(e) => e.clone(),
                 ServerFnErrorErr::Registration(e) | ServerFnErrorErr::Request(e) | ServerFnErrorErr::Response(e) => e.clone(),
-                _ => String::from(INTERNAL_ERROR_MESSAGE),
+                _ => self.user_message(),
             },
-            AppError::DatabaseError(_) => String::from(INTERNAL_ERROR_MESSAGE),
             AppError::InternalServerError(e) => e.clone(),
-            AppError::NotFound => String::from(NOT_FOUND_MESSAGE),
-            AppError::PayloadTooLarge(mb_limit) => format!("Payload exceeds the {mb_limit} Bytes limit."),
+            _ => self.user_message()
         }
     }
 
@@ -300,6 +281,7 @@ mod tests {
     use leptos::prelude::{ServerFnErrorErr};
     use quick_xml::errors::SyntaxError;
     use std::str::FromStr;
+    use leptos_fluent::tr;
 
     #[test]
     fn test_app_error_status_code() {
@@ -345,24 +327,24 @@ mod tests {
         let registration_error = ServerFnErrorErr::Registration(String::from("test"));
         let serialization_error = ServerFnErrorErr::Serialization(String::from("test"));
         let deserialization_error = ServerFnErrorErr::Deserialization(String::from("test"));
-        assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), String::from(AUTH_FAILED_MESSAGE));
-        assert_eq!(AppError::NotAuthenticated.user_message(), String::from(NOT_AUTHENTICATED_MESSAGE));
-        assert_eq!(AppError::InsufficientPrivileges.user_message(), String::from(NOT_AUTHORIZED_MESSAGE));
-        assert_eq!(AppError::SphereBanUntil(test_timestamp).user_message(), format!("{} {}", SPHERE_BAN_UNTIL_MESSAGE, test_timestamp.clone().to_string()));
-        assert_eq!(AppError::PermanentSphereBan.user_message(), String::from(PERMANENT_SPHERE_BAN_MESSAGE));
-        assert_eq!(AppError::GlobalBanUntil(test_timestamp).user_message(), format!("{} {}", GLOBAL_BAN_UNTIL_MESSAGE, test_timestamp.to_string()));
-        assert_eq!(AppError::PermanentGlobalBan.user_message(), String::from(PERMANENT_GLOBAL_BAN_MESSAGE));
-        assert_eq!(AppError::CommunicationError(server_fn_error).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
-        assert_eq!(AppError::CommunicationError(args_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
-        assert_eq!(AppError::CommunicationError(missing_arg_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
-        assert_eq!(AppError::CommunicationError(serialization_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
-        assert_eq!(AppError::CommunicationError(deserialization_error).user_message(), String::from(BAD_REQUEST_MESSAGE));
-        assert_eq!(AppError::CommunicationError(request_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
-        assert_eq!(AppError::CommunicationError(response_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
-        assert_eq!(AppError::CommunicationError(registration_error).user_message(), String::from(UNAVAILABLE_MESSAGE));
-        assert_eq!(AppError::DatabaseError(test_string.clone()).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
-        assert_eq!(AppError::InternalServerError(test_string.clone()).user_message(), String::from(INTERNAL_ERROR_MESSAGE));
-        assert_eq!(AppError::NotFound.user_message(), String::from(NOT_FOUND_MESSAGE));
+        assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), String::from(tr!("authentication-failed-message")));
+        assert_eq!(AppError::NotAuthenticated.user_message(), String::from(tr!("authentication-failed-message")));
+        assert_eq!(AppError::InsufficientPrivileges.user_message(), String::from("not-authenticated-message"));
+        assert_eq!(AppError::SphereBanUntil(test_timestamp).user_message(), format!("{} {}", tr!("sphere-ban-until-message"), test_timestamp.clone().to_string()));
+        assert_eq!(AppError::PermanentSphereBan.user_message(), String::from(tr!("permanent-sphere-ban-message")));
+        assert_eq!(AppError::GlobalBanUntil(test_timestamp).user_message(), format!("{} {}", tr!("global-ban-until-message"), test_timestamp.to_string()));
+        assert_eq!(AppError::PermanentGlobalBan.user_message(), String::from(tr!("permanent-global-ban-message")));
+        assert_eq!(AppError::CommunicationError(server_fn_error).user_message(), String::from(tr!("internal-error-message")));
+        assert_eq!(AppError::CommunicationError(args_error).user_message(), String::from(tr!("bad-request-message")));
+        assert_eq!(AppError::CommunicationError(missing_arg_error).user_message(), String::from(tr!("bad-request-message")));
+        assert_eq!(AppError::CommunicationError(serialization_error).user_message(), String::from(tr!("bad-request-message")));
+        assert_eq!(AppError::CommunicationError(deserialization_error).user_message(), String::from(tr!("bad-request-message")));
+        assert_eq!(AppError::CommunicationError(request_error).user_message(), String::from(tr!("unavailable-message")));
+        assert_eq!(AppError::CommunicationError(response_error).user_message(), String::from(tr!("unavailable-message")));
+        assert_eq!(AppError::CommunicationError(registration_error).user_message(), String::from(tr!("unavailable-message")));
+        assert_eq!(AppError::DatabaseError(test_string.clone()).user_message(), String::from(tr!("internal-error-message")));
+        assert_eq!(AppError::InternalServerError(test_string.clone()).user_message(), String::from(tr!("internal-error-message")));
+        assert_eq!(AppError::NotFound.user_message(), String::from(tr!("not-found-message")));
     }
 
     #[test]

@@ -9,7 +9,7 @@ use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use sharesphere_utils::routes::{get_comment_link, get_post_path, COMMENT_ID_QUERY_PARAM};
-use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError};
+use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack};
 use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
 
 use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
@@ -316,6 +316,7 @@ pub fn CommentBottomWidgetBar(
     vote: Option<Vote>,
     child_comments: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let satellite_state = use_context::<SatelliteState>();
     let vote = vote;
@@ -363,10 +364,19 @@ pub fn CommentBottomWidgetBar(
                         author_id
                         comment
                     />
-                    <ModerateCommentButton
-                        comment_id
-                        comment
-                    />
+                    <SuspenseUnpack resource=state.user let:user>
+                    {
+                        match user.as_ref().is_some_and(|user| user.user_id == author_id) {
+                            true => None,
+                            false => Some(view! {
+                                <ModerateCommentButton
+                                    comment_id
+                                    comment
+                                />
+                            })
+                        }
+                    }
+                    </SuspenseUnpack>
                     <DeleteCommentButton comment_id author_id comment/>
                 })}
                 <ModerationInfoButton content/>

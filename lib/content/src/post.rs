@@ -174,6 +174,7 @@ fn PostBottomWidgetBar(
     post: PostWithInfo,
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let post_id = post.post.post_id;
     let author_id = post.post.creator_id;
     let is_active = post.post.is_active();
@@ -198,7 +199,16 @@ fn PostBottomWidgetBar(
             <DotMenu>
                 { is_active.then_some(view! {
                     <EditPostButton author_id post=stored_post/>
-                    <ModeratePostButton post_id/>
+                    <SuspenseUnpack resource=state.user let:user>
+                    {
+                        match user.as_ref().is_some_and(|user| user.user_id == author_id) {
+                            true => None,
+                            false => Some(view! {
+                                <ModeratePostButton post_id/>
+                            })
+                        }
+                    }
+                    </SuspenseUnpack>
                     <DeletePostButton post_id author_id/>
                 })}
                 <ModerationInfoButton content=Content::Post(stored_post.get_value())/>

@@ -119,12 +119,13 @@ pub fn check_post_title(title: &str) -> Result<(), ValidationError> {
 /// use sharesphere_utils::constants::MAX_USERNAME_LENGTH;
 /// use sharesphere_utils::errors::AppError;
 ///
-/// assert!(check_username("-Abc123_").is_ok());
-/// assert!(check_username(" name").is_err());
-/// assert!(check_username("name%").is_err());
-/// assert!(check_username("").is_err());
-/// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH)).is_ok());
-/// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH + 1)).is_err());
+/// assert!(check_username("-Abc123_", false).is_ok());
+/// assert!(check_username(" name", false).is_err());
+/// assert!(check_username("name%", false).is_err());
+/// assert!(check_username("", false).is_err());
+/// assert!(check_username("", true).is_ok());
+/// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH), false).is_ok());
+/// assert!(check_username(&"a".repeat(MAX_USERNAME_LENGTH + 1), false).is_err());
 /// ```
 pub fn check_username(name: &str, is_empty_ok: bool) -> Result<(), AppError> {
     if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {

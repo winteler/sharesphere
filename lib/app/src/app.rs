@@ -420,6 +420,7 @@ fn I18nProvider(children: Children) -> impl IntoView {
     leptos_fluent! {
         children: children(),
         locales: "../../locales",
+        languages: "../../locales/languages.json",
         default_language: "en",
         check_translations: "../**/*.rs",
         sync_html_tag_lang: true,

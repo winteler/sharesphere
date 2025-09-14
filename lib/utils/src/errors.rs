@@ -1,7 +1,6 @@
 use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
-
 use http::status::StatusCode;
 use leptos::prelude::*;
 use leptos::{component, view, IntoView};
@@ -279,11 +278,32 @@ mod tests {
     use std::str::FromStr;
     use std::sync::LazyLock;
     use http::StatusCode;
-    use leptos::prelude::{RwSignal, ServerFnErrorErr, Signal};
+    use leptos::prelude::*;
     use quick_xml::errors::SyntaxError;
     use leptos_fluent::{tr, I18n, Language};
     use fluent_templates::{static_loader, StaticLoader};
+    use unic_langid::LanguageIdentifier;
     use crate::errors::{AppError};
+
+    const EN_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("en");
+    const FR_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("fr");
+
+    const EN_LANG: Language = Language {
+        id: &EN_IDENTIFIER,
+        name: "English",
+        dir: &leptos_fluent::WritingDirection::Ltr,
+        flag: None,
+    };
+    const FR_LANG: Language = Language {
+        id: &FR_IDENTIFIER,
+        name: "Français",
+        dir: &leptos_fluent::WritingDirection::Ltr,
+        flag: None,
+    };
+    const LANGUAGES: &'static [&Language] = &[
+        &EN_LANG,
+        &FR_LANG,
+    ];
 
     #[test]
     fn test_app_error_status_code() {
@@ -319,19 +339,23 @@ mod tests {
 
     #[test]
     fn test_app_error_user_message() {
+        let owner = Owner::new();
+        owner.set();
         static_loader! {
             static TRANSLATIONS = {
                 locales: "../../locales",
                 fallback_language: "en",
             };
         }
-        pub static COMPOUND: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS, &TRANSLATIONS];
-        let default_language = Language::from_str("en").expect("Language should be valid.");
+        let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
         let i18n = I18n {
-            language: RwSignal::new(&default_language),
-            languages: &[&default_language],
-            translations: Signal::derive(move || COMPOUND),
+            language: RwSignal::new(&LANGUAGES[0]),
+            languages: LANGUAGES,
+            translations: Signal::derive(move || compound.clone()),
         };
+
+        provide_context(i18n);
+
         let test_string = String::from("test");
         let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
         let server_fn_error = ServerFnErrorErr::ServerError(String::from("test"));
@@ -343,8 +367,8 @@ mod tests {
         let serialization_error = ServerFnErrorErr::Serialization(String::from("test"));
         let deserialization_error = ServerFnErrorErr::Deserialization(String::from("test"));
         assert_eq!(AppError::AuthenticationError(test_string.clone()).user_message(), tr!("authentication-failed-message"));
-        assert_eq!(AppError::NotAuthenticated.user_message(), tr!("authentication-failed-message"));
-        assert_eq!(AppError::InsufficientPrivileges.user_message(), "not-authenticated-message");
+        assert_eq!(AppError::NotAuthenticated.user_message(), tr!("not-authenticated-message"));
+        assert_eq!(AppError::InsufficientPrivileges.user_message(), tr!("not-authorized-message"));
         assert_eq!(AppError::SphereBanUntil(test_timestamp).user_message(), format!("{} {}", tr!("sphere-ban-until-message"), test_timestamp.clone().to_string()));
         assert_eq!(AppError::PermanentSphereBan.user_message(), tr!("permanent-sphere-ban-message"));
         assert_eq!(AppError::GlobalBanUntil(test_timestamp).user_message(), format!("{} {}", tr!("global-ban-until-message"), test_timestamp.to_string()));

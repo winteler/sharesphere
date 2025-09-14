@@ -1,11 +1,4 @@
 [
-  {
-    "code": "en",
-    "name": "English",
-    "tag": "auto"
-  },
-  {
-    "code": "fr",
-    "name": "French"
-  }
+  ["en", "English"],
+  ["fr", "French"]
 ]

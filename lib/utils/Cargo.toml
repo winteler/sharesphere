@@ -45,6 +45,7 @@ send_wrapper = { version = "0.6.0", features = ["futures"] }
 indoc = "2.0.6"
 fluent-templates = "0.13.1"
 sealed_test = "1.1.0"
+unic-langid = "0.9.6"
 
 [features]
 default = []

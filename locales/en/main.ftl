@@ -32,3 +32,35 @@ cancel = Cancel
 submit = Submit
 
 sphere-banner = Sphere banner
+
+time-seconds-short = s
+time-minutes-short = m
+time-hours-short = h
+time-days-short = d
+time-months-short = mo
+time-years-short = y
+
+time-seconds = {$count ->
+    [one] {$count} second
+    *[other] {$count} seconds
+}
+time-minutes = {$count ->
+   [one] {$count} minute
+   *[other] {$count} minutes
+}
+time-hours = {$count ->
+   [one] {$count} hour
+   *[other] {$count} hours
+}
+time-days = {$count ->
+   [one] {$count} day
+   *[other] {$count} days
+}
+time-months = {$count ->
+   [one] {$count} month
+   *[other] {$count} months
+}
+time-years = {$count ->
+   [one] {$count} year
+   *[other] {$count} years
+}

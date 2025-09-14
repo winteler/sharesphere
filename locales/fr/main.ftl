@@ -32,3 +32,32 @@ cancel = Annuler
 submit = Soumettre
 
 sphere-banner = Bannière de la sphère
+
+time-seconds-short = s
+time-minutes-short = m
+time-hours-short = h
+time-days-short = j
+time-months-short = mo
+time-years-short = a
+
+time-seconds = {$count ->
+    [one] {$count} seconde
+    *[other] {$count} secondes
+}
+time-minutes = {$count ->
+   [one] {$count} minute
+   *[other] {$count} minutes
+}
+time-hours = {$count ->
+   [one] {$count} heure
+   *[other] {$count} heures
+}
+time-days = {$count ->
+   [one] {$count} jour
+   *[other] {$count} jours
+}
+time-months = {$count} mois
+time-years = {$count ->
+   [one] {$count} année
+   *[other] {$count} années
+}

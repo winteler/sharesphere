@@ -3,7 +3,7 @@ use std::str::FromStr;
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
-use leptos_fluent::move_tr;
+use leptos_fluent::{move_tr, tr};
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
 use leptos_use::{breakpoints_tailwind, use_breakpoints, use_clipboard};
@@ -26,7 +26,7 @@ pub trait ToView {
     fn to_view(self) -> impl IntoView + 'static;
 }
 
-enum TimeScale {
+enum TimeUnit {
     Seconds,
     Minutes,
     Hours,
@@ -35,21 +35,21 @@ enum TimeScale {
     Years,
 }
 
-impl TimeScale {
-    pub fn to_str(&self, is_plural: bool, use_fullname: bool) -> &'static str {
+impl TimeUnit {
+    pub fn to_str(&self, count: i64, use_fullname: bool) -> String {
         match (use_fullname, self) {
-            (false, TimeScale::Seconds) => "s",
-            (false, TimeScale::Minutes) => "m",
-            (false, TimeScale::Hours) => "h",
-            (false, TimeScale::Days) => "d",
-            (false, TimeScale::Months) => "mo",
-            (false, TimeScale::Years) => "y",
-            (true, TimeScale::Seconds) => if is_plural { "seconds" } else { "second" },
-            (true, TimeScale::Minutes) => if is_plural { "minutes" } else { "minute" },
-            (true, TimeScale::Hours) => if is_plural { "hours" } else { "hour" },
-            (true, TimeScale::Days) => if is_plural { "days" } else { "day" },
-            (true, TimeScale::Months) => if is_plural { "months" } else { "month" },
-            (true, TimeScale::Years) => if is_plural { "years" } else { "year" },
+            (false, TimeUnit::Seconds) => tr!("time-seconds-short"),
+            (false, TimeUnit::Minutes) => tr!("time-minutes-short"),
+            (false, TimeUnit::Hours) => tr!("time-hours-short"),
+            (false, TimeUnit::Days) => tr!("time-days-short"),
+            (false, TimeUnit::Months) => tr!("time-months-short"),
+            (false, TimeUnit::Years) => tr!("time-years-short"),
+            (true, TimeUnit::Seconds) => tr!("time-seconds", {"count" => count}),
+            (true, TimeUnit::Minutes) => tr!("time-minutes", {"count" => count}),
+            (true, TimeUnit::Hours) => tr!("time-hours", {"count" => count}),
+            (true, TimeUnit::Days) => tr!("time-days", {"count" => count}),
+            (true, TimeUnit::Months) => tr!("time-months", {"count" => count}),
+            (true, TimeUnit::Years) => tr!("time-years", {"count" => count}),
         }
     }
 }
@@ -731,28 +731,12 @@ fn get_elapsed_time_string(
 ) -> String {
     let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
     let seconds = elapsed_time.num_seconds();
-    // TODO use fluent
     match seconds {
-        seconds if seconds < SECONDS_IN_MINUTE => format!("{} {}", seconds, TimeScale::Seconds.to_str(seconds > 1, use_fullname)),
-        seconds if seconds < SECONDS_IN_HOUR => {
-            let minutes = seconds / SECONDS_IN_MINUTE;
-            format!("{} {}", minutes, TimeScale::Minutes.to_str(minutes > 1, use_fullname))
-        }
-        seconds if seconds < SECONDS_IN_DAY => {
-            let hours = seconds / SECONDS_IN_HOUR;
-            format!("{} {}", hours, TimeScale::Hours.to_str(hours > 1, use_fullname))
-        }
-        seconds if seconds < SECONDS_IN_MONTH => {
-            let days = seconds / SECONDS_IN_DAY;
-            format!("{} {}", days, TimeScale::Days.to_str(days > 1, use_fullname))
-        }
-        seconds if seconds < SECONDS_IN_YEAR => {
-            let months = seconds / SECONDS_IN_MONTH;
-            format!("{} {}", months, TimeScale::Months.to_str(months > 1, use_fullname))
-        }
-        _ => {
-            let years = seconds / SECONDS_IN_YEAR;
-            format!("{} {}", years, TimeScale::Years.to_str(years > 1, use_fullname))
-        }
+        seconds if seconds < SECONDS_IN_MINUTE => TimeUnit::Seconds.to_str(seconds, use_fullname),
+        seconds if seconds < SECONDS_IN_HOUR => TimeUnit::Minutes.to_str(seconds / SECONDS_IN_MINUTE, use_fullname),
+        seconds if seconds < SECONDS_IN_DAY => TimeUnit::Hours.to_str(seconds / SECONDS_IN_HOUR, use_fullname),
+        seconds if seconds < SECONDS_IN_MONTH => TimeUnit::Days.to_str(seconds / SECONDS_IN_DAY, use_fullname),
+        seconds if seconds < SECONDS_IN_YEAR => TimeUnit::Months.to_str(seconds / SECONDS_IN_MONTH, use_fullname),
+        _ => TimeUnit::Years.to_str(seconds / SECONDS_IN_YEAR, use_fullname),
     }
 }

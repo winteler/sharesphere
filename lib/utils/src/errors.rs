@@ -276,12 +276,14 @@ pub fn ErrorDetail(
 
 #[cfg(test)]
 mod tests {
-    use crate::errors::{AppError};
-    use http::StatusCode;
-    use leptos::prelude::{RwSignal, ServerFnErrorErr};
-    use quick_xml::errors::SyntaxError;
     use std::str::FromStr;
-    use leptos_fluent::{tr, I18n};
+    use std::sync::LazyLock;
+    use http::StatusCode;
+    use leptos::prelude::{RwSignal, ServerFnErrorErr, Signal};
+    use quick_xml::errors::SyntaxError;
+    use leptos_fluent::{tr, I18n, Language};
+    use fluent_templates::{static_loader, StaticLoader};
+    use crate::errors::{AppError};
 
     #[test]
     fn test_app_error_status_code() {
@@ -317,6 +319,19 @@ mod tests {
 
     #[test]
     fn test_app_error_user_message() {
+        static_loader! {
+            static TRANSLATIONS = {
+                locales: "../../locales",
+                fallback_language: "en",
+            };
+        }
+        pub static COMPOUND: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS, &TRANSLATIONS];
+        let default_language = Language::from_str("en").expect("Language should be valid.");
+        let i18n = I18n {
+            language: RwSignal::new(&default_language),
+            languages: &[&default_language],
+            translations: Signal::derive(move || COMPOUND),
+        };
         let test_string = String::from("test");
         let test_timestamp = chrono::DateTime::from_timestamp_nanos(0);
         let server_fn_error = ServerFnErrorErr::ServerError(String::from("test"));

@@ -1359,6 +1359,8 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6222b8a208b9f0e7b984da3616651b0cc74e4461571b118cb1c713e0f7617ee"
 dependencies = [
+ "flume",
+ "ignore",
  "proc-macro2",
  "quote",
  "syn",
@@ -1376,6 +1378,8 @@ dependencies = [
  "fluent-langneg",
  "fluent-syntax",
  "fluent-template-macros",
+ "flume",
+ "ignore",
  "intl-memoizer",
  "log",
  "thiserror 1.0.69",
@@ -4736,6 +4740,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "const_format",
+ "fluent-templates",
  "gloo-net",
  "http",
  "indoc",

@@ -26,8 +26,8 @@ pub fn LabeledFormCheckbox(
     /// Name of the input in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
     /// Label of the checkbox
-    #[prop(optional)]
-    label: &'static str,
+    #[prop(into, default = Signal::derive(move || String::from("")))]
+    label: Signal<String>,
     #[prop(optional)]
     value: bool,
     #[prop(optional)]

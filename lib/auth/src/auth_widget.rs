@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 use leptos::server_fn::codec::PostUrl;
 use leptos::server_fn::Http;
+use leptos_fluent::move_tr;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::NavigateOptions;
 use serde::de::DeserializeOwned;
@@ -34,7 +35,7 @@ pub fn LoginWindow() -> impl IntoView {
                     <ActionForm action=user_state.login_action>
                         <input type="text" name="redirect_url" class="hidden" value=use_location().pathname/>
                         <button type="submit" class="button-primary w-full">
-                            "Login"
+                            {move_tr!("login")}
                         </button>
                     </ActionForm>
                 </div>
@@ -161,7 +162,7 @@ where
                     >
                         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-5 w-96">
                             <div class="text-center font-bold text-2xl">{title}</div>
-                            <div class="text-center font-bold text-xl">"This cannot be undone."</div>
+                            <div class="text-center font-bold text-xl">{move_tr!("delete-warning")}</div>
                             <ActionForm action=delete_action>
                                 <input
                                     name=id_name

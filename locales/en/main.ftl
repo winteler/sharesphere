@@ -30,6 +30,9 @@ copy-link-to-clipboard-message = Copied link to clipboard.
 refresh = Refresh
 cancel = Cancel
 submit = Submit
+login = Login
+pinned = Pinned
+delete-warning = This cannot be undone.
 
 sphere-banner = Sphere banner
 

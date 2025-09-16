@@ -30,6 +30,9 @@ copy-link-to-clipboard-message = Lien copié dans le presse-papiers.
 refresh = Rafraîchir
 cancel = Annuler
 submit = Soumettre
+login = Se connecter
+pinned = Épinglé
+delete-warning = Cette action est irréversible.
 
 sphere-banner = Bannière de la sphère
 

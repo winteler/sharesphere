@@ -4633,6 +4633,7 @@ dependencies = [
  "axum_session_sqlx",
  "chrono",
  "leptos",
+ "leptos-fluent",
  "leptos_axum",
  "leptos_meta",
  "leptos_router",

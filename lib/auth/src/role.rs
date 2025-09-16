@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use leptos::prelude::*;
+use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
@@ -378,7 +379,7 @@ pub fn IsPinnedCheckbox(
 ) -> impl IntoView {
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
-            <LabeledFormCheckbox name label="Pinned" value/>
+            <LabeledFormCheckbox name label=move_tr!("pinned") value/>
         </AuthorizedShow>
     }
 }

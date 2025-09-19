@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::{move_tr, tr};
 use serde::{Deserialize, Serialize};
 use sharesphere_utils::errors::AppError;
 use crate::post::Post;
@@ -337,7 +338,7 @@ pub fn ModeratedBody(
             <div class="p-2 rounded-r bg-base-300 whitespace-pre text-wrap align-middle">
                 <div class="flex flex-col gap-1">
                     <div>{moderator_message}</div>
-                    <div>{format!("Infringed rule: {infringed_rule_title}")}</div>
+                    <div>{move || format!("{}: {infringed_rule_title}", tr!("infringed-rule"))}</div>
                 </div>
             </div>
         </div>
@@ -358,7 +359,7 @@ pub fn ModerationInfoDialog(
                 match &moderated_content {
                     Content::Post(post) => view! {
                         <div class="flex flex-col gap-1 p-2 border-b">
-                            <h1 class="font-bold text-2xl pl-6">"Content"</h1>
+                            <h1 class="font-bold text-2xl pl-6">{move_tr!("content")}</h1>
                             <div>{post.title.clone()}</div>
                             <ContentBody
                                 body=post.body.clone()
@@ -366,21 +367,21 @@ pub fn ModerationInfoDialog(
                             />
                         </div>
                         <div class="flex flex-col gap-1 p-2 border-b">
-                            <h1 class="font-bold text-2xl pl-6">"Moderator message"</h1>
+                            <h1 class="font-bold text-2xl pl-6">{move_tr!("moderator-message")}</h1>
                             <div>{post.moderator_message.clone()}</div>
                         </div>
                     }.into_any(),
                     Content::Comment(comment) => {
                         view! {
                             <div class="flex flex-col gap-1 p-2 border-b">
-                                <div class="font-bold text-2xl pl-6">"Content"</div>
+                                <div class="font-bold text-2xl pl-6">{move_tr!("content")}</div>
                                 <ContentBody
                                     body=comment.body.clone()
                                     is_markdown=comment.markdown_body.is_some()
                                 />
                             </div>
                             <div class="flex flex-col gap-1 p-2 border-b">
-                                <div class="font-bold text-2xl pl-6">"Moderator message"</div>
+                                <div class="font-bold text-2xl pl-6">{move_tr!("moderator-message")}</div>
                                 <div>{comment.moderator_message.clone()}</div>
                             </div>
                         }.into_any()
@@ -388,7 +389,7 @@ pub fn ModerationInfoDialog(
                 }
             }
             <div class="flex flex-col gap-1 p-2">
-                <h1 class="font-bold text-2xl pl-6">"Infringed rule"</h1>
+                <h1 class="font-bold text-2xl pl-6">{move_tr!("infringed-rule")}</h1>
                 <div class="text-lg font-semibold">{rule_title.clone()}</div>
                 <div>{rule_description.clone()}</div>
             </div>

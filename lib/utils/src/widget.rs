@@ -639,7 +639,7 @@ where
 #[component]
 pub fn TitleCollapse<C: IntoView + 'static>(
     #[prop(into)]
-    title: String,
+    title: Signal<String>,
     #[prop(default = "text-lg font-semibold")]
     title_class: &'static str,
     #[prop(default = true)]

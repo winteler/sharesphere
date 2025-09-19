@@ -1,4 +1,3 @@
-welcome-to-sharesphere = Welcome to ShareSphere!
 markdown-help-1 = To add formatting to your content, the 'Markdown' mode must be activated with the following button:{ " " }
 markdown-help-2 = When the 'Markdown' mode is activated, your input will be parsed using{ " " }
 markdown-help-3 =
@@ -32,9 +31,54 @@ cancel = Cancel
 submit = Submit
 login = Login
 pinned = Pinned
+
 delete-warning = This cannot be undone.
 
 sphere-banner = Sphere banner
+
+filters = Filters
+category-filters = Category filters
+sphere-categories = Sphere categories
+all = All
+only-categories = Only categories
+
+infringed-rule = Infringed rule
+title = Title
+content = Content
+spoiler = Spoiler
+nsfw-content = NSFW content
+moderator-message = Moderator message
+link = Link
+link-none = None
+link-link = Link
+link-embed = Embed
+link-url = Url
+
+hot = Hot
+trending = Trending
+best = Best
+recent = Recent
+
+search = Search
+
+welcome-to-sharesphere = Welcome to ShareSphere!
+home = Home
+subscribed = Subscribed
+popular = Popular
+sharesphere-right-sidebar-1 =
+    ShareSphere is the place to exchange with other people about
+    your hobbies, news, art, jokes and many more topics.
+sharesphere-right-sidebar-2 =
+    ShareSphere is a non-profit, add-free, open source website
+    with a focus on transparency, privacy and community empowerment.
+    You can find more information on the website and its rules below.
+about-sharesphere = About ShareSphere
+terms-and-conditions = Terms and Conditions
+privacy-policy = Privacy Policy
+content-policy = Content Policy
+rules = Rules
+categories = Categories
+moderators = Moderators
 
 time-seconds-short = s
 time-minutes-short = m

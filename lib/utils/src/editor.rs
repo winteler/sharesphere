@@ -200,7 +200,8 @@ pub fn LengthLimitedInput(
     /// Name of the input in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
     /// Placeholder for the textarea
-    placeholder: &'static str,
+    #[prop(into)]
+    placeholder: Signal<String>,
     /// Signals and node ref to control textarea content
     content: RwSignal<String>,
     /// Set autofocus
@@ -265,7 +266,8 @@ pub fn FormTextEditor(
     /// name of the textarea in the form that contains this component, must correspond to the parameter of the associated server function
     name: &'static str,
     /// Placeholder for the textarea
-    placeholder: &'static str,
+    #[prop(into)]
+    placeholder: Signal<String>,
     /// Signals and node ref to control textarea content
     data: TextareaData,
     /// Optional maximum text length
@@ -322,7 +324,8 @@ pub fn FormMarkdownEditor(
     /// name of the hidden checkbox indicating whether markdown mode is enabled, must correspond to the parameter of the associated server function
     is_markdown_name: &'static str,
     /// Placeholder for the textarea
-    placeholder: &'static str,
+    #[prop(into)]
+    placeholder: Signal<String>,
     /// Signals and node ref to control textarea content
     data: TextareaData,
     /// Initial state for markdown rendering

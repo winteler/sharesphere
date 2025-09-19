@@ -1,5 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
 
 use sharesphere_auth::user::UserHeader;
@@ -417,14 +418,14 @@ pub fn SearchForm(
     view! {
         <div class=class>
             <LengthLimitedInput
-                placeholder="Search"
+                placeholder=move_tr!("search")
                 content=search_state.search_input
                 maxlength=maxlength
                 textarea_ref
             />
             { match show_spoiler_checkbox {
                 true => Some(view! {
-                    <LabeledSignalCheckbox label="Spoiler" value=search_state.show_spoiler class="pl-1"/>
+                    <LabeledSignalCheckbox label=move_tr!("spoiler") value=search_state.show_spoiler class="pl-1"/>
                 }),
                 false => None,
             }}

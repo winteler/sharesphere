@@ -1,6 +1,7 @@
 use std::collections::{HashMap};
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
 use server_fn::const_format::concatcp;
 use validator::{Validate};
@@ -1200,7 +1201,7 @@ pub fn PostForm(
     view! {
         <LengthLimitedInput
             name="post_inputs[title]"
-            placeholder="Title"
+            placeholder=move_tr!("title")
             content=title_input
             autofocus=true
             minlength=Some(1)
@@ -1210,7 +1211,7 @@ pub fn PostForm(
         <FormMarkdownEditor
             name="post_inputs[body]"
             is_markdown_name="post_inputs[is_markdown]"
-            placeholder="Content"
+            placeholder=move_tr!("content")
             data=body_data
             is_markdown
             maxlength=Some(MAX_CONTENT_LENGTH as usize)
@@ -1219,14 +1220,14 @@ pub fn PostForm(
         <LinkForm link_input embed_type_input title_input textarea_ref=link_textarea_ref/>
         { move || {
             match is_parent_spoiler.get() {
-                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label="Spoiler" value=true disabled=true/> },
-                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label="Spoiler" value=is_spoiler/> },
+                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label=move_tr!("spoiler") value=true disabled=true/> },
+                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label=move_tr!("spoiler") value=is_spoiler/> },
             }
         }}
         { move || {
             match is_parent_nsfw.get() {
-                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label="NSFW content" value=true disabled=true/> },
-                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label="NSFW content" value=is_nsfw/> },
+                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label=move_tr!("nsfw-content") value=true disabled=true/> },
+                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label=move_tr!("nsfw-content") value=is_nsfw/> },
             }
         }}
         <IsPinnedCheckbox sphere_name name="post_inputs[post_tags][is_pinned]" value=is_pinned/>
@@ -1249,7 +1250,7 @@ pub fn LinkForm(
     view! {
         <div class="flex flex-col gap-2">
             <div class="flex gap-2 items-center">
-                <span class="label-text w-fit">"Link"</span>
+                <span class="label-text w-fit">{move_tr!("link")}</span>
                 <select
                     name="post_inputs[embed_type]"
                     class="select_input"
@@ -1266,7 +1267,7 @@ pub fn LinkForm(
                             *select_trigger.write() += 1;
                         }
                     >
-                        "None"
+                        {move_tr!("link-none")}
                     </option>
                     <option
                         selected=move || embed_type_input.get_untracked() == EmbedType::Link
@@ -1275,7 +1276,7 @@ pub fn LinkForm(
                             *select_trigger.write() += 1;
                         }
                     >
-                        "Link"
+                        {move_tr!("link-link")}
                     </option>
                     <option
                         selected=move || embed_type_input.get_untracked() == EmbedType::Embed
@@ -1284,12 +1285,12 @@ pub fn LinkForm(
                             *select_trigger.write() += 1;
                         }
                     >
-                        "Embed"
+                        {move_tr!("link-embed")}
                     </option>
                 </select>
                 <LengthLimitedInput
                     name="post_inputs[link]"
-                    placeholder="Url"
+                    placeholder=move_tr!("link-url")
                     content=link_input
                     maxlength=Some(MAX_LINK_LENGTH as usize)
                     textarea_ref

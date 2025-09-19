@@ -20,7 +20,8 @@ use crate::sphere_category::SphereCategoryBadge;
 /// Component to display a collapsable list of sphere links
 #[component]
 pub fn SphereLinkListCollapse(
-    title: &'static str,
+    #[prop(into)]
+    title: Signal<String>,
     sphere_header_vec: Vec<SphereHeader>,
     #[prop(default = true)]
     is_open: bool,
@@ -46,7 +47,7 @@ pub fn BaseLinks() -> impl IntoView {
                 on:click=move |_| state.show_left_sidebar.set(false)
                 class="px-2 py-1 rounded-sm hover:bg-base-content/20"
             >
-                <Badge text="Home">
+                <Badge text=move_tr!("home")>
                     <HomeIcon/>
                 </Badge>
             </a>
@@ -55,7 +56,7 @@ pub fn BaseLinks() -> impl IntoView {
                 on:click=move |_| state.show_left_sidebar.set(false)
                 class="px-2 py-1 rounded-sm hover:bg-base-content/20"
             >
-                <Badge text="Hot">
+                <Badge text=move_tr!("hot")>
                     <FlameIcon class="filter-icon-size"/>
                 </Badge>
             </a>
@@ -101,13 +102,13 @@ pub fn LeftSidebar() -> impl IntoView {
             <BaseLinks/>
             <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
                 <SphereLinkListCollapse
-                    title="Subscribed"
+                    title=move_tr!("subscribed")
                     sphere_header_vec=sphere_header_vec.clone()
                 />
             </TransitionUnpack>
             <TransitionUnpack resource=popular_sphere_vec_resource let:popular_sphere_header_vec>
                 <SphereLinkListCollapse
-                    title="Popular"
+                    title=move_tr!("popular")
                     sphere_header_vec=popular_sphere_header_vec.clone()
                     is_open=false
                 />
@@ -142,19 +143,18 @@ pub fn HomeSidebar() -> impl IntoView {
             <h1 class="text-xl font-semibold text-center">{move_tr!("welcome-to-sharesphere")}</h1>
             <div class="flex flex-col gap-2">
                 <p class="text-justify">
-                    "ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics."
+                    {move_tr!("sharesphere-right-sidebar-1")}
                 </p>
                 <p class="text-justify">
-                    "ShareSphere is a non-profit, add-free, open source website with a focus on transparency, privacy and community empowerment. \
-                    You can find more information on the website and its rules below."
+                    {move_tr!("sharesphere-right-sidebar-2")}
                 </p>
             </div>
             <ul class="list-disc list-inside">
-                <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">"About ShareSphere"</a></li>
-                <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">"Terms and Conditions"</a></li>
-                <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a></li>
-                <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a></li>
-                <li><a href=RULES_ROUTE class="link text-primary">"Rules"</a></li>
+                <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">{move_tr!("about-sharesphere")}</a></li>
+                <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">{move_tr!("terms-and-conditions")}</a></li>
+                <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">{move_tr!("privacy-policy")}</a></li>
+                <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">{move_tr!("content-policy")}</a></li>
+                <li><a href=RULES_ROUTE class="link text-primary">{move_tr!("rules")}</a></li>
             </ul>
             <BaseRuleList/>
         </div>
@@ -207,7 +207,7 @@ fn SphereRuleList(
     rule_resource: Resource<Result<Vec<Rule>, AppError>>
 ) -> impl IntoView {
     view! {
-        <TitleCollapse title="Rules">
+        <TitleCollapse title=move_tr!("rules")>
             <div class="flex flex-col pl-2 pt-1 gap-1">
                 <TransitionUnpack resource=rule_resource let:rule_vec>
                     <RuleList rule_vec=rule_vec.clone()/>
@@ -222,7 +222,7 @@ fn SphereRuleList(
 pub fn SphereCategoryList() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     view! {
-        <TitleCollapse title="Categories">
+        <TitleCollapse title=move_tr!("categories")>
             <div class="flex flex-col pl-2 pt-1">
                 <TransitionUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
                 {
@@ -250,7 +250,7 @@ pub fn SphereCategoryList() -> impl IntoView {
 pub fn ModeratorList() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     view! {
-         <TitleCollapse title="Moderators">
+         <TitleCollapse title=move_tr!("moderators")>
             <div class="flex flex-col gap-1">
                 <div class="flex border-b border-base-content/20 pl-4">
                     <div class="w-1/2 py-2 text-left font-semibold">Username</div>

@@ -59,7 +59,8 @@ pub fn LabeledFormCheckbox(
 /// Component for a boolean checkbox with a label updating a signal
 #[component]
 pub fn LabeledSignalCheckbox(
-    label: &'static str,
+    #[prop(into)]
+    label: Signal<String>,
     value: RwSignal<bool>,
     #[prop(optional)]
     disabled: bool,

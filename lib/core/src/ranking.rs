@@ -2,6 +2,7 @@ use std::fmt;
 use leptos::children::ChildrenFn;
 use leptos::{component, view, IntoView};
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 use server_fn::const_format::concatcp;
 use sharesphere_utils::constants::{BEST_ORDER_BY_COLUMN, BEST_STR, HOT_ORDER_BY_COLUMN, HOT_STR, RECENT_ORDER_BY_COLUMN, RECENT_STR, TRENDING_ORDER_BY_COLUMN, TRENDING_STR};
@@ -375,7 +376,8 @@ pub async fn vote_on_content(
 pub fn SortWidgetOption(
     sort_type: SortType,
     sort_signal: RwSignal<SortType>,
-    datatip: &'static str,
+    #[prop(into)]
+    datatip: Signal<String>,
     is_tooltip_bottom: bool,
     children: ChildrenFn,
 ) -> impl IntoView {
@@ -417,16 +419,16 @@ pub fn PostSortWidget(
 ) -> impl IntoView {
     view! {
         <div class="join rounded-none w-fit">
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) sort_signal datatip="Hot" is_tooltip_bottom>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Hot) sort_signal datatip=move_tr!("hot") is_tooltip_bottom>
                 <FlameIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) sort_signal datatip="Trending" is_tooltip_bottom>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Trending) sort_signal datatip=move_tr!("trending") is_tooltip_bottom>
                 <GraphIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) sort_signal datatip="Best" is_tooltip_bottom>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Best) sort_signal datatip=move_tr!("best") is_tooltip_bottom>
                 <PodiumIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) sort_signal datatip="Recent" is_tooltip_bottom>
+            <SortWidgetOption sort_type=SortType::Post(PostSortType::Recent) sort_signal datatip=move_tr!("recent") is_tooltip_bottom>
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>
@@ -440,10 +442,10 @@ pub fn CommentSortWidget(
 ) -> impl IntoView {
     view! {
         <div class="join rounded-none w-fit">
-            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) sort_signal datatip="Best" is_tooltip_bottom=true>
+            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Best) sort_signal datatip=move_tr!("best") is_tooltip_bottom=true>
                 <PodiumIcon/>
             </SortWidgetOption>
-            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) sort_signal datatip="Recent" is_tooltip_bottom=true>
+            <SortWidgetOption sort_type=SortType::Comment(CommentSortType::Recent) sort_signal datatip=move_tr!("recent") is_tooltip_bottom=true>
                 <HourglassIcon/>
             </SortWidgetOption>
         </div>

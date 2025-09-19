@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use leptos::html::{Div, Input};
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "hydrate")]
@@ -60,7 +61,7 @@ pub fn PostFiltersButton() -> impl IntoView {
     };
     view! {
         <div class="h-full relative" node_ref=dropdown_ref>
-            <div class="tooltip" data-tip="Filters">
+            <div class="tooltip" data-tip=move_tr!("filters")>
                 <button
                     class=button_class
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
@@ -70,7 +71,7 @@ pub fn PostFiltersButton() -> impl IntoView {
             </div>
             <Dropdown show_dropdown>
                 <div class="bg-base-200 shadow-xl my-1 p-3 rounded-xs flex flex-col gap-3">
-                    <div class="text-center font-bold text-2xl">"Post filters"</div>
+                    <div class="text-center font-bold text-2xl">{move_tr!("category-filters")}</div>
                     <SphereCategoryFilter/>
                 </div>
             </Dropdown>
@@ -87,9 +88,9 @@ pub fn SphereCategoryFilter() -> impl IntoView {
     let category_input_ref_map = StoredValue::new(HashMap::<i64, NodeRef<Input>>::new());
     view! {
         <div class="flex flex-col gap-1">
-            <div class="text-center font-bold text-xl whitespace-nowrap">"Sphere categories"</div>
+            <div class="text-center font-bold text-xl whitespace-nowrap">{move_tr!("sphere-categories")}</div>
             <label class="cursor-pointer flex justify-between">
-                <span class="label">"All"</span>
+                <span class="label">{move_tr!("all")}</span>
                 <input
                     type="checkbox"
                     class="toggle toggle-primary"
@@ -118,7 +119,13 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                                 class="toggle toggle-secondary"
                                 checked=false
                                 node_ref=category_input_ref
-                                on:change=move |_| on_change_category_input(sphere_state.sphere_category_filter, all_input_ref, only_category_input_ref, category_input_ref, category_id)
+                                on:change=move |_| on_change_category_input(
+                                    sphere_state.sphere_category_filter,
+                                    all_input_ref,
+                                    only_category_input_ref,
+                                    category_input_ref,
+                                    category_id
+                                )
                             />
                         </label>
                     }
@@ -126,7 +133,7 @@ pub fn SphereCategoryFilter() -> impl IntoView {
             }
             </SuspenseUnpack>
             <label class="cursor-pointer flex justify-between">
-                <span class="label">"Only categories"</span>
+                <span class="label">{move_tr!("only-categories")}</span>
                 <input
                     type="checkbox"
                     class="toggle toggle-info"

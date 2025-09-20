@@ -77,8 +77,11 @@ terms-and-conditions = Termes et Conditions
 privacy-policy = Politique de confidentialité
 content-policy = Politique de contenu
 rules = Règles
+category = Catégorie
 categories = Catégories
 moderators = Modérateurs
+
+navigate-sphere = Naviguer vers la Sphère { $sphere_name }
 
 time-seconds-short = s
 time-minutes-short = m

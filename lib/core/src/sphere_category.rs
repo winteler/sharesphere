@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
@@ -233,7 +234,7 @@ pub fn SphereCategoryDropdown(
                         is_selected.set(!selected.is_empty());
                     }
                 >
-                    <option selected=init_category_id.is_none() value="" class="text-gray-400">"Category"</option>
+                    <option selected=init_category_id.is_none() value="" class="text-gray-400">{move_tr!("category")}</option>
                     {
                         sphere_category_vec.iter().map(|sphere_category| {
                             let is_selected = init_category_id.is_some_and(|category_id| category_id == sphere_category.category_id);

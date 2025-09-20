@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use leptos::{component, html, server, view, IntoView};
+use leptos_fluent::move_tr;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
 use serde::{Deserialize, Serialize};
@@ -406,8 +407,9 @@ pub fn SphereHeaderLink(
 ) -> impl IntoView {
     // use navigate and prevent default to handle case where sphere header is in another <a>
     let navigate = use_navigate();
+    let sphere_name = StoredValue::new(sphere_header.sphere_name.clone());
     let sphere_path = get_sphere_path(&sphere_header.sphere_name);
-    let aria_label = format!("Navigate to sphere {} with path {}", sphere_header.sphere_name, sphere_path);
+    let aria_label = move_tr!("navigate-sphere", {"sphere_name" => sphere_name.get_value()});
     view! {
         <button
             class="button-rounded-neutral px-2 py-1"

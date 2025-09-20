@@ -1,7 +1,7 @@
 use leptos::form::ActionForm;
 use leptos::html;
 use leptos::prelude::*;
-
+use leptos_fluent::move_tr;
 use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use sharesphere_utils::icons::{CrossIcon, EditIcon, PlusIcon};
 use sharesphere_utils::unpack::{TransitionUnpack};
@@ -20,13 +20,13 @@ pub fn SphereRulesPanel() -> impl IntoView {
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
-            <div class="text-xl text-center">"Rules"</div>
+            <div class="text-xl text-center">{move_tr!("rules")}</div>
             <div class="w-full flex flex-col">
                 <div class="border-b border-base-content/20 pl-1">
                     <div class="w-5/6 flex gap-1">
-                        <div class="w-1/12 py-2 font-bold">"N°"</div>
-                        <div class="w-5/12 py-2 font-bold">"Title"</div>
-                        <div class="w-6/12 py-2 font-bold">"Description"</div>
+                        <div class="w-1/12 py-2 font-bold">{move_tr!("number-short")}</div>
+                        <div class="w-5/12 py-2 font-bold">{move_tr!("title")}</div>
+                        <div class="w-6/12 py-2 font-bold">{move_tr!("description")}</div>
                     </div>
                 </div>
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
@@ -231,7 +231,7 @@ pub fn RuleInputs(
                     tabindex="0"
                     type="number"
                     name="priority"
-                    placeholder="N°"
+                    placeholder=move_tr!("number-short")
                     autocomplete="off"
                     class="input_primary no-spinner px-1 w-1/12"
                     class=("input_error", move || priority.read().is_empty())
@@ -240,7 +240,7 @@ pub fn RuleInputs(
                 />
                 <FormTextEditor
                     name="title"
-                    placeholder="Title"
+                    placeholder=move_tr!("title")
                     data=title_data
                     maxlength=Some(MAX_TITLE_LENGTH as usize)
                 />
@@ -248,7 +248,7 @@ pub fn RuleInputs(
             <FormMarkdownEditor
                 name="description"
                 is_markdown_name="is_markdown"
-                placeholder="Description"
+                placeholder=move_tr!("description")
                 data=description_data
                 is_markdown=is_description_markdown
                 maxlength=Some(MAX_MOD_MESSAGE_LENGTH)

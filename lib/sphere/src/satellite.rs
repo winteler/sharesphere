@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_params_map;
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
@@ -303,13 +304,13 @@ pub fn SatellitePanel() -> impl IntoView {
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
-            <div class="text-xl text-center">"Satellites"</div>
+            <div class="text-xl text-center">{move_tr!("satellites")}</div>
             <div class="w-full flex flex-col gap-1">
                 <div class="border-b border-base-content/20 pl-1">
                     <div class="w-5/6 flex gap-1">
-                        <div class="w-3/6 py-2 font-bold">"Title"</div>
-                        <div class="w-20 py-2 font-bold text-center">"Active"</div>
-                        <div class="w-20 py-2 font-bold text-center">"Link"</div>
+                        <div class="w-3/6 py-2 font-bold">{move_tr!("satellites")}</div>
+                        <div class="w-20 py-2 font-bold text-center">{move_tr!("active")}</div>
+                        <div class="w-20 py-2 font-bold text-center">{move_tr!("link")}</div>
                     </div>
                 </div>
                 <TransitionUnpack resource=satellite_vec_resource let:satellite_vec>
@@ -417,7 +418,7 @@ pub fn EditSatelliteForm(
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Edit a satellite"</div>
+            <div class="text-center font-bold text-2xl">{move_tr!("edit-satellite")}</div>
             <ActionForm action=sphere_state.update_satellite_action>
                 <input
                     name="satellite_id"
@@ -465,7 +466,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-                <div class="text-center font-bold text-2xl">"Add a satellite"</div>
+                <div class="text-center font-bold text-2xl">{move_tr!("create-satellite")}</div>
                 <ActionForm
                     action=sphere_state.create_satellite_action
                     on:submit=move |_| show_dialog.set(false)
@@ -500,20 +501,20 @@ pub fn SatelliteInputs(
     view! {
         <FormTextEditor
             name="satellite_name"
-            placeholder="Name"
+            placeholder=move_tr!("name")
             data=title_data
             maxlength=Some(MAX_SATELLITE_NAME_LENGTH)
         />
         <FormMarkdownEditor
             name="body"
-            placeholder="Body"
+            placeholder=move_tr!("content")
             is_markdown_name="is_markdown"
             data=body_data
             is_markdown=is_markdown_body
             maxlength=Some(MAX_CONTENT_LENGTH as usize)
         />
-        <LabeledFormCheckbox name="is_spoiler" label="Spoiler" value=is_spoiler/>
-        <LabeledFormCheckbox name="is_nsfw" label="NSFW content" value=is_nsfw/>
+        <LabeledFormCheckbox name="is_spoiler" label=move_tr!("spoiler") value=is_spoiler/>
+        <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-content") value=is_nsfw/>
     }
 }
 

@@ -4722,6 +4722,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "leptos",
+ "leptos-fluent",
  "leptos-use",
  "leptos_axum",
  "leptos_meta",

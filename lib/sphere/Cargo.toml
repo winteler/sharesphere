@@ -14,6 +14,7 @@ leptos_meta.workspace = true
 leptos_router.workspace = true
 leptos_axum = { workspace = true, optional = true }
 
+leptos-fluent.workspace = true
 leptos-use.workspace = true
 
 chrono.workspace = true
@@ -27,6 +28,7 @@ strum.workspace = true
 default = []
 hydrate = [
     "leptos/hydrate",
+    "leptos-fluent/hydrate",
     "sharesphere_utils/hydrate",
     "sharesphere_auth/hydrate",
     "sharesphere_core/hydrate",
@@ -35,6 +37,8 @@ ssr = [
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
+    "leptos-fluent/axum",
+    "leptos-fluent/ssr",
     "leptos-use/ssr",
     "sharesphere_utils/ssr",
     "sharesphere_auth/ssr",

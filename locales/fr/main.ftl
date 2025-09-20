@@ -1,70 +1,55 @@
-markdown-help-1 = Pour formatter votre contenu, le mode 'Markdown' doit être activé avec le bouton suivant:{ " " }
-markdown-help-2 = Quand le mode 'Markdown' est activé, votre saisie sera interprété avec le format{ " " }
-markdown-help-3 =
-     (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée.
-    Des boutons de formatage rapide sont également disponibles pour que vous n'ayez pas à mémoriser la syntaxe GFM !
-    Finalement, le formatage 'Spoiler' peut être généré en ajoutant '||' de chaque côté de votre texte ou
-    en le sélectionnant et en cliquant le bouton de formatage 'Spoiler':{ " " }
-
-invalid-link = Lien invalide
-invalid-domain-name = Nom de domaine invalide
-invalid-video-format = Votre navigateur ne prend pas en charge ce format vidéo.
-
-internal-error-message = Une erreur s'est produite.
-not-authenticated-message = Prière de vous authentifier.
-authentication-failed-message = Désolé, nous avons des difficultés à vous authentifier.
-not-authorized-message = Vous êtes dans une zone restreinte, ne résistez pas.
-sphere-ban-until-message = Vous êtes banni de cette sphère jusqu'au
-permanent-sphere-ban-message = Vous êtes définitivement banni de cette sphere.
-global-ban-until-message = Vous êtes banni de ShareSphere jusqu'au
-permanent-global-ban-message = Vous êtes définitivement banni de ShareSphere.
-bad-request-message = Désolé, nous n'avons pas compris votre requête.
-unavailable-message = Désolé, il y a du bruit sur la ligne.
-not-found-message = Il n'y a rien ici.
-payload-too-large-message = Le fichier dépasse la limite de  { $byte_limit } Bytes.
-
-clipboard-error-message = API presse-papiers non-supporté par votre navigateur.
-copy-link-to-clipboard-message = Lien copié dans le presse-papiers.
-
 refresh = Rafraîchir
 cancel = Annuler
 submit = Soumettre
 login = Se connecter
+search = Recherche
+
+sphere-banner = Bannière de la Sphère
+satellites = Satellites
+sphere-categories = Catégories de Sphères
+categories = Catégories
+moderators = Modérateurs
+rules = Règles
+
+number-short = N°
+title = Titre
+name = Nom
+content = Contenu
+description = Description
+category = Catégorie
 pinned = Épinglé
-
-delete-warning = Cette action est irréversible.
-
-sphere-banner = Bannière de la sphère
+active = Actif
+spoiler = Spoiler
+nsfw-content = Contenu NSFW
 
 filters = Filtres
 category-filters = Filtres de catégories
-sphere-categories = Catégories de sphères
 all = Tous
 only-categories = Catégorisés uniquement
 
 infringed-rule = Règle enfreinte
-title = Titre
-content = Contenu
-spoiler = Spoiler
-nsfw-content = Contenu NSFW
 moderator-message = Message du modérateur
+
 link = Lien
 link-none = Aucun
 link-link = Lien
 link-embed = Intégré
 link-url = Url
 
+home = Acceuil
+subscribed = Abonné
+popular = Populaire
+navigate-sphere = Naviguer vers la Sphère {$sphere_name}
+
 hot = Populaire
 trending = Tendance
 best = Top
 recent = Récent
 
-search = Recherche
+create-satellite = Créer un Satellite
+edit-satellite = Modifier le Satellite
 
 welcome-to-sharesphere = Bienvenue sur ShareSphere!
-home = Acceuil
-subscribed = Abonné
-popular = Populaire
 sharesphere-right-sidebar-1 =
     ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de
     tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets.
@@ -76,12 +61,6 @@ about-sharesphere = À propos de ShareSphere
 terms-and-conditions = Termes et Conditions
 privacy-policy = Politique de confidentialité
 content-policy = Politique de contenu
-rules = Règles
-category = Catégorie
-categories = Catégories
-moderators = Modérateurs
-
-navigate-sphere = Naviguer vers la Sphère { $sphere_name }
 
 time-seconds-short = s
 time-minutes-short = m
@@ -111,3 +90,32 @@ time-years = {$count ->
    [one] {$count} année
    *[other] {$count} années
 }
+
+markdown-help-1 = Pour formatter votre contenu, le mode 'Markdown' doit être activé avec le bouton suivant:{" "}
+markdown-help-2 = Quand le mode 'Markdown' est activé, votre saisie sera interprété avec le format{" "}
+markdown-help-3 =
+     (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée.
+    Des boutons de formatage rapide sont également disponibles pour que vous n'ayez pas à mémoriser la syntaxe GFM !
+    Finalement, le formatage 'Spoiler' peut être généré en ajoutant '||' de chaque côté de votre texte ou
+    en le sélectionnant et en cliquant le bouton de formatage 'Spoiler':{" "}
+
+invalid-link = Lien invalide
+invalid-domain-name = Nom de domaine invalide
+invalid-video-format = Votre navigateur ne prend pas en charge ce format vidéo.
+copy-link-to-clipboard-message = Lien copié dans le presse-papiers.
+clipboard-error-message = API presse-papiers non-supporté par votre navigateur.
+
+delete-warning = Cette action est irréversible.
+
+internal-error-message = Une erreur s'est produite.
+not-authenticated-message = Prière de vous authentifier.
+authentication-failed-message = Désolé, nous avons des difficultés à vous authentifier.
+not-authorized-message = Vous êtes dans une zone restreinte, ne résistez pas.
+sphere-ban-until-message = Vous êtes banni de cette Sphère jusqu'au
+permanent-sphere-ban-message = Vous êtes définitivement banni de cette sphere.
+global-ban-until-message = Vous êtes banni de ShareSphere jusqu'au
+permanent-global-ban-message = Vous êtes définitivement banni de ShareSphere.
+bad-request-message = Désolé, nous n'avons pas compris votre requête.
+unavailable-message = Désolé, il y a du bruit sur la ligne.
+not-found-message = Il n'y a rien ici.
+payload-too-large-message = Le fichier dépasse la limite de  {$byte_limit} Bytes.

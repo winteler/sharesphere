@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use leptos::html;
 use leptos::prelude::*;
-
+use leptos_fluent::move_tr;
 use sharesphere_utils::colors::{Color, ColorIndicator, ColorSelect};
 use sharesphere_utils::editor::{adjust_textarea_height, FormTextEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::errors::AppError;
@@ -33,14 +33,14 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
-                <div class="text-xl text-center">"Sphere categories"</div>
+                <div class="text-xl text-center">{move_tr!("sphere-categories")}</div>
                 <div class="w-full flex flex-col">
                     <div class="border-b border-base-content/20 lg:pl-2">
                         <div class="w-19/20 flex gap-1 p-1">
-                            <div class="w-3/12 py-2 font-bold">"Category"</div>
-                            <div class="w-12 lg:w-16 py-2 flex justify-center font-bold">"Color"</div>
-                            <div class="w-3/6 py-2 font-bold">"Description"</div>
-                            <div class="w-7 lg:w-16 py-2 font-bold lg:text-center"><div class="max-lg:hidden">"Active"</div></div>
+                            <div class="w-3/12 py-2 font-bold">{move_tr!("category")}</div>
+                            <div class="w-12 lg:w-16 py-2 flex justify-center font-bold">{move_tr!("color")}</div>
+                            <div class="w-3/6 py-2 font-bold">{move_tr!("description")}</div>
+                            <div class="w-7 lg:w-16 py-2 font-bold lg:text-center"><div class="max-lg:hidden">{move_tr!("active")}</div></div>
                         </div>
                     </div>
                     <div class="flex flex-col gap-1 lg:pl-2">
@@ -118,7 +118,7 @@ pub fn SetCategoryForm(
                     <div class="w-19/20 flex items-center gap-1 lg:p-1">
                         <LengthLimitedInput
                             name="category_name"
-                            placeholder="Category"
+                            placeholder=move_tr!("category")
                             content=category_input
                             class="w-3/12 text-sm"
                             minlength=Some(1)
@@ -127,7 +127,7 @@ pub fn SetCategoryForm(
                         <ColorSelect name="category_color" color_input class="h-full w-12 lg:w-16 flex justify-center"/>
                         <FormTextEditor
                             name="description"
-                            placeholder="Description"
+                            placeholder=move_tr!("description")
                             data=description_data
                             class="w-3/6"
                             maxlength=Some(MAX_CATEGORY_DESCRIPTION_LENGTH)

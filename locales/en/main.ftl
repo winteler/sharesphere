@@ -1,15 +1,27 @@
 refresh = Refresh
 cancel = Cancel
 submit = Submit
+create = Create
+assign = Assign
 login = Login
 search = Search
+manage = Manage
+new = New
+join = Join
+close = Close
+
+username = Username
+role = Role
 
 sphere-banner = Sphere banner
+sphere-icon = Sphere icon
+sphere-description = Sphere description
 satellites = Satellites
 sphere-categories = Sphere categories
 categories = Categories
 moderators = Moderators
 rules = Rules
+image-preview = Image Preview
 
 number-short = N°
 title = Title
@@ -21,6 +33,7 @@ pinned = Pinned
 active = Active
 spoiler = Spoiler
 nsfw-content = NSFW content
+color = Color
 
 filters = Filters
 category-filters = Category filters
@@ -29,6 +42,7 @@ only-categories = Only categories
 
 infringed-rule = Infringed rule
 moderator-message = Moderator message
+banned-users = Banner users
 
 link = Link
 link-none = None
@@ -46,6 +60,7 @@ trending = Trending
 best = Best
 recent = Recent
 
+create-sphere = Settle a Sphere!
 create-satellite = Create a Satellite
 edit-satellite = Edit Satellite
 
@@ -61,6 +76,10 @@ about-sharesphere = About ShareSphere
 terms-and-conditions = Terms and Conditions
 privacy-policy = Privacy Policy
 content-policy = Content Policy
+sphere-cockpit = Sphere Cockpit
+
+until = Until
+permanent = Permanent
 
 time-seconds-short = s
 time-minutes-short = m
@@ -109,6 +128,7 @@ copy-link-to-clipboard-message = Copied link to clipboard.
 clipboard-error-message = Clipboard API not supported in your browser.
 
 delete-warning = This cannot be undone.
+unavailable = Unavailable
 
 not-authenticated-message = Please authenticate yourself.
 authentication-failed-message = Sorry, we had some trouble authenticating you.

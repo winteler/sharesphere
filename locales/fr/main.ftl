@@ -1,15 +1,27 @@
 refresh = Rafraîchir
 cancel = Annuler
 submit = Soumettre
+create = Créer
+assign = Assigner
 login = Se connecter
-search = Recherche
+search = Rechercher
+manage = Gérer
+new = Nouveau
+join = Rejoindre
+close = Fermer
+
+username = Nom d'utilisateur
+role = Rôle
 
 sphere-banner = Bannière de la Sphère
+sphere-icon = Icone de la Sphère
+sphere-description = Description de la Sphère
 satellites = Satellites
 sphere-categories = Catégories de Sphères
 categories = Catégories
 moderators = Modérateurs
 rules = Règles
+image-preview = Aperçu de l'image
 
 number-short = N°
 title = Titre
@@ -21,6 +33,7 @@ pinned = Épinglé
 active = Actif
 spoiler = Spoiler
 nsfw-content = Contenu NSFW
+color = Couleur
 
 filters = Filtres
 category-filters = Filtres de catégories
@@ -29,6 +42,7 @@ only-categories = Catégorisés uniquement
 
 infringed-rule = Règle enfreinte
 moderator-message = Message du modérateur
+banned-users = Utilisateurs bannis
 
 link = Lien
 link-none = Aucun
@@ -46,6 +60,7 @@ trending = Tendance
 best = Top
 recent = Récent
 
+create-sphere = Coloniser une Sphère!
 create-satellite = Créer un Satellite
 edit-satellite = Modifier le Satellite
 
@@ -61,6 +76,10 @@ about-sharesphere = À propos de ShareSphere
 terms-and-conditions = Termes et Conditions
 privacy-policy = Politique de confidentialité
 content-policy = Politique de contenu
+sphere-cockpit = Cockpit de la Sphère
+
+until = Jusqu'à
+permanent = Permanent
 
 time-seconds-short = s
 time-minutes-short = m
@@ -106,6 +125,7 @@ copy-link-to-clipboard-message = Lien copié dans le presse-papiers.
 clipboard-error-message = API presse-papiers non-supporté par votre navigateur.
 
 delete-warning = Cette action est irréversible.
+unavailable = Unavailable
 
 internal-error-message = Une erreur s'est produite.
 not-authenticated-message = Prière de vous authentifier.

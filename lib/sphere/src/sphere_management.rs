@@ -5,6 +5,7 @@ use leptos::prelude::*;
 use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::JsCast;
 use leptos::web_sys::{FileReader, FormData, HtmlFormElement, HtmlInputElement};
+use leptos_fluent::{move_tr};
 use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced};
 use strum::IntoEnumIterator;
@@ -65,7 +66,7 @@ pub fn SphereCockpitGuard() -> impl IntoView {
 pub fn SphereCockpit() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-5 overflow-y-auto w-full lg:w-2/3 mx-auto">
-            <div class="text-2xl text-center">"Sphere Cockpit"</div>
+            <div class="text-2xl text-center">{move_tr!("sphere-cockpit")}</div>
             <SphereDescriptionDialog/>
             <SphereIconDialog/>
             <SphereBannerDialog/>
@@ -87,7 +88,7 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
-                <div class="text-xl text-center">"Sphere description"</div>
+                <div class="text-xl text-center">{move_tr!("sphere-description")}</div>
                 <SuspenseUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
                     <SphereDescriptionForm sphere_description=sphere_with_user_info.sphere.description.clone()/>
                 </SuspenseUnpack>
@@ -120,7 +121,7 @@ pub fn SphereDescriptionForm(
             />
             <FormTextEditor
                 name="description"
-                placeholder="Description"
+                placeholder=move_tr!("description")
                 data=description_data
                 maxlength=Some(MAX_SPHERE_DESCRIPTION_LENGTH)
             />
@@ -148,7 +149,7 @@ pub fn SphereIconDialog() -> impl IntoView {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
-                <div class="text-xl text-center">"Sphere icon"</div>
+                <div class="text-xl text-center">{move_tr!("sphere-icon")}</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
                     action=set_icon_action
@@ -171,7 +172,7 @@ pub fn SphereBannerDialog() -> impl IntoView {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             // TODO add overflow-y-auto max-h-full?
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
-                <div class="text-xl text-center">"Sphere banner"</div>
+                <div class="text-xl text-center">{move_tr!("sphere-banner")}</div>
                 <SphereImageForm
                     sphere_name=sphere_state.sphere_name
                     action=set_banner_action
@@ -251,7 +252,7 @@ pub fn SphereImageForm(
                 on:change=on_file_change
             />
             <Show when=move || !preview_url.read().is_empty()>
-                <img src=preview_url alt="Image Preview" class=preview_class/>
+                <img src=preview_url alt=move_tr!("image-preview") class=preview_class/>
             </Show>
             <button
                 type="submit"
@@ -298,11 +299,11 @@ pub fn ModeratorPanel() -> impl IntoView {
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
-            <div class="text-xl text-center">"Moderators"</div>
+            <div class="text-xl text-center">{move_tr!("moderators")}</div>
             <div class="w-full flex flex-col gap-1">
                 <div class="flex gap-1 border-b border-base-content/20">
-                    <div class="w-2/5 px-4 py-2 text-left font-bold">Username</div>
-                    <div class="w-2/5 px-4 py-2 text-left font-bold">Role</div>
+                    <div class="w-2/5 px-4 py-2 text-left font-bold">{move_tr!("username")}</div>
+                    <div class="w-2/5 px-4 py-2 text-left font-bold">{move_tr!("role")}</div>
                 </div>
                 <TransitionUnpack resource=sphere_state.sphere_roles_resource let:sphere_role_vec>
                 {
@@ -369,7 +370,7 @@ pub fn PermissionLevelForm(
                 <div class="w-full flex gap-1 items-center">
                     <div class="dropdown dropdown-end w-2/5">
                         <LengthLimitedInput
-                            placeholder="Username"
+                            placeholder={move_tr!("username")}
                             content=username_input
                             minlength=Some(1)
                             maxlength=Some(MAX_USERNAME_LENGTH)
@@ -412,7 +413,7 @@ pub fn PermissionLevelForm(
                         class="button-secondary p-3"
                         disabled=disable_submit
                     >
-                        "Assign"
+                        {move_tr!("assign")}
                     </button>
                 </div>
             </ActionForm>
@@ -441,25 +442,25 @@ pub fn BanPanel() -> impl IntoView {
     view! {
         // TODO add overflow-y-auto max-h-full?
         <div class="flex flex-col gap-1 items-center w-full bg-base-200 p-2 rounded-sm">
-            <div class="text-xl text-center">"Banned users"</div>
+            <div class="text-xl text-center">{move_tr!("banned-users")}</div>
             <div class="w-full flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">
                     <div class="flex">
                         <LengthLimitedInput
                             content=username_input
                             class="px-6 w-2/5"
-                            placeholder="Username"
+                            placeholder=move_tr!("username")
                             maxlength=Some(MAX_USERNAME_LENGTH)
                         />
-                        <div class="w-2/5 px-6 py-2 text-left font-bold">Until</div>
+                        <div class="w-2/5 px-6 py-2 text-left font-bold">{move_tr!("until")}</div>
                     </div>
                 </div>
                 <TransitionUnpack resource=banned_users_resource show_error_detail=true let:banned_user_vec>
                 {
                     banned_user_vec.iter().map(|user_ban| {
                         let duration_string = match user_ban.until_timestamp {
-                            Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true),
-                            None => String::from("Permanent"),
+                            Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true).into(),
+                            None => move_tr!("permanent"),
                         };
                         let ban_id = user_ban.ban_id;
                         view! {
@@ -531,7 +532,7 @@ pub fn BanInfoButton(
                                 class="button-error"
                                 on:click=move |_| show_dialog.set(false)
                             >
-                                "Close"
+                                {move_tr!("close")}
                             </button>
                         </SuspenseUnpack>
                     </div>

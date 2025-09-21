@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::{use_params_map};
 use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
@@ -254,13 +255,13 @@ pub fn SphereToolbar(
             </div>
             <div class="flex items-center w-fit gap-1">
                 <AuthorizedShow sphere_name permission_level=PermissionLevel::Moderate>
-                    <A href=manage_path attr:class="button-rounded-ghost tooltip" attr:data-tip="Manage">
+                    <A href=manage_path attr:class="button-rounded-ghost tooltip" attr:data-tip=move_tr!("manage")>
                         <SettingsIcon class="sphere-toolbar-icon-size"/>
                     </A>
                 </AuthorizedShow>
                 <RefreshButton refresh_count=sphere_state.post_refresh_count/>
                 <SphereSearchButton/>
-                <div class="tooltip flex" data-tip="New">
+                <div class="tooltip flex" data-tip=move_tr!("new")>
                     <LoginGuardButton
                         login_button_class="button-rounded-ghost"
                         login_button_content=move || view! { <PlusIcon class="sphere-toolbar-icon-size"/> }.into_any()
@@ -290,7 +291,7 @@ pub fn SphereToolbar(
                     }}
                     </LoginGuardButton>
                 </div>
-                <div class="tooltip" data-tip="Join">
+                <div class="tooltip" data-tip=move_tr!("join")>
                     <LoginGuardedButton
                         button_class="button-rounded-ghost"
                         button_action=move |_| {
@@ -319,7 +320,7 @@ pub fn SphereSearchButton() -> impl IntoView
     let sphere_state = expect_context::<SphereState>();
     let route = move || format!("{}{}", get_sphere_path(sphere_state.sphere_name.read_untracked().as_str()), SEARCH_ROUTE);
     view! {
-        <a href=route class="button-rounded-ghost tooltip" data-tip="Search">
+        <a href=route class="button-rounded-ghost tooltip" data-tip=move_tr!("search")>
             <MagnifierIcon class="sphere-toolbar-icon-size"/>
         </a>
     }
@@ -360,11 +361,11 @@ pub fn CreateSphere() -> impl IntoView {
         <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=state.create_sphere_action>
                 <div class="flex flex-col gap-2 w-full">
-                    <h2 class="py-4 text-4xl text-center">"Settle a Sphere!"</h2>
+                    <h2 class="py-4 text-4xl text-center">{move_tr!("create-sphere")}</h2>
                     <div class="h-full flex gap-2 items-center">
                         <LengthLimitedInput
                             name="sphere_name"
-                            placeholder="Name"
+                            placeholder=move_tr!("name")
                             content=sphere_name
                             minlength=Some(1)
                             maxlength=Some(MAX_SPHERE_NAME_LENGTH)
@@ -383,7 +384,7 @@ pub fn CreateSphere() -> impl IntoView {
                                     is_name_taken.set(true);
                                     view! {
                                         <div class="alert alert-error flex items-center justify-center">
-                                            <span class="font-semibold">"Unavailable"</span>
+                                            <span class="font-semibold">{move_tr!("unavailable")}</span>
                                         </div>
                                     }.into_any()
                                 },
@@ -410,9 +411,9 @@ pub fn CreateSphere() -> impl IntoView {
                         data=description_data
                         maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
                     />
-                    <LabeledFormCheckbox name="is_nsfw" label="NSFW content"/>
+                    <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-content")/>
                     <Suspense fallback=move || view! { <LoadingIcon/> }>
-                        <button type="submit" class="button-secondary" disabled=are_inputs_invalid>"Create"</button>
+                        <button type="submit" class="button-secondary" disabled=are_inputs_invalid>{move_tr!("create")}</button>
                     </Suspense>
                 </div>
             </ActionForm>

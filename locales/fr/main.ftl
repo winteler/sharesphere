@@ -63,6 +63,10 @@ recent = Récent
 create-sphere = Coloniser une Sphère!
 create-satellite = Créer un Satellite
 edit-satellite = Modifier le Satellite
+load-replies = Charger les réponses
+share-comment = Partager un commentaire
+your-comment = Ton commentaire...
+delete-comment = Supprimer le commentaire
 
 welcome-to-sharesphere = Bienvenue sur ShareSphere!
 sharesphere-right-sidebar-1 =
@@ -77,6 +81,7 @@ terms-and-conditions = Termes et Conditions
 privacy-policy = Politique de confidentialité
 content-policy = Politique de contenu
 sphere-cockpit = Cockpit de la Sphère
+single-comment-tree = Vue de commentaire. Retour au poste.
 
 until = Jusqu'à
 permanent = Permanent

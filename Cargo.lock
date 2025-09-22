@@ -4656,6 +4656,7 @@ name = "sharesphere_components"
 version = "0.1.0"
 dependencies = [
  "leptos",
+ "leptos-fluent",
  "leptos-use",
  "leptos_meta",
  "leptos_router",
@@ -4673,6 +4674,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "leptos",
+ "leptos-fluent",
  "leptos-use",
  "leptos_meta",
  "leptos_router",

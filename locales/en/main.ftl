@@ -63,6 +63,10 @@ recent = Recent
 create-sphere = Settle a Sphere!
 create-satellite = Create a Satellite
 edit-satellite = Edit Satellite
+load-replies = Load replies
+share-comment = Share a comment
+your-comment = Your comment...
+delete-comment = Delete comment
 
 welcome-to-sharesphere = Welcome to ShareSphere!
 sharesphere-right-sidebar-1 =
@@ -77,6 +81,7 @@ terms-and-conditions = Terms and Conditions
 privacy-policy = Privacy Policy
 content-policy = Content Policy
 sphere-cockpit = Sphere Cockpit
+single-comment-tree = Single comment tree view. Back to post.
 
 until = Until
 permanent = Permanent

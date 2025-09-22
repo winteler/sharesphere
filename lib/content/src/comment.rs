@@ -1,6 +1,7 @@
 use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
@@ -170,7 +171,7 @@ pub fn CommentTree(
 
     view! {
         <a href="?" class="button-secondary mt-1 w-fit">
-            "Single comment tree view. Back to post."
+            {move_tr!("single-comment-tree")}
         </a>
         { move || comment_vec.read().first().map(|comment| view! {
                 <div class="flex flex-col h-fit">
@@ -254,7 +255,7 @@ pub fn CommentBox(
                         Either::Left(view! {
                             <Form method="GET" action=post_path attr:class="flex justify-center">
                                 <input name=COMMENT_ID_QUERY_PARAM value=comment.read_untracked().comment_id class="hidden"/>
-                                <button class="button-neutral p-2">"Load replies"</button>
+                                <button class="button-neutral p-2">{move_tr!("load-replies")}</button>
                             </Form>
                         })
                     },
@@ -502,7 +503,7 @@ pub fn CommentForm(
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Share a comment"</div>
+            <div class="text-center font-bold text-2xl">{move_tr!("share-comment")}</div>
             <ActionForm action=create_comment_action>
                 <div class="flex flex-col gap-3 w-full">
                     <input
@@ -520,7 +521,7 @@ pub fn CommentForm(
                     <FormMarkdownEditor
                         name="comment"
                         is_markdown_name="is_markdown"
-                        placeholder="Your comment..."
+                        placeholder=move_tr!("your-comment")
                         data=comment_data
                         maxlength=Some(MAX_CONTENT_LENGTH as usize)
                     />
@@ -596,7 +597,7 @@ pub fn DeleteCommentButton(
 
     view! {
         <DeleteButton
-            title="Delete Comment"
+            title=move_tr!("delete-comment")
             id=comment_id
             id_name="comment_id"
             author_id
@@ -667,7 +668,7 @@ pub fn EditCommentForm(
                     <FormMarkdownEditor
                         name="comment"
                         is_markdown_name="is_markdown"
-                        placeholder="Your comment..."
+                        placeholder=move_tr!("your-comment")
                         data=comment_data
                         is_markdown
                         maxlength=Some(MAX_CONTENT_LENGTH as usize)

@@ -113,7 +113,8 @@ where
 /// Component to render a delete button
 #[component]
 pub fn DeleteButton<A, O>(
-    title: &'static str,
+    #[prop(into)]
+    title: Signal<String>,
     id: i64,
     id_name: &'static str,
     author_id: i64,

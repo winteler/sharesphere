@@ -1,6 +1,7 @@
 use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_use::{signal_debounced};
 use url::Url;
@@ -263,7 +264,7 @@ pub fn DeletePostButton(
     let state = expect_context::<GlobalState>();
     view! {
         <DeleteButton
-            title="Delete Post"
+            title=move_tr!("delete-post")
             id=post_id
             id_name="post_id"
             author_id
@@ -322,7 +323,7 @@ pub fn CreatePost() -> impl IntoView {
         <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
-                    <h2 class="py-4 text-4xl text-center">"Share a post!"</h2>
+                    <h2 class="py-4 text-4xl text-center">{move_tr!("share-post")}</h2>
                     <div
                         class="dropdown dropdown-end input_outline_primary"
                         class=("input_outline_error", move || !is_sphere_selected.get())
@@ -331,7 +332,7 @@ pub fn CreatePost() -> impl IntoView {
                             tabindex="0"
                             type="text"
                             name="post_location[sphere]"
-                            placeholder="Sphere"
+                            placeholder=move_tr!("sphere")
                             autocomplete="off"
                             class="w-full p-3 text-sm rounded-none"
                             on:input=move |ev| {
@@ -401,7 +402,7 @@ pub fn CreatePost() -> impl IntoView {
                             link_input.with(|link| link.is_empty() || Url::parse(link).is_err())
                         )
                     }>
-                        "Submit"
+                        move_tr!("publish")
                     </button>
                 </div>
             </ActionForm>
@@ -486,7 +487,7 @@ pub fn EditPostForm(
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">
-            <div class="text-center font-bold text-2xl">"Edit your post"</div>
+            <div class="text-center font-bold text-2xl">{move_tr!("edit-post")}</div>
             <ActionForm action=state.edit_post_action>
                 <div class="flex flex-col gap-3 w-full">
                     <input

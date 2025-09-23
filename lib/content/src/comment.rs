@@ -430,8 +430,8 @@ pub fn CommentButtonWithCount(
 ) -> impl IntoView {
     let show_dialog = RwSignal::new(false);
     let comment_button_class = Signal::derive(move || match show_dialog.get() {
-        true => "button-rounded-primary p-0 px-2",
-        false => "button-rounded-neutral p-0 px-2",
+        true => "button-rounded-primary p-1 px-2",
+        false => "button-rounded-neutral p-1 px-2",
     });
 
     view! {
@@ -656,7 +656,7 @@ pub fn EditCommentForm(
 
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">
-            <div class="text-center font-bold text-2xl">"Edit your comment"</div>
+            <div class="text-center font-bold text-2xl">{move_tr!("edit-comment")}</div>
             <ActionForm action=edit_comment_action>
                 <div class="flex flex-col gap-3 w-full">
                     <input

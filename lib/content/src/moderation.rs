@@ -1,5 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use sharesphere_utils::editor::{FormTextEditor, TextareaData};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{HammerIcon, MagnifierIcon};
@@ -93,7 +94,7 @@ pub fn ModeratePostDialog(
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-                <div class="text-center font-bold text-2xl">"Moderate a post"</div>
+                <div class="text-center font-bold text-2xl">{move_tr!("moderate-post")}</div>
                 <ActionForm action=sphere_state.moderate_post_action>
                     <div class="flex flex-col gap-3 w-full">
                         <input
@@ -105,7 +106,7 @@ pub fn ModeratePostDialog(
                         <RuleSelect name="rule_id"/>
                         <FormTextEditor
                             name="moderator_message"
-                            placeholder="Message"
+                            placeholder={move_tr!("message")}
                             data=body_data
                             maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
                         />
@@ -150,7 +151,7 @@ pub fn ModerateCommentDialog(
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-                <div class="text-center font-bold text-2xl">"Moderate a comment"</div>
+                <div class="text-center font-bold text-2xl">{move_tr!("moderate-comment")}</div>
                 <ActionForm action=moderate_comment_action>
                     <div class="flex flex-col gap-3 w-full">
                         <input
@@ -162,7 +163,7 @@ pub fn ModerateCommentDialog(
                         <RuleSelect name="rule_id"/>
                         <FormTextEditor
                             name="moderator_message"
-                            placeholder="Message"
+                            placeholder=move_tr!("message")
                             data=comment_data
                             maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
                         />
@@ -187,7 +188,7 @@ pub fn RuleSelect(
     let sphere_state = expect_context::<SphereState>();
     view! {
         <div class="flex items-center justify-between w-full">
-            <span class="text-xl font-semibold">"Infringed rule:"</span>
+            <span class="text-xl font-semibold">{move_tr!("infringed-rule")}</span>
             <select
                 class="select_input"
                 name=name
@@ -224,7 +225,7 @@ pub fn BanMenu() -> impl IntoView {
         />
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Ban>
             <div class="flex items-center justify-between w-full">
-                <span class="text-xl font-semibold">"Ban duration (days):"</span>
+                <span class="text-xl font-semibold">{move_tr!("ban-duration")}</span>
                 <select
                     class="select_input"
                     on:change=move |ev| {
@@ -244,7 +245,7 @@ pub fn BanMenu() -> impl IntoView {
                     <option>"30"</option>
                     <option>"180"</option>
                     <option>"365"</option>
-                    <option value="">"Permanent"</option>
+                    <option value="">{move_tr!("permanent")}</option>
                 </select>
             </div>
         </AuthorizedShow>
@@ -297,7 +298,7 @@ pub fn ModerationInfoButton(
                             class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-95 transition duration-250"
                             on:click=move |_| show_dialog.set(false)
                         >
-                            "Close"
+                            {move_tr!("close")}
                         </button>
                     </div>
                 </ModalDialog>

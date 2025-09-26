@@ -5,7 +5,7 @@ use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, 
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, SsrMode, StaticSegment};
 use leptos_router::static_routes::StaticRoute;
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
-use leptos_fluent::{leptos_fluent};
+use leptos_fluent::{leptos_fluent, move_tr};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
@@ -279,7 +279,7 @@ fn HotPage() -> impl IntoView {
             }
             node_ref=div_ref
         >
-            <BannerWithWidgets title="Hot" icon_url=Some(String::from(FLAME_ICON_PATH)) banner_url=None refresh_count/>
+            <BannerWithWidgets title=move_tr!("hot") icon_url=Some(String::from(FLAME_ICON_PATH)) banner_url=None refresh_count/>
             <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
         </div>
         <HomeSidebar/>
@@ -290,7 +290,7 @@ fn HotPage() -> impl IntoView {
 #[component]
 pub fn BannerWithWidgets(
     #[prop(into)]
-    title: String,
+    title: Signal<String>,
     icon_url: Option<String>,
     banner_url: Option<String>,
     refresh_count: RwSignal<usize>,

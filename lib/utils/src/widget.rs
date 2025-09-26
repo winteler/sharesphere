@@ -704,11 +704,11 @@ pub fn LoadIndicators(
 #[component]
 pub fn BannerContent(
     #[prop(into)]
-    title: String,
+    title: Signal<String>,
     icon_url: Option<String>,
     banner_url: Option<String>,
 ) -> impl IntoView {
-    let default_icon_index = title.as_bytes().first().cloned().unwrap_or_default();
+    let default_icon_index = title.read_untracked().as_bytes().first().cloned().unwrap_or_default();
     view! {
         <img
             src=banner_url.unwrap_or(String::from("/banner.jpg"))

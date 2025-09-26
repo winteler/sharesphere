@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::components::Form;
 
 use sharesphere_utils::icons::*;
@@ -66,13 +67,13 @@ pub fn LoggedInMenu(
         >
             <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col">
                 <li>
-                    <a href=get_profile_path(&username) class="button-ghost-sm block w-full">"Profile"</a>
+                    <a href=get_profile_path(&username) class="button-ghost-sm block w-full">{move_tr!("profile")}</a>
                 </li>
                 <li>
                     <ActionForm action=state.logout_action attr:class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=get_current_url()/>
                         <button type="submit" class="button-ghost-sm text-left w-full">
-                            "Logout"
+                            {move_tr!(logout)}
                         </button>
                     </ActionForm>
                 </li>
@@ -85,8 +86,8 @@ pub fn LoggedInMenu(
 #[component]
 pub fn PlusMenu() -> impl IntoView {
     let current_sphere = RwSignal::new(String::default());
-    let create_sphere_str = "Settle a Sphere!";
-    let create_post_str = "Share a Post!";
+    let create_sphere_str = move_tr!("create-sphere");
+    let create_post_str = move_tr!("share-post");
     view! {
         <DropdownButton
             button_class="button-rounded-ghost"

@@ -1,5 +1,6 @@
 use leptos::either::Either;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE};
 
@@ -13,17 +14,15 @@ pub fn AboutShareSphere() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
-                <h1 class="text-3xl font-bold text-center">"About ShareSphere"</h1>
+                <h1 class="text-3xl font-bold text-center">{move_tr!("about-sharesphere")}</h1>
                 <p class="text-justify">
-                    "ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. \
-                    ShareSphere is a non-profit, ad-free, open source website with a focus on transparency, privacy and community empowerment. \
-                    ShareSphere's goal is to run by relying solely on donations and to provide a better user experience than ad-based platforms."
+                    {move_tr!("about-sharesphere-content")}
                 </p>
-                <h2 class="text-xl font-semibold">"Rules & Moderation"</h2>
+                <h2 class="text-xl font-semibold">{move_tr!("rules-and-moderation")}</h2>
                 <p class="text-justify">
-                    "ShareSphere aims to be a place for positive and constructive exchanges. In order to make it so, a"
-                    <a href=RULES_ROUTE>"base set of rules"</a>
-                    " needs to be respected site-wide. Communities can define additional rules to define what content is appropriate and how users should behave."
+                    {move_tr!("about-sharesphere-rules-1")}
+                    <a href=RULES_ROUTE>{move_tr!("about-sharesphere-rules-link")}</a>
+                    {move_tr!("about-sharesphere-rules-2")}
                 </p>
                 <PlannedImprovements/>
                 <OriginsAndGoals/>
@@ -38,7 +37,7 @@ pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
-                <h1 class="text-3xl font-bold text-center">"Terms and Conditions"</h1>
+                <h1 class="text-3xl font-bold text-center">{move_tr!("terms-and-condition")}</h1>
                 <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
                 <DescriptionOfService/>
@@ -60,7 +59,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
-                <h1 class="text-3xl font-bold text-center">"Privacy Policy"</h1>
+                <h1 class="text-3xl font-bold text-center">{move_tr!("privacy-policy")}</h1>
                 <ShareSphereInfo/>
                 <AboutPrivacyPolicy/>
                 <DataCollection/>
@@ -82,49 +81,44 @@ pub fn ContentPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
-                <h1 class="text-3xl font-bold text-center">"Content Policy"</h1>
+                <h1 class="text-3xl font-bold text-center">{move_tr!("content-policy")}</h1>
                 <p class="text-justify">
-                    "To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and other problematic content, as well as properly label sensitive content.\
-                    This page documents which content are forbidden or sensitive, as well as how sensitive content should be labeled."
+                    {move_tr!("content-policy-intro")}
                 </p>
                 <div class="flex flex-col gap-2">
-                    <h2 class="text-xl font-semibold">"Banned Content"</h2>
-                    <p>"The following contents are strictly prohibited on ShareSphere. It will be immediately removed and lead to a permanent ban."</p>
+                    <h2 class="text-xl font-semibold">{move_tr!("banned-content-title")}</h2>
+                    <p>{move_tr!("banned-content-intro")}</p>
                     <ul class="list-disc list-inside">
-                        <li>"sexual, abusive or suggestive content of minors or individuals that did not give their consent"</li>
-                        <li>"human trafficking"</li>
-                        <li>"paid services involving physical sexual contact"</li>
-                        <li>"personal or confidential information of other individuals"</li>
-                        <li>"impersonating other individuals"</li>
-                        <li>"trade of stolen goods"</li>
-                        <li>"falsified documents or currency"</li>
-                        <li>"phishing, scams and other fraudulent schemes"</li>
-                        <li>"malware or viruses"</li>
-                        <li>"promotion or support of terrorism, hate crimes or any other violent ideologies"</li>
+                        <li>{move_tr!("banned-content-1")}</li>
+                        <li>{move_tr!("banned-content-2")}</li>
+                        <li>{move_tr!("banned-content-3")}</li>
+                        <li>{move_tr!("banned-content-4")}</li>
+                        <li>{move_tr!("banned-content-5")}</li>
+                        <li>{move_tr!("banned-content-6")}</li>
+                        <li>{move_tr!("banned-content-7")}</li>
+                        <li>{move_tr!("banned-content-8")}</li>
+                        <li>{move_tr!("banned-content-9")}</li>
+                        <li>{move_tr!("banned-content-10")}</li>
                     </ul>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <h2 class="text-xl font-semibold">"Sensitive Content"</h2>
-                    <h3 class="text-lg font-semibold">"Mature Content"</h3>
+                    <h2 class="text-xl font-semibold">{move_tr!("sensitive-content-title")}</h2>
+                    <h3 class="text-lg font-semibold">{move_tr!("mature-content-title")}</h3>
                     <div class="text-justify">
-                        "Content that is not suitable for minors, such as sexually explicit, graphic, violent or offensive contents must be labelled with the 'NSFW' tag: "
+                        {move_tr!("mature-content-description")}
                         <NsfwIcon class="inline-flex"/>
                     </div>
-                    <h3 class="text-lg font-semibold">"Spoiler Content"</h3>
+                    <h3 class="text-lg font-semibold">{move_tr!("spoiler-content-title")}</h3>
                     <div class="text-justify">
-                        "Content that could spoil information to other users, such as the content of a book or movie \
-                        must keep any information out of its title and has to be labelled with the 'Spoiler' tag: "
+                        {move_tr!("spoiler-content-description")}
                         <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full inline-flex relative top-1"><SpoilerIcon/></div>
                     </div>
-                    <p>"The labelling rules for different content types are as follows:"</p>
+                    <p>{move_tr!("spoiler-content-label-1")}</p>
                     <ul class="list-disc list-inside text-justify">
-                        <li>"Any plot relevant information of books, movie, games, TV shows must always be labelled as spoiler."</li>
-                        <li>"Results of competitions (sports, e-sport, games, etc.) and other live events must be labelled as spoiler in the week following the result."</li>
+                        <li>{move_tr!("spoiler-content-label-2")}</li>
+                        <li>{move_tr!("spoiler-content-label-3")}</li>
                     </ul>
-                    <p class="text-justify">
-                        "In addition, the title must make it clear spoilers will be contained in the body of the post. \
-                        Spoilers in comments should be hidden using markdown formatting. Communities can also set stricter rules for spoilers."
-                    </p>
+                    <p class="text-justify">{move_tr!("spoiler-content-label-4")}</p>
                 </div>
             </div>
         </div>
@@ -135,45 +129,25 @@ pub fn ContentPolicy() -> impl IntoView {
 #[component]
 pub fn PlannedImprovements() -> impl IntoView {
     view! {
-        <h2 class="text-xl font-semibold">"Planned Improvements"</h2>
+        <h2 class="text-xl font-semibold">{move_tr!("planned-improvements-title")}</h2>
         <ul class="list-disc list-inside text-justify">
-            <li>"Time filters"</li>
-            <li>"Private messages"</li>
-            <li>"Additional moderation tools"</li>
-            <li>"Memberships - users can become contributors that get access to additional features"</li>
-            <li>"Private communities"</li>
+            <li>{move_tr!("planned-improvements-1")}</li>
+            <li>{move_tr!("planned-improvements-2")}</li>
+            <li>{move_tr!("planned-improvements-3")}</li>
+            <li>{move_tr!("planned-improvements-4")}</li>
+            <li>{move_tr!("planned-improvements-5")}</li>
         </ul>
     }
 }
 #[component]
 pub fn OriginsAndGoals() -> impl IntoView {
     view! {
-        <h2 class="text-xl font-semibold">"Origin & Goals"</h2>
-        <p class="text-justify">
-            "I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base. \
-            I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their \
-            ad-based profit model is fundamentally incompatible with a good user experience."
-        </p>
-        <p class="text-justify">
-            "This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency. \
-            Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to \
-            generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much \
-            greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant."
-        </p>
-        <p class="text-justify">
-            "In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received \
-            and how this money is used, for instance for operating costs and salaries. ShareSphere is also open source, enabling the community to know how the site \
-            functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal."
-        </p>
-        <p class="text-justify">
-            "Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and \
-            leverage their help to deal with bots and bad actors. This is a long term idea and its implementation is not yet defined but the basic idea is to have a vote \
-            based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked."
-        </p>
-        <p class="text-justify">
-            "ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters \
-            and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform."
-        </p>
+        <h2 class="text-xl font-semibold">{move_tr!("origin-goals-title")}</h2>
+        <p class="text-justify">{move_tr!("origin-goals-1")}</p>
+        <p class="text-justify">{move_tr!("origin-goals-2")}</p>
+        <p class="text-justify">{move_tr!("origin-goals-3")}</p>
+        <p class="text-justify">{move_tr!("origin-goals-4")}</p>
+        <p class="text-justify">{move_tr!("origin-goals-5")}</p>
     }
 }
 
@@ -183,12 +157,8 @@ pub fn Rules() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
-                <h1 class="text-3xl font-bold text-center">"Rules"</h1>
-                <p class="text-justify">
-                    "ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. \
-                    Each community can decide upon its own set of rules but a set of base rules is enforced site-wide to ensure \
-                    all communities remain safe, welcoming and compatible with ShareSphere's values."
-                </p>
+                <h1 class="text-3xl font-bold text-center">{move_tr!("rules")}</h1>
+                <p class="text-justify">{move_tr!("rules-intro")}</p>
                 <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
                 {
                     move || Suspend::new(async move {
@@ -220,8 +190,8 @@ pub fn Rules() -> impl IntoView {
 fn ShareSphereInfo() -> impl IntoView {
     view! {
         <div class="flex flex-col items-center gap-1">
-            <p>"Effective Date: 01.06.2025"</p>
-            <p>"Operator: ShareSphere"</p>
+            <p>{move_tr!("info-validity")}</p>
+            <p>{move_tr!("info-operator")}</p>
         </div>
     }
 }

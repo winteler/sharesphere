@@ -13,6 +13,8 @@ close = Close
 
 username = Username
 role = Role
+profile = Profile
+logout = Logout
 
 sphere = Sphere
 sphere-banner = Sphere banner
@@ -23,6 +25,7 @@ sphere-categories = Sphere categories
 categories = Categories
 moderators = Moderators
 rules = Rules
+rules-and-moderation = Rules & Moderation
 image-preview = Image Preview
 
 number-short = N°
@@ -79,17 +82,9 @@ moderate-post = Moderate post
 moderate-comment = Moderate comment
 
 welcome-to-sharesphere = Welcome to ShareSphere!
-sharesphere-right-sidebar-1 =
-    ShareSphere is the place to exchange with other people about
-    your hobbies, news, art, jokes and many more topics.
-sharesphere-right-sidebar-2 =
-    ShareSphere is a non-profit, add-free, open source website
-    with a focus on transparency, privacy and community empowerment.
-    You can find more information on the website and its rules below.
 about-sharesphere = About ShareSphere
 terms-and-conditions = Terms and Conditions
 privacy-policy = Privacy Policy
-content-policy = Content Policy
 sphere-cockpit = Sphere Cockpit
 single-comment-tree = Single comment tree view. Back to post.
 
@@ -127,6 +122,99 @@ time-years = {$count ->
    [one] {$count} year
    *[other] {$count} years
 }
+
+sharesphere-right-sidebar-1 =
+    ShareSphere is the place to exchange with other people about
+    your hobbies, news, art, jokes and many more topics.
+sharesphere-right-sidebar-2 =
+    ShareSphere is a non-profit, add-free, open source website
+    with a focus on transparency, privacy and community empowerment.
+    You can find more information on the website and its rules below.
+about-sharesphere-content =
+    ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and
+    many more topics. ShareSphere is a non-profit, ad-free, open source website with a focus on
+    transparency, privacy and community empowerment. ShareSphere's goal is to run by relying solely
+    on donations and to provide a better user experience than ad-based platforms.
+about-sharesphere-rules-1 =
+    ShareSphere aims to be a place for positive and constructive exchanges.
+    In order to make it so, a{" "}
+about-sharesphere-rules-link =
+    base set of rules
+about-sharesphere-rules-2 =
+    {" "}needs to be respected site-wide. Communities can set additional rules to define
+    what content is appropriate and how users should behave.
+
+content-policy = Content Policy
+content-policy-intro =
+    To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and
+    other problematic content, as well as properly label sensitive content. This page documents
+    which content are forbidden or sensitive, as well as how sensitive content should be labeled.
+banned-content-title = Banned Content
+sensitive-content-title = Sensitive Content
+mature-content-title = Mature Content
+spoiler-content-title = Spoiler Content
+banned-content-intro =
+    The following contents are strictly prohibited on ShareSphere.
+    It will be immediately removed and lead to a permanent ban.
+banned-content-1 = sexual, abusive or suggestive content of minors or individuals that did not give their consent
+banned-content-2 = human trafficking
+banned-content-3 = paid services involving physical sexual contact
+banned-content-4 = personal or confidential information of other individuals
+banned-content-5 = impersonating other individuals
+banned-content-6 = trade of stolen goods
+banned-content-7 = falsified documents or currency
+banned-content-8 = phishing, scams and other fraudulent schemes
+banned-content-9 = malware or viruses
+banned-content-10 = promotion or support of terrorism, hate crimes or any other violent ideologies
+mature-content-description =
+    Content that is not suitable for minors, such as sexually explicit, graphic, violent or
+    offensive contents must be labelled with the 'NSFW' tag:{" "}
+spoiler-content-description =
+    Content that could spoil information to other users, such as the content of a book or movie
+    must keep any information out of its title and has to be labelled with the 'Spoiler' tag:{" "}
+spoiler-content-label-1 = The labelling rules for different content types are as follows:
+spoiler-content-label-2 = Any plot relevant information of books, movie, games, TV shows must always be labelled as spoiler.
+spoiler-content-label-3 = Results of competitions (sports, e-sport, games, etc.) and other live events must be labelled as spoiler in the week following the result.
+spoiler-content-label-4 =
+    In addition, the title must make it clear spoilers will be contained in the body of the post.
+    Spoilers in comments should be hidden using markdown formatting. Communities can also set stricter rules for spoilers.
+
+planned-improvements-title = Planned Improvements
+planned-improvements-1 = Time filters
+planned-improvements-2 = Private messages
+planned-improvements-3 = Additional moderation tools
+planned-improvements-4 = Memberships - users can become contributors and get access to additional features
+planned-improvements-5 = Private communities
+
+origin-goals-title = Origin & Goals
+origin-goals-1 =
+    I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base.
+    I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their
+    ad-based profit model is fundamentally incompatible with a good user experience.
+origin-goals-2 =
+    This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency.
+    Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to
+    generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much
+    greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant.
+origin-goals-3 =
+    In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received
+    and how this money is used, for instance for operating costs and salaries. ShareSphere is also open source, enabling the community to know how the site
+    functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal.
+origin-goals-4 =
+    Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and
+    leverage their help to deal with bots and bad actors. This is a long term idea and its implementation is not yet defined but the basic idea is to have a vote
+    based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked.
+origin-goals-5 =
+    ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters
+    and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform.
+
+rules-intro =
+    ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive.
+    Each community can decide upon its own set of rules but a set of base rules is enforced site-wide to ensure
+    all communities remain safe, welcoming and compatible with ShareSphere's values.
+
+info-validity = Effective Date: 01.06.2025
+info-operator = Operator: ShareSphere
 
 markdown-help-1 = To add formatting to your content, the 'Markdown' mode must be activated with the following button:{" "}
 markdown-help-2 = When the 'Markdown' mode is activated, your input will be parsed using{" "}

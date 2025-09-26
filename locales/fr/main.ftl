@@ -13,6 +13,8 @@ close = Fermer
 
 username = Nom d'utilisateur
 role = Rôle
+profile = Profile
+logout = Se déconnecter
 
 sphere = Sphère
 sphere-banner = Bannière de la Sphère
@@ -23,6 +25,7 @@ sphere-categories = Catégories de Sphères
 categories = Catégories
 moderators = Modérateurs
 rules = Règles
+rules-and-moderation = Règles & Modération
 image-preview = Aperçu de l'image
 
 number-short = N°
@@ -79,13 +82,6 @@ moderate-post = Modérer le poste
 moderate-comment = Modérer le commentaire
 
 welcome-to-sharesphere = Bienvenue sur ShareSphere!
-sharesphere-right-sidebar-1 =
-    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de
-    tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets.
-sharesphere-right-sidebar-2 =
-    ShareSphere est un site web à but non lucratif, open source et sans publicité
-    focalisé sur la transparence, le respect de la vie privée et l'autonomie des communautés.
-    Tu pourras trouver plus d'informations sur le site et ses règles ci-dessous.
 about-sharesphere = À propos de ShareSphere
 terms-and-conditions = Termes et Conditions
 privacy-policy = Politique de confidentialité
@@ -124,6 +120,29 @@ time-years = {$count ->
    [one] {$count} année
    *[other] {$count} années
 }
+
+sharesphere-right-sidebar-1 =
+    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de
+    tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets.
+sharesphere-right-sidebar-2 =
+    ShareSphere est un site web à but non lucratif, open source et sans publicité
+    focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés.
+    Tu pourras trouver plus d'informations sur le site et ses règles ci-dessous.
+about-sharesphere-content =
+    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs,
+    l'actualité, l'art, l'humour et bien d'autres sujets. ShareSphere est un site web à but
+    non lucratif, open source et sans publicité focalisé sur la transparence, le respect de
+    la vie privée et l'autonomie de ses communautés. L'objectif de ShareSphere est de fonctionner
+    uniquement à l'aide de donations afin de fournir une meilleure expérience utilisateur que
+    les plateformes basées sur la publicité.
+about-sharesphere-rules-1 =
+    Sharesphere s'efforce d'être un lien d'échanges positifs et constructifs. Pour ce faire, un{" "}
+about-sharesphere-rules-link =
+    ensemble de règles
+about-sharesphere-rules-2 =
+    {" "}doit être respecté sur l'ensemble du site. Les communautés peuvent également mettre en
+    place des règles supplémentaires définissant quels contenus sont appropriés et comment
+    les utilisateurs doivent se comporter.
 
 markdown-help-1 = Pour formatter votre contenu, le mode 'Markdown' doit être activé avec le bouton suivant:{" "}
 markdown-help-2 = Quand le mode 'Markdown' est activé, votre saisie sera interprété avec le format{" "}

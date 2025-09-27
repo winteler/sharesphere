@@ -99,6 +99,10 @@ pub fn ContentPolicy() -> impl IntoView {
                         <li>{move_tr!("banned-content-8")}</li>
                         <li>{move_tr!("banned-content-9")}</li>
                         <li>{move_tr!("banned-content-10")}</li>
+                        <li>{move_tr!("banned-content-11")}</li>
+                        <li>{move_tr!("banned-content-12")}</li>
+                        <li>{move_tr!("banned-content-13")}</li>
+                        <li>{move_tr!("banned-content-14")}</li>
                     </ul>
                 </div>
                 <div class="flex flex-col gap-2">

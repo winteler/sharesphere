@@ -155,18 +155,22 @@ content-policy-intro =
     documente quels contenus sont interdits ou sensibles, ainsi que la manière dont les contenus sensibles doivent
     être labellisés.
 banned-content-intro =
-    Les contenus suivants sont strictement interdits sur ShareSphere.
-    Tout contenu de ce type sera immédiatement supprimé et donnera lieu à un bannissement permanent.
-banned-content-1 = tout contenu sexuel, abusif ou suggestif de mineurs ou d'individus n'ayant pas donné leur consentement.
-banned-content-2 = le trafic d'êtres humains
-banned-content-3 = des services payants impliquant des contactes physiques sexuels
-banned-content-4 = les informations personnelles ou confidentielles d'autres individus
-banned-content-5 = l'usurpation d'identité
-banned-content-6 = le recel
-banned-content-7 = la falsification de documents ou monnaies
-banned-content-8 = le hameçonnage (phishing), les escroqueries et autres schémas frauduleux
-banned-content-9 = tout logiciels malveillants (malware) ou virus
-banned-content-10 = L'apologie du terrorisme, de crimes haineux ou de toute autre idéologie violente
+    Les contenus et activités suivants sont strictement interdits sur ShareSphere.
+    Toute violation entraînera une suppression immédiate et un bannissement définitif.
+banned-content-1 = Tout contenu ou activité à caractère sexuel, abusif ou suggestif impliquant des mineurs ou des personnes n’ayant pas donné leur consentement.
+banned-content-2 = Tout contenu ou activité lié au trafic d'êtres humains.
+banned-content-3 = La promotion ou la facilitation de contacts sexuels physiques rémunérés.
+banned-content-4 = Le partage ou la sollicitation d’informations personnelles ou confidentielles concernant d'autres individus.
+banned-content-5 = La création ou l’utilisation de comptes pour usurper l’identité d’autrui. Les comptes parodiques sont autorisés, mais doivent être clairement identifiables comme tels.
+banned-content-6 = Le commerce, la promotion ou la facilitation de la vente de biens volés.
+banned-content-7 = Les documents falsifiés, la contrefaçon de monnaie, le phishing, les escroqueries ou toute autre activité frauduleuse.
+banned-content-8 = La distribution de logiciels malveillants, de virus ou d’autres programmes nuisibles.
+banned-content-9 = L'apologie du terrorisme, des crimes haineux ou toute autre idéologie violente.
+banned-content-10 = Tout contenu encourageant des comportements autodestructeurs, le suicide ou les troubles du comportement alimentaire.
+banned-content-11 = Tout contenu promouvant ou encourageant la cruauté ou la maltraitance envers les animaux.
+banned-content-12 = Le harcèlement et l’intimidation.
+banned-content-13 = Les conseils médicaux, sanitaires ou de sécurité faux ou trompeurs.
+banned-content-14 = Le partage ou la distribution de matériel protégé par des droits d’auteur sans autorisation.
 mature-content-description =
     Content that is not suitable for minors, such as sexually explicit, graphic, violent or
         offensive contents must be labelled with the 'NSFW' tag:{" "}

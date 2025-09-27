@@ -155,18 +155,22 @@ content-policy-intro =
     other problematic content, as well as properly label sensitive content. This page documents
     which content are forbidden or sensitive, as well as how sensitive content should be labeled.
 banned-content-intro =
-    The following contents are strictly prohibited on ShareSphere.
-    It will be immediately removed and lead to a permanent ban.
-banned-content-1 = sexual, abusive or suggestive content of minors or individuals that did not give their consent
-banned-content-2 = human trafficking
-banned-content-3 = paid services involving physical sexual contact
-banned-content-4 = personal or confidential information of other individuals
-banned-content-5 = impersonating other individuals
-banned-content-6 = trade of stolen goods
-banned-content-7 = falsified documents or currency
-banned-content-8 = phishing, scams and other fraudulent schemes
-banned-content-9 = malware or viruses
-banned-content-10 = promotion or support of terrorism, hate crimes or any other violent ideologies
+    The following contents and activities are strictly prohibited on ShareSphere.
+    Violations will result in immediate removal and a permanent ban.
+banned-content-1 = Sexual, abusive, or suggestive material involving minors or individuals who have not given consent.
+banned-content-2 = Any content or activity related to human trafficking.
+banned-content-3 = Promotion or facilitation of paid physical sexual contact.
+banned-content-4 = Sharing or soliciting personal or confidential information of others.
+banned-content-5 = Creating or using accounts to impersonate others. Parody accounts are permitted but must be clearly identifiable as parody.
+banned-content-6 = Trading, promoting, or facilitating the sale of stolen goods.
+banned-content-7 = Falsified documents, currency, phishing, scams, or other fraudulent activities.
+banned-content-8 = Distribution of malware, viruses, or other harmful software.
+banned-content-9 = Promotion or support of terrorism, hate crimes, or violent ideologies.
+banned-content-10 = Content encouraging self-harm, suicide, or eating disorders.
+banned-content-11 = Content that promotes or encourages animal abuse or cruelty
+banned-content-12 = Targeted harassment, bullying, or intimidation.
+banned-content-13 = False or misleading medical, health, or safety advice.
+banned-content-14 = Sharing or distributing copyrighted material without authorization.
 mature-content-description =
     Content that is not suitable for minors, such as sexually explicit, graphic, violent or
     offensive contents must be labelled with the 'NSFW' tag:{" "}

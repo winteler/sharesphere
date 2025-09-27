@@ -83,8 +83,6 @@ moderate-comment = Moderate comment
 
 welcome-to-sharesphere = Welcome to ShareSphere!
 about-sharesphere = About ShareSphere
-terms-and-conditions = Terms and Conditions
-privacy-policy = Privacy Policy
 sphere-cockpit = Sphere Cockpit
 single-comment-tree = Single comment tree view. Back to post.
 
@@ -144,15 +142,18 @@ about-sharesphere-rules-2 =
     {" "}needs to be respected site-wide. Communities can set additional rules to define
     what content is appropriate and how users should behave.
 
+terms-and-conditions = Terms and Conditions
+privacy-policy = Privacy Policy
 content-policy = Content Policy
-content-policy-intro =
-    To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and
-    other problematic content, as well as properly label sensitive content. This page documents
-    which content are forbidden or sensitive, as well as how sensitive content should be labeled.
 banned-content-title = Banned Content
 sensitive-content-title = Sensitive Content
 mature-content-title = Mature Content
 spoiler-content-title = Spoiler Content
+
+content-policy-intro =
+    To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and
+        other problematic content, as well as properly label sensitive content. This page documents
+        which content are forbidden or sensitive, as well as how sensitive content should be labeled.
 banned-content-intro =
     The following contents are strictly prohibited on ShareSphere.
     It will be immediately removed and lead to a permanent ban.
@@ -215,6 +216,102 @@ rules-intro =
 
 info-validity = Effective Date: 01.06.2025
 info-operator = Operator: ShareSphere
+
+acceptance-of-terms-title = 1. Acceptance of Terms
+acceptance-of-terms-content =
+    By accessing or using ShareSphere (“we”, “us”, or “the Website”), you agree to be bound by
+    these Terms and Conditions. If you do not agree, please do not use the Website.
+
+description-of-service-title = 2. Description of Service
+description-of-service-content =
+    ShareSphere provides an online platform for users to create, join, and participate in discussion forums.
+
+user-responsibilities-title = 3. User Responsibilities
+user-responsibilities-1 = You agree not to:
+user-responsibilities-bullet-1 = Post illegal, harmful, offensive, or misleading content.
+user-responsibilities-bullet-2-1 = Infringe ShareSphere's{" "}
+user-responsibilities-bullet-2-2 = , ShareSphere's{" "}
+user-responsibilities-bullet-2-3 = {" "}and specific community rules.
+user-responsibilities-bullet-3 = Infringe on third-party rights, including copyright and data protection laws.
+user-responsibilities-bullet-4 = Use the site to distribute spam, malware, or phishing links.
+user-responsibilities-bullet-5 = Impersonate others or create multiple accounts for abuse.
+user-responsibilities-2 = You are solely responsible for all content you post.
+
+moderation-title = 4. Moderation
+moderation-content =
+    We reserve the right to remove any content that violates these Terms or applicable laws and
+    to suspend or terminate user accounts without prior notice for misconduct.
+
+intellectual-property-title = 5. Intellectual Property
+intellectual-property-content-1 =
+    All content on ShareSphere, except user submissions, is the property of ShareSphere and may not be used without permission.
+intellectual-property-content-2 =
+    By posting content, you grant us a non-exclusive, royalty-free, worldwide license to use, display, and distribute your content on the platform.
+
+liability-limitation-title = 6. Limitation of Liability
+liability-limitation-content = We do not guarantee uninterrupted access or error-free operation of the Website. We are not liable for:
+liability-limitation-bullet-1 = User-generated content.
+liability-limitation-bullet-2 = Loss of data, revenue, or reputation due to site use.
+liability-limitation-bullet-3 = Any third-party actions or links accessed through the platform.
+
+data-protection-title = 7. Data Protection
+data-protection-content-1 = See our{" "}
+data-protection-content-2 = .
+
+amendments-title = 8. Amendments
+amendments-content =
+    We may update these Terms at any time. You will be notified of significant changes.
+    Continued use of the Website means you accept the revised Terms.
+
+governing-law-title = 9. Governing Law
+governing-law-content = These Terms are governed by Swiss law. Jurisdiction: Zurich.
+
+about-privacy-policy-title = 1. About ShareSphere's Privacy Policy
+about-privacy-policy-content = This Privacy Policy explains how we collect, use, and protect your personal data when you use ShareSphere.
+
+data-collection-title = 2. Data ShareSphere Collects
+data-collection-content = ShareSphere collects the following information:
+data-collection-bullet-1 = Account data: username, email address, password (encrypted).
+data-collection-bullet-2 = IP address (for security).
+data-collection-bullet-3 = Any content you post.
+data-collection-bullet-4 = Cookies for functionality.
+
+data-collect-purpose-title = 3. Purpose of Data Collection
+data-collect-purpose-content = ShareSphere uses your data to:
+data-collect-purpose-bullet-1 = Provide forum services.
+data-collect-purpose-bullet-2 = Ensure security and prevent abuse.
+data-collect-purpose-bullet-3 = Communicate with users.
+data-collect-purpose-bullet-4 = Analyze usage and improve the site.
+
+legal-basis-title = 4. Legal Basis
+legal-basis-content = ShareSphere processes personal data based on:
+legal-basis-bullet-1 = Your consent (e.g., when registering).
+legal-basis-bullet-2 = Our legitimate interest in running a secure forum.
+legal-basis-bullet-3 = Communicate with users.
+legal-basis-bullet-4 = Compliance with legal obligations.
+
+cookies-title = 5. Cookies
+cookies-content = ShareSphere uses cookies for:
+cookies-bullet-1 = Login sessions.
+
+data-sharing-title = 6. Data Sharing
+data-sharing-content = ShareSphere will never sell your data. If required, ShareSphere might share your data with:
+data-sharing-bullet-1 = Authorities.
+data-sharing-bullet-2 = Hosting providers.
+
+data-storage-title = 7. Data Storage
+data-storage-content = ShareSphere stores data on server located in Switzerland following industry-standard encryption and security practices.
+
+user-rights-title = 8. Your rights
+user-rights-content = You have the right to:
+user-rights-bullet-1 = Access your personal data.
+user-rights-bullet-2 = Request correction or deletion.
+user-rights-bullet-3 = Withdraw consent at any time.
+user-rights-bullet-4 = Lodge a complaint with the Swiss Federal Data Protection and Information Commissioner (FDPIC).
+user-rights-contact = To exercise these rights, email us at help@sharesphere.space
+
+policy-change-title = 9. Changes to This Policy
+policy-change-content = We may update this Privacy Policy. We will notify you of significant changes.
 
 markdown-help-1 = To add formatting to your content, the 'Markdown' mode must be activated with the following button:{" "}
 markdown-help-2 = When the 'Markdown' mode is activated, your input will be parsed using{" "}

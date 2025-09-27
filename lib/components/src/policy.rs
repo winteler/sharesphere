@@ -37,11 +37,11 @@ pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
-                <h1 class="text-3xl font-bold text-center">{move_tr!("terms-and-condition")}</h1>
+                <h1 class="text-3xl font-bold text-center">{move_tr!("terms-and-conditions")}</h1>
                 <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
                 <DescriptionOfService/>
-                <UserResponsabilities/>
+                <UserResponsibilities/>
                 <Moderation/>
                 <IntellectualProperty/>
                 <LimitationOfLiability/>
@@ -200,11 +200,8 @@ fn ShareSphereInfo() -> impl IntoView {
 fn AcceptanceOfTerms() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"1. Acceptance of Terms"</h2>
-            <p class="text-justify">
-                "By accessing or using ShareSphere (“we”, “us”, or “the Website”), you agree to be bound by these Terms and Conditions. \
-                If you do not agree, please do not use the Website."
-            </p>
+            <h2 class="text-2xl font-semibold">{move_tr!("acceptance-of-terms-title")}</h2>
+            <p class="text-justify">{move_tr!("acceptance-of-terms-content")}</p>
         </div>
     }
 }
@@ -213,29 +210,36 @@ fn AcceptanceOfTerms() -> impl IntoView {
 fn DescriptionOfService() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"2. Description of Service"</h2>
-            <p class="text-justify">"ShareSphere provides an online platform for users to create, join, and participate in discussion forums"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("description-of-service-title")}</h2>
+            <p class="text-justify">{move_tr!("description-of-service-content")}</p>
         </div>
     }
 }
 
 #[component]
-fn UserResponsabilities() -> impl IntoView {
+fn UserResponsibilities() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"3. User Responsibilities"</h2>
-            <p>"You agree not to:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("user-responsibilities-title")}</h2>
+            <p>{move_tr!("user-responsibilities-1")}</p>
             <ul class="list-disc list-inside text-justify">
-                <li>"Post illegal, harmful, offensive, or misleading content."</li>
-                <li>"Infringe ShareSphere's " <a href=RULES_ROUTE class="link text-primary">"Rules"</a>
-                    ", ShareSphere's " <a href=CONTENT_POLICY_ROUTE class="link text-primary">"Content Policy"</a>
-                    " and specific community rules."
+                <li>{move_tr!("user-responsibilities-bullet-1")}</li>
+                <li>
+                    {move_tr!("user-responsibilities-bullet-2-1")}
+                    <a href=RULES_ROUTE class="link text-primary">
+                        {move_tr!("rules")}
+                    </a>
+                    {move_tr!("user-responsibilities-bullet-2-2")}
+                    <a href=CONTENT_POLICY_ROUTE class="link text-primary">
+                        {move_tr!("content-policy")}
+                    </a>
+                    {move_tr!("user-responsibilities-bullet-2-3")}
                 </li>
-                <li>"Infringe on third-party rights, including copyright and data protection laws."</li>
-                <li>"Use the site to distribute spam, malware, or phishing links."</li>
-                <li>"Impersonate others or create multiple accounts for abuse."</li>
+                <li>{move_tr!("user-responsibilities-bullet-3")}</li>
+                <li>{move_tr!("user-responsibilities-bullet-4")}</li>
+                <li>{move_tr!("user-responsibilities-bullet-5")}</li>
             </ul>
-            <p>"You are solely responsible for all content you post."</p>
+            <p>{move_tr!("user-responsibilities-2")}</p>
         </div>
     }
 }
@@ -244,11 +248,8 @@ fn UserResponsabilities() -> impl IntoView {
 fn Moderation() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"4. Moderation"</h2>
-            <p class="text-justify">
-                "We reserve the right to remove any content that violates these Terms or applicable laws and \
-                to suspend or terminate user accounts without prior notice for misconduct."
-            </p>
+            <h2 class="text-2xl font-semibold">{move_tr!("moderation-title")}</h2>
+            <p class="text-justify">{move_tr!("moderation-content")}</p>
         </div>
     }
 }
@@ -257,9 +258,9 @@ fn Moderation() -> impl IntoView {
 fn IntellectualProperty() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"5. Intellectual Property"</h2>
-            <p class="text-justify">"All content on ShareSphere, except user submissions, is the property of ShareSphere and may not be used without permission."</p>
-            <p class="text-justify">"By posting content, you grant us a non-exclusive, royalty-free, worldwide license to use, display, and distribute your content on the platform."</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("intellectual-property-title")}</h2>
+            <p class="text-justify">{move_tr!("intellectual-property-content-1")}</p>
+            <p class="text-justify">{move_tr!("intellectual-property-content-2")}</p>
         </div>
     }
 }
@@ -268,12 +269,12 @@ fn IntellectualProperty() -> impl IntoView {
 fn LimitationOfLiability() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"6. Limitation of Liability"</h2>
-            <p class="text-justify">"We do not guarantee uninterrupted access or error-free operation of the Website. We are not liable for:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("liability-limitation-title")}</h2>
+            <p class="text-justify">{move_tr!("liability-limitation-content")}</p>
             <ul class="list-disc list-inside text-justify">
-                <li>"User-generated content."</li>
-                <li>"Loss of data, revenue, or reputation due to site use."</li>
-                <li>"Any third-party actions or links accessed through the platform."</li>
+                <li>{move_tr!("liability-limitation-bullet-1")}</li>
+                <li>{move_tr!("liability-limitation-bullet-2")}</li>
+                <li>{move_tr!("liability-limitation-bullet-3")}</li>
             </ul>
         </div>
     }
@@ -283,11 +284,13 @@ fn LimitationOfLiability() -> impl IntoView {
 fn DataProtection() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"7. Data Protection"</h2>
+            <h2 class="text-2xl font-semibold">{move_tr!("data-protection-title")}</h2>
             <p>
-                "See our "
-                <a href=PRIVACY_POLICY_ROUTE class="link text-primary">"Privacy Policy"</a>
-                "."
+                {move_tr!("data-protection-content-1")}
+                <a href=PRIVACY_POLICY_ROUTE class="link text-primary">
+                    {move_tr!("privacy-policy")}
+                </a>
+                {move_tr!("data-protection-content-2")}
             </p>
         </div>
     }
@@ -297,8 +300,8 @@ fn DataProtection() -> impl IntoView {
 fn Amendments() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"8. Amendments"</h2>
-            <p class="text-justify">"We may update these Terms at any time. You will be notified of significant changes. Continued use of the Website means you accept the revised Terms."</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("amendments-title")}</h2>
+            <p class="text-justify">{move_tr!("amendments-content")}</p>
         </div>
     }
 }
@@ -307,8 +310,8 @@ fn Amendments() -> impl IntoView {
 fn GoverningLaw() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"9. Governing Law"</h2>
-            <p class="text-justify">"These Terms are governed by Swiss law. Jurisdiction: Zurich."</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("governing-law-title")}</h2>
+            <p class="text-justify">{move_tr!("governing-law-content")}</p>
         </div>
     }
 }
@@ -317,8 +320,8 @@ fn GoverningLaw() -> impl IntoView {
 fn AboutPrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"1. About ShareSphere's Privacy Policy"</h2>
-            <p class="text-justify">"This Privacy Policy explains how we collect, use, and protect your personal data when you use ShareSphere."</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("about-privacy-policy-title")}</h2>
+            <p class="text-justify">{move_tr!("about-privacy-policy-content")}</p>
         </div>
     }
 }
@@ -327,13 +330,13 @@ fn AboutPrivacyPolicy() -> impl IntoView {
 fn DataCollection() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"2. Data ShareSphere Collects"</h2>
-            <p class="text-justify">"ShareSphere collects the following information:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("data-collection-title")}</h2>
+            <p class="text-justify">{move_tr!("data-collection-content")}</p>
             <ul class="list-disc list-inside">
-                <li>"Account data: username, email address, password (encrypted)."</li>
-                <li>"IP address (for security)."</li>
-                <li>"Any content you post."</li>
-                <li>"Cookies for functionality."</li>
+                <li>{move_tr!("data-collection-bullet-1")}</li>
+                <li>{move_tr!("data-collection-bullet-2")}</li>
+                <li>{move_tr!("data-collection-bullet-3")}</li>
+                <li>{move_tr!("data-collection-bullet-4")}</li>
             </ul>
         </div>
     }
@@ -343,13 +346,13 @@ fn DataCollection() -> impl IntoView {
 fn DataCollectionPurpose() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"3. Purpose of Data Collection"</h2>
-            <p class="text-justify">"ShareSphere uses your data to:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("data-collect-purpose-title")}</h2>
+            <p class="text-justify">{move_tr!("data-collect-purpose-content")}</p>
             <ul class="list-disc list-inside text-justify">
-                <li>"Provide forum services."</li>
-                <li>"Ensure security and prevent abuse."</li>
-                <li>"Communicate with users."</li>
-                <li>"Analyze usage and improve the site."</li>
+                <li>{move_tr!("data-collect-purpose-bullet-1")}</li>
+                <li>{move_tr!("data-collect-purpose-bullet-2")}</li>
+                <li>{move_tr!("data-collect-purpose-bullet-3")}</li>
+                <li>{move_tr!("data-collect-purpose-bullet-4")}</li>
             </ul>
         </div>
     }
@@ -359,13 +362,13 @@ fn DataCollectionPurpose() -> impl IntoView {
 fn LegalBasis() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"4. Legal Basis"</h2>
-            <p >"ShareSphere processes personal data based on:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("legal-basis-title")}</h2>
+            <p >{move_tr!("legal-basis-content")}</p>
             <ul class="list-disc list-inside text-justify">
-                <li>"Your consent (e.g., when registering)."</li>
-                <li>"Our legitimate interest in running a secure forum."</li>
-                <li>"Communicate with users."</li>
-                <li>"Compliance with legal obligations."</li>
+                <li>{move_tr!("legal-basis-bullet-1")}</li>
+                <li>{move_tr!("legal-basis-bullet-2")}</li>
+                <li>{move_tr!("legal-basis-bullet-3")}</li>
+                <li>{move_tr!("legal-basis-bullet-4")}</li>
             </ul>
         </div>
     }
@@ -375,10 +378,10 @@ fn LegalBasis() -> impl IntoView {
 fn Cookies() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"5. Cookies"</h2>
-            <p >"ShareSphere uses cookies for:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("cookies-title")}</h2>
+            <p >{move_tr!("cookies-content")}</p>
             <ul class="list-disc list-inside">
-                <li>"Login sessions."</li>
+                <li>{move_tr!("cookies-bullet-1")}</li>
             </ul>
         </div>
     }
@@ -388,11 +391,11 @@ fn Cookies() -> impl IntoView {
 fn DataSharing() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"6. Data Sharing"</h2>
-            <p class="text-justify">"ShareSphere does not sell your data. If required, ShareSphere might share your data with:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("data-sharing-title")}</h2>
+            <p class="text-justify">{move_tr!("data-sharing-content")}</p>
             <ul class="list-disc list-inside">
-                <li>"Authorities."</li>
-                <li>"Hosting providers."</li>
+                <li>{move_tr!("data-sharing-bullet-1")}</li>
+                <li>{move_tr!("data-sharing-bullet-2")}</li>
             </ul>
         </div>
     }
@@ -402,8 +405,8 @@ fn DataSharing() -> impl IntoView {
 fn DataStorage() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"7. Data Storage"</h2>
-            <p class="text-justify">"ShareSphere stores data on server located in Switzerland following industry-standard encryption and security practices."</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("data-storage-title")}</h2>
+            <p class="text-justify">{move_tr!("data-storage-content")}</p>
         </div>
     }
 }
@@ -412,15 +415,15 @@ fn DataStorage() -> impl IntoView {
 fn UserRights() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"8. Your rights"</h2>
-            <p class="text-justify">"You have the right to:"</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("user-rights-title")}</h2>
+            <p class="text-justify">{move_tr!("user-rights-content")}</p>
             <ul class="list-disc list-inside text-justify">
-                <li>"Access your personal data."</li>
-                <li>"Request correction or deletion."</li>
-                <li>"Withdraw consent at any time."</li>
-                <li>"Lodge a complaint with the Swiss Federal Data Protection and Information Commissioner (FDPIC)."</li>
+                <li>{move_tr!("user-rights-bullet-1")}</li>
+                <li>{move_tr!("user-rights-bullet-2")}</li>
+                <li>{move_tr!("user-rights-bullet-3")}</li>
+                <li>{move_tr!("user-rights-bullet-4")}</li>
             </ul>
-            <p class="text-justify">"To exercise these rights, email us at help@sharesphere.space"</p>
+            <p class="text-justify">{move_tr!("user-rights-contact")}</p>
         </div>
     }
 }
@@ -429,8 +432,8 @@ fn UserRights() -> impl IntoView {
 fn PrivacyPolicyChanges() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">"9. Changes to This Policy"</h2>
-            <p class="text-justify">"We may update this Privacy Policy. We will notify you of significant changes."</p>
+            <h2 class="text-2xl font-semibold">{move_tr!("policy-change-title")}</h2>
+            <p class="text-justify">{move_tr!("policy-change-content")}</p>
         </div>
     }
 }

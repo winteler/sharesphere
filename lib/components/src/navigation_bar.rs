@@ -73,7 +73,7 @@ pub fn LoggedInMenu(
                     <ActionForm action=state.logout_action attr:class="flex">
                         <input type="text" name="redirect_url" class="hidden" value=get_current_url()/>
                         <button type="submit" class="button-ghost-sm text-left w-full">
-                            {move_tr!(logout)}
+                            {move_tr!("logout")}
                         </button>
                     </ActionForm>
                 </li>

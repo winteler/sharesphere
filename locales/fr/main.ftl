@@ -144,28 +144,29 @@ about-sharesphere-rules-2 =
 terms-and-conditions = Termes et Conditions
 privacy-policy = Politique de confidentialité
 content-policy = Politique de contenu
-banned-content-title = Banned Content
-sensitive-content-title = Sensitive Content
-mature-content-title = Mature Content
-spoiler-content-title = Spoiler Content
+banned-content-title = Contenu interdit
+sensitive-content-title = Contenu sensible
+mature-content-title = Contenu pour adultes
+spoiler-content-title = Contenu spoiler
 
 content-policy-intro =
-    To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and
-            other problematic content, as well as properly label sensitive content. This page documents
-            which content are forbidden or sensitive, as well as how sensitive content should be labeled.
+    Pour guarantir une bonne expérience sur ShareSphere, il est vital d'exclure les contenus illégaux, malicieux et
+    autres contenus problématiques. De plus, les contenus sensibles doivent être labellisés correctement. Cette page
+    documente quels contenus sont interdits ou sensibles, ainsi que la manière dont les contenus sensibles doivent
+    être labellisés.
 banned-content-intro =
-    The following contents are strictly prohibited on ShareSphere.
-        It will be immediately removed and lead to a permanent ban.
-banned-content-1 = sexual, abusive or suggestive content of minors or individuals that did not give their consent
-banned-content-2 = human trafficking
-banned-content-3 = paid services involving physical sexual contact
-banned-content-4 = personal or confidential information of other individuals
-banned-content-5 = impersonating other individuals
-banned-content-6 = trade of stolen goods
-banned-content-7 = falsified documents or currency
-banned-content-8 = phishing, scams and other fraudulent schemes
-banned-content-9 = malware or viruses
-banned-content-10 = promotion or support of terrorism, hate crimes or any other violent ideologies
+    Les contenus suivants sont strictement interdits sur ShareSphere.
+    Tout contenu de ce type sera immédiatement supprimé et donnera lieu à un bannissement permanent.
+banned-content-1 = tout contenu sexuel, abusif ou suggestif de mineurs ou d'individus n'ayant pas donné leur consentement.
+banned-content-2 = le trafic d'êtres humains
+banned-content-3 = des services payants impliquant des contactes physiques sexuels
+banned-content-4 = les informations personnelles ou confidentielles d'autres individus
+banned-content-5 = l'usurpation d'identité
+banned-content-6 = le recel
+banned-content-7 = la falsification de documents ou monnaies
+banned-content-8 = le hameçonnage (phishing), les escroqueries et autres schémas frauduleux
+banned-content-9 = tout logiciels malveillants (malware) ou virus
+banned-content-10 = L'apologie du terrorisme, de crimes haineux ou de toute autre idéologie violente
 mature-content-description =
     Content that is not suitable for minors, such as sexually explicit, graphic, violent or
         offensive contents must be labelled with the 'NSFW' tag:{" "}

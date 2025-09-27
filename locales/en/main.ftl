@@ -152,8 +152,8 @@ spoiler-content-title = Spoiler Content
 
 content-policy-intro =
     To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and
-        other problematic content, as well as properly label sensitive content. This page documents
-        which content are forbidden or sensitive, as well as how sensitive content should be labeled.
+    other problematic content, as well as properly label sensitive content. This page documents
+    which content are forbidden or sensitive, as well as how sensitive content should be labeled.
 banned-content-intro =
     The following contents are strictly prohibited on ShareSphere.
     It will be immediately removed and lead to a permanent ban.

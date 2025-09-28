@@ -161,7 +161,9 @@ banned-content-1 = Tout contenu ou activité à caractère sexuel, abusif ou sug
 banned-content-2 = Tout contenu ou activité lié au trafic d'êtres humains.
 banned-content-3 = La promotion ou la facilitation de contacts sexuels physiques rémunérés.
 banned-content-4 = Le partage ou la sollicitation d’informations personnelles ou confidentielles concernant d'autres individus.
-banned-content-5 = La création ou l’utilisation de comptes pour usurper l’identité d’autrui. Les comptes parodiques sont autorisés, mais doivent être clairement identifiables comme tels.
+banned-content-5 =
+    La création ou l’utilisation de comptes pour usurper l’identité d’autrui.
+    Les comptes parodiques sont autorisés, mais doivent être clairement identifiables comme tels.
 banned-content-6 = Le commerce, la promotion ou la facilitation de la vente de biens volés.
 banned-content-7 = Les documents falsifiés, la contrefaçon de monnaie, le phishing, les escroqueries ou toute autre activité frauduleuse.
 banned-content-8 = La distribution de logiciels malveillants, de virus ou d’autres programmes nuisibles.
@@ -172,14 +174,18 @@ banned-content-12 = Le harcèlement et l’intimidation.
 banned-content-13 = Les conseils médicaux, sanitaires ou de sécurité faux ou trompeurs.
 banned-content-14 = Le partage ou la distribution de matériel protégé par des droits d’auteur sans autorisation.
 mature-content-description =
-    Content that is not suitable for minors, such as sexually explicit, graphic, violent or
-        offensive contents must be labelled with the 'NSFW' tag:{" "}
+    Tout contenu non adapté aux mineurs, tel que les contenus sexuellement explicites, graphiques,
+    violents ou offensants, doit être labellisé avec la balise "NSFW" : {" "}
 spoiler-content-description =
-    Content that could spoil information to other users, such as the content of a book or movie
-        must keep any information out of its title and has to be labelled with the 'Spoiler' tag:{" "}
-spoiler-content-label-1 = The labelling rules for different content types are as follows:
-spoiler-content-label-2 = Any plot relevant information of books, movie, games, TV shows must always be labelled as spoiler.
-spoiler-content-label-3 = Results of competitions (sports, e-sport, games, etc.) and other live events must be labelled as spoiler in the week following the result.
+    Le contenu susceptible de révéler des informations à d’autres utilisateurs, comme le contenu d’un livre ou
+    d’un film, ne doit pas inclure d’informations dans son titre et doit être labellisé avec la balise « Spoiler » : {" "}
+spoiler-content-label-1 =  Les règles de labellisation pour les différents types de contenu sont les suivantes :
+spoiler-content-label-2 =
+    Toute information pertinente concernant l’intrigue de livres, films,
+    jeux ou émissions de télévision doit toujours être étiquetée comme spoiler.
+spoiler-content-label-3 =
+    Les résultats de compétitions (sportives, e-sport, jeux, etc.) et d’autres événements en
+    direct doivent être étiquetés comme spoiler pendant la semaine suivant le résultat.
 spoiler-content-label-4 =
     In addition, the title must make it clear spoilers will be contained in the body of the post.
         Spoilers in comments should be hidden using markdown formatting. Communities can also set stricter rules for spoilers.

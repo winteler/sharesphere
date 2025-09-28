@@ -313,27 +313,28 @@ legal-basis-bullet-3 = La communication avec les utilisateurs.
 legal-basis-bullet-4 = Le respect d'obligations légales.
 
 cookies-title = 5. Cookies
-cookies-content = ShareSphere uses cookies for:
-cookies-bullet-1 = Login sessions.
+cookies-content = ShareSphere utilise des cookies pour :
+cookies-bullet-1 = Les informations liées à votre session.
+cookies-bullet-2 = Vos préférences linguistiques.
 
-data-sharing-title = 6. Data Sharing
-data-sharing-content = ShareSphere will never sell your data. If required, ShareSphere might share your data with:
-data-sharing-bullet-1 = Authorities.
-data-sharing-bullet-2 = Hosting providers.
+data-sharing-title = 6. Partage des données
+data-sharing-content = ShareSphere s'engage à ne jamais vendre vos données. Si nécessaire, ShareSphere pourrait partager vos données avec :
+data-sharing-bullet-1 = Les autorités.
+data-sharing-bullet-2 =  Les fournisseurs d’hébergement.
 
-data-storage-title = 7. Data Storage
-data-storage-content = ShareSphere stores data on server located in Switzerland following industry-standard encryption and security practices.
+data-storage-title = 7. Stockage des données
+data-storage-content = ShareSphere stocke ses données sur des serveurs situés en Suisse, conformément aux pratiques standards de chiffrement et de sécurité.
 
-user-rights-title = 8. Your rights
-user-rights-content = You have the right to:
-user-rights-bullet-1 = Access your personal data.
-user-rights-bullet-2 = Request correction or deletion.
-user-rights-bullet-3 = Withdraw consent at any time.
-user-rights-bullet-4 = Lodge a complaint with the Swiss Federal Data Protection and Information Commissioner (FDPIC).
-user-rights-contact = To exercise these rights, email us at help@sharesphere.space
+user-rights-title = 8. Vos droits
+user-rights-content = Vous avez le droit de :
+user-rights-bullet-1 = Accéder à vos données personnelles.
+user-rights-bullet-2 = Demander une correction ou une suppression.
+user-rights-bullet-3 = Révoquer votre consentement à tout moment.
+user-rights-bullet-4 = Déposer une plainte auprès du Préposé fédéral à la protection des données et à la transparence (PFPDT).
+user-rights-contact = Pour exercer ces droits, envoyez-nous un e-mail à l’adresse help@sharesphere.space.
 
-policy-change-title = 9. Changes to This Policy
-policy-change-content = We may update this Privacy Policy. We will notify you of significant changes.
+policy-change-title = 9. Modifications de cette politique
+policy-change-content = Nous pouvons mettre à jour cette Politique de Confidentialité. Nous vous informerons des modifications significatives.
 
 markdown-help-1 = Pour formatter votre contenu, le mode 'Markdown' doit être activé avec le bouton suivant:{" "}
 markdown-help-2 = Quand le mode 'Markdown' est activé, votre saisie sera interprété avec le format{" "}

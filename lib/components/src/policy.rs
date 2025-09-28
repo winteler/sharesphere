@@ -384,6 +384,7 @@ fn Cookies() -> impl IntoView {
             <p >{move_tr!("cookies-content")}</p>
             <ul class="list-disc list-inside">
                 <li>{move_tr!("cookies-bullet-1")}</li>
+                <li>{move_tr!("cookies-bullet-2")}</li>
             </ul>
         </div>
     }

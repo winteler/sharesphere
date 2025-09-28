@@ -295,6 +295,7 @@ legal-basis-bullet-4 = Compliance with legal obligations.
 cookies-title = 5. Cookies
 cookies-content = ShareSphere uses cookies for:
 cookies-bullet-1 = Login sessions.
+cookies-bullet-2 = Language préférences.
 
 data-sharing-title = 6. Data Sharing
 data-sharing-content = ShareSphere will never sell your data. If required, ShareSphere might share your data with:

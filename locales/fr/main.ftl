@@ -187,30 +187,38 @@ spoiler-content-label-3 =
     Les résultats de compétitions (sportives, e-sport, jeux, etc.) et d’autres événements en
     direct doivent être étiquetés comme spoiler pendant la semaine suivant le résultat.
 spoiler-content-label-4 =
-    In addition, the title must make it clear spoilers will be contained in the body of the post.
-        Spoilers in comments should be hidden using markdown formatting. Communities can also set stricter rules for spoilers.
+    De plus, le titre doit indiquer explicitement que des spoilers sont inclus dans le contenu du poste.
+    Les commentaires contenant des spoilers doivent être masqué grâce au formatage Markdown.
+    Les communautés peuvent également définir des règles plus strictes concernant les spoilers.
 
-planned-improvements-title = Planned Improvements
-planned-improvements-1 = Time filters
-planned-improvements-2 = Private messages
-planned-improvements-3 = Additional moderation tools
-planned-improvements-4 = Memberships - users can become contributors and get access to additional features
-planned-improvements-5 = Private communities
+planned-improvements-title = Améliorations prévues
+planned-improvements-1 = Filtres temporelles
+planned-improvements-2 = Message prévus
+planned-improvements-3 = Outils de modération supplémentaires
+planned-improvements-4 =
+    Adhésions - les utilisateurs peuvent devenir contributeurs et gagner accès
+    à des fonctionalités supplémentaires
+planned-improvements-5 = Communautés privés
 
-origin-goals-title = Origin & Goals
+origin-goals-title = Origine & Objectifs
 origin-goals-1 =
-    I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base.
-        I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their
-        ad-based profit model is fundamentally incompatible with a good user experience.
+    J’ai commencé à réfléchir à ShareSphere durant l’été 2023, après que plusieurs réseaux sociaux que j’utilisais
+    aient effectué des modifications ayant un impact négatif sur leurs utilisateurs. J'avais déjà une opinion assez négative
+    de la plupart des réseaux sociaux basés sur la publicité, estimant que ce modèle est incompatible avec une bonne expérience
+    utilisateur et favorise des dérives néfastes pour la santé mentale des utilisateurs.
 origin-goals-2 =
-    This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency.
-        Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to
-        generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much
-        greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant.
+    Cela m’a donné l’idée d’essayer de construire une plateforme meilleure, à but non lucratif,
+    reposant sur des dons plutôt que sur la publicité, et axée sur la transparence.
+    Être à but non lucratif et dépendre des dons est extrêmement important car cela permet
+    de changer l'objectif du site. Au lieu d'inciter les utilisateurs à faire défiler le contenu
+    de manière compulsive pour générer plus de revenus publicitaires, le site doit s'efforcer de
+    founir une excellente expérience utilisateur, qui donne envie de contribuer par des dons.
 origin-goals-3 =
-    In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received
-        and how this money is used, for instance for operating costs and salaries. ShareSphere is also open source, enabling the community to know how the site
-        functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal.
+    Dans une telle structure, la transparence est fondamentale, pour démontrer aux utilisateurs que leurs donations sont
+    utilisées correctement et efficacement. ShareSphere s'engage à toujours publier la totalité des donations reçues ainsi
+    que la manière dont cet argent est utilisées, par exemple pour couvrir les coûts opérationels et des salaires. ShareSphere
+    est également en source libre, permettant à la communauté de savoir comment le site fonctionne et quelles informations sont collectées.
+    Finalement, ShareSphere a pour but d'avoir une modération transparente, sans bannissements cachés ou suppressions de contenu inexpliquées.
 origin-goals-4 =
     Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and
         leverage their help to deal with bots and bad actors. This is a long term idea and its implementation is not yet defined but the basic idea is to have a vote

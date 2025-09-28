@@ -207,7 +207,7 @@ origin-goals-3 =
     functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal.
 origin-goals-4 =
     Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and
-    leverage their help to deal with bots and bad actors. This is a long term idea and its implementation is not yet defined but the basic idea is to have a vote
+    leverage their help to deal with bots and bad actors. The exact implementation of these mechanisms is not yet defined but the basic idea is to have a vote
     based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked.
 origin-goals-5 =
     ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters
@@ -221,16 +221,15 @@ rules-intro =
 info-validity = Effective Date: 01.06.2025
 info-operator = Operator: ShareSphere
 
-acceptance-of-terms-title = 1. Acceptance of Terms
 acceptance-of-terms-content =
     By accessing or using ShareSphere (“we”, “us”, or “the Website”), you agree to be bound by
     these Terms and Conditions. If you do not agree, please do not use the Website.
 
-description-of-service-title = 2. Description of Service
+description-of-service-title = 1. Description of Service
 description-of-service-content =
     ShareSphere provides an online platform for users to create, join, and participate in discussion forums.
 
-user-responsibilities-title = 3. User Responsibilities
+user-responsibilities-title = 2. User Responsibilities
 user-responsibilities-1 = You agree not to:
 user-responsibilities-bullet-1 = Post illegal, harmful, offensive, or misleading content.
 user-responsibilities-bullet-2-1 = Infringe ShareSphere's{" "}
@@ -238,39 +237,38 @@ user-responsibilities-bullet-2-2 = , ShareSphere's{" "}
 user-responsibilities-bullet-2-3 = {" "}and specific community rules.
 user-responsibilities-bullet-3 = Infringe on third-party rights, including copyright and data protection laws.
 user-responsibilities-bullet-4 = Use the site to distribute spam, malware, or phishing links.
-user-responsibilities-bullet-5 = Impersonate others or create multiple accounts for abuse.
+user-responsibilities-bullet-5 = Impersonate others or create multiple accounts with abusive or malicious intent.
 user-responsibilities-2 = You are solely responsible for all content you post.
 
-moderation-title = 4. Moderation
+moderation-title = 3. Moderation
 moderation-content =
     We reserve the right to remove any content that violates these Terms or applicable laws and
     to suspend or terminate user accounts without prior notice for misconduct.
 
-intellectual-property-title = 5. Intellectual Property
+intellectual-property-title = 4. Intellectual Property
 intellectual-property-content-1 =
     All content on ShareSphere, except user submissions, is the property of ShareSphere and may not be used without permission.
 intellectual-property-content-2 =
     By posting content, you grant us a non-exclusive, royalty-free, worldwide license to use, display, and distribute your content on the platform.
 
-liability-limitation-title = 6. Limitation of Liability
+liability-limitation-title = 5. Limitation of Liability
 liability-limitation-content = We do not guarantee uninterrupted access or error-free operation of the Website. We are not liable for:
 liability-limitation-bullet-1 = User-generated content.
 liability-limitation-bullet-2 = Loss of data, revenue, or reputation due to site use.
 liability-limitation-bullet-3 = Any third-party actions or links accessed through the platform.
 
-data-protection-title = 7. Data Protection
+data-protection-title = 6. Data Protection
 data-protection-content-1 = See our{" "}
 data-protection-content-2 = .
 
-amendments-title = 8. Amendments
+amendments-title = 7. Amendments
 amendments-content =
     We may update these Terms at any time. You will be notified of significant changes.
     Continued use of the Website means you accept the revised Terms.
 
-governing-law-title = 9. Governing Law
+governing-law-title = 8. Governing Law
 governing-law-content = These Terms are governed by Swiss law. Jurisdiction: Zurich.
 
-about-privacy-policy-title = 1. About ShareSphere's Privacy Policy
 about-privacy-policy-content = This Privacy Policy explains how we collect, use, and protect your personal data when you use ShareSphere.
 
 data-collection-title = 2. Data ShareSphere Collects

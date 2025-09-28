@@ -204,7 +204,6 @@ fn ShareSphereInfo() -> impl IntoView {
 fn AcceptanceOfTerms() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">{move_tr!("acceptance-of-terms-title")}</h2>
             <p class="text-justify">{move_tr!("acceptance-of-terms-content")}</p>
         </div>
     }
@@ -324,7 +323,6 @@ fn GoverningLaw() -> impl IntoView {
 fn AboutPrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold">{move_tr!("about-privacy-policy-title")}</h2>
             <p class="text-justify">{move_tr!("about-privacy-policy-content")}</p>
         </div>
     }

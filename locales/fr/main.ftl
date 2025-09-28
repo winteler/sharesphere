@@ -220,93 +220,97 @@ origin-goals-3 =
     est également en source libre, permettant à la communauté de savoir comment le site fonctionne et quelles informations sont collectées.
     Finalement, ShareSphere a pour but d'avoir une modération transparente, sans bannissements cachés ou suppressions de contenu inexpliquées.
 origin-goals-4 =
-    Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and
-        leverage their help to deal with bots and bad actors. This is a long term idea and its implementation is not yet defined but the basic idea is to have a vote
-        based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked.
+    Un autre objectif à long terme de ShareSphere est de donner plus de contrôle aux communautés, en leur permettant de sélectionner leurs modérateurs,
+    définir leurs règles et de s'appuyer sur les communautés pour lutter contre les bots et les utilisateurs malicieux. L'implémentation exacte de ces
+    mécanismes n'est pas encore définie mais l'idée de base est d'utiliser un système de vote donnant plus d'importances aux personnes contribuant fortement et
+    régulièrement à leur communauté, afin d'éviter le détournement de communautés par d'autres utilisateurs.
 origin-goals-5 =
-    ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters
-        and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform.
+    ShareSphere en est encore à ses premiers pas et des fonctionnalités supplémentaires apparaîtront dans le future, tel que des messages privés,
+    de meilleures outils de modération, des filtres et paramètres supplémentaires et encore bien d'autres choses. J'espère que vous apprécierez
+    ShareSphere et que vous nous aiderez à en faire la meilleure plateforme possible.
 
 rules-intro =
-    ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive.
-        Each community can decide upon its own set of rules but a set of base rules is enforced site-wide to ensure
-        all communities remain safe, welcoming and compatible with ShareSphere's values.
+    ShareSphere est une plateforme collaborative qui repose sur des contributions de qualité de la part de ses utilisateurs pour prospérer.
+    Chaque communauté peut déterminer ses propres règles mais un mais un socle de règles de base est appliqué à l’ensemble du site pour garantir
+    que toutes les communautés restent sûres, accueillantes et conformes aux valeurs de ShareSphere.
 
-info-validity = Effective Date: 01.06.2025
-info-operator = Operator: ShareSphere
+info-validity = Date d'entrée en vigueur: 01.06.2025
+info-operator = Opérateur: ShareSphere
 
-acceptance-of-terms-title = 1. Acceptance of Terms
 acceptance-of-terms-content =
-    By accessing or using ShareSphere (“we”, “us”, or “the Website”), you agree to be bound by
-        these Terms and Conditions. If you do not agree, please do not use the Website.
+    En accédant ou en utilisant ShareSphere (« nous », « notre » ou « le Site »), vous acceptez d’être lié par ces Conditions Générales d’Utilisation.
+    Si vous n’êtes pas d’accord, veuillez ne pas utiliser le Site.
 
-description-of-service-title = 2. Description of Service
+description-of-service-title = 2. Description du service
 description-of-service-content =
-    ShareSphere provides an online platform for users to create, join, and participate in discussion forums.
+    ShareSphere fournit une plateforme en ligne permettant aux utilisateurs de créer, rejoindre et participer à des forums de discussion.
 
-user-responsibilities-title = 3. User Responsibilities
-user-responsibilities-1 = You agree not to:
-user-responsibilities-bullet-1 = Post illegal, harmful, offensive, or misleading content.
-user-responsibilities-bullet-2-1 = Infringe ShareSphere's{" "}
-user-responsibilities-bullet-2-2 = , ShareSphere's{" "}
-user-responsibilities-bullet-2-3 = {" "}and specific community rules.
-user-responsibilities-bullet-3 = Infringe on third-party rights, including copyright and data protection laws.
-user-responsibilities-bullet-4 = Use the site to distribute spam, malware, or phishing links.
-user-responsibilities-bullet-5 = Impersonate others or create multiple accounts for abuse.
-user-responsibilities-2 = You are solely responsible for all content you post.
+user-responsibilities-title = 3. Responsabilités des utilisateurs
+user-responsibilities-1 = Vous vous engagez à ne pas :
+user-responsibilities-bullet-1 = Publier du contenu illégal, nuisible, offensant ou trompeur.
+user-responsibilities-bullet-2-1 = Enfreindre les{" "}
+user-responsibilities-bullet-2-2 = {" "} et{" "}
+user-responsibilities-bullet-2-3 = {" "} de ShareSphere ainsi que les règles spécifiques à chaque communauté.
+user-responsibilities-bullet-3 = Porter atteinte aux droits de tiers, y compris les lois sur le droit d’auteur et la protection des données.
+user-responsibilities-bullet-4 = Utiliser le site pour diffuser du spam, des logiciels malveillants ou des liens de phishing.
+user-responsibilities-bullet-5 = Usurper l’identité d’autrui ou créer plusieurs comptes à des fins malicieuses ou abusives.
+user-responsibilities-2 = Vous êtes seul responsable de tout le contenu que vous publiez.
 
-moderation-title = 4. Moderation
+moderation-title = 4. Modération
 moderation-content =
-    We reserve the right to remove any content that violates these Terms or applicable laws and
-        to suspend or terminate user accounts without prior notice for misconduct.
+    Nous nous réservons le droit de supprimer tout contenu enfreignant ces Conditions ou les lois applicables,
+    et de suspendre ou résilier des comptes d’utilisateurs sans préavis en cas de manquement.
 
-intellectual-property-title = 5. Intellectual Property
+intellectual-property-title = 5. Propriété intellectuelle
 intellectual-property-content-1 =
-    All content on ShareSphere, except user submissions, is the property of ShareSphere and may not be used without permission.
+    Tout le contenu sur ShareSphere, à l’exception des contributions des utilisateurs, est la
+    propriété de ShareSphere et ne peut être utilisé sans autorisation.
 intellectual-property-content-2 =
-    By posting content, you grant us a non-exclusive, royalty-free, worldwide license to use, display, and distribute your content on the platform.
+    En publiant du contenu, vous nous accordez une licence non exclusive, libre de droits, mondiale,
+    permettant d'utiliser, d'afficher et de distribuer votre contenu sur la plateforme.
 
-liability-limitation-title = 6. Limitation of Liability
-liability-limitation-content = We do not guarantee uninterrupted access or error-free operation of the Website. We are not liable for:
-liability-limitation-bullet-1 = User-generated content.
-liability-limitation-bullet-2 = Loss of data, revenue, or reputation due to site use.
-liability-limitation-bullet-3 = Any third-party actions or links accessed through the platform.
+liability-limitation-title = 6. Limitation de responsabilité
+liability-limitation-content = Nous ne garantissons pas un accès ininterrompu ou un fonctionnement sans erreur du Site. Nous ne sommes pas responsables :
+liability-limitation-bullet-1 = Du contenu généré par les utilisateurs.
+liability-limitation-bullet-2 = De la perte de données, de revenus ou de réputation due à l’utilisation du site.
+liability-limitation-bullet-3 = Des actions de tiers ou des liens accessibles via la plateforme.
 
-data-protection-title = 7. Data Protection
-data-protection-content-1 = See our{" "}
+data-protection-title = 7. Protection des données
+data-protection-content-1 = Voir notre{" "}
 data-protection-content-2 = .
 
-amendments-title = 8. Amendments
+amendments-title = 8. Modifications
 amendments-content =
-    We may update these Terms at any time. You will be notified of significant changes.
-        Continued use of the Website means you accept the revised Terms.
+    Nous pouvons mettre à jour ces Conditions à tout moment. Vous serez informé de toute modification significative.
+    L’utilisation continue du Site signifie que vous acceptez les Conditions révisées.
 
-governing-law-title = 9. Governing Law
-governing-law-content = These Terms are governed by Swiss law. Jurisdiction: Zurich.
+governing-law-title = 9. Loi applicable
+governing-law-content = Ces Conditions sont régies par le droit suisse. Juridiction : Zurich.
 
-about-privacy-policy-title = 1. About ShareSphere's Privacy Policy
-about-privacy-policy-content = This Privacy Policy explains how we collect, use, and protect your personal data when you use ShareSphere.
+about-privacy-policy-content =
+    Cette Politique de Confidentialité explique comment nous collectons, utilisons et
+    protégeons vos données personnelles lorsque vous utilisez ShareSphere.
 
-data-collection-title = 2. Data ShareSphere Collects
-data-collection-content = ShareSphere collects the following information:
-data-collection-bullet-1 = Account data: username, email address, password (encrypted).
-data-collection-bullet-2 = IP address (for security).
-data-collection-bullet-3 = Any content you post.
-data-collection-bullet-4 = Cookies for functionality.
+data-collection-title = 2. Données collectées par ShareSphere
+data-collection-content = ShareSphere collecte les informations suivantes :
+data-collection-bullet-1 = Données de compte : nom d’utilisateur, adresse e-mail, mot de passe (chiffré).
+data-collection-bullet-2 = Adresse IP (à des fins de sécurité).
+data-collection-bullet-3 = Tout contenu que vous publiez.
+data-collection-bullet-4 = Cookies pour le fonctionnement du site.
 
-data-collect-purpose-title = 3. Purpose of Data Collection
-data-collect-purpose-content = ShareSphere uses your data to:
-data-collect-purpose-bullet-1 = Provide forum services.
-data-collect-purpose-bullet-2 = Ensure security and prevent abuse.
-data-collect-purpose-bullet-3 = Communicate with users.
-data-collect-purpose-bullet-4 = Analyze usage and improve the site.
+data-collect-purpose-title = 3. Finalité de la collecte de données
+data-collect-purpose-content = ShareSphere utilise vos données pour :
+data-collect-purpose-bullet-1 = Fournir les services de forum.
+data-collect-purpose-bullet-2 = Assurer la sécurité et prévenir les abus.
+data-collect-purpose-bullet-3 = Communiquer avec les utilisateurs.
+data-collect-purpose-bullet-4 = Analyser l’utilisation du site et l'améliorer.
 
-legal-basis-title = 4. Legal Basis
-legal-basis-content = ShareSphere processes personal data based on:
-legal-basis-bullet-1 = Your consent (e.g., when registering).
-legal-basis-bullet-2 = Our legitimate interest in running a secure forum.
-legal-basis-bullet-3 = Communicate with users.
-legal-basis-bullet-4 = Compliance with legal obligations.
+legal-basis-title = 4. Base légale
+legal-basis-content = ShareSphere traite les données personnelles sur la base de :
+legal-basis-bullet-1 = Votre consentement (par exemple, lors de l’inscription).
+legal-basis-bullet-2 = Notre intérêt légitime à gérer un forum sécurisé.
+legal-basis-bullet-3 = La communication avec les utilisateurs.
+legal-basis-bullet-4 = Le respect d'obligations légales.
 
 cookies-title = 5. Cookies
 cookies-content = ShareSphere uses cookies for:

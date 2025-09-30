@@ -4,6 +4,7 @@ submit = Soumettre
 create = Créer
 publish = Publier
 assign = Assigner
+save = Sauvegarder
 login = Se connecter
 search = Rechercher
 manage = Gérer
@@ -11,9 +12,11 @@ new = Nouveau
 join = Rejoindre
 close = Fermer
 
+users = Utilisateurs
 username = Nom d'utilisateur
 role = Rôle
 profile = Profile
+settings = Paramètres
 logout = Se déconnecter
 
 sphere = Sphère
@@ -67,13 +70,16 @@ trending = Tendance
 best = Top
 recent = Récent
 
+spheres = Sphères
 create-sphere = Coloniser une Sphère!
 create-satellite = Créer un Satellite
 edit-satellite = Modifier le Satellite
+posts = Postes
 share-post = Partage un poste!
 edit-post = Modifie ton poste
 delete-post = Supprimer le poste
 load-replies = Charger les réponses
+comments = Commentaires
 share-comment = Partager un commentaire
 edit-comment = Modifie ton commentaire
 your-comment = Ton commentaire...
@@ -88,6 +94,12 @@ single-comment-tree = Vue de commentaire. Retour au poste.
 
 until = Jusqu'à
 permanent = Permanent
+
+account = Compte utilisateur
+nsfw-profile = Profile NSFW
+show-nsfw = Afficher le contenu NSFW
+hide-spoiler-duration = Durée de bloquage des spoilers (jours)
+delete-account = Supprimer votre compte
 
 time-seconds-short = s
 time-minutes-short = m
@@ -207,7 +219,7 @@ origin-goals-1 =
     de la plupart des réseaux sociaux basés sur la publicité, estimant que ce modèle est incompatible avec une bonne expérience
     utilisateur et favorise des dérives néfastes pour la santé mentale des utilisateurs.
 origin-goals-2 =
-    Cela m’a donné l’idée d’essayer de construire une plateforme meilleure, à but non lucratif,
+    Cela m’a donné l’idée d’essayer de construire une meilleure plateforme, à but non lucratif,
     reposant sur des dons plutôt que sur la publicité, et axée sur la transparence.
     Être à but non lucratif et dépendre des dons est extrêmement important car cela permet
     de changer l'objectif du site. Au lieu d'inciter les utilisateurs à faire défiler le contenu
@@ -216,18 +228,18 @@ origin-goals-2 =
 origin-goals-3 =
     Dans une telle structure, la transparence est fondamentale, pour démontrer aux utilisateurs que leurs donations sont
     utilisées correctement et efficacement. ShareSphere s'engage à toujours publier la totalité des donations reçues ainsi
-    que la manière dont cet argent est utilisées, par exemple pour couvrir les coûts opérationels et des salaires. ShareSphere
+    que la manière dont cet argent est utilisée, par exemple pour couvrir les coûts opérationels et des salaires. ShareSphere
     est également en source libre, permettant à la communauté de savoir comment le site fonctionne et quelles informations sont collectées.
     Finalement, ShareSphere a pour but d'avoir une modération transparente, sans bannissements cachés ou suppressions de contenu inexpliquées.
 origin-goals-4 =
     Un autre objectif à long terme de ShareSphere est de donner plus de contrôle aux communautés, en leur permettant de sélectionner leurs modérateurs,
-    définir leurs règles et de s'appuyer sur les communautés pour lutter contre les bots et les utilisateurs malicieux. L'implémentation exacte de ces
-    mécanismes n'est pas encore définie mais l'idée de base est d'utiliser un système de vote donnant plus d'importances aux personnes contribuant fortement et
-    régulièrement à leur communauté, afin d'éviter le détournement de communautés par d'autres utilisateurs.
+    définir leurs règles et de contribuer à lutter contre les bots et les utilisateurs malicieux. L'implémentation exacte de ces
+    mécanismes n'est pas encore définie mais elle reposerait sur un système de vote donnant plus d'importances aux personnes contribuant fortement et
+    régulièrement à leur communauté, de manière à éviter le détournement de communautés par d'autres utilisateurs.
 origin-goals-5 =
     ShareSphere en est encore à ses premiers pas et des fonctionnalités supplémentaires apparaîtront dans le future, tel que des messages privés,
     de meilleures outils de modération, des filtres et paramètres supplémentaires et encore bien d'autres choses. J'espère que vous apprécierez
-    ShareSphere et que vous nous aiderez à en faire la meilleure plateforme possible.
+    ShareSphere et que vous nous aiderez à en faire la meilleure plateforme possible !
 
 rules-intro =
     ShareSphere est une plateforme collaborative qui repose sur des contributions de qualité de la part de ses utilisateurs pour prospérer.
@@ -241,27 +253,27 @@ acceptance-of-terms-content =
     En accédant ou en utilisant ShareSphere (« nous », « notre » ou « le Site »), vous acceptez d’être lié par ces Conditions Générales d’Utilisation.
     Si vous n’êtes pas d’accord, veuillez ne pas utiliser le Site.
 
-description-of-service-title = 2. Description du service
+description-of-service-title = 1. Description du service
 description-of-service-content =
     ShareSphere fournit une plateforme en ligne permettant aux utilisateurs de créer, rejoindre et participer à des forums de discussion.
 
-user-responsibilities-title = 3. Responsabilités des utilisateurs
+user-responsibilities-title = 2. Responsabilités des utilisateurs
 user-responsibilities-1 = Vous vous engagez à ne pas :
 user-responsibilities-bullet-1 = Publier du contenu illégal, nuisible, offensant ou trompeur.
 user-responsibilities-bullet-2-1 = Enfreindre les{" "}
-user-responsibilities-bullet-2-2 = {" "} et{" "}
+user-responsibilities-bullet-2-2 = {" "} et la{" "}
 user-responsibilities-bullet-2-3 = {" "} de ShareSphere ainsi que les règles spécifiques à chaque communauté.
 user-responsibilities-bullet-3 = Porter atteinte aux droits de tiers, y compris les lois sur le droit d’auteur et la protection des données.
 user-responsibilities-bullet-4 = Utiliser le site pour diffuser du spam, des logiciels malveillants ou des liens de phishing.
 user-responsibilities-bullet-5 = Usurper l’identité d’autrui ou créer plusieurs comptes à des fins malicieuses ou abusives.
 user-responsibilities-2 = Vous êtes seul responsable de tout le contenu que vous publiez.
 
-moderation-title = 4. Modération
+moderation-title = 3. Modération
 moderation-content =
     Nous nous réservons le droit de supprimer tout contenu enfreignant ces Conditions ou les lois applicables,
     et de suspendre ou résilier des comptes d’utilisateurs sans préavis en cas de manquement.
 
-intellectual-property-title = 5. Propriété intellectuelle
+intellectual-property-title = 4. Propriété intellectuelle
 intellectual-property-content-1 =
     Tout le contenu sur ShareSphere, à l’exception des contributions des utilisateurs, est la
     propriété de ShareSphere et ne peut être utilisé sans autorisation.
@@ -269,63 +281,63 @@ intellectual-property-content-2 =
     En publiant du contenu, vous nous accordez une licence non exclusive, libre de droits, mondiale,
     permettant d'utiliser, d'afficher et de distribuer votre contenu sur la plateforme.
 
-liability-limitation-title = 6. Limitation de responsabilité
+liability-limitation-title = 5. Limitation de responsabilité
 liability-limitation-content = Nous ne garantissons pas un accès ininterrompu ou un fonctionnement sans erreur du Site. Nous ne sommes pas responsables :
 liability-limitation-bullet-1 = Du contenu généré par les utilisateurs.
 liability-limitation-bullet-2 = De la perte de données, de revenus ou de réputation due à l’utilisation du site.
 liability-limitation-bullet-3 = Des actions de tiers ou des liens accessibles via la plateforme.
 
-data-protection-title = 7. Protection des données
+data-protection-title = 6. Protection des données
 data-protection-content-1 = Voir notre{" "}
 data-protection-content-2 = .
 
-amendments-title = 8. Modifications
+amendments-title = 7. Modifications
 amendments-content =
     Nous pouvons mettre à jour ces Conditions à tout moment. Vous serez informé de toute modification significative.
     L’utilisation continue du Site signifie que vous acceptez les Conditions révisées.
 
-governing-law-title = 9. Loi applicable
+governing-law-title = 8. Loi applicable
 governing-law-content = Ces Conditions sont régies par le droit suisse. Juridiction : Zurich.
 
 about-privacy-policy-content =
     Cette Politique de Confidentialité explique comment nous collectons, utilisons et
     protégeons vos données personnelles lorsque vous utilisez ShareSphere.
 
-data-collection-title = 2. Données collectées par ShareSphere
+data-collection-title = 1. Données collectées par ShareSphere
 data-collection-content = ShareSphere collecte les informations suivantes :
 data-collection-bullet-1 = Données de compte : nom d’utilisateur, adresse e-mail, mot de passe (chiffré).
 data-collection-bullet-2 = Adresse IP (à des fins de sécurité).
 data-collection-bullet-3 = Tout contenu que vous publiez.
 data-collection-bullet-4 = Cookies pour le fonctionnement du site.
 
-data-collect-purpose-title = 3. Finalité de la collecte de données
+data-collect-purpose-title = 2. Finalité de la collecte de données
 data-collect-purpose-content = ShareSphere utilise vos données pour :
 data-collect-purpose-bullet-1 = Fournir les services de forum.
 data-collect-purpose-bullet-2 = Assurer la sécurité et prévenir les abus.
 data-collect-purpose-bullet-3 = Communiquer avec les utilisateurs.
 data-collect-purpose-bullet-4 = Analyser l’utilisation du site et l'améliorer.
 
-legal-basis-title = 4. Base légale
+legal-basis-title = 3. Base légale
 legal-basis-content = ShareSphere traite les données personnelles sur la base de :
 legal-basis-bullet-1 = Votre consentement (par exemple, lors de l’inscription).
 legal-basis-bullet-2 = Notre intérêt légitime à gérer un forum sécurisé.
 legal-basis-bullet-3 = La communication avec les utilisateurs.
 legal-basis-bullet-4 = Le respect d'obligations légales.
 
-cookies-title = 5. Cookies
+cookies-title = 4. Cookies
 cookies-content = ShareSphere utilise des cookies pour :
 cookies-bullet-1 = Les informations liées à votre session.
 cookies-bullet-2 = Vos préférences linguistiques.
 
-data-sharing-title = 6. Partage des données
+data-sharing-title = 5. Partage des données
 data-sharing-content = ShareSphere s'engage à ne jamais vendre vos données. Si nécessaire, ShareSphere pourrait partager vos données avec :
 data-sharing-bullet-1 = Les autorités.
 data-sharing-bullet-2 =  Les fournisseurs d’hébergement.
 
-data-storage-title = 7. Stockage des données
+data-storage-title = 6. Stockage des données
 data-storage-content = ShareSphere stocke ses données sur des serveurs situés en Suisse, conformément aux pratiques standards de chiffrement et de sécurité.
 
-user-rights-title = 8. Vos droits
+user-rights-title = 7. Vos droits
 user-rights-content = Vous avez le droit de :
 user-rights-bullet-1 = Accéder à vos données personnelles.
 user-rights-bullet-2 = Demander une correction ou une suppression.
@@ -333,13 +345,13 @@ user-rights-bullet-3 = Révoquer votre consentement à tout moment.
 user-rights-bullet-4 = Déposer une plainte auprès du Préposé fédéral à la protection des données et à la transparence (PFPDT).
 user-rights-contact = Pour exercer ces droits, envoyez-nous un e-mail à l’adresse help@sharesphere.space.
 
-policy-change-title = 9. Modifications de cette politique
+policy-change-title = 8. Modifications de cette politique
 policy-change-content = Nous pouvons mettre à jour cette Politique de Confidentialité. Nous vous informerons des modifications significatives.
 
 markdown-help-1 = Pour formatter votre contenu, le mode 'Markdown' doit être activé avec le bouton suivant:{" "}
 markdown-help-2 = Quand le mode 'Markdown' est activé, votre saisie sera interprété avec le format{" "}
 markdown-help-3 =
-     (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée.
+    (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée.
     Des boutons de formatage rapide sont également disponibles pour que vous n'ayez pas à mémoriser la syntaxe GFM !
     Finalement, le formatage 'Spoiler' peut être généré en ajoutant '||' de chaque côté de votre texte ou
     en le sélectionnant et en cliquant le bouton de formatage 'Spoiler':{" "}
@@ -351,7 +363,7 @@ copy-link-to-clipboard-message = Lien copié dans le presse-papiers.
 clipboard-error-message = API presse-papiers non-supporté par votre navigateur.
 
 delete-warning = Cette action est irréversible.
-unavailable = Unavailable
+unavailable = Indisponible
 
 internal-error-message = Une erreur s'est produite.
 not-authenticated-message = Prière de vous authentifier.

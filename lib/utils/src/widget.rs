@@ -156,6 +156,8 @@ pub fn Dropdown<C: IntoView + 'static>(
 fn QueryTab(
     query_param: &'static str,
     query_value: &'static str,
+    #[prop(into)]
+    query_display: Signal<String>,
     is_selected: Signal<bool>,
 ) -> impl IntoView {
     let tab_class = move || match is_selected.get() {
@@ -166,7 +168,7 @@ fn QueryTab(
         <Form method="GET" action="" attr:class="w-full">
             <input type="search" class="hidden" name=query_param value=query_value/>
             <button type="submit" class=tab_class>
-                {query_value}
+                {query_display}
             </button>
         </Form>
     }
@@ -180,7 +182,7 @@ fn QueryTabs<I, T>(
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T>,
-    T: Copy + Default + FromStr + Into<&'static str> + IntoEnumIterator + PartialEq + Send + Sync + 'static
+    T: Copy + Default + FromStr + Into<&'static str> + Into<Signal<String>> + IntoEnumIterator + PartialEq + Send + Sync + 'static
 {
     let query = use_query_map();
     let selected_enum = Signal::derive(move || T::from_str(&query.read().get(query_param).unwrap_or_default()).unwrap_or_default());
@@ -190,8 +192,9 @@ where
             // TODO try styling first and last element differently
             query_enum_iter.into_iter().map(|enum_value| {
                 let is_selected = Signal::derive(move || selected_enum.get() == enum_value);
+                let query_display: Signal<String> = enum_value.into();
                 view! {
-                    <QueryTab query_param query_value=enum_value.into() is_selected/>
+                    <QueryTab query_param query_value=enum_value.into() query_display is_selected/>
                 }
             }.into_any()).collect_view()
         }
@@ -229,7 +232,7 @@ pub fn EnumQueryTabs<I, T>(
 ) -> impl IntoView
 where
     I: IntoIterator<Item = T> + Clone + Send + Sync + 'static,
-    T: Copy + Default + FromStr + Into<&'static str> + Copy + Default + IntoEnumIterator + PartialEq + ToView + Send + Sync + 'static
+    T: Copy + Default + FromStr + Into<&'static str> + Into<Signal<String>> + IntoEnumIterator + PartialEq + ToView + Send + Sync + 'static
 {
     let _enum_type = PhantomData::<T>;
     view! {

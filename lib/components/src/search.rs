@@ -1,6 +1,7 @@
 use leptos::either::{Either, EitherOf4};
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::components::Form;
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,7 @@ use sharesphere_utils::routes::{SEARCH_ROUTE, SEARCH_TAB_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
 
 use sharesphere_utils::widget::{EnumQueryTabs, ToView};
-use crate::profile::UserHeaderLink;
+use crate::profile::{UserHeaderLink};
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum SearchType {
@@ -37,6 +38,17 @@ pub enum SphereSearchType {
     Comments,
 }
 
+impl Into<Signal<String>> for SearchType {
+    fn into(self) -> Signal<String> {
+        match self {
+            SearchType::Spheres => move_tr!("spheres"),
+            SearchType::Posts => move_tr!("posts"),
+            SearchType::Comments => move_tr!("comments"),
+            SearchType::Users => move_tr!("users"),
+        }
+    }
+}
+
 impl ToView for SearchType {
     fn to_view(self) -> impl IntoView + 'static {
         match self {
@@ -44,6 +56,15 @@ impl ToView for SearchType {
             SearchType::Posts => EitherOf4::B(view! { <SearchPosts/> }),
             SearchType::Comments => EitherOf4::C(view! { <SearchComments/> }),
             SearchType::Users => EitherOf4::D(view! { <SearchUsers/> }),
+        }
+    }
+}
+
+impl Into<Signal<String>> for SphereSearchType {
+    fn into(self) -> Signal<String> {
+        match self {
+            SphereSearchType::Posts => move_tr!("posts"),
+            SphereSearchType::Comments => move_tr!("comments"),
         }
     }
 }

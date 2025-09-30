@@ -1,5 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::hooks::{use_params_map};
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use serde::{Deserialize, Serialize};
@@ -40,11 +41,30 @@ pub enum SelfProfileTabs {
     Settings,
 }
 
+impl Into<Signal<String>> for ProfileTabs {
+    fn into(self) -> Signal<String> {
+        match self {
+            ProfileTabs::Posts => move_tr!("posts"),
+            ProfileTabs::Comments => move_tr!("comments"),
+        }
+    }
+}
+
 impl ToView for ProfileTabs {
     fn to_view(self) -> impl IntoView + 'static {
         match self {
             ProfileTabs::Posts => view! { <UserPosts/> }.into_any(),
             ProfileTabs::Comments => view! { <UserComments/> }.into_any(),
+        }
+    }
+}
+
+impl Into<Signal<String>> for SelfProfileTabs {
+    fn into(self) -> Signal<String> {
+        match self {
+            SelfProfileTabs::Posts => move_tr!("posts"),
+            SelfProfileTabs::Comments => move_tr!("comments"),
+            SelfProfileTabs::Settings => move_tr!("settings"),
         }
     }
 }
@@ -224,10 +244,10 @@ pub fn UserSettings() -> impl IntoView {
                     };
                     view! {
                         <ActionForm action=state.set_settings_action attr:class="flex flex-col gap-3">
-                            <LabeledFormCheckbox name="is_nsfw" label="NSFW profile" value=is_nsfw/>
-                            <LabeledFormCheckbox name="show_nsfw" label="Show NSFW" value=show_nsfw/>
+                            <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-profile") value=is_nsfw/>
+                            <LabeledFormCheckbox name="show_nsfw" label=move_tr!("show-nsfw") value=show_nsfw/>
                             <div class="flex justify-between items-center">
-                                "Hide spoilers duration (days)"
+                                move_tr!("hide-spoiler-duration")
                                 <input
                                     type="number"
                                     min="0"
@@ -239,7 +259,7 @@ pub fn UserSettings() -> impl IntoView {
                                 />
                             </div>
                             <button type="submit" class="button-secondary">
-                                "Save"
+                                {move_tr!("save")}
                             </button>
                         </ActionForm>
                         <ActionError action=state.set_settings_action.into()/>
@@ -265,15 +285,15 @@ pub fn DeleteUserButton() -> impl IntoView {
             class="button-error"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
-            "Delete your account"
+            {move_tr!("delete-account")}
         </button>
         <ModalDialog
             class="w-full max-w-lg"
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-                <div class="text-center font-bold text-2xl">"Delete your account"</div>
-                <div class="text-center font-bold text-xl">"This cannot be undone."</div>
+                <div class="text-center font-bold text-2xl">{move_tr!("delete-account")}</div>
+                <div class="text-center font-bold text-xl">{move_tr!("delete-warning")}</div>
                 <ActionForm action=state.delete_user_action>
                     <ModalFormButtons
                         disable_publish=false
@@ -294,7 +314,7 @@ pub fn UserAccountButton() -> impl IntoView {
         <ActionForm action=navigate_to_account_action attr:class="flex justify-center items-center">
             <button type="submit" class="button-primary flex items-center gap-2">
                 <UserSettingsIcon/>
-                "Account"
+                {move_tr!("account")}
             </button>
         </ActionForm>
     }

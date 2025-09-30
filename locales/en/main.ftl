@@ -4,6 +4,7 @@ submit = Submit
 create = Create
 publish = Publish
 assign = Assign
+save = Save
 login = Login
 search = Search
 manage = Manage
@@ -11,9 +12,11 @@ new = New
 join = Join
 close = Close
 
+users = Users
 username = Username
 role = Role
 profile = Profile
+settings = Settings
 logout = Logout
 
 sphere = Sphere
@@ -67,13 +70,16 @@ trending = Trending
 best = Best
 recent = Recent
 
+spheres = Spheres
 create-sphere = Settle a Sphere!
 create-satellite = Create a Satellite
 edit-satellite = Edit Satellite
+posts = Posts
 share-post = Share a post!
 edit-post = Edit your post
 delete-post = Delete post
 load-replies = Load replies
+comments = Comments
 share-comment = Share a comment
 edit-comment = Edit your comment
 your-comment = Your comment...
@@ -88,6 +94,12 @@ single-comment-tree = Single comment tree view. Back to post.
 
 until = Until
 permanent = Permanent
+
+account = User account
+nsfw-profile = NSFW profile
+show-nsfw = Show NSFW content
+hide-spoiler-duration = Hide spoilers duration (days)
+delete-account = Delete your account
 
 time-seconds-short = s
 time-minutes-short = m
@@ -207,11 +219,11 @@ origin-goals-3 =
     functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal.
 origin-goals-4 =
     Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and
-    leverage their help to deal with bots and bad actors. The exact implementation of these mechanisms is not yet defined but the basic idea is to have a vote
+    leverage their help to deal with bots and bad actors. The exact implementation of these mechanisms is not yet defined but the general idea is to have a vote
     based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked.
 origin-goals-5 =
     ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters
-    and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform.
+    and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform!
 
 rules-intro =
     ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive.
@@ -271,41 +283,41 @@ governing-law-content = These Terms are governed by Swiss law. Jurisdiction: Zur
 
 about-privacy-policy-content = This Privacy Policy explains how we collect, use, and protect your personal data when you use ShareSphere.
 
-data-collection-title = 2. Data ShareSphere Collects
+data-collection-title = 1. Data ShareSphere Collects
 data-collection-content = ShareSphere collects the following information:
 data-collection-bullet-1 = Account data: username, email address, password (encrypted).
 data-collection-bullet-2 = IP address (for security).
 data-collection-bullet-3 = Any content you post.
 data-collection-bullet-4 = Cookies for functionality.
 
-data-collect-purpose-title = 3. Purpose of Data Collection
+data-collect-purpose-title = 2. Purpose of Data Collection
 data-collect-purpose-content = ShareSphere uses your data to:
 data-collect-purpose-bullet-1 = Provide forum services.
 data-collect-purpose-bullet-2 = Ensure security and prevent abuse.
 data-collect-purpose-bullet-3 = Communicate with users.
 data-collect-purpose-bullet-4 = Analyze usage and improve the site.
 
-legal-basis-title = 4. Legal Basis
+legal-basis-title = 3. Legal Basis
 legal-basis-content = ShareSphere processes personal data based on:
 legal-basis-bullet-1 = Your consent (e.g., when registering).
 legal-basis-bullet-2 = Our legitimate interest in running a secure forum.
 legal-basis-bullet-3 = Communicate with users.
 legal-basis-bullet-4 = Compliance with legal obligations.
 
-cookies-title = 5. Cookies
+cookies-title = 4. Cookies
 cookies-content = ShareSphere uses cookies for:
 cookies-bullet-1 = Login sessions.
 cookies-bullet-2 = Language préférences.
 
-data-sharing-title = 6. Data Sharing
+data-sharing-title = 5. Data Sharing
 data-sharing-content = ShareSphere will never sell your data. If required, ShareSphere might share your data with:
 data-sharing-bullet-1 = Authorities.
 data-sharing-bullet-2 = Hosting providers.
 
-data-storage-title = 7. Data Storage
+data-storage-title = 6. Data Storage
 data-storage-content = ShareSphere stores data on server located in Switzerland following industry-standard encryption and security practices.
 
-user-rights-title = 8. Your rights
+user-rights-title = 7. Your rights
 user-rights-content = You have the right to:
 user-rights-bullet-1 = Access your personal data.
 user-rights-bullet-2 = Request correction or deletion.
@@ -313,13 +325,13 @@ user-rights-bullet-3 = Withdraw consent at any time.
 user-rights-bullet-4 = Lodge a complaint with the Swiss Federal Data Protection and Information Commissioner (FDPIC).
 user-rights-contact = To exercise these rights, email us at help@sharesphere.space
 
-policy-change-title = 9. Changes to This Policy
+policy-change-title = 8. Changes to This Policy
 policy-change-content = We may update this Privacy Policy. We will notify you of significant changes.
 
 markdown-help-1 = To add formatting to your content, the 'Markdown' mode must be activated with the following button:{" "}
 markdown-help-2 = When the 'Markdown' mode is activated, your input will be parsed using{" "}
 markdown-help-3 =
-     (with the addition of 'Spoilers') and a preview of your content will be displayed.
+    (with the addition of 'Spoilers') and a preview of your content will be displayed.
     Quick-format buttons are also available so that you don't need to remember the GFM syntax!
     Finally, 'Spoiler' formatting can be generated by adding '||' on both side of your text or
     by selecting it and using the 'Spoiler' quick format button:{" "}

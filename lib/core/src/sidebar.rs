@@ -142,12 +142,8 @@ pub fn HomeSidebar() -> impl IntoView {
         <div class=sidebar_class node_ref=sidebar_ref>
             <h1 class="text-xl font-semibold text-center">{move_tr!("welcome-to-sharesphere")}</h1>
             <div class="flex flex-col gap-2">
-                <p class="text-justify">
-                    {move_tr!("sharesphere-right-sidebar-1")}
-                </p>
-                <p class="text-justify">
-                    {move_tr!("sharesphere-right-sidebar-2")}
-                </p>
+                <p>{move_tr!("sharesphere-right-sidebar-1")}</p>
+                <p>{move_tr!("sharesphere-right-sidebar-2")}</p>
             </div>
             <ul class="list-disc list-inside">
                 <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">{move_tr!("about-sharesphere")}</a></li>

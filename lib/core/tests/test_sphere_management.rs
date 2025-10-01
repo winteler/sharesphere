@@ -16,6 +16,7 @@ use sharesphere_auth::role::AdminRole;
 use sharesphere_auth::user::User;
 use sharesphere_core::moderation::ssr::{ban_user_from_sphere, moderate_post};
 use sharesphere_core::post::PostTags;
+use sharesphere_core::rule::BaseRule;
 use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_utils::embed::Link;
 use sharesphere_utils::errors::AppError;
@@ -219,7 +220,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     let banned_user = create_user("banned", &db_pool).await;
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(None, 0, "test", "test", None, &admin, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(None, 0, BaseRule::BeRespectful.into(), "test", None, &admin, &db_pool).await.expect("Rule should be added.");
 
     // unauthorized used cannot ban
     assert!(ban_user_from_sphere(banned_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &unauthorized_user, None, &db_pool).await.is_err());

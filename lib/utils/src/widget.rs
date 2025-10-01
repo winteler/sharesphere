@@ -465,7 +465,8 @@ pub fn ShareButton(
 /// Displays the body of a content given as input with correct styling for markdown
 #[component]
 pub fn ContentBody(
-    body: String,
+    #[prop(into)]
+    body: Signal<String>,
     is_markdown: bool,
 ) -> impl IntoView {
     let class = match is_markdown {

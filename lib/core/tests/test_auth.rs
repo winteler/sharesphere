@@ -42,7 +42,7 @@ async fn test_user_get() -> Result<(), AppError> {
     admin.admin_role = AdminRole::Admin;
 
     // Create common rule to enable bans
-    let rule = add_rule(None, 0, "test", "test", None, &admin, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(None, 0, "BeRespectful", "test", None, &admin, &db_pool).await.expect("Rule should be added.");
 
     let (sphere_a, _post_a) = create_sphere_with_post("a", &mut creator_user, &db_pool).await;
     let (sphere_b, _post_b) = create_sphere_with_post("b", &mut creator_user, &db_pool).await;

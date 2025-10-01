@@ -161,6 +161,32 @@ sensitive-content-title = Contenu sensible
 mature-content-title = Contenu pour adultes
 spoiler-content-title = Contenu spoiler
 
+rule-respectful-title = Soyez respectueux·se et bienveillant·e
+rule-respectful-description =
+    Traitez tous les membres de la communauté avec respect. Les débats constructifs et les opinions divergentes sont les bienvenus,
+    mais les attaques personnelles, les insultes ou les comportements hostiles ne seront pas tolérés.
+
+    Efforcez-vous toujours de contribuer de manière positive et faites de ShareSphere un espace où chacun·e se sent en sécurité pour participer.
+
+rule-respect-rules-title = Respectez les règles de la communauté et labellisez vos publications
+rule-respect-rules-description =
+    <p>Publiez dans les communautés appropriées et respectez leurs règles. Utilisez le titre, des tags et des catégories précis pour aider les autres à comprendre le sujet de votre publication.
+    Contribuez de bonne foi et avec pertinance aux sujets qui vous intéressent vraiment – cela permet de maintenir les communautés organisées, pertinentes et accueillantes pour tou·te·s<br>
+    <br>
+    Par ailleurs, les contenus réservés à un public adulte (explicites, graphiques, violents ou offensants) ainsi que les spoilers doivent être signalés respectivement comme <strong>NSFW</strong> et <strong>Spoiler</strong>. Pour plus de détails, consultez notre <a href="/content_policy" class="link text-primary">Politique de contenu</a>.</p>
+
+rule-no-illegal-content-title =  Pas de contenus illégaux ou malveillants
+rule-no-illegal-content-description =
+    <p>Tout contenu illégal, incitant à des actes ou transactions illégales, ou visant à nuire ou à impacter négativement d’autres utilisateur·rice·s est strictement interdit. Pour plus de détails, consultez notre <a href="/content_policy" class="link text-primary">Politique de contenu</a>.<br>
+    <br>
+    Le non-respect de cette règle entraînera la suppression immédiate du contenu et un bannissement définitif. Selon la gravité de l’infraction, elle pourra également être signalée aux autorités compétentes.</p>
+
+rule-platform-integrity-title = Ne compromettez pas l’intégrité de la plateforme
+rule-platform-integrity-description =
+    N’engagez aucune action susceptible de nuire, perturber ou sapper la plateforme ou ses utilisateur·rice·s. Cela inclut (sans s’y limiter) : l’insertion de code malveillant, l’exploitation de failles, le contournement de bannissements ou de mesures de sécurité ou l’aide à autrui pour commettre ces actes.
+
+    Ne tentez pas de tromper les utilisateur·rice·s, de manipuler les systèmes de votes ou de réputation, ni de rendre le site difficile à utiliser via du spam, du flood ou des comportements perturbateurs. Préservez un environnement sûr, équitable et accessible pour tou·te·s.
+
 content-policy-intro =
     Pour guarantir une bonne expérience sur ShareSphere, il est vital d'exclure les contenus illégaux, malicieux et
     autres contenus problématiques. De plus, les contenus sensibles doivent être labellisés correctement. Cette page

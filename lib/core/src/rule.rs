@@ -1,6 +1,10 @@
+use std::str::FromStr;
 use leptos::either::Either;
 use leptos::prelude::*;
+use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString, IntoStaticStr};
+
 use sharesphere_utils::errors::{AppError, ErrorDisplay};
 
 #[cfg(feature = "ssr")]
@@ -17,6 +21,14 @@ use sharesphere_utils::icons::LoadingIcon;
 use sharesphere_utils::widget::{Collapse, ContentBody};
 use crate::state::GlobalState;
 
+#[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq)]
+pub enum BaseRule {
+    BeRespectful,
+    RespectRules,
+    NoIllegalContent,
+    PlatformIntegrity,
+}
+
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Rule {
@@ -31,6 +43,26 @@ pub struct Rule {
     pub user_id: i64,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+impl BaseRule {
+    pub fn get_fluent_title(self) -> Signal<String> {
+        match self {
+            BaseRule::BeRespectful => move_tr!("rule-respectful-title"),
+            BaseRule::RespectRules => move_tr!("rule-respect-rules-title"),
+            BaseRule::NoIllegalContent => move_tr!("rule-no-illegal-content-title"),
+            BaseRule::PlatformIntegrity => move_tr!("rule-platform-integrity-title"),
+        }
+    }
+
+    pub fn get_fluent_description(self) -> Signal<String> {
+        match self {
+            BaseRule::BeRespectful => move_tr!("rule-respectful-description"),
+            BaseRule::RespectRules => move_tr!("rule-respect-rules-description"),
+            BaseRule::NoIllegalContent => move_tr!("rule-no-illegal-content-description"),
+            BaseRule::PlatformIntegrity => move_tr!("rule-platform-integrity-description"),
+        }
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -350,10 +382,21 @@ pub fn BaseRuleList() -> impl IntoView {
 pub fn RuleList(
     rule_vec: Vec<Rule>
 ) -> impl IntoView {
-    let rule_elems = rule_vec.iter().enumerate().map(|(index, rule)| {
-        let description = StoredValue::new(rule.description.clone());
+    let rule_elems = rule_vec.into_iter().enumerate().map(|(index, rule)| {
         let is_markdown = rule.markdown_description.is_some();
-        let title = rule.title.clone();
+        let is_base_rule = rule.sphere_id.is_none();
+
+        let title = match is_base_rule {
+            true => BaseRule::from_str(&rule.title).unwrap().get_fluent_title(),
+            false => {
+                let title = rule.title.clone();
+                Signal::derive(move || title.clone())
+            },
+        };
+        let description = match is_base_rule {
+            true => BaseRule::from_str(&rule.title).unwrap().get_fluent_description(),
+            false => Signal::derive(move || rule.description.clone()),
+        };
         let title_view = move || view! {
             <div class="flex gap-2">
                 <div>{index+1}</div>
@@ -365,7 +408,7 @@ pub fn RuleList(
                 title_view
                 is_open=false
             >
-                <ContentBody body=description.get_value() is_markdown/>
+                <ContentBody body=description is_markdown/>
             </Collapse>
         }
     }).collect_view();

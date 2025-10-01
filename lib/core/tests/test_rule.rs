@@ -2,6 +2,7 @@ use sharesphere_core::rule::ssr::{get_rule_vec, load_rule_by_id};
 use sharesphere_core::sphere::ssr::create_sphere;
 use sharesphere_auth::role::AdminRole;
 use sharesphere_auth::user::User;
+use sharesphere_core::rule::BaseRule;
 use sharesphere_core::rule::ssr::{add_rule, remove_rule, update_rule};
 use sharesphere_utils::errors::AppError;
 
@@ -22,7 +23,7 @@ async fn test_get_rule_by_id() -> Result<(), AppError> {
     let expected_common_rule = add_rule(
         None,
         0,
-        "common",
+        BaseRule::BeRespectful.into(),
         "0",
         None,
         &admin,
@@ -58,8 +59,8 @@ async fn test_get_rule_vec() -> Result<(), AppError> {
     let sphere_2 = create_sphere("2", "b", false, &user, &db_pool).await?;
     let user = User::get(user.user_id, &db_pool).await.expect("User should be loaded after sphere creation");
 
-    let common_rule_1 = add_rule(None, 0, "common", "0", None, &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_2 = add_rule(None, 3, "common", "0", Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_1 = add_rule(None, 0, BaseRule::BeRespectful.into(), "0", None, &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = add_rule(None, 3, BaseRule::NoIllegalContent.into(), "0", Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
     let sphere_1_rule_1 = add_rule(
         Some(&sphere_1.sphere_name), 1, "sphere_1_rule_1", "test", None, &user, &db_pool
     ).await.expect("Rule should be created.");
@@ -101,7 +102,7 @@ async fn test_add_rule() -> Result<(), AppError> {
     let sphere = create_sphere("sphere", "a", false, &lead, &db_pool).await?;
     let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after sphere creation");
 
-    let title = "title";
+    let title = BaseRule::BeRespectful.into();
     let description = "description";
 
     assert_eq!(add_rule(None, 0, title, description, None, &user, &db_pool).await, Err(AppError::InsufficientPrivileges));
@@ -157,14 +158,14 @@ async fn test_update_rule() -> Result<(), AppError> {
     let sphere = create_sphere("sphere", "a", false, &lead, &db_pool).await?;
     let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after sphere creation");
 
-    let title = "title";
+    let title: &str = BaseRule::BeRespectful.into();
     let description = "description";
-    let updated_title = "updated";
+    let updated_title = BaseRule::PlatformIntegrity.into();
     let updated_desc = "updated";
 
     let common_rule_1 = add_rule(None, 0, title, description, None, &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_2 = add_rule(None, 1, "common", "0", None, &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_3 = add_rule(None, 2, "common", "0", Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = add_rule(None, 1, BaseRule::RespectRules.into(), "0", None, &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_3 = add_rule(None, 2, BaseRule::RespectRules.into(), "0", Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
     let rule_1 = add_rule(Some(&sphere.sphere_name), 0, title, description, None, &lead, &db_pool).await.expect("Rule should be created.");
     let rule_2 = add_rule(Some(&sphere.sphere_name), 1, title, description, None, &admin, &db_pool).await.expect("Rule should be created.");
     let rule_3 = add_rule(Some(&sphere.sphere_name), 2, title, description, Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
@@ -223,11 +224,11 @@ async fn test_remove_rule() -> Result<(), AppError> {
     let sphere = create_sphere("sphere", "a", false, &lead, &db_pool).await?;
     let lead = User::get(lead.user_id, &db_pool).await.expect("User should be loaded after sphere creation");
 
-    let title = "title";
+    let title: &str = BaseRule::BeRespectful.into();
     let description = "description";
 
     let _common_rule_1 = add_rule(None, 0, title, description, None, &admin, &db_pool).await.expect("Rule should be created.");
-    let common_rule_2 = add_rule(None, 1, "common", "0", Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
+    let common_rule_2 = add_rule(None, 1, BaseRule::RespectRules.into(), "0", Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
     let _rule_1 = add_rule(Some(&sphere.sphere_name), 0, title, description, None, &lead, &db_pool).await.expect("Rule should be created.");
     let rule_2 = add_rule(Some(&sphere.sphere_name), 1, title, description, Some("md"), &admin, &db_pool).await.expect("Rule should be created.");
 

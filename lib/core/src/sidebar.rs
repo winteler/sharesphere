@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use leptos::html::Div;
-use leptos_fluent::{move_tr};
+use leptos_fluent::{move_tr, I18n};
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
 
@@ -64,6 +64,36 @@ pub fn BaseLinks() -> impl IntoView {
     }
 }
 
+#[component]
+fn LanguageSelector() -> impl IntoView {
+    // `expect_context::<leptos_fluent::I18n>()` to get the i18n context
+    // `i18n.languages` exposes a static array with the available languages
+    // `i18n.language.get()` to get the active language
+    // `i18n.language.set(lang)` to set the active language
+
+    let i18n = expect_context::<I18n>();
+
+    view! {
+        <select
+            class="select_input"
+        >
+        {
+            i18n.languages.iter().map(|lang| {
+                view! {
+                    <option
+                        value=lang
+                        selected=&i18n.language.get() == lang
+                        on:click=move |_| i18n.language.set(lang)
+                    >
+                        {lang.name}
+                    </option>
+                }
+            }).collect_view()
+        }
+        </select>
+    }
+}
+
 /// Left sidebar component
 #[component]
 pub fn LeftSidebar() -> impl IntoView {
@@ -99,23 +129,26 @@ pub fn LeftSidebar() -> impl IntoView {
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
-            <BaseLinks/>
-            <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
-                <SphereLinkListCollapse
-                    title=move_tr!("subscribed")
-                    sphere_header_vec=sphere_header_vec.clone()
-                />
-            </TransitionUnpack>
-            <TransitionUnpack resource=popular_sphere_vec_resource let:popular_sphere_header_vec>
-                <SphereLinkListCollapse
-                    title=move_tr!("popular")
-                    sphere_header_vec=popular_sphere_header_vec.clone()
-                    is_open=false
-                />
-            </TransitionUnpack>
-            <div class="flex flex-col gap-2 pt-4 max-h-124">
-                <SearchSpheres search_state class="w-full gap-2" autofocus=false/>
+            <div class="flex flex-col">
+                <BaseLinks/>
+                <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
+                    <SphereLinkListCollapse
+                        title=move_tr!("subscribed")
+                        sphere_header_vec=sphere_header_vec.clone()
+                    />
+                </TransitionUnpack>
+                <TransitionUnpack resource=popular_sphere_vec_resource let:popular_sphere_header_vec>
+                    <SphereLinkListCollapse
+                        title=move_tr!("popular")
+                        sphere_header_vec=popular_sphere_header_vec.clone()
+                        is_open=false
+                    />
+                </TransitionUnpack>
+                <div class="flex flex-col gap-2 pt-4 max-h-124">
+                    <SearchSpheres search_state class="w-full gap-2" autofocus=false/>
+                </div>
             </div>
+            <LanguageSelector/>
         </div>
         <Show when=state.show_left_sidebar>
             <div class="absolute top-0 right-0 h-full w-full bg-base-200/50"/>

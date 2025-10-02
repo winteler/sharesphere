@@ -134,25 +134,17 @@ time-years = {$count ->
 }
 
 sharesphere-right-sidebar-1 =
-    ShareSphere is the place to exchange with other people about
-    your hobbies, news, art, jokes and many more topics.
+    ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics.
 sharesphere-right-sidebar-2 =
-    ShareSphere is a non-profit, add-free, open source website
-    with a focus on transparency, privacy and community empowerment.
-    You can find more information on the website and its rules below.
+    ShareSphere is a non-profit, add-free, open source websitewith a focus on transparency, privacy and community empowerment.You can find more information on the website and its rules below.
 about-sharesphere-content =
-    ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and
-    many more topics. ShareSphere is a non-profit, ad-free, open source website with a focus on
-    transparency, privacy and community empowerment. ShareSphere's goal is to run by relying solely
-    on donations and to provide a better user experience than ad-based platforms.
+    ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. ShareSphere is a non-profit, ad-free, open source website with a focus on transparency, privacy and community empowerment. ShareSphere's goal is to run by relying solely on donations and to provide a better user experience than ad-based platforms.
 about-sharesphere-rules-1 =
-    ShareSphere aims to be a place for positive and constructive exchanges.
-    In order to make it so, a{" "}
+    ShareSphere aims to be a place for positive and constructive exchanges. In order to make it so, a{" "}
 about-sharesphere-rules-link =
     base set of rules
 about-sharesphere-rules-2 =
-    {" "}needs to be respected site-wide. Communities can set additional rules to define
-    what content is appropriate and how users should behave.
+    {" "}needs to be respected site-wide. Communities can set additional rules to define what content is appropriate and how users should behave.
 
 terms-and-conditions = Terms and Conditions
 privacy-policy = Privacy Policy
@@ -187,12 +179,9 @@ rule-platform-integrity-description =
     Do not attempt to deceive users, manipulating votes or reputation systems, or make the site harder to use through spam, flooding, or disruptive behavior. Keep the platform safe, fair, and accessible for everyone.
 
 content-policy-intro =
-    To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and
-    other problematic content, as well as properly label sensitive content. This page documents
-    which content are forbidden or sensitive, as well as how sensitive content should be labeled.
+    To ensure a good experience on ShareSphere, it is vital to exclude illegal, malicious and other problematic content, as well as properly label sensitive content. This page documents which content are forbidden or sensitive, as well as how sensitive content should be labeled.
 banned-content-intro =
-    The following contents and activities are strictly prohibited on ShareSphere.
-    Violations will result in immediate removal and a permanent ban.
+    The following contents and activities are strictly prohibited on ShareSphere. Violations will result in immediate removal and a permanent ban.
 banned-content-1 = Sexual, abusive, or suggestive material involving minors or individuals who have not given consent.
 banned-content-2 = Any content or activity related to human trafficking.
 banned-content-3 = Promotion or facilitation of paid physical sexual contact.
@@ -208,17 +197,14 @@ banned-content-12 = Targeted harassment, bullying, or intimidation.
 banned-content-13 = False or misleading medical, health, or safety advice.
 banned-content-14 = Sharing or distributing copyrighted material without authorization.
 mature-content-description =
-    Content that is not suitable for minors, such as sexually explicit, graphic, violent or
-    offensive contents must be labelled with the 'NSFW' tag:{" "}
+    Content that is not suitable for minors, such as sexually explicit, graphic, violent or offensive contents must be labelled with the 'NSFW' tag:{" "}
 spoiler-content-description =
-    Content that could spoil information to other users, such as the content of a book or movie
-    must keep any information out of its title and has to be labelled with the 'Spoiler' tag:{" "}
+    Content that could spoil information to other users, such as the content of a book or movie must keep any information out of its title and has to be labelled with the 'Spoiler' tag:{" "}
 spoiler-content-label-1 = The labelling rules for different content types are as follows:
 spoiler-content-label-2 = Any plot relevant information of books, movie, games, TV shows must always be labelled as spoiler.
 spoiler-content-label-3 = Results of competitions (sports, e-sport, games, etc.) and other live events must be labelled as spoiler in the week following the result.
 spoiler-content-label-4 =
-    In addition, the title must make it clear spoilers will be contained in the body of the post.
-    Spoilers in comments should be hidden using markdown formatting. Communities can also set stricter rules for spoilers.
+    In addition, the title must make it clear spoilers will be contained in the body of the post. Spoilers in comments should be hidden using markdown formatting. Communities can also set stricter rules for spoilers.
 
 planned-improvements-title = Planned Improvements
 planned-improvements-1 = Time filters
@@ -229,37 +215,24 @@ planned-improvements-5 = Private communities
 
 origin-goals-title = Origin & Goals
 origin-goals-1 =
-    I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base.
-    I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their
-    ad-based profit model is fundamentally incompatible with a good user experience.
+    I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base. I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their ad-based profit model is fundamentally incompatible with a good user experience.
 origin-goals-2 =
-    This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency.
-    Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to
-    generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much
-    greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant.
+    This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency. Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant.
 origin-goals-3 =
-    In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received
-    and how this money is used, for instance for operating costs and salaries. ShareSphere is also open source, enabling the community to know how the site
-    functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal.
+    In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received and how this money is used, for instance for operating costs and salaries. ShareSphere is also open source, enabling the community to know how the site functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal.
 origin-goals-4 =
-    Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and
-    leverage their help to deal with bots and bad actors. The exact implementation of these mechanisms is not yet defined but the general idea is to have a vote
-    based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked.
+    Another long term goal of ShareSphere is to give more control to the communities, by enabling them to select their moderators, define their rules and leverage their help to deal with bots and bad actors. The exact implementation of these mechanisms is not yet defined but the general idea is to have a vote based system that gives more weight to strong and regular contributors of each community to avoid communities being hijacked.
 origin-goals-5 =
-    ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters
-    and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform!
+    ShareSphere is still in its beginnings and additional features will come in the future, such as direct messages, better moderation tools, additional filters and configuration and many more. I hope you enjoy ShareSphere and will help us grow into the best possible platform!
 
 rules-intro =
-    ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive.
-    Each community can decide upon its own set of rules but a set of base rules is enforced site-wide to ensure
-    all communities remain safe, welcoming and compatible with ShareSphere's values.
+    ShareSphere is a collaborative platform that relies on quality contributions from its users to thrive. Each community can decide upon its own set of rules but a set of base rules is enforced site-wide to ensure all communities remain safe, welcoming and compatible with ShareSphere's values.
 
 info-validity = Effective Date: 01.06.2025
 info-operator = Operator: ShareSphere
 
 acceptance-of-terms-content =
-    By accessing or using ShareSphere (“we”, “us”, or “the Website”), you agree to be bound by
-    these Terms and Conditions. If you do not agree, please do not use the Website.
+    By accessing or using ShareSphere (“we”, “us”, or “the Website”), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the Website.
 
 description-of-service-title = 1. Description of Service
 description-of-service-content =
@@ -278,8 +251,7 @@ user-responsibilities-2 = You are solely responsible for all content you post.
 
 moderation-title = 3. Moderation
 moderation-content =
-    We reserve the right to remove any content that violates these Terms or applicable laws and
-    to suspend or terminate user accounts without prior notice for misconduct.
+    We reserve the right to remove any content that violates these Terms or applicable laws and to suspend or terminate user accounts without prior notice for misconduct.
 
 intellectual-property-title = 4. Intellectual Property
 intellectual-property-content-1 =
@@ -299,8 +271,7 @@ data-protection-content-2 = .
 
 amendments-title = 7. Amendments
 amendments-content =
-    We may update these Terms at any time. You will be notified of significant changes.
-    Continued use of the Website means you accept the revised Terms.
+    We may update these Terms at any time. You will be notified of significant changes. Continued use of the Website means you accept the revised Terms.
 
 governing-law-title = 8. Governing Law
 governing-law-content = These Terms are governed by Swiss law. Jurisdiction: Zurich.
@@ -355,10 +326,7 @@ policy-change-content = We may update this Privacy Policy. We will notify you of
 markdown-help-1 = To add formatting to your content, the 'Markdown' mode must be activated with the following button:{" "}
 markdown-help-2 = When the 'Markdown' mode is activated, your input will be parsed using{" "}
 markdown-help-3 =
-    (with the addition of 'Spoilers') and a preview of your content will be displayed.
-    Quick-format buttons are also available so that you don't need to remember the GFM syntax!
-    Finally, 'Spoiler' formatting can be generated by adding '||' on both side of your text or
-    by selecting it and using the 'Spoiler' quick format button:{" "}
+    (with the addition of 'Spoilers') and a preview of your content will be displayed. Quick-format buttons are also available so that you don't need to remember the GFM syntax! Finally, 'Spoiler' formatting can be generated by adding '||' on both side of your text or by selecting it and using the 'Spoiler' quick format button:{" "}
 
 invalid-link = Invalid link
 invalid-domain-name = Invalid domain name
@@ -380,4 +348,4 @@ permanent-global-ban-message = You are permanently banned from ShareSphere.
 bad-request-message = Sorry, we didn't understand your request.
 unavailable-message = Sorry, we've got noise on the line.
 not-found-message = There's nothing here.
-payload-too-large-message = Payload exceeds the  {$byte_limit} Bytes limit.
+payload-too-large-message = Payload exceeds the {$byte_limit} Bytes limit.

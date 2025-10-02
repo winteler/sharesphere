@@ -400,7 +400,7 @@ pub fn RuleList(
         let title_view = move || view! {
             <div class="flex gap-2">
                 <div>{index+1}</div>
-                <div class="text-left">{title}</div>
+                <div class="text-left text-lg text-semibold">{title}</div>
             </div>
         };
         view! {
@@ -409,6 +409,7 @@ pub fn RuleList(
                 is_open=false
             >
                 <ContentBody body=description is_markdown/>
+                <div class="py-2"/>
             </Collapse>
         }
     }).collect_view();

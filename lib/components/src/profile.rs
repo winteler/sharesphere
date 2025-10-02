@@ -1,6 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
-use leptos_fluent::move_tr;
+use leptos_fluent::{move_tr};
 use leptos_router::hooks::{use_params_map};
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use serde::{Deserialize, Serialize};
@@ -247,7 +247,7 @@ pub fn UserSettings() -> impl IntoView {
                             <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-profile") value=is_nsfw/>
                             <LabeledFormCheckbox name="show_nsfw" label=move_tr!("show-nsfw") value=show_nsfw/>
                             <div class="flex justify-between items-center">
-                                move_tr!("hide-spoiler-duration")
+                                {move_tr!("hide-spoiler-duration")}
                                 <input
                                     type="number"
                                     min="0"

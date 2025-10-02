@@ -233,7 +233,7 @@
 
     .left_sidebar_base_class {
         @apply
-            flex flex-col justify-start
+            flex flex-col justify-between
             shrink-0 w-60 lg:w-80 3xl:w-100 h-full
             overflow-y-auto
             p-2

@@ -131,27 +131,17 @@ time-years = {$count ->
 }
 
 sharesphere-right-sidebar-1 =
-    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de
-    tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets.
+    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets.
 sharesphere-right-sidebar-2 =
-    ShareSphere est un site web à but non lucratif, open source et sans publicité
-    focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés.
-    Tu pourras trouver plus d'informations sur le site et ses règles ci-dessous.
+    ShareSphere est un site web à but non lucratif, open source et sans publicité focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés. Tu pourras trouver plus d'informations sur le site et ses règles ci-dessous.
 about-sharesphere-content =
-    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs,
-    l'actualité, l'art, l'humour et bien d'autres sujets. ShareSphere est un site web à but
-    non lucratif, open source et sans publicité focalisé sur la transparence, le respect de
-    la vie privée et l'autonomie de ses communautés. L'objectif de ShareSphere est de fonctionner
-    uniquement à l'aide de donations afin de fournir une meilleure expérience utilisateur que
-    les plateformes basées sur la publicité.
+    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets. ShareSphere est un site web à but non lucratif, open source et sans publicité focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés. L'objectif de ShareSphere est de fonctionner uniquement à l'aide de donations afin de fournir une meilleure expérience utilisateur que les plateformes basées sur la publicité.
 about-sharesphere-rules-1 =
     Sharesphere s'efforce d'être un lien d'échanges positifs et constructifs. Pour ce faire, un{" "}
 about-sharesphere-rules-link =
     ensemble de règles
 about-sharesphere-rules-2 =
-    {" "}doit être respecté sur l'ensemble du site. Les communautés peuvent également mettre en
-    place des règles supplémentaires définissant quels contenus sont appropriés et comment
-    les utilisateurs doivent se comporter.
+    {" "}doit être respecté sur l'ensemble du site. Les communautés peuvent également mettre en place des règles supplémentaires définissant quels contenus sont appropriés et comment les utilisateurs doivent se comporter.
 
 terms-and-conditions = Termes et Conditions
 privacy-policy = Politique de confidentialité
@@ -163,15 +153,13 @@ spoiler-content-title = Contenu spoiler
 
 rule-respectful-title = Soyez respectueux·se et bienveillant·e
 rule-respectful-description =
-    Traitez tous les membres de la communauté avec respect. Les débats constructifs et les opinions divergentes sont les bienvenus,
-    mais les attaques personnelles, les insultes ou les comportements hostiles ne seront pas tolérés.
+    Traitez tous les membres de la communauté avec respect. Les débats constructifs et les opinions divergentes sont les bienvenus, mais les attaques personnelles, les insultes ou les comportements hostiles ne seront pas tolérés.
 
     Efforcez-vous toujours de contribuer de manière positive et faites de ShareSphere un espace où chacun·e se sent en sécurité pour participer.
 
 rule-respect-rules-title = Respectez les règles de la communauté et labellisez vos publications
 rule-respect-rules-description =
-    <p>Publiez dans les communautés appropriées et respectez leurs règles. Utilisez le titre, des tags et des catégories précis pour aider les autres à comprendre le sujet de votre publication.
-    Contribuez de bonne foi et avec pertinance aux sujets qui vous intéressent vraiment – cela permet de maintenir les communautés organisées, pertinentes et accueillantes pour tou·te·s<br>
+    <p>Publiez dans les communautés appropriées et respectez leurs règles. Utilisez le titre, des tags et des catégories précis pour aider les autres à comprendre le sujet de votre publication. Contribuez de bonne foi et avec pertinance aux sujets qui vous intéressent vraiment – cela permet de maintenir les communautés organisées, pertinentes et accueillantes pour tou·te·s<br>
     <br>
     Par ailleurs, les contenus réservés à un public adulte (explicites, graphiques, violents ou offensants) ainsi que les spoilers doivent être signalés respectivement comme <strong>NSFW</strong> et <strong>Spoiler</strong>. Pour plus de détails, consultez notre <a href="/content_policy" class="link text-primary">Politique de contenu</a>.</p>
 
@@ -188,20 +176,15 @@ rule-platform-integrity-description =
     Ne tentez pas de tromper les utilisateur·rice·s, de manipuler les systèmes de votes ou de réputation, ni de rendre le site difficile à utiliser via du spam, du flood ou des comportements perturbateurs. Préservez un environnement sûr, équitable et accessible pour tou·te·s.
 
 content-policy-intro =
-    Pour guarantir une bonne expérience sur ShareSphere, il est vital d'exclure les contenus illégaux, malicieux et
-    autres contenus problématiques. De plus, les contenus sensibles doivent être labellisés correctement. Cette page
-    documente quels contenus sont interdits ou sensibles, ainsi que la manière dont les contenus sensibles doivent
-    être labellisés.
+    Pour guarantir une bonne expérience sur ShareSphere, il est vital d'exclure les contenus illégaux, malicieux et autres contenus problématiques. De plus, les contenus sensibles doivent être labellisés correctement. Cette page documente quels contenus sont interdits ou sensibles, ainsi que la manière dont les contenus sensibles doivent être labellisés.
 banned-content-intro =
-    Les contenus et activités suivants sont strictement interdits sur ShareSphere.
-    Toute violation entraînera une suppression immédiate et un bannissement définitif.
+    Les contenus et activités suivants sont strictement interdits sur ShareSphere. Toute violation entraînera une suppression immédiate et un bannissement définitif.
 banned-content-1 = Tout contenu ou activité à caractère sexuel, abusif ou suggestif impliquant des mineurs ou des personnes n’ayant pas donné leur consentement.
 banned-content-2 = Tout contenu ou activité lié au trafic d'êtres humains.
 banned-content-3 = La promotion ou la facilitation de contacts sexuels physiques rémunérés.
 banned-content-4 = Le partage ou la sollicitation d’informations personnelles ou confidentielles concernant d'autres individus.
 banned-content-5 =
-    La création ou l’utilisation de comptes pour usurper l’identité d’autrui.
-    Les comptes parodiques sont autorisés, mais doivent être clairement identifiables comme tels.
+    La création ou l’utilisation de comptes pour usurper l’identité d’autrui. Les comptes parodiques sont autorisés, mais doivent être clairement identifiables comme tels.
 banned-content-6 = Le commerce, la promotion ou la facilitation de la vente de biens volés.
 banned-content-7 = Les documents falsifiés, la contrefaçon de monnaie, le phishing, les escroqueries ou toute autre activité frauduleuse.
 banned-content-8 = La distribution de logiciels malveillants, de virus ou d’autres programmes nuisibles.
@@ -212,72 +195,46 @@ banned-content-12 = Le harcèlement et l’intimidation.
 banned-content-13 = Les conseils médicaux, sanitaires ou de sécurité faux ou trompeurs.
 banned-content-14 = Le partage ou la distribution de matériel protégé par des droits d’auteur sans autorisation.
 mature-content-description =
-    Tout contenu non adapté aux mineurs, tel que les contenus sexuellement explicites, graphiques,
-    violents ou offensants, doit être labellisé avec la balise "NSFW" : {" "}
+    Tout contenu non adapté aux mineurs, tel que les contenus sexuellement explicites, graphiques, violents ou offensants, doit être labellisé avec la balise "NSFW" : {" "}
 spoiler-content-description =
-    Le contenu susceptible de révéler des informations à d’autres utilisateurs, comme le contenu d’un livre ou
-    d’un film, ne doit pas inclure d’informations dans son titre et doit être labellisé avec la balise « Spoiler » : {" "}
+    Le contenu susceptible de révéler des informations à d’autres utilisateurs, comme le contenu d’un livre ou d’un film, ne doit pas inclure d’informations dans son titre et doit être labellisé avec la balise « Spoiler » : {" "}
 spoiler-content-label-1 =  Les règles de labellisation pour les différents types de contenu sont les suivantes :
 spoiler-content-label-2 =
-    Toute information pertinente concernant l’intrigue de livres, films,
-    jeux ou émissions de télévision doit toujours être étiquetée comme spoiler.
+    Toute information pertinente concernant l’intrigue de livres, films, jeux ou émissions de télévision doit toujours être étiquetée comme spoiler.
 spoiler-content-label-3 =
-    Les résultats de compétitions (sportives, e-sport, jeux, etc.) et d’autres événements en
-    direct doivent être étiquetés comme spoiler pendant la semaine suivant le résultat.
+    Les résultats de compétitions (sportives, e-sport, jeux, etc.) et d’autres événements en direct doivent être étiquetés comme spoiler pendant la semaine suivant le résultat.
 spoiler-content-label-4 =
-    De plus, le titre doit indiquer explicitement que des spoilers sont inclus dans le contenu du poste.
-    Les commentaires contenant des spoilers doivent être masqué grâce au formatage Markdown.
-    Les communautés peuvent également définir des règles plus strictes concernant les spoilers.
+    De plus, le titre doit indiquer explicitement que des spoilers sont inclus dans le contenu du poste. Les commentaires contenant des spoilers doivent être masqué grâce au formatage Markdown. Les communautés peuvent également définir des règles plus strictes concernant les spoilers.
 
 planned-improvements-title = Améliorations prévues
 planned-improvements-1 = Filtres temporelles
 planned-improvements-2 = Message prévus
 planned-improvements-3 = Outils de modération supplémentaires
 planned-improvements-4 =
-    Adhésions - les utilisateurs peuvent devenir contributeurs et gagner accès
-    à des fonctionalités supplémentaires
+    Adhésions - les utilisateurs peuvent devenir contributeurs et gagner accès à des fonctionalités supplémentaires
 planned-improvements-5 = Communautés privés
 
 origin-goals-title = Origine & Objectifs
 origin-goals-1 =
-    J’ai commencé à réfléchir à ShareSphere durant l’été 2023, après que plusieurs réseaux sociaux que j’utilisais
-    aient effectué des modifications ayant un impact négatif sur leurs utilisateurs. J'avais déjà une opinion assez négative
-    de la plupart des réseaux sociaux basés sur la publicité, estimant que ce modèle est incompatible avec une bonne expérience
-    utilisateur et favorise des dérives néfastes pour la santé mentale des utilisateurs.
+    J’ai commencé à réfléchir à ShareSphere durant l’été 2023, après que plusieurs réseaux sociaux que j’utilisais aient effectué des modifications ayant un impact négatif sur leurs utilisateurs. J'avais déjà une opinion assez négative de la plupart des réseaux sociaux basés sur la publicité, estimant que ce modèle est incompatible avec une bonne expérience utilisateur et favorise des dérives néfastes pour la santé mentale des utilisateurs.
 origin-goals-2 =
-    Cela m’a donné l’idée d’essayer de construire une meilleure plateforme, à but non lucratif,
-    reposant sur des dons plutôt que sur la publicité, et axée sur la transparence.
-    Être à but non lucratif et dépendre des dons est extrêmement important car cela permet
-    de changer l'objectif du site. Au lieu d'inciter les utilisateurs à faire défiler le contenu
-    de manière compulsive pour générer plus de revenus publicitaires, le site doit s'efforcer de
-    founir une excellente expérience utilisateur, qui donne envie de contribuer par des dons.
+    Cela m’a donné l’idée d’essayer de construire une meilleure plateforme, à but non lucratif, reposant sur des dons plutôt que sur la publicité, et axée sur la transparence. Être à but non lucratif et dépendre des dons est extrêmement important car cela permet de changer l'objectif du site. Au lieu d'inciter les utilisateurs à faire défiler le contenu de manière compulsive pour générer plus de revenus publicitaires, le site doit s'efforcer de founir une excellente expérience utilisateur, qui donne envie de contribuer par des dons.
 origin-goals-3 =
-    Dans une telle structure, la transparence est fondamentale, pour démontrer aux utilisateurs que leurs donations sont
-    utilisées correctement et efficacement. ShareSphere s'engage à toujours publier la totalité des donations reçues ainsi
-    que la manière dont cet argent est utilisée, par exemple pour couvrir les coûts opérationels et des salaires. ShareSphere
-    est également en source libre, permettant à la communauté de savoir comment le site fonctionne et quelles informations sont collectées.
-    Finalement, ShareSphere a pour but d'avoir une modération transparente, sans bannissements cachés ou suppressions de contenu inexpliquées.
+    Dans une telle structure, la transparence est fondamentale, pour démontrer aux utilisateurs que leurs donations sont utilisées correctement et efficacement. ShareSphere s'engage à toujours publier la totalité des donations reçues ainsi que la manière dont cet argent est utilisée, par exemple pour couvrir les coûts opérationels et des salaires.
+    ShareSphere est également en source libre, permettant à la communauté de savoir comment le site fonctionne et quelles informations sont collectées. Finalement, ShareSphere a pour but d'avoir une modération transparente, sans bannissements cachés ou suppressions de contenu inexpliquées.
 origin-goals-4 =
-    Un autre objectif à long terme de ShareSphere est de donner plus de contrôle aux communautés, en leur permettant de sélectionner leurs modérateurs,
-    définir leurs règles et de contribuer à lutter contre les bots et les utilisateurs malicieux. L'implémentation exacte de ces
-    mécanismes n'est pas encore définie mais elle reposerait sur un système de vote donnant plus d'importances aux personnes contribuant fortement et
-    régulièrement à leur communauté, de manière à éviter le détournement de communautés par d'autres utilisateurs.
+    Un autre objectif à long terme de ShareSphere est de donner plus de contrôle aux communautés, en leur permettant de sélectionner leurs modérateurs, définir leurs règles et de contribuer à lutter contre les bots et les utilisateurs malicieux. L'implémentation exacte de ces mécanismes n'est pas encore définie mais elle reposerait sur un système de vote donnant plus d'importances aux personnes contribuant fortement et régulièrement à leur communauté, de manière à éviter le détournement de communautés par d'autres utilisateurs.
 origin-goals-5 =
-    ShareSphere en est encore à ses premiers pas et des fonctionnalités supplémentaires apparaîtront dans le future, tel que des messages privés,
-    de meilleures outils de modération, des filtres et paramètres supplémentaires et encore bien d'autres choses. J'espère que vous apprécierez
-    ShareSphere et que vous nous aiderez à en faire la meilleure plateforme possible !
+    ShareSphere en est encore à ses premiers pas et des fonctionnalités supplémentaires apparaîtront dans le future, tel que des messages privés, de meilleures outils de modération, des filtres et paramètres supplémentaires et encore bien d'autres choses. J'espère que vous apprécierez ShareSphere et que vous nous aiderez à en faire la meilleure plateforme possible !
 
 rules-intro =
-    ShareSphere est une plateforme collaborative qui repose sur des contributions de qualité de la part de ses utilisateurs pour prospérer.
-    Chaque communauté peut déterminer ses propres règles mais un mais un socle de règles de base est appliqué à l’ensemble du site pour garantir
-    que toutes les communautés restent sûres, accueillantes et conformes aux valeurs de ShareSphere.
+    ShareSphere est une plateforme collaborative qui repose sur des contributions de qualité de la part de ses utilisateurs pour prospérer. Chaque communauté peut déterminer ses propres règles mais un mais un socle de règles de base est appliqué à l’ensemble du site pour garantir que toutes les communautés restent sûres, accueillantes et conformes aux valeurs de ShareSphere.
 
 info-validity = Date d'entrée en vigueur: 01.06.2025
 info-operator = Opérateur: ShareSphere
 
 acceptance-of-terms-content =
-    En accédant ou en utilisant ShareSphere (« nous », « notre » ou « le Site »), vous acceptez d’être lié par ces Conditions Générales d’Utilisation.
-    Si vous n’êtes pas d’accord, veuillez ne pas utiliser le Site.
+    En accédant ou en utilisant ShareSphere (« nous », « notre » ou « le Site »), vous acceptez d’être lié par ces Conditions Générales d’Utilisation. Si vous n’êtes pas d’accord, veuillez ne pas utiliser le Site.
 
 description-of-service-title = 1. Description du service
 description-of-service-content =
@@ -296,16 +253,13 @@ user-responsibilities-2 = Vous êtes seul responsable de tout le contenu que vou
 
 moderation-title = 3. Modération
 moderation-content =
-    Nous nous réservons le droit de supprimer tout contenu enfreignant ces Conditions ou les lois applicables,
-    et de suspendre ou résilier des comptes d’utilisateurs sans préavis en cas de manquement.
+    Nous nous réservons le droit de supprimer tout contenu enfreignant ces Conditions ou les lois applicables, et de suspendre ou résilier des comptes d’utilisateurs sans préavis en cas de manquement.
 
 intellectual-property-title = 4. Propriété intellectuelle
 intellectual-property-content-1 =
-    Tout le contenu sur ShareSphere, à l’exception des contributions des utilisateurs, est la
-    propriété de ShareSphere et ne peut être utilisé sans autorisation.
+    Tout le contenu sur ShareSphere, à l’exception des contributions des utilisateurs, est la propriété de ShareSphere et ne peut être utilisé sans autorisation.
 intellectual-property-content-2 =
-    En publiant du contenu, vous nous accordez une licence non exclusive, libre de droits, mondiale,
-    permettant d'utiliser, d'afficher et de distribuer votre contenu sur la plateforme.
+    En publiant du contenu, vous nous accordez une licence non exclusive, libre de droits, mondiale, permettant d'utiliser, d'afficher et de distribuer votre contenu sur la plateforme.
 
 liability-limitation-title = 5. Limitation de responsabilité
 liability-limitation-content = Nous ne garantissons pas un accès ininterrompu ou un fonctionnement sans erreur du Site. Nous ne sommes pas responsables :
@@ -319,15 +273,13 @@ data-protection-content-2 = .
 
 amendments-title = 7. Modifications
 amendments-content =
-    Nous pouvons mettre à jour ces Conditions à tout moment. Vous serez informé de toute modification significative.
-    L’utilisation continue du Site signifie que vous acceptez les Conditions révisées.
+    Nous pouvons mettre à jour ces Conditions à tout moment. Vous serez informé de toute modification significative.L’utilisation continue du Site signifie que vous acceptez les Conditions révisées.
 
 governing-law-title = 8. Loi applicable
 governing-law-content = Ces Conditions sont régies par le droit suisse. Juridiction : Zurich.
 
 about-privacy-policy-content =
-    Cette Politique de Confidentialité explique comment nous collectons, utilisons et
-    protégeons vos données personnelles lorsque vous utilisez ShareSphere.
+    Cette Politique de Confidentialité explique comment nous collectons, utilisons et protégeons vos données personnelles lorsque vous utilisez ShareSphere.
 
 data-collection-title = 1. Données collectées par ShareSphere
 data-collection-content = ShareSphere collecte les informations suivantes :
@@ -377,10 +329,7 @@ policy-change-content = Nous pouvons mettre à jour cette Politique de Confident
 markdown-help-1 = Pour formatter votre contenu, le mode 'Markdown' doit être activé avec le bouton suivant:{" "}
 markdown-help-2 = Quand le mode 'Markdown' est activé, votre saisie sera interprété avec le format{" "}
 markdown-help-3 =
-    (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée.
-    Des boutons de formatage rapide sont également disponibles pour que vous n'ayez pas à mémoriser la syntaxe GFM !
-    Finalement, le formatage 'Spoiler' peut être généré en ajoutant '||' de chaque côté de votre texte ou
-    en le sélectionnant et en cliquant le bouton de formatage 'Spoiler':{" "}
+    (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée. Des boutons de formatage rapide sont également disponibles pour que vous n'ayez pas à mémoriser la syntaxe GFM ! Finalement, le formatage 'Spoiler' peut être généré en ajoutant '||' de chaque côté de votre texte ou en le sélectionnant et en cliquant le bouton de formatage 'Spoiler':{" "}
 
 invalid-link = Lien invalide
 invalid-domain-name = Nom de domaine invalide
@@ -402,4 +351,4 @@ permanent-global-ban-message = Vous êtes définitivement banni de ShareSphere.
 bad-request-message = Désolé, nous n'avons pas compris votre requête.
 unavailable-message = Désolé, il y a du bruit sur la ligne.
 not-found-message = Il n'y a rien ici.
-payload-too-large-message = Le fichier dépasse la limite de  {$byte_limit} Bytes.
+payload-too-large-message = Le fichier dépasse la limite de {$byte_limit} Bytes.

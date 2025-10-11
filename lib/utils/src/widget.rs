@@ -684,6 +684,8 @@ pub fn LoadIndicators(
     is_loading: Signal<bool>,
     #[prop(into)]
     load_error: Signal<Option<AppError>>,
+    #[prop(default = "w-full min-h-9 lg:min-h-17")]
+    load_div_class: &'static str,
 ) -> impl IntoView {
     view! {
         <Show when=move || load_error.read().is_some()>
@@ -694,7 +696,7 @@ pub fn LoadIndicators(
             }
         }
         </Show>
-        <div class="w-full min-h-9 lg:min-h-17">
+        <div class=load_div_class>
             <Show
                 when=is_loading
             >

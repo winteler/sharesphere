@@ -71,11 +71,11 @@ best = Top
 recent = Récent
 
 spheres = Sphères
-create-sphere = Coloniser une Sphère!
+create-sphere = Coloniser une Sphère !
 create-satellite = Créer un Satellite
 edit-satellite = Modifier le Satellite
 posts = Postes
-share-post = Partage un poste!
+share-post = Partage un poste !
 edit-post = Modifie ton poste
 delete-post = Supprimer le poste
 load-replies = Charger les réponses
@@ -87,7 +87,7 @@ delete-comment = Supprimer le commentaire
 moderate-post = Modérer le poste
 moderate-comment = Modérer le commentaire
 
-welcome-to-sharesphere = Bienvenue sur ShareSphere!
+welcome-to-sharesphere = Bienvenue sur ShareSphere !
 about-sharesphere = À propos de ShareSphere
 sphere-cockpit = Cockpit de la Sphère
 single-comment-tree = Vue de commentaire. Retour au poste.

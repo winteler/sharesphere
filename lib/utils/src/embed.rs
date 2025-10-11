@@ -3,10 +3,10 @@ use ammonia::Builder;
 use lazy_static::lazy_static;
 use leptos::html;
 use leptos::prelude::*;
-use leptos_fluent::tr;
+use leptos_fluent::{move_tr, tr};
 use mime_guess::{from_path, mime};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
-use strum_macros::{Display, EnumString, IntoStaticStr};
+use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use url::Url;
 
 #[cfg(feature = "ssr")]
@@ -29,7 +29,7 @@ lazy_static! {
             .expect("failed to load oEmbed providers");
 }
 
-#[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum EmbedType {
     #[default]
     None = 0,
@@ -148,6 +148,33 @@ impl From<LinkType> for EmbedType {
             LinkType::None => EmbedType::None,
             LinkType::Link => EmbedType::Link,
             _ => EmbedType::Embed,
+        }
+    }
+}
+
+impl EmbedType {
+    pub fn on_select(
+        self,
+        embed_type_input: RwSignal<EmbedType>,
+        link_input: RwSignal<String>,
+        select_trigger: RwSignal<usize>,
+        textarea_ref: NodeRef<html::Textarea>,
+    ) {
+        embed_type_input.set(EmbedType::Link);
+        if self == EmbedType::None {
+            link_input.set(String::default());
+            if let Some(link_textarea_ref) = textarea_ref.get_untracked() {
+                link_textarea_ref.set_value("");
+            }
+        }
+        *select_trigger.write() += 1;
+    }
+
+    pub fn get_localized_name(self) -> Signal<String> {
+        match self {
+            EmbedType::None => move_tr!("link-none"),
+            EmbedType::Link => move_tr!("link-link"),
+            EmbedType::Embed => move_tr!("link-embed"),
         }
     }
 }

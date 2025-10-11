@@ -46,7 +46,7 @@ pub struct Rule {
 }
 
 impl BaseRule {
-    pub fn get_fluent_title(self) -> Signal<String> {
+    pub fn get_localized_title(self) -> Signal<String> {
         match self {
             BaseRule::BeRespectful => move_tr!("rule-respectful-title"),
             BaseRule::RespectRules => move_tr!("rule-respect-rules-title"),
@@ -55,7 +55,7 @@ impl BaseRule {
         }
     }
 
-    pub fn get_fluent_description(self) -> Signal<String> {
+    pub fn get_localized_description(self) -> Signal<String> {
         match self {
             BaseRule::BeRespectful => move_tr!("rule-respectful-description"),
             BaseRule::RespectRules => move_tr!("rule-respect-rules-description"),
@@ -387,14 +387,14 @@ pub fn RuleList(
         let is_base_rule = rule.sphere_id.is_none();
 
         let title = match is_base_rule {
-            true => BaseRule::from_str(&rule.title).unwrap().get_fluent_title(),
+            true => BaseRule::from_str(&rule.title).unwrap().get_localized_title(),
             false => {
                 let title = rule.title.clone();
                 Signal::derive(move || title.clone())
             },
         };
         let description = match is_base_rule {
-            true => BaseRule::from_str(&rule.title).unwrap().get_fluent_description(),
+            true => BaseRule::from_str(&rule.title).unwrap().get_localized_description(),
             false => Signal::derive(move || rule.description.clone()),
         };
         let title_view = move || view! {

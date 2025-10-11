@@ -2,7 +2,6 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
-
 use sharesphere_auth::user::UserHeader;
 use sharesphere_utils::checks::check_string_length;
 use sharesphere_utils::constants::{MAX_SEARCH_QUERY_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
@@ -321,6 +320,8 @@ pub fn SearchSpheres(
     form_class: &'static str,
     #[prop(default = true)]
     autofocus: bool,
+    #[prop(optional)]
+    is_dropdown_style: bool,
 ) -> impl IntoView
 {
     let class = format!("flex flex-col self-center min-h-0 {class}");
@@ -364,6 +365,12 @@ pub fn SearchSpheres(
             }
         }
     );
+
+    let list_class = match is_dropdown_style {
+        true => "rounded-sm h-fit bg-base-200",
+        false => "rounded-sm min-h-0 h-fit",
+    };
+
     view! {
         <div class=class>
             <SearchForm
@@ -374,12 +381,13 @@ pub fn SearchSpheres(
                 maxlength=Some(MAX_SPHERE_NAME_LENGTH)
                 input_error
             />
-            <div class="bg-base-200 rounded-sm min-h-0 max-h-full">
+            <div class=list_class>
                 <InfiniteSphereLinkList
                     sphere_header_vec
                     is_loading
                     load_error
                     additional_load_count
+                    is_dropdown_style
                     list_ref
                 />
             </div>

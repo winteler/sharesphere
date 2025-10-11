@@ -129,7 +129,7 @@ pub fn LeftSidebar() -> impl IntoView {
 
     view! {
         <div class=sidebar_class node_ref=sidebar_ref>
-            <div class="flex flex-col">
+            <div class="flex flex-col gap-1">
                 <BaseLinks/>
                 <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
                     <SphereLinkListCollapse
@@ -144,9 +144,7 @@ pub fn LeftSidebar() -> impl IntoView {
                         is_open=false
                     />
                 </TransitionUnpack>
-                <div class="flex flex-col gap-2 pt-4 max-h-124">
-                    <SearchSpheres search_state class="w-full gap-2" autofocus=false/>
-                </div>
+                <SearchSpheres search_state class="w-full gap-1" autofocus=false is_dropdown_style=true/>
             </div>
             <LanguageSelector/>
         </div>

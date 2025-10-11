@@ -402,7 +402,7 @@ pub fn CreatePost() -> impl IntoView {
                             link_input.with(|link| link.is_empty() || Url::parse(link).is_err())
                         )
                     }>
-                        move_tr!("publish")
+                        {move_tr!("publish")}
                     </button>
                 </div>
             </ActionForm>

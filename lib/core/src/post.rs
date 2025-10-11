@@ -4,6 +4,7 @@ use leptos::prelude::*;
 use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
 use server_fn::const_format::concatcp;
+use strum::IntoEnumIterator;
 use validator::{Validate};
 use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
 use sharesphere_utils::checks::{check_post_title, check_sphere_name};
@@ -1256,37 +1257,22 @@ pub fn LinkForm(
                     class="select_input"
                     node_ref=select_ref
                 >
-                    <option
-                        selected=move || embed_type_input.get_untracked() == EmbedType::None
-                        on:click=move |_| {
-                            embed_type_input.set(EmbedType::None);
-                            link_input.set(String::default());
-                            if let Some(link_textarea_ref) = textarea_ref.get_untracked() {
-                                link_textarea_ref.set_value("");
-                            }
-                            *select_trigger.write() += 1;
-                        }
-                    >
-                        {move_tr!("link-none")}
-                    </option>
-                    <option
-                        selected=move || embed_type_input.get_untracked() == EmbedType::Link
-                        on:click=move |_| {
-                            embed_type_input.set(EmbedType::Link);
-                            *select_trigger.write() += 1;
-                        }
-                    >
-                        {move_tr!("link-link")}
-                    </option>
-                    <option
-                        selected=move || embed_type_input.get_untracked() == EmbedType::Embed
-                        on:click=move |_| {
-                            embed_type_input.set(EmbedType::Embed);
-                            *select_trigger.write() += 1;
-                        }
-                    >
-                        {move_tr!("link-embed")}
-                    </option>
+                {
+                    EmbedType::iter().map(|embed_type| view! {
+                        <option
+                            selected=move || embed_type_input.get_untracked() == embed_type
+                            on:click=move |_| embed_type.on_select(
+                                embed_type_input,
+                                link_input,
+                                select_trigger,
+                                textarea_ref,
+                            )
+                            value={<&'static str>::from(embed_type)}
+                        >
+                            {embed_type.get_localized_name()}
+                        </option>
+                    }.into_any()).collect_view()
+                }
                 </select>
                 <LengthLimitedInput
                     name="post_inputs[link]"

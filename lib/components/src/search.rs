@@ -307,12 +307,12 @@ pub fn SearchUsers() -> impl IntoView
             true => None,
             false => {
                 let user_header_link_list = user_header_vec.iter().map(|user_header| view! {
-                    <UserHeaderLink user_header=user_header.clone()/>
+                    <li><UserHeaderLink user_header=user_header.clone()/></li>
                 }).collect_view();
                 Some(view! {
-                    <div class="flex flex-col gap-2 self-center p-2 bg-base-200 rounded-sm overflow-y-auto max-h-full w-3/4 lg:w-1/2 ">
+                    <ul class="flex flex-col self-center p-2 overflow-y-auto max-h-full w-3/4 lg:w-1/2 divide-y divide-base-content/20">
                         {user_header_link_list}
-                    </div>
+                    </ul>
                 })
             }
         }}

@@ -327,8 +327,10 @@ pub fn UserHeaderLink(
 ) -> impl IntoView {
     let user_profile_path = get_profile_path(&user_header.username);
     view! {
-        <a href=user_profile_path class="w-full h-fit p-2 rounded-sm hover:bg-base-200">
-            <UserHeaderWidget user_header/>
+        <a href=user_profile_path>
+            <div class="w-full p-2 my-1 rounded-sm hover:bg-base-200">
+                <UserHeaderWidget user_header/>
+            </div>
         </a>
     }.into_any()
 }

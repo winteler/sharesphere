@@ -266,7 +266,6 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use leptos::prelude::*;
         use super::*;
 
         #[test]
@@ -410,7 +409,7 @@ pub fn CommentSortWidget(
 
 #[cfg(test)]
 mod tests {
-    use sharesphere_utils::constants::{BEST_ORDER_BY_COLUMN, BEST_STR, HOT_ORDER_BY_COLUMN, HOT_STR, RECENT_ORDER_BY_COLUMN, RECENT_STR, TRENDING_ORDER_BY_COLUMN, TRENDING_STR};
+    use sharesphere_utils::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
     use crate::ranking::{CommentSortType, PostSortType, SortType, VoteValue};
 
     #[test]
@@ -422,23 +421,9 @@ mod tests {
     }
 
     #[test]
-    fn test_post_sort_type_display() {
-        assert_eq!(PostSortType::Hot.to_string(), HOT_STR);
-        assert_eq!(PostSortType::Trending.to_string(), TRENDING_STR);
-        assert_eq!(PostSortType::Best.to_string(), BEST_STR);
-        assert_eq!(PostSortType::Recent.to_string(), RECENT_STR);
-    }
-
-    #[test]
     fn test_comment_sort_type_to_order_by_code() {
         assert_eq!(CommentSortType::Best.to_order_by_code(), BEST_ORDER_BY_COLUMN);
         assert_eq!(CommentSortType::Recent.to_order_by_code(), RECENT_ORDER_BY_COLUMN);
-    }
-
-    #[test]
-    fn test_comment_sort_type_display() {
-        assert_eq!(CommentSortType::Best.to_string(), BEST_STR);
-        assert_eq!(CommentSortType::Recent.to_string(), RECENT_STR);
     }
 
     #[test]

@@ -85,7 +85,6 @@ async fn test_get_post_comment_tree() -> Result<(), AppError> {
     });
 
     for sort_type in COMMENT_SORT_TYPE_ARRAY {
-        println!("Sort type: {}", sort_type.to_string());
         let comment_tree = get_post_comment_tree(
             post.post_id,
             SortType::Comment(sort_type),

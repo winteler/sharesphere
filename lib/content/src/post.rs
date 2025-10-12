@@ -78,8 +78,8 @@ pub fn Post() -> impl IntoView {
                             />
                             <h2 class="card-title text-wrap wrap-anywhere">
                             { match post_with_info.post.is_active() {
-                                true => post_with_info.post.title.clone(),
-                                false => DELETED_MESSAGE.to_string()
+                                true => post_with_info.post.title.clone().into(),
+                                false => move_tr!("deleted")
                             }}
                             </h2>
                             <PostBody
@@ -123,7 +123,7 @@ pub fn PostBody(
             match (&delete_timestamp, &moderator_message, &infringed_rule_title) {
                 (Some(_), _, _) => view! {
                     <ContentBody
-                        body=DELETED_MESSAGE.to_string()
+                        body=move_tr!("deleted")
                         is_markdown=false
                     />
                 }.into_any(),

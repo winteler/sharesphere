@@ -94,6 +94,7 @@ single-comment-tree = Single comment tree view. Back to post.
 
 until = Until
 permanent = Permanent
+deleted = Deleted
 
 account = User account
 nsfw-profile = NSFW profile
@@ -341,9 +342,9 @@ not-authenticated-message = Please authenticate yourself.
 authentication-failed-message = Sorry, we had some trouble authenticating you.
 internal-error-message = Something went wrong.
 not-authorized-message = You're in a restricted area, please do not resist.
-sphere-ban-until-message = You are banned from this sphere until
+sphere-ban-until-message = You are banned from this sphere until {$timestamp}
 permanent-sphere-ban-message = You are permanently banned from this sphere.
-global-ban-until-message = You are banned from ShareSphere until
+global-ban-until-message = You are banned from ShareSphere until {$timestamp}
 permanent-global-ban-message = You are permanently banned from ShareSphere.
 bad-request-message = Sorry, we didn't understand your request.
 unavailable-message = Sorry, we've got noise on the line.

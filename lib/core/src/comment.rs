@@ -1,8 +1,8 @@
 use leptos::html;
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use leptos_router::components::Form;
 use serde::{Deserialize, Serialize};
-use sharesphere_utils::constants::{DELETED_MESSAGE};
 use sharesphere_utils::errors::AppError;
 use crate::post::Post;
 use crate::ranking::{SortType, Vote};
@@ -695,7 +695,7 @@ pub fn CommentBody(
                 (Some(_), _, _) => view! {
                     <div class="pl-2 text-left">
                         <ContentBody
-                            body=String::from(DELETED_MESSAGE)
+                            body=move_tr!("deleted")
                             is_markdown=false
                         />
                     </div>

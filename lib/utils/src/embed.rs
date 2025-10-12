@@ -376,7 +376,9 @@ pub fn VideoEmbed(
                 class=DEFAULT_MEDIA_CLASS
                 controls
             >
-                tr!("invalid-video-format")
+            {
+                move_tr!("invalid-video-format")
+            }
             </video>
         </div>
     }

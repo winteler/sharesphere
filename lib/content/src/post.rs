@@ -6,7 +6,7 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use leptos_use::{signal_debounced};
 use url::Url;
 
-use sharesphere_utils::constants::{DELETED_MESSAGE, MAX_CONTENT_LENGTH};
+use sharesphere_utils::constants::{MAX_CONTENT_LENGTH};
 use sharesphere_utils::editor::{adjust_textarea_height, TextareaData};
 use sharesphere_utils::embed::{Embed, EmbedType, LinkType};
 use sharesphere_utils::icons::{EditIcon};

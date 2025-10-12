@@ -1,11 +1,10 @@
-use std::fmt;
 use leptos::children::ChildrenFn;
 use leptos::{component, view, IntoView};
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 use server_fn::const_format::concatcp;
-use sharesphere_utils::constants::{BEST_ORDER_BY_COLUMN, BEST_STR, HOT_ORDER_BY_COLUMN, HOT_STR, RECENT_ORDER_BY_COLUMN, RECENT_STR, TRENDING_ORDER_BY_COLUMN, TRENDING_STR};
+use sharesphere_utils::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
 use sharesphere_utils::icons::{FlameIcon, GraphIcon, HourglassIcon, PodiumIcon};
 
 #[cfg(feature = "ssr")]
@@ -68,18 +67,6 @@ impl PostSortType {
     }
 }
 
-impl fmt::Display for PostSortType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let sort_type_name = match self {
-            PostSortType::Hot => HOT_STR,
-            PostSortType::Trending => TRENDING_STR,
-            PostSortType::Best => BEST_STR,
-            PostSortType::Recent => RECENT_STR,
-        };
-        write!(f, "{sort_type_name}")
-    }
-}
-
 impl CommentSortType {
     pub fn to_order_by_code(self) -> &'static str {
         match self {
@@ -89,32 +76,12 @@ impl CommentSortType {
     }
 }
 
-impl fmt::Display for CommentSortType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let sort_type_name = match self {
-            CommentSortType::Best => BEST_STR,
-            CommentSortType::Recent => RECENT_STR,
-        };
-        write!(f, "{sort_type_name}")
-    }
-}
-
 impl SortType {
     pub fn to_order_by_code(self) -> &'static str {
         match self {
             SortType::Post(post_sort_type) => post_sort_type.to_order_by_code(),
             SortType::Comment(comment_sort_type) => comment_sort_type.to_order_by_code(),
         }
-    }
-}
-
-impl fmt::Display for SortType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let sort_type_name = match self {
-            SortType::Post(post_sort_type) => post_sort_type.to_string(),
-            SortType::Comment(comment_sort_type) => comment_sort_type.to_string(),
-        };
-        write!(f, "{sort_type_name}")
     }
 }
 
@@ -299,19 +266,8 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use sharesphere_utils::constants::{ BEST_STR,  HOT_STR, RECENT_STR, TRENDING_STR};
-        use crate::ranking::{CommentSortType, PostSortType, SortType};
+        use leptos::prelude::*;
         use super::*;
-
-        #[test]
-        fn test_sort_type_display() {
-            assert_eq!(SortType::Post(PostSortType::Hot).to_string(), HOT_STR);
-            assert_eq!(SortType::Post(PostSortType::Trending).to_string(), TRENDING_STR);
-            assert_eq!(SortType::Post(PostSortType::Best).to_string(), BEST_STR);
-            assert_eq!(SortType::Post(PostSortType::Recent).to_string(), RECENT_STR);
-            assert_eq!(SortType::Comment(CommentSortType::Best).to_string(), BEST_STR);
-            assert_eq!(SortType::Comment(CommentSortType::Recent).to_string(), RECENT_STR);
-        }
 
         #[test]
         fn test_get_vote_deltas() {

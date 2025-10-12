@@ -3,7 +3,7 @@ use std::str::FromStr;
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
-use leptos_fluent::{move_tr, tr};
+use leptos_fluent::{move_tr};
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
 use leptos_use::{breakpoints_tailwind, use_breakpoints, use_clipboard};
@@ -36,20 +36,20 @@ enum TimeUnit {
 }
 
 impl TimeUnit {
-    pub fn to_str(&self, count: i64, use_fullname: bool) -> String {
+    pub fn to_localized_str(&self, count: i64, use_fullname: bool) -> Signal<String> {
         match (use_fullname, self) {
-            (false, TimeUnit::Seconds) => tr!("time-seconds-short"),
-            (false, TimeUnit::Minutes) => tr!("time-minutes-short"),
-            (false, TimeUnit::Hours) => tr!("time-hours-short"),
-            (false, TimeUnit::Days) => tr!("time-days-short"),
-            (false, TimeUnit::Months) => tr!("time-months-short"),
-            (false, TimeUnit::Years) => tr!("time-years-short"),
-            (true, TimeUnit::Seconds) => tr!("time-seconds", {"count" => count}),
-            (true, TimeUnit::Minutes) => tr!("time-minutes", {"count" => count}),
-            (true, TimeUnit::Hours) => tr!("time-hours", {"count" => count}),
-            (true, TimeUnit::Days) => tr!("time-days", {"count" => count}),
-            (true, TimeUnit::Months) => tr!("time-months", {"count" => count}),
-            (true, TimeUnit::Years) => tr!("time-years", {"count" => count}),
+            (false, TimeUnit::Seconds) => move_tr!("time-seconds-short"),
+            (false, TimeUnit::Minutes) => move_tr!("time-minutes-short"),
+            (false, TimeUnit::Hours) => move_tr!("time-hours-short"),
+            (false, TimeUnit::Days) => move_tr!("time-days-short"),
+            (false, TimeUnit::Months) => move_tr!("time-months-short"),
+            (false, TimeUnit::Years) => move_tr!("time-years-short"),
+            (true, TimeUnit::Seconds) => move_tr!("time-seconds", {"count" => count}),
+            (true, TimeUnit::Minutes) => move_tr!("time-minutes", {"count" => count}),
+            (true, TimeUnit::Hours) => move_tr!("time-hours", {"count" => count}),
+            (true, TimeUnit::Days) => move_tr!("time-days", {"count" => count}),
+            (true, TimeUnit::Months) => move_tr!("time-months", {"count" => count}),
+            (true, TimeUnit::Years) => move_tr!("time-years", {"count" => count}),
         }
     }
 }
@@ -734,15 +734,15 @@ pub fn BannerContent(
 fn get_elapsed_time_string(
     timestamp: chrono::DateTime<chrono::Utc>,
     use_fullname: bool,
-) -> String {
+) -> Signal<String> {
     let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
     let seconds = elapsed_time.num_seconds();
     match seconds {
-        seconds if seconds < SECONDS_IN_MINUTE => TimeUnit::Seconds.to_str(seconds, use_fullname),
-        seconds if seconds < SECONDS_IN_HOUR => TimeUnit::Minutes.to_str(seconds / SECONDS_IN_MINUTE, use_fullname),
-        seconds if seconds < SECONDS_IN_DAY => TimeUnit::Hours.to_str(seconds / SECONDS_IN_HOUR, use_fullname),
-        seconds if seconds < SECONDS_IN_MONTH => TimeUnit::Days.to_str(seconds / SECONDS_IN_DAY, use_fullname),
-        seconds if seconds < SECONDS_IN_YEAR => TimeUnit::Months.to_str(seconds / SECONDS_IN_MONTH, use_fullname),
-        _ => TimeUnit::Years.to_str(seconds / SECONDS_IN_YEAR, use_fullname),
+        seconds if seconds < SECONDS_IN_MINUTE => TimeUnit::Seconds.to_localized_str(seconds, use_fullname),
+        seconds if seconds < SECONDS_IN_HOUR => TimeUnit::Minutes.to_localized_str(seconds / SECONDS_IN_MINUTE, use_fullname),
+        seconds if seconds < SECONDS_IN_DAY => TimeUnit::Hours.to_localized_str(seconds / SECONDS_IN_HOUR, use_fullname),
+        seconds if seconds < SECONDS_IN_MONTH => TimeUnit::Days.to_localized_str(seconds / SECONDS_IN_DAY, use_fullname),
+        seconds if seconds < SECONDS_IN_YEAR => TimeUnit::Months.to_localized_str(seconds / SECONDS_IN_MONTH, use_fullname),
+        _ => TimeUnit::Years.to_localized_str(seconds / SECONDS_IN_YEAR, use_fullname),
     }
 }

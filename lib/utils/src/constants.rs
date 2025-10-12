@@ -15,10 +15,6 @@ pub const SPOILER_TAG: &str = "||";
 pub const MULTI_LINE_SPOILER_TAG: &str = "|||";
 
 
-pub const HOT_STR: &str = "Hot";
-pub const TRENDING_STR: &str = "Trending";
-pub const BEST_STR: &str = "Best";
-pub const RECENT_STR: &str = "Recent";
 pub const HOT_ORDER_BY_COLUMN: &str = "recommended_score";
 pub const TRENDING_ORDER_BY_COLUMN: &str = "trending_score";
 pub const BEST_ORDER_BY_COLUMN: &str = "score";
@@ -27,7 +23,6 @@ pub const RECENT_ORDER_BY_COLUMN: &str = "create_timestamp";
 
 pub const SITE_ROOT: &str = "/";
 pub const IMAGE_TYPE: &str = "image/";
-pub const DELETED_MESSAGE: &str = "Deleted";
 pub const SCROLL_LOAD_THROTTLE_DELAY: f64 = 3000.0;
 
 

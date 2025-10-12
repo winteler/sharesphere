@@ -399,8 +399,8 @@ pub fn RuleList(
         };
         let title_view = move || view! {
             <div class="flex gap-2">
-                <div class="lg:text-lg lg:text-semibold">{index+1}</div>
-                <div class="text-left lg:text-lg lg:text-semibold">{title}</div>
+                <div class="lg:text-lg text-semibold">{index+1}</div>
+                <div class="text-left lg:text-lg text-semibold">{title}</div>
             </div>
         };
         view! {

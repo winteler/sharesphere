@@ -505,7 +505,7 @@ pub fn InfiniteSphereLinkList(
     };
     view! {
         <Show when=move || !sphere_header_vec.read().is_empty()>
-            <ul class=list_class.clone()
+            <ul class=list_class
                 on:scroll=move |_| if has_reached_scroll_load_threshold(list_ref) && !is_loading.get_untracked() {
                     additional_load_count.update(|value| *value += 1);
                 }

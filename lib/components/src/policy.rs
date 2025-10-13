@@ -1,6 +1,8 @@
+use std::str::FromStr;
 use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
+use sharesphere_core::rule::BaseRule;
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE};
 
@@ -168,15 +170,19 @@ pub fn Rules() -> impl IntoView {
                     move || Suspend::new(async move {
                         match &state.base_rules.await {
                             Ok(rule_vec) => {
-                                Either::Left(rule_vec.iter().enumerate().map(|(index, rule)| view! {
-                                    <div class="flex flex-col gap-2">
-                                        <h2 class="text-xl font-semibold">{format!("{}. {}", index + 1, rule.title)}</h2>
-                                        <ContentBody
-                                            body=rule.description.clone()
-                                            is_markdown=rule.markdown_description.is_some()
-                                            attr:class="text-justify"
-                                        />
-                                    </div>
+                                Either::Left(rule_vec.iter().enumerate().map(|(index, rule)| {
+                                let rule_enum = BaseRule::from_str(&rule.title).expect("Should get base rule.");
+                                    let title = rule_enum.get_localized_title();
+                                    view! {
+                                        <div class="flex flex-col gap-2">
+                                            <h2 class="text-xl font-semibold">{move || format!("{}. {}", index + 1, title.read())}</h2>
+                                            <ContentBody
+                                                body=rule_enum.get_localized_description()
+                                                is_markdown=rule.markdown_description.is_some()
+                                                attr:class="text-justify"
+                                            />
+                                        </div>
+                                    }
                                 }).collect_view())
                             },
                             Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),

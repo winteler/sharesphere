@@ -380,7 +380,7 @@ pub fn BaseRuleList() -> impl IntoView {
 /// List of collapsable rules
 #[component]
 pub fn RuleList(
-    rule_vec: Vec<Rule>
+    rule_vec: Vec<Rule>,
 ) -> impl IntoView {
     let rule_elems = rule_vec.into_iter().enumerate().map(|(index, rule)| {
         let is_markdown = rule.markdown_description.is_some();

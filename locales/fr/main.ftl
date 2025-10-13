@@ -86,6 +86,7 @@ your-comment = Ton commentaire...
 delete-comment = Supprimer le commentaire
 moderate-post = Modérer le poste
 moderate-comment = Modérer le commentaire
+add-rule = Ajouter une règle
 
 welcome-to-sharesphere = Bienvenue sur ShareSphere !
 about-sharesphere = À propos de ShareSphere

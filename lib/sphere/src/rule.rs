@@ -192,7 +192,7 @@ pub fn CreateRuleForm() -> impl IntoView {
             show_dialog
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
-            <div class="text-center font-bold text-2xl">"Add a rule"</div>
+            <div class="text-center font-bold text-2xl">{move_tr!("add-rule")}</div>
                 <ActionForm
                     action=sphere_state.add_rule_action
                     on:submit=move |_| show_dialog.set(false)

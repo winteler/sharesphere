@@ -82,7 +82,7 @@ fn LanguageSelector() -> impl IntoView {
                 view! {
                     <option
                         value=lang
-                        selected=&i18n.language.get() == lang
+                        selected=move || &i18n.language.get() == lang
                         on:click=move |_| i18n.language.set(lang)
                     >
                         {lang.name}

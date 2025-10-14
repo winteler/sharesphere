@@ -288,8 +288,8 @@ pub async fn get_subscribed_sphere_headers() -> Result<Vec<SphereHeader>, AppErr
     let db_pool = get_db_pool()?;
     match get_user().await {
         Ok(Some(user)) => {
-            let sphere_name_vec = ssr::get_subscribed_sphere_headers(user.user_id, &db_pool).await?;
-            Ok(sphere_name_vec)
+            let sphere_header_vec = ssr::get_subscribed_sphere_headers(user.user_id, &db_pool).await?;
+            Ok(sphere_header_vec)
         }
         _ => Ok(Vec::new()),
     }

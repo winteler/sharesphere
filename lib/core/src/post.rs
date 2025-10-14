@@ -489,31 +489,80 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let posts_filters = user.get_posts_filter();
+        let order_by = sort_type.to_order_by_code();
         let post_vec = sqlx::query_as::<_, PostJoinCategory>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
-                FROM posts p
-                JOIN spheres s on s.sphere_id = p.sphere_id
-                LEFT JOIN sphere_categories c on c.category_id = p.category_id
-                WHERE
-                    s.sphere_id IN (
-                        SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
-                    ) AND
-                    p.moderator_id IS NULL AND
-                    p.delete_timestamp IS NULL AND
-                    p.satellite_id IS NULL AND
-                    (
-                        $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
-                    ) AND
-                    (
-                        $3 OR NOT p.is_nsfw
-                    )
-                ORDER BY {} DESC
-                LIMIT $4
-                OFFSET $5",
-                sort_type.to_order_by_code(),
-            )
-                .as_str(),
+                "WITH all_subscribed_posts as (
+                    -- All subscribed posts, no pagination
+                    SELECT
+                        p.*,
+                        c.category_name,
+                        c.category_color,
+                        s.icon_url as sphere_icon_url
+                    FROM posts p
+                    JOIN spheres s on s.sphere_id = p.sphere_id
+                    LEFT JOIN sphere_categories c on c.category_id = p.category_id
+                    WHERE
+                        s.sphere_id IN (
+                            SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
+                        ) AND
+                        p.moderator_id IS NULL AND
+                        p.delete_timestamp IS NULL AND
+                        p.satellite_id IS NULL AND
+                        (
+                            $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
+                        ) AND
+                        (
+                            $3 OR NOT p.is_nsfw
+                        )
+                    ORDER BY {order_by} DESC
+                ),
+                all_subscribed_posts_count AS (
+                    -- Total count of subscribed posts
+                    SELECT COUNT(*) AS total FROM all_subscribed_posts
+                ),
+                subscribed_posts AS (
+                    -- Paginated subscribed posts
+                    SELECT * FROM all_subscribed_posts
+                    LIMIT $4
+                    OFFSET $5
+                ),
+                subscribed_posts_count AS (
+                    -- Count of loaded subscribed posts (after pagination)
+                    SELECT COUNT(*) AS loaded FROM subscribed_posts
+                ),
+                fallback_posts AS (
+                    -- Fallback posts, when running out of subscribed posts
+                    SELECT
+                        p.*,
+                        c.category_name,
+                        c.category_color,
+                        s.icon_url AS sphere_icon_url
+                    FROM posts p
+                    JOIN spheres s ON s.sphere_id = p.sphere_id
+                    LEFT JOIN sphere_categories c ON c.category_id = p.category_id
+                    WHERE
+                        p.moderator_id IS NULL
+                        AND p.delete_timestamp IS NULL
+                        AND p.satellite_id IS NULL
+                        AND (
+                            $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
+                        )
+                        AND (
+                            $3 OR NOT p.is_nsfw
+                        )
+                        AND NOT EXISTS (
+                            SELECT 1 FROM subscribed_posts sp WHERE sp.post_id = p.post_id
+                        )
+                    ORDER BY {order_by} DESC
+                    LIMIT GREATEST(0, $4 - (SELECT loaded FROM subscribed_posts_count))
+                    OFFSET GREATEST(0, $5 - (SELECT total FROM all_subscribed_posts_count))
+                )
+                SELECT * FROM subscribed_posts
+                UNION ALL
+                SELECT * FROM fallback_posts
+                LIMIT $4"
+            ).as_str(),
         )
             .bind(user.user_id)
             .bind(posts_filters.days_hide_spoiler)

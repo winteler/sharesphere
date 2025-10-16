@@ -6,7 +6,7 @@ use sharesphere_core::post::ssr::{create_post, delete_post, get_post_by_id, get_
 use sharesphere_core::post::{PostTags, PostWithSphereInfo};
 use sharesphere_core::ranking::ssr::vote_on_content;
 use sharesphere_core::ranking::{PostSortType, SortType, VoteValue};
-use sharesphere_core::sphere::ssr::{create_sphere, subscribe, unsubscribe};
+use sharesphere_core::sphere::ssr::{create_sphere, subscribe};
 use sharesphere_auth::user::User;
 use sharesphere_core::moderation::ssr::moderate_post;
 use sharesphere_core::rule::ssr::add_rule;
@@ -367,7 +367,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     let sphere2_name = "2";
     let num_post = 10usize;
 
-    let (sphere1, _, mut expected_post_vec) = create_sphere_with_posts(
+    let (sphere1, _, mut sphere1_post_vec) = create_sphere_with_posts(
         sphere1_name,
         Some("url"),
         num_post,
@@ -402,24 +402,31 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
     ).await.expect("Should create satellite post.");
 
 
-    create_sphere_with_posts(
+    let (_, _, mut sphere2_post_vec) = create_sphere_with_posts(
         sphere2_name,
         None,
         num_post,
-        Some((0..num_post).map(|i| i as i32).collect()),
+        Some((0..num_post).map(|i| 100 + i as i32).collect()),
         (0..num_post).map(|i| (i % 2) == 0).collect(),
         &mut user,
         &db_pool,
     ).await.expect("Should create sphere 2 with posts.");
 
-    let post_vec = get_subscribed_post_vec(
-        SortType::Post(PostSortType::Hot),
-        num_post as i64,
-        0,
-        &user,
-        &db_pool,
-    ).await?;
-    assert!(post_vec.is_empty());
+    let mut full_post_vec = sphere1_post_vec.clone();
+    full_post_vec.append(&mut sphere2_post_vec.clone());
+
+    // When no subscription, simply return all sorted posts
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let post_vec = get_subscribed_post_vec(
+            SortType::Post(sort_type),
+            num_post as i64,
+            0,
+            &user,
+            &db_pool,
+        ).await?;
+        sort_post_vec(&mut full_post_vec, sort_type, false);
+        assert_eq!(post_vec, full_post_vec[0..num_post]);
+    }
 
     subscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
 
@@ -431,8 +438,29 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
             &user,
             &db_pool,
         ).await?;
-        sort_post_vec(&mut expected_post_vec, sort_type, true);
-        assert_eq!(post_vec, expected_post_vec);
+        sort_post_vec(&mut sphere1_post_vec, sort_type, false);
+        assert_eq!(post_vec, sphere1_post_vec);
+
+        let post_vec = get_subscribed_post_vec(
+            SortType::Post(sort_type),
+            num_post as i64,
+            num_post as i64,
+            &user,
+            &db_pool,
+        ).await?;
+        sort_post_vec(&mut sphere2_post_vec, sort_type, false);
+        assert_eq!(post_vec, sphere2_post_vec);
+
+        let mut expected_vec = sphere1_post_vec.clone();
+        expected_vec.append(&mut sphere2_post_vec.clone());
+        let post_vec = get_subscribed_post_vec(
+            SortType::Post(sort_type),
+            2*num_post as i64,
+            0,
+            &user,
+            &db_pool,
+        ).await?;
+        assert_eq!(post_vec, expected_vec);
     }
 
     // Check that moderated and deleted posts are not returned
@@ -448,17 +476,6 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
 
     assert!(!post_vec.contains(&moderated_post));
     assert!(!post_vec.contains(&deleted_post));
-
-    // test no posts are returned after unsubscribing
-    unsubscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
-    let post_vec = get_subscribed_post_vec(
-        SortType::Post(PostSortType::Hot),
-        num_post as i64,
-        0,
-        &user,
-        &db_pool,
-    ).await?;
-    assert!(post_vec.is_empty());
 
     Ok(())
 }
@@ -487,15 +504,17 @@ async fn test_get_subscribed_post_vec_with_filters() {
     subscribe(sphere_2.sphere_id, user.user_id, &db_pool).await.expect("Should subscribe to sphere 1");
     post_vec.push(PostWithSphereInfo::from_post(sphere_2_post, None, None));
 
-    create_sphere_with_posts(
+    let (_, _, mut sphere3_posts) = create_sphere_with_posts(
         "sphere_3",
         None,
         num_post,
-        None,
+        Some((0..num_post).map(|i| 100 + i as i32).collect()),
         Vec::new(),
         &mut user,
         &db_pool,
     ).await.expect("Sphere 3 with posts should be created");
+
+    let num_load_posts = 2*num_post;
 
     let mut default_filter_expected_post = post_vec.clone();
     default_filter_expected_post.push(new_spoiler_post.clone());
@@ -508,12 +527,13 @@ async fn test_get_subscribed_post_vec_with_filters() {
             0,
             &user,
             &db_pool,
-        )
-            .await
-            .expect("Should load subscribed posts.");
+        ).await.expect("Should load subscribed posts.");
 
-        sort_post_vec(&mut default_filter_expected_post, sort_type, true);
-        assert_eq!(post_vec, default_filter_expected_post);
+        sort_post_vec(&mut default_filter_expected_post, sort_type, false);
+        sort_post_vec(&mut sphere3_posts, sort_type, false);
+        let mut expected_post_vec = default_filter_expected_post.clone();
+        expected_post_vec.append(&mut sphere3_posts.clone());
+        assert_eq!(post_vec, expected_post_vec[0..num_load_posts]);
     }
 
     user.days_hide_spoiler = Some(1);
@@ -531,8 +551,11 @@ async fn test_get_subscribed_post_vec_with_filters() {
         )
             .await
             .expect("Should load subscribed posts.");
-        sort_post_vec(&mut one_day_spoiler_filter_expected_post, sort_type, true);
-        assert_eq!(post_vec, one_day_spoiler_filter_expected_post);
+        sort_post_vec(&mut one_day_spoiler_filter_expected_post, sort_type, false);
+        sort_post_vec(&mut sphere3_posts, sort_type, false);
+        let mut expected_post_vec = one_day_spoiler_filter_expected_post.clone();
+        expected_post_vec.append(&mut sphere3_posts.clone());
+        assert_eq!(post_vec, expected_post_vec[0..num_load_posts]);
     }
 
     user.days_hide_spoiler = Some(3);
@@ -550,8 +573,11 @@ async fn test_get_subscribed_post_vec_with_filters() {
         )
             .await
             .expect("Should load subscribed posts.");
-        sort_post_vec(&mut three_day_spoiler_filter_expected_post, sort_type, true);
-        assert_eq!(post_vec, three_day_spoiler_filter_expected_post);
+        sort_post_vec(&mut three_day_spoiler_filter_expected_post, sort_type, false);
+        sort_post_vec(&mut sphere3_posts, sort_type, false);
+        let mut expected_post_vec = three_day_spoiler_filter_expected_post.clone();
+        expected_post_vec.append(&mut sphere3_posts.clone());
+        assert_eq!(post_vec, expected_post_vec[0..num_load_posts]);
     }
 }
 

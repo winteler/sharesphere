@@ -56,7 +56,8 @@ pub fn test_post_vec(
     expected_post_vec: &[PostWithSphereInfo],
 ) {
     assert_eq!(post_vec.len(), expected_post_vec.len());
-    for (post, expected_post) in zip(post_vec, expected_post_vec) {
+    for (i, (post, expected_post)) in zip(post_vec, expected_post_vec).enumerate() {
+        println!("test_post_vec, index: {i}");
         assert_eq!(post, expected_post);
     }
 }

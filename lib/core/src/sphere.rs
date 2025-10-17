@@ -16,7 +16,7 @@ use {
         session::ssr::get_db_pool,
     },
     sharesphere_utils::checks::{check_sphere_name, check_string_length},
-    sharesphere_utils::constants::MAX_MOD_MESSAGE_LENGTH,
+    sharesphere_utils::constants::MAX_SPHERE_DESCRIPTION_LENGTH,
 };
 use sharesphere_utils::icons::SphereIcon;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
@@ -325,7 +325,7 @@ pub async fn create_sphere(
     is_nsfw: bool,
 ) -> Result<(), AppError> {
     check_sphere_name(&sphere_name)?;
-    check_string_length(&description, "Sphere description", MAX_MOD_MESSAGE_LENGTH, false)?;
+    check_string_length(&description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
     log::trace!("Create Sphere '{sphere_name}', {description}, {is_nsfw}");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
@@ -355,7 +355,7 @@ pub async fn update_sphere_description(
     description: String,
 ) -> Result<(), AppError> {
     check_sphere_name(&sphere_name)?;
-    check_string_length(&description, "Sphere description", MAX_MOD_MESSAGE_LENGTH, false)?;
+    check_string_length(&description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 

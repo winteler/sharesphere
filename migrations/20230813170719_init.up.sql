@@ -20,7 +20,7 @@ AS 'select REPLACE(LOWER($1), ''-'', ''_'');'
 CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
     oidc_id TEXT UNIQUE NOT NULL,
-    username TEXT NOT NULL,
+    username TEXT NOT NULL CHECK (LENGTH(username) <= 30),
     email TEXT NOT NULL,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
     admin_role TEXT NOT NULL DEFAULT 'None' CHECK (admin_role IN ('None', 'Moderator', 'Admin')),
@@ -38,14 +38,14 @@ CREATE UNIQUE INDEX unique_email ON users (email)
 
 CREATE TABLE spheres (
     sphere_id BIGSERIAL PRIMARY KEY,
-    sphere_name TEXT UNIQUE NOT NULL,
+    sphere_name TEXT UNIQUE NOT NULL CHECK (LENGTH(sphere_name) <= 50),
     normalized_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
         normalize_sphere_name(sphere_name)
     ) STORED,
     search_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
         format_for_search(sphere_name)
         ) STORED,
-    description TEXT NOT NULL,
+    description TEXT NOT NULL CHECK (LENGTH(description) <= 1000),
     sphere_document tsvector GENERATED ALWAYS AS (
         to_tsvector('simple', description)
     ) STORED,
@@ -65,11 +65,11 @@ CREATE INDEX sphere_trigram_idx ON spheres USING GIN (search_sphere_name gin_trg
 
 CREATE TABLE satellites (
     satellite_id BIGSERIAL PRIMARY KEY,
-    satellite_name TEXT NOT NULL,
+    satellite_name TEXT NOT NULL CHECK (LENGTH(satellite_name) <= 50),
     sphere_id BIGINT NOT NULL,
     sphere_name TEXT NOT NULL,
-    body TEXT NOT NULL,
-    markdown_body TEXT,
+    body TEXT NOT NULL CHECK (markdown_body IS NOT NULL OR LENGTH(body) <= 20000),
+    markdown_body TEXT CHECK (LENGTH(markdown_body) <= 20000),
     is_nsfw BOOLEAN NOT NULL,
     is_spoiler BOOLEAN NOT NULL,
     num_posts INT NOT NULL DEFAULT 0,
@@ -110,9 +110,14 @@ CREATE TABLE rules (
     sphere_id BIGINT,
     sphere_name TEXT,
     priority SMALLINT NOT NULL,
-    title TEXT NOT NULL CHECK (sphere_id IS NOT NULL OR title IN ('BeRespectful', 'RespectRules', 'NoIllegalContent', 'PlatformIntegrity')),
-    description TEXT NOT NULL,
-    markdown_description TEXT,
+    title TEXT NOT NULL CHECK (
+        LENGTH(title) <= 250 AND (
+            sphere_id IS NOT NULL OR
+            title IN ('BeRespectful', 'RespectRules', 'NoIllegalContent', 'PlatformIntegrity')
+        )
+    ),
+    description TEXT NOT NULL CHECK (markdown_description IS NOT NULL OR LENGTH(description) <= 500),
+    markdown_description TEXT CHECK (LENGTH(description) <= 500),
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
@@ -130,9 +135,9 @@ CREATE TABLE sphere_categories (
     category_id BIGSERIAL PRIMARY KEY,
     sphere_id BIGINT NOT NULL,
     sphere_name TEXT NOT NULL,
-    category_name TEXT NOT NULL,
+    category_name TEXT NOT NULL CHECK (LENGTH(category_name) <= 50),
     category_color SMALLINT NOT NULL,
-    description TEXT NOT NULL,
+    description TEXT NOT NULL CHECK (LENGTH(description) <= 500),
     is_active BOOLEAN NOT NULL,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -154,15 +159,15 @@ CREATE TABLE sphere_subscriptions (
 
 CREATE TABLE posts (
     post_id BIGSERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
-    body TEXT NOT NULL,
-    markdown_body TEXT,
+    title TEXT NOT NULL CHECK (LENGTH(title) <= 250),
+    body TEXT NOT NULL CHECK (markdown_body IS NOT NULL OR LENGTH(body) <= 20000),
+    markdown_body TEXT CHECK (LENGTH(markdown_body) <= 20000),
     post_document tsvector GENERATED ALWAYS AS (
         setweight(to_tsvector('simple', title), 'A') ||
         setweight(to_tsvector('simple', coalesce(markdown_body, body)), 'B')
     ) STORED,
     link_type SMALLINT NOT NULL CHECK (link_type IN (-1, 0, 1, 2, 3)),
-    link_url TEXT,
+    link_url TEXT CHECK (LENGTH(link_url) <= 500),
     link_embed TEXT,
     link_thumbnail_url TEXT,
     is_nsfw BOOLEAN NOT NULL DEFAULT FALSE,
@@ -175,7 +180,7 @@ CREATE TABLE posts (
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
     is_creator_moderator BOOLEAN NOT NULL,
-    moderator_message TEXT,
+    moderator_message TEXT CHECK (LENGTH(moderator_message) <= 500),
     infringed_rule_id BIGINT REFERENCES rules (rule_id),
     infringed_rule_title TEXT,
     moderator_id BIGINT REFERENCES users (user_id),
@@ -203,13 +208,13 @@ CREATE INDEX post_document_idx ON posts USING GIN (post_document);
 
 CREATE TABLE comments (
     comment_id BIGSERIAL PRIMARY KEY,
-    body TEXT NOT NULL,
-    markdown_body TEXT,
+    body TEXT NOT NULL CHECK (markdown_body IS NOT NULL OR LENGTH(body) <= 20000),
+    markdown_body TEXT CHECK (LENGTH(markdown_body) <= 20000),
     comment_document TSVECTOR GENERATED ALWAYS AS (
         to_tsvector('simple', coalesce(markdown_body, body))
     ) STORED,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
-    moderator_message TEXT,
+    moderator_message TEXT CHECK (LENGTH(moderator_message) <= 500),
     infringed_rule_id BIGINT REFERENCES rules (rule_id),
     infringed_rule_title TEXT,
     parent_id BIGINT REFERENCES comments (comment_id),

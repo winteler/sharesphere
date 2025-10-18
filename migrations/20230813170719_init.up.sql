@@ -66,8 +66,7 @@ CREATE INDEX sphere_trigram_idx ON spheres USING GIN (search_sphere_name gin_trg
 CREATE TABLE satellites (
     satellite_id BIGSERIAL PRIMARY KEY,
     satellite_name TEXT NOT NULL CHECK (LENGTH(satellite_name) <= 50),
-    sphere_id BIGINT NOT NULL,
-    sphere_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL REFERENCES spheres (sphere_id),
     body TEXT NOT NULL CHECK (markdown_body IS NOT NULL OR LENGTH(body) <= 20000),
     markdown_body TEXT CHECK (LENGTH(markdown_body) <= 20000),
     is_nsfw BOOLEAN NOT NULL,
@@ -77,8 +76,7 @@ CREATE TABLE satellites (
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     disable_timestamp TIMESTAMPTZ,
     CONSTRAINT unique_satellite_name UNIQUE (satellite_name, sphere_id),
-    CONSTRAINT unique_sphere UNIQUE (sphere_id, satellite_id),
-    CONSTRAINT valid_forum FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
+    CONSTRAINT unique_sphere UNIQUE (sphere_id, satellite_id)
 );
 
 -- index to guarantee unique satellite names per forum for active satellites
@@ -88,13 +86,11 @@ CREATE UNIQUE INDEX unique_satellite ON satellites (satellite_name, sphere_id)
 CREATE TABLE user_sphere_roles (
     role_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users (user_id),
-    sphere_id BIGINT NOT NULL,
-    sphere_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL REFERENCES spheres (sphere_id),
     permission_level TEXT NOT NULL CHECK (permission_level IN ('None', 'Moderate', 'Ban', 'Manage', 'Lead')),
     grantor_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
+    delete_timestamp TIMESTAMPTZ
 );
 
 -- index to guarantee there is only one role per user and sphere
@@ -107,8 +103,7 @@ CREATE UNIQUE INDEX unique_sphere_leader ON user_sphere_roles (sphere_id, permis
 CREATE TABLE rules (
     rule_id BIGSERIAL PRIMARY KEY,
     rule_key BIGSERIAL, -- business id to track rule across updates
-    sphere_id BIGINT,
-    sphere_name TEXT,
+    sphere_id BIGINT REFERENCES spheres (sphere_id),
     priority SMALLINT NOT NULL,
     title TEXT NOT NULL CHECK (
         LENGTH(title) <= 250 AND (
@@ -120,8 +115,7 @@ CREATE TABLE rules (
     markdown_description TEXT CHECK (LENGTH(description) <= 500),
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
+    delete_timestamp TIMESTAMPTZ
 );
 
 -- index to guarantee numbering of rules is unique
@@ -133,8 +127,7 @@ CREATE UNIQUE INDEX unique_rule_key ON rules (rule_key)
 
 CREATE TABLE sphere_categories (
     category_id BIGSERIAL PRIMARY KEY,
-    sphere_id BIGINT NOT NULL,
-    sphere_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL REFERENCES spheres (sphere_id),
     category_name TEXT NOT NULL CHECK (LENGTH(category_name) <= 50),
     category_color SMALLINT NOT NULL,
     description TEXT NOT NULL CHECK (LENGTH(description) <= 500),
@@ -143,11 +136,10 @@ CREATE TABLE sphere_categories (
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
     CONSTRAINT sphere_category UNIQUE (category_id, sphere_id),
-    CONSTRAINT unique_category UNIQUE (sphere_id, category_name),
-    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
+    CONSTRAINT unique_category UNIQUE (sphere_id, category_name)
 );
 
-CREATE INDEX category_order ON sphere_categories (sphere_name, is_active, category_name);
+CREATE INDEX category_order ON sphere_categories (sphere_id, is_active, category_name);
 
 CREATE TABLE sphere_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,
@@ -174,8 +166,7 @@ CREATE TABLE posts (
     is_spoiler BOOLEAN NOT NULL DEFAULT FALSE,
     category_id BIGINT,
     is_edited BOOLEAN NOT NULL DEFAULT FALSE,
-    sphere_id BIGINT NOT NULL,
-    sphere_name TEXT NOT NULL,
+    sphere_id BIGINT NOT NULL REFERENCES spheres (sphere_id),
     satellite_id BIGINT,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     creator_name TEXT NOT NULL,
@@ -199,7 +190,6 @@ CREATE TABLE posts (
     edit_timestamp TIMESTAMPTZ,
     scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL,
     CONSTRAINT valid_satellite FOREIGN KEY (sphere_id, satellite_id) REFERENCES satellites (sphere_id, satellite_id) MATCH SIMPLE,
     CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
 );
@@ -247,16 +237,14 @@ CREATE TABLE votes (
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users (user_id),
-    sphere_id BIGINT,
-    sphere_name TEXT,
+    sphere_id BIGINT REFERENCES spheres (sphere_id),
     post_id BIGINT NOT NULL,
     comment_id BIGINT,
     infringed_rule_id BIGINT NOT NULL REFERENCES rules (rule_id),
     moderator_id BIGINT NOT NULL REFERENCES users (user_id),
     until_timestamp TIMESTAMPTZ,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    delete_timestamp TIMESTAMPTZ,
-    CONSTRAINT valid_sphere FOREIGN KEY (sphere_id, sphere_name) REFERENCES spheres (sphere_id, sphere_name) MATCH FULL
+    delete_timestamp TIMESTAMPTZ
 );
 
 -- add functional user
@@ -264,24 +252,24 @@ INSERT INTO users (oidc_id, username, email)
 VALUES ('', 'sharesphere-function-user', '');
 
 -- add base rules
-INSERT INTO rules (sphere_id, sphere_name, priority, title, description, markdown_description, user_id)
+INSERT INTO rules (sphere_id, priority, title, description, markdown_description, user_id)
 VALUES
 (
-null, null, 0,'BeRespectful', '',null,1
+null, 0,'BeRespectful', '',null,1
 ),
 (
-null, null, 1,'RespectRules', '',
+null, 1,'RespectRules', '',
 $$Post in the appropriate communities and follow their rules. Make sure to use accurate titles, tags, and categories to help others understand the topic of your post. Stay on-topic and contribute in good faith on topics where you have a genuine interest - this helps keep communities organized, relevant, and welcoming for everyone.\
 \
 Furthermore, mature content that is not suitable for children (sexually explicit, graphic, violent or offensive) and spoilers must be labelled as NSFW and Spoilers respectively. You can find more details in our [Content Policy](/content_policy).$$,
 1
 ),
 (
-null, null, 2,'NoIllegalContent', '',
+null, 2,'NoIllegalContent', '',
 $$Any illegal content, content advocating or soliciting illegal acts or transactions and malicious content that aims to cause harm or negatively impact other users is strictly prohibited. More detail can be found in our [Content Policy](/content_policy).\
 \
 Violating this rule will lead to immediate removal of content and a permanent ban. Depending on the infraction, it can also be reported to authorities.$$,
 1
 ),
 (
-null, null, 3,'PlatformIntegrity', '', null, 1);
+null, 3,'PlatformIntegrity', '', null, 1);

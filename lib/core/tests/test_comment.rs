@@ -429,7 +429,7 @@ async fn test_update_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (_, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (sphere, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let updated_markdown_body = "# Here is a comment with markdown";
     let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");
@@ -452,7 +452,7 @@ async fn test_update_comment() -> Result<(), AppError> {
     assert_eq!(updated_comment.delete_timestamp, None);
 
     // Cannot update moderated comment
-    let moderated_comment = get_moderated_comment(&post, &user, &db_pool).await;
+    let moderated_comment = get_moderated_comment(&post, &sphere.sphere_name, &user, &db_pool).await;
     assert_eq!(
         update_comment(
             moderated_comment.comment_id,
@@ -496,7 +496,7 @@ async fn test_delete_comment() {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
-    let (_, post, parent_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (sphere, post, parent_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let comment = create_comment(
         post.post_id,
@@ -556,7 +556,7 @@ async fn test_delete_comment() {
             deleted_parent_comment.delete_timestamp.unwrap() > deleted_parent_comment.create_timestamp
     );
 
-    let moderated_comment = get_moderated_comment(&post, &user, &db_pool).await;
+    let moderated_comment = get_moderated_comment(&post, &sphere.sphere_name, &user, &db_pool).await;
     assert_eq!(
         delete_comment(
             moderated_comment.comment_id,

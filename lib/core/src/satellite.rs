@@ -21,7 +21,6 @@ pub struct Satellite {
     pub satellite_id: i64,
     pub satellite_name: String,
     pub sphere_id: i64,
-    pub sphere_name: String,
     pub body: String,
     pub markdown_body: Option<String>,
     pub is_nsfw: bool,
@@ -65,11 +64,12 @@ pub mod ssr {
     pub async fn get_active_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
         let satellite_vec = sqlx::query_as!(
             Satellite,
-            "SELECT * FROM satellites
+            "SELECT sa.* FROM satellites sa
+            JOIN spheres s ON s.sphere_id = sa.sphere_id
             WHERE
-                sphere_name = $1 AND
-                disable_timestamp IS NULL
-            ORDER BY satellite_name",
+                s.sphere_name = $1 AND
+                sa.disable_timestamp IS NULL
+            ORDER BY sa.satellite_name",
             sphere_name
         )
             .fetch_all(db_pool)
@@ -81,8 +81,9 @@ pub mod ssr {
     pub async fn get_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
         let satellite_vec = sqlx::query_as!(
             Satellite,
-            "SELECT * FROM satellites
-            WHERE sphere_name = $1
+            "SELECT sa.* FROM satellites sa
+            JOIN spheres s ON s.sphere_id = sa.sphere_id
+            WHERE s.sphere_name = $1
             ORDER BY satellite_name",
             sphere_name
         )
@@ -120,11 +121,11 @@ pub mod ssr {
         let satellite = sqlx::query_as!(
             Satellite,
             "INSERT INTO satellites
-            (satellite_name, sphere_id, sphere_name, body, markdown_body, is_nsfw, is_spoiler, creator_id)
+            (satellite_name, sphere_id, body, markdown_body, is_nsfw, is_spoiler, creator_id)
             VALUES (
                 $1,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                $2, $3, $4,
+                $3, $4,
                 (
                     CASE
                         WHEN $5 THEN TRUE

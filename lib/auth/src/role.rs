@@ -91,10 +91,11 @@ pub mod ssr {
     ) -> Result<UserSphereRole, AppError> {
         let user_sphere_role = sqlx::query_as!(
             UserSphereRole,
-            "SELECT r.*, u.username FROM user_sphere_roles r
+            "SELECT r.*, u.username, s.sphere_name FROM user_sphere_roles r
             JOIN users u ON u.user_id = r.user_id
+            JOIN spheres s ON s.sphere_id = r.sphere_id
             WHERE r.user_id = $1 AND
-                  r.sphere_name = $2 AND
+                  s.sphere_name = $2 AND
                   r.delete_timestamp IS NULL",
             user_id,
             sphere_name,
@@ -107,11 +108,12 @@ pub mod ssr {
 
     pub async fn is_user_sphere_moderator(
         user_id: i64,
-        sphere: &str,
+        sphere_id: i64,
         db_pool: &PgPool,
     ) -> Result<bool, AppError> {
+        // TODO use single query instead of fetching user
         match User::get(user_id, db_pool).await {
-            Some(user) => Ok(user.check_permissions(sphere, PermissionLevel::Moderate).is_ok()),
+            Some(user) => Ok(user.check_permissions_by_sphere_id(sphere_id, PermissionLevel::Moderate).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
     }
@@ -122,10 +124,11 @@ pub mod ssr {
     ) -> Result<Vec<UserSphereRole>, AppError> {
         let sphere_role_vec = sqlx::query_as!(
             UserSphereRole,
-            "SELECT r.*, u.username FROM user_sphere_roles r
+            "SELECT r.*, u.username, s.sphere_name FROM user_sphere_roles r
             JOIN users u ON u.user_id = r.user_id
+            JOIN spheres s ON s.sphere_id = r.sphere_id
             WHERE
-                r.sphere_name = $1 AND
+                s.sphere_name = $1 AND
                 r.permission_level != 'None' AND
                 r.delete_timestamp IS NULL",
             sphere_name,
@@ -168,16 +171,20 @@ pub mod ssr {
 
         sqlx::query!(
             "UPDATE user_sphere_roles SET delete_timestamp = NOW()
-            WHERE sphere_name = $1 AND permission_level = $2 AND delete_timestamp IS NULL",
+            WHERE sphere_id = (
+                SELECT sphere_id from spheres WHERE sphere_name = $1
+            ) AND permission_level = $2 AND delete_timestamp IS NULL",
             sphere_name,
             lead_level_str,
         ).execute(db_pool).await?;
 
         sqlx::query!(
-            "INSERT INTO user_sphere_roles (user_id, sphere_id, sphere_name, permission_level, grantor_id)
-            VALUES ($1,
+            "INSERT INTO user_sphere_roles (user_id, sphere_id, permission_level, grantor_id)
+            VALUES (
+                $1,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                $2, $3, $1)",
+                $3, $1
+            )",
             grantor.user_id,
             sphere_name,
             manage_level_str,
@@ -232,7 +239,10 @@ pub mod ssr {
 
         sqlx::query!(
             "UPDATE user_sphere_roles SET delete_timestamp = NOW()
-            WHERE user_id = $1 AND sphere_name = $2 AND delete_timestamp IS NULL",
+            WHERE
+                user_id = $1 AND sphere_id = (
+                    SELECT sphere_id FROM spheres WHERE spheres.sphere_name = $2
+                ) AND delete_timestamp IS NULL",
             user_id,
             sphere_name,
         ).execute(db_pool).await?;
@@ -258,14 +268,17 @@ pub mod ssr {
         let user_sphere_role = sqlx::query_as!(
             UserSphereRole,
             "WITH new_role AS (
-                INSERT INTO user_sphere_roles (user_id, sphere_id, sphere_name, permission_level, grantor_id)
-                VALUES ($1,
+                INSERT INTO user_sphere_roles (user_id, sphere_id, permission_level, grantor_id)
+                VALUES (
+                    $1,
                     (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                    $2, $3, $4)
+                    $3, $4
+                )
                 RETURNING *
             )
-            SELECT r.*, u.username FROM new_role r
-            JOIN users u ON u.user_id = r.user_id",
+            SELECT r.*, u.username, s.sphere_name FROM new_role r
+            JOIN users u ON u.user_id = r.user_id
+            JOIN spheres s ON s.sphere_id = r.sphere_id",
             user_id,
             sphere_name,
             permission_level_str,

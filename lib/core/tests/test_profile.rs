@@ -48,7 +48,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Should create satellite post");
     let satellite_post = set_post_score(satellite_post.post_id, -1, &db_pool).await.expect("Should set post score");
-    user_1_expected_post_vec.push(PostWithSphereInfo::from_post(satellite_post, None, None));
+    user_1_expected_post_vec.push(PostWithSphereInfo::from_post(satellite_post, sphere1_name.to_string(), None, None));
 
     let (_, _, mut user_2_expected_post_vec) = create_sphere_with_posts(
         sphere2_name,
@@ -72,7 +72,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Should create satellite post");
     let sphere_2_post = set_post_score(sphere_2_post.post_id, -2, &db_pool).await.expect("Should set post score");
-    user_1_expected_post_vec.push(PostWithSphereInfo::from_post(sphere_2_post, None, None));
+    user_1_expected_post_vec.push(PostWithSphereInfo::from_post(sphere_2_post, sphere2_name.to_string(), None, None));
     
     for sort_type in POST_SORT_TYPE_ARRAY {
         let user_1_post_vec = get_user_post_vec(
@@ -210,7 +210,7 @@ async fn test_get_user_comment_vec() {
         ))
     );
 
-    let (moderated_comment, deleted_comment) = get_moderated_and_deleted_comments(&user_1_post, &user_1, &db_pool).await;
+    let (moderated_comment, deleted_comment) = get_moderated_and_deleted_comments(&user_1_post, sphere1_name, &user_1, &db_pool).await;
     let comment_vec = get_user_comment_vec(
         &user_1.username,
         SortType::Comment(CommentSortType::Recent),

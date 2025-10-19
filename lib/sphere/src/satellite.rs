@@ -30,6 +30,7 @@ use crate::sphere_category::{get_sphere_category_header_map};
 /// Component to display a satellite banner
 #[component]
 pub fn SatelliteBanner() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
     let params = use_params_map();
     let satellite_id = get_satellite_id_memo(params);
     let satellite_state = SatelliteState {
@@ -48,7 +49,7 @@ pub fn SatelliteBanner() -> impl IntoView {
             <div class="w-1/2 lg:w-1/4">
                 <SatelliteHeader
                     satellite_name=satellite.satellite_name.clone()
-                    satellite_link=get_satellite_path(&satellite.sphere_name, satellite.satellite_id)
+                    satellite_link=get_satellite_path(sphere_state.sphere_name.into(), satellite.satellite_id)
                     is_spoiler=satellite.is_spoiler
                     is_nsfw=satellite.is_nsfw
                 />
@@ -62,7 +63,8 @@ pub fn SatelliteBanner() -> impl IntoView {
 #[component]
 pub fn SatelliteHeader(
     satellite_name: String,
-    satellite_link: String,
+    #[prop(into)]
+    satellite_link: Signal<String>,
     is_spoiler: bool,
     is_nsfw: bool,
 ) -> impl IntoView {
@@ -119,7 +121,12 @@ pub fn SatelliteContent() -> impl IntoView {
                 category_id,
                 sort_type,
                 0
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(
+                post_vec,
+                sphere_state.sphere_name.get_untracked(),
+                &*sphere_category_header_map.read_untracked(),
+                None)
+            );
             #[cfg(feature = "hydrate")]
             is_loading.set(false);
             result
@@ -146,7 +153,12 @@ pub fn SatelliteContent() -> impl IntoView {
                     category_id_signal.get_untracked(),
                     sort_signal.get_untracked(),
                     num_post
-                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
+                ).await.map(|post_vec| add_sphere_info_to_post_vec(
+                    post_vec,
+                    sphere_state.sphere_name.get_untracked(),
+                    &*sphere_category_header_map.read_untracked(),
+                    None)
+                );
                 handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }
@@ -265,7 +277,7 @@ pub fn ActiveSatelliteList() -> impl IntoView {
                 false => {
                     let satellite_list = satellite_vec.iter().map(|satellite| {
                         let satellite_name = satellite.satellite_name.clone();
-                        let satellite_link = get_satellite_path(&satellite.sphere_name, satellite.satellite_id);
+                        let satellite_link = get_satellite_path(sphere_state.sphere_name.into(), satellite.satellite_id);
                         view! {
                             <SatelliteHeader
                                 satellite_name
@@ -318,7 +330,7 @@ pub fn SatellitePanel() -> impl IntoView {
                     satellite_vec.iter().map(|satellite| {
                         let show_edit_form = RwSignal::new(false);
                         let satellite_name = satellite.satellite_name.clone();
-                        let satellite_link = get_satellite_path(&satellite.sphere_name, satellite.satellite_id);
+                        let satellite_link = get_satellite_path(sphere_state.sphere_name.into(), satellite.satellite_id);
                         let satellite = satellite.clone();
                         view! {
                             <div class="flex gap-1 justify-between rounded-sm pl-1">

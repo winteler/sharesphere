@@ -168,7 +168,7 @@ async fn test_set_user_sphere_role() {
         .await
         .expect("Should be able to reload moderator.");
     assert_eq!(
-        moderator.permission_by_sphere_map.get(sphere_name),
+        moderator.permission_by_sphere_name_map.get(sphere_name),
         Some(&PermissionLevel::Moderate)
     );
 
@@ -204,7 +204,7 @@ async fn test_set_user_sphere_role() {
         .await
         .expect("Should be able to reload moderator after role update.");
     assert_eq!(
-        moderator.permission_by_sphere_map.get(sphere_name),
+        moderator.permission_by_sphere_name_map.get(sphere_name),
         Some(&PermissionLevel::Manage)
     );
 
@@ -239,7 +239,7 @@ async fn test_set_user_sphere_role() {
         .await
         .expect("Should be able to reload ordinary_user.");
     assert_eq!(
-        ordinary_user.permission_by_sphere_map.get(sphere_name),
+        ordinary_user.permission_by_sphere_name_map.get(sphere_name),
         Some(&PermissionLevel::Moderate)
     );
 
@@ -283,14 +283,14 @@ async fn test_set_user_sphere_role() {
         .await
         .expect("Should be able to reload ordinary_user after lead update.");
     assert_eq!(
-        ordinary_user.permission_by_sphere_map.get(sphere_name),
+        ordinary_user.permission_by_sphere_name_map.get(sphere_name),
         Some(&PermissionLevel::Lead)
     );
     let prev_lead_user = User::get(lead_user.user_id, &db_pool)
         .await
         .expect("Should be able to reload lead_use after lead update.");
     assert_eq!(
-        prev_lead_user.permission_by_sphere_map.get(sphere_name),
+        prev_lead_user.permission_by_sphere_name_map.get(sphere_name),
         Some(&PermissionLevel::Manage)
     );
 

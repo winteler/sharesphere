@@ -169,7 +169,7 @@ pub mod ssr {
 
     pub async fn ban_user_from_sphere(
         user_id: i64,
-        sphere_name: &String,
+        sphere_id: i64,
         post_id: i64,
         comment_id: Option<i64>,
         rule_id: i64,
@@ -177,9 +177,9 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: &PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.check_permissions(&sphere_name, PermissionLevel::Moderate).is_ok() &&
+        if user.check_permissions_by_sphere_id(sphere_id, PermissionLevel::Moderate).is_ok() &&
             user.user_id != user_id &&
-            !is_user_sphere_moderator(user_id, sphere_name, &db_pool).await? 
+            !is_user_sphere_moderator(user_id, sphere_id, &db_pool).await?
         {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
@@ -187,17 +187,16 @@ pub mod ssr {
                     Some(sqlx::query_as!(
                         UserBan,
                         "WITH ban AS (
-                            INSERT INTO user_bans (user_id, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
+                            INSERT INTO user_bans (user_id, sphere_id, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
                              VALUES (
-                                $1,
-                                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                                $2, $3, $4, $5, $6, NOW() + $7 * interval '1 day'
+                                $1, $2, $3, $4, $5, $6, NOW() + $7 * interval '1 day'
                             ) RETURNING *
                         )
-                        SELECT b.*, u.username FROM ban b
-                        JOIN users u ON u.user_id = b.user_id",
+                        SELECT b.*, u.username, s.sphere_name FROM ban b
+                        JOIN users u ON u.user_id = b.user_id
+                        JOIN spheres s ON s.sphere_id = b.sphere_id",
                         user_id,
-                        sphere_name,
+                        sphere_id,
                         post_id,
                         comment_id,
                         rule_id,
@@ -268,7 +267,7 @@ pub async fn moderate_post(
 
     ssr::ban_user_from_sphere(
         post.creator_id,
-        &post.sphere_name,
+        post.sphere_id,
         post.post_id,
         None,
         rule_id,
@@ -310,7 +309,7 @@ pub async fn moderate_comment(
 
     ssr::ban_user_from_sphere(
         comment.creator_id,
-        &sphere.sphere_name,
+        sphere.sphere_id,
         comment.post_id,
         Some(comment.comment_id),
         rule_id,

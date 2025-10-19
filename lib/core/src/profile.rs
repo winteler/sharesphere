@@ -18,7 +18,7 @@ pub mod ssr {
     use sharesphere_utils::errors::AppError;
     use crate::comment::CommentWithContext;
     use crate::post::PostWithSphereInfo;
-    use crate::post::ssr::PostJoinCategory;
+    use crate::post::ssr::PostJoinSphereInfo;
     use crate::ranking::SortType;
 
     pub async fn get_user_post_vec(
@@ -28,9 +28,9 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
-        let post_vec = sqlx::query_as::<_, PostJoinCategory>(
+        let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
+                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url, s.sphere_name
                 FROM posts p
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
@@ -50,7 +50,7 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_sphere_info).collect();
+        let post_vec = post_vec.into_iter().map(PostJoinSphereInfo::into_post_with_sphere_info).collect();
 
         Ok(post_vec)
     }

@@ -35,7 +35,6 @@ pub struct Rule {
     pub rule_id: i64,
     pub rule_key: i64, // business id to track rule across updates
     pub sphere_id: Option<i64>,
-    pub sphere_name: Option<String>,
     pub priority: i16,
     pub title: String,
     pub description: String,
@@ -68,7 +67,7 @@ impl BaseRule {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-    use sharesphere_auth::role::{AdminRole, PermissionLevel};
+    use sharesphere_auth::role::{PermissionLevel};
     use sharesphere_auth::user::User;
     use sharesphere_utils::errors::AppError;
     use crate::rule::Rule;
@@ -95,9 +94,12 @@ pub mod ssr {
     ) -> Result<Vec<Rule>, AppError> {
         let sphere_rule_vec = sqlx::query_as!(
             Rule,
-            "SELECT * FROM rules
-            WHERE COALESCE(sphere_name, $1) IS NOT DISTINCT FROM $1 AND delete_timestamp IS NULL
-            ORDER BY sphere_name NULLS FIRST, priority, create_timestamp",
+            "SELECT r.* FROM rules r
+            LEFT JOIN spheres s ON s.sphere_id = r.sphere_id
+            WHERE
+                COALESCE(s.sphere_name, $1) IS NOT DISTINCT FROM $1 AND
+                r.delete_timestamp IS NULL
+            ORDER BY s.sphere_name NULLS FIRST, r.priority, r.create_timestamp",
             sphere_name
         )
             .fetch_all(db_pool)
@@ -107,7 +109,7 @@ pub mod ssr {
     }
 
     pub async fn add_rule(
-        sphere_name: Option<&str>,
+        sphere_name: &str,
         priority: i16,
         title: &str,
         description: &str,
@@ -115,15 +117,14 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        match sphere_name {
-            Some(sphere_name) => user.check_permissions(sphere_name, PermissionLevel::Manage)?,
-            None => user.check_admin_role(AdminRole::Admin)?,
-        };
+        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
 
         sqlx::query!(
             "UPDATE rules
              SET priority = priority + 1
-             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority >= $2 AND delete_timestamp IS NULL",
+             WHERE sphere_id = (
+                    SELECT sphere_id FROM spheres WHERE sphere_name = $1
+                 ) AND priority >= $2 AND delete_timestamp IS NULL",
             sphere_name,
             priority,
         )
@@ -133,10 +134,10 @@ pub mod ssr {
         let rule = sqlx::query_as!(
             Rule,
             "INSERT INTO rules
-            (sphere_id, sphere_name, priority, title, description, markdown_description, user_id)
+            (sphere_id, priority, title, description, markdown_description, user_id)
             VALUES (
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $1),
-                $1, $2, $3, $4, $5, $6
+                $2, $3, $4, $5, $6
             ) RETURNING *",
             sphere_name,
             priority,
@@ -152,7 +153,7 @@ pub mod ssr {
     }
 
     pub async fn update_rule(
-        sphere_name: Option<&str>,
+        sphere_name: &str,
         current_priority: i16,
         priority: i16,
         title: &str,
@@ -161,55 +162,52 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        match sphere_name {
-            Some(sphere_name) => user.check_permissions(sphere_name, PermissionLevel::Manage)?,
-            None => user.check_admin_role(AdminRole::Admin)?,
-        };
+        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
 
         let current_rule = sqlx::query_as!(
             Rule,
             "UPDATE rules
              SET delete_timestamp = NOW()
-             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL
+             WHERE sphere_id = (
+                    SELECT sphere_id FROM spheres where sphere_name = $1
+                ) AND priority = $2 AND delete_timestamp IS NULL
              RETURNING *",
             sphere_name,
             current_priority,
-        )
-            .fetch_one(db_pool)
-            .await?;
+        ).fetch_one(db_pool).await?;
 
         if priority > current_priority {
             sqlx::query!(
                 "UPDATE rules
                 SET priority = priority - 1
-                WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $2 AND $3 AND delete_timestamp IS NULL",
+                WHERE sphere_id = (
+                        SELECT sphere_id FROM spheres WHERE sphere_name = $1
+                    ) AND priority BETWEEN $2 AND $3 AND delete_timestamp IS NULL",
                 sphere_name,
                 current_priority,
                 priority,
-            )
-                .execute(db_pool)
-                .await?;
+            ).execute(db_pool).await?;
         } else if priority < current_priority {
             sqlx::query!(
                 "UPDATE rules
                 SET priority = priority + 1
-                WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority BETWEEN $3 AND $2 AND delete_timestamp IS NULL",
+                WHERE sphere_id = (
+                        SELECT sphere_id FROM spheres WHERE sphere_name = $1
+                    ) AND priority BETWEEN $3 AND $2 AND delete_timestamp IS NULL",
                 sphere_name,
                 current_priority,
                 priority,
-            )
-                .execute(db_pool)
-                .await?;
+            ).execute(db_pool).await?;
         }
 
         let new_rule = sqlx::query_as!(
             Rule,
             "INSERT INTO rules
-            (rule_key, sphere_id, sphere_name, priority, title, description, markdown_description, user_id)
+            (rule_key, sphere_id, priority, title, description, markdown_description, user_id)
             VALUES (
                 $1,
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $2),
-                $2, $3, $4, $5, $6, $7
+                $3, $4, $5, $6, $7
             ) RETURNING *",
             current_rule.rule_key,
             sphere_name,
@@ -218,28 +216,25 @@ pub mod ssr {
             description,
             markdown_description,
             user.user_id,
-        )
-            .fetch_one(db_pool)
-            .await?;
+        ).fetch_one(db_pool).await?;
 
         Ok(new_rule)
     }
 
     pub async fn remove_rule(
-        sphere_name: Option<&str>,
+        sphere_name: &str,
         priority: i16,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        match sphere_name {
-            Some(sphere_name) => user.check_permissions(sphere_name, PermissionLevel::Manage)?,
-            None => user.check_admin_role(AdminRole::Admin)?,
-        };
+        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
 
         sqlx::query!(
             "UPDATE rules
              SET delete_timestamp = NOW()
-             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL",
+             WHERE sphere_id = (
+                    SELECT sphere_id FROM spheres WHERE sphere_name = $1
+                ) AND priority = $2 AND delete_timestamp IS NULL",
             sphere_name,
             priority,
         )
@@ -249,7 +244,9 @@ pub mod ssr {
         sqlx::query!(
             "UPDATE rules
              SET priority = priority - 1
-             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority > $2 AND delete_timestamp IS NULL",
+             WHERE sphere_id = (
+                    SELECT sphere_id FROM spheres WHERE sphere_name = $1
+                ) AND priority > $2 AND delete_timestamp IS NULL",
             sphere_name,
             priority,
         )
@@ -283,15 +280,13 @@ pub async fn get_rule_vec(
 
 #[server]
 pub async fn add_rule(
-    sphere_name: Option<String>,
+    sphere_name: String,
     priority: i16,
     title: String,
     description: String,
     is_markdown: bool,
 ) -> Result<Rule, AppError> {
-    if let Some(sphere_name) = &sphere_name {
-        check_sphere_name(sphere_name)?;
-    }
+    check_sphere_name(&sphere_name)?;
     check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
     check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
     let db_pool = get_db_pool()?;
@@ -299,7 +294,7 @@ pub async fn add_rule(
     let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
 
     let rule = ssr::add_rule(
-        sphere_name.as_ref().map(String::as_str),
+        sphere_name.as_ref(),
         priority,
         &title,
         &description,
@@ -313,16 +308,14 @@ pub async fn add_rule(
 
 #[server]
 pub async fn update_rule(
-    sphere_name: Option<String>,
+    sphere_name: String,
     current_priority: i16,
     priority: i16,
     title: String,
     description: String,
     is_markdown: bool,
 ) -> Result<Rule, AppError> {
-    if let Some(sphere_name) = &sphere_name {
-        check_sphere_name(sphere_name)?;
-    }
+    check_sphere_name(&sphere_name)?;
     check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
     check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
     let db_pool = get_db_pool()?;
@@ -330,7 +323,7 @@ pub async fn update_rule(
     let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
 
     let rule = ssr::update_rule(
-        sphere_name.as_ref().map(String::as_str),
+        sphere_name.as_ref(),
         current_priority,
         priority,
         &title,
@@ -345,15 +338,13 @@ pub async fn update_rule(
 
 #[server]
 pub async fn remove_rule(
-    sphere_name: Option<String>,
+    sphere_name: String,
     priority: i16,
 ) -> Result<(), AppError> {
-    if let Some(sphere_name) = &sphere_name {
-        check_sphere_name(sphere_name)?;
-    }
+    check_sphere_name(&sphere_name)?;
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    ssr::remove_rule(sphere_name.as_deref(), priority, &user, &db_pool).await?;
+    ssr::remove_rule(sphere_name.as_ref(), priority, &user, &db_pool).await?;
     Ok(())
 }
 

@@ -2,13 +2,12 @@ use chrono::Days;
 use std::ops::Add;
 
 use crate::common::{create_user, get_db_pool};
-use crate::data_factory::create_sphere_with_post;
+use crate::data_factory::{add_base_rule, create_sphere_with_post};
 use sharesphere_auth::role::ssr::set_user_sphere_role;
 use sharesphere_auth::role::{AdminRole, PermissionLevel};
 use sharesphere_auth::user::ssr::{create_or_update_user, SqlUser};
 use sharesphere_auth::user::User;
 use sharesphere_core::moderation::ssr::ban_user_from_sphere;
-use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_core::sphere;
 use sharesphere_utils::errors::AppError;
 
@@ -42,7 +41,7 @@ async fn test_user_get() -> Result<(), AppError> {
     admin.admin_role = AdminRole::Admin;
 
     // Create common rule to enable bans
-    let rule = add_rule(None, 0, "BeRespectful", "test", None, &admin, &db_pool).await.expect("Rule should be added.");
+    let rule = add_base_rule(0, "BeRespectful", "test", None, &admin, &db_pool).await.expect("Rule should be added.");
 
     let (sphere_a, _post_a) = create_sphere_with_post("a", &mut creator_user, &db_pool).await;
     let (sphere_b, _post_b) = create_sphere_with_post("b", &mut creator_user, &db_pool).await;
@@ -54,13 +53,13 @@ async fn test_user_get() -> Result<(), AppError> {
     set_user_sphere_role(test_user.user_id, &sphere_b.sphere_name, PermissionLevel::Manage, &creator_user, &db_pool).await?;
 
     assert_eq!(
-        ban_user_from_sphere(test_user.user_id, &sphere_c.sphere_name, post_c.post_id, None, rule.rule_id, &creator_user, Some(0), &db_pool).await.expect("User ban should be created for sphere c."),
+        ban_user_from_sphere(test_user.user_id, sphere_c.sphere_id, post_c.post_id, None, rule.rule_id, &creator_user, Some(0), &db_pool).await.expect("User ban should be created for sphere c."),
         None
     );
-    let sphere_ban_d = ban_user_from_sphere(test_user.user_id, &sphere_d.sphere_name, post_d.post_id, None, rule.rule_id, &creator_user, Some(1), &db_pool)
+    let sphere_ban_d = ban_user_from_sphere(test_user.user_id, sphere_d.sphere_id, post_d.post_id, None, rule.rule_id, &creator_user, Some(1), &db_pool)
         .await?
         .expect("User should have ban for sphere d.");
-    ban_user_from_sphere(test_user.user_id, &sphere_e.sphere_name, post_e.post_id, None, rule.rule_id, &creator_user, None, &db_pool).await
+    ban_user_from_sphere(test_user.user_id, sphere_e.sphere_id, post_e.post_id, None, rule.rule_id, &creator_user, None, &db_pool).await
         .expect("User ban should be created for sphere e.")
         .expect("User should have ban for sphere e.");
 

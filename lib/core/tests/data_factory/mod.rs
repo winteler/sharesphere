@@ -23,6 +23,8 @@ use sharesphere_utils::embed::Link;
 use sharesphere_utils::errors::AppError;
 use sqlx::PgPool;
 use std::collections::HashMap;
+use sharesphere_auth::role::{AdminRole};
+use sharesphere_core::rule::Rule;
 use sharesphere_core::sphere_management::ssr::set_sphere_icon_url;
 
 pub async fn create_sphere_with_post(
@@ -152,7 +154,7 @@ pub async fn create_posts(
             (Some(_), Some(sphere_category)) => Some(sphere_category.into()),
             _ => None,
         };
-        expected_post_vec.push(PostWithSphereInfo::from_post(post, sphere_category_header, sphere.icon_url.clone()));
+        expected_post_vec.push(PostWithSphereInfo::from_post(post, sphere.sphere_name.clone(), sphere_category_header, sphere.icon_url.clone()));
     }
 
     Ok(expected_post_vec)
@@ -246,7 +248,7 @@ pub async fn create_simple_post(
         db_pool,
     ).await.expect("Post should be created");
     
-    PostWithSphereInfo::from_post(post, None, None)
+    PostWithSphereInfo::from_post(post, String::from(sphere_name), None, None)
 }
 
 pub async fn create_post_with_comments(
@@ -356,17 +358,17 @@ pub async fn create_post_with_comment_tree(
 
 /// creates, moderates and returns a post. Expects `user` to have management rights on `sphere_name`
 pub async fn get_moderated_post(sphere_name: &str, user: &User, db_pool: &PgPool) -> PostWithSphereInfo {
-    let rule = add_rule(Some(sphere_name), 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(sphere_name, 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
     let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
     let post = moderate_post(post.post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
-    PostWithSphereInfo::from_post(post, None, None)
+    PostWithSphereInfo::from_post(post, sphere_name.to_string(), None, None)
 }
 
 /// creates, deletes and returns a post.
 pub async fn get_deleted_post(sphere_name: &str, user: &User, db_pool: &PgPool) -> PostWithSphereInfo {
     let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
     let post = delete_post(post.post.post_id, &user, &db_pool).await.expect("Post should be deleted.");
-    PostWithSphereInfo::from_post(post, None, None)
+    PostWithSphereInfo::from_post(post, sphere_name.to_string(), None, None)
 }
 
 /// creates, moderates/deletes and returns two posts. Expects `user` to have management rights on `sphere_name`
@@ -377,8 +379,8 @@ pub async fn get_moderated_and_deleted_posts(sphere_name: &str, user: &User, db_
 }
 
 /// creates, moderates and returns a comment. Expects `user` to have management rights on `sphere_name`
-pub async fn get_moderated_comment(post: &Post, user: &User, db_pool: &PgPool) -> Comment {
-    let rule = add_rule(Some(&post.sphere_name), 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
+pub async fn get_moderated_comment(post: &Post, sphere_name: &str, user: &User, db_pool: &PgPool) -> Comment {
+    let rule = add_rule(sphere_name, 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
     let comment = create_comment(
         post.post_id,
         None,
@@ -407,8 +409,8 @@ pub async fn get_deleted_comment(post: &Post, user: &User, db_pool: &PgPool) -> 
     comment
 }
 
-pub async fn get_moderated_and_deleted_comments(post: &Post, user: &User, db_pool: &PgPool) -> (Comment, Comment) {
-    let moderated_comment = get_moderated_comment(post, user, db_pool).await;
+pub async fn get_moderated_and_deleted_comments(post: &Post, sphere_name: &str, user: &User, db_pool: &PgPool) -> (Comment, Comment) {
+    let moderated_comment = get_moderated_comment(post, sphere_name, user, db_pool).await;
     let deleted_comment = get_deleted_comment(post, user, db_pool).await;
     (moderated_comment, deleted_comment)
 }
@@ -479,4 +481,116 @@ pub async fn set_comment_score(
         .expect("Should set comment score");
 
     Ok(comment)
+}
+
+pub async fn add_base_rule(
+    priority: i16,
+    title: &str,
+    description: &str,
+    markdown_description: Option<&str>,
+    user: &User,
+    db_pool: &PgPool,
+) -> Result<Rule, AppError> {
+    user.check_admin_role(AdminRole::Admin)?;
+    sqlx::query!(
+        "UPDATE rules
+         SET priority = priority + 1
+         WHERE sphere_id IS NULL AND priority >= $1 AND delete_timestamp IS NULL",
+        priority,
+    ).execute(db_pool).await?;
+
+    let rule = sqlx::query_as!(
+        Rule,
+        "INSERT INTO rules
+        (sphere_id, priority, title, description, markdown_description, user_id)
+        VALUES (
+            NULL, $1, $2, $3, $4, $5
+        ) RETURNING *",
+        priority,
+        title,
+        description,
+        markdown_description,
+        user.user_id,
+    ).fetch_one(db_pool).await?;
+    Ok(rule)
+}
+
+pub async fn update_base_rule(
+    current_priority: i16,
+    priority: i16,
+    title: &str,
+    description: &str,
+    markdown_description: Option<&str>,
+    user: &User,
+    db_pool: &PgPool,
+) -> Result<Rule, AppError> {
+    user.check_admin_role(AdminRole::Admin)?;
+
+    let current_rule = sqlx::query_as!(
+        Rule,
+        "UPDATE rules
+         SET delete_timestamp = NOW()
+         WHERE sphere_id IS NULL AND priority = $1 AND delete_timestamp IS NULL
+         RETURNING *",
+        current_priority,
+    ).fetch_one(db_pool).await?;
+
+    if priority > current_priority {
+        sqlx::query!(
+            "UPDATE rules
+            SET priority = priority - 1
+            WHERE sphere_id IS NULL AND priority BETWEEN $1 AND $2 AND delete_timestamp IS NULL",
+            current_priority,
+            priority,
+        ).execute(db_pool).await?;
+    } else if priority < current_priority {
+        sqlx::query!(
+            "UPDATE rules
+            SET priority = priority + 1
+            WHERE sphere_id is NULL AND priority BETWEEN $2 AND $1 AND delete_timestamp IS NULL",
+            current_priority,
+            priority,
+        ).execute(db_pool).await?;
+    }
+
+    let new_rule = sqlx::query_as!(
+        Rule,
+        "INSERT INTO rules
+        (rule_key, sphere_id, priority, title, description, markdown_description, user_id)
+        VALUES (
+            $1, NULL, $2, $3, $4, $5, $6
+        ) RETURNING *",
+        current_rule.rule_key,
+        priority,
+        title,
+        description,
+        markdown_description,
+        user.user_id,
+    ).fetch_one(db_pool).await?;
+
+    Ok(new_rule)
+}
+
+pub async fn remove_base_rule(
+    priority: i16,
+    user: &User,
+    db_pool: &PgPool,
+) -> Result<(), AppError> {
+    user.check_admin_role(AdminRole::Admin)?;
+
+    sqlx::query!(
+        "UPDATE rules
+         SET delete_timestamp = NOW()
+         WHERE sphere_id IS NULL AND priority = $1 AND delete_timestamp IS NULL",
+        priority,
+    ).execute(db_pool).await?;
+
+    sqlx::query!(
+        "UPDATE rules
+         SET priority = priority - 1
+         WHERE sphere_id IS NULL AND priority > $1 AND delete_timestamp IS NULL",
+        priority,
+    ).execute(db_pool).await?;
+
+    Ok(())
 }

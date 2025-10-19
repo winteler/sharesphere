@@ -225,6 +225,7 @@ async fn test_search_posts() {
             &user,
             &db_pool
         ).await.expect("Sphere 4 should be created."),
+        sphere_2.sphere_name.clone(),
         None,
         None,
     );
@@ -239,6 +240,7 @@ async fn test_search_posts() {
             &user,
             &db_pool
         ).await.expect("Sphere 5 should be created."),
+        sphere_2.sphere_name.clone(),
         None,
         None,
     );

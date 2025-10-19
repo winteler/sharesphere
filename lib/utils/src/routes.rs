@@ -117,14 +117,16 @@ pub fn get_sphere_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
 ///
 /// ```
 /// use sharesphere_utils::routes::get_satellite_path;
-///
-/// assert_eq!(get_satellite_path("test", 1), "/spheres/test/satellites/1");
+/// use leptos::prelude::*;
+/// let owner = Owner::new();
+/// owner.set();
+/// assert_eq!(get_satellite_path("test".into(), 1).get_untracked(), "/spheres/test/satellites/1".to_string());
 /// ```
 pub fn get_satellite_path(
-    sphere_name: &str,
+    sphere_name: Signal<String>,
     satellite_id: i64
-) -> String {
-    format!("{SPHERE_ROUTE_PREFIX}/{}{SATELLITE_ROUTE_PREFIX}/{}", sphere_name, satellite_id)
+) -> Signal<String> {
+    Signal::derive(move || format!("{SPHERE_ROUTE_PREFIX}/{}{SATELLITE_ROUTE_PREFIX}/{}", sphere_name.read(), satellite_id))
 }
 
 /// Get a memo returning the last valid satellite_id from the url. Used to avoid triggering resources when leaving pages

@@ -172,11 +172,16 @@ pub fn SphereContents() -> impl IntoView {
             // TODO check no unnecessary loads
             reset_additional_load(additional_post_vec, additional_load_count, Some(list_ref));
             let result = get_post_vec_by_sphere_name(
-                sphere_name,
+                sphere_name.clone(),
                 sphere_category_filter,
                 sort_type,
                 0,
-            ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
+            ).await.map(|post_vec| add_sphere_info_to_post_vec(
+                post_vec,
+                sphere_name,
+                &*sphere_category_header_map.read_untracked(),
+                None)
+            );
             #[cfg(feature = "hydrate")]
             is_loading.set(false);
             result
@@ -203,7 +208,12 @@ pub fn SphereContents() -> impl IntoView {
                     sphere_state.sphere_category_filter.get_untracked(),
                     state.post_sort_type.get_untracked(),
                     num_post
-                ).await.map(|post_vec| add_sphere_info_to_post_vec(post_vec, &*sphere_category_header_map.read_untracked(), None));
+                ).await.map(|post_vec| add_sphere_info_to_post_vec(
+                    post_vec,
+                    sphere_name.get_untracked(),
+                    &*sphere_category_header_map.read_untracked(),
+                    None)
+                );
                 handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }
@@ -270,10 +280,12 @@ pub fn SphereToolbar(
                     >
                     { move || match satellite_state {
                         Some(satellite_state) => {
-                            let create_post_link = get_satellite_path(
-                                &*sphere_state.sphere_name.read(),
-                                satellite_state.satellite_id.get()
-                            ) + PUBLISH_ROUTE + CREATE_POST_SUFFIX;
+                            let create_post_link = move || {
+                                get_satellite_path(
+                                    sphere_state.sphere_name.into(),
+                                    satellite_state.satellite_id.get()
+                                ).get() + PUBLISH_ROUTE + CREATE_POST_SUFFIX
+                            };
                             Either::Left(view! {
                                 <a href=create_post_link class="button-rounded-ghost">
                                     <PlusIcon class="sphere-toolbar-icon-size"/>

@@ -176,10 +176,11 @@ fn PostBottomWidgetBar(
     comment_vec: RwSignal<Vec<CommentWithChildren>>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let sphere_state = expect_context::<SphereState>();
     let post_id = post.post.post_id;
     let author_id = post.post.creator_id;
     let is_active = post.post.is_active();
-    let post_link = get_post_link(&post.post.sphere_name, post.post.satellite_id, post.post.post_id);
+    let post_link = get_post_link(&*sphere_state.sphere_name.get_untracked(), post.post.satellite_id, post.post.post_id);
     let stored_post = StoredValue::new(post.post.clone());
     view! {
         <div class="flex gap-1">

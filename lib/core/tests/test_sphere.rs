@@ -263,8 +263,8 @@ async fn test_create_sphere() -> Result<(), AppError> {
 
     // Check new permissions were created
     let test_user = User::get(test_user.user_id, &db_pool).await.expect("User should be available in DB.");
-    assert_eq!(test_user.permission_by_sphere_map.len(), 1);
-    let sphere_permission = test_user.permission_by_sphere_map.get(sphere_name).expect("User should have leader role after sphere creation.");
+    assert_eq!(test_user.permission_by_sphere_name_map.len(), 1);
+    let sphere_permission = test_user.permission_by_sphere_name_map.get(sphere_name).expect("User should have leader role after sphere creation.");
     assert_eq!(*sphere_permission, PermissionLevel::Lead);
 
     assert!(

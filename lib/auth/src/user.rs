@@ -36,7 +36,8 @@ pub struct User {
     pub admin_role: AdminRole,
     pub days_hide_spoiler: Option<i32>,
     pub show_nsfw: bool,
-    pub permission_by_sphere_map: HashMap<String, PermissionLevel>,
+    pub permission_by_sphere_name_map: HashMap<String, PermissionLevel>,
+    pub permission_by_sphere_id_map: HashMap<i64, PermissionLevel>,
     pub ban_status: BanStatus,
     pub ban_status_by_sphere_map: HashMap<String, BanStatus>,
     pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -101,7 +102,8 @@ impl Default for User {
             admin_role: AdminRole::None,
             show_nsfw: true,
             days_hide_spoiler: None,
-            permission_by_sphere_map: HashMap::new(),
+            permission_by_sphere_name_map: HashMap::new(),
+            permission_by_sphere_id_map: HashMap::new(),
             ban_status: BanStatus::None,
             ban_status_by_sphere_map: HashMap::new(),
             timestamp: chrono::DateTime::default(),
@@ -112,7 +114,14 @@ impl Default for User {
 
 impl User {
     fn check_sphere_permissions(&self, sphere_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        match self.permission_by_sphere_map.get(sphere_name).is_some_and(|permission_level| *permission_level >= req_permission_level) {
+        match self.permission_by_sphere_name_map.get(sphere_name).is_some_and(|permission_level| *permission_level >= req_permission_level) {
+            true => Ok(()),
+            false => Err(AppError::InsufficientPrivileges)
+        }
+    }
+
+    fn check_sphere_permissions_by_id(&self, sphere_id: i64, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        match self.permission_by_sphere_id_map.get(&sphere_id).is_some_and(|permission_level| *permission_level >= req_permission_level) {
             true => Ok(()),
             false => Err(AppError::InsufficientPrivileges)
         }
@@ -134,6 +143,15 @@ impl User {
         }
     }
 
+    pub fn check_permissions_by_sphere_id(&self, sphere_id: i64, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        let has_admin_permission = self.admin_role.get_permission_level() >= req_permission_level;
+        let has_sphere_permission = self.check_sphere_permissions_by_id(sphere_id, req_permission_level).is_ok();
+        match has_admin_permission || has_sphere_permission {
+            true => Ok(()),
+            false => Err(AppError::InsufficientPrivileges)
+        }
+    }
+
     pub fn check_is_sphere_leader(&self, sphere_name: &str) -> Result<(), AppError> {
         self.check_sphere_permissions(sphere_name, PermissionLevel::Lead)
     }
@@ -146,7 +164,7 @@ impl User {
     }
 
     pub fn get_sphere_permission_level(&self, sphere_name: &str) -> PermissionLevel {
-        max(self.admin_role.get_permission_level(), self.permission_by_sphere_map.get(sphere_name).cloned().unwrap_or(PermissionLevel::None))
+        max(self.admin_role.get_permission_level(), self.permission_by_sphere_name_map.get(sphere_name).cloned().unwrap_or(PermissionLevel::None))
     }
     
     pub fn check_can_publish(&self) -> Result<(), AppError> {
@@ -245,10 +263,15 @@ pub mod ssr {
             user_role_vec: Vec<UserSphereRole>,
             user_ban_vec: Vec<UserBan>,
         ) -> User {
-            let mut permission_by_sphere_map: HashMap<String, PermissionLevel> = HashMap::new();
+            let mut permission_by_sphere_name_map: HashMap<String, PermissionLevel> = HashMap::new();
+            let mut permission_by_sphere_id_map: HashMap<i64, PermissionLevel> = HashMap::new();
             for user_sphere_role in user_role_vec {
-                permission_by_sphere_map.insert(
+                permission_by_sphere_name_map.insert(
                     user_sphere_role.sphere_name.clone(),
+                    user_sphere_role.permission_level,
+                );
+                permission_by_sphere_id_map.insert(
+                    user_sphere_role.sphere_id,
                     user_sphere_role.permission_level,
                 );
             }
@@ -293,7 +316,8 @@ pub mod ssr {
                 admin_role: self.admin_role,
                 show_nsfw: self.show_nsfw,
                 days_hide_spoiler: self.days_hide_spoiler,
-                permission_by_sphere_map,
+                permission_by_sphere_name_map,
+                permission_by_sphere_id_map,
                 ban_status: global_ban_status,
                 ban_status_by_sphere_map,
                 timestamp: self.timestamp,
@@ -362,7 +386,7 @@ pub mod ssr {
             sphere_name: &str,
             db_pool: &PgPool,
         ) -> Result<(), AppError> {
-            match (self.admin_role, self.permission_by_sphere_map.get(sphere_name)) {
+            match (self.admin_role, self.permission_by_sphere_name_map.get(sphere_name)) {
                 (AdminRole::Admin, _) => Ok(()),
                 (_, Some(own_level)) if *own_level >= PermissionLevel::Manage && *own_level > permission_level => {
                     match get_user_sphere_role(user_id, sphere_name, db_pool).await {
@@ -564,9 +588,10 @@ pub mod ssr {
     ) -> Result<Vec<UserSphereRole>, AppError> {
         let user_sphere_role_vec = sqlx::query_as!(
             UserSphereRole,
-            "SELECT r.*, u.username
+            "SELECT r.*, u.username, s.sphere_name
             FROM user_sphere_roles r
             JOIN users u ON u.user_id = r.user_id
+            JOIN spheres s ON s.sphere_id = r.sphere_id
             WHERE r.user_id = $1 AND r.delete_timestamp IS NULL",
             user_id
         )
@@ -579,8 +604,9 @@ pub mod ssr {
     async fn load_user_ban_vec(user_id: i64, db_pool: &PgPool) -> Result<Vec<UserBan>, AppError> {
         let user_ban_vec = sqlx::query_as!(
             UserBan,
-            "SELECT b.*, u.username FROM user_bans b
-            JOIN users u on u.user_id = b.user_id
+            "SELECT b.*, u.username, s.sphere_name FROM user_bans b
+            JOIN users u ON u.user_id = b.user_id
+            JOIN spheres s ON s.sphere_id = b.sphere_id
             WHERE
                 b.user_id = $1 AND
                 (b.until_timestamp > NOW() OR b.until_timestamp IS NULL) AND
@@ -707,8 +733,8 @@ pub mod ssr {
             assert_eq!(user_1.admin_role, AdminRole::None);
             assert_eq!(user_1.timestamp, chrono::DateTime::from_timestamp_nanos(0));
             assert_eq!(user_1.delete_timestamp, None);
-            assert_eq!(user_1.permission_by_sphere_map[&String::from("0")], PermissionLevel::Moderate);
-            assert_eq!(user_1.permission_by_sphere_map[&String::from("1")], PermissionLevel::Lead);
+            assert_eq!(user_1.permission_by_sphere_name_map[&String::from("0")], PermissionLevel::Moderate);
+            assert_eq!(user_1.permission_by_sphere_name_map[&String::from("1")], PermissionLevel::Lead);
             assert_eq!(user_1.ban_status, BanStatus::None);
             assert_eq!(user_1.ban_status_by_sphere_map.get(&String::from("a")), None);
             assert_eq!(
@@ -849,7 +875,7 @@ mod tests {
     #[test]
     fn test_user_check_permissions() {
         let mut user = User::default();
-        user.permission_by_sphere_map = get_user_permission_map();
+        user.permission_by_sphere_name_map = get_user_permission_map();
         assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
         assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
         assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
@@ -962,7 +988,7 @@ mod tests {
     #[test]
     fn test_user_check_is_sphere_leader() {
         let mut user = User::default();
-        user.permission_by_sphere_map = get_user_permission_map();
+        user.permission_by_sphere_name_map = get_user_permission_map();
         assert_eq!(user.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_is_sphere_leader("b"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_is_sphere_leader("c"), Err(AppError::InsufficientPrivileges));
@@ -978,7 +1004,7 @@ mod tests {
     #[test]
     fn test_user_check_can_set_sphere_leader() {
         let mut user = User::default();
-        user.permission_by_sphere_map = get_user_permission_map();
+        user.permission_by_sphere_name_map = get_user_permission_map();
         assert_eq!(user.check_can_set_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_can_set_sphere_leader("b"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_can_set_sphere_leader("c"), Err(AppError::InsufficientPrivileges));
@@ -994,7 +1020,7 @@ mod tests {
     #[test]
     fn test_user_get_sphere_permission_level() {
         let mut user = User::default();
-        user.permission_by_sphere_map = get_user_permission_map();
+        user.permission_by_sphere_name_map = get_user_permission_map();
         assert_eq!(user.get_sphere_permission_level("missing"), PermissionLevel::None);
         assert_eq!(user.get_sphere_permission_level("a"), PermissionLevel::None);
         assert_eq!(user.get_sphere_permission_level("b"), PermissionLevel::Moderate);

@@ -34,7 +34,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
                     let sphere_rule_vec = sphere_rule_vec.clone();
                     view! {
                         <For
-                            each=move || sphere_rule_vec.clone().into_iter().filter(|rule| rule.sphere_name.is_some())
+                            each=move || sphere_rule_vec.clone().into_iter().filter(|rule| rule.sphere_id.is_some())
                             key=|rule| rule.rule_id
                             children=move |rule| {
                                 let rule = StoredValue::new(rule);

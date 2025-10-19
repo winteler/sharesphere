@@ -30,7 +30,7 @@ async fn test_get_sphere_category_vec() -> Result<(), AppError> {
     ).await.expect("Category 1 should be added.");
 
     let sphere_1_category_1_updated = set_sphere_category(
-        &sphere_1_category_1.sphere_name,
+        &sphere_1.sphere_name,
         &sphere_1_category_1.category_name,
         Color::Black,
         "updated",
@@ -125,7 +125,6 @@ async fn test_set_sphere_category() -> Result<(), AppError> {
     ).await.expect("Category should be added.");
 
     assert_eq!(sphere_category.sphere_id, sphere.sphere_id);
-    assert_eq!(sphere_category.sphere_name, sphere.sphere_name);
     assert_eq!(sphere_category.category_name, category_name);
     assert_eq!(sphere_category.description, description);
     assert_eq!(sphere_category.creator_id, user.user_id);
@@ -144,7 +143,6 @@ async fn test_set_sphere_category() -> Result<(), AppError> {
     ).await.expect("Category should be updated.");
 
     assert_eq!(updated_category.sphere_id, sphere.sphere_id);
-    assert_eq!(updated_category.sphere_name, sphere.sphere_name);
     assert_eq!(updated_category.category_name, category_name);
     assert_eq!(updated_category.description, updated_description);
     assert_eq!(updated_category.creator_id, user.user_id);
@@ -163,7 +161,6 @@ async fn test_set_sphere_category() -> Result<(), AppError> {
     ).await.expect("Category should be added.");
 
     assert_eq!(sphere_2_category.sphere_id, sphere_2.sphere_id);
-    assert_eq!(sphere_2_category.sphere_name, sphere_2.sphere_name);
     assert_eq!(sphere_2_category.category_name, category_name);
     assert_eq!(sphere_2_category.description, description);
     assert_eq!(sphere_2_category.creator_id, user.user_id);

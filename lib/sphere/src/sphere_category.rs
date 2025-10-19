@@ -209,7 +209,6 @@ mod tests {
         let category_1 = SphereCategory {
             category_id: 0,
             sphere_id: 0,
-            sphere_name: "a".to_string(),
             category_name: "a".to_string(),
             category_color: Color::None,
             description: "".to_string(),
@@ -221,7 +220,6 @@ mod tests {
         let category_2 = SphereCategory {
             category_id: 1,
             sphere_id: 1,
-            sphere_name: "b".to_string(),
             category_name: "b".to_string(),
             category_color: Color::None,
             description: "".to_string(),

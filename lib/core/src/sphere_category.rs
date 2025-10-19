@@ -20,7 +20,6 @@ use sharesphere_utils::unpack::TransitionUnpack;
 pub struct SphereCategory {
     pub category_id: i64,
     pub sphere_id: i64,
-    pub sphere_name: String,
     pub category_name: String,
     pub category_color: Color,
     pub description: String,
@@ -72,9 +71,10 @@ pub mod ssr {
     ) -> Result<Vec<SphereCategory>, AppError> {
         let sphere_category_vec = sqlx::query_as!(
             SphereCategory,
-            "SELECT * FROM sphere_categories
-            WHERE sphere_name = $1
-            ORDER BY is_active DESC, category_name",
+            "SELECT sc.* FROM sphere_categories sc
+            JOIN spheres s ON s.sphere_id = sc.sphere_id
+            WHERE s.sphere_name = $1
+            ORDER BY sc.is_active DESC, sc.category_name",
             sphere_name
         )
             .fetch_all(db_pool)
@@ -97,10 +97,10 @@ pub mod ssr {
         let category = sqlx::query_as!(
             SphereCategory,
             "INSERT INTO sphere_categories
-            (sphere_id, sphere_name, category_name, category_color, description, is_active, creator_id)
+            (sphere_id, category_name, category_color, description, is_active, creator_id)
             VALUES (
                 (SELECT sphere_id FROM spheres WHERE sphere_name = $1),
-                $1, $2, $3, $4, $5, $6
+                $2, $3, $4, $5, $6
             ) ON CONFLICT (sphere_id, category_name) DO UPDATE
                 SET description = EXCLUDED.description,
                     category_color = EXCLUDED.category_color,
@@ -130,7 +130,9 @@ pub mod ssr {
 
         let result = sqlx::query!(
             "DELETE FROM sphere_categories c
-             WHERE sphere_name = $1 AND category_name = $2 AND NOT EXISTS (
+             WHERE sphere_id = (
+                    SELECT sphere_id FROM spheres WHERE sphere_name = $1
+                ) AND category_name = $2 AND NOT EXISTS (
                 SELECT 1 FROM posts p WHERE p.category_id = c.category_id
              )",
             sphere_name,

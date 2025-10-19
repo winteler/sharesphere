@@ -3,7 +3,7 @@ use std::ops::Add;
 use object_store::memory::InMemory;
 use object_store::ObjectStore;
 use crate::common::*;
-use crate::data_factory::{create_sphere_with_post, create_sphere_with_post_and_comment};
+use crate::data_factory::{add_base_rule, create_sphere_with_post, create_sphere_with_post_and_comment};
 use crate::utils::*;
 use sharesphere_core::comment::ssr::create_comment;
 use sharesphere_core::moderation::ssr::moderate_comment;
@@ -16,7 +16,7 @@ use sharesphere_auth::role::AdminRole;
 use sharesphere_auth::user::User;
 use sharesphere_core::moderation::ssr::{ban_user_from_sphere, moderate_post};
 use sharesphere_core::post::PostTags;
-use sharesphere_core::rule::BaseRule;
+use sharesphere_core::rule::{BaseRule};
 use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_utils::embed::Link;
 use sharesphere_utils::errors::AppError;
@@ -35,11 +35,11 @@ async fn test_get_sphere_ban_vec() -> Result<(), AppError> {
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut lead, &db_pool).await;
 
-    let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", None, &lead, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &lead, &db_pool).await.expect("Rule should be added.");
 
     let ban_user_1 = ban_user_from_sphere(
-        banned_user_1.user_id,&
-        sphere.sphere_name,
+        banned_user_1.user_id,
+        sphere.sphere_id,
         post.post_id,
         None,
         rule.rule_id,
@@ -52,8 +52,8 @@ async fn test_get_sphere_ban_vec() -> Result<(), AppError> {
     assert!(banned_user_vec.contains(&ban_user_1));
 
     let ban_user_2 = ban_user_from_sphere(
-        banned_user_2.user_id,&
-        sphere.sphere_name,
+        banned_user_2.user_id,
+        sphere.sphere_id,
         post.post_id,
         None,
         rule.rule_id,
@@ -86,11 +86,11 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut lead, &db_pool).await;
     
-    let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", None, &lead, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &lead, &db_pool).await.expect("Rule should be added.");
 
     let ban_user_1 = ban_user_from_sphere(
-        banned_user_1.user_id,&
-        sphere.sphere_name,
+        banned_user_1.user_id,
+        sphere.sphere_id,
         post.post_id,
         None,
         rule.rule_id,
@@ -109,8 +109,8 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
     assert!(banned_user_vec.is_empty());
 
     let ban_user_1 = ban_user_from_sphere(
-        banned_user_1.user_id,&
-        sphere.sphere_name,
+        banned_user_1.user_id,
+        sphere.sphere_id,
         post.post_id,
         None,
         rule.rule_id,
@@ -154,7 +154,7 @@ async fn test_moderate_post() -> Result<(), AppError> {
     let unauthorized_user = create_user("user", &db_pool).await;
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", None, &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_post(post.post_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 
@@ -184,7 +184,7 @@ async fn test_moderate_comment() -> Result<(), AppError> {
     let unauthorized_user = create_user("user", &db_pool).await;
     
     let (sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(Some(&sphere.sphere_name), 0, "test", "test", None, &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_comment(comment.comment_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 
@@ -220,24 +220,26 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     let banned_user = create_user("banned", &db_pool).await;
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(None, 0, BaseRule::BeRespectful.into(), "test", None, &admin, &db_pool).await.expect("Rule should be added.");
+    let rule = add_base_rule(0, BaseRule::BeRespectful.into(), "test", None, &admin, &db_pool).await.expect("Rule should be added.");
 
     // unauthorized used cannot ban
-    assert!(ban_user_from_sphere(banned_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &unauthorized_user, None, &db_pool).await.is_err());
+    assert!(ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &unauthorized_user, None, &db_pool).await.is_err());
     // ban with 0 days has no effect
-    assert_eq!(ban_user_from_sphere(unauthorized_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &user, Some(0), &db_pool).await?, None);
+    assert_eq!(ban_user_from_sphere(unauthorized_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(0), &db_pool).await?, None);
     let post = create_post(
         &sphere.sphere_name, None,"a", "b", None, Link::default(),PostTags::default(), &unauthorized_user, &db_pool
     ).await?;
 
     // cannot ban moderators
-    assert!(ban_user_from_sphere(user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &global_moderator, Some(1), &db_pool).await.is_err());
-    assert!(ban_user_from_sphere(global_moderator.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.is_err());
-    assert!(ban_user_from_sphere(admin.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.is_err());
-    assert!(ban_user_from_sphere(user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &admin, Some(1), &db_pool).await.is_err());
+    assert!(ban_user_from_sphere(user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &global_moderator, Some(1), &db_pool).await.is_err());
+    assert!(ban_user_from_sphere(global_moderator.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.is_err());
+    assert!(ban_user_from_sphere(admin.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.is_err());
+    assert!(ban_user_from_sphere(user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &admin, Some(1), &db_pool).await.is_err());
 
     // sphere moderator can ban ordinary users
-    let user_ban = ban_user_from_sphere(unauthorized_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await?.expect("User ban from sphere should be possible.");
+    let user_ban = ban_user_from_sphere(
+        unauthorized_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool
+    ).await?.expect("User ban from sphere should be possible.");
     assert_eq!(user_ban.user_id, unauthorized_user.user_id);
     assert_eq!(user_ban.sphere_id, Some(sphere.sphere_id));
     assert_eq!(user_ban.sphere_name, Some(sphere.sphere_name.clone()));
@@ -262,7 +264,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     );
 
     // global moderator can ban ordinary users
-    let user_ban = ban_user_from_sphere(banned_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &global_moderator, Some(2), &db_pool).await?.expect("User ban from sphere should be possible.");
+    let user_ban = ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &global_moderator, Some(2), &db_pool).await?.expect("User ban from sphere should be possible.");
     assert_eq!(user_ban.user_id, banned_user.user_id);
     assert_eq!(user_ban.sphere_id, Some(sphere.sphere_id));
     assert_eq!(user_ban.sphere_name, Some(sphere.sphere_name.clone()));
@@ -270,7 +272,7 @@ async fn test_ban_user_from_sphere() -> Result<(), AppError> {
     assert_eq!(user_ban.until_timestamp, Some(user_ban.create_timestamp.add(Days::new(2))));
 
     // global moderator can ban ordinary users
-    let user_ban = ban_user_from_sphere(banned_user.user_id, &sphere.sphere_name, post.post_id, None, rule.rule_id, &admin, None, &db_pool).await?.expect("User ban from sphere should be possible.");
+    let user_ban = ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &admin, None, &db_pool).await?.expect("User ban from sphere should be possible.");
     assert_eq!(user_ban.user_id, banned_user.user_id);
     assert_eq!(user_ban.sphere_id, Some(sphere.sphere_id));
     assert_eq!(user_ban.sphere_name, Some(sphere.sphere_name.clone()));
@@ -306,11 +308,11 @@ async fn test_is_user_sphere_moderator() -> Result<(), AppError> {
 
     let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await?;
 
-    assert_eq!(is_user_sphere_moderator(user.user_id, &sphere.sphere_name, &db_pool).await, Ok(true));
-    assert_eq!(is_user_sphere_moderator(global_moderator.user_id, &sphere.sphere_name, &db_pool).await, Ok(true));
-    assert_eq!(is_user_sphere_moderator(admin.user_id, &sphere.sphere_name, &db_pool).await, Ok(true));
-    assert_eq!(is_user_sphere_moderator(ordinary_user.user_id, &sphere.sphere_name, &db_pool).await, Ok(false));
-    assert!(is_user_sphere_moderator(ordinary_user.user_id + 1, &sphere.sphere_name, &db_pool).await.is_err());
+    assert_eq!(is_user_sphere_moderator(user.user_id, sphere.sphere_id, &db_pool).await, Ok(true));
+    assert_eq!(is_user_sphere_moderator(global_moderator.user_id, sphere.sphere_id, &db_pool).await, Ok(true));
+    assert_eq!(is_user_sphere_moderator(admin.user_id, sphere.sphere_id, &db_pool).await, Ok(true));
+    assert_eq!(is_user_sphere_moderator(ordinary_user.user_id, sphere.sphere_id, &db_pool).await, Ok(false));
+    assert!(is_user_sphere_moderator(ordinary_user.user_id + 1, sphere.sphere_id, &db_pool).await.is_err());
 
     Ok(())
 }

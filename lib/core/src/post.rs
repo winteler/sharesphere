@@ -54,7 +54,6 @@ pub struct Post {
     pub category_id: Option<i64>,
     pub is_edited: bool,
     pub sphere_id: i64,
-    pub sphere_name: String,
     pub satellite_id: Option<i64>,
     pub creator_id: i64,
     pub creator_name: String,
@@ -118,6 +117,7 @@ pub struct PostWithInfo {
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithSphereInfo {
     pub post: Post,
+    pub sphere_name: String,
     pub sphere_category: Option<SphereCategoryHeader>,
     pub sphere_icon_url: Option<String>,
 }
@@ -154,11 +154,13 @@ impl PostTags {
 impl PostWithSphereInfo {
     pub fn from_post(
         post: Post,
+        sphere_name: String,
         sphere_category: Option<SphereCategoryHeader>,
         sphere_icon_url: Option<String>,
     ) -> Self {
         PostWithSphereInfo {
             post,
+            sphere_name,
             sphere_category,
             sphere_icon_url,
         }
@@ -182,9 +184,10 @@ pub mod ssr {
 
     #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
     #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-    pub struct PostJoinCategory {
+    pub struct PostJoinSphereInfo {
         #[cfg_attr(feature = "ssr", sqlx(flatten))]
         pub post: Post,
+        pub sphere_name: String,
         pub category_name: Option<String>,
         pub category_color: Option<Color>,
         pub sphere_icon_url: Option<String>,
@@ -204,7 +207,7 @@ pub mod ssr {
         pub vote_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
 
-    impl PostJoinCategory {
+    impl PostJoinSphereInfo {
         pub fn into_post_with_sphere_info(self) -> PostWithSphereInfo {
             let sphere_category = match (self.category_name, self.category_color) {
                 (Some(category_name), Some(category_color)) => Some(SphereCategoryHeader {
@@ -215,6 +218,7 @@ pub mod ssr {
             };
             PostWithSphereInfo {
                 post: self.post,
+                sphere_name: self.sphere_name,
                 sphere_category,
                 sphere_icon_url: self.sphere_icon_url,
             }
@@ -447,9 +451,9 @@ pub mod ssr {
             Some(user) => (user.days_hide_spoiler, user.show_nsfw),
             None => (None, false),
         };
-        let post_vec = sqlx::query_as::<_, PostJoinCategory>(
+        let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url
+                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url, s.sphere_name
                 FROM posts p
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
@@ -476,7 +480,7 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_sphere_info).collect();
+        let post_vec = post_vec.into_iter().map(PostJoinSphereInfo::into_post_with_sphere_info).collect();
 
         Ok(post_vec)
     }
@@ -490,7 +494,7 @@ pub mod ssr {
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let posts_filters = user.get_posts_filter();
         let order_by = sort_type.to_order_by_code();
-        let post_vec = sqlx::query_as::<_, PostJoinCategory>(
+        let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             format!(
                 "WITH all_subscribed_posts as (
                     -- All subscribed posts, no pagination
@@ -498,7 +502,8 @@ pub mod ssr {
                         p.*,
                         c.category_name,
                         c.category_color,
-                        s.icon_url as sphere_icon_url
+                        s.icon_url as sphere_icon_url,
+                        s.sphere_name
                     FROM posts p
                     JOIN spheres s on s.sphere_id = p.sphere_id
                     LEFT JOIN sphere_categories c on c.category_id = p.category_id
@@ -537,7 +542,8 @@ pub mod ssr {
                         p.*,
                         c.category_name,
                         c.category_color,
-                        s.icon_url AS sphere_icon_url
+                        s.icon_url AS sphere_icon_url,
+                        s.sphere_name
                     FROM posts p
                     JOIN spheres s ON s.sphere_id = p.sphere_id
                     LEFT JOIN sphere_categories c ON c.category_id = p.category_id
@@ -572,7 +578,7 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_sphere_info).collect();
+        let post_vec = post_vec.into_iter().map(PostJoinSphereInfo::into_post_with_sphere_info).collect();
 
         Ok(post_vec)
     }
@@ -600,8 +606,8 @@ pub mod ssr {
 
         let post = sqlx::query_as::<_, Post>(
             "INSERT INTO posts (
-                title, body, markdown_body, link_type, link_url, link_embed, link_thumbnail_url, is_nsfw, is_spoiler, category_id, sphere_id,
-                sphere_name, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
+                title, body, markdown_body, link_type, link_url, link_embed, link_thumbnail_url, is_nsfw, is_spoiler, category_id,
+                sphere_id, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
             )
              VALUES (
                 $1, $2, $3, $4, $5, $6, $7,
@@ -609,9 +615,9 @@ pub mod ssr {
                     CASE
                         WHEN $8 THEN TRUE
                         ELSE (
-                            (SELECT is_nsfw FROM spheres WHERE sphere_name = $11) OR
+                            (SELECT is_nsfw FROM spheres s WHERE s.sphere_name = $11) OR
                             COALESCE(
-                                (SELECT is_nsfw FROM satellites WHERE satellite_id = $12),
+                                (SELECT is_nsfw FROM satellites sa WHERE sa.satellite_id = $12),
                                 FALSE
                             )
                         )
@@ -621,14 +627,14 @@ pub mod ssr {
                     CASE
                         WHEN $9 THEN TRUE
                         ELSE COALESCE(
-                            (SELECT is_spoiler FROM satellites WHERE satellite_id = $12),
+                            (SELECT is_spoiler FROM satellites sa WHERE sa.satellite_id = $12),
                             FALSE
                         )
                     END
                 ),
                 $10,
-                (SELECT sphere_id FROM spheres WHERE sphere_name = $11),
-                $11, $12, $13, $14, $15, $16
+                (SELECT sphere_id FROM spheres s WHERE s.sphere_name = $11),
+                $12, $13, $14, $15, $16
             ) RETURNING *",
         )
             .bind(post_title)
@@ -669,8 +675,8 @@ pub mod ssr {
             ));
         }
         if post_tags.is_pinned {
-            let post = get_post_by_id(post_id, db_pool).await?;
-            user.check_permissions(&post.sphere_name, PermissionLevel::Moderate)?;
+            let sphere = get_post_sphere(post_id, db_pool).await?;
+            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
 
         let post = sqlx::query_as::<_, Post>(
@@ -1162,10 +1168,10 @@ pub fn PostMiniatureList(
             children=move |post_info| {
                 let post = post_info.post;
                 let sphere_header = match show_sphere_header {
-                    true => Some(SphereHeader::new(post.sphere_name.clone(), post_info.sphere_icon_url, false)),
+                    true => Some(SphereHeader::new(post_info.sphere_name.clone(), post_info.sphere_icon_url, false)),
                     false => None,
                 };
-                let post_path = get_post_path(&post.sphere_name, post.satellite_id, post.post_id);
+                let post_path = get_post_path(&post_info.sphere_name, post.satellite_id, post.post_id);
                 view! {
                     <li>
                         <a href=post_path>
@@ -1338,6 +1344,7 @@ pub fn LinkForm(
 
 pub fn add_sphere_info_to_post_vec(
     post_vec: Vec<Post>,
+    sphere_name: String,
     sphere_category_map: &HashMap<i64, SphereCategoryHeader>,
     sphere_icon_url: Option<String>,
 ) -> Vec<PostWithSphereInfo> {
@@ -1346,7 +1353,7 @@ pub fn add_sphere_info_to_post_vec(
             Some(category_id) => sphere_category_map.get(&category_id).cloned(),
             None => None,
         };
-        PostWithSphereInfo::from_post(post, category_id, sphere_icon_url.clone())
+        PostWithSphereInfo::from_post(post, sphere_name.clone(), category_id, sphere_icon_url.clone())
     }).collect()
 }
 
@@ -1359,7 +1366,7 @@ mod tests {
     use crate::post::{add_sphere_info_to_post_vec, Post, PostWithSphereInfo};
     use crate::sphere_category::SphereCategoryHeader;
 
-    fn create_post_with_category(sphere_name: &str, title: &str, category_id: Option<i64>) -> Post {
+    fn create_post_with_category(title: &str, category_id: Option<i64>) -> Post {
         Post {
             post_id: 0,
             title: title.to_string(),
@@ -1371,7 +1378,6 @@ mod tests {
             category_id,
             is_edited: false,
             sphere_id: 0,
-            sphere_name: sphere_name.to_string(),
             satellite_id: None,
             creator_id: 0,
             creator_name: String::default(),
@@ -1405,15 +1411,15 @@ mod tests {
             category_color: Color::Red,
         };
 
-        let post_1 = create_post_with_category("a", "i", Some(1));
-        let post_2 = create_post_with_category("b", "j", Some(2));
-        let post_3 = create_post_with_category("c", "k", Some(3));
-        let post_4 = create_post_with_category("d", "l", None);
+        let post_1 = create_post_with_category("i", Some(1));
+        let post_2 = create_post_with_category("j", Some(2));
+        let post_3 = create_post_with_category("k", Some(3));
+        let post_4 = create_post_with_category("l", None);
 
-        let post_with_sphere_info_1 = PostWithSphereInfo::from_post(post_1.clone(), Some(category_header_a.clone()), None);
-        let post_with_sphere_info_2 = PostWithSphereInfo::from_post(post_2.clone(), Some(category_header_b.clone()), None);
-        let post_with_sphere_info_3 = PostWithSphereInfo::from_post(post_3.clone(), None, None);
-        let post_with_sphere_info_4 = PostWithSphereInfo::from_post(post_4.clone(), None, None);
+        let post_with_sphere_info_1 = PostWithSphereInfo::from_post(post_1.clone(), "a".to_string(), Some(category_header_a.clone()), None);
+        let post_with_sphere_info_2 = PostWithSphereInfo::from_post(post_2.clone(), "b".to_string(), Some(category_header_b.clone()), None);
+        let post_with_sphere_info_3 = PostWithSphereInfo::from_post(post_3.clone(), "c".to_string(), None, None);
+        let post_with_sphere_info_4 = PostWithSphereInfo::from_post(post_4.clone(), "d".to_string(), None, None);
 
         assert_eq!(post_with_sphere_info_1.post, post_1);
         assert_eq!(post_with_sphere_info_1.sphere_category, Some(category_header_a));
@@ -1453,13 +1459,14 @@ mod tests {
             ),
         ]);
         let post_vec = vec![
-            create_post_with_category("a", "Red", Some(1)),
-            create_post_with_category("a", "Blue", Some(2)),
-            create_post_with_category("a", "Other", None),
+            create_post_with_category("Red", Some(1)),
+            create_post_with_category("Blue", Some(2)),
+            create_post_with_category("Other", None),
         ];
 
         let post_with_sphere_info_vec = add_sphere_info_to_post_vec(
             post_vec.clone(),
+            "a".to_string(),
             &sphere_category_map,
             Some(sphere_icon_url.clone())
         );

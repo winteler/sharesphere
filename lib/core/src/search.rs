@@ -51,7 +51,7 @@ pub mod ssr {
     use sharesphere_utils::errors::AppError;
     use crate::comment::CommentWithContext;
     use crate::post::PostWithSphereInfo;
-    use crate::post::ssr::PostJoinCategory;
+    use crate::post::ssr::PostJoinSphereInfo;
     use crate::sphere::{SphereHeader, SPHERE_FETCH_LIMIT};
 
     pub async fn get_matching_sphere_header_vec(
@@ -140,23 +140,21 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
-        let post_vec = sqlx::query_as::<_, PostJoinCategory>(
-            "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url FROM (
-                SELECT *, ts_rank(post_document, plainto_tsquery('simple', $1)) AS rank
-                FROM posts
+        let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
+            "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url, s.sphere_name, ts_rank(p.post_document, plainto_tsquery('simple', $1)) AS rank
+                FROM posts p
+                JOIN spheres s on s.sphere_id = p.sphere_id
+                LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
-                    post_document @@ plainto_tsquery('simple', $1) AND
-                    ($2 IS NULL OR sphere_name = $2) AND
-                    ($3 OR NOT is_spoiler) AND
-                    ($4 OR NOT is_nsfw) AND
-                    moderator_id IS NULL AND
-                    delete_timestamp IS NULL
-                ORDER BY rank DESC, score DESC
+                    p.post_document @@ plainto_tsquery('simple', $1) AND
+                    ($2 IS NULL OR s.sphere_name = $2) AND
+                    ($3 OR NOT p.is_spoiler) AND
+                    ($4 OR NOT p.is_nsfw) AND
+                    p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL
+                ORDER BY rank DESC, p.score DESC
                 LIMIT $5
-                OFFSET $6
-            ) p
-            JOIN spheres s on s.sphere_id = p.sphere_id
-            LEFT JOIN sphere_categories c on c.category_id = p.category_id"
+                OFFSET $6"
         )
             .bind(search_query)
             .bind(sphere_name)
@@ -167,7 +165,7 @@ pub mod ssr {
             .fetch_all(db_pool)
             .await?;
 
-        let post_vec = post_vec.into_iter().map(PostJoinCategory::into_post_with_sphere_info).collect();
+        let post_vec = post_vec.into_iter().map(PostJoinSphereInfo::into_post_with_sphere_info).collect();
 
         Ok(post_vec)
     }
@@ -180,20 +178,18 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<CommentWithContext>, AppError> {
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
-            "SELECT cp.*, s.sphere_name, s.icon_url, s.is_nsfw FROM (
-                SELECT c.*, p.sphere_id, p.satellite_id, p.title as post_title, ts_rank(comment_document, plainto_tsquery('simple', $1)) AS rank
+            "SELECT c.*, p.sphere_id, p.satellite_id, p.title as post_title, s.sphere_name, s.icon_url, s.is_nsfw, ts_rank(c.comment_document, plainto_tsquery('simple', $1)) AS rank
                 FROM comments c
                 JOIN posts p ON p.post_id = c.post_id
+                JOIN spheres s ON s.sphere_id = p.sphere_id
                 WHERE
-                    comment_document @@ plainto_tsquery('simple', $1) AND
+                    c.comment_document @@ plainto_tsquery('simple', $1) AND
                     c.moderator_id IS NULL AND
                     c.delete_timestamp IS NULL AND
-                    ($2 IS NULL OR p.sphere_name = $2)
-                ORDER BY rank DESC, score DESC
+                    ($2 IS NULL OR s.sphere_name = $2)
+                ORDER BY rank DESC, c.score DESC
                 LIMIT $3
-                OFFSET $4
-            ) cp
-            JOIN spheres s ON s.sphere_id = cp.sphere_id"
+                OFFSET $4"
         )
             .bind(search_query)
             .bind(sphere_name)

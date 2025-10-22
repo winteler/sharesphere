@@ -73,11 +73,11 @@ async fn test_user_get() -> Result<(), AppError> {
     assert_eq!(result_user.show_nsfw, test_user.show_nsfw);
     assert_eq!(result_user.days_hide_spoiler, test_user.days_hide_spoiler);
     
-    assert_eq!(result_user.check_permissions(&sphere_a.sphere_name, PermissionLevel::Moderate), Ok(()));
-    assert_eq!(result_user.check_permissions(&sphere_b.sphere_name, PermissionLevel::Moderate), Ok(()));
-    assert_eq!(result_user.check_permissions(&sphere_c.sphere_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
-    assert_eq!(result_user.check_permissions(&sphere_d.sphere_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
-    assert_eq!(result_user.check_permissions(&sphere_e.sphere_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_sphere_permissions_by_name(&sphere_a.sphere_name, PermissionLevel::Moderate), Ok(()));
+    assert_eq!(result_user.check_sphere_permissions_by_name(&sphere_b.sphere_name, PermissionLevel::Moderate), Ok(()));
+    assert_eq!(result_user.check_sphere_permissions_by_name(&sphere_c.sphere_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_sphere_permissions_by_name(&sphere_d.sphere_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+    assert_eq!(result_user.check_sphere_permissions_by_name(&sphere_e.sphere_name, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
 
     assert_eq!(result_user.check_can_publish_on_sphere(&sphere_a.sphere_name), Ok(()));
     assert_eq!(result_user.check_can_publish_on_sphere(&sphere_b.sphere_name), Ok(()));
@@ -198,9 +198,10 @@ async fn test_user_check_can_set_user_sphere_role() -> Result<(), AppError> {
         admin.check_can_set_user_sphere_role(PermissionLevel::Moderate, manage_mod.user_id, sphere_name, &db_pool).await,
         Ok(())
     );
+    // An admin cannot reduce a leader's permission, but can instead set another user as leader
     assert_eq!(
         admin.check_can_set_user_sphere_role(PermissionLevel::None, lead_user.user_id, sphere_name, &db_pool).await,
-        Ok(())
+        Err(AppError::InsufficientPrivileges)
     );
 
     Ok(())

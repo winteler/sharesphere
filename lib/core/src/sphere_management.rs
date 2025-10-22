@@ -129,7 +129,7 @@ pub mod ssr {
             .await?;
 
         match &user_ban.sphere_name {
-            Some(sphere_name) => grantor.check_permissions(sphere_name, PermissionLevel::Ban),
+            Some(sphere_name) => grantor.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Ban),
             None => grantor.check_admin_role(AdminRole::Moderator),
         }?;
 
@@ -158,7 +158,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(&sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(&sphere_name, PermissionLevel::Manage)?;
         let sphere = get_sphere_by_name(&sphere_name, db_pool).await?;
         if let Some(current_image_url) = image_type.get_sphere_image_url(&sphere) {
             if let Ok(Some(current_image_name)) = get_file_name_from_url(current_image_url) {
@@ -205,7 +205,7 @@ pub mod ssr {
         check_sphere_name(&sphere_name)?;
         let mut file_field = file_field?;
 
-        user.check_permissions(&sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(&sphere_name, PermissionLevel::Manage)?;
 
         if file_field.file_name().unwrap_or_default().is_empty() {
             return Ok((sphere_name, None))
@@ -260,7 +260,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
         sqlx::query!(
             "UPDATE spheres
              SET icon_url = $1,
@@ -281,7 +281,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
         sqlx::query!(
             "UPDATE spheres
              SET banner_url = $1,

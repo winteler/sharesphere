@@ -211,7 +211,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Sphere, AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
         let sphere = sqlx::query_as::<_, Sphere>(
             "UPDATE spheres SET description = $1, timestamp = NOW() WHERE sphere_name = $2 RETURNING *"
         )

@@ -601,7 +601,7 @@ pub mod ssr {
             ));
         }
         if post_tags.is_pinned {
-            user.check_permissions(sphere_name, PermissionLevel::Moderate)?;
+            user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Moderate)?;
         }
 
         let post = sqlx::query_as::<_, Post>(
@@ -652,7 +652,7 @@ pub mod ssr {
             .bind(post_tags.is_pinned)
             .bind(user.user_id)
             .bind(user.username.clone())
-            .bind(user.check_permissions(sphere_name, PermissionLevel::Moderate).is_ok())
+            .bind(user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Moderate).is_ok())
             .fetch_one(db_pool)
             .await?;
 
@@ -676,7 +676,7 @@ pub mod ssr {
         }
         if post_tags.is_pinned {
             let sphere = get_post_sphere(post_id, db_pool).await?;
-            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
+            user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
 
         let post = sqlx::query_as::<_, Post>(

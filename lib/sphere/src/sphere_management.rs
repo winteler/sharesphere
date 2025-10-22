@@ -49,7 +49,7 @@ pub fn SphereCockpitGuard() -> impl IntoView {
         {
             match user {
                 Some(user) => {
-                    match user.check_permissions(&sphere_name.read_untracked(), PermissionLevel::Moderate) {
+                    match user.check_sphere_permissions_by_name(&sphere_name.read_untracked(), PermissionLevel::Moderate) {
                         Ok(_) => view! { <Outlet/> }.into_any(),
                         Err(error) => view! { <ErrorDisplay error/> }.into_any(),
                     }

@@ -111,9 +111,9 @@ pub mod ssr {
         sphere_id: i64,
         db_pool: &PgPool,
     ) -> Result<bool, AppError> {
-        // TODO use single query instead of fetching user
+        // Get the user to check both his admin role and sphere permissions
         match User::get(user_id, db_pool).await {
-            Some(user) => Ok(user.check_permissions_by_sphere_id(sphere_id, PermissionLevel::Moderate).is_ok()),
+            Some(user) => Ok(user.check_sphere_permissions_by_id(sphere_id, PermissionLevel::Moderate).is_ok()),
             None => Err(AppError::InternalServerError(format!("Could not find user with id = {user_id}"))),
         }
     }
@@ -165,7 +165,7 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserSphereRole, Option<i64>), AppError> {
-        grantor.check_can_set_sphere_leader(sphere_name)?;
+        grantor.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Lead)?;
         let lead_level_str: &str = PermissionLevel::Lead.into();
         let manage_level_str: &str = PermissionLevel::Manage.into();
 
@@ -228,14 +228,12 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<UserSphereRole, AppError> {
-        match permission_level {
-            PermissionLevel::Lead => grantor.check_can_set_sphere_leader(sphere_name)?,
-            _ => grantor.check_can_set_user_sphere_role(permission_level, user_id, sphere_name, db_pool).await?,
-        }
-
         if user_id == grantor.user_id && grantor.check_is_sphere_leader(sphere_name).is_ok() {
-            return Err(AppError::InternalServerError(String::from("Sphere leader cannot lower his permissions, must designate another leader.")))
+            return Err(AppError::InternalServerError(
+                String::from("Sphere leader cannot lower his permissions, must designate another leader.")
+            ));
         }
+        grantor.check_can_set_user_sphere_role(permission_level, user_id, sphere_name, db_pool).await?;
 
         sqlx::query!(
             "UPDATE user_sphere_roles SET delete_timestamp = NOW()
@@ -371,7 +369,7 @@ pub fn AuthorizedShow<C: IntoView + 'static>(
         <SuspenseUnpack resource=user_state.user let:user>
         {
             match user {
-                Some(user) if user.check_permissions(&sphere_name.read(), permission_level).is_ok() => {
+                Some(user) if user.check_sphere_permissions_by_name(&sphere_name.read(), permission_level).is_ok() => {
                     Some(children.with_value(|children| children()))
                 },
                 _ => None,

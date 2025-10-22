@@ -92,7 +92,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<SphereCategory, AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         let category = sqlx::query_as!(
             SphereCategory,
@@ -126,7 +126,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         let result = sqlx::query!(
             "DELETE FROM sphere_categories c

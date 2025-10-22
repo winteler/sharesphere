@@ -116,7 +116,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool
     ) -> Result<Satellite, AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         let satellite = sqlx::query_as!(
             Satellite,
@@ -160,7 +160,7 @@ pub mod ssr {
         db_pool: &PgPool
     ) -> Result<Satellite, AppError> {
         let sphere = get_satellite_sphere(satellite_id, db_pool).await?;
-        user.check_permissions(&sphere.sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Manage)?;
 
         let satellite = sqlx::query_as!(
             Satellite,
@@ -192,7 +192,7 @@ pub mod ssr {
         db_pool: &PgPool
     ) -> Result<Satellite, AppError> {
         let sphere = get_satellite_sphere(satellite_id, db_pool).await?;
-        user.check_permissions(&sphere.sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Manage)?;
 
         let satellite = sqlx::query_as!(
             Satellite,

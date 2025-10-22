@@ -117,7 +117,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         sqlx::query!(
             "UPDATE rules
@@ -162,7 +162,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         let current_rule = sqlx::query_as!(
             Rule,
@@ -227,7 +227,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_permissions(sphere_name, PermissionLevel::Manage)?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         sqlx::query!(
             "UPDATE rules

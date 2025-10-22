@@ -113,15 +113,11 @@ impl Default for User {
 }
 
 impl User {
-    fn check_sphere_permissions(&self, sphere_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        match self.permission_by_sphere_name_map.get(sphere_name).is_some_and(|permission_level| *permission_level >= req_permission_level) {
-            true => Ok(()),
-            false => Err(AppError::InsufficientPrivileges)
-        }
-    }
 
-    fn check_sphere_permissions_by_id(&self, sphere_id: i64, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        match self.permission_by_sphere_id_map.get(&sphere_id).is_some_and(|permission_level| *permission_level >= req_permission_level) {
+    fn check_permissions(&self, user_permissions: Option<&PermissionLevel>, req_permission_level: PermissionLevel, use_admin_role: bool) -> Result<(), AppError> {
+        let has_admin_permission = use_admin_role && self.admin_role.get_permission_level() >= req_permission_level;
+        let has_sphere_permission = user_permissions.is_some_and(|permission_level| *permission_level >= req_permission_level);
+        match has_admin_permission || has_sphere_permission {
             true => Ok(()),
             false => Err(AppError::InsufficientPrivileges)
         }
@@ -134,33 +130,16 @@ impl User {
         }
     }
 
-    pub fn check_permissions(&self, sphere_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        let has_admin_permission = self.admin_role.get_permission_level() >= req_permission_level;
-        let has_sphere_permission = self.check_sphere_permissions(sphere_name, req_permission_level).is_ok();
-        match has_admin_permission || has_sphere_permission {
-            true => Ok(()),
-            false => Err(AppError::InsufficientPrivileges)
-        }
+    pub fn check_sphere_permissions_by_name(&self, sphere_name: &str, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        self.check_permissions(self.permission_by_sphere_name_map.get(sphere_name), req_permission_level, true)
     }
 
-    pub fn check_permissions_by_sphere_id(&self, sphere_id: i64, req_permission_level: PermissionLevel) -> Result<(), AppError> {
-        let has_admin_permission = self.admin_role.get_permission_level() >= req_permission_level;
-        let has_sphere_permission = self.check_sphere_permissions_by_id(sphere_id, req_permission_level).is_ok();
-        match has_admin_permission || has_sphere_permission {
-            true => Ok(()),
-            false => Err(AppError::InsufficientPrivileges)
-        }
+    pub fn check_sphere_permissions_by_id(&self, sphere_id: i64, req_permission_level: PermissionLevel) -> Result<(), AppError> {
+        self.check_permissions(self.permission_by_sphere_id_map.get(&sphere_id), req_permission_level, true)
     }
 
     pub fn check_is_sphere_leader(&self, sphere_name: &str) -> Result<(), AppError> {
-        self.check_sphere_permissions(sphere_name, PermissionLevel::Lead)
-    }
-
-    pub fn check_can_set_sphere_leader(&self, sphere_name: &str) -> Result<(), AppError> {
-        match self.get_sphere_permission_level(sphere_name) == PermissionLevel::Lead {
-            true => Ok(()),
-            false => Err(AppError::InsufficientPrivileges),
-        }
+        self.check_permissions(self.permission_by_sphere_name_map.get(sphere_name), PermissionLevel::Lead, false)
     }
 
     pub fn get_sphere_permission_level(&self, sphere_name: &str) -> PermissionLevel {
@@ -386,15 +365,15 @@ pub mod ssr {
             sphere_name: &str,
             db_pool: &PgPool,
         ) -> Result<(), AppError> {
-            match (self.admin_role, self.permission_by_sphere_name_map.get(sphere_name)) {
-                (AdminRole::Admin, _) => Ok(()),
-                (_, Some(own_level)) if *own_level >= PermissionLevel::Manage && *own_level > permission_level => {
-                    match get_user_sphere_role(user_id, sphere_name, db_pool).await {
-                        Err(AppError::NotFound) => Ok(()),
-                        Ok(user_role) if *own_level > user_role.permission_level => Ok(()),
-                        _ => Err(AppError::InsufficientPrivileges),
-                    }
-                },
+            let user_role = get_user_sphere_role(user_id, sphere_name, db_pool).await;
+            match (self.admin_role, self.permission_by_sphere_name_map.get(sphere_name), user_role) {
+                (AdminRole::Admin, _, Ok(user_role)) |
+                (_, Some(PermissionLevel::Lead), Ok(user_role)) if user_role.permission_level < PermissionLevel::Lead => Ok(()),
+                (AdminRole::Admin, _, Err(AppError::NotFound)) |
+                (_, Some(PermissionLevel::Lead), Err(AppError::NotFound)) => Ok(()),
+                (_, Some(PermissionLevel::Manage), Ok(user_role))
+                if permission_level < PermissionLevel::Manage && user_role.permission_level < PermissionLevel::Manage  => Ok(()),
+                (_, Some(own_level), Err(AppError::NotFound)) if *own_level >= PermissionLevel::Manage && *own_level > permission_level => Ok(()),
                 _ => Err(AppError::InsufficientPrivileges),
             }
         }
@@ -824,13 +803,23 @@ mod tests {
 
     use super::*;
 
-    fn get_user_permission_map() -> HashMap<String, PermissionLevel> {
+    fn get_user_sphere_permission_by_name_map() -> HashMap<String, PermissionLevel> {
         HashMap::from([
             (String::from("a"), PermissionLevel::None),
             (String::from("b"), PermissionLevel::Moderate),
             (String::from("c"), PermissionLevel::Ban),
             (String::from("d"), PermissionLevel::Manage),
             (String::from("e"), PermissionLevel::Lead),
+        ])
+    }
+
+    fn get_user_sphere_permission_by_id_map() -> HashMap<i64, PermissionLevel> {
+        HashMap::from([
+            (1, PermissionLevel::None),
+            (2, PermissionLevel::Moderate),
+            (3, PermissionLevel::Ban),
+            (4, PermissionLevel::Manage),
+            (5, PermissionLevel::Lead),
         ])
     }
 
@@ -873,122 +862,238 @@ mod tests {
     }
 
     #[test]
-    fn test_user_check_permissions() {
+    fn test_user_check_check_sphere_permission_by_name() {
         let mut user = User::default();
-        user.permission_by_sphere_name_map = get_user_permission_map();
-        assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::None), Ok(()));
+        user.permission_by_sphere_name_map = get_user_sphere_permission_by_name_map();
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::None), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Moderate), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Ban), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Manage), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Manage), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Lead), Ok(()));
-        
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Lead), Ok(()));
+
         user.admin_role = AdminRole::Moderator;
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::None), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Moderate), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Ban), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Manage), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Manage), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Lead), Ok(()));
 
         user.admin_role = AdminRole::Admin;
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::None), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::None), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Moderate), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Ban), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Ban), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Manage), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Manage), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Manage), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Manage), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Manage), Ok(()));
 
-        assert_eq!(user.check_permissions("a", PermissionLevel::Lead), Ok(()));
-        assert_eq!(user.check_permissions("b", PermissionLevel::Lead), Ok(()));
-        assert_eq!(user.check_permissions("c", PermissionLevel::Lead), Ok(()));
-        assert_eq!(user.check_permissions("d", PermissionLevel::Lead), Ok(()));
-        assert_eq!(user.check_permissions("e", PermissionLevel::Lead), Ok(()));
-        
-        let mut admin = User::default();
-        admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_permissions("a", PermissionLevel::None), Ok(()));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Ban), Ok(()));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
-        admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_permissions("a", PermissionLevel::None), Ok(()));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Moderate), Ok(()));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Ban), Ok(()));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Manage), Ok(()));
-        assert_eq!(admin.check_permissions("a", PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("missing", PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("a",       PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("b",       PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("c",       PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("d",       PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_name("e",       PermissionLevel::Lead), Ok(()));
+    }
+
+    #[test]
+    fn test_user_check_check_sphere_permission_by_id() {
+        let mut user = User::default();
+        user.permission_by_sphere_id_map = get_user_sphere_permission_by_id_map();
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::None), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Moderate), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Moderate), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Ban), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Ban), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Manage), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Lead), Ok(()));
+
+        user.admin_role = AdminRole::Moderator;
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::None), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Moderate), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Ban), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Manage), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Manage), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Lead), Err(AppError::InsufficientPrivileges));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Lead), Ok(()));
+
+        user.admin_role = AdminRole::Admin;
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::None), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::None), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Moderate), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Moderate), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Ban), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Ban), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Manage), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Manage), Ok(()));
+
+        assert_eq!(user.check_sphere_permissions_by_id(0, PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(1, PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(2, PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(3, PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(4, PermissionLevel::Lead), Ok(()));
+        assert_eq!(user.check_sphere_permissions_by_id(5, PermissionLevel::Lead), Ok(()));
     }
 
     #[test]
     fn test_user_check_is_sphere_leader() {
         let mut user = User::default();
-        user.permission_by_sphere_name_map = get_user_permission_map();
+        user.permission_by_sphere_name_map = get_user_sphere_permission_by_name_map();
+        assert_eq!(user.check_is_sphere_leader("missing"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_is_sphere_leader("b"), Err(AppError::InsufficientPrivileges));
         assert_eq!(user.check_is_sphere_leader("c"), Err(AppError::InsufficientPrivileges));
@@ -999,34 +1104,6 @@ mod tests {
         assert_eq!(admin.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
         admin.admin_role = AdminRole::Admin;
         assert_eq!(admin.check_is_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
-    }
-
-    #[test]
-    fn test_user_check_can_set_sphere_leader() {
-        let mut user = User::default();
-        user.permission_by_sphere_name_map = get_user_permission_map();
-        assert_eq!(user.check_can_set_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_set_sphere_leader("b"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_set_sphere_leader("c"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_set_sphere_leader("d"), Err(AppError::InsufficientPrivileges));
-        assert_eq!(user.check_can_set_sphere_leader("e"), Ok(()));
-        let mut admin = User::default();
-        admin.admin_role = AdminRole::Moderator;
-        assert_eq!(admin.check_can_set_sphere_leader("a"), Err(AppError::InsufficientPrivileges));
-        admin.admin_role = AdminRole::Admin;
-        assert_eq!(admin.check_can_set_sphere_leader("a"), Ok(()));
-    }
-
-    #[test]
-    fn test_user_get_sphere_permission_level() {
-        let mut user = User::default();
-        user.permission_by_sphere_name_map = get_user_permission_map();
-        assert_eq!(user.get_sphere_permission_level("missing"), PermissionLevel::None);
-        assert_eq!(user.get_sphere_permission_level("a"), PermissionLevel::None);
-        assert_eq!(user.get_sphere_permission_level("b"), PermissionLevel::Moderate);
-        assert_eq!(user.get_sphere_permission_level("c"), PermissionLevel::Ban);
-        assert_eq!(user.get_sphere_permission_level("d"), PermissionLevel::Manage);
-        assert_eq!(user.get_sphere_permission_level("e"), PermissionLevel::Lead);
     }
 
     #[test]

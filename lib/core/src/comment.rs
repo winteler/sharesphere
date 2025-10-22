@@ -410,7 +410,7 @@ pub mod ssr {
             return Err(AppError::new("Cannot create empty comment."));
         }
         if is_pinned {
-            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
+            user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
         let comment = sqlx::query_as::<_, Comment>(
             "INSERT INTO comments (
@@ -424,7 +424,7 @@ pub mod ssr {
             .bind(is_pinned)
             .bind(user.user_id)
             .bind(user.username.clone())
-            .bind(user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate).is_ok())
+            .bind(user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate).is_ok())
             .fetch_one(db_pool)
             .await?;
 
@@ -443,7 +443,7 @@ pub mod ssr {
     ) -> Result<Comment, AppError> {
         if is_pinned {
             let sphere = get_comment_sphere(comment_id, &db_pool).await?;
-            user.check_permissions(&sphere.sphere_name, PermissionLevel::Moderate)?;
+            user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
         let comment = sqlx::query_as::<_, Comment>(
             "UPDATE comments SET

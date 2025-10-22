@@ -177,7 +177,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         db_pool: &PgPool,
     ) -> Result<Option<UserBan>, AppError> {
-        if user.check_permissions_by_sphere_id(sphere_id, PermissionLevel::Moderate).is_ok() &&
+        if user.check_sphere_permissions_by_id(sphere_id, PermissionLevel::Moderate).is_ok() &&
             user.user_id != user_id &&
             !is_user_sphere_moderator(user_id, sphere_id, &db_pool).await?
         {

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO comments (\n                body, markdown_body, parent_id, post_id, is_pinned, creator_id, is_creator_moderator\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            RETURNING comment_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "comment_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0741599596ccf10224cbb90b26661275f59fcb42b12b106a4041f02089fa096e"
+}

@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE rules\n             SET delete_timestamp = NOW()\n             WHERE sphere_name IS NOT DISTINCT FROM $1 AND priority = $2 AND delete_timestamp IS NULL\n             RETURNING *",
+  "query": "SELECT sa.* FROM satellites sa\n            JOIN spheres s ON s.sphere_id = sa.sphere_id\n            WHERE\n                s.sphere_name = $1 AND\n                sa.disable_timestamp IS NULL\n            ORDER BY sa.satellite_name",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "rule_id",
+        "name": "satellite_id",
         "type_info": "Int8"
       },
       {
         "ordinal": 1,
-        "name": "rule_key",
-        "type_info": "Int8"
+        "name": "satellite_name",
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
@@ -20,64 +20,63 @@
       },
       {
         "ordinal": 3,
-        "name": "sphere_name",
+        "name": "body",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "priority",
-        "type_info": "Int2"
+        "name": "markdown_body",
+        "type_info": "Text"
       },
       {
         "ordinal": 5,
-        "name": "title",
-        "type_info": "Text"
+        "name": "is_nsfw",
+        "type_info": "Bool"
       },
       {
         "ordinal": 6,
-        "name": "description",
-        "type_info": "Text"
+        "name": "is_spoiler",
+        "type_info": "Bool"
       },
       {
         "ordinal": 7,
-        "name": "markdown_description",
-        "type_info": "Text"
+        "name": "num_posts",
+        "type_info": "Int4"
       },
       {
         "ordinal": 8,
-        "name": "user_id",
+        "name": "creator_id",
         "type_info": "Int8"
       },
       {
         "ordinal": 9,
-        "name": "create_timestamp",
+        "name": "timestamp",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 10,
-        "name": "delete_timestamp",
+        "name": "disable_timestamp",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Int2"
+        "Text"
       ]
     },
     "nullable": [
       false,
       false,
-      true,
+      false,
+      false,
       true,
       false,
       false,
       false,
-      true,
       false,
       false,
       true
     ]
   },
-  "hash": "bd718b770f992f5d22f125f147533006b1ceeb9e3ccdedd185c041783e687d95"
+  "hash": "dcbf050722b350b1d995de335e433d474840c75b5efcb8ccd3dfd290e03cc92e"
 }

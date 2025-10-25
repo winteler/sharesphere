@@ -473,7 +473,6 @@ pub mod ssr {
                 is_spoiler = false,
                 is_pinned = false,
                 category_id = NULL,
-                creator_name = '',
                 edit_timestamp = NOW(),
                 delete_timestamp = NOW()
             WHERE creator_id = $1",
@@ -494,7 +493,6 @@ pub mod ssr {
                 body = '',
                 markdown_body = NULL,
                 is_pinned = false,
-                creator_name = '',
                 edit_timestamp = NOW(),
                 delete_timestamp = NOW()
             WHERE creator_id = $1",

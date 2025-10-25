@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT b.*, u.username FROM user_bans b\n            JOIN users u ON u.user_id = b.user_id\n            WHERE ban_id = $1",
+  "query": "SELECT r.*, u.username, s.sphere_name\n            FROM user_sphere_roles r\n            JOIN users u ON u.user_id = r.user_id\n            JOIN spheres s ON s.sphere_id = r.sphere_id\n            WHERE r.user_id = $1 AND r.delete_timestamp IS NULL",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "ban_id",
+        "name": "role_id",
         "type_info": "Int8"
       },
       {
@@ -20,47 +20,32 @@
       },
       {
         "ordinal": 3,
-        "name": "sphere_name",
+        "name": "permission_level",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "post_id",
+        "name": "grantor_id",
         "type_info": "Int8"
       },
       {
         "ordinal": 5,
-        "name": "comment_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 6,
-        "name": "infringed_rule_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 7,
-        "name": "moderator_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 8,
-        "name": "until_timestamp",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 9,
         "name": "create_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 6,
         "name": "delete_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 7,
         "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "sphere_name",
         "type_info": "Text"
       }
     ],
@@ -72,17 +57,14 @@
     "nullable": [
       false,
       false,
-      true,
-      true,
       false,
-      true,
+      false,
       false,
       false,
       true,
       false,
-      true,
       false
     ]
   },
-  "hash": "a702d619687d9e338df36c921d3c1d94e6d2640f40efeb9b54591f6195266b0b"
+  "hash": "818b6c75a87d8ac2e9bf6d788ea8f44f3324be0f7a74bef714388301fa7e6344"
 }

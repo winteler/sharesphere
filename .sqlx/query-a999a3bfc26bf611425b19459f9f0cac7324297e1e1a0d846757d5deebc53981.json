@@ -20,46 +20,41 @@
       },
       {
         "ordinal": 3,
-        "name": "sphere_name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
         "name": "body",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "markdown_body",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "is_nsfw",
         "type_info": "Bool"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "is_spoiler",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "num_posts",
         "type_info": "Int4"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "creator_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "disable_timestamp",
         "type_info": "Timestamptz"
       }
@@ -75,7 +70,6 @@
       ]
     },
     "nullable": [
-      false,
       false,
       false,
       false,

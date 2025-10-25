@@ -259,7 +259,19 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         let post = sqlx::query_as::<_, Post>(
-            "SELECT * FROM posts
+            "SELECT
+                p.*,
+                CASE
+                    WHEN p.delete_timestamp IS NULL THEN u.username
+                    ELSE ''
+                END as creator_name,
+                CASE
+                    WHEN p.delete_timestamp IS NULL THEN m.username
+                    ELSE NULL
+                END as moderator_name
+            FROM posts p
+            JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NULL
+            LEFT JOIN users m ON m.user_id = p.moderator_id AND p.delete_timestamp IS NULL
             WHERE post_id = $1",
         )
             .bind(post_id)
@@ -278,6 +290,14 @@ pub mod ssr {
 
         let post_join_vote = sqlx::query_as::<_, PostJoinInfo>(
             "SELECT p.*,
+                CASE
+                    WHEN p.delete_timestamp IS NULL THEN ''
+                    ELSE u.username
+                END as creator_name,
+                CASE
+                    WHEN p.delete_timestamp IS NULL THEN NULL
+                    ELSE m.username
+                END as moderator_name,
                 c.category_name,
                 c.category_color,
                 v.vote_id,
@@ -287,6 +307,8 @@ pub mod ssr {
                 v.value,
                 v.timestamp as vote_timestamp
             FROM posts p
+            JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NOT NULL
+            LEFT JOIN users m ON m.user_id = p.moderator_id AND p.delete_timestamp IS NOT NULL
             LEFT JOIN sphere_categories c on c.category_id = p.category_id
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
@@ -351,7 +373,8 @@ pub mod ssr {
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.* FROM posts p
+                "SELECT p.*, u.username as creator_name, NULL as moderator_name FROM posts p
+                JOIN users u ON u.user_id = p.creator_id
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 WHERE
                     s.sphere_name = $1 AND
@@ -409,8 +432,9 @@ pub mod ssr {
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.* FROM posts p
-                JOIN satellites s on s.satellite_id = p.satellite_id
+                "SELECT p.*, u.username as creator_name, NULL as moderator_name FROM posts p
+                JOIN users u ON u.user_id = p.creator_id
+                JOIN satellites s ON s.satellite_id = p.satellite_id
                 WHERE
                     s.satellite_id = $1 AND
                     p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
@@ -453,8 +477,16 @@ pub mod ssr {
         };
         let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             format!(
-                "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url, s.sphere_name
+                "SELECT
+                    p.*,
+                    u.username as creator_name,
+                    NULL as moderator_name,
+                    c.category_name,
+                    c.category_color,
+                    s.icon_url as sphere_icon_url,
+                    s.sphere_name
                 FROM posts p
+                JOIN users u ON u.user_id = p.creator_id
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 LEFT JOIN sphere_categories c on c.category_id = p.category_id
                 WHERE
@@ -500,13 +532,15 @@ pub mod ssr {
                     -- All subscribed posts, no pagination
                     SELECT
                         p.*,
+                        u.username as creator_name,
+                        NULL as moderator_name,
                         c.category_name,
                         c.category_color,
                         s.icon_url as sphere_icon_url,
                         s.sphere_name
                     FROM posts p
+                    JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s on s.sphere_id = p.sphere_id
-                    LEFT JOIN sphere_categories c on c.category_id = p.category_id
                     WHERE
                         s.sphere_id IN (
                             SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
@@ -540,13 +574,15 @@ pub mod ssr {
                     -- Fallback posts, when running out of subscribed posts
                     SELECT
                         p.*,
+                        u.username as creator_name,
+                        NULL as moderator_name,
                         c.category_name,
                         c.category_color,
                         s.icon_url AS sphere_icon_url,
                         s.sphere_name
                     FROM posts p
+                    JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s ON s.sphere_id = p.sphere_id
-                    LEFT JOIN sphere_categories c ON c.category_id = p.category_id
                     WHERE
                         p.moderator_id IS NULL
                         AND p.delete_timestamp IS NULL
@@ -605,37 +641,40 @@ pub mod ssr {
         }
 
         let post = sqlx::query_as::<_, Post>(
-            "INSERT INTO posts (
-                title, body, markdown_body, link_type, link_url, link_embed, link_thumbnail_url, is_nsfw, is_spoiler, category_id,
-                sphere_id, satellite_id, is_pinned, creator_id, creator_name, is_creator_moderator
+            "WITH new_post AS (
+                    INSERT INTO posts (
+                        title, body, markdown_body, link_type, link_url, link_embed, link_thumbnail_url, is_nsfw, is_spoiler, category_id,
+                        sphere_id, satellite_id, is_pinned, creator_id, is_creator_moderator
+                    )
+                    VALUES (
+                        $1, $2, $3, $4, $5, $6, $7,
+                        (
+                            CASE
+                                WHEN $8 THEN TRUE
+                                ELSE (
+                                    (SELECT is_nsfw FROM spheres s WHERE s.sphere_name = $11) OR
+                                    COALESCE(
+                                        (SELECT is_nsfw FROM satellites sa WHERE sa.satellite_id = $12),
+                                        FALSE
+                                    )
+                                )
+                            END
+                        ),
+                        (
+                            CASE
+                                WHEN $9 THEN TRUE
+                                ELSE COALESCE(
+                                    (SELECT is_spoiler FROM satellites sa WHERE sa.satellite_id = $12),
+                                    FALSE
+                                )
+                            END
+                        ),
+                        $10,
+                        (SELECT sphere_id FROM spheres s WHERE s.sphere_name = $11),
+                        $12, $13, $14, $15
+                ) RETURNING *
             )
-             VALUES (
-                $1, $2, $3, $4, $5, $6, $7,
-                (
-                    CASE
-                        WHEN $8 THEN TRUE
-                        ELSE (
-                            (SELECT is_nsfw FROM spheres s WHERE s.sphere_name = $11) OR
-                            COALESCE(
-                                (SELECT is_nsfw FROM satellites sa WHERE sa.satellite_id = $12),
-                                FALSE
-                            )
-                        )
-                    END
-                ),
-                (
-                    CASE
-                        WHEN $9 THEN TRUE
-                        ELSE COALESCE(
-                            (SELECT is_spoiler FROM satellites sa WHERE sa.satellite_id = $12),
-                            FALSE
-                        )
-                    END
-                ),
-                $10,
-                (SELECT sphere_id FROM spheres s WHERE s.sphere_name = $11),
-                $12, $13, $14, $15, $16
-            ) RETURNING *",
+            SELECT *, $16 as creator_name, NULL as moderator_name FROM new_post",
         )
             .bind(post_title)
             .bind(post_body)
@@ -651,8 +690,8 @@ pub mod ssr {
             .bind(satellite_id)
             .bind(post_tags.is_pinned)
             .bind(user.user_id)
-            .bind(user.username.clone())
             .bind(user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Moderate).is_ok())
+            .bind(user.username.clone())
             .fetch_one(db_pool)
             .await?;
 
@@ -680,44 +719,47 @@ pub mod ssr {
         }
 
         let post = sqlx::query_as::<_, Post>(
-            "UPDATE posts SET
-                title = $1,
-                body = $2,
-                markdown_body = $3,
-                link_type = $4,
-                link_url = $5,
-                link_embed = $6,
-                link_thumbnail_url = $7,
-                is_nsfw = (
-                    CASE
-                        WHEN $8 THEN TRUE
-                        ELSE (
-                            SELECT s.is_nsfw OR COALESCE(sa.is_nsfw, FALSE) FROM posts p
-                            JOIN spheres s ON s.sphere_id = p.sphere_id
-                            LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE p.post_id = $12
-                        )
-                    END
-                ),
-                is_spoiler = (
-                    CASE
-                        WHEN $9 THEN TRUE
-                        ELSE (
-                            SELECT COALESCE(sa.is_spoiler, FALSE) FROM posts p
-                            LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
-                            WHERE post_id = $12
-                        )
-                    END
-                ),
-                is_pinned = $10,
-                category_id = $11,
-                edit_timestamp = NOW()
-            WHERE
-                post_id = $12 AND
-                creator_id = $13 AND
-                moderator_id IS NULL AND
-                delete_timestamp IS NULL
-            RETURNING *",
+            "WITH updated_post AS (
+                UPDATE posts SET
+                    title = $1,
+                    body = $2,
+                    markdown_body = $3,
+                    link_type = $4,
+                    link_url = $5,
+                    link_embed = $6,
+                    link_thumbnail_url = $7,
+                    is_nsfw = (
+                        CASE
+                            WHEN $8 THEN TRUE
+                            ELSE (
+                                SELECT s.is_nsfw OR COALESCE(sa.is_nsfw, FALSE) FROM posts p
+                                JOIN spheres s ON s.sphere_id = p.sphere_id
+                                LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
+                                WHERE p.post_id = $12
+                            )
+                        END
+                    ),
+                    is_spoiler = (
+                        CASE
+                            WHEN $9 THEN TRUE
+                            ELSE (
+                                SELECT COALESCE(sa.is_spoiler, FALSE) FROM posts p
+                                LEFT JOIN satellites sa ON sa.satellite_id = p.satellite_id
+                                WHERE post_id = $12
+                            )
+                        END
+                    ),
+                    is_pinned = $10,
+                    category_id = $11,
+                    edit_timestamp = NOW()
+                WHERE
+                    post_id = $12 AND
+                    creator_id = $13 AND
+                    moderator_id IS NULL AND
+                    delete_timestamp IS NULL
+                RETURNING *
+            )
+            SELECT *, $14 as creator_name, NULL as moderator_name",
         )
             .bind(post_title)
             .bind(post_body)
@@ -732,6 +774,7 @@ pub mod ssr {
             .bind(post_tags.category_id)
             .bind(post_id)
             .bind(user.user_id)
+            .bind(user.username.clone())
             .fetch_one(db_pool)
             .await?;
 
@@ -744,26 +787,28 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         let deleted_post = sqlx::query_as::<_, Post>(
-            "UPDATE posts SET
-                title = '',
-                body = '',
-                markdown_body = NULL,
-                link_type = -1,
-                link_url = NULL,
-                link_embed = NULL,
-                link_thumbnail_url = NULL,
-                is_nsfw = false,
-                is_spoiler = false,
-                is_pinned = false,
-                category_id = NULL,
-                creator_name = '',
-                edit_timestamp = NOW(),
-                delete_timestamp = NOW()
-            WHERE
-                post_id = $1 AND
-                creator_id = $2 AND
-                moderator_id IS NULL
-            RETURNING *",
+            "WITH deleted_post AS (
+                UPDATE posts SET
+                    title = '',
+                    body = '',
+                    markdown_body = NULL,
+                    link_type = -1,
+                    link_url = NULL,
+                    link_embed = NULL,
+                    link_thumbnail_url = NULL,
+                    is_nsfw = false,
+                    is_spoiler = false,
+                    is_pinned = false,
+                    category_id = NULL,
+                    edit_timestamp = NOW(),
+                    delete_timestamp = NOW()
+                WHERE
+                    post_id = $1 AND
+                    creator_id = $2 AND
+                    moderator_id IS NULL
+                RETURNING *
+            )
+            SELECT *, '' AS username, NULL as moderator_name FROM deleted_post"
         )
             .bind(post_id)
             .bind(user.user_id)
@@ -776,18 +821,17 @@ pub mod ssr {
     pub async fn increment_post_comment_count(
         post_id: i64,
         db_pool: &PgPool,
-    ) -> Result<Post, AppError> {
-        let post = sqlx::query_as::<_, Post>(
+    ) -> Result<(), AppError> {
+        sqlx::query!(
             "UPDATE posts
             SET num_comments = num_comments + 1
-            WHERE post_id = $1
-            RETURNING *",
+            WHERE post_id = $1",
+            post_id,
         )
-            .bind(post_id)
-            .fetch_one(db_pool)
+            .execute(db_pool)
             .await?;
 
-        Ok(post)
+        Ok(())
     }
 
     pub async fn update_post_scores(db_pool: &PgPool) -> Result<(), AppError> {

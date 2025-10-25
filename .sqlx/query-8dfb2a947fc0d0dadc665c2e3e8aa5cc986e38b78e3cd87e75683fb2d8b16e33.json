@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH ban AS (\n                            INSERT INTO user_bans (user_id, sphere_id, sphere_name, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)\n                             VALUES (\n                                $1,\n                                (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                                $2, $3, $4, $5, $6, NOW() + $7 * interval '1 day'\n                            ) RETURNING *\n                        )\n                        SELECT b.*, u.username FROM ban b\n                        JOIN users u ON u.user_id = b.user_id",
+  "query": "SELECT b.*, u.username, s.sphere_name FROM user_bans b\n            JOIN users u ON u.user_id = b.user_id\n            JOIN spheres s ON s.sphere_id = b.sphere_id\n            WHERE s.sphere_name = $1 AND\n                  u.username like $2 AND\n                  b.delete_timestamp IS NULL\n            ORDER BY b.until_timestamp DESC",
   "describe": {
     "columns": [
       {
@@ -20,66 +20,60 @@
       },
       {
         "ordinal": 3,
-        "name": "sphere_name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
         "name": "post_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "comment_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "infringed_rule_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "moderator_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "until_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "create_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "delete_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "sphere_name",
         "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
-        "Int8",
-        "Int8",
-        "Int8",
-        "Int8",
-        "Float8"
+        "Text"
       ]
     },
     "nullable": [
       false,
       false,
       true,
-      true,
       false,
       true,
       false,
@@ -87,8 +81,9 @@
       true,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "29fffccd951bc0f10ba0bdb59c24db68b93bed9b09fa6f82a02e9763c467cf6a"
+  "hash": "8dfb2a947fc0d0dadc665c2e3e8aa5cc986e38b78e3cd87e75683fb2d8b16e33"
 }

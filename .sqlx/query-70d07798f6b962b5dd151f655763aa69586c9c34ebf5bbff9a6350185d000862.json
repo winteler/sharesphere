@@ -20,41 +20,36 @@
       },
       {
         "ordinal": 3,
-        "name": "sphere_name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
         "name": "priority",
         "type_info": "Int2"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "title",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "description",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "markdown_description",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "user_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "create_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "delete_timestamp",
         "type_info": "Timestamptz"
       }
@@ -67,7 +62,6 @@
     "nullable": [
       false,
       false,
-      true,
       true,
       false,
       false,

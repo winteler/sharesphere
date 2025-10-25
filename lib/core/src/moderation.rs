@@ -56,16 +56,20 @@ pub mod ssr {
     ) -> Result<Post, AppError> {
         let post = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as::<_, Post>(
-                "UPDATE posts SET
-                    moderator_message = $1,
-                    infringed_rule_id = $2,
-                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = NOW(),
-                    moderator_id = $3,
-                    moderator_name = $4
-                WHERE
-                    post_id = $5
-                RETURNING *",
+                "WITH moderated_post AS (
+                    UPDATE posts SET
+                        moderator_message = $1,
+                        infringed_rule_id = $2,
+                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
+                        edit_timestamp = NOW(),
+                        moderator_id = $3
+                    WHERE
+                        post_id = $4
+                    RETURNING *
+                )
+                SELECT p.*, u.username as creator_name, $5 as moderator_name
+                FROM moderated_post p
+                JOIN users u ON u.user_id = p.creator_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)
@@ -76,23 +80,27 @@ pub mod ssr {
                 .await?
         } else {
             sqlx::query_as::<_, Post>(
-                "UPDATE posts p SET
-                    moderator_message = $1,
-                    infringed_rule_id = $2,
-                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = NOW(),
-                    moderator_id = $3,
-                    moderator_name = $4
-                WHERE
-                    p.post_id = $5 AND
-                    EXISTS (
-                        SELECT * FROM user_sphere_roles r
-                        WHERE
-                            r.sphere_id = p.sphere_id AND
-                            r.user_id = $3 AND
-                            r.permission_level != 'None'
-                    )
-                RETURNING *",
+                "WITH moderated_post AS (
+                    UPDATE posts p SET
+                        moderator_message = $1,
+                        infringed_rule_id = $2,
+                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
+                        edit_timestamp = NOW(),
+                        moderator_id = $3
+                    WHERE
+                        p.post_id = $4 AND
+                        EXISTS (
+                            SELECT * FROM user_sphere_roles r
+                            WHERE
+                                r.sphere_id = p.sphere_id AND
+                                r.user_id = $3 AND
+                                r.permission_level != 'None'
+                        )
+                    RETURNING *
+                )
+                SELECT p.*, u.username as creator_name, $5 as moderator_name
+                FROM moderated_post p
+                JOIN users u ON u.user_id = p.creator_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)
@@ -115,51 +123,59 @@ pub mod ssr {
     ) -> Result<Comment, AppError> {
         let comment = if user.check_admin_role(AdminRole::Moderator).is_ok() {
             sqlx::query_as::<_, Comment>(
-                "UPDATE comments SET
-                    moderator_message = $1,
-                    infringed_rule_id = $2,
-                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = NOW(),
-                    moderator_id = $3,
-                    moderator_name = $4
-                WHERE
-                    comment_id = $5
-                RETURNING *",
+                "WITH moderated_comment AS (
+                        UPDATE comments SET
+                        moderator_message = $1,
+                        infringed_rule_id = $2,
+                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
+                        edit_timestamp = NOW(),
+                        moderator_id = $3
+                    WHERE
+                        comment_id = $4
+                    RETURNING *
+                )
+                SELECT c.*, u.username as creator_name, $5 as moderator_name
+                FROM moderated_comment c
+                JOIN users u ON u.user_id = c.creator_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)
                 .bind(user.user_id)
-                .bind(user.username.clone())
                 .bind(comment_id)
+                .bind(user.username.clone())
                 .fetch_one(db_pool)
                 .await?
         } else {
             // check if the user has at least the moderate permission for this sphere
             sqlx::query_as::<_, Comment>(
-                "UPDATE comments c SET
-                    moderator_message = $1,
-                    infringed_rule_id = $2,
-                    infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
-                    edit_timestamp = NOW(),
-                    moderator_id = $3,
-                    moderator_name = $4
-                WHERE
-                    c.comment_id = $5 AND
-                    EXISTS (
-                        SELECT * FROM user_sphere_roles r
-                        JOIN posts p ON p.sphere_id = r.sphere_id
-                        WHERE
-                            p.post_id = c.post_id AND
-                            r.user_id = $3  AND
-                            r.permission_level != 'None'
-                    )
-                RETURNING *",
+                "WITH moderated_comment AS (
+                    UPDATE comments c SET
+                        moderator_message = $1,
+                        infringed_rule_id = $2,
+                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
+                        edit_timestamp = NOW(),
+                        moderator_id = $3
+                    WHERE
+                        c.comment_id = $4 AND
+                        EXISTS (
+                            SELECT * FROM user_sphere_roles r
+                            JOIN posts p ON p.sphere_id = r.sphere_id
+                            WHERE
+                                p.post_id = c.post_id AND
+                                r.user_id = $3  AND
+                                r.permission_level != 'None'
+                        )
+                    RETURNING *
+                )
+                SELECT c.*, u.username as creator_name, $5 as moderator_name
+                FROM moderated_comment c
+                JOIN users u ON u.user_id = c.creator_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)
                 .bind(user.user_id)
-                .bind(user.username.clone())
                 .bind(comment_id)
+                .bind(user.username.clone())
                 .fetch_one(db_pool)
                 .await?
         };

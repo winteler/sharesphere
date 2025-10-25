@@ -146,8 +146,20 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         let comment = sqlx::query_as::<_, Comment>(
-            "SELECT * FROM comments
-            WHERE comment_id = $1",
+            "SELECT
+                c.*,
+                CASE
+                    WHEN c.delete_timestamp IS NULL THEN u.username
+                    ELSE ''
+                END as creator_name,
+                CASE
+                    WHEN c.delete_timestamp IS NULL THEN m.username
+                    ELSE NULL
+                END as moderator_name
+            FROM comments c
+            JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
+            LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
+            WHERE comment_id = $1"
         )
             .bind(comment_id)
             .fetch_one(db_pool)
@@ -240,18 +252,9 @@ pub mod ssr {
                     (
                         SELECT
                             c.*,
-                            v.vote_id,
-                            v.user_id as vote_user_id,
-                            v.post_id as vote_post_id,
-                            v.comment_id as vote_comment_id,
-                            v.value,
-                            v.timestamp as vote_timestamp,
                             1 AS depth,
                             ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
                         FROM comments c
-                        LEFT JOIN votes v
-                        ON v.comment_id = c.comment_id AND
-                           v.user_id = $1
                         WHERE
                             c.post_id = $2 AND
                             c.parent_id IS NULL
@@ -262,24 +265,36 @@ pub mod ssr {
                     UNION ALL (
                         SELECT
                             n.*,
-                            vr.vote_id,
-                            vr.user_id as vote_user_id,
-                            vr.post_id as vote_post_id,
-                            vr.comment_id as vote_comment_id,
-                            vr.value,
-                            vr.timestamp as vote_timestamp,
                             r.depth + 1,
                             r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
                         FROM comment_tree r
                         JOIN comments n ON n.parent_id = r.comment_id
-                        LEFT JOIN votes vr
-                        ON vr.comment_id = n.comment_id AND
-                           vr.user_id = $1
                         WHERE ($3 IS NULL OR r.depth <= $3)
                     )
                 )
-                SELECT * FROM comment_tree
-                ORDER BY path DESC"
+                SELECT
+                    c.*,
+                    CASE
+                        WHEN c.delete_timestamp IS NULL THEN u.username
+                        ELSE ''
+                    END as creator_name,
+                    CASE
+                        WHEN c.delete_timestamp IS NULL THEN m.username
+                        ELSE ''
+                    END as moderator_name
+                    v.vote_id,
+                    v.user_id as vote_user_id,
+                    v.post_id as vote_post_id,
+                    v.comment_id as vote_comment_id,
+                    v.value,
+                    v.timestamp as vote_timestamp,
+                FROM comment_tree c
+                JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
+                LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
+                LEFT JOIN votes v
+                    ON v.comment_id = c.comment_id AND
+                       v.user_id = $1
+                ORDER BY c.path DESC"
             )
                 .as_str(),
         )
@@ -316,18 +331,9 @@ pub mod ssr {
                     (
                         SELECT
                             c.*,
-                            v.vote_id,
-                            v.user_id as vote_user_id,
-                            v.post_id as vote_post_id,
-                            v.comment_id as vote_comment_id,
-                            v.value,
-                            v.timestamp as vote_timestamp,
                             1 AS depth,
                             ARRAY[(c.is_pinned, c.{sort_column}, c.comment_id)] AS path
                         FROM comments c
-                        LEFT JOIN votes v
-                        ON v.comment_id = c.comment_id AND
-                           v.user_id = $1
                         WHERE
                             c.comment_id = $2
                         ORDER BY c.is_pinned DESC, c.{sort_column} DESC
@@ -335,48 +341,58 @@ pub mod ssr {
                     UNION ALL (
                         SELECT
                             n.*,
-                            vr.vote_id,
-                            vr.user_id as vote_user_id,
-                            vr.post_id as vote_post_id,
-                            vr.comment_id as vote_comment_id,
-                            vr.value,
-                            vr.timestamp as vote_timestamp,
                             r.depth + 1,
                             r.path || (n.is_pinned, n.{sort_column}, n.comment_id)
                         FROM comment_tree r
                         JOIN comments n ON n.parent_id = r.comment_id
-                        LEFT JOIN votes vr
-                        ON vr.comment_id = n.comment_id AND
-                           vr.user_id = $1
                         WHERE ($3 IS NULL OR r.depth <= $3)
                     )
-                )
-                SELECT * FROM (
-                    SELECT * FROM comment_tree
-                    ORDER BY path DESC
-                    LIMIT $4
-                ) AS filtered_comment_tree
-                UNION ALL (
-                    SELECT
-                        c1.*,
-                        v.vote_id,
-                        v.user_id as vote_user_id,
-                        v.post_id as vote_post_id,
-                        v.comment_id as vote_comment_id,
-                        v.value,
-                        v.timestamp as vote_timestamp,
-                        0 as depth,
-                        ARRAY[(c1.is_pinned, c1.{sort_column}, c1.comment_id)] AS path
-                    FROM comments c1
-                    LEFT JOIN votes v
-                        ON v.comment_id = c1.comment_id AND
-                           v.user_id = $1
-                    WHERE c1.comment_id = (
-                        SELECT c2.parent_id
-                        FROM comments c2
-                        WHERE comment_id = $2
+                ),
+                parent_comment AS (
+                    SELECT * FROM (
+                        SELECT * FROM comment_tree
+                        ORDER BY path DESC
+                        LIMIT $4
                     )
-                )"
+                    UNION ALL (
+                        SELECT
+                            c1.*,
+                            0 as depth,
+                            ARRAY[(c1.is_pinned, c1.{sort_column}, c1.comment_id)] AS path
+                        FROM comments c1
+                        WHERE c1.comment_id = (
+                            SELECT c2.parent_id
+                            FROM comments c2
+                            WHERE comment_id = $2
+                        )
+                    )
+                )
+                SELECT
+                    c.*,
+                    CASE
+                        WHEN c.delete_timestamp IS NULL THEN u.username
+                        ELSE ''
+                    END as creator_name,
+                    CASE
+                        WHEN c.delete_timestamp IS NULL THEN m.username
+                        ELSE ''
+                    END as moderator_name
+                    v.vote_id,
+                    v.user_id as vote_user_id,
+                    v.post_id as vote_post_id,
+                    v.comment_id as vote_comment_id,
+                    v.value,
+                    v.timestamp as vote_timestamp
+                FROM selected_comments c
+                JOIN users u ON
+                    u.user_id = c.creator_id AND
+                    c.delete_timestamp IS NULL
+                LEFT JOIN users m ON
+                    m.user_id = c.moderator_id AND
+                    c.delete_timestamp IS NULL
+                LEFT JOIN votes v ON
+                    v.comment_id = c.comment_id AND
+                    v.user_id = $1"
             ).as_str(),
         )
             .bind(user_id)
@@ -413,9 +429,17 @@ pub mod ssr {
             user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
         let comment = sqlx::query_as::<_, Comment>(
-            "INSERT INTO comments (
-                body, markdown_body, parent_id, post_id, is_pinned, creator_id, creator_name, is_creator_moderator
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+            r#"
+            WITH new_comment AS (
+                INSERT INTO comments (
+                    body, markdown_body, parent_id, post_id, is_pinned, creator_id, is_creator_moderator
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *
+            )
+            SELECT *, $8 as creator_name, NULL as moderator_name
+            FROM new_comment
+            "#,
         )
             .bind(comment)
             .bind(markdown_comment)
@@ -423,8 +447,8 @@ pub mod ssr {
             .bind(post_id)
             .bind(is_pinned)
             .bind(user.user_id)
-            .bind(user.username.clone())
             .bind(user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate).is_ok())
+            .bind(user.username.clone())
             .fetch_one(db_pool)
             .await?;
 
@@ -446,23 +470,27 @@ pub mod ssr {
             user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate)?;
         }
         let comment = sqlx::query_as::<_, Comment>(
-            "UPDATE comments SET
-                body = $1,
-                markdown_body = $2,
-                is_pinned = $3,
-                edit_timestamp = NOW()
-            WHERE
-                comment_id = $4 AND
-                creator_id = $5 AND
-                moderator_id IS NULL AND
-                delete_timestamp IS NULL
-            RETURNING *",
+            "WITH updated_comment AS (
+                UPDATE comments SET
+                    body = $1,
+                    markdown_body = $2,
+                    is_pinned = $3,
+                    edit_timestamp = NOW()
+                WHERE
+                    comment_id = $4 AND
+                    creator_id = $5 AND
+                    moderator_id IS NULL AND
+                    delete_timestamp IS NULL
+                RETURNING *
+            )
+            SELECT *, $6 as creator_name, NULL as moderator_name FROM updated_comment",
         )
             .bind(comment_body)
             .bind(comment_markdown_body)
             .bind(is_pinned)
             .bind(comment_id)
             .bind(user.user_id)
+            .bind(user.username.clone())
             .fetch_one(db_pool)
             .await?;
 
@@ -475,18 +503,20 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         let deleted_comment = sqlx::query_as::<_, Comment>(
-            "UPDATE comments SET
-                body = '',
-                markdown_body = NULL,
-                is_pinned = false,
-                creator_name = '',
-                edit_timestamp = NOW(),
-                delete_timestamp = NOW()
-            WHERE
-                comment_id = $1 AND
-                creator_id = $2 AND
-                moderator_id IS NULL
-            RETURNING *",
+            "WITH deleted_comment AS (
+                UPDATE comments SET
+                    body = '',
+                    markdown_body = NULL,
+                    is_pinned = false,
+                    edit_timestamp = NOW(),
+                    delete_timestamp = NOW()
+                WHERE
+                    comment_id = $1 AND
+                    creator_id = $2 AND
+                    moderator_id IS NULL
+                RETURNING *
+            )
+            SELECT *, '' as creator_name, NULL as moderator_name FROM deleted_comment",
         )
             .bind(comment_id)
             .bind(user.user_id)

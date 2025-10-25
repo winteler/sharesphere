@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH new_role AS (\n                INSERT INTO user_sphere_roles (user_id, sphere_id, sphere_name, permission_level, grantor_id)\n                VALUES ($1,\n                    (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                    $2, $3, $4)\n                RETURNING *\n            )\n            SELECT r.*, u.username FROM new_role r\n            JOIN users u ON u.user_id = r.user_id",
+  "query": "WITH new_role AS (\n                INSERT INTO user_sphere_roles (user_id, sphere_id, permission_level, grantor_id)\n                VALUES (\n                    $1,\n                    (SELECT sphere_id FROM spheres WHERE sphere_name = $2),\n                    $3, $4\n                )\n                RETURNING *\n            )\n            SELECT r.*, u.username, s.sphere_name FROM new_role r\n            JOIN users u ON u.user_id = r.user_id\n            JOIN spheres s ON s.sphere_id = r.sphere_id",
   "describe": {
     "columns": [
       {
@@ -20,32 +20,32 @@
       },
       {
         "ordinal": 3,
-        "name": "sphere_name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
         "name": "permission_level",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "grantor_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "create_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "delete_timestamp",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "sphere_name",
         "type_info": "Text"
       }
     ],
@@ -64,10 +64,10 @@
       false,
       false,
       false,
-      false,
       true,
+      false,
       false
     ]
   },
-  "hash": "c13fa93b406dccb29a51a8d128b936a46878dc7128f775fbe81599ddae10d834"
+  "hash": "0a48e381b3e94e4e5261f3b548d4215a53c7666956d0b8900d07578d4f8db0e7"
 }

@@ -421,7 +421,10 @@ pub async fn set_sphere_num_members(
     db_pool: &PgPool,
 ) -> Result<Sphere, AppError> {
     let sphere = sqlx::query_as::<_, Sphere>(
-        "UPDATE spheres SET num_members = $1, timestamp = NOW() WHERE sphere_id = $2 RETURNING *",
+        "UPDATE spheres
+        SET num_members = $1, timestamp = NOW()
+        WHERE sphere_id = $2
+        RETURNING *",
     )
         .bind(num_members)
         .bind(sphere_id)
@@ -437,7 +440,14 @@ pub async fn set_post_score(
     db_pool: &PgPool,
 ) -> Result<Post, AppError> {
     let post = sqlx::query_as::<_, Post>(
-        "UPDATE posts SET score = $1, scoring_timestamp = NOW() WHERE post_id = $2 RETURNING *",
+        "WITH updated_post AS (
+            UPDATE posts SET score = $1, scoring_timestamp = NOW()
+            WHERE post_id = $2
+            RETURNING *
+        )
+        SELECT p.*, u.username as creator_name, NULL as moderator_name
+        FROM updated_post p
+        JOIN users u ON u.user_id = p.creator_id",
     )
         .bind(score)
         .bind(post_id)
@@ -453,10 +463,16 @@ pub async fn set_post_timestamp(
     db_pool: &PgPool,
 ) -> Result<Post, AppError> {
     let post = sqlx::query_as::<_, Post>(
-        "UPDATE posts
-        SET create_timestamp = create_timestamp + (INTERVAL '1 day' * $1), 
-        scoring_timestamp = NOW()
-        WHERE post_id = $2 RETURNING *",
+        "WITH updated_post AS (
+            UPDATE posts
+            SET create_timestamp = create_timestamp + (INTERVAL '1 day' * $1),
+            scoring_timestamp = NOW()
+            WHERE post_id = $2
+            RETURNING *
+        )
+        SELECT p.*, u.username as creator_name, NULL as moderator_name
+        FROM updated_post p
+        JOIN users u ON u.user_id = p.creator_id",
     )
         .bind(day_offset)
         .bind(post_id)
@@ -472,7 +488,14 @@ pub async fn set_comment_score(
     db_pool: &PgPool,
 ) -> Result<Comment, AppError> {
     let comment = sqlx::query_as::<_, Comment>(
-        "UPDATE comments SET score = $1 WHERE comment_id = $2 RETURNING *",
+        "WITH updated_comment AS (
+            UPDATE comments SET score = $1
+            WHERE comment_id = $2
+            RETURNING *
+        )
+        SELECT c.*, u.username as creator_name, NULL as moderator_name
+        FROM updated_comment c
+        JOIN users u ON u.user_id = c.creator_id",
     )
         .bind(score)
         .bind(comment_id)

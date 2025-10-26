@@ -291,12 +291,12 @@ pub mod ssr {
         let post_join_vote = sqlx::query_as::<_, PostJoinInfo>(
             "SELECT p.*,
                 CASE
-                    WHEN p.delete_timestamp IS NULL THEN ''
-                    ELSE u.username
+                    WHEN p.delete_timestamp IS NULL THEN u.username
+                    ELSE ''
                 END as creator_name,
                 CASE
-                    WHEN p.delete_timestamp IS NULL THEN NULL
-                    ELSE m.username
+                    WHEN p.delete_timestamp IS NULL THEN m.username
+                    ELSE NULL
                 END as moderator_name,
                 c.category_name,
                 c.category_color,
@@ -307,8 +307,8 @@ pub mod ssr {
                 v.value,
                 v.timestamp as vote_timestamp
             FROM posts p
-            JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NOT NULL
-            LEFT JOIN users m ON m.user_id = p.moderator_id AND p.delete_timestamp IS NOT NULL
+            JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NULL
+            LEFT JOIN users m ON m.user_id = p.moderator_id AND p.delete_timestamp IS NULL
             LEFT JOIN sphere_categories c on c.category_id = p.category_id
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
@@ -373,7 +373,8 @@ pub mod ssr {
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.*, u.username as creator_name, NULL as moderator_name FROM posts p
+                "SELECT p.*, u.username as creator_name, NULL as moderator_name
+                FROM posts p
                 JOIN users u ON u.user_id = p.creator_id
                 JOIN spheres s on s.sphere_id = p.sphere_id
                 WHERE
@@ -541,6 +542,7 @@ pub mod ssr {
                     FROM posts p
                     JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s on s.sphere_id = p.sphere_id
+                    LEFT JOIN sphere_categories c on c.category_id = p.category_id
                     WHERE
                         s.sphere_id IN (
                             SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
@@ -583,6 +585,7 @@ pub mod ssr {
                     FROM posts p
                     JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s ON s.sphere_id = p.sphere_id
+                    LEFT JOIN sphere_categories c on c.category_id = p.category_id
                     WHERE
                         p.moderator_id IS NULL
                         AND p.delete_timestamp IS NULL
@@ -759,7 +762,7 @@ pub mod ssr {
                     delete_timestamp IS NULL
                 RETURNING *
             )
-            SELECT *, $14 as creator_name, NULL as moderator_name",
+            SELECT *, $14 as creator_name, NULL as moderator_name FROM updated_post",
         )
             .bind(post_title)
             .bind(post_body)
@@ -808,7 +811,8 @@ pub mod ssr {
                     moderator_id IS NULL
                 RETURNING *
             )
-            SELECT *, '' AS username, NULL as moderator_name FROM deleted_post"
+            SELECT *, '' AS creator_name, NULL as moderator_name
+            FROM deleted_post"
         )
             .bind(post_id)
             .bind(user.user_id)

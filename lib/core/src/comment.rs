@@ -280,14 +280,14 @@ pub mod ssr {
                     END as creator_name,
                     CASE
                         WHEN c.delete_timestamp IS NULL THEN m.username
-                        ELSE ''
-                    END as moderator_name
+                        ELSE NULL
+                    END as moderator_name,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,
                     v.comment_id as vote_comment_id,
                     v.value,
-                    v.timestamp as vote_timestamp,
+                    v.timestamp as vote_timestamp
                 FROM comment_tree c
                 JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
                 LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
@@ -348,12 +348,12 @@ pub mod ssr {
                         WHERE ($3 IS NULL OR r.depth <= $3)
                     )
                 ),
-                parent_comment AS (
+                selected_comments AS (
                     SELECT * FROM (
                         SELECT * FROM comment_tree
                         ORDER BY path DESC
                         LIMIT $4
-                    )
+                    ) AS selected_tree
                     UNION ALL (
                         SELECT
                             c1.*,
@@ -375,8 +375,8 @@ pub mod ssr {
                     END as creator_name,
                     CASE
                         WHEN c.delete_timestamp IS NULL THEN m.username
-                        ELSE ''
-                    END as moderator_name
+                        ELSE NULL
+                    END as moderator_name,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,

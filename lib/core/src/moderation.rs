@@ -74,8 +74,8 @@ pub mod ssr {
                 .bind(moderator_message)
                 .bind(rule_id)
                 .bind(user.user_id)
-                .bind(user.username.clone())
                 .bind(post_id)
+                .bind(user.username.clone())
                 .fetch_one(db_pool)
                 .await?
         } else {
@@ -105,8 +105,8 @@ pub mod ssr {
                 .bind(moderator_message)
                 .bind(rule_id)
                 .bind(user.user_id)
-                .bind(user.username.clone())
                 .bind(post_id)
+                .bind(user.username.clone())
                 .fetch_one(db_pool)
                 .await?
         };

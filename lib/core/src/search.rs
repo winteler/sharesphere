@@ -141,20 +141,30 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
-            "SELECT p.*, c.category_name, c.category_color, s.icon_url as sphere_icon_url, s.sphere_name, ts_rank(p.post_document, plainto_tsquery('simple', $1)) AS rank
-                FROM posts p
-                JOIN spheres s on s.sphere_id = p.sphere_id
-                LEFT JOIN sphere_categories c on c.category_id = p.category_id
-                WHERE
-                    p.post_document @@ plainto_tsquery('simple', $1) AND
-                    ($2 IS NULL OR s.sphere_name = $2) AND
-                    ($3 OR NOT p.is_spoiler) AND
-                    ($4 OR NOT p.is_nsfw) AND
-                    p.moderator_id IS NULL AND
-                    p.delete_timestamp IS NULL
-                ORDER BY rank DESC, p.score DESC
-                LIMIT $5
-                OFFSET $6"
+            "SELECT
+                p.*,
+                u.username as creator_name,
+                NULL as moderator_name,
+                c.category_name,
+                c.category_color,
+                s.icon_url as sphere_icon_url,
+                s.sphere_name,
+                ts_rank(p.post_document,
+                plainto_tsquery('simple', $1)) AS rank
+            FROM posts p
+            JOIN users u ON u.user_id = p.creator_id
+            JOIN spheres s ON s.sphere_id = p.sphere_id
+            LEFT JOIN sphere_categories c ON c.category_id = p.category_id
+            WHERE
+                p.post_document @@ plainto_tsquery('simple', $1) AND
+                ($2 IS NULL OR s.sphere_name = $2) AND
+                ($3 OR NOT p.is_spoiler) AND
+                ($4 OR NOT p.is_nsfw) AND
+                p.moderator_id IS NULL AND
+                p.delete_timestamp IS NULL
+            ORDER BY rank DESC, p.score DESC
+            LIMIT $5
+            OFFSET $6"
         )
             .bind(search_query)
             .bind(sphere_name)
@@ -178,8 +188,20 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<CommentWithContext>, AppError> {
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
-            "SELECT c.*, p.sphere_id, p.satellite_id, p.title as post_title, s.sphere_name, s.icon_url, s.is_nsfw, ts_rank(c.comment_document, plainto_tsquery('simple', $1)) AS rank
+            "SELECT
+                c.*,
+                u.username as creator_name,
+                NULL as moderator_name,
+                p.sphere_id,
+                p.satellite_id,
+                p.title as post_title,
+                s.sphere_name,
+                s.icon_url,
+                s.is_nsfw,
+                ts_rank(c.comment_document,
+                plainto_tsquery('simple', $1)) AS rank
                 FROM comments c
+                JOIN users u ON u.user_id = c.creator_id
                 JOIN posts p ON p.post_id = c.post_id
                 JOIN spheres s ON s.sphere_id = p.sphere_id
                 WHERE

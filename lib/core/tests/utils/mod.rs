@@ -159,22 +159,6 @@ pub fn test_comment_tree(
     }
 }
 
-pub async fn get_comment_by_id(
-    comment_id: i64,
-    db_pool: &PgPool,
-) -> Result<Comment, AppError> {
-    let comment = sqlx::query_as::<_, Comment>(
-        "SELECT *
-        FROM comments
-        WHERE comment_id = $1",
-    )
-        .bind(comment_id)
-        .fetch_one(db_pool)
-        .await?;
-
-    Ok(comment)
-}
-
 pub async fn get_user_comment_vote(
     comment: &Comment,
     user_id: i64,

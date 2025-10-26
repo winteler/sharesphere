@@ -2,13 +2,14 @@ use sharesphere_auth::role::AdminRole;
 use sharesphere_auth::user::{BanStatus, User};
 use sharesphere_core::ranking::VoteValue;
 use sharesphere_core::{post, ranking};
+use sharesphere_core::comment::ssr::get_comment_by_id;
 use sharesphere_core::moderation::ssr::ban_user_from_sphere;
 use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_utils::errors::AppError;
 
 use crate::common::*;
 use crate::data_factory::{create_sphere_with_post, create_sphere_with_post_and_comment};
-use crate::utils::{get_comment_by_id, get_user_comment_vote};
+use crate::utils::{get_user_comment_vote};
 
 mod common;
 mod data_factory;
@@ -99,13 +100,13 @@ async fn test_vote_on_content_post() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_vote_on_content_comment() -> Result<(), AppError> {
+async fn test_vote_on_content_comment() {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
     let (_, _, init_comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
-    let comment = get_comment_by_id(init_comment.comment_id, &db_pool).await?;
+    let comment = get_comment_by_id(init_comment.comment_id, &db_pool).await.expect("Should get comment");
 
     let vote_value = VoteValue::Up;
     ranking::ssr::vote_on_content(
@@ -117,8 +118,8 @@ async fn test_vote_on_content_comment() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Upvote should be created.");
 
-    let comment = get_comment_by_id(comment.comment_id, &db_pool).await?;
-    let vote = get_user_comment_vote(&comment, user.user_id, &db_pool).await?;
+    let comment = get_comment_by_id(comment.comment_id, &db_pool).await.expect("Should get comment aftervote");
+    let vote = get_user_comment_vote(&comment, user.user_id, &db_pool).await.expect("Should get user comment vote");
     assert_eq!(vote.value, vote_value);
     assert_eq!(vote.user_id, user.user_id);
     assert_eq!(vote.post_id, comment.post_id);
@@ -157,8 +158,8 @@ async fn test_vote_on_content_comment() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Downvote should be created.");
 
-    let comment = get_comment_by_id(comment.comment_id, &db_pool).await?;
-    let vote = get_user_comment_vote(&comment, user.user_id, &db_pool).await?;
+    let comment = get_comment_by_id(comment.comment_id, &db_pool).await.expect("Should get comment after 2nd vote");
+    let vote = get_user_comment_vote(&comment, user.user_id, &db_pool).await.expect("Should get user comment vote");
     assert_eq!(vote.value, VoteValue::Down);
     assert_eq!(vote.user_id, user.user_id);
     assert_eq!(vote.post_id, comment.post_id);
@@ -174,10 +175,9 @@ async fn test_vote_on_content_comment() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Vote should be deleted.");
 
-    let comment = get_comment_by_id(comment.comment_id, &db_pool).await?;
+    let comment = get_comment_by_id(comment.comment_id, &db_pool).await.expect("Should get comment after third vote");
     assert_eq!(get_user_comment_vote(&comment, user.user_id, &db_pool).await, Err(AppError::NotFound));
     assert_eq!(init_comment.score, comment.score);
-    Ok(())
 }
 
 #[tokio::test]

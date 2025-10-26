@@ -38,6 +38,7 @@ pub struct Comment {
     pub is_edited: bool,
     pub moderator_message: Option<String>,
     pub infringed_rule_id: Option<i64>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
     pub infringed_rule_title: Option<String>,
     pub parent_id: Option<i64>,
     pub post_id: i64,
@@ -45,6 +46,7 @@ pub struct Comment {
     pub creator_name: String,
     pub is_creator_moderator: bool,
     pub moderator_id: Option<i64>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
     pub moderator_name: Option<String>,
     pub is_pinned: bool,
     pub score: i32,
@@ -150,10 +152,11 @@ pub mod ssr {
                 c.*,
                 COALESCE(u.username, '') as creator_name,
                 m.username as moderator_name,
-                r.rule_title as infringed_rule_title
+                r.title as infringed_rule_title
             FROM comments c
             LEFT JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
             LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
+            LEFT JOIN rules r ON r.rule_id = c.infringed_rule_id AND c.delete_timestamp IS NULL
             WHERE comment_id = $1"
         )
             .bind(comment_id)
@@ -187,7 +190,9 @@ pub mod ssr {
     ) -> Vec<CommentWithChildren> {
         let mut comment_tree = Vec::new();
         let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
+        println!("Process comment tree");
         for comment_with_vote in comment_with_vote_vec {
+            println!("Process comment {}, parent: {:?}", comment_with_vote.comment.comment_id, comment_with_vote.comment.parent_id);
             let mut current = comment_with_vote.into_comment_with_children();
 
             if let Some((top_parent_id, child_comments)) = stack.last_mut() {
@@ -223,6 +228,7 @@ pub mod ssr {
             comment_tree = partial_comment_tree;
         }
 
+        println!("comment tree: {:?}", comment_tree);
         comment_tree
     }
 
@@ -271,7 +277,7 @@ pub mod ssr {
                     c.*,
                     COALESCE(u.username, '') as creator_name,
                     m.username as moderator_name,
-                    r.rule_title as infringed_rule_title,
+                    r.title as infringed_rule_title,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,
@@ -281,9 +287,8 @@ pub mod ssr {
                 FROM comment_tree c
                 LEFT JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
                 LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
-                LEFT JOIN votes v
-                    ON v.comment_id = c.comment_id AND
-                       v.user_id = $1
+                LEFT JOIN rules r ON r.rule_id = c.infringed_rule_id AND c.delete_timestamp IS NULL
+                LEFT JOIN votes v ON v.comment_id = c.comment_id AND v.user_id = $1
                 ORDER BY c.path DESC"
             )
                 .as_str(),
@@ -327,6 +332,7 @@ pub mod ssr {
                         WHERE
                             c.comment_id = $2
                         ORDER BY c.is_pinned DESC, c.{sort_column} DESC
+                        LIMIT $4
                     )
                     UNION ALL (
                         SELECT
@@ -341,8 +347,6 @@ pub mod ssr {
                 selected_comments AS (
                     SELECT * FROM (
                         SELECT * FROM comment_tree
-                        ORDER BY path DESC
-                        LIMIT $4
                     ) AS selected_tree
                     UNION ALL (
                         SELECT
@@ -361,7 +365,7 @@ pub mod ssr {
                     c.*,
                     COALESCE(u.username, '') as creator_name,
                     m.username as moderator_name,
-                    r.rule_title as infringed_rule_title,
+                    r.title as infringed_rule_title,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,
@@ -369,15 +373,11 @@ pub mod ssr {
                     v.value,
                     v.timestamp as vote_timestamp
                 FROM selected_comments c
-                LEFT JOIN users u ON
-                    u.user_id = c.creator_id AND
-                    c.delete_timestamp IS NULL
-                LEFT JOIN users m ON
-                    m.user_id = c.moderator_id AND
-                    c.delete_timestamp IS NULL
-                LEFT JOIN votes v ON
-                    v.comment_id = c.comment_id AND
-                    v.user_id = $1"
+                LEFT JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
+                LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
+                LEFT JOIN rules r ON r.rule_id = c.infringed_rule_id AND c.delete_timestamp IS NULL
+                LEFT JOIN votes v ON v.comment_id = c.comment_id AND v.user_id = $1
+                ORDER BY depth DESC, c.path DESC"
             ).as_str(),
         )
             .bind(user_id)
@@ -422,8 +422,7 @@ pub mod ssr {
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
             )
-            SELECT *, $8 as creator_name, NULL as moderator_name, NULL as infringed_rule_title
-            FROM new_comment
+            SELECT *, $8 as creator_name FROM new_comment
             "#,
         )
             .bind(comment)
@@ -468,7 +467,7 @@ pub mod ssr {
                     delete_timestamp IS NULL
                 RETURNING *
             )
-            SELECT *, $6 as creator_name, NULL as moderator_name FROM updated_comment",
+            SELECT *, $6 as creator_name FROM updated_comment",
         )
             .bind(comment_body)
             .bind(comment_markdown_body)
@@ -501,7 +500,7 @@ pub mod ssr {
                     moderator_id IS NULL
                 RETURNING *
             )
-            SELECT *, '' as creator_name, NULL as moderator_name FROM deleted_comment",
+            SELECT *, '' as creator_name FROM deleted_comment",
         )
             .bind(comment_id)
             .bind(user.user_id)

@@ -33,7 +33,6 @@ pub mod ssr {
                 "SELECT
                     p.*,
                     u.username as creator_name,
-                    NULL as moderator_name,
                     c.category_name,
                     c.category_color,
                     s.icon_url as sphere_icon_url,
@@ -75,7 +74,6 @@ pub mod ssr {
                 "SELECT
                     c.*,
                     u.username as creator_name,
-                    NULL as moderator_name,
                     s.sphere_name,
                     s.icon_url,
                     s.is_nsfw,

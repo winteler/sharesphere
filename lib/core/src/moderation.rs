@@ -60,16 +60,20 @@ pub mod ssr {
                     UPDATE posts SET
                         moderator_message = $1,
                         infringed_rule_id = $2,
-                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                         edit_timestamp = NOW(),
                         moderator_id = $3
                     WHERE
                         post_id = $4
                     RETURNING *
                 )
-                SELECT p.*, u.username as creator_name, $5 as moderator_name
+                SELECT
+                    p.*,
+                    u.username as creator_name,
+                    $5 as moderator_name,
+                    r.title as infringed_rule_title
                 FROM moderated_post p
-                JOIN users u ON u.user_id = p.creator_id",
+                JOIN users u ON u.user_id = p.creator_id
+                JOIN rules r ON r.rule_id = p.infringed_rule_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)
@@ -84,7 +88,6 @@ pub mod ssr {
                     UPDATE posts p SET
                         moderator_message = $1,
                         infringed_rule_id = $2,
-                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                         edit_timestamp = NOW(),
                         moderator_id = $3
                     WHERE
@@ -98,9 +101,14 @@ pub mod ssr {
                         )
                     RETURNING *
                 )
-                SELECT p.*, u.username as creator_name, $5 as moderator_name
+                SELECT
+                    p.*,
+                    u.username as creator_name,
+                    $5 as moderator_name,
+                    r.title as infringed_rule_title
                 FROM moderated_post p
-                JOIN users u ON u.user_id = p.creator_id",
+                JOIN users u ON u.user_id = p.creator_id
+                JOIN rules r ON r.rule_id = p.infringed_rule_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)
@@ -127,16 +135,20 @@ pub mod ssr {
                         UPDATE comments SET
                         moderator_message = $1,
                         infringed_rule_id = $2,
-                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                         edit_timestamp = NOW(),
                         moderator_id = $3
                     WHERE
                         comment_id = $4
                     RETURNING *
                 )
-                SELECT c.*, u.username as creator_name, $5 as moderator_name
+                SELECT
+                    c.*,
+                    u.username as creator_name,
+                    $5 as moderator_name,
+                    r.title as infringed_rule_title
                 FROM moderated_comment c
-                JOIN users u ON u.user_id = c.creator_id",
+                JOIN users u ON u.user_id = c.creator_id
+                JOIN rules r ON r.rule_id = c.infringed_rule_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)
@@ -152,7 +164,6 @@ pub mod ssr {
                     UPDATE comments c SET
                         moderator_message = $1,
                         infringed_rule_id = $2,
-                        infringed_rule_title = (SELECT title FROM rules WHERE rule_id = $2),
                         edit_timestamp = NOW(),
                         moderator_id = $3
                     WHERE
@@ -167,9 +178,14 @@ pub mod ssr {
                         )
                     RETURNING *
                 )
-                SELECT c.*, u.username as creator_name, $5 as moderator_name
+                SELECT
+                    c.*,
+                    u.username as creator_name,
+                    $5 as moderator_name,
+                    r.title as infringed_rule_title
                 FROM moderated_comment c
-                JOIN users u ON u.user_id = c.creator_id",
+                JOIN users u ON u.user_id = c.creator_id
+                JOIN rules r ON r.rule_id = c.infringed_rule_id",
             )
                 .bind(moderator_message)
                 .bind(rule_id)

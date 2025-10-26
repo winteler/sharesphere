@@ -261,17 +261,13 @@ pub mod ssr {
         let post = sqlx::query_as::<_, Post>(
             "SELECT
                 p.*,
-                CASE
-                    WHEN p.delete_timestamp IS NULL THEN u.username
-                    ELSE ''
-                END as creator_name,
-                CASE
-                    WHEN p.delete_timestamp IS NULL THEN m.username
-                    ELSE NULL
-                END as moderator_name
+                COALESCE(u.username, '') as creator_name,
+                m.username as moderator_name,
+                r.rule_title as infringed_rule_title
             FROM posts p
             JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NULL
             LEFT JOIN users m ON m.user_id = p.moderator_id AND p.delete_timestamp IS NULL
+            LEFT JOIN rules r ON r.rule_id = p.infringed_rule_title AND p.delete_timestamp IS NULL
             WHERE post_id = $1",
         )
             .bind(post_id)
@@ -290,14 +286,9 @@ pub mod ssr {
 
         let post_join_vote = sqlx::query_as::<_, PostJoinInfo>(
             "SELECT p.*,
-                CASE
-                    WHEN p.delete_timestamp IS NULL THEN u.username
-                    ELSE ''
-                END as creator_name,
-                CASE
-                    WHEN p.delete_timestamp IS NULL THEN m.username
-                    ELSE NULL
-                END as moderator_name,
+                COALESCE(u.username, '') as creator_name,
+                m.username as moderator_name,
+                r.rule_title as infringed_rule_title,
                 c.category_name,
                 c.category_color,
                 v.vote_id,
@@ -307,8 +298,9 @@ pub mod ssr {
                 v.value,
                 v.timestamp as vote_timestamp
             FROM posts p
-            JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NULL
+            LEFT JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NULL
             LEFT JOIN users m ON m.user_id = p.moderator_id AND p.delete_timestamp IS NULL
+            LEFT JOIN rules r ON r.rule_id = p.infringed_rule_title AND p.delete_timestamp IS NULL
             LEFT JOIN sphere_categories c on c.category_id = p.category_id
             LEFT JOIN votes v
             ON v.post_id = p.post_id AND
@@ -373,7 +365,7 @@ pub mod ssr {
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.*, u.username as creator_name, NULL as moderator_name
+                "SELECT p.*, u.username as creator_name, NULL as moderator_name, NULL as infringed_rule_title
                 FROM posts p
                 JOIN users u ON u.user_id = p.creator_id
                 JOIN spheres s on s.sphere_id = p.sphere_id
@@ -433,7 +425,7 @@ pub mod ssr {
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.*, u.username as creator_name, NULL as moderator_name FROM posts p
+                "SELECT p.*, u.username as creator_name, NULL as moderator_name, NULL as infringed_rule_title FROM posts p
                 JOIN users u ON u.user_id = p.creator_id
                 JOIN satellites s ON s.satellite_id = p.satellite_id
                 WHERE
@@ -482,6 +474,7 @@ pub mod ssr {
                     p.*,
                     u.username as creator_name,
                     NULL as moderator_name,
+                    NULL as infringed_rule_title,
                     c.category_name,
                     c.category_color,
                     s.icon_url as sphere_icon_url,
@@ -535,6 +528,7 @@ pub mod ssr {
                         p.*,
                         u.username as creator_name,
                         NULL as moderator_name,
+                        NULL as infringed_rule_title,
                         c.category_name,
                         c.category_color,
                         s.icon_url as sphere_icon_url,
@@ -578,6 +572,7 @@ pub mod ssr {
                         p.*,
                         u.username as creator_name,
                         NULL as moderator_name,
+                        NULL as infringed_rule_title,
                         c.category_name,
                         c.category_color,
                         s.icon_url AS sphere_icon_url,
@@ -762,7 +757,8 @@ pub mod ssr {
                     delete_timestamp IS NULL
                 RETURNING *
             )
-            SELECT *, $14 as creator_name, NULL as moderator_name FROM updated_post",
+            SELECT *, $14 as creator_name, NULL as moderator_name, NULL as infringed_rule_title
+            FROM updated_post",
         )
             .bind(post_title)
             .bind(post_body)
@@ -811,7 +807,7 @@ pub mod ssr {
                     moderator_id IS NULL
                 RETURNING *
             )
-            SELECT *, '' AS creator_name, NULL as moderator_name
+            SELECT *, '' AS creator_name, NULL as moderator_name, NULL as infringed_rule_title
             FROM deleted_post"
         )
             .bind(post_id)

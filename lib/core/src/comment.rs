@@ -148,16 +148,11 @@ pub mod ssr {
         let comment = sqlx::query_as::<_, Comment>(
             "SELECT
                 c.*,
-                CASE
-                    WHEN c.delete_timestamp IS NULL THEN u.username
-                    ELSE ''
-                END as creator_name,
-                CASE
-                    WHEN c.delete_timestamp IS NULL THEN m.username
-                    ELSE NULL
-                END as moderator_name
+                COALESCE(u.username, '') as creator_name,
+                m.username as moderator_name,
+                r.rule_title as infringed_rule_title
             FROM comments c
-            JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
+            LEFT JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
             LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
             WHERE comment_id = $1"
         )
@@ -274,14 +269,9 @@ pub mod ssr {
                 )
                 SELECT
                     c.*,
-                    CASE
-                        WHEN c.delete_timestamp IS NULL THEN u.username
-                        ELSE ''
-                    END as creator_name,
-                    CASE
-                        WHEN c.delete_timestamp IS NULL THEN m.username
-                        ELSE NULL
-                    END as moderator_name,
+                    COALESCE(u.username, '') as creator_name,
+                    m.username as moderator_name,
+                    r.rule_title as infringed_rule_title,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,
@@ -289,7 +279,7 @@ pub mod ssr {
                     v.value,
                     v.timestamp as vote_timestamp
                 FROM comment_tree c
-                JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
+                LEFT JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
                 LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
                 LEFT JOIN votes v
                     ON v.comment_id = c.comment_id AND
@@ -369,14 +359,9 @@ pub mod ssr {
                 )
                 SELECT
                     c.*,
-                    CASE
-                        WHEN c.delete_timestamp IS NULL THEN u.username
-                        ELSE ''
-                    END as creator_name,
-                    CASE
-                        WHEN c.delete_timestamp IS NULL THEN m.username
-                        ELSE NULL
-                    END as moderator_name,
+                    COALESCE(u.username, '') as creator_name,
+                    m.username as moderator_name,
+                    r.rule_title as infringed_rule_title,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,
@@ -384,7 +369,7 @@ pub mod ssr {
                     v.value,
                     v.timestamp as vote_timestamp
                 FROM selected_comments c
-                JOIN users u ON
+                LEFT JOIN users u ON
                     u.user_id = c.creator_id AND
                     c.delete_timestamp IS NULL
                 LEFT JOIN users m ON
@@ -437,7 +422,7 @@ pub mod ssr {
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
             )
-            SELECT *, $8 as creator_name, NULL as moderator_name
+            SELECT *, $8 as creator_name, NULL as moderator_name, NULL as infringed_rule_title
             FROM new_comment
             "#,
         )

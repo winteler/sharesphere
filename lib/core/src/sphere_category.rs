@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
@@ -29,12 +30,17 @@ pub struct SphereCategory {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow, sqlx::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct SphereCategoryHeader {
     pub category_name: String,
     pub category_color: Color,
 }
+
+#[repr(transparent)]
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct OptionalSphereCategoryHeader(pub Option<SphereCategoryHeader>);
 
 impl From<SphereCategory> for SphereCategoryHeader {
     fn from(sphere_category: SphereCategory) -> Self {
@@ -54,16 +60,43 @@ impl From<&SphereCategory> for SphereCategoryHeader {
     }
 }
 
+impl Deref for OptionalSphereCategoryHeader {
+    type Target = Option<SphereCategoryHeader>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for OptionalSphereCategoryHeader {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use sqlx::PgPool;
+    use sqlx::{FromRow, PgPool, Row};
+    use sqlx::postgres::PgRow;
     use sharesphere_auth::role::PermissionLevel;
     use sharesphere_auth::user::User;
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::errors::AppError;
-    use crate::sphere_category::SphereCategory;
+    use crate::sphere_category::{OptionalSphereCategoryHeader, SphereCategory, SphereCategoryHeader};
 
     pub const CATEGORY_NOT_DELETED_STR: &str = "Category was not deleted, it either doesn't exist or is used.";
+
+    impl FromRow<'_, PgRow> for OptionalSphereCategoryHeader {
+        fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
+            match (row.try_get("category_name"), row.try_get("category_color")) {
+                (Ok(category_name), Ok(category_color)) => Ok(OptionalSphereCategoryHeader(Some(SphereCategoryHeader {
+                    category_name,
+                    category_color,
+                }))),
+                _ => Ok(OptionalSphereCategoryHeader(None)),
+            }
+        }
+    }
 
     pub async fn get_sphere_category_vec(
         sphere_name: &str,

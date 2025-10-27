@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use leptos::children::ChildrenFn;
 use leptos::{component, view, IntoView};
 use leptos::prelude::*;
@@ -45,7 +46,7 @@ pub enum VoteValue {
     Down = -1,
 }
 
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow, sqlx::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Vote {
     pub vote_id: i64,
@@ -55,6 +56,11 @@ pub struct Vote {
     pub value: VoteValue,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
+
+#[repr(transparent)]
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct OptionalVote(pub Option<Vote>);
 
 impl PostSortType {
     pub fn to_order_by_code(self) -> &'static str {
@@ -95,12 +101,36 @@ impl From<i16> for VoteValue {
     }
 }
 
+impl Deref for OptionalVote {
+    type Target = Option<Vote>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for OptionalVote {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use sqlx::PgPool;
+    use sqlx::{FromRow, PgPool, Row};
+    use sqlx::postgres::PgRow;
     use sharesphere_auth::user::User;
     use sharesphere_utils::errors::AppError;
-    use crate::ranking::{Vote, VoteValue};
+    use crate::ranking::{OptionalVote, Vote, VoteValue};
+
+    impl FromRow<'_, PgRow> for OptionalVote {
+        fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
+            match row.try_get::<i64, &str>("vote_id") {
+                Ok(_) => Ok(OptionalVote(Some(Vote::from_row(row)?))),
+                _ => Ok(OptionalVote(None)),
+            }
+        }
+    }
 
     pub async fn vote_on_content(
         vote_value: VoteValue,

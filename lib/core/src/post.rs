@@ -19,9 +19,9 @@ use sharesphere_utils::form::LabeledFormCheckbox;
 use sharesphere_utils::widget::{CommentCountWidget, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
-use crate::ranking::{SortType, Vote};
+use crate::ranking::{OptionalVote, SortType, Vote};
 use crate::sphere::{SphereHeader, SphereHeaderLink};
-use crate::sphere_category::{SphereCategory, SphereCategoryBadge, SphereCategoryDropdown, SphereCategoryHeader};
+use crate::sphere_category::{OptionalSphereCategoryHeader, SphereCategory, SphereCategoryBadge, SphereCategoryDropdown, SphereCategoryHeader};
 
 #[cfg(feature = "ssr")]
 use {
@@ -109,18 +109,23 @@ pub struct PostTags {
     category_id: Option<i64>,
 }
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithInfo {
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub post: Post,
-    pub sphere_category: Option<SphereCategoryHeader>,
-    pub vote: Option<Vote>,
+    pub sphere_category: OptionalSphereCategoryHeader,
+    pub vote: OptionalVote,
 }
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PostWithSphereInfo {
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub post: Post,
     pub sphere_name: String,
     pub sphere_category: Option<SphereCategoryHeader>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
     pub sphere_icon_url: Option<String>,
 }
 
@@ -172,7 +177,7 @@ impl PostWithSphereInfo {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use serde::{Deserialize, Serialize};
-    use sqlx::PgPool;
+    use sqlx::{PgPool};
     use sharesphere_auth::role::PermissionLevel;
     use sharesphere_auth::user::User;
     use sharesphere_utils::colors::Color;
@@ -180,12 +185,11 @@ pub mod ssr {
     use sharesphere_utils::errors::AppError;
     use crate::filter::SphereCategoryFilter;
     use crate::post::{Post, PostInheritedAttributes, PostTags, PostWithInfo, PostWithSphereInfo};
-    use crate::ranking::{SortType, Vote, VoteValue};
+    use crate::ranking::{OptionalVote, SortType, Vote, VoteValue};
     use crate::sphere::Sphere;
-    use crate::sphere_category::SphereCategoryHeader;
+    use crate::sphere_category::{OptionalSphereCategoryHeader, SphereCategoryHeader};
 
-    #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-    #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+    #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize, sqlx::FromRow)]
     pub struct PostJoinSphereInfo {
         #[cfg_attr(feature = "ssr", sqlx(flatten))]
         pub post: Post,
@@ -250,8 +254,8 @@ pub mod ssr {
 
             PostWithInfo {
                 post: self.post,
-                sphere_category,
-                vote: post_vote,
+                sphere_category: OptionalSphereCategoryHeader(sphere_category),
+                vote: OptionalVote(post_vote),
             }
         }
     }
@@ -286,7 +290,7 @@ pub mod ssr {
     ) -> Result<PostWithInfo, AppError> {
         let user_id = user.map(|user| user.user_id);
 
-        let post_join_vote = sqlx::query_as::<_, PostJoinInfo>(
+        let post_join_vote = sqlx::query_as::<_, PostWithInfo>(
             "SELECT p.*,
                 COALESCE(u.username, '') as creator_name,
                 m.username as moderator_name,
@@ -315,7 +319,7 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
-        Ok(post_join_vote.into_post_with_info())
+        Ok(post_join_vote)
     }
 
     pub async fn get_post_inherited_attributes(
@@ -858,7 +862,8 @@ pub mod ssr {
         use sharesphere_utils::embed::{EmbedType, Link, LinkType};
         use crate::post::ssr::{PostJoinInfo, process_embed_link};
         use crate::post::Post;
-        use crate::ranking::{VoteValue};
+        use crate::ranking::{OptionalVote, VoteValue};
+        use crate::sphere_category::OptionalSphereCategoryHeader;
 
         #[test]
         fn test_post_join_vote_into_post_with_info() {
@@ -879,8 +884,8 @@ pub mod ssr {
             };
             let user_post_with_info = user_post_without_vote.into_post_with_info();
             assert_eq!(user_post_with_info.post, user_post);
-            assert_eq!(user_post_with_info.sphere_category, None);
-            assert_eq!(user_post_with_info.vote, None);
+            assert_eq!(user_post_with_info.sphere_category, OptionalSphereCategoryHeader(None));
+            assert_eq!(user_post_with_info.vote, OptionalVote(None));
 
             let user_post_with_vote = PostJoinInfo {
                 post: user_post.clone(),
@@ -896,7 +901,7 @@ pub mod ssr {
             let user_post_with_info = user_post_with_vote.into_post_with_info();
             let user_vote = user_post_with_info.vote.expect("PostWithInfo should contain vote.");
             assert_eq!(user_post_with_info.post, user_post);
-            assert_eq!(user_post_with_info.sphere_category, None);
+            assert_eq!(user_post_with_info.sphere_category, OptionalSphereCategoryHeader(None));
             assert_eq!(user_vote.user_id, user.user_id);
             assert_eq!(user_vote.post_id, user_post.post_id);
             assert_eq!(user_vote.value, VoteValue::Up);

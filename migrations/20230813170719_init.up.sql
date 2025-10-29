@@ -31,9 +31,9 @@ CREATE TABLE users (
     UNIQUE (user_id, username)
 );
 
-CREATE UNIQUE INDEX unique_username ON users (username)
+CREATE UNIQUE INDEX idx_unique_username ON users (username)
     WHERE users.delete_timestamp IS NULL;
-CREATE UNIQUE INDEX unique_email ON users (email)
+CREATE UNIQUE INDEX idx_unique_email ON users (email)
     WHERE users.delete_timestamp IS NULL;
 
 CREATE TABLE spheres (
@@ -56,12 +56,11 @@ CREATE TABLE spheres (
     num_members INT NOT NULL DEFAULT 0,
     creator_id BIGINT NOT NULL REFERENCES users (user_id),
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (sphere_id, sphere_name)
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX sphere_document_idx ON spheres USING GIN (sphere_document);
-CREATE INDEX sphere_trigram_idx ON spheres USING GIN (search_sphere_name gin_trgm_ops);
+CREATE INDEX idx_search_sphere_name ON spheres(search_sphere_name);
+CREATE INDEX idx_sphere_document ON spheres USING GIN (sphere_document);
+CREATE INDEX idx_sphere_trigram ON spheres USING GIN (search_sphere_name gin_trgm_ops);
 
 CREATE TABLE satellites (
     satellite_id BIGSERIAL PRIMARY KEY,
@@ -80,7 +79,7 @@ CREATE TABLE satellites (
 );
 
 -- index to guarantee unique satellite names per forum for active satellites
-CREATE UNIQUE INDEX unique_satellite ON satellites (satellite_name, sphere_id)
+CREATE UNIQUE INDEX idx_unique_satellite ON satellites (sphere_id, satellite_name)
     WHERE satellites.disable_timestamp IS NULL;
 
 CREATE TABLE user_sphere_roles (
@@ -94,10 +93,10 @@ CREATE TABLE user_sphere_roles (
 );
 
 -- index to guarantee there is only one role per user and sphere
-CREATE UNIQUE INDEX unique_sphere_role ON user_sphere_roles (user_id, sphere_id)
+CREATE UNIQUE INDEX idx_unique_sphere_role ON user_sphere_roles (sphere_id, user_id)
     WHERE user_sphere_roles.delete_timestamp IS NULL;
 -- index to guarantee maximum 1 leader per sphere
-CREATE UNIQUE INDEX unique_sphere_leader ON user_sphere_roles (sphere_id, permission_level)
+CREATE UNIQUE INDEX idx_unique_sphere_leader ON user_sphere_roles (sphere_id, permission_level)
     WHERE user_sphere_roles.permission_level = 'Lead' AND user_sphere_roles.delete_timestamp IS NULL;
 
 CREATE TABLE rules (
@@ -119,10 +118,10 @@ CREATE TABLE rules (
 );
 
 -- index to guarantee numbering of rules is unique
-CREATE UNIQUE INDEX unique_rule ON rules (sphere_id, priority)
+CREATE UNIQUE INDEX idx_unique_rule ON rules (sphere_id, priority)
     WHERE rules.delete_timestamp IS NULL;
 -- index to guarantee there is only one active rule for a given rule_key
-CREATE UNIQUE INDEX unique_rule_key ON rules (rule_key)
+CREATE UNIQUE INDEX idx_unique_rule_key ON rules (rule_key)
     WHERE rules.delete_timestamp IS NULL;
 
 CREATE TABLE sphere_categories (
@@ -139,7 +138,7 @@ CREATE TABLE sphere_categories (
     CONSTRAINT unique_category UNIQUE (sphere_id, category_name)
 );
 
-CREATE INDEX category_order ON sphere_categories (sphere_id, is_active, category_name);
+CREATE INDEX idx_category_order ON sphere_categories (sphere_id, is_active, category_name);
 
 CREATE TABLE sphere_subscriptions (
    subscription_id BIGSERIAL PRIMARY KEY,
@@ -191,7 +190,68 @@ CREATE TABLE posts (
     CONSTRAINT valid_sphere_category FOREIGN KEY (category_id, sphere_id) REFERENCES sphere_categories (category_id, sphere_id) MATCH SIMPLE
 );
 
-CREATE INDEX post_document_idx ON posts USING GIN (post_document);
+-- Global score indexes for 4 score types
+CREATE INDEX idx_posts_recommended ON posts (recommended_score DESC)
+    WHERE moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL AND satellite_id IS NULL;
+CREATE INDEX idx_posts_trending ON posts (trending_score DESC)
+    WHERE moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL AND satellite_id IS NULL;
+CREATE INDEX idx_posts_best ON posts (score DESC)
+    WHERE moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL AND satellite_id IS NULL;
+CREATE INDEX idx_posts_recent  ON posts (create_timestamp DESC)
+    WHERE moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL AND satellite_id IS NULL;
+
+-- Sphere indexes
+CREATE INDEX idx_posts_sphere_recommended
+    ON posts (sphere_id, recommended_score DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL;
+
+CREATE INDEX idx_posts_sphere_trending
+    ON posts (sphere_id, trending_score DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL;
+
+CREATE INDEX idx_posts_sphere_best
+    ON posts (sphere_id, score DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL;
+
+CREATE INDEX idx_posts_sphere_recent
+    ON posts (sphere_id, create_timestamp DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL;
+
+-- Satellite only indexes, very small so ok to have all four variants
+CREATE INDEX idx_posts_satellite_recommended
+    ON posts (satellite_id, recommended_score DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NOT NULL;
+
+CREATE INDEX idx_posts_satellite_trending
+    ON posts (satellite_id, trending_score DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NOT NULL;
+
+CREATE INDEX idx_posts_satellite_best
+    ON posts (satellite_id, score DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NOT NULL;
+
+CREATE INDEX idx_posts_satellite_recent
+    ON posts (satellite_id, create_timestamp DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NOT NULL;
+
+-- Pinned-only indexes for fast lookup
+CREATE INDEX idx_posts_pinned_sphere
+    ON posts (sphere_id, recommended_score DESC)
+    INCLUDE (trending_score, score, create_timestamp)
+    WHERE is_pinned = TRUE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NULL;
+
+CREATE INDEX idx_posts_pinned_satellite
+    ON posts (satellite_id, recommended_score DESC)
+    INCLUDE (trending_score, score, create_timestamp)
+    WHERE is_pinned = TRUE AND moderator_id IS NULL AND delete_timestamp IS NULL AND satellite_id IS NOT NULL;
+
+CREATE INDEX idx_post_creator
+    ON posts (creator_id, recommended_score DESC)
+    INCLUDE (trending_score, score, create_timestamp)
+    WHERE moderator_id IS NULL AND delete_timestamp IS NULL;
+
+-- Index on post document for searches
+CREATE INDEX idx_post_document ON posts USING GIN (post_document);
 
 CREATE TABLE comments (
     comment_id BIGSERIAL PRIMARY KEY,
@@ -216,7 +276,21 @@ CREATE TABLE comments (
     delete_timestamp TIMESTAMPTZ
 );
 
-CREATE INDEX comment_document_idx ON comments USING GIN (comment_document);
+-- Post indexes
+CREATE INDEX idx_comments_post_best
+    ON comments (post_id, parent_id, is_pinned, score DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL;
+
+CREATE INDEX idx_comments_post_recent
+    ON comments (post_id, parent_id, is_pinned, create_timestamp DESC)
+    WHERE is_pinned = FALSE AND moderator_id IS NULL AND delete_timestamp IS NULL;
+
+CREATE INDEX idx_comment_creator
+    ON comments (creator_id, score DESC)
+    INCLUDE (create_timestamp)
+    WHERE moderator_id IS NULL AND delete_timestamp IS NULL;
+
+CREATE INDEX idx_comment_document ON comments USING GIN (comment_document);
 
 CREATE TABLE votes (
     vote_id BIGSERIAL PRIMARY KEY,
@@ -227,6 +301,8 @@ CREATE TABLE votes (
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_vote UNIQUE NULLS NOT DISTINCT (post_id, comment_id, user_id)
 );
+
+CREATE INDEX idx_vote_context ON votes (user_id, post_id, comment_id);
 
 CREATE TABLE user_bans (
     ban_id BIGSERIAL PRIMARY KEY,
@@ -240,6 +316,9 @@ CREATE TABLE user_bans (
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delete_timestamp TIMESTAMPTZ
 );
+
+CREATE INDEX idx_user_ban_sphere ON user_bans (sphere_id, user_id, delete_timestamp)
+    WHERE user_bans.delete_timestamp IS NULL;
 
 -- add functional user
 INSERT INTO users (oidc_id, username, email)

@@ -128,8 +128,7 @@ pub mod ssr {
                             user_id = $5 AND
                             NOT EXISTS (
                                 SELECT * FROM user_bans b
-                                JOIN spheres s ON s.sphere_id = b.sphere_id
-                                JOIN posts p ON p.sphere_id = s.sphere_id
+                                JOIN posts p ON p.sphere_id = b.sphere_id
                                 WHERE p.post_id = $3 AND b.user_id = $5
                             )
                         RETURNING *",
@@ -145,9 +144,9 @@ pub mod ssr {
             } else {
                 log::debug!("Delete vote {vote_id}");
                 sqlx::query!(
-                    "DELETE from votes \
-                    WHERE vote_id = $1 AND \
-                          post_id = $2 AND \
+                    "DELETE from votes
+                    WHERE vote_id = $1 AND
+                          post_id = $2 AND
                           user_id = $3",
                     vote_id,
                     post_id,
@@ -165,8 +164,7 @@ pub mod ssr {
                     SELECT $1, $2, $3, $4
                     WHERE NOT EXISTS (
                         SELECT * FROM user_bans b
-                        JOIN spheres s ON s.sphere_id = b.sphere_id
-                        JOIN posts p ON p.sphere_id = s.sphere_id
+                        JOIN posts p ON p.sphere_id = b.sphere_id
                         WHERE p.post_id = $1 AND b.user_id = $3
                     ) RETURNING *",
                     post_id,

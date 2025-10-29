@@ -367,32 +367,40 @@ pub mod ssr {
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.*, u.username as creator_name
-                FROM posts p
-                JOIN users u ON u.user_id = p.creator_id
-                JOIN spheres s on s.sphere_id = p.sphere_id
-                WHERE
-                    s.sphere_name = $1 AND
-                    (
-                        $2 OR (
-                            $3 AND p.category_id IS NULL
-                        ) OR (
-                            p.category_id IS NOT NULL AND p.category_id = ANY($4)
+                "WITH base_posts AS NOT MATERIALIZED (
+                    SELECT p.*, u.username as creator_name
+                    FROM posts p
+                    JOIN users u ON u.user_id = p.creator_id
+                    JOIN spheres s on s.sphere_id = p.sphere_id
+                    WHERE
+                        s.sphere_name = $1 AND
+                        (
+                            $2 OR (
+                                $3 AND p.category_id IS NULL
+                            ) OR (
+                                p.category_id IS NOT NULL AND p.category_id = ANY($4)
+                            )
+                        ) AND
+                        p.moderator_id IS NULL AND
+                        p.delete_timestamp IS NULL AND
+                        p.satellite_id IS NULL AND
+                        (
+                            $5 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $5)
+                        ) AND
+                        (
+                            $6 OR NOT p.is_nsfw
                         )
-                    ) AND
-                    p.moderator_id IS NULL AND
-                    p.delete_timestamp IS NULL AND
-                    p.satellite_id IS NULL AND
-                    (
-                        $5 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $5)
-                    ) AND
-                    (
-                        $6 OR NOT p.is_nsfw
-                    )
-                ORDER BY p.is_pinned DESC, {} DESC
+                )
+                (
+                  SELECT * FROM base_posts WHERE is_pinned = TRUE ORDER BY {order_by} DESC
+                )
+                UNION ALL
+                (
+                  SELECT * FROM base_posts WHERE is_pinned = FALSE ORDER BY {order_by} DESC
+                )
                 LIMIT $7
                 OFFSET $8",
-                sort_type.to_order_by_code(),
+                order_by=sort_type.to_order_by_code(),
             ).as_str(),
         )
             .bind(sphere_name)
@@ -427,25 +435,33 @@ pub mod ssr {
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
-                "SELECT p.*, u.username as creator_name
-                FROM posts p
-                JOIN users u ON u.user_id = p.creator_id
-                JOIN satellites s ON s.satellite_id = p.satellite_id
-                WHERE
-                    s.satellite_id = $1 AND
-                    p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
-                    p.moderator_id IS NULL AND
-                    p.delete_timestamp IS NULL AND
-                    (
-                        $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $3)
-                    ) AND
-                    (
-                        $4 OR NOT p.is_nsfw
-                    )
-                ORDER BY p.is_pinned DESC, {} DESC
+                "WITH base_posts AS NOT MATERIALIZED (
+                    SELECT p.*, u.username as creator_name
+                    FROM posts p
+                    JOIN users u ON u.user_id = p.creator_id
+                    JOIN satellites s ON s.satellite_id = p.satellite_id
+                    WHERE
+                        s.satellite_id = $1 AND
+                        p.category_id IS NOT DISTINCT FROM COALESCE($2, p.category_id) AND
+                        p.moderator_id IS NULL AND
+                        p.delete_timestamp IS NULL AND
+                        (
+                            $3 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $3)
+                        ) AND
+                        (
+                            $4 OR NOT p.is_nsfw
+                        )
+                )
+                (
+                  SELECT * FROM base_posts WHERE is_pinned = TRUE ORDER BY {order_by} DESC
+                )
+                UNION ALL
+                (
+                  SELECT * FROM base_posts WHERE is_pinned = FALSE ORDER BY {order_by} DESC
+                )
                 LIMIT $5
                 OFFSET $6",
-                sort_type.to_order_by_code(),
+                order_by=sort_type.to_order_by_code(),
             ).as_str(),
         )
             .bind(satellite_id)
@@ -535,11 +551,9 @@ pub mod ssr {
                     FROM posts p
                     JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s on s.sphere_id = p.sphere_id
+                    JOIN sphere_subscriptions su ON su.sphere_id = s.sphere_id AND su.user_id = $1
                     LEFT JOIN sphere_categories c on c.category_id = p.category_id
                     WHERE
-                        s.sphere_id IN (
-                            SELECT sphere_id FROM sphere_subscriptions WHERE user_id = $1
-                        ) AND
                         p.moderator_id IS NULL AND
                         p.delete_timestamp IS NULL AND
                         p.satellite_id IS NULL AND

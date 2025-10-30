@@ -70,7 +70,7 @@ pub fn Post() -> impl IntoView {
                         <div class="flex flex-col gap-1 lg:gap-2">
                             <PostTopWidgetBar
                                 creator_name=post_with_info.post.creator_name.clone()
-                                moderator_name=post_with_info.post.creator_name.clone()
+                                moderator_name=post_with_info.post.moderator_name.clone()
                                 is_creator_moderator=post_with_info.post.is_creator_moderator
                                 create_timestamp=post_with_info.post.create_timestamp
                                 edit_timestamp=post_with_info.post.edit_timestamp
@@ -149,7 +149,7 @@ pub fn PostBody(
 #[component]
 fn PostTopWidgetBar(
     creator_name: String,
-    moderator_name: String,
+    moderator_name: Option<String>,
     is_creator_moderator: bool,
     create_timestamp: chrono::DateTime<chrono::Utc>,
     edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,

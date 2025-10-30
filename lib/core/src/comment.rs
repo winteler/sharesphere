@@ -190,9 +190,7 @@ pub mod ssr {
     ) -> Vec<CommentWithChildren> {
         let mut comment_tree = Vec::new();
         let mut stack = Vec::<(i64, Vec<CommentWithChildren>)>::new();
-        println!("Process comment tree");
         for comment_with_vote in comment_with_vote_vec {
-            println!("Process comment {}, parent: {:?}", comment_with_vote.comment.comment_id, comment_with_vote.comment.parent_id);
             let mut current = comment_with_vote.into_comment_with_children();
 
             if let Some((top_parent_id, child_comments)) = stack.last_mut() {
@@ -228,7 +226,6 @@ pub mod ssr {
             comment_tree = partial_comment_tree;
         }
 
-        println!("comment tree: {:?}", comment_tree);
         comment_tree
     }
 

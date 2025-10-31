@@ -45,8 +45,8 @@ pub mod ssr {
     pub const OBJECT_CONTAINER_URL_ENV: &str = "OBJECT_CONTAINER_URL";
     pub const ICON_BUCKET_ENV: &str = "ICON_BUCKET";
     pub const BANNER_BUCKET_ENV: &str = "BANNER_BUCKET";
-    pub const MAX_ICON_SIZE: usize = 256 * 1024; // 0.25 MB in bytes
-    pub const MAX_BANNER_SIZE: usize = 1024 * 1024; // 1 MB in bytes
+    pub const MAX_ICON_SIZE: usize = 512 * 1024; // 0.5 MB in bytes
+    pub const MAX_BANNER_SIZE: usize = 2 * 1024 * 1024; // 2 MB in bytes
     pub const MISSING_SPHERE_STR: &str = "Missing sphere name.";
     pub const MISSING_BANNER_FILE_STR: &str = "Missing banner file.";
     pub const INCORRECT_BANNER_FILE_TYPE_STR: &str = "Banner file must be an image.";

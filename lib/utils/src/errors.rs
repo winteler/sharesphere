@@ -70,8 +70,8 @@ impl AppError {
             AppError::InternalServerError(_) => move_tr!("internal-error-message"),
             AppError::NotFound => move_tr!("not-found-message"),
             AppError::PayloadTooLarge(byte_limit) => {
-                let byte_limit = *byte_limit;
-                move_tr!("payload-too-large-message", {"byte_limit" => byte_limit})
+                let byte_limit = *byte_limit as f64 / 1024.0 / 1024.0;
+                move_tr!("payload-too-large-message", {"mb_limit" => byte_limit})
             },
         }
     }

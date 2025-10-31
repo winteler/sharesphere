@@ -353,4 +353,4 @@ permanent-global-ban-message = Vous êtes définitivement banni de ShareSphere.
 bad-request-message = Désolé, nous n'avons pas compris votre requête.
 unavailable-message = Désolé, il y a du bruit sur la ligne.
 not-found-message = Il n'y a rien ici.
-payload-too-large-message = Le fichier dépasse la limite de {$byte_limit} Bytes.
+payload-too-large-message = Le fichier dépasse la limite de {$mb_limit} MB.

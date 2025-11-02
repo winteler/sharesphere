@@ -2,8 +2,7 @@
 name = "sharesphere_content"
 version = "0.1.0"
 edition = "2024"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Crate for components related to posts and comments"
 
 [dependencies]
 sharesphere_utils = { path = "../utils", default-features = false}

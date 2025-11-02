@@ -2,6 +2,7 @@
 name = "sharesphere_core"
 version = "0.1.0"
 edition = "2024"
+description = "Core crate containing server functions (except those related to authentication)"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

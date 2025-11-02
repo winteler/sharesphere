@@ -9,11 +9,11 @@ use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
-use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE, POPULAR_ROUTE};
+use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE, POPULAR_ROUTE, FAQ_ROUTE};
 use sharesphere_auth::auth::*;
 use sharesphere_auth::auth_widget::LoginWindow;
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, UserState};
-use sharesphere_components::policy::{AboutShareSphere, ContentPolicy, PrivacyPolicy, Rules, TermsAndConditions};
+use sharesphere_components::policy::{AboutShareSphere, ContentPolicy, PrivacyPolicy, Rules, TermsAndConditions, FAQ};
 use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
 use sharesphere_components::search::{Search, SphereSearch};
@@ -194,6 +194,7 @@ pub fn App() -> impl IntoView {
                                 <Route path=StaticSegment(PRIVACY_POLICY_ROUTE) view=PrivacyPolicy/>
                                 <Route path=StaticSegment(CONTENT_POLICY_ROUTE) view=ContentPolicy/>
                                 <Route path=StaticSegment(RULES_ROUTE) view=Rules/>
+                                <Route path=StaticSegment(FAQ_ROUTE) view=FAQ/>
                             </Routes>
                         </div>
                     </div>
@@ -246,7 +247,7 @@ fn HomePage() -> impl IntoView {
             }
             node_ref=div_ref
         >
-            <BannerWithWidgets title="ShareSphere" icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None refresh_count/>
+            <BannerWithWidgets title=move_tr!("welcome-to-sharesphere") icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None refresh_count/>
             <Transition fallback=move || view! {  <LoadingIcon/> }>
                 {
                     move || Suspend::new(async move {

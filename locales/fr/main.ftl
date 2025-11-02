@@ -333,6 +333,11 @@ markdown-help-2 = Quand le mode 'Markdown' est activé, votre saisie sera interp
 markdown-help-3 =
     (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée. Des boutons de formatage rapide sont également disponibles pour que vous n'ayez pas à mémoriser la syntaxe GFM ! Finalement, le formatage 'Spoiler' peut être généré en ajoutant '||' de chaque côté de votre texte ou en le sélectionnant et en cliquant le bouton de formatage 'Spoiler':{" "}
 
+faq = FAQ
+faq-post-not-visible-question = Pourquoi certains postes ne sont-ils pas visibles ?
+faq-post-not-visible-answer =
+    Vérifie qu'aucun filtre masquant le poste n'est activé. Les postes NSFW sont cachés par défaut et les postes spoilers peuvent être filtrés pour un nombre donné de jours. Ces deux paramètres peuvent être configurer dans ton profile. Il est aussi possible que le poste ait été modéré ou supprimé.
+
 invalid-link = Lien invalide
 invalid-domain-name = Nom de domaine invalide
 invalid-video-format = Votre navigateur ne prend pas en charge ce format vidéo.

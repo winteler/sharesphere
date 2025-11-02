@@ -9,7 +9,7 @@ use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULE
 use sharesphere_core::state::GlobalState;
 use sharesphere_utils::errors::{ErrorDisplay};
 use sharesphere_utils::icons::{LoadingIcon, NsfwIcon, SpoilerIcon};
-use sharesphere_utils::widget::ContentBody;
+use sharesphere_utils::widget::{ContentBody, TitleCollapse};
 
 #[component]
 pub fn AboutShareSphere() -> impl IntoView {
@@ -444,5 +444,23 @@ fn PrivacyPolicyChanges() -> impl IntoView {
             <h2 class="text-2xl font-semibold">{move_tr!("policy-change-title")}</h2>
             <p class="text-justify">{move_tr!("policy-change-content")}</p>
         </div>
+    }
+}
+
+#[component]
+pub fn FAQ() -> impl IntoView {
+    view! {
+        <div class="w-full overflow-y-auto">
+            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
+                <h1 class="text-3xl font-bold text-center">{move_tr!("faq")}</h1>
+                <TitleCollapse
+                    title=move_tr!("faq-post-not-visible-question")
+                    is_open=false
+                >
+                    {move_tr!("faq-post-not-visible-answer")}
+                </TitleCollapse>
+            </div>
+        </div>
+        <HomeSidebar/>
     }
 }

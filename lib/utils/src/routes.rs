@@ -30,6 +30,7 @@ pub const TERMS_AND_CONDITIONS_ROUTE: &str = "/terms_and_conditions";
 pub const PRIVACY_POLICY_ROUTE: &str = "/privacy_policy";
 pub const CONTENT_POLICY_ROUTE: &str = "/content_policy";
 pub const RULES_ROUTE: &str = "/rules";
+pub const FAQ_ROUTE: &str = "/faq";
 
 #[cfg(feature = "ssr")]
 pub fn get_app_origin() -> Result<String, AppError> {

@@ -291,7 +291,7 @@ pub fn DotMenu<C: IntoView + 'static>(
 }
 
 /// Component to display a badge, i.e. an icon with associated text
-/// /// For simplicity, the icon is passed as a child
+/// For simplicity, the icon is passed as a child
 #[component]
 pub fn Badge<C>(
     #[prop(into)]
@@ -307,6 +307,15 @@ where
             <div class="text-sm">{move || text.get()}</div>
         </div>
     }.into_any()
+}
+
+#[component]
+pub fn SpoilerBadge() -> impl IntoView {
+    view! {
+        <div class="h-fit w-fit px-1 py-0.5 bg-black rounded-full">
+            <SpoilerIcon/>
+        </div>
+    }
 }
 
 /// Component to display the number of comments in a post

@@ -9,7 +9,7 @@ use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOption
 
 use sharesphere_utils::editor::{FormTextEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::icons::{LoadingIcon, MagnifierIcon, PlusIcon, SettingsIcon, SubscribedIcon};
+use sharesphere_utils::icons::{LoadingIcon, MagnifierIcon, NsfwIcon, PlusIcon, SettingsIcon, SubscribedIcon};
 use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
 
@@ -423,7 +423,7 @@ pub fn CreateSphere() -> impl IntoView {
                         data=description_data
                         maxlength=Some(MAX_MOD_MESSAGE_LENGTH)
                     />
-                    <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-content")/>
+                    <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-content") label_icon_view=move || view! { <NsfwIcon/> }/>
                     <Suspense fallback=move || view! { <LoadingIcon/> }>
                         <button type="submit" class="button-secondary" disabled=are_inputs_invalid>{move_tr!("create")}</button>
                     </Suspense>

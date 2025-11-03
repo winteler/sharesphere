@@ -16,7 +16,7 @@ use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_auth::role::IsPinnedCheckbox;
 use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::widget::{CommentCountWidget, LoadIndicators, ScoreIndicator, TagsWidget, TimeSinceWidget};
+use sharesphere_utils::widget::{CommentCountWidget, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
 use crate::ranking::{SortType, Vote};
@@ -35,6 +35,7 @@ use {
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
 };
+use sharesphere_utils::icons::{NsfwIcon};
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::unpack::SuspenseUnpack;
 
@@ -1331,14 +1332,44 @@ pub fn PostForm(
         <LinkForm link_input embed_type_input title_input textarea_ref=link_textarea_ref/>
         { move || {
             match is_parent_spoiler.get() {
-                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label=move_tr!("spoiler") value=true disabled=true/> },
-                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_spoiler]" label=move_tr!("spoiler") value=is_spoiler/> },
+                true => view! {
+                    <LabeledFormCheckbox
+                        name="post_inputs[post_tags][is_spoiler]"
+                        label=move_tr!("spoiler")
+                        label_icon_view=move || view! { <SpoilerBadge/> }
+                        value=true
+                        disabled=true
+                    />
+                },
+                false => view! {
+                    <LabeledFormCheckbox
+                        name="post_inputs[post_tags][is_spoiler]"
+                        label_icon_view=move || view! { <SpoilerBadge/> }
+                        label=move_tr!("spoiler")
+                        value=is_spoiler
+                    />
+                },
             }
         }}
         { move || {
             match is_parent_nsfw.get() {
-                true => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label=move_tr!("nsfw-content") value=true disabled=true/> },
-                false => view! { <LabeledFormCheckbox name="post_inputs[post_tags][is_nsfw]" label=move_tr!("nsfw-content") value=is_nsfw/> },
+                true => view! {
+                    <LabeledFormCheckbox
+                        name="post_inputs[post_tags][is_nsfw]"
+                        label=move_tr!("nsfw-content")
+                        label_icon_view=move || view! { <NsfwIcon/> }
+                        value=true
+                        disabled=true
+                    />
+                },
+                false => view! {
+                    <LabeledFormCheckbox
+                        name="post_inputs[post_tags][is_nsfw]"
+                        label=move_tr!("nsfw-content")
+                        label_icon_view=move || view! { <NsfwIcon/> }
+                        value=is_nsfw
+                    />
+                },
             }
         }}
         <IsPinnedCheckbox sphere_name name="post_inputs[post_tags][is_pinned]" value=is_pinned/>

@@ -28,6 +28,8 @@ pub fn LabeledFormCheckbox(
     /// Label of the checkbox
     #[prop(into, default = Signal::derive(move || String::from("")))]
     label: Signal<String>,
+    #[prop(optional, into)]
+    label_icon_view: ViewFn,
     #[prop(optional)]
     value: bool,
     #[prop(optional)]
@@ -43,7 +45,10 @@ pub fn LabeledFormCheckbox(
         <div class=class>
             <input type="text" name=name value=is_checked_string class="hidden"/>
             <label class="cursor-pointer flex justify-between">
-                <span class="label text-white">{label}</span>
+                <div class="flex gap-1">
+                    <span class="label text-white">{label}</span>
+                    {label_icon_view.run()}
+                </div>
                 <input
                     type="checkbox"
                     class=checkbox_class

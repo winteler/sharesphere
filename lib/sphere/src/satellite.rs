@@ -9,10 +9,10 @@ use url::Url;
 use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
 use sharesphere_utils::embed::EmbedType;
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::icons::{CrossIcon, EditIcon, LinkIcon, PauseIcon, PlayIcon, PlusIcon};
+use sharesphere_utils::icons::{CrossIcon, EditIcon, LinkIcon, NsfwIcon, PauseIcon, PlayIcon, PlusIcon};
 use sharesphere_utils::routes::{get_satellite_id_memo, get_satellite_path};
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
-use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons, TagsWidget};
+use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons, SpoilerBadge, TagsWidget};
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
@@ -525,8 +525,8 @@ pub fn SatelliteInputs(
             is_markdown=is_markdown_body
             maxlength=Some(MAX_CONTENT_LENGTH as usize)
         />
-        <LabeledFormCheckbox name="is_spoiler" label=move_tr!("spoiler") value=is_spoiler/>
-        <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-content") value=is_nsfw/>
+        <LabeledFormCheckbox name="is_spoiler" label=move_tr!("spoiler") label_icon_view=move || view! { <SpoilerBadge/> } value=is_spoiler/>
+        <LabeledFormCheckbox name="is_nsfw" label=move_tr!("nsfw-content") label_icon_view=move || view! { <NsfwIcon/> } value=is_nsfw/>
     }
 }
 

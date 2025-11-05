@@ -370,7 +370,7 @@ pub fn CreateSphere() -> impl IntoView {
     });
 
     view! {
-        <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+        <div class="w-full 2xl:w-3/5 3xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=state.create_sphere_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">{move_tr!("create-sphere")}</h2>

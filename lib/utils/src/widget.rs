@@ -7,7 +7,7 @@ use leptos_fluent::{move_tr};
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
 use leptos_use::{breakpoints_tailwind, use_breakpoints, use_clipboard};
-use leptos_use::BreakpointsTailwind::Xxl;
+use leptos_use::BreakpointsTailwind::{Lg};
 use strum::IntoEnumIterator;
 
 #[cfg(feature = "hydrate")]
@@ -38,12 +38,12 @@ enum TimeUnit {
 impl TimeUnit {
     pub fn to_localized_str(&self, count: i64, use_fullname: bool) -> Signal<String> {
         match (use_fullname, self) {
-            (false, TimeUnit::Seconds) => move_tr!("time-seconds-short"),
-            (false, TimeUnit::Minutes) => move_tr!("time-minutes-short"),
-            (false, TimeUnit::Hours) => move_tr!("time-hours-short"),
-            (false, TimeUnit::Days) => move_tr!("time-days-short"),
-            (false, TimeUnit::Months) => move_tr!("time-months-short"),
-            (false, TimeUnit::Years) => move_tr!("time-years-short"),
+            (false, TimeUnit::Seconds) => move_tr!("time-seconds-short", {"count" => count}),
+            (false, TimeUnit::Minutes) => move_tr!("time-minutes-short", {"count" => count}),
+            (false, TimeUnit::Hours) => move_tr!("time-hours-short", {"count" => count}),
+            (false, TimeUnit::Days) => move_tr!("time-days-short", {"count" => count}),
+            (false, TimeUnit::Months) => move_tr!("time-months-short", {"count" => count}),
+            (false, TimeUnit::Years) => move_tr!("time-years-short", {"count" => count}),
             (true, TimeUnit::Seconds) => move_tr!("time-seconds", {"count" => count}),
             (true, TimeUnit::Minutes) => move_tr!("time-minutes", {"count" => count}),
             (true, TimeUnit::Hours) => move_tr!("time-hours", {"count" => count}),
@@ -396,7 +396,7 @@ pub fn TimeSinceWidget(
     #[prop(into)]
     timestamp: Signal<chrono::DateTime<chrono::Utc>>
 ) -> impl IntoView {
-    let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Xxl);
+    let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Lg);
     view! {
         <div class="flex gap-1.5 items-center text-sm px-1">
             <ClockIcon/>
@@ -413,7 +413,7 @@ pub fn TimeSinceEditWidget(
     #[prop(into)]
     edit_timestamp: Signal<Option<chrono::DateTime<chrono::Utc>>>
 ) -> impl IntoView {
-    let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Xxl);
+    let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Lg);
     view! {
         <Show when=move || edit_timestamp.read().is_some()>
             <div class="flex gap-1.5 items-center text-sm px-1">

@@ -183,7 +183,7 @@ fn PostBottomWidgetBar(
     let post_link = get_post_link(&*sphere_state.sphere_name.get_untracked(), post.post.satellite_id, post.post.post_id);
     let stored_post = StoredValue::new(post.post.clone());
     view! {
-        <div class="flex gap-1">
+        <div class="flex items-center gap-1">
             { match is_active {
                 true => Either::Left(view! {
                     <VotePanel
@@ -321,7 +321,7 @@ pub fn CreatePost() -> impl IntoView {
     // TODO: make sphere input into a component with a callback argument when clicking?
 
     view! {
-        <div class="w-full lg:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">{move_tr!("share-post")}</h2>
@@ -487,7 +487,7 @@ pub fn EditPostForm(
     Effect::new(move || adjust_textarea_height(link_textarea_ref));
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full xl:w-3/5 3xl:w-2/5">
             <div class="text-center font-bold text-2xl">{move_tr!("edit-post")}</div>
             <ActionForm action=state.edit_post_action>
                 <div class="flex flex-col gap-3 w-full">

@@ -234,7 +234,7 @@
     .left_sidebar_base_class {
         @apply
             flex flex-col justify-between gap-1
-            shrink-0 w-60 lg:w-80 3xl:w-100 h-full
+            shrink-0 w-60 2xl:w-80 3xl:w-100 h-full
             overflow-y-auto
             p-2
             max-lg:bg-base-300 max-lg:absolute max-lg:z-1 max-lg:top-0 max-lg:left-0;
@@ -243,7 +243,7 @@
     .right_sidebar_base_class {
         @apply
             flex flex-col justify-start gap-2
-            shrink-0 w-60 lg:w-80 3xl:w-100 h-full
+            shrink-0 w-60 2xl:w-80 3xl:w-100 h-full
             overflow-y-auto
             px-3 py-2
             max-lg:bg-base-300 max-lg:absolute max-lg:z-1 max-lg:top-0 max-lg:right-0;

@@ -103,12 +103,12 @@ show-nsfw = Afficher le contenu NSFW
 hide-spoiler-duration = Durée de bloquage des spoilers (jours)
 delete-account = Supprimer votre compte
 
-time-seconds-short = s
-time-minutes-short = m
-time-hours-short = h
-time-days-short = j
-time-months-short = mo
-time-years-short = a
+time-seconds-short = {$count} s
+time-minutes-short = {$count} m
+time-hours-short = {$count} h
+time-days-short = {$count} j
+time-months-short = {$count} mo
+time-years-short = {$count} a
 
 time-seconds = {$count ->
     [one] {$count} seconde

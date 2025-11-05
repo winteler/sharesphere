@@ -462,7 +462,7 @@ pub fn CommentDialog(
 ) -> impl IntoView {
     view! {
         <ModalDialog
-            class="w-full max-w-xl"
+            class="w-full flex justify-center"
             show_dialog
         >
             <CommentForm
@@ -502,7 +502,7 @@ pub fn CommentForm(
     });
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-3/5 2xl:w-2/5">
             <div class="text-center font-bold text-2xl">{move_tr!("share-comment")}</div>
             <ActionForm action=create_comment_action>
                 <div class="flex flex-col gap-3 w-full">
@@ -655,7 +655,7 @@ pub fn EditCommentForm(
     Effect::new(move |_| handle_dialog_action_result(edit_comment_result.get(), comment, show_form));
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-2/5">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full lg:w-3/5 2xl:w-2/5">
             <div class="text-center font-bold text-2xl">{move_tr!("edit-comment")}</div>
             <ActionForm action=edit_comment_action>
                 <div class="flex flex-col gap-3 w-full">

@@ -103,12 +103,12 @@ show-nsfw = Show NSFW content
 hide-spoiler-duration = Hide spoilers duration (days)
 delete-account = Delete your account
 
-time-seconds-short = s
-time-minutes-short = m
-time-hours-short = h
-time-days-short = d
-time-months-short = mo
-time-years-short = y
+time-seconds-short = {$count} s
+time-minutes-short = {$count} m
+time-hours-short = {$count} h
+time-days-short = {$count} d
+time-months-short = {$count} mo
+time-years-short = {$count} y
 
 time-seconds = {$count ->
     [one] {$count} second

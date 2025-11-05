@@ -87,7 +87,7 @@ pub fn UserProfile() -> impl IntoView {
     let query_username = get_username_memo(params);
     view! {
         <div class="w-full flex justify-center">
-            <div class="w-full lg:w-2/3 flex flex-col max-lg:items-center">
+            <div class="w-full 2xl:w-2/3 flex flex-col max-lg:items-center">
                 <div class="p-2 pt-4 flex items-center gap-1 text-2xl font-bold">
                     <UserIcon/>
                     {move || query_username.get()}
@@ -234,7 +234,7 @@ pub fn UserSettings() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="self-center flex flex-col gap-3 w-3/4 lg:w-1/2">
+        <div class="self-center flex flex-col gap-3 w-4/5 lg:w-full xl:w-4/5 3xl:3/5">
             <Suspense fallback=move || view! {  <LoadingIcon/> }>
             {
                 move || Suspend::new(async move {

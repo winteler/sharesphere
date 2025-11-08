@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos::html::Div;
+use leptos::html::{Div, Select};
 use leptos_fluent::{move_tr, I18n};
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
@@ -72,10 +72,20 @@ fn LanguageSelector() -> impl IntoView {
     // `i18n.language.set(lang)` to set the active language
 
     let i18n = expect_context::<I18n>();
+    let select_ref = NodeRef::<Select>::new();
 
     view! {
         <select
             class="select_input"
+            on:click=move |_| {
+                if let Some(select_ref) = select_ref.get_untracked() {
+                    let lang_str = select_ref.value();
+                    if let Some(lang) = i18n.languages.iter().find(|lang| lang.id.language.as_str() == lang_str) {
+                        i18n.language.set(lang)
+                    }
+                };
+            }
+            node_ref=select_ref
         >
         {
             i18n.languages.iter().map(|lang| {
@@ -83,7 +93,6 @@ fn LanguageSelector() -> impl IntoView {
                     <option
                         value=lang
                         selected=move || &i18n.language.get() == lang
-                        on:click=move |_| i18n.language.set(lang)
                     >
                         {lang.name}
                     </option>

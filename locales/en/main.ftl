@@ -135,6 +135,18 @@ time-years = {$count ->
    *[other] {$count} years
 }
 
+markdown = Markdown
+bold = Bold
+italic = Italic
+strikethrough = Strikethrough
+header_1 = Header 1
+header_2 = Header 2
+list = List
+numbered_list = Numbered list
+code_block = Code block
+block_quote = Quote
+image = Image
+
 sharesphere-right-sidebar-1 =
     ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics.
 sharesphere-right-sidebar-2 =

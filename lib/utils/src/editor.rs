@@ -39,6 +39,42 @@ pub struct TextareaData {
     pub textarea_ref: NodeRef<Textarea>
 }
 
+impl FormatType {
+    pub fn to_view(&self) -> impl IntoView {
+        match self {
+            FormatType::Bold => view!{ <BoldIcon/> }.into_any(),
+            FormatType::Italic => view!{ <ItalicIcon/> }.into_any(),
+            FormatType::Strikethrough => view!{ <StrikethroughIcon/> }.into_any(),
+            FormatType::Header1 => view!{ <Header1Icon/> }.into_any(),
+            FormatType::Header2 => view!{ <Header2Icon/> }.into_any(),
+            FormatType::List => view!{ <ListBulletIcon/> }.into_any(),
+            FormatType::NumberedList => view!{ <ListNumberIcon/> }.into_any(),
+            FormatType::CodeBlock => view!{ <CodeBlockIcon/> }.into_any(),
+            FormatType::Spoiler => view!{ <SpoilerIcon class="editor-button-size"/> }.into_any(),
+            FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
+            FormatType::Link => view!{ <LinkIcon/> }.into_any(),
+            FormatType::Image => view!{ <ImageIcon/> }.into_any(),
+        }
+    }
+
+    pub fn to_localized_str(&self) -> Signal<String> {
+        match self {
+            FormatType::Bold => move_tr!("bold"),
+            FormatType::Italic => move_tr!("italic"),
+            FormatType::Strikethrough => move_tr!("strikethrough"),
+            FormatType::Header1 => move_tr!("header_1"),
+            FormatType::Header2 => move_tr!("header_2"),
+            FormatType::List => move_tr!("list"),
+            FormatType::NumberedList => move_tr!("numbered_list"),
+            FormatType::CodeBlock => move_tr!("code_block"),
+            FormatType::Spoiler => move_tr!("spoiler"),
+            FormatType::BlockQuote => move_tr!("block_quote"),
+            FormatType::Link => move_tr!("link"),
+            FormatType::Image => move_tr!("image"),
+        }
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::io::Cursor;
@@ -344,8 +380,8 @@ pub fn FormMarkdownEditor(
     let is_markdown_mode = RwSignal::new(is_markdown);
     let is_markdown_mode_string = move || is_markdown_mode.get().to_string();
     let markdown_button_class = move || match is_markdown_mode.get() {
-        true => "button-primary p-2",
-        false => "button-ghost p-2",
+        true => "button-primary flex items-center p-2 tooltip",
+        false => "button-ghost flex items-center p-2 tooltip",
     };
 
     // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
@@ -356,7 +392,7 @@ pub fn FormMarkdownEditor(
     let render_markdown_resource = Resource::new(
         move || (is_md_mode_debounced.get(), content_debounced.get()),
         move |(is_markdown_mode, markdown_content)| async move {
-            if is_markdown_mode {
+            if is_markdown_mode && !markdown_content.is_empty() {
                 get_styled_html_from_markdown(markdown_content).await
             } else {
                 Ok(String::default())
@@ -397,8 +433,8 @@ pub fn FormMarkdownEditor(
                 </div>
                 <CharLimitIndicator content=data.content maxlength class="px-1"/>
                 <div class="flex justify-between items-center mt-1">
-                    <div class="flex items-center bg-base-300 rounded-xs">
-                        <label>
+                    <div class="flex items-stretch bg-base-300 rounded-xs">
+                        <label class="flex">
                             <input
                                 type="text"
                                 class="hidden"
@@ -406,7 +442,7 @@ pub fn FormMarkdownEditor(
                                 value=is_markdown_mode_string
                                 on:click=move |_| is_markdown_mode.update(|value| *value = !*value)
                             />
-                            <div class=markdown_button_class>
+                            <div class=markdown_button_class data-tip=move_tr!("markdown")>
                                 <MarkdownIcon/>
                             </div>
                         </label>
@@ -453,59 +489,45 @@ pub fn FormatButton(
     hide_for_mobile: bool,
 ) -> impl IntoView {
     let class = match hide_for_mobile {
-        true => "button-ghost p-2 max-lg:hidden",
-        false => "button-ghost p-2",
+        true => "button-ghost tooltip p-2 max-lg:hidden",
+        false => "button-ghost tooltip p-2",
     };
     view! {
-        <button
-            type="button"
-            class=class
-            on:click=move |_| {
-                if let Some(textarea_ref) = data.textarea_ref.get_untracked() {
-                    let selection_start = textarea_ref.selection_start();
-                    let selection_end = textarea_ref.selection_end();
-                    match (selection_start, selection_end) {
-                        (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
-                            let selection_start = selection_start as usize;
-                            let selection_end = selection_end as usize;
-                            let cursor_position = format_textarea_content(
-                                &mut data.content.write(),
-                                selection_start,
-                                selection_end,
-                                format_type,
-                            );
-                            textarea_ref.set_value(&*data.content.read_untracked());
-                            if !is_markdown_mode.get_untracked() {
-                                is_markdown_mode.set(true);
-                            }
-                            let _ = textarea_ref.focus();
-                            if let Some(position) = cursor_position {
-                                let _ = textarea_ref.set_selection_start(Some(position as u32));
-                                let _ = textarea_ref.set_selection_end(Some(position as u32));
-                            }
-                        },
-                        _ => log::debug!("Failed to get textarea selections."),
-                    };
+        <div class=class data-tip=format_type.to_localized_str()>
+            <button
+                type="button"
+                on:click=move |_| {
+                    if let Some(textarea_ref) = data.textarea_ref.get_untracked() {
+                        let selection_start = textarea_ref.selection_start();
+                        let selection_end = textarea_ref.selection_end();
+                        match (selection_start, selection_end) {
+                            (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
+                                let selection_start = selection_start as usize;
+                                let selection_end = selection_end as usize;
+                                let cursor_position = format_textarea_content(
+                                    &mut data.content.write(),
+                                    selection_start,
+                                    selection_end,
+                                    format_type,
+                                );
+                                textarea_ref.set_value(&*data.content.read_untracked());
+                                if !is_markdown_mode.get_untracked() {
+                                    is_markdown_mode.set(true);
+                                }
+                                let _ = textarea_ref.focus();
+                                if let Some(position) = cursor_position {
+                                    let _ = textarea_ref.set_selection_start(Some(position as u32));
+                                    let _ = textarea_ref.set_selection_end(Some(position as u32));
+                                }
+                            },
+                            _ => log::debug!("Failed to get textarea selections."),
+                        };
+                    }
                 }
-            }
-        >
-        {
-            match format_type {
-                FormatType::Bold => view!{ <BoldIcon/> }.into_any(),
-                FormatType::Italic => view!{ <ItalicIcon/> }.into_any(),
-                FormatType::Strikethrough => view!{ <StrikethroughIcon/> }.into_any(),
-                FormatType::Header1 => view!{ <Header1Icon/> }.into_any(),
-                FormatType::Header2 => view!{ <Header2Icon/> }.into_any(),
-                FormatType::List => view!{ <ListBulletIcon/> }.into_any(),
-                FormatType::NumberedList => view!{ <ListNumberIcon/> }.into_any(),
-                FormatType::CodeBlock => view!{ <CodeBlockIcon/> }.into_any(),
-                FormatType::Spoiler => view!{ <SpoilerIcon class="editor-button-size"/> }.into_any(),
-                FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
-                FormatType::Link => view!{ <LinkIcon/> }.into_any(),
-                FormatType::Image => view!{ <ImageIcon/> }.into_any(),
-            }
-        }
-        </button>
+            >
+                {format_type.to_view()}
+            </button>
+        </div>
     }.into_any()
 }
 

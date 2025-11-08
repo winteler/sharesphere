@@ -433,8 +433,8 @@ pub fn SphereLinkItems(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let item_class = match is_dropdown_style {
-        true => "px-2 py-1 my-1 rounded-sm hover:bg-base-content/20",
-        false => "px-2 py-1 my-1 rounded-sm hover:bg-base-200"
+        true => "px-2 py-1 my-1 rounded-sm hover:bg-base-content/20 overflow-hidden",
+        false => "px-2 py-1 my-1 rounded-sm hover:bg-base-200 overflow-hidden"
     };
     view! {
         <For

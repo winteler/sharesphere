@@ -87,7 +87,7 @@ pub fn UserProfile() -> impl IntoView {
     let query_username = get_username_memo(params);
     view! {
         <div class="w-full flex justify-center">
-            <div class="w-full 2xl:w-2/3 flex flex-col max-lg:items-center">
+            <div class="w-full 2xl:w-4/5 3xl:w-2/3 flex flex-col max-lg:items-center">
                 <div class="p-2 pt-4 flex items-center gap-1 text-2xl font-bold">
                     <UserIcon/>
                     {move || query_username.get()}

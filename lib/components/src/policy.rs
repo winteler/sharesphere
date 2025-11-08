@@ -451,7 +451,7 @@ fn PrivacyPolicyChanges() -> impl IntoView {
 pub fn FAQ() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 w-4/5 xl:w-2/3 2xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">{move_tr!("faq")}</h1>
                 <TitleCollapse
                     title=move_tr!("faq-post-not-visible-question")

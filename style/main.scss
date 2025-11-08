@@ -2299,6 +2299,9 @@
   .w-screen {
     width: 100vw;
   }
+  .max-w-4\/5 {
+    max-width: calc(4/5 * 100%);
+  }
   .max-w-full {
     max-width: 100%;
   }
@@ -3270,6 +3273,11 @@
       line-height: var(--tw-leading, var(--text-sm--line-height));
     }
   }
+  .xl\:w-2\/3 {
+    @media (width >= 80rem) {
+      width: calc(2/3 * 100%);
+    }
+  }
   .xl\:w-3\/5 {
     @media (width >= 80rem) {
       width: calc(3/5 * 100%);
@@ -3285,11 +3293,6 @@
       width: calc(1/2 * 100%);
     }
   }
-  .\32 xl\:w-2\/3 {
-    @media (width >= 96rem) {
-      width: calc(2/3 * 100%);
-    }
-  }
   .\32 xl\:w-2\/5 {
     @media (width >= 96rem) {
       width: calc(2/5 * 100%);
@@ -3298,6 +3301,16 @@
   .\32 xl\:w-3\/5 {
     @media (width >= 96rem) {
       width: calc(3/5 * 100%);
+    }
+  }
+  .\32 xl\:w-4\/5 {
+    @media (width >= 96rem) {
+      width: calc(4/5 * 100%);
+    }
+  }
+  .\33 xl\:w-2\/3 {
+    @media (width >= 136rem) {
+      width: calc(2/3 * 100%);
     }
   }
   .\33 xl\:w-2\/5 {
@@ -3976,7 +3989,7 @@
   .left_sidebar_base_class {
     display: flex;
     height: 100%;
-    width: calc(var(--spacing) * 60);
+    width: calc(var(--spacing) * 50);
     flex-shrink: 0;
     flex-direction: column;
     justify-content: space-between;
@@ -3998,6 +4011,9 @@
     @media (width < 64rem) {
       background-color: var(--color-base-300);
     }
+    @media (width >= 80rem) {
+      width: calc(var(--spacing) * 60);
+    }
     @media (width >= 96rem) {
       width: calc(var(--spacing) * 80);
     }
@@ -4008,7 +4024,7 @@
   .right_sidebar_base_class {
     display: flex;
     height: 100%;
-    width: calc(var(--spacing) * 60);
+    width: calc(var(--spacing) * 50);
     flex-shrink: 0;
     flex-direction: column;
     justify-content: flex-start;
@@ -4030,6 +4046,9 @@
     }
     @media (width < 64rem) {
       background-color: var(--color-base-300);
+    }
+    @media (width >= 80rem) {
+      width: calc(var(--spacing) * 60);
     }
     @media (width >= 96rem) {
       width: calc(var(--spacing) * 80);

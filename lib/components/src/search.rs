@@ -103,7 +103,7 @@ pub fn Search() -> impl IntoView
     provide_context(SearchState::default());
     view! {
         <div class="w-full flex justify-center">
-            <div class="w-full 2xl:w-2/3 flex flex-col">
+            <div class="w-full 2xl:w-4/5 3xl:w-2/3 flex flex-col">
                 <EnumQueryTabs
                     query_param=SEARCH_TAB_QUERY_PARAM
                     query_enum_iter=SearchType::iter()

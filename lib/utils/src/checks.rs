@@ -62,15 +62,15 @@ pub fn check_sphere_name(name: &str) -> Result<(), ValidationError> {
 ///
 /// ```
 /// use sharesphere_utils::checks::{check_satellite_name};
-/// use sharesphere_utils::constants::MAX_SPHERE_NAME_LENGTH;
+/// use sharesphere_utils::constants::{MAX_SATELLITE_NAME_LENGTH};
 /// use sharesphere_utils::errors::AppError;
 ///
 /// assert!(check_satellite_name("-Abc123_").is_ok());
 /// assert!(check_satellite_name("").is_err());
 /// assert!(check_satellite_name(" name").is_err());
 /// assert!(check_satellite_name("name%").is_err());
-/// assert!(check_satellite_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH)).is_ok());
-/// assert!(check_satellite_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH + 1)).is_err());
+/// assert!(check_satellite_name(&"a".repeat(MAX_SATELLITE_NAME_LENGTH)).is_ok());
+/// assert!(check_satellite_name(&"a".repeat(MAX_SATELLITE_NAME_LENGTH + 1)).is_err());
 /// ```
 pub fn check_satellite_name(name: &str) -> Result<(), ValidationError> {
     if name.is_empty() {

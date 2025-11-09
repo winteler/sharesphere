@@ -30,35 +30,41 @@ use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
-pub fn shell(options: LeptosOptions) -> impl IntoView {
+#[component]
+pub fn AppMeta() -> impl IntoView {
     let connect_src_csp = match cfg!(debug_assertions) {
         true => "connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/;",
         false => "connect-src 'self'",
     };
+    view! {
+        <Meta
+            http_equiv="Content-Security-Policy"
+            content=move || {
+                // this will insert the CSP with nonce on the server, be empty on client
+                use_nonce().map(|nonce| {
+                    format!(
+                        "default-src 'none';
+                        script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';
+                        img-src 'self' https: data:;
+                        media-src 'self' https:;
+                        frame-src 'self' https:;
+                        style-src 'self' 'nonce-{nonce}';
+                        {connect_src_csp}"
+                    )
+                }).unwrap_or_default()
+            }
+        />
+    }
+}
 
+pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
         <!DOCTYPE html>
         <html lang="en">
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <Meta
-                    http_equiv="Content-Security-Policy" 
-                    content=move || {
-                        // this will insert the CSP with nonce on the server, be empty on client
-                        use_nonce().map(|nonce| {
-                            format!(
-                                "default-src 'none';
-                                script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';
-                                img-src 'self' https: data:;
-                                media-src 'self' https:;
-                                frame-src 'self' https:;
-                                style-src 'self' 'nonce-{nonce}';
-                                {connect_src_csp}"
-                            )
-                        }).unwrap_or_default()
-                    }
-                />
+                <AppMeta/>
                 <AutoReload options=options.clone() />
                 <HydrationScripts options=options.clone() />
                 // id=leptos means cargo-leptos will hot-reload this stylesheet
@@ -416,7 +422,7 @@ fn UserHomePage(
 }
 
 #[component]
-fn I18nProvider(children: Children) -> impl IntoView {
+pub fn I18nProvider(children: Children) -> impl IntoView {
     leptos_fluent! {
         children: children(),
         locales: "../../locales",

@@ -5,10 +5,11 @@ use axum::{
     response::{IntoResponse, Response as AxumResponse},
 };
 use axum::http::{header, HeaderValue};
-use leptos::prelude::{Errors, LeptosOptions};
-use leptos::view;
+use leptos::prelude::*;
+use leptos_meta::{HashedStylesheet, Link};
 use tower::util::ServiceExt;
 use tower_http::services::ServeDir;
+use sharesphere_app::app::{AppMeta, I18nProvider};
 use sharesphere_auth::session::ssr::is_prod_mode;
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
@@ -27,7 +28,29 @@ pub async fn file_and_error_handler(
         let mut errors = Errors::default();
         errors.insert_with_default_key(AppError::NotFound);
         let handler = leptos_axum::render_app_to_stream(
-            move || view! {<ErrorTemplate outside_errors=errors.clone()/>},
+            move || {
+                let errors = errors.clone();
+                let options = options.clone();
+                view! {
+                    <!DOCTYPE html>
+                    <html>
+                        <head>
+                            <meta charset="utf-8"/>
+                            <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                            <AppMeta/>
+                            <AutoReload options=options.clone() />
+                            // id=leptos means cargo-leptos will hot-reload this stylesheet
+                            <HashedStylesheet id="leptos" options/>
+                            <Link rel="icon" href="/favicon.ico" />
+                        </head>
+                        <body>
+                            <I18nProvider>
+                                <ErrorTemplate outside_errors=errors.clone()/>
+                            </I18nProvider>
+                        </body>
+                    </html>
+                }
+            },
         );
         handler(req).await.into_response()
     }

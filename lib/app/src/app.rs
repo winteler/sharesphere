@@ -13,7 +13,7 @@ use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELL
 use sharesphere_auth::auth::*;
 use sharesphere_auth::auth_widget::LoginWindow;
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, UserState};
-use sharesphere_components::policy::{AboutShareSphere, ContentPolicy, PrivacyPolicy, Rules, TermsAndConditions, FAQ};
+use sharesphere_components::policy::{AboutShareSphere, ContentPolicy, PrivacyPolicy, Rules, TermsAndConditions, Faq};
 use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
 use sharesphere_components::search::{Search, SphereSearch};
@@ -200,7 +200,7 @@ pub fn App() -> impl IntoView {
                                 <Route path=StaticSegment(PRIVACY_POLICY_ROUTE) view=PrivacyPolicy/>
                                 <Route path=StaticSegment(CONTENT_POLICY_ROUTE) view=ContentPolicy/>
                                 <Route path=StaticSegment(RULES_ROUTE) view=Rules/>
-                                <Route path=StaticSegment(FAQ_ROUTE) view=FAQ/>
+                                <Route path=StaticSegment(FAQ_ROUTE) view=Faq/>
                             </Routes>
                         </div>
                     </div>

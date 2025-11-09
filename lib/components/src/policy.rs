@@ -448,19 +448,40 @@ fn PrivacyPolicyChanges() -> impl IntoView {
 }
 
 #[component]
-pub fn FAQ() -> impl IntoView {
+pub fn Faq() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
             <div class="flex flex-col gap-4 w-4/5 xl:w-2/3 2xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">{move_tr!("faq")}</h1>
-                <TitleCollapse
+                <FaqItem
+                    title=move_tr!("faq-registration-missing-email-question")
+                    content=move_tr!("faq-registration-missing-email-answer")
+                />
+                <FaqItem
+                    title=move_tr!("faq-registration-error-question")
+                    content=move_tr!("faq-registration-error-answer")
+                />
+                <FaqItem
                     title=move_tr!("faq-post-not-visible-question")
-                    is_open=false
-                >
-                    {move_tr!("faq-post-not-visible-answer")}
-                </TitleCollapse>
+                    content=move_tr!("faq-post-not-visible-answer")
+                />
             </div>
         </div>
         <HomeSidebar/>
+    }
+}
+
+#[component]
+pub fn FaqItem(
+    title: Signal<String>,
+    content: Signal<String>,
+) -> impl IntoView {
+    view! {
+        <TitleCollapse
+            title
+            is_open=false
+        >
+            <div class="p-1">{content}</div>
+        </TitleCollapse>
     }
 }

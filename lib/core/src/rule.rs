@@ -399,14 +399,15 @@ pub fn RuleList(
                 title_view
                 is_open=false
             >
-                <ContentBody body=description is_markdown/>
-                <div class="py-2"/>
+                <div class="pl-1 pb-4">
+                    <ContentBody body=description is_markdown/>
+                </div>
             </Collapse>
         }
     }).collect_view();
 
     view! {
-        <div class="flex flex-col pl-2 pt-1 gap-1">
+        <div class="flex flex-col pl-1 pt-1 gap-1">
         {rule_elems}
         </div>
     }

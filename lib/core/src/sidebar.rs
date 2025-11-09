@@ -245,11 +245,9 @@ fn SphereRuleList(
 ) -> impl IntoView {
     view! {
         <TitleCollapse title=move_tr!("rules")>
-            <div class="flex flex-col pl-2 pt-1 gap-1">
-                <TransitionUnpack resource=rule_resource let:rule_vec>
-                    <RuleList rule_vec=rule_vec.clone()/>
-                </TransitionUnpack>
-            </div>
+            <TransitionUnpack resource=rule_resource let:rule_vec>
+                <RuleList rule_vec=rule_vec.clone()/>
+            </TransitionUnpack>
         </TitleCollapse>
     }
 }

@@ -346,9 +346,18 @@ markdown-help-3 =
     (avec l'addition de 'Spoilers') et une prévisualisation de votre contenu sera affichée. Des boutons de formatage rapide sont également disponibles pour que vous n'ayez pas à mémoriser la syntaxe GFM ! Finalement, le formatage 'Spoiler' peut être généré en ajoutant '||' de chaque côté de votre texte ou en le sélectionnant et en cliquant le bouton de formatage 'Spoiler':{" "}
 
 faq = FAQ
+
 faq-post-not-visible-question = Pourquoi certains postes ne sont-ils pas visibles ?
 faq-post-not-visible-answer =
     Vérifie qu'aucun filtre masquant le poste n'est activé. Les postes NSFW sont cachés par défaut et les postes spoilers peuvent être filtrés pour un nombre donné de jours. Ces deux paramètres peuvent être configurer dans ton profile. Il est aussi possible que le poste ait été modéré ou supprimé.
+
+faq-registration-error-question = J'obtiens une erreur après avoir cliquer sur le lien de mon email de confirmation, que faire ?
+faq-registration-error-answer =
+    Commence par rafraîchir la page et clique sur le bouton de profile pour vérifier que tu es maintenant connecté. Si ce n'est pas le cas, essaie d'entrer à nouveau tes identifiants.
+
+faq-registration-missing-email-question = Pourquoi n'ai-je pas reçu mon email de confirmation d'inscription ?
+faq-registration-missing-email-answer =
+    Vérifie ton dossier "spam" et tout autre dossier avec catégorisation automatique. Si tu n'as toujours pas reçu l'email de confirmation après 10 minutes, contacte nous à l'adresse admin@sharesphere.space.
 
 invalid-link = Lien invalide
 invalid-domain-name = Nom de domaine invalide

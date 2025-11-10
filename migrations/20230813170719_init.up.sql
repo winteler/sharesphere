@@ -38,7 +38,7 @@ CREATE UNIQUE INDEX idx_unique_email ON users (email)
 
 CREATE TABLE spheres (
     sphere_id BIGSERIAL PRIMARY KEY,
-    sphere_name TEXT UNIQUE NOT NULL CHECK (LENGTH(sphere_name) <= 30),
+    sphere_name TEXT UNIQUE NOT NULL CHECK (LENGTH(sphere_name) <= 20),
     normalized_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
         normalize_sphere_name(sphere_name)
     ) STORED,

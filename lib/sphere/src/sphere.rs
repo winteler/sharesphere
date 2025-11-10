@@ -119,13 +119,13 @@ pub fn SphereBanner() -> impl IntoView {
     });
 
     view! {
-        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 lg:px-4 gap-2 overflow-hidden">
+        <div class="flex flex-col flex-1 w-full overflow-y-auto pt-2 px-2 xl:px-4 gap-2 overflow-hidden">
             <TransitionUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
             {
                 view! {
                     <a
                         href=sphere_path()
-                        class="relative flex-none rounded-sm w-full h-16 lg:h-32 flex items-center justify-center max-w-full overflow-hidden"
+                        class="relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden"
                     >
                         <BannerContent
                             title=sphere_with_user_info.sphere.sphere_name.clone()

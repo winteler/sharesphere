@@ -304,7 +304,7 @@ where
     view! {
         <div class="flex gap-1.5 items-center">
             {children.into_inner()()}
-            <div class="text-sm">{move || text.get()}</div>
+            <div class="text-xs xl:text-sm">{move || text.get()}</div>
         </div>
     }.into_any()
 }
@@ -731,9 +731,9 @@ pub fn BannerContent(
             alt=move_tr!("sphere-banner")
         />
         <div class="absolute inset-0 flex items-center justify-center">
-            <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex items-center gap-3 max-w-4/5 overflow-hidden">
-                <SphereIcon icon_url default_icon_index class="h-8 w-8 lg:h-12 lg:w-12"/>
-                <span class="text-2xl lg:text-4xl">{title}</span>
+            <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex items-center gap-3 max-w-full overflow-hidden">
+                <SphereIcon icon_url default_icon_index class="h-8 w-8 2xl:h-12 2xl:w-12"/>
+                <span class="text-2xl 2xl:text-4xl inline-block w-fit">{title}</span>
             </div>
         </div>
     }.into_any()

@@ -30,7 +30,7 @@ pub const LOGO_ICON_PATH: &str = "/svg/planet.svg";
 pub const FLAME_ICON_PATH: &str = "/svg/flame.svg";
 
 
-pub const MAX_SPHERE_NAME_LENGTH: usize = 30;
+pub const MAX_SPHERE_NAME_LENGTH: usize = 20;
 pub const MAX_SPHERE_DESCRIPTION_LENGTH: usize = 1000;
 pub const MAX_SATELLITE_NAME_LENGTH: usize = 50;
 pub const MAX_USERNAME_LENGTH: usize = 30;

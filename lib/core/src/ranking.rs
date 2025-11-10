@@ -337,8 +337,8 @@ pub fn SortWidgetOption(
     let is_selected = move || sort_signal.read() == sort_type;
     let class = move || {
         match is_selected() {
-            true => "button-ghost !rounded-none px-2 lg:px-3 border border-1 border-white join-item",
-            false => "button-ghost !rounded-none px-2 lg:px-3 border border-1 border-base-100 hover:border-white join-item",
+            true => "button-ghost !rounded-none px-2 xl:px-3 border border-1 border-white join-item",
+            false => "button-ghost !rounded-none px-2 xl:px-3 border border-1 border-base-100 hover:border-white join-item",
         }
     };
     const BASE_CLASS: &str = "rounded-none tooltip";

@@ -60,7 +60,7 @@ link-link = Lien
 link-embed = Intégré
 link-url = Url
 
-home = Acceuil
+home = Accueil
 subscribed = Abonné
 popular = Populaire
 navigate-sphere = Naviguer vers la Sphère {$sphere_name}

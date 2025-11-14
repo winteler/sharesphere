@@ -244,7 +244,7 @@ async fn test_create_sphere() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let test_user = create_test_user(&db_pool).await;
 
-    let sphere_name = "camelCase_snake_case123-";
+    let sphere_name = "cCase_s_case123-";
     let sphere_description = "a";
     let sphere = create_sphere(
         sphere_name,
@@ -255,7 +255,7 @@ async fn test_create_sphere() -> Result<(), AppError> {
     ).await.expect("Should be possible to create sphere.");
 
     assert_eq!(sphere.sphere_name, sphere_name);
-    assert_eq!(sphere.normalized_sphere_name, "camelcase_snake_case123_");
+    assert_eq!(sphere.normalized_sphere_name, "ccase_s_case123_");
     assert_eq!(sphere.creator_id, test_user.user_id);
     assert_eq!(sphere.description, sphere_description);
     assert_eq!(sphere.is_nsfw, false);

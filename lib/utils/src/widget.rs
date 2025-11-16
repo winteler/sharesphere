@@ -687,8 +687,10 @@ pub fn TitleCollapse<C: IntoView + 'static>(
 /// Component to render a help button, displaying its children in a model window when clicked
 #[component]
 pub fn HelpButton<C: IntoView + 'static>(
-    #[prop(default = "absolute bottom-0 right-0 z-40 origin-top-left mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200/90 rounded-sm")]
+    #[prop(default = "absolute bottom-0 right-0 z-40 origin-top-left mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200 rounded-sm")]
     modal_class: &'static str,
+    #[prop(default = "editor-button-size")]
+    icon_class: &'static str,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
     let children = children.into_inner();
@@ -717,7 +719,7 @@ pub fn HelpButton<C: IntoView + 'static>(
                 class="button-rounded-ghost p-2"
                 on:click=move |_| show_help.set(true)
             >
-                <HelpIcon/>
+                <HelpIcon class=icon_class/>
             </button>
         </div>
     }

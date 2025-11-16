@@ -17,7 +17,7 @@ use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
 use crate::errors::{AppError, ErrorDisplay};
-use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
@@ -135,7 +135,7 @@ pub fn Dropdown<C: IntoView + 'static>(
     align_right: bool,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
-    let children = StoredValue::new(children.into_inner());
+    let children = children.into_inner();
     let class = match align_right {
         true => "absolute z-10 origin-bottom right-0 min-w-max",
         false => "absolute z-10 origin-bottom left-0 min-w-max",
@@ -144,7 +144,7 @@ pub fn Dropdown<C: IntoView + 'static>(
         <Show when=show_dropdown>
             <div class=class>
             {
-                children.with_value(|children| children())
+                children()
             }
             </div>
         </Show>
@@ -274,7 +274,7 @@ where
 pub fn DotMenu<C: IntoView + 'static>(
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
-    let children = StoredValue::new(children.into_inner());
+    let children = children.into_inner();
     view! {
         <DropdownButton
             button_content=move || view! { <DotMenuIcon/> }
@@ -283,7 +283,7 @@ pub fn DotMenu<C: IntoView + 'static>(
         >
             <div class="bg-base-200 shadow-sm rounded-sm mt-1 p-1 flex flex-col gap-1">
             {
-                children.with_value(|children| children())
+                children()
             }
             </div>
         </DropdownButton>
@@ -614,7 +614,7 @@ pub fn Collapse<C>(
 where
     C : IntoView + 'static 
 {
-    let children = StoredValue::new(children.into_inner());
+    let children = children.into_inner();
     let show_children = RwSignal::new(is_open);
     let children_class = move || match show_children.get() {
         true => "transition-all duration-500 overflow-hidden",
@@ -639,7 +639,7 @@ where
             <div class=children_class>
                 <div class=children_class_inner>
                 {
-                    children.with_value(|children| children())
+                    children()
                 }
                 </div>
             </div>
@@ -659,7 +659,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
     is_open: bool,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
-    let children = StoredValue::new(children.into_inner());
+    let children = children.into_inner();
     let show_children = RwSignal::new(is_open);
     let children_class = move || match show_children.get() {
         true => "transition duration-500 opacity-100 visible",
@@ -678,10 +678,47 @@ pub fn TitleCollapse<C: IntoView + 'static>(
                 </div>
             </button>
             <div class=children_class>
-            {
-                children.with_value(|children| children())
-            }
+                {children()}
             </div>
+        </div>
+    }
+}
+
+/// Component to render a help button, displaying its children in a model window when clicked
+#[component]
+pub fn HelpButton<C: IntoView + 'static>(
+    #[prop(default = "absolute bottom-0 right-0 z-40 origin-top-left mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200/90 rounded-sm")]
+    modal_class: &'static str,
+    children: TypedChildrenFn<C>,
+) -> impl IntoView {
+    let children = children.into_inner();
+    let show_help = RwSignal::new(false);
+    let modal_ref = NodeRef::<html::Div>::new();
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
+    }
+
+    view! {
+        <div class="h-full w-fit rounded-full bg-base-300 relative inline-block z-20">
+            <Show when=show_help>
+                <div class="relative z-30">
+                    <div
+                        class=modal_class
+                        node_ref=modal_ref
+                    >
+                        {children()}
+                    </div>
+                </div>
+            </Show>
+            <button
+                type="button"
+                class="button-rounded-ghost p-2"
+                on:click=move |_| show_help.set(true)
+            >
+                <HelpIcon/>
+            </button>
         </div>
     }
 }

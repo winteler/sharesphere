@@ -59,6 +59,7 @@ link-none = None
 link-link = Link
 link-embed = Embed
 link-url = Url
+link-help = When you input a link, ShareSphere will first try to embed it if its provider implements the OEmbed API or if the link is a file with a recognised format. If not, it will default to display it as a simple link.
 
 home = Home
 subscribed = Subscribed
@@ -355,6 +356,10 @@ faq-registration-error-answer =
 faq-post-not-visible-question = Why am I unable to see some posts?
 faq-post-not-visible-answer =
     Make sure you don't have filters activated that could remove the post. NSFW posts are hidden by default and spoilers can be filtered for a set number of days. Both can be configured in your profile. The post might also have been moderated or deleted.
+
+faq-image-question = Why can't I post images?
+faq-image-answer =
+    Storing and distributing images is quite expensive, both in terms of memory and bandwidth. Given that ShareSphere has currently no funding, I've decided to forgo image storage for the moment. This might change in the future but in the meantime, please use another provider to store the image and share the link in your post.
 
 invalid-link = Invalid link
 invalid-domain-name = Invalid domain name

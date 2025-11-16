@@ -59,6 +59,7 @@ link-none = Aucun
 link-link = Lien
 link-embed = Intégré
 link-url = Url
+link-help = Lorsque tu entres un lien, ShareSphere va d'abord essayer de l'inscruster si son fournisseur implémente l'API OEmbed ou si le lien est un fichier avec un format reconnu. Si ce n'est pas le cas, un simple lien sera affiché à la place.
 
 home = Accueil
 subscribed = Abonné
@@ -358,6 +359,11 @@ faq-registration-error-answer =
 faq-registration-missing-email-question = Pourquoi n'ai-je pas reçu mon email de confirmation d'inscription ?
 faq-registration-missing-email-answer =
     Vérifie ton dossier "spam" et tout autre dossier avec catégorisation automatique. Si tu n'as toujours pas reçu l'email de confirmation après 10 minutes, contacte nous à l'adresse admin@sharesphere.space.
+
+faq-image-question = Pourquoi ne puis-je pas poster d'images ?
+faq-image-answer =
+    Stocker et distribuer des images est coûteux, à la fois en terme de mémoire et de bande passante. Étant donné que ShareSphere n'a pour le moment pas de financement, j'ai décidé de renoncer au stockage d'images pour le moment. Cela pourrait changer dans le futur mais pour le moment, merci d'utiliser d'autre fournisseur pour stocker vos images et de partager le lien dans vos postes.
+
 
 invalid-link = Lien invalide
 invalid-domain-name = Nom de domaine invalide

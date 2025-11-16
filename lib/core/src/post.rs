@@ -16,7 +16,7 @@ use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_auth::role::IsPinnedCheckbox;
 use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::widget::{CommentCountWidget, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
+use sharesphere_utils::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
 use crate::ranking::{SortType, Vote};
@@ -1393,6 +1393,7 @@ pub fn LinkForm(
         <div class="flex flex-col gap-2">
             <div class="flex gap-2 items-center">
                 <span class="label-text w-fit">{move_tr!("link")}</span>
+                <LinkHelpButton/>
                 <select
                     name="post_inputs[embed_type]"
                     class="select_input"
@@ -1420,11 +1421,24 @@ pub fn LinkForm(
                     placeholder=move_tr!("link-url")
                     content=link_input
                     maxlength=Some(MAX_LINK_LENGTH as usize)
+                    class="flex-1"
                     textarea_ref
                 />
             </div>
             <EmbedPreview embed_type_input link_input select_trigger title_input select_ref/>
         </div>
+    }
+}
+
+/// Help button explaining how the link form functions
+#[component]
+pub fn LinkHelpButton() -> impl IntoView {
+    view! {
+        <HelpButton modal_class="absolute bottom-0 left-0 z-40 origin-top-left mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200/90 rounded-sm">
+            <div class="relative flex flex-col gap-2 leading-snug text-justify text-xs lg:text-sm">
+                {move_tr!("link-help")}
+            </div>
+        </HelpButton>
     }
 }
 

@@ -465,6 +465,10 @@ pub fn Faq() -> impl IntoView {
                     title=move_tr!("faq-post-not-visible-question")
                     content=move_tr!("faq-post-not-visible-answer")
                 />
+                <FaqItem
+                    title=move_tr!("faq-image-question")
+                    content=move_tr!("faq-image-answer")
+                />
             </div>
         </div>
         <HomeSidebar/>

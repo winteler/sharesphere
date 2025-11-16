@@ -4,8 +4,6 @@ use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use leptos_use::{signal_debounced};
 
-#[cfg(feature = "hydrate")]
-use leptos_use::on_click_outside;
 use crate::constants::{SPOILER_TAG};
 use crate::errors::AppError;
 use crate::icons::*;
@@ -16,6 +14,7 @@ use {
     crate::checks::check_string_length,
     crate::constants::MAX_CONTENT_LENGTH,
 };
+use crate::widget::HelpButton;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FormatType {
@@ -459,9 +458,7 @@ pub fn FormMarkdownEditor(
                         <FormatButton format_type=FormatType::Link data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Image data is_markdown_mode hide_for_mobile=true/>
                     </div>
-                    <div class="bg-base-300 rounded-full">
-                        <HelpButton/>
-                    </div>
+                    <MarkdownHelpButton/>
                 </div>
             </div>
             <Show when=is_markdown_mode>
@@ -533,46 +530,22 @@ pub fn FormatButton(
 
 /// Component to render editor's help button
 #[component]
-pub fn HelpButton() -> impl IntoView {
-    let show_help = RwSignal::new(false);
-    let modal_ref = NodeRef::<html::Div>::new();
-    #[cfg(feature = "hydrate")]
-    {
-        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
-        let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
-    }
-
+pub fn MarkdownHelpButton() -> impl IntoView {
     view! {
-        <div class="relative inline-block z-20">
-            <Show when=show_help>
-                <div class="relative z-30">
-                    <div
-                        class="absolute bottom-0 right-0 z-40 origin-top-right mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200/90 rounded-sm"
-                        node_ref=modal_ref
-                    >
-                        <div class="relative flex flex-col gap-2 leading-snug text-justify text-xs lg:text-sm">
-                            <p>
-                                {move_tr!("markdown-help-1")}
-                                <span class="inline-flex align-bottom w-fit p-1 mt-1 rounded-md bg-base-content/20"><MarkdownIcon/></span>
-                            </p>
-                            <p>
-                                {move_tr!("markdown-help-2")}
-                                <a class="link text-primary" href="https://github.github.com/gfm/" >"GitHub Flavored Markdown"</a>
-                                {move_tr!("markdown-help-3")}
-                                <span class="inline-flex align-bottom w-fit p-1 mt-1 rounded-md bg-base-content/20"><SpoilerIcon/></span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </Show>
-            <button
-                type="button"
-                class="button-rounded-ghost p-2"
-                on:click=move |_| show_help.set(true)
-            >
-                <HelpIcon/>
-            </button>
-        </div>
+        <HelpButton>
+            <div class="relative flex flex-col gap-2 leading-snug text-justify text-xs lg:text-sm">
+                <p>
+                    {move_tr!("markdown-help-1")}
+                    <span class="inline-flex align-bottom w-fit p-1 mt-1 rounded-md bg-base-content/20"><MarkdownIcon/></span>
+                </p>
+                <p>
+                    {move_tr!("markdown-help-2")}
+                    <a class="link text-primary" href="https://github.github.com/gfm/" >"GitHub Flavored Markdown"</a>
+                    {move_tr!("markdown-help-3")}
+                    <span class="inline-flex align-bottom w-fit p-1 mt-1 rounded-md bg-base-content/20"><SpoilerIcon/></span>
+                </p>
+            </div>
+        </HelpButton>
     }
 }
 

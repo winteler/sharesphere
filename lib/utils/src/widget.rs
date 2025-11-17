@@ -695,20 +695,22 @@ pub fn HelpButton<C: IntoView + 'static>(
 ) -> impl IntoView {
     let children = children.into_inner();
     let show_help = RwSignal::new(false);
-    let modal_ref = NodeRef::<html::Div>::new();
+    let node_ref = NodeRef::<html::Div>::new();
     #[cfg(feature = "hydrate")]
     {
         // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
-        let _ = on_click_outside(modal_ref, move |_| show_help.set(false));
+        let _ = on_click_outside(node_ref, move |_| show_help.set(false));
     }
 
     view! {
-        <div class="h-full w-fit rounded-full bg-base-300 relative inline-block z-20">
+        <div
+            class="h-full w-fit rounded-full bg-base-300 relative inline-block z-20"
+            node_ref=node_ref
+        >
             <Show when=show_help>
                 <div class="relative z-30">
                     <div
                         class=modal_class
-                        node_ref=modal_ref
                     >
                         {children()}
                     </div>
@@ -717,7 +719,7 @@ pub fn HelpButton<C: IntoView + 'static>(
             <button
                 type="button"
                 class="button-rounded-ghost p-2"
-                on:click=move |_| show_help.set(true)
+                on:click=move |_| show_help.update(|value| *value = !*value)
             >
                 <HelpIcon class=icon_class/>
             </button>

@@ -148,9 +148,9 @@ image = Image
 sharesphere-right-sidebar-1 =
     ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets.
 sharesphere-right-sidebar-2 =
-    ShareSphere est un site web à but non lucratif, open source et sans publicité focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés. Tu pourras trouver plus d'informations sur le site et ses règles ci-dessous.
+    ShareSphere est un site web à but non lucratif, source-available et sans publicité focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés. Tu pourras trouver plus d'informations sur le site et ses règles ci-dessous.
 about-sharesphere-content =
-    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets. ShareSphere est un site web à but non lucratif, open source et sans publicité focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés. L'objectif de ShareSphere est de fonctionner uniquement à l'aide de donations afin de fournir une meilleure expérience utilisateur que les plateformes basées sur la publicité.
+    ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets. ShareSphere est un site web à but non lucratif, source-available et sans publicité focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés. L'objectif de ShareSphere est de fonctionner uniquement à l'aide de donations afin de fournir une meilleure expérience utilisateur que les plateformes basées sur la publicité.
 about-sharesphere-rules-1 =
     Sharesphere s'efforce d'être un lien d'échanges positifs et constructifs. Pour ce faire, un{" "}
 about-sharesphere-rules-link =

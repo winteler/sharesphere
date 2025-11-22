@@ -1,19 +1,15 @@
+use std::io::Cursor;
+use leptos::either::Either;
 use leptos::html;
 use leptos::html::Textarea;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
-use leptos_use::{signal_debounced};
-
+use quick_xml::{Reader, Writer};
+use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 use crate::constants::{SPOILER_TAG};
-use crate::errors::AppError;
+use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::*;
-use crate::unpack::TransitionUnpack;
 
-#[cfg(feature = "ssr")]
-use {
-    crate::checks::check_string_length,
-    crate::constants::MAX_CONTENT_LENGTH,
-};
 use crate::widget::HelpButton;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -76,125 +72,23 @@ impl FormatType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::io::Cursor;
-
-    use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
-    use quick_xml::{Reader, Writer};
-
-    use crate::constants::SPOILER_TAG;
     use crate::editor::get_styled_html_from_markdown;
     use crate::errors::AppError;
 
     pub async fn get_html_and_markdown_strings(body: String, is_markdown: bool) -> Result<(String, Option<String>), AppError> {
         match is_markdown {
             true => Ok((
-                get_styled_html_from_markdown(body.clone()).await?,
+                get_styled_html_from_markdown(body.clone())?,
                 Some(body),
             )),
             false => Ok((body, None)),
         }
     }
-
-    pub fn style_html_user_content(user_content: &str) -> Result<String, AppError> {
-        let mut reader = Reader::from_str(user_content);
-        let mut writer = Writer::new(Cursor::new(Vec::new()));
-
-        loop {
-            match reader.read_event() {
-                Ok(Event::Start(e)) => {
-                    let mut elem = e.clone().into_owned();
-
-                    match elem.name().as_ref() {
-                        b"h1" => elem.push_attribute(("class", "text-4xl my-2")),
-                        b"h2" => elem.push_attribute(("class", "text-2xl my-2")),
-                        b"h3" => elem.push_attribute(("class", "text-xl my-2")),
-                        b"a" => elem.push_attribute(("class", "link text-primary")),
-                        b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
-                        b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
-                        b"code" => {
-                            elem.push_attribute(("class", "block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5"))
-                        }
-                        b"table" => elem.push_attribute(("class", "table")),
-                        b"blockquote" => elem.push_attribute((
-                            "class",
-                            "w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600",
-                        )),
-                        _ => (),
-                    }
-
-                    // writes the event to the writer
-                    writer.write_event(Event::Start(elem))?;
-                }
-                Ok(Event::Empty(e)) => {
-                    let mut elem = e.clone().into_owned();
-
-                    match elem.name().as_ref() {
-                        b"hr" => elem.push_attribute(("class", "my-2")),
-                        _ => (),
-                    }
-                    // writes the event to the writer
-                    writer.write_event(Event::Empty(elem))?;
-                }
-                Ok(Event::Text(e)) => {
-                    let text = e.decode().map_err(|e| AppError::new(format!("Error while decoding text: {e}")))?.into_owned();
-                    let spoiler_split_text = text.split(SPOILER_TAG);
-                    let mut is_current_text_spoiler = None;
-                    for text in spoiler_split_text {
-                        let is_spoiler_text = is_current_text_spoiler.unwrap_or_default();
-                        if !text.is_empty() {
-                            if is_spoiler_text {
-                                // Add label to encapsulate spoilers and a checkbox to toggle them
-                                let label = BytesStart::new("label");
-                                writer.write_event(Event::Start(label))?;
-                                // Add invisible checkbox to toggle spoilers
-                                let mut checkbox_elem = BytesStart::new("input");
-                                checkbox_elem.push_attribute(("type", "checkbox"));
-                                checkbox_elem.push_attribute(("class", "spoiler-checkbox hidden"));
-                                writer.write_event(Event::Empty(checkbox_elem))?;
-
-                                let mut span = BytesStart::new("span");
-                                span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text"));
-                                writer.write_event(Event::Start(span))?;
-
-                                writer.write_event(Event::Text(BytesText::new(text.trim())))?;
-
-                                let span_end = BytesEnd::new("span");
-                                writer.write_event(Event::End(span_end))?;
-
-                                let label_end = BytesEnd::new("label");
-                                writer.write_event(Event::End(label_end))?;
-                            } else {
-                                writer.write_event(Event::Text(BytesText::new(text)))?;
-                            }
-                        }
-                        is_current_text_spoiler = Some(!is_spoiler_text);
-                    }
-                }
-                Ok(Event::Eof) => break,
-                // we can either move or borrow the event to write, depending on your use-case
-                Ok(e) => writer.write_event(e)?,
-                Err(e) => {
-                    log::error!(
-                        "Error while parsing xml at position {}: {:?}",
-                        reader.buffer_position(),
-                        e
-                    );
-                    return Err(AppError::from(e));
-                }
-            }
-        }
-
-        let styled_html_output = String::from_utf8(writer.into_inner().into_inner())?;
-        log::debug!("Styled html: {styled_html_output}");
-        Ok(styled_html_output)
-    }
 }
 
-#[server]
-pub async fn get_styled_html_from_markdown(
+pub fn get_styled_html_from_markdown(
     markdown_input: String,
 ) -> Result<String, AppError> {
-    check_string_length(&markdown_input, "Markdown input", MAX_CONTENT_LENGTH as usize, false)?;
     let html_from_markdown =
         markdown::to_html_with_options(markdown_input.as_str(), &markdown::Options::gfm())
             .or_else(|e| Err(AppError::new(e)))?;
@@ -202,7 +96,101 @@ pub async fn get_styled_html_from_markdown(
 
     // Add styling, will be done by parsing the html which is a bit ugly. Would be better
     // if the styling could be added directly when generating the html from markdown
-    let styled_html_output = ssr::style_html_user_content(html_from_markdown.as_str())?;
+    let styled_html_output = style_html_user_content(html_from_markdown.as_str())?;
+    Ok(styled_html_output)
+}
+
+pub fn style_html_user_content(user_content: &str) -> Result<String, AppError> {
+    let mut reader = Reader::from_str(user_content);
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(e)) => {
+                let mut elem = e.clone().into_owned();
+
+                match elem.name().as_ref() {
+                    b"h1" => elem.push_attribute(("class", "text-4xl my-2")),
+                    b"h2" => elem.push_attribute(("class", "text-2xl my-2")),
+                    b"h3" => elem.push_attribute(("class", "text-xl my-2")),
+                    b"a" => elem.push_attribute(("class", "link text-primary")),
+                    b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
+                    b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
+                    b"code" => {
+                        elem.push_attribute(("class", "block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5"))
+                    }
+                    b"table" => elem.push_attribute(("class", "table")),
+                    b"blockquote" => elem.push_attribute((
+                        "class",
+                        "w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600",
+                    )),
+                    _ => (),
+                }
+
+                // writes the event to the writer
+                writer.write_event(Event::Start(elem))?;
+            }
+            Ok(Event::Empty(e)) => {
+                let mut elem = e.clone().into_owned();
+
+                match elem.name().as_ref() {
+                    b"hr" => elem.push_attribute(("class", "my-2")),
+                    _ => (),
+                }
+                // writes the event to the writer
+                writer.write_event(Event::Empty(elem))?;
+            }
+            Ok(Event::Text(e)) => {
+                let text = e.decode().map_err(|e| AppError::new(format!("Error while decoding text: {e}")))?.into_owned();
+                let spoiler_split_text = text.split(SPOILER_TAG);
+                let mut is_current_text_spoiler = None;
+                for text in spoiler_split_text {
+                    let is_spoiler_text = is_current_text_spoiler.unwrap_or_default();
+                    if !text.is_empty() {
+                        if is_spoiler_text {
+                            // Add label to encapsulate spoilers and a checkbox to toggle them
+                            let label = BytesStart::new("label");
+                            writer.write_event(Event::Start(label))?;
+                            // Add invisible checkbox to toggle spoilers
+                            let mut checkbox_elem = BytesStart::new("input");
+                            checkbox_elem.push_attribute(("type", "checkbox"));
+                            checkbox_elem.push_attribute(("class", "spoiler-checkbox hidden"));
+                            writer.write_event(Event::Empty(checkbox_elem))?;
+
+                            let mut span = BytesStart::new("span");
+                            span.push_attribute(("class", "transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text"));
+                            writer.write_event(Event::Start(span))?;
+
+                            writer.write_event(Event::Text(BytesText::new(text.trim())))?;
+
+                            let span_end = BytesEnd::new("span");
+                            writer.write_event(Event::End(span_end))?;
+
+                            let label_end = BytesEnd::new("label");
+                            writer.write_event(Event::End(label_end))?;
+                        } else {
+                            writer.write_event(Event::Text(BytesText::new(text)))?;
+                        }
+                    }
+                    is_current_text_spoiler = Some(!is_spoiler_text);
+                }
+            }
+            Ok(Event::Eof) => break,
+            // we can either move or borrow the event to write, depending on your use-case
+            Ok(e) => writer.write_event(e)?,
+            Err(e) => {
+                log::error!(
+                        "Error while parsing xml at position {}: {:?}",
+                        reader.buffer_position(),
+                        e
+                    );
+                return Err(AppError::from(e));
+            }
+        }
+    }
+
+    let styled_html_output = String::from_utf8(writer.into_inner().into_inner())?;
+    log::debug!("Styled html: {styled_html_output}");
     Ok(styled_html_output)
 }
 
@@ -383,21 +371,14 @@ pub fn FormMarkdownEditor(
         false => "button-ghost flex items-center p-2 tooltip",
     };
 
-    // Debounced version of the signals to avoid too many requests, also for is_markdown_mode so that
-    // we wait for the debounced
-    let content_debounced: Signal<String> = signal_debounced(data.content, 500.0);
-    let is_md_mode_debounced: Signal<bool> = signal_debounced(is_markdown_mode, 500.0);
-
-    let render_markdown_resource = Resource::new(
-        move || (is_md_mode_debounced.get(), content_debounced.get()),
-        move |(is_markdown_mode, markdown_content)| async move {
-            if is_markdown_mode && !markdown_content.is_empty() {
-                get_styled_html_from_markdown(markdown_content).await
-            } else {
-                Ok(String::default())
-            }
-        },
-    );
+    let markdown_render = move || {
+        match is_markdown_mode.get() {
+            true => {
+                get_styled_html_from_markdown(data.content.get())
+            },
+            false => Ok(String::default())
+        }
+    };
 
     Effect::new(move || adjust_textarea_height(data.textarea_ref));
 
@@ -462,11 +443,14 @@ pub fn FormMarkdownEditor(
                 </div>
             </div>
             <Show when=is_markdown_mode>
-                <TransitionUnpack resource=render_markdown_resource let:markdown_as_html>
-                    <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary bg-base-100 break-words"
-                        inner_html={markdown_as_html.clone()}
-                    />
-                </TransitionUnpack>
+                { move || match markdown_render() {
+                    Ok(markdown_as_html) => Either::Left(view! {
+                        <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary bg-base-100 break-words"
+                            inner_html=markdown_as_html
+                        />
+                    }),
+                    Err(e) => Either::Right(view! { <ErrorDisplay error=e/> })
+                }}
             </Show>
         </div>
     }.into_any()
@@ -677,7 +661,7 @@ mod tests {
     use leptos::prelude::ServerFnError;
 
     use crate::editor::ssr::get_html_and_markdown_strings;
-    use crate::editor::{format_textarea_content, get_styled_html_from_markdown, ssr::style_html_user_content, FormatType};
+    use crate::editor::{format_textarea_content, get_styled_html_from_markdown, style_html_user_content, FormatType};
 
     #[tokio::test]
     async fn test_get_html_and_markdown_strings() -> Result<(), ServerFnError> {

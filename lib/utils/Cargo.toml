@@ -35,9 +35,9 @@ ammonia = "4.1.2"
 const_format = "0.2.35"
 gloo-net = { version = "0.6.0", features = ["http"] }
 lazy_static = "1.5.0"
-markdown = { version = "1.0.0", optional = true }
+markdown = "1.0.0"
 mime_guess = "2.0.5"
-quick-xml = { version = "0.38.3", optional = true }
+quick-xml = "0.38.3"
 send_wrapper = { version = "0.6.0", features = ["futures"] }
 
 [dev-dependencies]
@@ -60,8 +60,6 @@ ssr = [
     "leptos-fluent/ssr",
     "leptos-use/ssr",
     "dep:async-trait",
-    "dep:markdown",
-    "dep:quick-xml",
     "dep:leptos_axum",
     "dep:openidconnect",
     "dep:reqwest",

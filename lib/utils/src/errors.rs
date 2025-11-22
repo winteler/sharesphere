@@ -133,10 +133,27 @@ impl From<ValidationErrors> for AppError {
     }
 }
 
+impl From<quick_xml::Error> for AppError {
+    fn from(error: quick_xml::Error) -> Self {
+        AppError::InternalServerError(error.to_string())
+    }
+}
+
+impl From<std::string::FromUtf8Error> for AppError {
+    fn from(error: std::string::FromUtf8Error) -> Self {
+        AppError::InternalServerError(error.to_string())
+    }
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(value: std::io::Error) -> Self {
+        AppError::InternalServerError(value.to_string())
+    }
+}
+
 #[cfg(feature = "ssr")]
 mod ssr {
     use sqlx;
-    use std::io::Error;
     use openidconnect::SignatureVerificationError;
     use crate::errors::AppError;
 
@@ -151,12 +168,6 @@ mod ssr {
 
     impl From<std::env::VarError> for AppError {
         fn from(error: std::env::VarError) -> Self {
-            AppError::InternalServerError(error.to_string())
-        }
-    }
-
-    impl From<std::string::FromUtf8Error> for AppError {
-        fn from(error: std::string::FromUtf8Error) -> Self {
             AppError::InternalServerError(error.to_string())
         }
     }
@@ -203,20 +214,8 @@ mod ssr {
         }
     }
 
-    impl From<quick_xml::Error> for AppError {
-        fn from(error: quick_xml::Error) -> Self {
-            AppError::InternalServerError(error.to_string())
-        }
-    }
-
     impl From<reqwest::Error> for AppError {
         fn from(value: reqwest::Error) -> Self {
-            AppError::InternalServerError(value.to_string())
-        }
-    }
-
-    impl From<Error> for AppError {
-        fn from(value: Error) -> Self {
             AppError::InternalServerError(value.to_string())
         }
     }

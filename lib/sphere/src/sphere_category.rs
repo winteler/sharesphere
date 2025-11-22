@@ -24,6 +24,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
     let category_input = RwSignal::new(String::new());
     let color_input = RwSignal::new(Color::None);
     let activated_input = RwSignal::new(true);
+    let name_textarea_ref = NodeRef::<html::Textarea>::new();
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let description_data = TextareaData {
         content: RwSignal::new(String::new()),
@@ -56,11 +57,14 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                         class="flex justify-between items-center lg:gap-1"
                                     >
                                         <div
-                                            class="w-19/20 flex items-center gap-1 p-1 rounded-sm hover:bg-base-200 active:scale-95 transition duration-250"
+                                            class="w-19/20 flex items-center gap-1 p-1 rounded-sm hover:bg-base-content/20 active:scale-95 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
                                                 color_input.set(color);
                                                 description_data.content.set(description.clone());
+                                                if let Some(name_textarea_elem) = name_textarea_ref.get() {
+                                                    name_textarea_elem.set_value(&category_name);
+                                                }
                                                 if let Some(textarea_elem) = textarea_ref.get() {
                                                     textarea_elem.set_value(&description);
                                                     adjust_textarea_height(textarea_ref);
@@ -87,7 +91,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                         }
                         </TransitionUnpack>
                     </div>
-                    <SetCategoryForm category_input color_input activated_input description_data/>
+                    <SetCategoryForm category_input color_input activated_input description_data name_textarea_ref/>
                 </div>
             </div>
         </AuthorizedShow>
@@ -101,6 +105,7 @@ pub fn SetCategoryForm(
     color_input: RwSignal<Color>,
     activated_input: RwSignal<bool>,
     description_data: TextareaData,
+    name_textarea_ref: NodeRef<html::Textarea>,
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = sphere_state.sphere_name;
@@ -123,6 +128,7 @@ pub fn SetCategoryForm(
                             class="w-3/12 text-sm"
                             minlength=Some(1)
                             maxlength=Some(MAX_CATEGORY_NAME_LENGTH)
+                            textarea_ref=name_textarea_ref
                         />
                         <ColorSelect name="category_color" color_input class="h-full w-12 lg:w-16 flex justify-center"/>
                         <FormTextEditor

@@ -1,8 +1,14 @@
 use leptos::prelude::*;
 use leptos_fluent::{move_tr, tr};
 use serde::{Deserialize, Serialize};
+
 use sharesphere_utils::errors::AppError;
-use crate::post::Post;
+use sharesphere_utils::icons::HammerIcon;
+use sharesphere_utils::widget::ContentBody;
+
+use crate::comment::{Comment};
+use crate::post::{Post};
+use crate::rule::Rule;
 
 #[cfg(feature = "ssr")]
 use {
@@ -20,10 +26,6 @@ use {
         rule::ssr::load_rule_by_id,
     }
 };
-use sharesphere_utils::icons::HammerIcon;
-use sharesphere_utils::widget::ContentBody;
-use crate::comment::Comment;
-use crate::rule::Rule;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Content {
@@ -39,13 +41,237 @@ pub struct ModerationInfo {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use serde::{Deserialize, Serialize};
     use sqlx::PgPool;
     use sharesphere_auth::role::{AdminRole, PermissionLevel};
     use sharesphere_auth::role::ssr::is_user_sphere_moderator;
     use sharesphere_auth::user::{User, UserBan};
+    use sharesphere_utils::embed::{Link, LinkType};
     use sharesphere_utils::errors::AppError;
     use crate::comment::Comment;
+    use crate::moderation::Content;
     use crate::post::Post;
+
+    #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, sqlx::FromRow)]
+    struct ContentRow {
+        pub post_id: i64,
+        pub comment_id: Option<i64>,
+        pub parent_id: Option<i64>,
+        pub title: Option<String>,
+        pub body: String,
+        pub markdown_body: Option<String>,
+        pub link_type: Option<LinkType>,
+        pub link_url: Option<String>,
+        pub link_embed: Option<String>,
+        pub link_thumbnail_url: Option<String>,
+        pub is_nsfw: Option<bool>,
+        pub is_spoiler: Option<bool>,
+        pub category_id: Option<i64>,
+        pub is_edited: bool,
+        pub sphere_id: Option<i64>,
+        pub satellite_id: Option<i64>,
+        pub creator_id: i64,
+        pub creator_name: String,
+        pub is_creator_moderator: bool,
+        pub moderator_message: Option<String>,
+        pub infringed_rule_id: Option<i64>,
+        pub infringed_rule_title: Option<String>,
+        pub moderator_id: Option<i64>,
+        pub moderator_name: Option<String>,
+        pub num_comments: Option<i32>,
+        pub is_pinned: bool,
+        pub score: i32,
+        pub score_minus: i32,
+        pub recommended_score: Option<f32>,
+        pub trending_score: Option<f32>,
+        pub create_timestamp: chrono::DateTime<chrono::Utc>,
+        pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+        pub scoring_timestamp: chrono::DateTime<chrono::Utc>,
+        pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    }
+
+    impl ContentRow {
+        pub fn into_content(self) -> Content {
+            let link = self.link_type.map(|link_type| Link {
+                link_type,
+                link_url: self.link_url,
+                link_embed: self.link_embed,
+                link_thumbnail_url: self.link_thumbnail_url,
+            });
+            match self.comment_id {
+                Some(comment_id) => Content::Comment(
+                    Comment {
+                        comment_id,
+                        body: self.body,
+                        markdown_body: self.markdown_body,
+                        is_edited: self.is_edited,
+                        moderator_message: self.moderator_message,
+                        infringed_rule_id: self.infringed_rule_id,
+                        infringed_rule_title: self.infringed_rule_title,
+                        parent_id: self.parent_id,
+                        post_id: self.post_id,
+                        creator_id: self.creator_id,
+                        creator_name: self.creator_name,
+                        is_creator_moderator: self.is_creator_moderator,
+                        moderator_id: self.moderator_id,
+                        moderator_name: self.moderator_name,
+                        is_pinned: self.is_pinned,
+                        score: self.score,
+                        score_minus: self.score_minus,
+                        create_timestamp: self.create_timestamp,
+                        edit_timestamp: self.edit_timestamp,
+                        delete_timestamp: self.delete_timestamp,
+                    }
+                ),
+                None => Content::Post(Post {
+                    post_id: self.post_id,
+                    title: self.title.unwrap(),
+                    body: self.body,
+                    markdown_body: self.markdown_body,
+                    link: link.unwrap(),
+                    is_nsfw: self.is_nsfw.unwrap(),
+                    is_spoiler: self.is_spoiler.unwrap(),
+                    category_id: self.category_id,
+                    is_edited: self.is_edited,
+                    sphere_id: self.sphere_id.unwrap(),
+                    satellite_id: self.satellite_id,
+                    creator_id: self.creator_id,
+                    creator_name: self.creator_name,
+                    is_creator_moderator: self.is_creator_moderator,
+                    moderator_message: self.moderator_message,
+                    infringed_rule_id: self.infringed_rule_id,
+                    infringed_rule_title: self.infringed_rule_title,
+                    moderator_id: self.moderator_id,
+                    moderator_name: self.moderator_name,
+                    num_comments: self.num_comments.unwrap(),
+                    is_pinned: self.is_pinned,
+                    score: self.score,
+                    score_minus: self.score_minus,
+                    recommended_score: self.recommended_score.unwrap(),
+                    trending_score: self.trending_score.unwrap(),
+                    create_timestamp: self.create_timestamp,
+                    edit_timestamp: self.edit_timestamp,
+                    scoring_timestamp: self.scoring_timestamp,
+                    delete_timestamp: self.delete_timestamp,
+                })
+            }
+        }
+    }
+
+    pub async fn get_sphere_contents(
+        sphere_name: &str,
+        limit: i64,
+        offset: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<Content>, AppError> {
+        let content_row_vec = sqlx::query_as::<_, ContentRow>(
+            "SELECT * FROM (
+                SELECT
+                    p.post_id,
+                    NULL AS comment_id,
+                    NULL AS parent_id,
+                    p.title,
+                    p.body,
+                    p.markdown_body,
+                    p.link_type,
+                    p.link_url,
+                    p.link_embed,
+                    p.link_thumbnail_url,
+                    p.is_nsfw,
+                    p.is_spoiler,
+                    p.category_id,
+                    p.is_edited,
+                    p.sphere_id,
+                    p.satellite_id,
+                    p.creator_id,
+                    u.username as creator_name,
+                    p.is_creator_moderator,
+                    p.moderator_message,
+                    p.infringed_rule_id,
+                    r.title as infringed_rule_title,
+                    p.moderator_id,
+                    m.username AS moderator_name,
+                    p.num_comments,
+                    p.is_pinned,
+                    p.score,
+                    p.score_minus,
+                    p.recommended_score,
+                    p.trending_score,
+                    p.create_timestamp,
+                    p.edit_timestamp,
+                    p.scoring_timestamp,
+                    p.delete_timestamp
+                FROM posts p
+                JOIN spheres s ON s.sphere_id = p.sphere_id
+                JOIN users u ON u.user_id = p.creator_id
+                LEFT JOIN users m ON m.user_id = p.moderator_id
+                LEFT JOIN rules r ON r.rule_id = p.creator_id
+                WHERE
+                    s.sphere_name = $1 AND
+                    p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL
+                UNION ALL
+                SELECT
+                    c.post_id,
+                    c.comment_id,
+                    c.parent_id,
+                    NULL AS title,
+                    c.body,
+                    c.markdown_body,
+                    NULL AS link_type,
+                    NULL AS link_url,
+                    NULL AS link_embed,
+                    NULL AS link_thumbnail_url,
+                    NULL AS is_nsfw,
+                    NULL AS spoiler,
+                    NULL AS category_id,
+                    c.is_edited,
+                    NULL AS sphere_id,
+                    NULL AS satellite_id,
+                    c.creator_id,
+                    u.username AS creator_name,
+                    c.is_creator_moderator,
+                    p.moderator_message,
+                    p.infringed_rule_id,
+                    r.title as infringed_rule_title,
+                    p.moderator_id,
+                    m.username AS moderator_name,
+                    NULL AS num_comments,
+                    c.is_pinned,
+                    c.score,
+                    c.score_minus,
+                    NULL AS recommended_score,
+                    NULL AS trending_score,
+                    c.create_timestamp,
+                    c.edit_timestamp,
+                    NULL AS scoring_timestamp,
+                    c.delete_timestamp
+                FROM comments c
+                JOIN posts p ON p.post_id = c.post_id
+                JOIN spheres s ON s.sphere_id = p.sphere_id
+                JOIN users u ON u.user_id = c.creator_id
+                LEFT JOIN users m ON m.user_id = c.moderator_id
+                LEFT JOIN rules r ON r.rule_id = c.infringed_rule_id
+                WHERE
+                    s.sphere_name = $1 AND
+                    p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL AND
+                    c.moderator_id IS NULL AND
+                    c.delete_timestamp IS NULL
+            ) as contents
+            ORDER BY create_timestamp desc
+            LIMIT $2
+            OFFSET $3"
+        )
+            .bind(sphere_name)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool).await?;
+
+        let content_vec = content_row_vec.into_iter().map(ContentRow::into_content).collect();
+
+        Ok(content_vec)
+    }
 
     pub async fn moderate_post(
         post_id: i64,

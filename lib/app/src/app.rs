@@ -247,7 +247,7 @@ fn HomePage() -> impl IntoView {
 
     view! {
         <div
-            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
+            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto pt-2 px-2 xl:px-4"
             on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
                 additional_load_count.update(|value| *value += 1);
             }
@@ -279,7 +279,7 @@ fn HotPage() -> impl IntoView {
 
     view! {
         <div
-            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
+            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto pt-2 px-2 xl:px-4"
             on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
                 additional_load_count.update(|value| *value += 1);
             }

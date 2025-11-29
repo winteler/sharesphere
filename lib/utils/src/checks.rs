@@ -28,6 +28,35 @@ pub fn check_string_length(
     }
 }
 
+/// # Returns whether a sphere name is valid, accepting empty string optionally
+///
+/// # Valid sphere names contain only ascii alphanumeric characters, '-', '_' and have a maximum length of `MAX_SPHERE_NAME_LENGTH`
+///
+/// ```
+/// use sharesphere_utils::checks::{check_sphere_name_with_options};
+/// use sharesphere_utils::constants::MAX_SPHERE_NAME_LENGTH;
+/// use sharesphere_utils::errors::AppError;
+///
+/// assert!(check_sphere_name_with_options("-Abc123_", true).is_ok());
+/// assert!(check_sphere_name_with_options("", true).is_err());
+/// assert!(check_sphere_name_with_options("", false).is_err());
+/// assert!(check_sphere_name_with_options(" name", true).is_err());
+/// assert!(check_sphere_name_with_options("name%", true).is_err());
+/// assert!(check_sphere_name_with_options(&"a".repeat(MAX_SPHERE_NAME_LENGTH), true).is_ok());
+/// assert!(check_sphere_name_with_options(&"a".repeat(MAX_SPHERE_NAME_LENGTH + 1), true).is_err());
+/// ```
+pub fn check_sphere_name_with_options(name: &str, check_empty: bool) -> Result<(), ValidationError> {
+    if name.is_empty() && check_empty {
+        Err(ValidationError::new("Sphere name cannot be empty."))
+    } else if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        Err(ValidationError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
+    } else if name.len() > MAX_SPHERE_NAME_LENGTH {
+        Err(ValidationError::new(formatcp!("Sphere name cannot exceed {MAX_SPHERE_NAME_LENGTH} characters.")))
+    } else {
+        Ok(())
+    }
+}
+
 /// # Returns whether a sphere name is valid.
 ///
 /// # Valid sphere names contain only ascii alphanumeric characters, '-', '_' and have a maximum length of `MAX_SPHERE_NAME_LENGTH`
@@ -45,15 +74,7 @@ pub fn check_string_length(
 /// assert!(check_sphere_name(&"a".repeat(MAX_SPHERE_NAME_LENGTH + 1)).is_err());
 /// ```
 pub fn check_sphere_name(name: &str) -> Result<(), ValidationError> {
-    if name.is_empty() {
-        Err(ValidationError::new("Sphere name cannot be empty."))
-    } else if !name.chars().all(move |c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-        Err(ValidationError::new("Sphere name can only contain alphanumeric characters, dashes and underscores."))
-    } else if name.len() > MAX_SPHERE_NAME_LENGTH {
-        Err(ValidationError::new(formatcp!("Sphere name cannot exceed {MAX_SPHERE_NAME_LENGTH} characters.")))
-    } else {
-        Ok(())
-    }
+    check_sphere_name_with_options(name, true)
 }
 
 /// # Returns whether a satellite name is valid.

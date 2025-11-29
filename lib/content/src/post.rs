@@ -22,7 +22,7 @@ use sharesphere_core::search::get_matching_sphere_header_vec;
 use sharesphere_core::sphere::{SphereHeader};
 use sharesphere_core::sphere_category::{get_sphere_category_vec};
 use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_utils::checks::check_sphere_name;
+use sharesphere_utils::checks::{check_sphere_name, check_sphere_name_with_options};
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use crate::comment::{CommentButtonWithCount, CommentSection};
 use crate::moderation::{ModeratePostButton, ModerationInfoButton};
@@ -301,7 +301,7 @@ pub fn CreatePost() -> impl IntoView {
     let matching_spheres_resource = Resource::new(
         move || sphere_name_debounced.get(),
         move |sphere_prefix| async move {
-            match check_sphere_name(&sphere_prefix) {
+            match check_sphere_name_with_options(&sphere_prefix, false) {
                 Ok(()) => get_matching_sphere_header_vec(sphere_prefix).await,
                 Err(_) => Ok(Vec::new()),
             }

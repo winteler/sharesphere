@@ -19,7 +19,7 @@ use {
         auth::get_user,
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::checks::{check_sphere_name, check_username},
+    sharesphere_utils::checks::{check_sphere_name, check_sphere_name_with_options, check_username},
     crate::post::POST_BATCH_SIZE,
     crate::comment::COMMENT_BATCH_SIZE,
 };
@@ -251,7 +251,7 @@ pub mod ssr {
 pub async fn get_matching_sphere_header_vec(
     sphere_prefix: String,
 ) -> Result<Vec<SphereHeader>, AppError> {
-    check_sphere_name(&sphere_prefix)?;
+    check_sphere_name_with_options(&sphere_prefix, false)?;
     let db_pool = get_db_pool()?;
     let sphere_header_vec = ssr::get_matching_sphere_header_vec(
         &sphere_prefix,

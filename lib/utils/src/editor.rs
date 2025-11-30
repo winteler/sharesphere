@@ -679,7 +679,7 @@ mod tests {
             markdown_body.to_string(), 
             true
         ).await.expect("Should get text body");
-        assert_eq!(html_markdown_body, get_styled_html_from_markdown(markdown_body.to_string()).await.expect("Should get html body"));
+        assert_eq!(html_markdown_body, get_styled_html_from_markdown(markdown_body.to_string()).expect("Should get html body"));
         assert_eq!(markdown_markdown_body.as_deref(), Some(markdown_body));
         
         Ok(())
@@ -748,7 +748,7 @@ mod tests {
             <hr  class="my-2"/>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -759,7 +759,7 @@ mod tests {
             <p><code class="block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5">code blocks</code></p>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -770,7 +770,7 @@ mod tests {
             <p><label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">Spoilers</span></label></p>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -781,7 +781,7 @@ mod tests {
             <p><strong>bold</strong>, <em>italic</em>, combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -792,7 +792,7 @@ mod tests {
             <p>Strikethrough uses two tildes. <del>Scratch this.</del></p>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -805,7 +805,7 @@ mod tests {
             </blockquote>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -829,7 +829,7 @@ mod tests {
             </ul>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -842,7 +842,7 @@ mod tests {
             Also, a bit more work is needed to add an empty line.</p>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -853,7 +853,7 @@ mod tests {
             <p>Finally, we can add links <a href="https://www.example.com" class="link text-primary">link text</a>, images <img src="https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png" alt="alt text" title="Logo Title Text 1" /></p>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 
@@ -893,7 +893,7 @@ mod tests {
             </table>
         "#};
         assert_eq!(
-            get_styled_html_from_markdown(markdown.to_string()).await?,
+            get_styled_html_from_markdown(markdown.to_string())?,
             expected_html
         );
 

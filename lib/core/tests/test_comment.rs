@@ -432,7 +432,7 @@ async fn test_update_comment() -> Result<(), AppError> {
     let (sphere, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let updated_markdown_body = "# Here is a comment with markdown";
-    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");
+    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).expect("Should get html from markdown.");
     let updated_comment = update_comment(
         comment.comment_id,
         &updated_html_body,

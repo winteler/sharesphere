@@ -1876,7 +1876,7 @@ async fn test_update_post() -> Result<(), AppError> {
 
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
-    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown.");
+    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).expect("Should get html from markdown.");
     let updated_link = Link::new(
         LinkType::Rich,
         Some(String::from("updated_link")),
@@ -2010,7 +2010,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
 
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
-    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).await.expect("Should get html from markdown");
+    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).expect("Should get html from markdown");
     let updated_link = Link::new(
         LinkType::Video,
         Some(String::from("updated_link")),

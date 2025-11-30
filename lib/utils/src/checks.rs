@@ -39,7 +39,7 @@ pub fn check_string_length(
 ///
 /// assert!(check_sphere_name_with_options("-Abc123_", true).is_ok());
 /// assert!(check_sphere_name_with_options("", true).is_err());
-/// assert!(check_sphere_name_with_options("", false).is_err());
+/// assert!(check_sphere_name_with_options("", false).is_ok());
 /// assert!(check_sphere_name_with_options(" name", true).is_err());
 /// assert!(check_sphere_name_with_options("name%", true).is_err());
 /// assert!(check_sphere_name_with_options(&"a".repeat(MAX_SPHERE_NAME_LENGTH), true).is_ok());

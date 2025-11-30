@@ -54,8 +54,8 @@ tower = { version = "0.5.2", features = ["util"] }
 tower-http = { version = "0.6.7", features = ["fs"] }
 url = "*"
 validator = { version = "0.20.0", features = ["derive"] }
-wasm-bindgen = "=0.2.105"
-web-sys = "0.3.82"
+wasm-bindgen = "=0.2.106"
+web-sys = "0.3.83"
 
 # See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
 

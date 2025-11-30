@@ -5,14 +5,21 @@ use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, 
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use leptos_fluent::{leptos_fluent, move_tr};
+use regex::Regex;
+
+use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
-use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
+use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE, POPULAR_ROUTE, FAQ_ROUTE};
+use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
+use sharesphere_utils::widget::{BannerContent, RefreshButton};
+
 use sharesphere_auth::auth::*;
 use sharesphere_auth::auth_widget::LoginWindow;
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, UserState};
+
 use sharesphere_components::policy::{AboutShareSphere, ContentPolicy, PrivacyPolicy, Rules, TermsAndConditions, Faq};
 use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
@@ -26,9 +33,12 @@ use sharesphere_core::state::GlobalState;
 use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
-use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY};
-use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_utils::widget::{BannerContent, RefreshButton};
+
+
+#[derive(Clone, Debug)]
+pub struct UserAgentHeader {
+    pub value: Option<String>,
+}
 
 #[component]
 pub fn AppMeta() -> impl IntoView {
@@ -36,15 +46,23 @@ pub fn AppMeta() -> impl IntoView {
         true => "connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/;",
         false => "connect-src 'self'",
     };
+    let ios_user_agent_regex = Regex::new("(iPhone|iPad|iPod|iOS).*AppleWebKit").expect("iOS regex should be valid");
+
     view! {
         <Meta
             http_equiv="Content-Security-Policy"
             content=move || {
                 // this will insert the CSP with nonce on the server, be empty on client
                 use_nonce().map(|nonce| {
+                    let script_src_csp = match expect_context::<UserAgentHeader>().value {
+                        Some(user_agent) if ios_user_agent_regex.captures(user_agent.as_str()).is_some() => {
+                            format!("script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval' 'unsafe-eval';")
+                        },
+                        _ => format!("script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';")
+                    };
                     format!(
                         "default-src 'none';
-                        script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';
+                        {script_src_csp}
                         img-src 'self' https: data:;
                         media-src 'self' https:;
                         frame-src 'self' https:;

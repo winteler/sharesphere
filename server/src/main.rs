@@ -106,12 +106,18 @@ async fn leptos_routes_handler(
     let leptos_options = app_state.leptos_options.clone();
     let db_pool = app_state.db_pool.clone();
     let user_lock_cache = app_state.user_lock_cache.clone();
+
+    let user_agent= UserAgentHeader {
+        value: req.headers().get("User-Agent").map(|value: &HeaderValue| value.to_str().unwrap_or_default().to_string())
+    };
+
     let handler = leptos_axum::render_route_with_context(
         app_state.routes.clone(),
         move || {
             provide_context(auth_session.clone());
             provide_context(db_pool.clone());
             provide_context(user_lock_cache.clone());
+            provide_context(user_agent.clone());
         },
         move || shell(leptos_options.clone()),
     );

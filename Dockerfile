@@ -1,16 +1,3 @@
-# Build using ShareSphere builder
-FROM ghcr.io/winteler/sharesphere-builder:main AS builder
-
-WORKDIR /sharesphere
-COPY . .
-
-ENV LEPTOS_ENV=PROD
-ENV LEPTOS_HASH_FILES=true
-
-RUN npm install & npm run build
-
-RUN cargo leptos build --release --precompress
-
 # Stage 2: Minimal runtime image
 FROM debian:bookworm-slim
 
@@ -18,9 +5,11 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends libssl3 ca-certificates rsync && apt-get clean
 
 # Copy binary from builder
-COPY --from=builder /sharesphere/target/release/server /usr/local/bin/sharesphere
-COPY --from=builder /sharesphere/target/release/hash.txt /usr/local/bin/hash.txt
-COPY --from=builder /sharesphere/target/site /usr/local/bin/site
+COPY ./target/release/server /usr/local/bin/sharesphere
+COPY ./target/release/hash.txt /usr/local/bin/hash.txt
+COPY ./target/site /usr/local/bin/site
+
+RUN chmod +x /usr/local/bin/sharesphere
 
 ENV LEPTOS_OUTPUT_NAME="sharesphere"
 ENV LEPTOS_SITE_ROOT="/usr/local/bin/site"

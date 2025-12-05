@@ -8,11 +8,13 @@ use sharesphere_auth::user::User;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 
+pub const TEST_DB_NAME_ENV: &str = "TEST_DATABASE_NAME";
 pub const TEST_DB_URL_ENV: &str = "TEST_DATABASE_URL";
 static DB_NUM: Mutex<i32> = Mutex::new(0);
 async fn get_main_db_pool() -> PgPool {
-    let main_db = "postgres";
-    let main_db_url = env::var(TEST_DB_URL_ENV).expect(&format!("Test DB address should be in env variable {TEST_DB_URL_ENV}.")) + main_db;
+    let main_db = env::var(TEST_DB_NAME_ENV).expect(&format!("Test DB name should be in env variable {TEST_DB_NAME_ENV}."));
+    let main_db_url = env::var(TEST_DB_URL_ENV).expect(&format!("Test DB address should be in env variable {TEST_DB_URL_ENV}.")) + &main_db;
+    println!("Test DB url: {}", main_db_url);
     PgPoolOptions::new()
         .max_connections(5)
         .connect(&main_db_url)

@@ -20,11 +20,82 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/winteler/sharesphere-builder:main
+      env:
+        LEPTOS_ENV: PROD
+        LEPTOS_HASH_FILES: true
+        DATABASE_URL: postgresql://sharesphere:sharesphere@postgres:5432/sharesphere
+        TEST_DATABASE_NAME: sharesphere
+        TEST_DATABASE_URL: postgres://sharesphere:sharesphere@postgres:5432/
+
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: sharesphere
+          POSTGRES_PASSWORD: sharesphere
+          POSTGRES_DB: sharesphere
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sharesphere"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache cargo registry and git dependencies
+        id: cache-cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo
+
+      - name: Run migrations
+        run: sqlx migrate run --connect-timeout 60
+
+      - name: Test ShareSphere
+        run: cargo test -F ssr --release
+
+      - name: npm
+        run: npm install && npm run build
+
+      - name: Build ShareSphere
+        run: cargo leptos build --release --precompress
+
+      - name: Upload checkout with binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkout
+          path: |
+            ./Dockerfile
+            ./target/release/server
+            ./target/release/hash.txt
+            ./target/site/
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
     permissions:
       contents: read
       packages: write
@@ -33,8 +104,11 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Download checkout with binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: checkout
+          path: .
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer

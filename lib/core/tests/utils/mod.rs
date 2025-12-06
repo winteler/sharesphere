@@ -62,6 +62,13 @@ pub fn test_post_vec(
     }
 }
 
+fn post_score_mapping(score: i32) -> f64 {
+    match score {
+        score if score >= 0 => (score + 1) as f64,
+        score => 1.0/(1.0 - score as f64),
+    }
+}
+
 pub fn test_post_score(post: &Post) {
     let second_delta = post
         .scoring_timestamp
@@ -79,8 +86,8 @@ pub fn test_post_score(post: &Post) {
         post.create_timestamp,
     );
 
-    let expected_recommended_score = (post.score as f64) * f64::powf(2.0, 3.0 * (2.0 - num_days_old));
-    let expected_trending_score = (post.score as f64) * f64::powf(2.0, 8.0 * (1.0 - num_days_old));
+    let expected_recommended_score = post_score_mapping(post.score) * f64::exp(f64::ln(256.0) * (1.0 - num_days_old/2.0));
+    let expected_trending_score = post_score_mapping(post.score) * f64::exp(f64::ln(1024.0) * (1.0 - num_days_old));
 
     println!("Recommended: {}, expected: {}", post.recommended_score, expected_recommended_score);
     assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score as f32, epsilon = f32::EPSILON, ulps = 5));

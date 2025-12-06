@@ -1,21 +1,39 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE OR REPLACE FUNCTION format_for_search(text) RETURNS text
-AS 'select LOWER(
+LANGUAGE SQL
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+AS $$
+    SELECT LOWER(
        REGEXP_REPLACE(
-           REGEXP_REPLACE($1, ''([a-z])([A-Z])'', ''\1|\2'', ''g''),
-           ''[-_]'', '' '', ''g''
+           REGEXP_REPLACE($1, '([a-z])([A-Z])', '\1|\2', 'g'),
+           '[-_]', ' ', 'g'
        )
-   );'
-    LANGUAGE SQL
-    IMMUTABLE
-    RETURNS NULL ON NULL INPUT;
+   );
+$$;
 
 CREATE OR REPLACE FUNCTION normalize_sphere_name(text) RETURNS text
-AS 'select REPLACE(LOWER($1), ''-'', ''_'');'
-    LANGUAGE SQL
+LANGUAGE SQL
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+AS $$
+    SELECT REPLACE(LOWER($1), '-', '_');
+$$;
+
+
+CREATE OR REPLACE FUNCTION score_mapping(score numeric)
+    RETURNS numeric
+    LANGUAGE sql
     IMMUTABLE
-    RETURNS NULL ON NULL INPUT;
+AS $$
+    SELECT CASE
+       WHEN $1 >= 0
+           THEN $1 + 1
+       ELSE
+           1 / (1 - $1)
+    END;
+$$;
 
 CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
@@ -177,11 +195,11 @@ CREATE TABLE posts (
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score REAL NOT NULL GENERATED ALWAYS AS (
-            score * (2^(3 * (2 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24))))
-        ) STORED,
+        score_mapping(score) * EXP(LN(256) * (1 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24 * 2)))
+    ) STORED,
     trending_score REAL NOT NULL GENERATED ALWAYS AS (
-            score * (2^(8 * (1 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24))))
-        ) STORED,
+        score_mapping(score) * EXP(LN(1024) * (1 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24)))
+    ) STORED,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,
     scoring_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),

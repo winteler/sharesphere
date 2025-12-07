@@ -77,7 +77,7 @@ fn LanguageSelector() -> impl IntoView {
     view! {
         <select
             class="select_input"
-            on:click=move |_| {
+            on:change=move |_| {
                 if let Some(select_ref) = select_ref.get_untracked() {
                     let lang_str = select_ref.value();
                     if let Some(lang) = i18n.languages.iter().find(|lang| lang.id.language.as_str() == lang_str) {

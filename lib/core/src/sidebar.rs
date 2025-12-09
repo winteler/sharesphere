@@ -226,9 +226,9 @@ pub fn SphereSidebar() -> impl IntoView {
                 </TransitionUnpack>
             </div>
             <div class="border-b border-primary/80"/>
-            <SphereRuleList rule_resource=sphere_state.sphere_rules_resource/>
-            <div class="border-b border-primary/80"/>
             <SphereCategoryList/>
+            <div class="border-b border-primary/80"/>
+            <SphereRuleList rule_resource=sphere_state.sphere_rules_resource/>
             <div class="border-b border-primary/80"/>
             <ModeratorList/>
         </div>

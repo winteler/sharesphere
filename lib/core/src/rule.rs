@@ -390,8 +390,8 @@ pub fn RuleList(
         };
         let title_view = move || view! {
             <div class="flex gap-2">
-                <div class="2xl:text-lg text-semibold">{index+1}</div>
-                <div class="text-left 2xl:text-lg text-semibold">{title}</div>
+                <div class="text-semibold">{format!("{}.", index+1)}</div>
+                <div class="text-left text-semibold">{title}</div>
             </div>
         };
         view! {
@@ -399,7 +399,7 @@ pub fn RuleList(
                 title_view
                 is_open=false
             >
-                <div class="pl-1 pb-4">
+                <div class="pl-1 pb-3">
                     <ContentBody body=description is_markdown/>
                 </div>
             </Collapse>

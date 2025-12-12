@@ -46,6 +46,7 @@ color = Color
 
 filters = Filters
 category-filters = Category filters
+category-none = None
 all = All
 only-categories = Only categories
 

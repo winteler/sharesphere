@@ -216,8 +216,8 @@ pub fn SphereCategoryDropdown(
 ) -> impl IntoView {
     let is_selected = RwSignal::new(init_category_id.is_some());
     let select_class = move || match is_selected.get() {
-        true => "select w-fit",
-        false => "select w-fit text-gray-400",
+        true => "select_input w-fit",
+        false => "select_input w-fit text-gray-400",
     };
 
     view! {
@@ -228,33 +228,36 @@ pub fn SphereCategoryDropdown(
                 return ().into_any()
             }
             view! {
-                <select
-                    name=name
-                    class=select_class
-                    on:input=move |ev| {
-                        let selected = event_target_value(&ev);
-                        is_selected.set(!selected.is_empty());
-                    }
-                >
-                    <option selected=init_category_id.is_none() value="" class="text-gray-400">{move_tr!("category")}</option>
-                    {
-                        sphere_category_vec.iter().map(|sphere_category| {
-                            let is_selected = init_category_id.is_some_and(|category_id| category_id == sphere_category.category_id);
-                            match show_inactive || sphere_category.is_active {
-                                true => Some(view! {
-                                    <option
-                                        class="text-white"
-                                        selected=is_selected
-                                        value=sphere_category.category_id
-                                    >
-                                        {sphere_category.category_name.clone()}
-                                    </option>
-                                }),
-                                false => None,
-                            }
-                        }).collect_view()
-                    }
-                </select>
+                <div class="flex justify-between">
+                    <span class="label text-white">{move_tr!("category")}</span>
+                    <select
+                        name=name
+                        class=select_class
+                        on:change=move |ev| {
+                            let selected = event_target_value(&ev);
+                            is_selected.set(!selected.is_empty());
+                        }
+                    >
+                        <option selected=init_category_id.is_none() value="" class="text-gray-400">{move_tr!("category-none")}</option>
+                        {
+                            sphere_category_vec.iter().map(|sphere_category| {
+                                let is_selected = init_category_id.is_some_and(|category_id| category_id == sphere_category.category_id);
+                                match show_inactive || sphere_category.is_active {
+                                    true => Some(view! {
+                                        <option
+                                            class="text-white"
+                                            selected=is_selected
+                                            value=sphere_category.category_id
+                                        >
+                                            {sphere_category.category_name.clone()}
+                                        </option>
+                                    }),
+                                    false => None,
+                                }
+                            }).collect_view()
+                        }
+                    </select>
+                </div>
             }.into_any()
         }
         </TransitionUnpack>

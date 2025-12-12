@@ -1,6 +1,13 @@
+use leptos::either::Either;
+use leptos::html;
 use leptos::prelude::*;
-use leptos_fluent::move_tr;
+use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
+
+use sharesphere_utils::colors::Color;
+use sharesphere_utils::errors::AppError;
+use sharesphere_utils::unpack::TransitionUnpack;
+use sharesphere_utils::widget::{Dropdown, RotatingArrow};
 
 #[cfg(feature = "ssr")]
 use {
@@ -11,9 +18,8 @@ use {
     sharesphere_utils::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH},
     sharesphere_utils::checks::{check_sphere_name, check_string_length},
 };
-use sharesphere_utils::colors::Color;
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::unpack::TransitionUnpack;
+#[cfg(feature = "hydrate")]
+use leptos_use::on_click_outside;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -192,6 +198,7 @@ pub async fn delete_sphere_category(
 /// Component to display a badge with sphere category's name
 #[component]
 pub fn SphereCategoryBadge(
+    #[prop(into)]
     category_header: SphereCategoryHeader,
 ) -> impl IntoView {
     let class = format!(
@@ -216,9 +223,18 @@ pub fn SphereCategoryDropdown(
 ) -> impl IntoView {
     let is_selected = RwSignal::new(init_category_id.is_some());
     let select_class = move || match is_selected.get() {
-        true => "select_input w-fit",
-        false => "select_input w-fit text-gray-400",
+        true => "flex justify-between items-center input_primary w-fit",
+        false => "flex justify-between items-center input_primary w-fit text-gray-400",
     };
+    let selected_category: RwSignal<Option<SphereCategory>> = RwSignal::new(None);
+    let show_dropdown = RwSignal::new(false);
+    let dropdown_ref = NodeRef::<html::Div>::new();
+
+    #[cfg(feature = "hydrate")]
+    {
+        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
+        let _ = on_click_outside(dropdown_ref, move |_| show_dropdown.set(false));
+    }
 
     view! {
         <TransitionUnpack resource=category_vec_resource let:sphere_category_vec>
@@ -227,36 +243,73 @@ pub fn SphereCategoryDropdown(
                 log::debug!("No category to display.");
                 return ().into_any()
             }
+            let sphere_category_vec = StoredValue::new(sphere_category_vec.clone());
             view! {
                 <div class="flex justify-between">
                     <span class="label text-white">{move_tr!("category")}</span>
-                    <select
-                        name=name
-                        class=select_class
-                        on:change=move |ev| {
-                            let selected = event_target_value(&ev);
-                            is_selected.set(!selected.is_empty());
-                        }
-                    >
-                        <option selected=init_category_id.is_none() value="" class="text-gray-400">{move_tr!("category-none")}</option>
-                        {
-                            sphere_category_vec.iter().map(|sphere_category| {
-                                let is_selected = init_category_id.is_some_and(|category_id| category_id == sphere_category.category_id);
-                                match show_inactive || sphere_category.is_active {
-                                    true => Some(view! {
-                                        <option
-                                            class="text-white"
-                                            selected=is_selected
-                                            value=sphere_category.category_id
-                                        >
-                                            {sphere_category.category_name.clone()}
-                                        </option>
-                                    }),
-                                    false => None,
+                    <div class="h-full relative" node_ref=dropdown_ref>
+                        <button
+                            name=name
+                            value=move || match &*selected_category.read() {
+                                Some(category) => Some(category.category_id),
+                                None => None,
+                            }
+                            type="button"
+                            class=select_class
+                            on:click=move |_| show_dropdown.update(|value| *value = !*value)
+                        >
+                            { move || match &*selected_category.read() {
+                                Some(category) => Either::Left(view! {
+                                    <SphereCategoryBadge category_header=category.clone()/>
+                                }),
+                                None => Either::Right(view! {
+                                    <span class="text-gray-400">{move_tr!("category-none")}</span>
+                                })
+                            }}
+                            <RotatingArrow point_up=show_dropdown/>
+                        </button>
+                        <Dropdown show_dropdown align_right=true>
+                            <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col gap-1">
+                                <li>
+                                    <button
+                                        type="button"
+                                        class="button-ghost"
+                                        on:click=move |_| {
+                                            selected_category.set(None);
+                                            show_dropdown.set(false);
+                                        }
+                                    >
+                                        <span class="text-gray-400">{move_tr!("category-none")}</span>
+                                    </button>
+                                </li>
+                                {
+                                    sphere_category_vec.read_value().iter().map(|sphere_category| {
+                                        let category = StoredValue::new(sphere_category.clone());
+                                        if let Some(category_id) = init_category_id && category_id == sphere_category.category_id {
+                                            selected_category.set(Some(sphere_category.clone()));
+                                        }
+                                        match show_inactive || sphere_category.is_active {
+                                            true => Some(view! {
+                                                <li>
+                                                    <button
+                                                        type="button"
+                                                        class="button-ghost"
+                                                        on:click=move |_| {
+                                                            selected_category.set(Some(category.get_value()));
+                                                            show_dropdown.set(false);
+                                                        }
+                                                    >
+                                                        <SphereCategoryBadge category_header=sphere_category/>
+                                                    </button>
+                                                </li>
+                                            }),
+                                            false => None,
+                                        }
+                                    }).collect_view()
                                 }
-                            }).collect_view()
-                        }
-                    </select>
+                            </ul>
+                        </Dropdown>
+                    </div>
                 </div>
             }.into_any()
         }

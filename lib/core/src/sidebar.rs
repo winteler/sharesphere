@@ -262,11 +262,11 @@ pub fn SphereCategoryList() -> impl IntoView {
                 <TransitionUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
                 {
                     sphere_category_vec.iter().map(|sphere_category| {
-                        let category_header = sphere_category.clone().into();
+                        let category = sphere_category.clone();
                         let description = StoredValue::new(sphere_category.description.clone());
                         view! {
                             <Collapse
-                                title_view=move || view! { <SphereCategoryBadge category_header/> }
+                                title_view=move || view! { <SphereCategoryBadge category_header=category/> }
                                 is_open=false
                             >
                                 <div class="pl-2 text-sm">{description.get_value()}</div>

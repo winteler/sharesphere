@@ -112,7 +112,7 @@ pub fn SphereCategoryFilter() -> impl IntoView {
                     view! {
                         <label class="cursor-pointer flex justify-between">
                             <span class="label">
-                                <SphereCategoryBadge category_header=sphere_category.into()/>
+                                <SphereCategoryBadge category_header=sphere_category/>
                             </span>
                             <input
                                 type="checkbox"

@@ -266,8 +266,8 @@ pub fn SphereCategoryDropdown(
                             }}
                             <RotatingArrow point_up=show_dropdown/>
                         </button>
-                        <Dropdown show_dropdown align_right=true>
-                            <ul class="mt-2 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col gap-1">
+                        <Dropdown show_dropdown align_right=true open_down=false>
+                            <ul class="mb-2 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col gap-1">
                                 <li>
                                     <button
                                         type="button"

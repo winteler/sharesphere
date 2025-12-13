@@ -133,12 +133,16 @@ pub fn Dropdown<C: IntoView + 'static>(
     show_dropdown: RwSignal<bool>,
     #[prop(optional)]
     align_right: bool,
+    #[prop(default = true)]
+    open_down: bool,
     children: TypedChildrenFn<C>,
 ) -> impl IntoView {
     let children = children.into_inner();
-    let class = match align_right {
-        true => "absolute z-10 origin-bottom right-0 min-w-max",
-        false => "absolute z-10 origin-bottom left-0 min-w-max",
+    let class = match (align_right, open_down) {
+        (true, true) => "absolute z-10 right-0 min-w-max",
+        (false, true) => "absolute z-10 left-0 min-w-max",
+        (true, false) => "absolute z-10 bottom-full right-0 min-w-max",
+        (false, false) => "absolute z-10 bottom-full left-0 min-w-max",
     };
     view! {
         <Show when=show_dropdown>
@@ -687,7 +691,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
 /// Component to render a help button, displaying its children in a model window when clicked
 #[component]
 pub fn HelpButton<C: IntoView + 'static>(
-    #[prop(default = "absolute bottom-0 right-0 z-40 origin-top-left mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200 rounded-sm")]
+    #[prop(default = "absolute bottom-0 right-0 z-40 mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200 rounded-sm")]
     modal_class: &'static str,
     #[prop(default = "editor-button-size")]
     icon_class: &'static str,
@@ -702,6 +706,7 @@ pub fn HelpButton<C: IntoView + 'static>(
         let _ = on_click_outside(node_ref, move |_| show_help.set(false));
     }
 
+    // TODO check if all z-xx class are really necessary
     view! {
         <div
             class="h-full w-fit rounded-full bg-base-300 relative inline-block z-20"

@@ -1435,7 +1435,7 @@ pub fn LinkForm(
 pub fn LinkHelpButton() -> impl IntoView {
     view! {
         <HelpButton
-            modal_class="absolute bottom-0 left-0 z-40 mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200 rounded-sm"
+            modal_class="absolute bottom-full left-0 z-10 mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200 rounded-sm"
             icon_class="h-3 w-3"
         >
             <div class="relative flex flex-col gap-2 leading-snug text-justify text-xs lg:text-sm">

@@ -691,7 +691,7 @@ pub fn TitleCollapse<C: IntoView + 'static>(
 /// Component to render a help button, displaying its children in a model window when clicked
 #[component]
 pub fn HelpButton<C: IntoView + 'static>(
-    #[prop(default = "absolute bottom-0 right-0 z-40 mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200 rounded-sm")]
+    #[prop(default = "absolute bottom-full right-0 z-10 mb-1 -mr-1 p-2 w-86 lg:w-128 bg-base-200 rounded-sm")]
     modal_class: &'static str,
     #[prop(default = "editor-button-size")]
     icon_class: &'static str,
@@ -706,19 +706,14 @@ pub fn HelpButton<C: IntoView + 'static>(
         let _ = on_click_outside(node_ref, move |_| show_help.set(false));
     }
 
-    // TODO check if all z-xx class are really necessary
     view! {
         <div
-            class="h-full w-fit rounded-full bg-base-300 relative inline-block z-20"
+            class="h-full w-fit rounded-full bg-base-300 relative inline-block"
             node_ref=node_ref
         >
             <Show when=show_help>
-                <div class="relative z-30">
-                    <div
-                        class=modal_class
-                    >
-                        {children()}
-                    </div>
+                <div class=modal_class>
+                    {children()}
                 </div>
             </Show>
             <button

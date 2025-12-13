@@ -221,11 +221,6 @@ pub fn SphereCategoryDropdown(
     #[prop(default = "")]
     name: &'static str,
 ) -> impl IntoView {
-    let is_selected = RwSignal::new(init_category_id.is_some());
-    let select_class = move || match is_selected.get() {
-        true => "flex justify-between items-center input_primary w-fit",
-        false => "flex justify-between items-center input_primary w-fit text-gray-400",
-    };
     let selected_category: RwSignal<Option<SphereCategory>> = RwSignal::new(None);
     let show_dropdown = RwSignal::new(false);
     let dropdown_ref = NodeRef::<html::Div>::new();
@@ -248,14 +243,17 @@ pub fn SphereCategoryDropdown(
                 <div class="flex justify-between">
                     <span class="label text-white">{move_tr!("category")}</span>
                     <div class="h-full relative" node_ref=dropdown_ref>
-                        <button
+                        <input
                             name=name
                             value=move || match &*selected_category.read() {
                                 Some(category) => Some(category.category_id),
                                 None => None,
                             }
+                            class="hidden"
+                        />
+                        <button
                             type="button"
-                            class=select_class
+                            class="flex justify-between items-center input_primary w-fit gap-2"
                             on:click=move |_| show_dropdown.update(|value| *value = !*value)
                         >
                             { move || match &*selected_category.read() {
@@ -269,11 +267,11 @@ pub fn SphereCategoryDropdown(
                             <RotatingArrow point_up=show_dropdown/>
                         </button>
                         <Dropdown show_dropdown align_right=true>
-                            <ul class="mt-4 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col gap-1">
+                            <ul class="mt-2 z-10 p-2 shadow-sm bg-base-200 rounded-sm flex flex-col gap-1">
                                 <li>
                                     <button
                                         type="button"
-                                        class="button-ghost"
+                                        class="button-ghost w-full"
                                         on:click=move |_| {
                                             selected_category.set(None);
                                             show_dropdown.set(false);

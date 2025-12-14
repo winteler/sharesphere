@@ -66,6 +66,7 @@ home = Home
 subscribed = Subscribed
 popular = Popular
 navigate-sphere = Navigate to Sphere {$sphere_name}
+github-repo = GitHub Repository
 
 hot = Hot
 trending = Trending
@@ -152,7 +153,7 @@ image = Image
 sharesphere-right-sidebar-1 =
     ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics.
 sharesphere-right-sidebar-2 =
-    ShareSphere is a non-profit, add-free, source-available website with a focus on transparency, privacy and community empowerment.You can find more information on the website and its rules below.
+    ShareSphere is a non-profit, add-free, source-available website with a focus on transparency, privacy and community empowerment. You can find more information on the website and its rules below.
 about-sharesphere-content =
     ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. ShareSphere is a non-profit, ad-free, source-available website with a focus on transparency, privacy and community empowerment. ShareSphere's goal is to run by relying solely on donations and to provide a better user experience than ad-based platforms.
 about-sharesphere-rules-1 =

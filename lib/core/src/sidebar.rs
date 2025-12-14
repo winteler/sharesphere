@@ -5,8 +5,8 @@ use leptos_fluent::{move_tr, I18n};
 use leptos_use::on_click_outside;
 
 use sharesphere_utils::errors::{AppError};
-use sharesphere_utils::icons::{FlameIcon, HomeIcon};
-use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
+use sharesphere_utils::icons::{FlameIcon, GithubIcon, HomeIcon};
+use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, GITHUB_REPO_URL, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::{TransitionUnpack};
 use sharesphere_utils::widget::{Badge, Collapse, TitleCollapse};
 use crate::rule::{BaseRuleList, Rule, RuleList};
@@ -192,6 +192,10 @@ pub fn HomeSidebar() -> impl IntoView {
                 <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">{move_tr!("content-policy")}</a></li>
                 <li><a href=RULES_ROUTE class="link text-primary">{move_tr!("rules")}</a></li>
                 <li><a href=FAQ_ROUTE class="link text-primary">{move_tr!("faq")}</a></li>
+                <li>
+                    <GithubIcon/>
+                    <a href=GITHUB_REPO_URL class="link text-primary">{move_tr!("github-repo")}</a>
+                </li>
             </ul>
             <BaseRuleList/>
         </div>

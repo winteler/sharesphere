@@ -124,6 +124,13 @@ pub fn FlameIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> i
 }
 
 #[component]
+pub fn GithubIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/external/github/github-mark-white.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn GraphIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/graph.svg" class=class/>

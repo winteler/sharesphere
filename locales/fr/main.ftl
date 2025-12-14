@@ -66,6 +66,7 @@ home = Accueil
 subscribed = Abonné
 popular = Populaire
 navigate-sphere = Naviguer vers la Sphère {$sphere_name}
+github-repo = Répertoire GitHub
 
 hot = Populaire
 trending = Tendance

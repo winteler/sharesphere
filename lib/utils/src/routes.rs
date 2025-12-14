@@ -31,6 +31,7 @@ pub const PRIVACY_POLICY_ROUTE: &str = "/privacy_policy";
 pub const CONTENT_POLICY_ROUTE: &str = "/content_policy";
 pub const RULES_ROUTE: &str = "/rules";
 pub const FAQ_ROUTE: &str = "/faq";
+pub const GITHUB_REPO_URL: &str = "https://github.com/winteler/sharesphere";
 
 #[cfg(feature = "ssr")]
 pub fn get_app_origin() -> Result<String, AppError> {

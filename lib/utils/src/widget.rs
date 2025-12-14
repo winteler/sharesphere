@@ -98,11 +98,14 @@ pub fn DropdownButton<C: IntoView + 'static>(
     button_content: ViewFn,
     #[prop(optional)]
     align_right: bool,
+    #[prop(default = true)]
+    open_down: bool,
+    #[prop(optional)]
+    show_dropdown: RwSignal<bool>,
     children: TypedChildrenFn<C>,
     #[prop(optional)]
     dropdown_ref: NodeRef<html::Div>,
 ) -> impl IntoView {
-    let show_dropdown = RwSignal::new(false);
     #[cfg(feature = "hydrate")]
     {
         // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
@@ -122,7 +125,7 @@ pub fn DropdownButton<C: IntoView + 'static>(
             >
                 {button_content.run()}
             </button>
-            <Dropdown show_dropdown align_right children/>
+            <Dropdown show_dropdown align_right open_down children/>
         </div>
     }.into_any()
 }

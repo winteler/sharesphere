@@ -18,7 +18,7 @@ use {
     sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
 };
 use sharesphere_utils::icons::LoadingIcon;
-use sharesphere_utils::widget::{Collapse, ContentBody};
+use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
 use crate::state::GlobalState;
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq)]
@@ -353,18 +353,20 @@ pub async fn remove_rule(
 pub fn BaseRuleList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
-        <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
-        {
-            move || Suspend::new(async move {
-                match &state.base_rules.await {
-                    Ok(rule_vec) => Either::Left(view!{
-                        <RuleList rule_vec=rule_vec.clone()/>
-                    }),
-                    Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),
-                }
-            })
-        }
-        </Suspense>
+        <TitleCollapse title=move_tr!("rules")>
+            <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>
+            {
+                move || Suspend::new(async move {
+                    match &state.base_rules.await {
+                        Ok(rule_vec) => Either::Left(view!{
+                            <RuleList rule_vec=rule_vec.clone()/>
+                        }),
+                        Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),
+                    }
+                })
+            }
+            </Suspense>
+        </TitleCollapse>
     }
 }
 

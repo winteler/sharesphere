@@ -192,9 +192,11 @@ pub fn HomeSidebar() -> impl IntoView {
                 <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">{move_tr!("content-policy")}</a></li>
                 <li><a href=RULES_ROUTE class="link text-primary">{move_tr!("rules")}</a></li>
                 <li><a href=FAQ_ROUTE class="link text-primary">{move_tr!("faq")}</a></li>
-                <li>
-                    <GithubIcon/>
-                    <a href=GITHUB_REPO_URL class="link text-primary">{move_tr!("github-repo")}</a>
+                <li class="inline-flex items-center">
+                    <a href=GITHUB_REPO_URL class="h-full inline-flex items-center gap-2">
+                        <GithubIcon/>
+                        <div class="link text-primary">{move_tr!("github-repo")}</div>
+                    </a>
                 </li>
             </ul>
             <BaseRuleList/>

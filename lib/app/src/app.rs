@@ -265,7 +265,7 @@ fn HomePage() -> impl IntoView {
 
     view! {
         <div
-            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto pt-2 px-2 xl:px-4"
+            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
             on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
                 additional_load_count.update(|value| *value += 1);
             }
@@ -297,7 +297,7 @@ fn HotPage() -> impl IntoView {
 
     view! {
         <div
-            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto pt-2 px-2 xl:px-4"
+            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
             on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
                 additional_load_count.update(|value| *value += 1);
             }
@@ -321,7 +321,7 @@ pub fn BannerWithWidgets(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
-        <div class="relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
+        <div class="mt-2 relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
             <BannerContent title icon_url banner_url/>
         </div>
         <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">

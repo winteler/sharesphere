@@ -147,6 +147,24 @@ pub fn SphereCategoryFilter() -> impl IntoView {
     }
 }
 
+#[component]
+pub fn SphereCategoryToggle(category_id: i64) -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let is_filter_active = move || match &*sphere_state.sphere_category_filter.read() {
+        SphereCategoryFilter::All => false,
+        SphereCategoryFilter::CategorySet(category_set) => category_set.filters.contains(&category_id),
+    };
+
+    view! {
+        <input
+            type="checkbox"
+            class="toggle toggle-secondary"
+            checked=is_filter_active
+            on:change=move |_| on_change_category_input_v2(sphere_state.sphere_category_filter, category_id)
+        />
+    }
+}
+
 fn on_change_all_category_input(
     sphere_category_filter: RwSignal<SphereCategoryFilter>,
     all_input_ref: NodeRef<Input>,
@@ -176,6 +194,27 @@ fn on_change_all_category_input(
             },
         }
     }
+}
+
+fn on_change_category_input_v2(
+    sphere_category_filter: RwSignal<SphereCategoryFilter>,
+    category_id: i64,
+) {
+    let mut category_filter = sphere_category_filter.write();
+    match &mut *category_filter {
+        SphereCategoryFilter::All => {
+            let new_category_filter = SphereCategoryFilter::CategorySet(
+                CategorySetFilter::new(category_id)
+            );
+            *category_filter = new_category_filter;
+        },
+        SphereCategoryFilter::CategorySet(category_set) => {
+            if !category_set.filters.remove(&category_id) {
+                category_set.filters.insert(category_id);
+            }
+        },
+    };
+
 }
 
 fn on_change_category_input(

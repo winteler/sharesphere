@@ -8,14 +8,14 @@ use sharesphere_utils::errors::{AppError};
 use sharesphere_utils::icons::{FlameIcon, GithubIcon, HomeIcon};
 use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, GITHUB_REPO_URL, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::{TransitionUnpack};
-use sharesphere_utils::widget::{Badge, Collapse, TitleCollapse};
+use sharesphere_utils::widget::{Badge, TitleCollapse};
 use crate::rule::{BaseRuleList, Rule, RuleList};
 use crate::sphere::{SphereHeader, SphereLinkList};
 
 use crate::state::{GlobalState, SphereState};
 use crate::search::{SearchSpheres, SearchState};
 use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers};
-use crate::sphere_category::SphereCategoryBadge;
+use crate::sphere_category::{SphereCategoryCollapseWithFilter};
 
 /// Component to display a collapsable list of sphere links
 #[component]
@@ -267,20 +267,12 @@ pub fn SphereCategoryList() -> impl IntoView {
             <div class="flex flex-col pl-2 pt-1">
                 <TransitionUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
                 {
-                    sphere_category_vec.iter().map(|sphere_category| {
-                        let category = sphere_category.clone();
-                        let description = StoredValue::new(sphere_category.description.clone());
-                        view! {
-                            <Collapse
-                                title_view=move || view! { <SphereCategoryBadge category_header=category/> }
-                                is_open=false
-                            >
-                                <div class="pl-2 text-sm">{description.get_value()}</div>
-                            </Collapse>
-                        }
+                    sphere_category_vec.iter().map(|sphere_category| view! {
+                        <SphereCategoryCollapseWithFilter sphere_category=sphere_category.clone()/>
                     }).collect_view()
                 }
                 </TransitionUnpack>
+                // Add AllCategoryToggle and OnlyCategoryToggle
             </div>
         </TitleCollapse>
     }

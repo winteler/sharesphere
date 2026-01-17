@@ -8,6 +8,8 @@ use sharesphere_utils::errors::AppError;
 use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_utils::widget::{DropdownButton, RotatingArrow};
 
+use crate::filter::SphereCategoryToggle;
+
 #[cfg(feature = "ssr")]
 use {
     sharesphere_auth::{
@@ -311,5 +313,41 @@ pub fn SphereCategoryDropdown(
 fn NoSphereCategory() -> impl IntoView {
     view! {
         <span class="text-gray-400">{move_tr!("category-none")}</span>
+    }
+}
+
+/// Collapse with a sphere category name as title, showing its description when opened and with an additional toggle to filter on this category
+#[component]
+pub fn SphereCategoryCollapseWithFilter(sphere_category: SphereCategory) -> impl IntoView {
+    let category_id = sphere_category.category_id;
+    let description = sphere_category.description.clone();
+    let show_description = RwSignal::new(false);
+    let collapse_class = move || match show_description.get() {
+        true => "transition-all duration-500 overflow-hidden",
+        false => "transition-all duration-500 overflow-hidden h-0",
+    };
+    let collapse_class_inner = move || match show_description.get() {
+        true => "transition-all duration-500 opacity-100 visible",
+        false => "transition-all duration-500 opacity-0 invisible",
+    };
+
+    view! {
+        <div class="flex flex-col gap-1">
+            <div class="flex justify-between items-center">
+                <button
+                    class="p-1 rounded-md flex justify-between items-center hover:bg-base-content/20"
+                    on:click=move |_| show_description.update(|value| *value = !*value)
+                >
+                    <SphereCategoryBadge category_header=sphere_category/>
+                    <RotatingArrow point_up=show_description/>
+                </button>
+                <SphereCategoryToggle category_id/>
+            </div>
+            <div class=collapse_class>
+                <div class=collapse_class_inner>
+                    <div class="pl-2 text-sm">{description}</div>
+                </div>
+            </div>
+        </div>
     }
 }

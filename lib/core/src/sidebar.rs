@@ -9,13 +9,14 @@ use sharesphere_utils::icons::{FlameIcon, GithubIcon, HomeIcon};
 use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, GITHUB_REPO_URL, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::{TransitionUnpack};
 use sharesphere_utils::widget::{Badge, TitleCollapse};
-use crate::rule::{BaseRuleList, Rule, RuleList};
-use crate::sphere::{SphereHeader, SphereLinkList};
 
-use crate::state::{GlobalState, SphereState};
+use crate::filter::{AllCategoriesToggle, OnlyCategoriesToggle};
+use crate::rule::{BaseRuleList, Rule, RuleList};
 use crate::search::{SearchSpheres, SearchState};
+use crate::sphere::{SphereHeader, SphereLinkList};
 use crate::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers};
 use crate::sphere_category::{SphereCategoryCollapseWithFilter};
+use crate::state::{GlobalState, SphereState};
 
 /// Component to display a collapsable list of sphere links
 #[component]
@@ -272,7 +273,11 @@ pub fn SphereCategoryList() -> impl IntoView {
                     }).collect_view()
                 }
                 </TransitionUnpack>
-                // Add AllCategoryToggle and OnlyCategoryToggle
+                <div class="w-full border-b border-0.5 border-base-content/20 mb-2"/>
+                <div class="flex flex-col gap-1">
+                    <AllCategoriesToggle/>
+                    <OnlyCategoriesToggle/>
+                </div>
             </div>
         </TitleCollapse>
     }

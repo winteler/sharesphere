@@ -333,9 +333,9 @@ pub fn SphereCategoryCollapseWithFilter(sphere_category: SphereCategory) -> impl
 
     view! {
         <div class="flex flex-col gap-1">
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center gap-2">
                 <button
-                    class="p-1 rounded-md flex justify-between items-center hover:bg-base-content/20"
+                    class="grow p-1 rounded-md flex justify-between items-center hover:bg-base-content/20"
                     on:click=move |_| show_description.update(|value| *value = !*value)
                 >
                     <SphereCategoryBadge category_header=sphere_category/>
@@ -345,7 +345,7 @@ pub fn SphereCategoryCollapseWithFilter(sphere_category: SphereCategory) -> impl
             </div>
             <div class=collapse_class>
                 <div class=collapse_class_inner>
-                    <div class="pl-2 text-sm">{description}</div>
+                    <div class="pl-2 pb-2 text-sm">{description}</div>
                 </div>
             </div>
         </div>

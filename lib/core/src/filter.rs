@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 use leptos::html::{Div, Input};
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
@@ -83,66 +83,27 @@ pub fn PostFiltersButton() -> impl IntoView {
 #[component]
 pub fn SphereCategoryFilter() -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
-    let all_input_ref = NodeRef::<Input>::new();
-    let only_category_input_ref = NodeRef::<Input>::new();
-    let category_input_ref_map = StoredValue::new(HashMap::<i64, NodeRef<Input>>::new());
     view! {
         <div class="flex flex-col gap-1">
             <div class="text-center font-bold text-xl whitespace-nowrap">{move_tr!("sphere-categories")}</div>
-            <label class="cursor-pointer flex justify-between">
-                <span class="label">{move_tr!("all")}</span>
-                <input
-                    type="checkbox"
-                    class="toggle toggle-primary"
-                    checked=true
-                    node_ref=all_input_ref
-                    on:change=move |_| on_change_all_category_input(sphere_state.sphere_category_filter, all_input_ref, only_category_input_ref, category_input_ref_map)
-                />
-            </label>
-            <div class="w-full border-b border-0.5 border-base-content/20"/>
             <SuspenseUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
             {
-                category_input_ref_map.update_value(|mut input_ref_map| input_ref_map.clear());
                 sphere_category_vec.iter().map(|sphere_category| {
-                    let category_input_ref = NodeRef::<Input>::new();
-                    category_input_ref_map.update_value(|mut input_ref_map| {
-                        input_ref_map.insert(sphere_category.category_id, category_input_ref);
-                    });
                     let category_id = sphere_category.category_id;
                     view! {
                         <label class="cursor-pointer flex justify-between">
                             <span class="label">
                                 <SphereCategoryBadge category_header=sphere_category/>
                             </span>
-                            <input
-                                type="checkbox"
-                                class="toggle toggle-secondary"
-                                checked=false
-                                node_ref=category_input_ref
-                                on:change=move |_| on_change_category_input(
-                                    sphere_state.sphere_category_filter,
-                                    all_input_ref,
-                                    only_category_input_ref,
-                                    category_input_ref,
-                                    category_id
-                                )
-                            />
+                            <SphereCategoryToggle category_id/>
                         </label>
                     }
                 }).collect_view()
             }
             </SuspenseUnpack>
-            <label class="cursor-pointer flex justify-between">
-                <span class="label">{move_tr!("only-categories")}</span>
-                <input
-                    type="checkbox"
-                    class="toggle toggle-info"
-                    checked=false
-                    node_ref=only_category_input_ref
-                    disabled=move || sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All
-                    on:change=move |_| on_change_only_category_input(sphere_state.sphere_category_filter, only_category_input_ref)
-                />
-            </label>
+            <div class="w-full border-b border-0.5 border-base-content/20"/>
+            <AllCategoriesToggle/>
+            <OnlyCategoriesToggle/>
         </div>
     }
 }
@@ -150,9 +111,14 @@ pub fn SphereCategoryFilter() -> impl IntoView {
 #[component]
 pub fn SphereCategoryToggle(category_id: i64) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
-    let is_filter_active = move || match &*sphere_state.sphere_category_filter.read() {
-        SphereCategoryFilter::All => false,
-        SphereCategoryFilter::CategorySet(category_set) => category_set.filters.contains(&category_id),
+    let input_ref = NodeRef::<Input>::new();
+    let is_filter_active = move || {
+        let is_active = match &*sphere_state.sphere_category_filter.read() {
+            SphereCategoryFilter::All => false,
+            SphereCategoryFilter::CategorySet(category_set) => category_set.filters.contains(&category_id),
+        };
+        set_checkbox(is_active, input_ref);
+        is_active
     };
 
     view! {
@@ -160,43 +126,62 @@ pub fn SphereCategoryToggle(category_id: i64) -> impl IntoView {
             type="checkbox"
             class="toggle toggle-secondary"
             checked=is_filter_active
-            on:change=move |_| on_change_category_input_v2(sphere_state.sphere_category_filter, category_id)
+            on:change=move |_| on_change_category_input(sphere_state.sphere_category_filter, category_id)
+            node_ref=input_ref
         />
     }
 }
 
-fn on_change_all_category_input(
-    sphere_category_filter: RwSignal<SphereCategoryFilter>,
-    all_input_ref: NodeRef<Input>,
-    only_category_input_ref: NodeRef<Input>,
-    category_input_ref_map: StoredValue<HashMap<i64, NodeRef<Input>>>,
-) {
-    if let Some(input_ref) = all_input_ref.get() {
-        match input_ref.checked() {
-            true => {
-                category_input_ref_map.with_value(|input_ref_map| {
-                    for input_ref in input_ref_map.values() {
-                        if let Some(input_ref) = input_ref.get() {
-                            input_ref.set_checked(false);
-                        }
-                    }
-                });
-                if let Some(input_ref) = only_category_input_ref.get() {
-                    input_ref.set_checked(false);
-                }
-                sphere_category_filter.set(SphereCategoryFilter::All);
-            },
-            false => {
-                sphere_category_filter.set(SphereCategoryFilter::CategorySet(CategorySetFilter {
-                    filters: Default::default(),
-                    only_category: false,
-                }));
-            },
-        }
+#[component]
+pub fn AllCategoriesToggle() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let input_ref = NodeRef::<Input>::new();
+    let is_filter_all_categories = move || {
+        let is_active = sphere_state.sphere_category_filter.read() == SphereCategoryFilter::All;
+        set_checkbox(is_active, input_ref);
+        is_active
+    };
+    view! {
+        <label class="cursor-pointer flex justify-between">
+            <span class="label">{move_tr!("all")}</span>
+            <input
+                type="checkbox"
+                class="toggle toggle-primary"
+                checked=is_filter_all_categories
+                on:change=move |_| on_change_all_categories_input(sphere_state.sphere_category_filter)
+                node_ref=input_ref
+            />
+        </label>
     }
 }
 
-fn on_change_category_input_v2(
+#[component]
+pub fn OnlyCategoriesToggle() -> impl IntoView {
+    let sphere_state = expect_context::<SphereState>();
+    let input_ref = NodeRef::<Input>::new();
+    let is_filter_only_categories = move || {
+        let is_active = match &*sphere_state.sphere_category_filter.read() {
+            SphereCategoryFilter::All => false,
+            SphereCategoryFilter::CategorySet(category_set) => category_set.only_category,
+        };
+        set_checkbox(is_active, input_ref);
+        is_active
+    };
+    view! {
+        <label class="cursor-pointer flex justify-between">
+            <span class="label">{move_tr!("only-categories")}</span>
+            <input
+                type="checkbox"
+                class="toggle toggle-primary"
+                checked=is_filter_only_categories
+                on:change=move |_| on_change_only_categories_input(sphere_state.sphere_category_filter)
+                node_ref=input_ref
+            />
+        </label>
+    }
+}
+
+fn on_change_category_input(
     sphere_category_filter: RwSignal<SphereCategoryFilter>,
     category_id: i64,
 ) {
@@ -217,65 +202,38 @@ fn on_change_category_input_v2(
 
 }
 
-fn on_change_category_input(
-    sphere_category_filter: RwSignal<SphereCategoryFilter>,
-    all_input_ref: NodeRef<Input>,
-    only_category_input_ref: NodeRef<Input>,
-    category_input_ref: NodeRef<Input>,
-    category_id: i64,
-) {
-    if let Some(input_ref) = category_input_ref.get() {
-        match input_ref.checked() {
-            true => {
-                sphere_category_filter.update(|filter| {
-                    match filter {
-                        SphereCategoryFilter::All => {
-                            if let Some(all_input_ref) = all_input_ref.get() {
-                                all_input_ref.set_checked(false);
-                            }
-                            if let Some(input_ref) = only_category_input_ref.get() {
-                                input_ref.set_checked(true);
-                            }
-                            *filter = SphereCategoryFilter::CategorySet(CategorySetFilter::new(category_id));
-                        },
-                        SphereCategoryFilter::CategorySet(filter_set) => {
-                            filter_set.filters.insert(category_id);
-                        },
-                    }
-                });
-            },
-            false => {
-                sphere_category_filter.update(|filter| {
-                    if let SphereCategoryFilter::CategorySet(filter_set) = filter {
-                        filter_set.filters.remove(&category_id);
-                    }
-                })
-            },
-        }
+fn set_checkbox(is_checked: bool, input_ref: NodeRef<Input>) {
+    if let Some(input_ref) = input_ref.get() {
+        input_ref.set_checked(is_checked);
     }
 }
 
-fn on_change_only_category_input(
+fn on_change_all_categories_input(
     sphere_category_filter: RwSignal<SphereCategoryFilter>,
-    only_category_input_ref: NodeRef<Input>,
 ) {
-    if let Some(input_ref) = only_category_input_ref.get() {
-        match input_ref.checked() {
-            true => {
-                sphere_category_filter.update(|filter| match filter {
-                    SphereCategoryFilter::All => *filter = SphereCategoryFilter::CategorySet(CategorySetFilter::default()),
-                    SphereCategoryFilter::CategorySet(filter_set) => filter_set.only_category = true,
-                });
-            },
-            false => {
-                sphere_category_filter.update(|filter| {
-                    if let SphereCategoryFilter::CategorySet(filter_set) = filter {
-                        filter_set.only_category = false;
-                    }
-                })
-            },
-        }
-    }
+    let mut category_filter = sphere_category_filter.write();
+    match &mut *category_filter {
+        SphereCategoryFilter::All => {
+            *category_filter = SphereCategoryFilter::CategorySet(CategorySetFilter::default());
+        },
+        SphereCategoryFilter::CategorySet(_) => {
+            *category_filter = SphereCategoryFilter::All;
+        },
+    };
+}
+
+fn on_change_only_categories_input(
+    sphere_category_filter: RwSignal<SphereCategoryFilter>,
+) {
+    let mut current_filter = sphere_category_filter.write();
+    match &mut *current_filter {
+        SphereCategoryFilter::All => {
+            *current_filter = SphereCategoryFilter::CategorySet(CategorySetFilter::default());
+        },
+        SphereCategoryFilter::CategorySet(category_set) => {
+            category_set.only_category = !category_set.only_category;
+        },
+    };
 }
 
 #[cfg(test)]

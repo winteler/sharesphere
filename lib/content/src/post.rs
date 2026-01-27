@@ -337,7 +337,6 @@ pub fn CreatePost() -> impl IntoView {
                             autocomplete="off"
                             class="w-full p-3 text-sm rounded-none"
                             on:input=move |ev| {
-
                                 sphere_name_input.set(event_target_value(&ev).to_lowercase());
                             }
                             maxlength=MAX_CONTENT_LENGTH

@@ -15,7 +15,7 @@ pub fn FormCheckbox(
     view! {
         <div class=class>
             <input type="text" name=name value=is_checked_string class="hidden"/>
-            <input type="checkbox" class=checkbox_class checked=is_checked on:click=move |_| is_checked.update(|value| *value = !*value)/>
+            <input type="checkbox" class=checkbox_class bind:checked=is_checked/>
         </div>
     }
 }
@@ -52,9 +52,8 @@ pub fn LabeledFormCheckbox(
                 <input
                     type="checkbox"
                     class=checkbox_class
-                    checked=is_checked
+                    bind:checked=is_checked
                     disabled=disabled
-                    on:click=move |_| is_checked.update(|value| *value = !*value)
                 />
             </label>
         </div>
@@ -79,9 +78,8 @@ pub fn LabeledSignalCheckbox(
                 <input
                     type="checkbox"
                     class="checkbox checkbox-primary"
-                    checked=value
+                    bind:checked=value
                     disabled=disabled
-                    on:click=move |_| value.update(|value| *value = !*value)
                 />
             </label>
         </div>

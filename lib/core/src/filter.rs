@@ -181,6 +181,12 @@ pub fn OnlyCategoriesToggle() -> impl IntoView {
     }
 }
 
+fn set_checkbox(is_checked: bool, input_ref: NodeRef<Input>) {
+    if let Some(input_ref) = input_ref.get() {
+        input_ref.set_checked(is_checked);
+    }
+}
+
 fn on_change_category_input(
     sphere_category_filter: RwSignal<SphereCategoryFilter>,
     category_id: i64,
@@ -200,12 +206,6 @@ fn on_change_category_input(
         },
     };
 
-}
-
-fn set_checkbox(is_checked: bool, input_ref: NodeRef<Input>) {
-    if let Some(input_ref) = input_ref.get() {
-        input_ref.set_checked(is_checked);
-    }
 }
 
 fn on_change_all_categories_input(
@@ -238,7 +238,8 @@ fn on_change_only_categories_input(
 
 #[cfg(test)]
 mod tests {
-    use crate::filter::CategorySetFilter;
+    use leptos::prelude::*;
+    use crate::filter::{on_change_all_categories_input, on_change_category_input, on_change_only_categories_input, CategorySetFilter, SphereCategoryFilter};
 
     #[test]
     fn test_category_set_filter_default() {
@@ -253,5 +254,83 @@ mod tests {
         assert_eq!(default_category_filter.filters.len(), 1);
         assert_eq!(default_category_filter.filters.iter().next(), Some(&7));
         assert!(default_category_filter.only_category);
+    }
+
+    #[test]
+    fn test_on_change_category_input() {
+        let owner = Owner::new();
+        owner.set();
+        let sphere_category_filter = RwSignal::new(SphereCategoryFilter::All);
+
+        on_change_category_input(sphere_category_filter, 0);
+        let mut expected_category_set = CategorySetFilter::new(0);
+        assert_eq!(
+            sphere_category_filter.get(),
+            SphereCategoryFilter::CategorySet(expected_category_set.clone()),
+        );
+
+        on_change_category_input(sphere_category_filter, 1);
+        expected_category_set.filters.insert(1);
+
+        assert_eq!(
+            sphere_category_filter.get(),
+            SphereCategoryFilter::CategorySet(expected_category_set.clone()),
+        );
+
+        on_change_category_input(sphere_category_filter, 0);
+        expected_category_set.filters.remove(&0);
+
+        assert_eq!(
+            sphere_category_filter.get(),
+            SphereCategoryFilter::CategorySet(expected_category_set),
+        );
+    }
+
+    #[test]
+    fn test_on_change_all_categories_input() {
+        let owner = Owner::new();
+        owner.set();
+        let sphere_category_filter = RwSignal::new(SphereCategoryFilter::All);
+
+        on_change_all_categories_input(sphere_category_filter);
+        let expected_category_set = CategorySetFilter::default();
+        assert_eq!(
+            sphere_category_filter.get(),
+            SphereCategoryFilter::CategorySet(expected_category_set),
+        );
+
+        on_change_all_categories_input(sphere_category_filter);
+
+        assert_eq!(
+            sphere_category_filter.get(),
+            SphereCategoryFilter::All,
+        );
+    }
+
+    #[test]
+    fn test_on_change_only_categories_input() {
+        let owner = Owner::new();
+        owner.set();
+        let sphere_category_filter = RwSignal::new(SphereCategoryFilter::All);
+
+        on_change_only_categories_input(sphere_category_filter);
+        let mut expected_category_set = CategorySetFilter::default();
+        assert_eq!(
+            sphere_category_filter.get(),
+            SphereCategoryFilter::CategorySet(expected_category_set.clone()),
+        );
+
+        if let SphereCategoryFilter::CategorySet(category_set) = &mut *sphere_category_filter.write() {
+            category_set.filters.insert(0);
+        }
+
+        on_change_only_categories_input(sphere_category_filter);
+        expected_category_set.only_category = false;
+        expected_category_set.filters.insert(0);
+
+        assert_eq!(
+            sphere_category_filter.get(),
+            SphereCategoryFilter::CategorySet(expected_category_set),
+        );
     }
 }

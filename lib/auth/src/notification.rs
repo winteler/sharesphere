@@ -66,4 +66,53 @@ pub mod ssr {
 
         Ok(notification)
     }
+
+    pub async fn get_notifications(
+        user_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Vec<Notification>, AppError> {
+        let notification_vec = sqlx::query_as::<_, Notification>(
+            "SELECT n.*, u.username AS trigger_username
+            FROM notifications n
+            JOIN USERS u ON u.user_id = n.trigger_user_id
+            WHERE n.user_id = $1",
+        )
+            .bind(user_id)
+            .fetch_all(db_pool)
+            .await?;
+
+        Ok(notification_vec)
+    }
+
+    pub async fn read_notification(
+        notification_id: i64,
+        user_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            "UPDATE notifications SET is_read = TRUE
+            WHERE notification_id = $1 and user_id = $2",
+            notification_id,
+            user_id,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn read_all_notification(
+        user_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            "UPDATE notifications SET is_read = TRUE
+            WHERE user_id = $1",
+            user_id,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
 }

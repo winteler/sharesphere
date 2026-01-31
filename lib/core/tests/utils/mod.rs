@@ -15,6 +15,7 @@ use sqlx::PgPool;
 use std::cmp::Ordering;
 use std::convert::Infallible;
 use std::iter::zip;
+use sharesphere_auth::notification::Notification;
 use sharesphere_auth::role::UserSphereRole;
 use sharesphere_auth::user::UserBan;
 
@@ -219,6 +220,23 @@ pub async fn get_user_ban_by_id(
     ).fetch_one(db_pool).await?;
 
     Ok(user_ban)
+}
+
+pub async fn get_notification(
+    notification_id: i64,
+    db_pool: &PgPool,
+) -> Result<Notification, AppError> {
+    let notification = sqlx::query_as::<_, Notification>(
+        "SELECT n.*, u.username AS trigger_username
+        FROM notifications n
+        JOIN USERS u ON u.user_id = n.trigger_user_id
+        WHERE n.notification_id = $1",
+    )
+        .bind(notification_id)
+        .fetch_one(db_pool)
+        .await?;
+
+    Ok(notification)
 }
 
 pub fn get_png_data() -> &'static[u8] {

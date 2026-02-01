@@ -24,6 +24,7 @@ pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const COMMENT_ID_QUERY_PARAM: &str = "comment_id";
 pub const SEARCH_ROUTE: &str = "/search";
+pub const NOTIFICATION_ROUTE: &str = "/notification";
 pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
 pub const ABOUT_SHARESPHERE_ROUTE: &str = "/about_sharesphere";
 pub const TERMS_AND_CONDITIONS_ROUTE: &str = "/terms_and_conditions";

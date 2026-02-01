@@ -1,5 +1,7 @@
 use leptos::prelude::*;
+use leptos_use::{use_interval};
 use sharesphere_auth::auth::EndSession;
+use crate::notification::{Notification, get_notifications};
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
 use sharesphere_utils::errors::AppError;
@@ -27,7 +29,9 @@ pub struct GlobalState {
     pub comment_sort_type: RwSignal<SortType>,
     pub show_left_sidebar: RwSignal<bool>,
     pub show_right_sidebar: RwSignal<bool>,
+    pub notif_reload_trigger: RwSignal<u64>,
     pub user: Resource<Result<Option<User>, AppError>>,
+    pub notifications: Resource<Result<Vec<Notification>, AppError>>,
     pub base_rules: OnceResource<Result<Vec<Rule>, AppError>>,
 }
 
@@ -63,6 +67,9 @@ impl GlobalState {
         create_sphere_action: ServerAction<CreateSphere>,
         set_settings_action: ServerAction<SetUserSettings>,
     ) -> Self {
+        let interval_return  = use_interval(600000);
+        let notif_reload_trigger = RwSignal::new(0);
+
         Self {
             logout_action,
             delete_user_action,
@@ -77,7 +84,12 @@ impl GlobalState {
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
             show_left_sidebar: RwSignal::new(false),
             show_right_sidebar: RwSignal::new(false),
+            notif_reload_trigger,
             user,
+            notifications: Resource::new(
+                move || (interval_return.counter.get(), notif_reload_trigger.get()),
+                move |_| get_notifications(),
+            ),
             base_rules: OnceResource::new(get_rule_vec(None))
         }
     }

@@ -27,7 +27,7 @@ leptos_axum = { version = "0.8.6" }
 server_fn = { version = "0.8.8", features = ["multipart"] }
 
 leptos-fluent = { version = "0.2.19", features = ["json"] }
-leptos-use = { version = "0.16.3", features = ["use_breakpoints", "use_clipboard", "signal_debounced", "signal_throttled"] }
+leptos-use = { version = "0.16.3", features = ["use_breakpoints", "use_clipboard", "signal_debounced", "signal_throttled", "use_interval"] }
 
 anyhow = "*"
 axum = {  version = "0.8.7", features = [ "macros" ] }

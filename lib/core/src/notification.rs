@@ -1,5 +1,19 @@
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
+use sharesphere_utils::errors::AppError;
+use sharesphere_utils::icons::{LoadingIcon, NotificationIcon};
+use sharesphere_utils::routes::{NOTIFICATION_ROUTE};
+
+use crate::state::GlobalState;
+
+#[cfg(feature = "ssr")]
+use {
+    sharesphere_auth::{
+        auth::ssr::check_user,
+        session::ssr::get_db_pool,
+    },
+};
 
 #[repr(i16)]
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -101,7 +115,7 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn read_all_notification(
+    pub async fn read_all_notifications(
         user_id: i64,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
@@ -114,5 +128,77 @@ pub mod ssr {
             .await?;
 
         Ok(())
+    }
+}
+
+#[server]
+pub async fn get_notifications() -> Result<Vec<Notification>, AppError> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::get_notifications(user.user_id, &db_pool).await
+}
+
+#[server]
+pub async fn read_notification(
+    notification_id: i64,
+) -> Result<(), AppError> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::read_notification(notification_id, user.user_id, &db_pool).await
+}
+
+#[server]
+pub async fn read_all_notifications() -> Result<(), AppError> {
+    let user = check_user().await?;
+    let db_pool = get_db_pool()?;
+
+    ssr::read_all_notifications(user.user_id, &db_pool).await
+}
+
+/// When logged in, displays a bell button with the number of unread notifications, redirects to the notification page on click.
+#[component]
+pub fn NotificationButton() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    view! {
+        <Transition fallback=move || view! {  <LoadingIcon/> }>
+            {
+                move || Suspend::new(async move {
+                    match state.user.await {
+                        Ok(Some(_)) => {
+                            let notif_link = view! {
+                                <a class="button-rounded-ghost" href=NOTIFICATION_ROUTE>
+                                    <NotificationIcon/>
+                                </a>
+                            }.into_any();
+                            match state.notifications.await {
+                                Ok(notifications) if !notifications.is_empty() => {
+                                    let unread_notif_count = notifications.into_iter().filter(|notif| !notif.is_read).count();
+                                    let unread_notif_count = match unread_notif_count {
+                                        x if x > 99 => String::from("99+"),
+                                        x => x.to_string(),
+                                    };
+                                    view! {
+                                        <a class="button-rounded-ghost relative flex" href=NOTIFICATION_ROUTE>
+                                            <NotificationIcon/>
+                                            <div class="absolute left-0 bottom-0 z-10 mb-5 ml-6 p-1 px-2 w-fit bg-base-200 rounded-full text-xs select-none">
+                                                {unread_notif_count}
+                                            </div>
+                                        </a>
+                                    }.into_any()
+                                },
+                                Ok(_) => notif_link,
+                                Err(e) => {
+                                    log::error!("Failed to fetch notifications: {}", e);
+                                    notif_link
+                                }
+                            }
+                        },
+                        _ => ().into_any(),
+                    }
+                })
+            }
+        </Transition>
     }
 }

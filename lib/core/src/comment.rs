@@ -10,6 +10,7 @@ use crate::sphere::SphereHeader;
 
 #[cfg(feature = "ssr")]
 use {
+    crate::ranking::{ssr::vote_on_content, VoteValue},
     sharesphere_auth::{
         auth::{get_user, ssr::check_user},
         session::ssr::get_db_pool,
@@ -19,13 +20,14 @@ use {
         constants::MAX_CONTENT_LENGTH,
         editor::ssr::get_html_and_markdown_strings,
     },
-    crate::ranking::{ssr::vote_on_content, VoteValue},
 };
 use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::{get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::widget::{ContentBody, IsPinnedWidget, LoadIndicators, ScoreIndicator, TimeSinceWidget};
 use crate::moderation::ModeratedBody;
+#[cfg(feature = "ssr")]
+use crate::notification::{ssr::create_notification, NotificationType};
 
 pub const COMMENT_BATCH_SIZE: i64 = 50;
 
@@ -511,7 +513,7 @@ pub mod ssr {
     mod tests {
         use sharesphere_auth::user::User;
         use crate::comment::ssr::CommentWithVote;
-        use crate::comment::{Comment};
+        use crate::comment::Comment;
         use crate::ranking::VoteValue;
 
         #[test]
@@ -638,6 +640,8 @@ pub async fn create_comment(
     ).await?;
 
     comment.score = 1;
+
+    create_notification(post_id, parent_comment_id, user.user_id, NotificationType::Comment, &db_pool).await?;
 
     Ok(CommentWithChildren {
         comment,

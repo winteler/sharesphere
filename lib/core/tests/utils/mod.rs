@@ -15,7 +15,7 @@ use sqlx::PgPool;
 use std::cmp::Ordering;
 use std::convert::Infallible;
 use std::iter::zip;
-use sharesphere_auth::notification::Notification;
+use sharesphere_core::notification::Notification;
 use sharesphere_auth::role::UserSphereRole;
 use sharesphere_auth::user::UserBan;
 

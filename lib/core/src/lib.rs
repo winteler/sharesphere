@@ -2,6 +2,7 @@
 pub mod comment;
 pub mod filter;
 pub mod moderation;
+pub mod notification;
 pub mod post;
 pub mod profile;
 pub mod ranking;

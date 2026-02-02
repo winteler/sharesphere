@@ -1,6 +1,6 @@
 # ShareSphere
 
-ShareSphere is a web application providing community created and managed forums to exchange with other people about your hobbies, news, art, jokes and many more topics.
+[ShareSphere](https://sharesphere.space) is a web application providing community created and managed forums to exchange with other people about your hobbies, news, art, jokes and many more topics.
 
 ShareSphere is a non-profit, add-free, source-available website with a focus on transparency, privacy and community empowerment.
 ShareSphere is built in Rust using [Leptos](https://github.com/leptos-rs). 

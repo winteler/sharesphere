@@ -15,7 +15,7 @@ async fn test_create_notification() {
     let mut user = create_test_user(&db_pool).await;
     let trigger_user = create_user("trigger", &db_pool).await;
 
-    let (_, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+    let (sphere, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
 
     let post_comment_notif = create_notification(
         post.post_id,
@@ -25,6 +25,8 @@ async fn test_create_notification() {
         &db_pool
     ).await.expect("Should create post comment notification");
 
+    assert_eq!(post_comment_notif.sphere_id, sphere.sphere_id);
+    assert_eq!(post_comment_notif.sphere_name, sphere.sphere_name);
     assert_eq!(post_comment_notif.post_id, post.post_id);
     assert_eq!(post_comment_notif.comment_id, None);
     assert_eq!(post_comment_notif.user_id, user.user_id);
@@ -41,6 +43,8 @@ async fn test_create_notification() {
         &db_pool
     ).await.expect("Should create post comment notification");
 
+    assert_eq!(comment_comment_notif.sphere_id, sphere.sphere_id);
+    assert_eq!(comment_comment_notif.sphere_name, sphere.sphere_name);
     assert_eq!(comment_comment_notif.post_id, comment.post_id);
     assert_eq!(comment_comment_notif.comment_id, Some(comment.comment_id));
     assert_eq!(comment_comment_notif.user_id, user.user_id);

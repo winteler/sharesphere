@@ -1,10 +1,14 @@
 use leptos::prelude::*;
+use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{LoadingIcon, NotificationIcon};
-use sharesphere_utils::routes::{NOTIFICATION_ROUTE};
+use sharesphere_utils::routes::{get_comment_link, NOTIFICATION_ROUTE};
+use sharesphere_utils::unpack::SuspenseUnpack;
+use sharesphere_auth::auth_widget::LoginWindow;
 
+use crate::sidebar::HomeSidebar;
 use crate::state::GlobalState;
 
 #[cfg(feature = "ssr")]
@@ -28,6 +32,8 @@ pub enum NotificationType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Notification {
     pub notification_id: i64,
+    pub sphere_id: i64,
+    pub sphere_name: String,
     pub post_id: i64,
     pub comment_id: Option<i64>,
     pub user_id: i64,
@@ -53,14 +59,17 @@ pub mod ssr {
     ) -> Result<Notification, AppError> {
         let notification = sqlx::query_as::<_, Notification>(
             "WITH trigger_user AS (
-                SELECT * FROM users WHERE user_id = $3
+                SELECT username FROM users WHERE user_id = $3
+            ), post_info AS (
+                SELECT sphere_id, creator_id FROM posts WHERE post_id = $1
             ), new_notification AS (
-                INSERT INTO notifications (post_id, comment_id, user_id, trigger_user_id, notification_type)
+                INSERT INTO notifications (sphere_id, post_id, comment_id, user_id, trigger_user_id, notification_type)
                 VALUES (
+                    (SELECT sphere_id FROM post_info),
                     $1, $2,
                     CASE
                         WHEN $2 IS NULL THEN
-                            (SELECT creator_id FROM posts WHERE post_id = $1)
+                            (SELECT creator_id FROM post_info)
                         ELSE
                             (SELECT creator_id FROM comments WHERE comment_id = $2)
                     END,
@@ -68,8 +77,9 @@ pub mod ssr {
                 )
                 RETURNING *
             )
-            SELECT n.*, u.username AS trigger_username
-            FROM new_notification n, trigger_user u",
+            SELECT n.*, u.username AS trigger_username, s.sphere_name
+            FROM new_notification n, trigger_user u, spheres s
+            WHERE s.sphere_id = n.sphere_id",
         )
             .bind(post_id)
             .bind(comment_id)
@@ -86,10 +96,12 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<Notification>, AppError> {
         let notification_vec = sqlx::query_as::<_, Notification>(
-            "SELECT n.*, u.username AS trigger_username
+            "SELECT n.*, u.username AS trigger_username, s.sphere_name
             FROM notifications n
             JOIN USERS u ON u.user_id = n.trigger_user_id
-            WHERE n.user_id = $1",
+            JOIN spheres s ON s.sphere_id = n.sphere_id
+            WHERE n.user_id = $1
+            ORDER BY n.create_timestamp DESC",
         )
             .bind(user_id)
             .fetch_all(db_pool)
@@ -200,5 +212,58 @@ pub fn NotificationButton() -> impl IntoView {
                 })
             }
         </Transition>
+    }
+}
+
+/// Main page for notifications
+#[component]
+pub fn NotificationHome() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    view! {
+        <SuspenseUnpack resource=state.user let:user>
+        {
+            match user {
+                Some(_) => view! { <NotificationList/> }.into_any(),
+                None => view! { <LoginWindow/> }.into_any(),
+            }
+        }
+        </SuspenseUnpack>
+        <HomeSidebar/>
+    }
+}
+
+/// List of notifications
+#[component]
+pub fn NotificationList() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    view! {
+        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 mx-auto flex flex-col gap-2">
+            <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
+            <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4">
+            <SuspenseUnpack resource=state.notifications let:notifications>
+            {
+                notifications.iter().map(|notification| view! {
+                    <li><NotificationItem notification=notification.clone()/></li>
+                }).collect_view()
+            }
+            </SuspenseUnpack>
+            </ul>
+        </div>
+    }
+}
+
+/// Single notification
+#[component]
+pub fn NotificationItem(notification: Notification) -> impl IntoView {
+    let (message, link) = match (notification.notification_type, notification.comment_id) {
+        (NotificationType::Comment, Some(comment_id)) => ("comment comment", "get_comment_link(&notification.sphere_name)"),
+        (NotificationType::Comment, None) => ("comment post", "get_post_link()"),
+        (NotificationType::Moderation, Some(comment_id)) => ("moderate comment", "get_comment_link()"),
+        (NotificationType::Moderation, None) => ("moderate post", "get_post_link()"),
+    };
+    view! {
+        <a class="p-2 hover:bg-base-300" href=link>
+            {message}
+        </a>
     }
 }

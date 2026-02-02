@@ -12,7 +12,7 @@ use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE, POPULAR_ROUTE, FAQ_ROUTE};
+use sharesphere_utils::routes::*;
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
@@ -25,6 +25,7 @@ use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
 use sharesphere_components::search::{Search, SphereSearch};
 use sharesphere_content::post::{CreatePost, Post};
+use sharesphere_core::notification::NotificationHome;
 use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::ranking::PostSortWidget;
 use sharesphere_core::sidebar::{HomeSidebar, LeftSidebar};
@@ -212,6 +213,7 @@ pub fn App() -> impl IntoView {
                                     <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>
                                     <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
                                 </ParentRoute>
+                                <Route path=StaticSegment(NOTIFICATION_ROUTE) view=NotificationHome/>
                                 <Route path=StaticSegment(SEARCH_ROUTE) view=Search/>
                                 <Route path=StaticSegment(ABOUT_SHARESPHERE_ROUTE) view=AboutShareSphere/>
                                 <Route path=StaticSegment(TERMS_AND_CONDITIONS_ROUTE) view=TermsAndConditions/>
@@ -241,7 +243,6 @@ fn LoginGuardHome() -> impl IntoView {
 #[component]
 fn LoginGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-
     view! {
         <SuspenseUnpack resource=state.user let:user>
         {

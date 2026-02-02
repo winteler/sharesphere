@@ -1,5 +1,6 @@
 CREATE TABLE notifications (
     notification_id BIGSERIAL PRIMARY KEY,
+    sphere_id BIGINT NOT NULL REFERENCES spheres(sphere_id),
     post_id BIGINT NOT NULL REFERENCES posts(post_id),
     comment_id BIGINT REFERENCES comments(comment_id),
     user_id BIGINT NOT NULL REFERENCES users(user_id),

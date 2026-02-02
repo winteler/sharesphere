@@ -31,6 +31,8 @@ rules = Règles
 rules-and-moderation = Règles & Modération
 image-preview = Aperçu de l'image
 
+notifications = Notifications
+
 number-short = N°
 title = Titre
 name = Nom

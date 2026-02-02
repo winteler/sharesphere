@@ -31,6 +31,8 @@ rules = Rules
 rules-and-moderation = Rules & Moderation
 image-preview = Image Preview
 
+notifications = Notifications
+
 number-short = N°
 title = Title
 name = Name

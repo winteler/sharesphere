@@ -4,11 +4,13 @@ use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{LoadingIcon, NotificationIcon};
-use sharesphere_utils::routes::{get_comment_link, NOTIFICATION_ROUTE};
+use sharesphere_utils::routes::{get_comment_link, get_post_link, NOTIFICATION_ROUTE};
 use sharesphere_utils::unpack::SuspenseUnpack;
-use sharesphere_auth::auth_widget::LoginWindow;
+use sharesphere_utils::widget::TimeSinceWidget;
+use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
 
 use crate::sidebar::HomeSidebar;
+use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::state::GlobalState;
 
 #[cfg(feature = "ssr")]
@@ -33,7 +35,10 @@ pub enum NotificationType {
 pub struct Notification {
     pub notification_id: i64,
     pub sphere_id: i64,
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub sphere_header: SphereHeader,
     pub sphere_name: String,
+    pub satellite_id: Option<i64>,
     pub post_id: i64,
     pub comment_id: Option<i64>,
     pub user_id: i64,
@@ -61,11 +66,12 @@ pub mod ssr {
             "WITH trigger_user AS (
                 SELECT username FROM users WHERE user_id = $3
             ), post_info AS (
-                SELECT sphere_id, creator_id FROM posts WHERE post_id = $1
+                SELECT sphere_id, satellite_id, creator_id FROM posts WHERE post_id = $1
             ), new_notification AS (
-                INSERT INTO notifications (sphere_id, post_id, comment_id, user_id, trigger_user_id, notification_type)
+                INSERT INTO notifications (sphere_id, satellite_id, post_id, comment_id, user_id, trigger_user_id, notification_type)
                 VALUES (
                     (SELECT sphere_id FROM post_info),
+                    (SELECT satellite_id FROM post_info),
                     $1, $2,
                     CASE
                         WHEN $2 IS NULL THEN
@@ -77,7 +83,7 @@ pub mod ssr {
                 )
                 RETURNING *
             )
-            SELECT n.*, u.username AS trigger_username, s.sphere_name
+            SELECT n.*, u.username AS trigger_username, s.sphere_name, s.icon_url, s.is_nsfw
             FROM new_notification n, trigger_user u, spheres s
             WHERE s.sphere_id = n.sphere_id",
         )
@@ -96,7 +102,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Vec<Notification>, AppError> {
         let notification_vec = sqlx::query_as::<_, Notification>(
-            "SELECT n.*, u.username AS trigger_username, s.sphere_name
+            "SELECT n.*, u.username AS trigger_username, s.sphere_name, s.icon_url, s.is_nsfw
             FROM notifications n
             JOIN USERS u ON u.user_id = n.trigger_user_id
             JOIN spheres s ON s.sphere_id = n.sphere_id
@@ -219,6 +225,7 @@ pub fn NotificationButton() -> impl IntoView {
 #[component]
 pub fn NotificationHome() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    *state.notif_reload_trigger.write() += 1;
     view! {
         <SuspenseUnpack resource=state.user let:user>
         {
@@ -239,7 +246,7 @@ pub fn NotificationList() -> impl IntoView {
     view! {
         <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
-            <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4">
+            <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4 divide-y divide-base-content/20">
             <SuspenseUnpack resource=state.notifications let:notifications>
             {
                 notifications.iter().map(|notification| view! {
@@ -255,15 +262,33 @@ pub fn NotificationList() -> impl IntoView {
 /// Single notification
 #[component]
 pub fn NotificationItem(notification: Notification) -> impl IntoView {
+    let is_moderation = notification.notification_type == NotificationType::Moderation;
     let (message, link) = match (notification.notification_type, notification.comment_id) {
-        (NotificationType::Comment, Some(comment_id)) => ("comment comment", "get_comment_link(&notification.sphere_name)"),
-        (NotificationType::Comment, None) => ("comment post", "get_post_link()"),
-        (NotificationType::Moderation, Some(comment_id)) => ("moderate comment", "get_comment_link()"),
-        (NotificationType::Moderation, None) => ("moderate post", "get_post_link()"),
+        (NotificationType::Comment, Some(comment_id)) => (
+            move_tr!("notification-comment-reply"),
+            get_comment_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id, comment_id),
+        ),
+        (NotificationType::Comment, None) => (
+            move_tr!("notification-post-reply"),
+            get_post_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id),
+        ),
+        (NotificationType::Moderation, Some(comment_id)) => (
+            move_tr!("notification-moderate-post"),
+            get_comment_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id, comment_id),
+        ),
+        (NotificationType::Moderation, None) => (
+            move_tr!("notification-moderate-comment"),
+            get_post_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id),
+        ),
     };
     view! {
-        <a class="p-2 hover:bg-base-300" href=link>
-            {message}
+        <a class="w-full p-2 my-1 flex flex-col gap-1 rounded-sm hover:bg-base-200" href=link>
+            <div class="flex gap-1">
+                <AuthorWidget author=notification.trigger_username is_moderator=is_moderation/>
+                <div>{message}</div>
+                <SphereHeaderLink sphere_header=notification.sphere_header/>
+            </div>
+            <TimeSinceWidget timestamp=notification.create_timestamp/>
         </a>
     }
 }

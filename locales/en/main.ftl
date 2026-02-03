@@ -32,6 +32,10 @@ rules-and-moderation = Rules & Moderation
 image-preview = Image Preview
 
 notifications = Notifications
+notification-post-reply = replied to your post on
+notification-comment-reply = replied to your comment on
+notification-moderate-post = moderated to your post on
+notification-moderate-comment = moderated to your comment on
 
 number-short = N°
 title = Title

@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
@@ -6,7 +7,7 @@ use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{LoadingIcon, NotificationIcon};
 use sharesphere_utils::routes::{get_comment_link, get_post_link, NOTIFICATION_ROUTE};
 use sharesphere_utils::unpack::SuspenseUnpack;
-use sharesphere_utils::widget::TimeSinceWidget;
+use sharesphere_utils::widget::{RefreshButton, TimeSinceWidget};
 use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
 
 use crate::sidebar::HomeSidebar;
@@ -190,10 +191,13 @@ pub fn NotificationButton() -> impl IntoView {
                                     <NotificationIcon/>
                                 </a>
                             }.into_any();
-                            match state.notifications.await {
-                                Ok(notifications) if !notifications.is_empty() => {
-                                    let unread_notif_count = notifications.into_iter().filter(|notif| !notif.is_read).count();
-                                    let unread_notif_count = match unread_notif_count {
+                            match state.notif_resource.await {
+                                Ok(notif_vec) if !notif_vec.is_empty() => {
+                                    *state.unread_notif_id_set.write() = notif_vec
+                                        .into_iter()
+                                        .filter_map(|notif| (!notif.is_read).then_some(notif.notification_id))
+                                        .collect();
+                                    let unread_notif_count = move || match state.unread_notif_id_set.read().len() {
                                         x if x > 99 => String::from("99+"),
                                         x => x.to_string(),
                                     };
@@ -206,7 +210,10 @@ pub fn NotificationButton() -> impl IntoView {
                                         </a>
                                     }.into_any()
                                 },
-                                Ok(_) => notif_link,
+                                Ok(_) => {
+                                    state.unread_notif_id_set.write().clear();
+                                    notif_link
+                                },
                                 Err(e) => {
                                     log::error!("Failed to fetch notifications: {}", e);
                                     notif_link
@@ -225,7 +232,6 @@ pub fn NotificationButton() -> impl IntoView {
 #[component]
 pub fn NotificationHome() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    *state.notif_reload_trigger.write() += 1;
     view! {
         <SuspenseUnpack resource=state.user let:user>
         {
@@ -244,12 +250,15 @@ pub fn NotificationHome() -> impl IntoView {
 pub fn NotificationList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
-        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 mx-auto flex flex-col gap-2">
+        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
-            <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4 divide-y divide-base-content/20">
-            <SuspenseUnpack resource=state.notifications let:notifications>
+            <div class="flex justify-end">
+                <RefreshButton refresh_count=state.notif_reload_trigger/>
+            </div>
+            <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
+            <SuspenseUnpack resource=state.notif_resource let:notif_vec>
             {
-                notifications.iter().map(|notification| view! {
+                notif_vec.iter().map(|notification| view! {
                     <li><NotificationItem notification=notification.clone()/></li>
                 }).collect_view()
             }
@@ -262,6 +271,9 @@ pub fn NotificationList() -> impl IntoView {
 /// Single notification
 #[component]
 pub fn NotificationItem(notification: Notification) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let notif_id = notification.notification_id;
+    let is_notif_read = move || !state.unread_notif_id_set.read().contains(&notif_id);
     let is_moderation = notification.notification_type == NotificationType::Moderation;
     let (message, link) = match (notification.notification_type, notification.comment_id) {
         (NotificationType::Comment, Some(comment_id)) => (
@@ -282,7 +294,19 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
         ),
     };
     view! {
-        <a class="w-full p-2 my-1 flex flex-col gap-1 rounded-sm hover:bg-base-200" href=link>
+        <a
+            href=link
+            class="w-full p-2 my-1 flex flex-col gap-1 rounded-sm hover:bg-base-200"
+            class:text-gray-400=is_notif_read
+            on:click=move |_| {
+                state.unread_notif_id_set.write().remove(&notif_id);
+                spawn_local(async move {
+                    if let Err(e) = read_notification(notification.notification_id).await {
+                        log::error!("Failed to set notification as read: {}", e)
+                    }
+                })
+            }
+        >
             <div class="flex gap-1">
                 <AuthorWidget author=notification.trigger_username is_moderator=is_moderation/>
                 <div>{message}</div>

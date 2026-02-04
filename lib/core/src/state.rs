@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use leptos::prelude::*;
 use leptos_use::{use_interval};
 use sharesphere_auth::auth::EndSession;
@@ -29,9 +30,10 @@ pub struct GlobalState {
     pub comment_sort_type: RwSignal<SortType>,
     pub show_left_sidebar: RwSignal<bool>,
     pub show_right_sidebar: RwSignal<bool>,
-    pub notif_reload_trigger: RwSignal<u64>,
+    pub unread_notif_id_set: RwSignal<HashSet<i64>>,
+    pub notif_reload_trigger: RwSignal<usize>,
+    pub notif_resource: Resource<Result<Vec<Notification>, AppError>>,
     pub user: Resource<Result<Option<User>, AppError>>,
-    pub notifications: Resource<Result<Vec<Notification>, AppError>>,
     pub base_rules: OnceResource<Result<Vec<Rule>, AppError>>,
 }
 
@@ -84,12 +86,13 @@ impl GlobalState {
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
             show_left_sidebar: RwSignal::new(false),
             show_right_sidebar: RwSignal::new(false),
+            unread_notif_id_set: RwSignal::new(HashSet::new()),
             notif_reload_trigger,
-            user,
-            notifications: Resource::new(
+            notif_resource: Resource::new(
                 move || (interval_return.counter.get(), notif_reload_trigger.get()),
                 move |_| get_notifications(),
             ),
+            user,
             base_rules: OnceResource::new(get_rule_vec(None))
         }
     }

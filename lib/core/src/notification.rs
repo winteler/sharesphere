@@ -1,6 +1,11 @@
+use std::collections::{BTreeMap, HashSet};
+use chrono::Utc;
+use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
-use leptos_fluent::move_tr;
+use leptos_fluent::{move_tr, tr};
+use leptos_use::storage::use_local_storage;
+use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 use sharesphere_utils::errors::AppError;
@@ -13,6 +18,9 @@ use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
 use crate::sidebar::HomeSidebar;
 use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::state::GlobalState;
+
+const NOTIF_STATE_STORAGE: &str = "notification_state";
+const NOTIF_RETENTION_DAYS: i64 = 31;
 
 #[cfg(feature = "ssr")]
 use {
@@ -48,6 +56,46 @@ pub struct Notification {
     pub notification_type: NotificationType,
     pub is_read: bool,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+struct NotifHandler {
+    emitted_notif_id_set: HashSet<i64>,
+    timestamp_2_notif_id: BTreeMap<chrono::DateTime<chrono::Utc>, i64>,
+}
+
+impl NotifHandler {
+    pub fn handle_notifications(&mut self, notif_vec: Vec<Notification>, unread_notif_id_set: RwSignal<HashSet<i64>>) {
+        let UseWebNotificationReturn {
+            show,
+            ..
+        } = use_web_notification_with_options(
+            UseWebNotificationOptions::default()
+        );
+
+        let unread_notif_vec: Vec<Notification> = notif_vec
+            .into_iter()
+            .filter(|notif| !notif.is_read)
+            .collect();
+        *unread_notif_id_set.write() = unread_notif_vec.iter().map(|notif| notif.notification_id).collect();
+
+        for notif in unread_notif_vec.into_iter() {
+            if self.emitted_notif_id_set.insert(notif.notification_id) {
+                self.timestamp_2_notif_id.insert(notif.create_timestamp, notif.notification_id);
+                show(ShowOptions::default().title(get_web_notification_text(&notif)));
+            }
+        }
+
+        // Clear outdated notification
+        let notif_timestamp_threshold = Utc::now() - chrono::Duration::days(NOTIF_RETENTION_DAYS);
+
+        let notif_to_keep = self.timestamp_2_notif_id.split_off(&notif_timestamp_threshold);
+
+        for (_, value) in &self.timestamp_2_notif_id {
+            self.emitted_notif_id_set.remove(value);
+        }
+        self.timestamp_2_notif_id = notif_to_keep;
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -180,6 +228,7 @@ pub async fn read_all_notifications() -> Result<(), AppError> {
 #[component]
 pub fn NotificationButton() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let (_, set_notif_handler, _) = use_local_storage::<NotifHandler, JsonSerdeCodec>(NOTIF_STATE_STORAGE);
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             {
@@ -193,10 +242,7 @@ pub fn NotificationButton() -> impl IntoView {
                             }.into_any();
                             match state.notif_resource.await {
                                 Ok(notif_vec) if !notif_vec.is_empty() => {
-                                    *state.unread_notif_id_set.write() = notif_vec
-                                        .into_iter()
-                                        .filter_map(|notif| (!notif.is_read).then_some(notif.notification_id))
-                                        .collect();
+                                    set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_id_set);
                                     let unread_notif_count = move || match state.unread_notif_id_set.read().len() {
                                         x if x > 99 => String::from("99+"),
                                         x => x.to_string(),
@@ -275,24 +321,8 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
     let notif_id = notification.notification_id;
     let is_notif_read = move || !state.unread_notif_id_set.read().contains(&notif_id);
     let is_moderation = notification.notification_type == NotificationType::Moderation;
-    let (message, link) = match (notification.notification_type, notification.comment_id) {
-        (NotificationType::Comment, Some(comment_id)) => (
-            move_tr!("notification-comment-reply"),
-            get_comment_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id, comment_id),
-        ),
-        (NotificationType::Comment, None) => (
-            move_tr!("notification-post-reply"),
-            get_post_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id),
-        ),
-        (NotificationType::Moderation, Some(comment_id)) => (
-            move_tr!("notification-moderate-post"),
-            get_comment_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id, comment_id),
-        ),
-        (NotificationType::Moderation, None) => (
-            move_tr!("notification-moderate-comment"),
-            get_post_link(&notification.sphere_header.sphere_name, notification.satellite_id, notification.post_id),
-        ),
-    };
+    let message = get_notification_text(&notification);
+    let link = get_notification_link(&notification);
     view! {
         <a
             href=link
@@ -314,5 +344,41 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
             </div>
             <TimeSinceWidget timestamp=notification.create_timestamp/>
         </a>
+    }
+}
+
+fn get_notification_link(notification: &Notification) -> String {
+    match notification.comment_id {
+        Some(comment_id) => get_comment_link(
+            &notification.sphere_header.sphere_name,
+            notification.satellite_id,
+            notification.post_id,
+            comment_id,
+        ),
+        None => get_post_link(
+            &notification.sphere_header.sphere_name,
+            notification.satellite_id,
+            notification.post_id,
+        ),
+    }
+}
+
+fn get_notification_text(notification: &Notification) -> Signal<String> {
+    match (notification.notification_type, notification.comment_id) {
+        (NotificationType::Comment, Some(_)) => move_tr!("notification-comment-reply"),
+        (NotificationType::Comment, None) => move_tr!("notification-post-reply"),
+        (NotificationType::Moderation, Some(_)) => move_tr!("notification-moderate-post"),
+        (NotificationType::Moderation, None) => move_tr!("notification-moderate-comment"),
+    }
+}
+
+fn get_web_notification_text(notification: &Notification) -> String {
+    let username = notification.trigger_username.clone();
+    let sphere_name = notification.sphere_name.clone();
+    match (notification.notification_type, notification.comment_id) {
+        (NotificationType::Comment, Some(_)) => tr!("web-notif-comment-reply", {"username" => username, "sphere_name" => sphere_name}),
+        (NotificationType::Comment, None) => tr!("web-notif-post-reply", {"username" => username, "sphere_name" => sphere_name}),
+        (NotificationType::Moderation, Some(_)) => tr!("web-notif-moderate-post", {"username" => username, "sphere_name" => sphere_name}),
+        (NotificationType::Moderation, None) => tr!("web-notif-moderate-comment", {"username" => username, "sphere_name" => sphere_name}),
     }
 }

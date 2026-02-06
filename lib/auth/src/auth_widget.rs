@@ -82,7 +82,7 @@ pub fn AuthorWidget(
                     }.into_any()
                 }
             }
-            <span class="text-sm">{author.get_value()}</span>
+            <span class="text-xs xl:text-sm">{author.get_value()}</span>
         </button>
     }.into_any()
 }

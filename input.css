@@ -292,6 +292,11 @@
             outline outline-offset-0 outline-primary outline-0 focus-within:outline-2 bg-base-100 appearance-none
             bg-[url('/svg/arrow_down.svg')] bg-[length:12px_12px] bg-no-repeat bg-position-[center_right_1rem] pr-8
     }
+
+    .notif_counter {
+        @apply
+            absolute z-10 -top-1 left-4 lg:left-5 p-0.5 lg:p-1 px-1.5 lg:px-2 w-fit bg-base-200 rounded-full text-xs select-none
+    }
 }
 
 /* Styles for the spoiler blocks */S

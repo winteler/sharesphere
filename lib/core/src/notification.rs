@@ -2,9 +2,8 @@ use std::collections::{BTreeMap, HashSet};
 use chrono::Utc;
 use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
-use leptos::task::spawn_local;
 use leptos_fluent::{move_tr, tr};
-use leptos_use::storage::use_local_storage;
+use leptos_use::{breakpoints_tailwind, BreakpointsTailwind, use_breakpoints, storage::use_local_storage};
 use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
@@ -65,7 +64,7 @@ struct NotifHandler {
 }
 
 impl NotifHandler {
-    pub fn handle_notifications(&mut self, notif_vec: Vec<Notification>, unread_notif_id_set: RwSignal<HashSet<i64>>) {
+    pub fn handle_notifications(&mut self,  notif_vec: Vec<Notification>, unread_notif_id_set: RwSignal<HashSet<i64>>) {
         let UseWebNotificationReturn {
             show,
             ..
@@ -82,7 +81,11 @@ impl NotifHandler {
         for notif in unread_notif_vec.into_iter() {
             if self.emitted_notif_id_set.insert(notif.notification_id) {
                 self.timestamp_2_notif_id.insert(notif.create_timestamp, notif.notification_id);
-                show(ShowOptions::default().title(get_web_notification_text(&notif)));
+                show(
+                    ShowOptions::default()
+                        .title(get_web_notification_text(&notif))
+                        .body(get_notification_link(&notif))
+                );
             }
         }
 
@@ -165,7 +168,7 @@ pub mod ssr {
         Ok(notification_vec)
     }
 
-    pub async fn read_notification(
+    pub async fn set_notification_read(
         notification_id: i64,
         user_id: i64,
         db_pool: &PgPool,
@@ -182,7 +185,7 @@ pub mod ssr {
         Ok(())
     }
 
-    pub async fn read_all_notifications(
+    pub async fn set_all_notifications_read(
         user_id: i64,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
@@ -207,21 +210,21 @@ pub async fn get_notifications() -> Result<Vec<Notification>, AppError> {
 }
 
 #[server]
-pub async fn read_notification(
+pub async fn set_notification_read(
     notification_id: i64,
 ) -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    ssr::read_notification(notification_id, user.user_id, &db_pool).await
+    ssr::set_notification_read(notification_id, user.user_id, &db_pool).await
 }
 
 #[server]
-pub async fn read_all_notifications() -> Result<(), AppError> {
+pub async fn set_all_notifications_read() -> Result<(), AppError> {
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    ssr::read_all_notifications(user.user_id, &db_pool).await
+    ssr::set_all_notifications_read(user.user_id, &db_pool).await
 }
 
 /// When logged in, displays a bell button with the number of unread notifications, redirects to the notification page on click.
@@ -229,6 +232,8 @@ pub async fn read_all_notifications() -> Result<(), AppError> {
 pub fn NotificationButton() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let (_, set_notif_handler, _) = use_local_storage::<NotifHandler, JsonSerdeCodec>(NOTIF_STATE_STORAGE);
+    let is_wide_screen = use_breakpoints(breakpoints_tailwind()).ge(BreakpointsTailwind::Lg);
+
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
             {
@@ -243,14 +248,15 @@ pub fn NotificationButton() -> impl IntoView {
                             match state.notif_resource.await {
                                 Ok(notif_vec) if !notif_vec.is_empty() => {
                                     set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_id_set);
-                                    let unread_notif_count = move || match state.unread_notif_id_set.read().len() {
-                                        x if x > 99 => String::from("99+"),
-                                        x => x.to_string(),
+                                    let unread_notif_count = move || match (state.unread_notif_id_set.read().len(), is_wide_screen.get()) {
+                                        (x, true) if x > 99 => String::from("99+"),
+                                        (x, false) if x > 9 => String::from("9+"),
+                                        (x, _) => x.to_string(),
                                     };
                                     view! {
                                         <a class="button-rounded-ghost relative flex" href=NOTIFICATION_ROUTE>
                                             <NotificationIcon/>
-                                            <div class="absolute left-0 bottom-0 z-10 mb-5 ml-6 p-1 px-2 w-fit bg-base-200 rounded-full text-xs select-none">
+                                            <div class="notif_counter">
                                                 {unread_notif_count}
                                             </div>
                                         </a>
@@ -323,6 +329,15 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
     let is_moderation = notification.notification_type == NotificationType::Moderation;
     let message = get_notification_text(&notification);
     let link = get_notification_link(&notification);
+
+    let read_action = Action::new(move |_: &()| async move {
+        set_notification_read(notif_id).await
+    });
+
+    Effect::new(move || if let Some(Err(e)) = &*read_action.value().read() {
+        log::error!("Failed to set notification as read: {}", e);
+    });
+
     view! {
         <a
             href=link
@@ -330,19 +345,19 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
             class:text-gray-400=is_notif_read
             on:click=move |_| {
                 state.unread_notif_id_set.write().remove(&notif_id);
-                spawn_local(async move {
-                    if let Err(e) = read_notification(notification.notification_id).await {
-                        log::error!("Failed to set notification as read: {}", e)
-                    }
-                })
+                read_action.dispatch(());
             }
         >
-            <div class="flex gap-1">
-                <AuthorWidget author=notification.trigger_username is_moderator=is_moderation/>
-                <div>{message}</div>
-                <SphereHeaderLink sphere_header=notification.sphere_header/>
+            <div class="leading-7">
+                <div class="inline-block align-middle">
+                    <AuthorWidget author=notification.trigger_username is_moderator=is_moderation/>
+                </div>
+                <span class="align-middle px-1">{message}</span>
             </div>
-            <TimeSinceWidget timestamp=notification.create_timestamp/>
+            <div class="flex gap-1 items-center">
+                <SphereHeaderLink sphere_header=notification.sphere_header/>
+                <TimeSinceWidget timestamp=notification.create_timestamp/>
+            </div>
         </a>
     }
 }

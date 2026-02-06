@@ -412,7 +412,7 @@ pub fn SphereHeaderLink(
     let aria_label = move_tr!("navigate-sphere", {"sphere_name" => sphere_name.get_value()});
     view! {
         <button
-            class="button-rounded-neutral px-2 py-1"
+            class="button-rounded-neutral px-2 py-1 flex items-center"
             on:click=move |ev| {
                 ev.prevent_default();
                 navigate(sphere_path.as_str(), NavigateOptions::default());

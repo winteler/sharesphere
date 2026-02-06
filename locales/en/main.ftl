@@ -32,10 +32,10 @@ rules-and-moderation = Rules & Moderation
 image-preview = Image Preview
 
 notifications = Notifications
-notification-post-reply = replied to your post on
-notification-comment-reply = replied to your comment on
-notification-moderate-post = moderated to your post on
-notification-moderate-comment = moderated to your comment on
+notification-post-reply = replied to your post
+notification-comment-reply = replied to your comment
+notification-moderate-post = moderated to your post
+notification-moderate-comment = moderated to your comment
 web-notif-post-reply = {$username} replied to your post on {$sphere_name}.
 web-notif-comment-reply = {$username} replied to your comment on {$sphere_name}.
 web-notif-moderate-post = {$username} moderated to your post on {$sphere_name}.

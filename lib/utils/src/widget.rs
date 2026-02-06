@@ -405,7 +405,7 @@ pub fn TimeSinceWidget(
 ) -> impl IntoView {
     let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Lg);
     view! {
-        <div class="flex gap-1.5 items-center text-sm px-1">
+        <div class="flex gap-1.5 items-center text-xs lg:text-sm px-1">
             <ClockIcon/>
             {
                 move || get_elapsed_time_string(timestamp.get(), use_fullname.get())

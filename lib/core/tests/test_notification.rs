@@ -1,5 +1,5 @@
 use sharesphere_core::notification::NotificationType;
-use sharesphere_core::notification::ssr::{create_notification, get_notifications, read_all_notifications, read_notification};
+use sharesphere_core::notification::ssr::{create_notification, get_notifications, set_all_notifications_read, set_notification_read};
 
 use crate::common::*;
 use crate::data_factory::*;
@@ -85,7 +85,7 @@ async fn test_get_notifications() {
 }
 
 #[tokio::test]
-async fn test_read_notification() {
+async fn test_set_notification_read() {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
     let trigger_user = create_user("trigger", &db_pool).await;
@@ -100,7 +100,7 @@ async fn test_read_notification() {
         &db_pool
     ).await.expect("Should create post comment notification");
 
-    read_notification(notification.notification_id, user.user_id, &db_pool).await.expect("Should read notification");
+    set_notification_read(notification.notification_id, user.user_id, &db_pool).await.expect("Should read notification");
 
     notification.is_read = true;
 
@@ -109,7 +109,7 @@ async fn test_read_notification() {
 }
 
 #[tokio::test]
-async fn test_read_all_notifications() {
+async fn test_set_all_notifications_read() {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
     let trigger_user = create_user("trigger", &db_pool).await;
@@ -132,7 +132,7 @@ async fn test_read_all_notifications() {
         &db_pool
     ).await.expect("Should create post comment notification");
 
-    read_all_notifications(user.user_id, &db_pool).await.expect("Should read all notification");
+    set_all_notifications_read(user.user_id, &db_pool).await.expect("Should read all notification");
 
     post_comment_notif.is_read = true;
     comment_comment_notif.is_read = true;

@@ -36,7 +36,12 @@ notification-post-reply = a répondu à ton poste
 notification-comment-reply = a répondu à ton commentaire
 notification-moderate-post = a modéré ton poste
 notification-moderate-comment = a modéré ton commentaire
-web-notif = Tu as {$notif_count} notifications non-lues.
+web-notif-post-reply = {$username} a répondu à ton poste sur {$sphere_name}.
+web-notif-comment-reply = {$username} a répondu à ton commentaire sur {$sphere_name}.
+web-notif-moderate-post = {$username} a modéré ton poste sur {$sphere_name}.
+web-notif-moderate-comment = {$username} a modéré ton commentaire sur {$sphere_name}.
+multi-web-notif = Tu as {$new_notif_count} nouvelles notifications, {$unread_notif_count} non-lues en tout.
+web-notif-unread = Tu as {$notif_count} notifications non-lues.
 
 number-short = N°
 title = Titre

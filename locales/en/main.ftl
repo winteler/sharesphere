@@ -36,7 +36,12 @@ notification-post-reply = replied to your post
 notification-comment-reply = replied to your comment
 notification-moderate-post = moderated to your post
 notification-moderate-comment = moderated to your comment
-web-notif = You have {$notif_count} unread notifications.
+web-notif-post-reply = {$username} replied to your post on {$sphere_name}.
+web-notif-comment-reply = {$username} replied to your comment on {$sphere_name}.
+web-notif-moderate-post = {$username} moderated to your post on {$sphere_name}.
+web-notif-moderate-comment = {$username} moderated to your comment on {$sphere_name}.
+multi-web-notif = You have {$new_notif_count} new notifications, {$unread_notif_count} unread in total.
+web-notif-unread = You have {$notif_count} unread notifications.
 
 number-short = N°
 title = Title

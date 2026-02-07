@@ -90,19 +90,27 @@ impl NotifHandler {
         *unread_notif_id_set.write() = unread_notif_vec.iter().map(|notif| notif.notification_id).collect();
 
         let mut trigger_web_notif = false;
+        let mut new_notif_vec = Vec::new();
         for notif in unread_notif_vec.into_iter() {
             if self.emitted_notif_id_set.insert(notif.notification_id) {
                 self.timestamp_2_notif_id.insert(notif.create_timestamp, notif.notification_id);
                 trigger_web_notif = true;
+                new_notif_vec.push(notif);
             }
         }
 
         if trigger_web_notif {
             let unread_notif_count = unread_notif_id_set.read_untracked().len();
+            let body = match (unread_notif_count, new_notif_vec.len(), new_notif_vec.iter().next()) {
+                (1, 1, Some(notif)) => get_web_notif_text(notif),
+                (unread_notif_count, new_notif_count, _) => tr!(
+                    "multi-web-notif", {"new_notif_count" => new_notif_count, "unread_notif_count" => unread_notif_count}
+                ),
+            };
             show(
                 ShowOptions::default()
                     .title(SITE_NAME)
-                    .body(tr!("web-notif", {"notif_count" => unread_notif_count}))
+                    .body(body)
             );
         }
 
@@ -401,5 +409,24 @@ fn get_notification_text(notification: &Notification) -> Signal<String> {
         (NotificationType::CommentReply, _) => move_tr!("notification-comment-reply"),
         (NotificationType::Moderation, Some(_)) => move_tr!("notification-moderate-post"),
         (NotificationType::Moderation, None) => move_tr!("notification-moderate-comment"),
+    }
+}
+
+fn get_web_notif_text(notification: &Notification) -> String {
+    let username = notification.trigger_username.clone();
+    let sphere_name = notification.sphere_name.clone();
+    match (notification.notification_type, notification.comment_id) {
+        (NotificationType::PostReply, _) => tr!(
+            "web-notif-post-reply", {"username" => username, "sphere_name" => sphere_name}
+        ),
+        (NotificationType::CommentReply, _) => tr!(
+            "web-notif-comment-reply", {"username" => username, "sphere_name" => sphere_name}
+        ),
+        (NotificationType::Moderation, Some(_)) => tr!(
+            "web-notif-moderate-post", {"username" => username, "sphere_name" => sphere_name}
+        ),
+        (NotificationType::Moderation, None) => tr!(
+            "web-notif-moderate-comment", {"username" => username, "sphere_name" => sphere_name}
+        ),
     }
 }

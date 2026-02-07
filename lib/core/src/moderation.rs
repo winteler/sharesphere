@@ -356,7 +356,7 @@ pub async fn moderate_comment(
 
     reload_user(comment.creator_id)?;
 
-    create_notification(comment.post_id, comment.parent_id, user.user_id, NotificationType::Moderation, &db_pool).await?;
+    create_notification(comment.post_id, Some(comment.comment_id), user.user_id, NotificationType::Moderation, &db_pool).await?;
 
     Ok(comment)
 }

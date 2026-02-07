@@ -641,7 +641,7 @@ pub async fn create_comment(
 
     comment.score = 1;
 
-    create_notification(post_id, parent_comment_id, user.user_id, NotificationType::Comment, &db_pool).await?;
+    create_notification(post_id, Some(comment.comment_id), user.user_id, NotificationType::Comment, &db_pool).await?;
 
     Ok(CommentWithChildren {
         comment,

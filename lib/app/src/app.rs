@@ -7,7 +7,7 @@ use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use leptos_fluent::{leptos_fluent, move_tr};
 use regex::Regex;
 
-use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY, SITE_NAME};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
@@ -172,7 +172,7 @@ pub fn App() -> impl IntoView {
 
     view! {
         <I18nProvider>
-            <Title text="ShareSphere"/>
+            <Title text=SITE_NAME/>
             <Router>
                 <main
                     class="h-screen w-screen overflow-hidden text-white relative"

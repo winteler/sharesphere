@@ -1,3 +1,5 @@
+pub const SITE_NAME: &str = "ShareSphere";
+
 pub const SECONDS_IN_MINUTE: i64 = 60;
 pub const MINUTES_IN_HOUR: i64 = 60;
 pub const HOURS_IN_DAY: i64 = 24;

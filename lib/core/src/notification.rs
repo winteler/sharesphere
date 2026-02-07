@@ -7,6 +7,7 @@ use leptos_use::{breakpoints_tailwind, BreakpointsTailwind, use_breakpoints, sto
 use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
+use sharesphere_utils::constants::{LOGO_ICON_PATH, SITE_NAME};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{LoadingIcon, NotificationIcon};
 use sharesphere_utils::routes::{get_comment_link, get_post_link, NOTIFICATION_ROUTE};
@@ -18,10 +19,6 @@ use crate::sidebar::HomeSidebar;
 use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::state::GlobalState;
 
-const NOTIF_STATE_STORAGE: &str = "notification_state";
-const NOTIF_TAG: &str = "sharesphere-notif";
-const NOTIF_RETENTION_DAYS: i64 = 31;
-
 #[cfg(feature = "ssr")]
 use {
     sharesphere_auth::{
@@ -29,6 +26,10 @@ use {
         session::ssr::get_db_pool,
     },
 };
+
+const NOTIF_STATE_STORAGE: &str = "notification_state";
+const NOTIF_TAG: &str = "sharesphere-notif";
+const NOTIF_RETENTION_DAYS: i64 = 31;
 
 #[repr(i16)]
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -75,7 +76,10 @@ impl NotifHandler {
             show,
             ..
         } = use_web_notification_with_options(
-            UseWebNotificationOptions::default().renotify(true).tag(NOTIF_TAG)
+            UseWebNotificationOptions::default()
+                .renotify(true)
+                .tag(NOTIF_TAG)
+                .icon(LOGO_ICON_PATH)
         );
 
         let unread_notif_vec: Vec<Notification> = notif_vec
@@ -95,7 +99,9 @@ impl NotifHandler {
         if trigger_web_notif {
             let unread_notif_count = unread_notif_id_set.read_untracked().len();
             show(
-                ShowOptions::default().title(tr!("web-notif", {"notif_count" => unread_notif_count}))
+                ShowOptions::default()
+                    .title(SITE_NAME)
+                    .body(tr!("web-notif", {"notif_count" => unread_notif_count}))
             );
         }
 

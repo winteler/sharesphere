@@ -19,6 +19,7 @@ use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::state::GlobalState;
 
 const NOTIF_STATE_STORAGE: &str = "notification_state";
+const NOTIF_TAG: &str = "sharesphere-notif";
 const NOTIF_RETENTION_DAYS: i64 = 31;
 
 #[cfg(feature = "ssr")]
@@ -64,12 +65,17 @@ struct NotifHandler {
 }
 
 impl NotifHandler {
-    pub fn handle_notifications(&mut self,  notif_vec: Vec<Notification>, unread_notif_id_set: RwSignal<HashSet<i64>>) {
+    pub fn handle_notifications(
+        &mut self,
+        notif_vec: Vec<Notification>,
+        unread_notif_id_set: RwSignal<HashSet<i64>>
+    )
+    where {
         let UseWebNotificationReturn {
             show,
             ..
         } = use_web_notification_with_options(
-            UseWebNotificationOptions::default()
+            UseWebNotificationOptions::default().renotify(true).tag(NOTIF_TAG)
         );
 
         let unread_notif_vec: Vec<Notification> = notif_vec
@@ -78,15 +84,19 @@ impl NotifHandler {
             .collect();
         *unread_notif_id_set.write() = unread_notif_vec.iter().map(|notif| notif.notification_id).collect();
 
+        let mut trigger_web_notif = false;
         for notif in unread_notif_vec.into_iter() {
             if self.emitted_notif_id_set.insert(notif.notification_id) {
                 self.timestamp_2_notif_id.insert(notif.create_timestamp, notif.notification_id);
-                show(
-                    ShowOptions::default()
-                        .title(get_web_notification_text(&notif))
-                        .body(get_notification_link(&notif))
-                );
+                trigger_web_notif = true;
             }
+        }
+
+        if trigger_web_notif {
+            let unread_notif_count = unread_notif_id_set.read_untracked().len();
+            show(
+                ShowOptions::default().title(tr!("web-notif", {"notif_count" => unread_notif_count}))
+            );
         }
 
         // Clear outdated notification
@@ -384,16 +394,5 @@ fn get_notification_text(notification: &Notification) -> Signal<String> {
         (NotificationType::Comment, None) => move_tr!("notification-post-reply"),
         (NotificationType::Moderation, Some(_)) => move_tr!("notification-moderate-post"),
         (NotificationType::Moderation, None) => move_tr!("notification-moderate-comment"),
-    }
-}
-
-fn get_web_notification_text(notification: &Notification) -> String {
-    let username = notification.trigger_username.clone();
-    let sphere_name = notification.sphere_name.clone();
-    match (notification.notification_type, notification.comment_id) {
-        (NotificationType::Comment, Some(_)) => tr!("web-notif-comment-reply", {"username" => username, "sphere_name" => sphere_name}),
-        (NotificationType::Comment, None) => tr!("web-notif-post-reply", {"username" => username, "sphere_name" => sphere_name}),
-        (NotificationType::Moderation, Some(_)) => tr!("web-notif-moderate-post", {"username" => username, "sphere_name" => sphere_name}),
-        (NotificationType::Moderation, None) => tr!("web-notif-moderate-comment", {"username" => username, "sphere_name" => sphere_name}),
     }
 }

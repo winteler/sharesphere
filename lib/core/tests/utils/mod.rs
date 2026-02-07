@@ -227,7 +227,7 @@ pub async fn get_notification(
     db_pool: &PgPool,
 ) -> Result<Notification, AppError> {
     let notification = sqlx::query_as::<_, Notification>(
-        "SELECT n.*, u.username AS trigger_username, s.sphere_name
+        "SELECT n.*, u.username AS trigger_username, s.sphere_name, s.icon_url, s.is_nsfw
         FROM notifications n
         JOIN USERS u ON u.user_id = n.trigger_user_id
         JOIN spheres s ON s.sphere_id = n.sphere_id

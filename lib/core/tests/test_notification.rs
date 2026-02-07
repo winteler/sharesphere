@@ -21,7 +21,7 @@ async fn test_create_notification() {
         post.post_id,
         None,
         trigger_user.user_id,
-        NotificationType::Comment,
+        NotificationType::PostReply,
         &db_pool
     ).await.expect("Should create post comment notification");
 
@@ -32,7 +32,7 @@ async fn test_create_notification() {
     assert_eq!(post_comment_notif.user_id, user.user_id);
     assert_eq!(post_comment_notif.trigger_user_id, trigger_user.user_id);
     assert_eq!(post_comment_notif.trigger_username, trigger_user.username);
-    assert_eq!(post_comment_notif.notification_type, NotificationType::Comment);
+    assert_eq!(post_comment_notif.notification_type, NotificationType::PostReply);
     assert_eq!(post_comment_notif.is_read, false);
 
     let comment_comment_notif = create_notification(
@@ -74,7 +74,7 @@ async fn test_get_notifications() {
         comment.post_id,
         Some(comment.comment_id),
         trigger_user.user_id,
-        NotificationType::Comment,
+        NotificationType::CommentReply,
         &db_pool
     ).await.expect("Should create post comment notification");
 
@@ -96,7 +96,7 @@ async fn test_set_notification_read() {
         post.post_id,
         None,
         trigger_user.user_id,
-        NotificationType::Comment,
+        NotificationType::PostReply,
         &db_pool
     ).await.expect("Should create post comment notification");
 
@@ -128,7 +128,7 @@ async fn test_set_all_notifications_read() {
         comment.post_id,
         Some(comment.comment_id),
         trigger_user.user_id,
-        NotificationType::Comment,
+        NotificationType::PostReply,
         &db_pool
     ).await.expect("Should create post comment notification");
 

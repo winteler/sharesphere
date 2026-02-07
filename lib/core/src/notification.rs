@@ -36,8 +36,9 @@ const NOTIF_RETENTION_DAYS: i64 = 31;
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum NotificationType {
     #[default]
-    Comment = 0,
-    Moderation = 1,
+    PostReply = 0,
+    CommentReply = 1,
+    Moderation = 2,
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -396,8 +397,8 @@ fn get_notification_link(notification: &Notification) -> String {
 
 fn get_notification_text(notification: &Notification) -> Signal<String> {
     match (notification.notification_type, notification.comment_id) {
-        (NotificationType::Comment, Some(_)) => move_tr!("notification-comment-reply"),
-        (NotificationType::Comment, None) => move_tr!("notification-post-reply"),
+        (NotificationType::PostReply, _) => move_tr!("notification-post-reply"),
+        (NotificationType::CommentReply, _) => move_tr!("notification-comment-reply"),
         (NotificationType::Moderation, Some(_)) => move_tr!("notification-moderate-post"),
         (NotificationType::Moderation, None) => move_tr!("notification-moderate-comment"),
     }

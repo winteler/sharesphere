@@ -6,7 +6,7 @@ CREATE TABLE notifications (
     comment_id BIGINT REFERENCES comments(comment_id),
     user_id BIGINT NOT NULL REFERENCES users(user_id),
     trigger_user_id BIGINT NOT NULL REFERENCES users(user_id),
-    notification_type SMALLINT NOT NULL CHECK (notification_type IN (0, 1)),
+    notification_type SMALLINT NOT NULL CHECK (notification_type IN (0, 1, 2)),
     is_read BOOL NOT NULL DEFAULT FALSE,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

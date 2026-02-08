@@ -89,29 +89,12 @@ impl NotifHandler {
             .collect();
         *unread_notif_id_set.write() = unread_notif_vec.iter().map(|notif| notif.notification_id).collect();
 
-        let mut trigger_web_notif = false;
         let mut new_notif_vec = Vec::new();
         for notif in unread_notif_vec.into_iter() {
             if self.emitted_notif_id_set.insert(notif.notification_id) {
                 self.timestamp_2_notif_id.insert(notif.create_timestamp, notif.notification_id);
-                trigger_web_notif = true;
                 new_notif_vec.push(notif);
             }
-        }
-
-        if trigger_web_notif {
-            let unread_notif_count = unread_notif_id_set.read_untracked().len();
-            let body = match (unread_notif_count, new_notif_vec.len(), new_notif_vec.iter().next()) {
-                (1, 1, Some(notif)) => get_web_notif_text(notif),
-                (unread_notif_count, new_notif_count, _) => tr!(
-                    "multi-web-notif", {"new_notif_count" => new_notif_count, "unread_notif_count" => unread_notif_count}
-                ),
-            };
-            show(
-                ShowOptions::default()
-                    .title(SITE_NAME)
-                    .body(body)
-            );
         }
 
         // Clear outdated notification
@@ -123,6 +106,28 @@ impl NotifHandler {
             self.emitted_notif_id_set.remove(value);
         }
         self.timestamp_2_notif_id = notif_to_keep;
+
+        // Send notifications to browser
+        if let Some(notif) = new_notif_vec.iter().next() {
+            let new_notif_count = new_notif_vec.len();
+            let unread_notif_count = unread_notif_id_set.read_untracked().len();
+            let body = match (new_notif_count, unread_notif_count) {
+                (1, 1) => get_web_notif_text(notif),
+                (1, _) => get_web_notif_text(notif) + tr!("web-notif-unread-addon", {"unread_notif_count" => unread_notif_count}).as_str(),
+                (new_notif_count, unread_notif_count) if new_notif_count == unread_notif_count => {
+                    tr!("multi-web-notif", {"new_notif_count" => new_notif_count})
+                },
+                (new_notif_count, unread_notif_count) => tr!(
+                    "multi-web-notif-with-unread", {"new_notif_count" => new_notif_count, "unread_notif_count" => unread_notif_count}
+                ),
+            };
+            log::info!("Send notif with body: {body}");
+            show(
+                ShowOptions::default()
+                    .title(SITE_NAME)
+                    .body(body)
+            );
+        }
     }
 }
 

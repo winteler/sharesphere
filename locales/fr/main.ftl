@@ -40,8 +40,9 @@ web-notif-post-reply = {$username} a répondu à ton poste sur {$sphere_name}.
 web-notif-comment-reply = {$username} a répondu à ton commentaire sur {$sphere_name}.
 web-notif-moderate-post = {$username} a modéré ton poste sur {$sphere_name}.
 web-notif-moderate-comment = {$username} a modéré ton commentaire sur {$sphere_name}.
-multi-web-notif = Tu as {$new_notif_count} nouvelles notifications, {$unread_notif_count} non-lues en tout.
-web-notif-unread = Tu as {$notif_count} notifications non-lues.
+multi-web-notif = Tu as {$new_notif_count} nouvelles notifications.
+multi-web-notif-with-unread = Tu as {$new_notif_count} nouvelles notifications, {$unread_notif_count} non-lues en tout.
+web-notif-unread-addon = {" "}Tu as {$unread_notif_count} notifications non-lues.
 
 number-short = N°
 title = Titre

@@ -214,7 +214,15 @@ fn PostBottomWidgetBar(
                     <DeletePostButton post_id author_id/>
                 })}
                 <ModerationInfoButton content=Content::Post(stored_post.get_value())/>
-                <ShareButton link=post_link.clone()/>
+                {
+                    match post_link.clone() {
+                        Ok(post_link) => Either::Left(view! { <ShareButton link=post_link/> }),
+                        Err(e) => {
+                            log::error!("Error while generating post url: {e}");
+                            Either::Right(())
+                        },
+                    }
+                }
             </DotMenu>
         </div>
     }

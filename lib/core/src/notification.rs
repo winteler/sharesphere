@@ -10,7 +10,7 @@ use strum_macros::{Display, EnumString, IntoStaticStr};
 use sharesphere_utils::constants::{LOGO_ICON_PATH, SITE_NAME};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{LoadingIcon, NotificationIcon};
-use sharesphere_utils::routes::{get_comment_link, get_post_link, NOTIFICATION_ROUTE};
+use sharesphere_utils::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
 use sharesphere_utils::unpack::SuspenseUnpack;
 use sharesphere_utils::widget::{RefreshButton, TimeSinceWidget};
 use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
@@ -121,7 +121,6 @@ impl NotifHandler {
                     "multi-web-notif-with-unread", {"new_notif_count" => new_notif_count, "unread_notif_count" => unread_notif_count}
                 ),
             };
-            log::info!("Send notif with body: {body}");
             show(
                 ShowOptions::default()
                     .title(SITE_NAME)
@@ -394,13 +393,13 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
 
 fn get_notification_link(notification: &Notification) -> String {
     match notification.comment_id {
-        Some(comment_id) => get_comment_link(
+        Some(comment_id) => get_comment_path(
             &notification.sphere_header.sphere_name,
             notification.satellite_id,
             notification.post_id,
             comment_id,
         ),
-        None => get_post_link(
+        None => get_post_path(
             &notification.sphere_header.sphere_name,
             notification.satellite_id,
             notification.post_id,

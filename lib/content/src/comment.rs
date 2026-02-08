@@ -381,7 +381,15 @@ pub fn CommentBottomWidgetBar(
                     <DeleteCommentButton comment_id author_id comment/>
                 })}
                 <ModerationInfoButton content/>
-                <ShareButton link=comment_link.clone()/>
+                {
+                    match comment_link.clone() {
+                        Ok(comment_link) => Either::Left(view! { <ShareButton link=comment_link/> }),
+                        Err(e) => {
+                            log::error!("Error while generating comment url: {e}");
+                            Either::Right(())
+                        },
+                    }
+                }
             </DotMenu>
         </div>
     }.into_any()

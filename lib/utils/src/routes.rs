@@ -195,10 +195,11 @@ pub fn get_post_link(
     sphere_name: &str,
     satellite_id: Option<i64>,
     post_id: i64,
-) -> String {
+) -> Result<String, AppError> {
     let base_url = get_app_origin().unwrap_or_default();
     let post_path = get_post_path(sphere_name, satellite_id, post_id);
-    format!("{base_url}{post_path}")
+    let post_url = url::Url::parse(&base_url)?.join(&post_path)?.to_string();
+    Ok(post_url)
 }
 
 /// # Returns the path to a comment given its id, post_id, sphere and optional satellite
@@ -236,10 +237,11 @@ pub fn get_comment_link(
     satellite_id: Option<i64>,
     post_id: i64,
     comment_id: i64,
-) -> String {
+) -> Result<String, AppError> {
     let base_url = get_app_origin().unwrap_or_default();
     let comment_path = get_comment_path(sphere_name, satellite_id, post_id, comment_id);
-    format!("{base_url}{comment_path}")
+    let comment_url = url::Url::parse(&base_url)?.join(&comment_path)?.to_string();
+    Ok(comment_url)
 }
 
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages

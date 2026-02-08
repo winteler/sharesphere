@@ -67,10 +67,12 @@ impl Color {
 pub fn ColorIndicator(
     #[prop(into)]
     color: Signal<Color>,
+    #[prop(default = "w-4 h-4 rounded-full")]
+    class: &'static str,
 ) -> impl IntoView {
-    let color_class = move || format!("w-4 h-4 rounded-full {}", color.get().to_bg_class());
+    let color_class = move || format!("{class} {}", color.get().to_bg_class());
     view! {
-        <div class="px-2 py-1 h-fit w-fit"><div class=color_class></div></div>
+        <div class=color_class></div>
     }
 }
 
@@ -110,7 +112,9 @@ pub fn ColorSelect(
                     class="h-full flex items-center lg:gap-1 pr-2 hover:bg-base-content/20 input_border_primary"
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
-                    <ColorIndicator color=color_input/>
+                    <div class="px-2 py-1 h-fit w-fit">
+                        <ColorIndicator color=color_input/>
+                    </div>
                     <RotatingArrow point_up=show_dropdown class="h-2 w-2"/>
                 </div>
                 <Show when=show_dropdown>
@@ -119,7 +123,7 @@ pub fn ColorSelect(
                         { move || {
                             Color::iter().map(|color: Color| {
                                 view! {
-                                    <div class="w-fit rounded-sm hover:bg-base-200" on:click=move |_| {
+                                    <div class="w-fit rounded-sm hover:bg-base-200 px-2 py-1 h-fit w-fit" on:click=move |_| {
                                         color_input.set(color);
                                         show_dropdown.set(false);
                                     }>

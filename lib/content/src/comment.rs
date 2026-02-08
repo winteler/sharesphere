@@ -6,6 +6,7 @@ use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
 use leptos_use::BreakpointsTailwind::Xxl;
+use sharesphere_utils::colors::{Color, ColorIndicator};
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
@@ -198,10 +199,6 @@ pub fn CommentBox(
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     let satellite_state = use_context::<SatelliteState>();
-    let is_query_comment = move || match use_query_map().read().get(COMMENT_ID_QUERY_PARAM) {
-        Some(query_comment_id) => query_comment_id.parse::<i64>().is_ok_and(|query_comment_id| query_comment_id == comment_with_children.comment.comment_id),
-        None => false,
-    };
     let comment = RwSignal::new(comment_with_children.comment);
     let child_comments = RwSignal::new(comment_with_children.child_comments);
     let maximize = RwSignal::new(true);
@@ -231,7 +228,7 @@ pub fn CommentBox(
                     <div class=color_bar_css.clone()/>
                 </Show>
             </div>
-            <div class="flex flex-col gap-1 pl-1" class=(["border", "border-2", "border-base-content/50"], is_query_comment)>
+            <div class="flex flex-col gap-1 pl-1">
                 <Show when=maximize>
                     <CommentTopWidgetBar comment/>
                     <CommentBody comment/>
@@ -295,6 +292,10 @@ pub fn CommentTopWidgetBar(
     let is_active = Signal::derive(move || comment.read().is_active());
     let is_moderator_comment = comment.read_untracked().is_creator_moderator;
     let is_pinned = Signal::derive(move || comment.read().is_pinned);
+    let is_query_comment = move || match use_query_map().read().get(COMMENT_ID_QUERY_PARAM) {
+        Some(query_comment_id) => query_comment_id.parse::<i64>().is_ok_and(|query_comment_id| query_comment_id == comment.read().comment_id),
+        None => false,
+    };
     view! {
         <div class="flex gap-1 items-center">
             {
@@ -306,6 +307,9 @@ pub fn CommentTopWidgetBar(
             <IsPinnedWidget is_pinned/>
             <TimeSinceWidget timestamp/>
             <TimeSinceEditWidget edit_timestamp/>
+            <Show when=is_query_comment>
+                <ColorIndicator color=Color::Red class="w-3 h-3 rounded-full"/>
+            </Show>
         </div>
     }.into_any()
 }

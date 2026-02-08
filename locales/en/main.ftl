@@ -107,7 +107,7 @@ add-rule = Add a rule
 welcome-to-sharesphere = Welcome to ShareSphere!
 about-sharesphere = About ShareSphere
 sphere-cockpit = Sphere Cockpit
-single-comment-tree = Single comment tree view. Back to post.
+single-comment-tree = Single comment view. Back to post.
 
 until = Until
 permanent = Permanent

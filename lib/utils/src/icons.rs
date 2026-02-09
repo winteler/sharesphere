@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos::either::Either;
 use crate::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH};
 
 #[component]
@@ -26,9 +27,15 @@ pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl
 }
 
 #[component]
-pub fn AuthorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/toolbar/author.svg" class=class/>
+pub fn AuthorIcon(
+    #[prop(default = "content-toolbar-icon-size")]
+    class: &'static str,
+    #[prop(optional)]
+    is_grayed_out: bool,
+) -> impl IntoView {
+    match is_grayed_out {
+        true => Either::Left(view! { <img src="/svg/toolbar/author.svg" class=class/> }),
+        false => Either::Right(view! { <img src="/svg/notifications/author_grayed_out.svg" class=class/> }),
     }
 }
 
@@ -54,9 +61,15 @@ pub fn BoldIcon(#[prop(default = "editor-button-size")] class: &'static str) -> 
 }
 
 #[component]
-pub fn ClockIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/toolbar/clock.svg" class=class/>
+pub fn ClockIcon(
+    #[prop(default = "content-toolbar-icon-size")]
+    class: &'static str,
+    #[prop(optional)]
+    is_grayed_out: bool,
+) -> impl IntoView {
+    match is_grayed_out {
+        true => Either::Left(view! { <img src="/svg/toolbar/clock.svg" class=class/> }),
+        false => Either::Right(view! { <img src="/svg/notifications/clock_grayed_out.svg" class=class/> }),
     }
 }
 
@@ -294,9 +307,15 @@ pub fn MinusIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static 
 }
 
 #[component]
-pub fn ModeratorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/toolbar/moderator.svg" class=class/>
+pub fn ModeratorIcon(
+    #[prop(default = "content-toolbar-icon-size")]
+    class: &'static str,
+    #[prop(optional)]
+    is_grayed_out: bool,
+) -> impl IntoView {
+    match is_grayed_out {
+        true => Either::Left(view! { <img src="/svg/toolbar/moderator.svg" class=class/> }),
+        false => Either::Right(view! { <img src="/svg/notifications/moderator_grayed_out.svg" class=class/> }),
     }
 }
 
@@ -385,6 +404,20 @@ pub fn PodiumIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> 
 pub fn QuoteIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/editor/quote.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn ReadAllIcon(#[prop(default = "sphere-toolbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/notifications/read_all.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn ReadIcon(#[prop(default = "sphere-toolbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/notifications/read.svg" class=class/>
     }
 }
 
@@ -506,6 +539,13 @@ pub fn SubscribedIcon(
 pub fn TooHeavyIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/errors/weight.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn UnreadIcon(#[prop(default = "sphere-toolbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/notifications/unread.svg" class=class/>
     }
 }
 

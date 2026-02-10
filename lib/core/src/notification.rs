@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashSet};
 use chrono::Utc;
 use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
+use leptos::either::Either;
 use leptos_fluent::{move_tr, tr};
 use leptos_use::{breakpoints_tailwind, BreakpointsTailwind, use_breakpoints, storage::use_local_storage};
 use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
@@ -9,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 use sharesphere_utils::constants::{LOGO_ICON_PATH, SITE_NAME};
 use sharesphere_utils::errors::AppError;
-use sharesphere_utils::icons::{LoadingIcon, NotificationIcon};
+use sharesphere_utils::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, UnreadIcon};
 use sharesphere_utils::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
 use sharesphere_utils::unpack::SuspenseUnpack;
 use sharesphere_utils::widget::{RefreshButton, TimeSinceWidget};
@@ -275,7 +276,7 @@ pub fn NotificationButton() -> impl IntoView {
                                 </a>
                             }.into_any();
                             match state.notif_resource.await {
-                                Ok(notif_vec) if !notif_vec.is_empty() => {
+                                Ok(notif_vec) if notif_vec.iter().any(|notif| !notif.is_read) => {
                                     set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_id_set);
                                     let unread_notif_count = move || match (state.unread_notif_id_set.read().len(), is_wide_screen.get()) {
                                         (x, true) if x > 99 => String::from("99+"),
@@ -331,10 +332,11 @@ pub fn NotificationHome() -> impl IntoView {
 pub fn NotificationList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
-        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
+        <div class="w-4/5 xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
             <div class="flex justify-end">
                 <RefreshButton refresh_count=state.notif_reload_trigger/>
+                <ReadAllNotificationsButton/>
             </div>
             <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
             <SuspenseUnpack resource=state.notif_resource let:notif_vec>
@@ -349,6 +351,41 @@ pub fn NotificationList() -> impl IntoView {
     }
 }
 
+/// Button to set all notifications as read
+#[component]
+fn ReadAllNotificationsButton() -> impl IntoView {
+    let read_all_action = Action::new(move |_: &()| async move {
+        set_all_notifications_read().await
+    });
+    view! {
+        <button
+            class="button-rounded-ghost w-fit tooltip"
+            data-tip=move_tr!("read-all-notifs")
+            on:click=move |_| { read_all_action.dispatch(()); }
+        >
+            <ReadAllIcon/>
+        </button>
+    }
+}
+
+/// Button to set all notifications as read
+#[component]
+fn ReadNotificationButton(
+    read_notif_action: Action<(), Result<(), AppError>>,
+) -> impl IntoView {
+    view! {
+        <button
+            class="button-rounded-ghost w-fit tooltip"
+            data-tip=move_tr!("read-notif")
+            on:click=move |_| {
+                read_notif_action.dispatch(());
+            }
+        >
+            <UnreadIcon/>
+        </button>
+    }
+}
+
 /// Single notification
 #[component]
 pub fn NotificationItem(notification: Notification) -> impl IntoView {
@@ -359,34 +396,50 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
     let message = get_notification_text(&notification);
     let link = get_notification_link(&notification);
 
-    let read_action = Action::new(move |_: &()| async move {
+    let read_notif_action = Action::new(move |_: &()| async move {
         set_notification_read(notif_id).await
     });
 
-    Effect::new(move || if let Some(Err(e)) = &*read_action.value().read() {
+    Effect::new(move || if let Some(Err(e)) = &*read_notif_action.value().read() {
         log::error!("Failed to set notification as read: {}", e);
     });
 
     view! {
         <a
             href=link
-            class="w-full p-2 my-1 flex flex-col gap-1 rounded-sm hover:bg-base-200"
+            class="w-full p-2 my-1 flex justify-between items-center rounded-sm hover:bg-base-200"
             class:text-gray-400=is_notif_read
             on:click=move |_| {
                 state.unread_notif_id_set.write().remove(&notif_id);
-                read_action.dispatch(());
+                read_notif_action.dispatch(());
             }
         >
-            <div class="leading-7">
-                <div class="inline-block align-middle">
-                    <AuthorWidget author=notification.trigger_username is_moderator=is_moderation/>
+            <div class="flex flex-col gap-1">
+                <div class="leading-7">
+                    <div class="inline-block align-middle">
+                        <AuthorWidget
+                            author_id=notification.trigger_user_id
+                            author=notification.trigger_username
+                            is_moderator=is_moderation
+                            is_grayed_out=notification.is_read
+                        />
+                    </div>
+                    <span
+                        class="align-middle px-1"
+                        class:text-gray-400=is_notif_read
+                    >
+                        {message}
+                    </span>
                 </div>
-                <span class="align-middle px-1">{message}</span>
+                <div class="flex gap-1 items-center">
+                    <SphereHeaderLink sphere_header=notification.sphere_header/>
+                    <TimeSinceWidget timestamp=notification.create_timestamp is_grayed_out=notification.is_read/>
+                </div>
             </div>
-            <div class="flex gap-1 items-center">
-                <SphereHeaderLink sphere_header=notification.sphere_header/>
-                <TimeSinceWidget timestamp=notification.create_timestamp/>
-            </div>
+            { match notification.is_read {
+                true => Either::Left(view! { <div class="p-1"><ReadIcon/></div> }),
+                false => Either::Right(view! { <ReadNotificationButton read_notif_action/> }),
+            }}
         </a>
     }
 }

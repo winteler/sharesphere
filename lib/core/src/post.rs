@@ -1243,7 +1243,11 @@ pub fn PostMiniatureList(
                                 <div class="flex gap-1">
                                     <ScoreIndicator score=post.score/>
                                     <CommentCountWidget count=post.num_comments/>
-                                    <AuthorWidget author=post.creator_name.clone() is_moderator=post.is_creator_moderator/>
+                                    <AuthorWidget
+                                        author_id=post.creator_id
+                                        author=post.creator_name.clone()
+                                        is_moderator=post.is_creator_moderator
+                                    />
                                     <TimeSinceWidget timestamp=post.create_timestamp/>
                                 </div>
                             </div>

@@ -401,12 +401,17 @@ pub fn TagsWidget(
 #[component]
 pub fn TimeSinceWidget(
     #[prop(into)]
-    timestamp: Signal<chrono::DateTime<chrono::Utc>>
+    timestamp: Signal<chrono::DateTime<chrono::Utc>>,
+    #[prop(optional)]
+    is_grayed_out: bool,
 ) -> impl IntoView {
     let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Lg);
     view! {
-        <div class="flex gap-1.5 items-center text-xs lg:text-sm px-1">
-            <ClockIcon/>
+        <div
+            class="flex gap-1.5 items-center text-xs lg:text-sm px-1"
+            class:text-gray-400=is_grayed_out
+        >
+            <ClockIcon is_grayed_out/>
             {
                 move || get_elapsed_time_string(timestamp.get(), use_fullname.get())
             }

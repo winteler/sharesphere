@@ -285,6 +285,7 @@ pub fn CommentBox(
 pub fn CommentTopWidgetBar(
     comment: RwSignal<Comment>,
 ) -> impl IntoView {
+    let author_id = comment.read_untracked().creator_id;
     let author = comment.read_untracked().creator_name.clone();
     let timestamp = Signal::derive(move || comment.read().create_timestamp);
     let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
@@ -300,7 +301,11 @@ pub fn CommentTopWidgetBar(
         <div class="flex gap-1 items-center">
             {
                 move || is_active.get().then_some(view! {
-                    <AuthorWidget author=author.clone() is_moderator=is_moderator_comment/>
+                    <AuthorWidget
+                        author_id
+                        author=author.clone()
+                        is_moderator=is_moderator_comment
+                    />
                 })
             }
             <ModeratorWidget moderator/>

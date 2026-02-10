@@ -744,6 +744,7 @@ pub fn CommentWithContext(
     comment: CommentWithContext
 ) -> impl IntoView {
     let score = comment.comment.score;
+    let author_id = comment.comment.creator_id;
     let author = comment.comment.creator_name.clone();
     let is_moderator = comment.comment.is_creator_moderator;
     let timestamp = comment.comment.create_timestamp;
@@ -763,7 +764,7 @@ pub fn CommentWithContext(
                 </div>
                 <div class="flex gap-1">
                     <ScoreIndicator score/>
-                    <AuthorWidget author is_moderator/>
+                    <AuthorWidget author_id author is_moderator/>
                     <TimeSinceWidget timestamp/>
                 </div>
             </button>

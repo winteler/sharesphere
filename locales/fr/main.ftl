@@ -43,6 +43,8 @@ web-notif-moderate-comment = {$username} a modéré ton commentaire sur {$sphere
 multi-web-notif = Tu as {$new_notif_count} nouvelles notifications.
 multi-web-notif-with-unread = Tu as {$new_notif_count} nouvelles notifications, {$unread_notif_count} non-lues en tout.
 web-notif-unread-addon = {" "}Tu as {$unread_notif_count} notifications non-lues.
+read-all-notifs = Lire tout
+read-notif = Marqué lu
 
 number-short = N°
 title = Titre

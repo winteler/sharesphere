@@ -34,15 +34,8 @@ pub fn AuthorIcon(
     is_grayed_out: bool,
 ) -> impl IntoView {
     match is_grayed_out {
-        true => Either::Left(view! { <img src="/svg/toolbar/author.svg" class=class/> }),
-        false => Either::Right(view! { <img src="/svg/notifications/author_grayed_out.svg" class=class/> }),
-    }
-}
-
-#[component]
-pub fn SelfAuthorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/toolbar/author_filled.svg" class=class/>
+        true => Either::Left(view! { <img src="/svg/notifications/author_grayed_out.svg" class=class/> }),
+        false => Either::Right(view! { <img src="/svg/toolbar/author.svg" class=class/> }),
     }
 }
 
@@ -68,8 +61,8 @@ pub fn ClockIcon(
     is_grayed_out: bool,
 ) -> impl IntoView {
     match is_grayed_out {
-        true => Either::Left(view! { <img src="/svg/toolbar/clock.svg" class=class/> }),
-        false => Either::Right(view! { <img src="/svg/notifications/clock_grayed_out.svg" class=class/> }),
+        true => Either::Left(view! { <img src="/svg/notifications/clock_grayed_out.svg" class=class/> }),
+        false => Either::Right(view! { <img src="/svg/toolbar/clock.svg" class=class/> }),
     }
 }
 
@@ -314,15 +307,8 @@ pub fn ModeratorIcon(
     is_grayed_out: bool,
 ) -> impl IntoView {
     match is_grayed_out {
-        true => Either::Left(view! { <img src="/svg/toolbar/moderator.svg" class=class/> }),
-        false => Either::Right(view! { <img src="/svg/notifications/moderator_grayed_out.svg" class=class/> }),
-    }
-}
-
-#[component]
-pub fn ModeratorAuthorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
-    view! {
-        <img src="/svg/toolbar/moderator_filled.svg" class=class/>
+        true => Either::Left(view! { <img src="/svg/notifications/moderator_grayed_out.svg" class=class/> }),
+        false => Either::Right(view! { <img src="/svg/toolbar/moderator_grayed_out.svg" class=class/> }),
     }
 }
 
@@ -439,6 +425,20 @@ pub fn SaveIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static s
 pub fn ScoreIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/toolbar/score.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn SelfAuthorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/toolbar/author_filled.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn SelfModeratorIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/toolbar/moderator_filled.svg" class=class/>
     }
 }
 

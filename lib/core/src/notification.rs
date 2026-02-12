@@ -2,9 +2,8 @@ use std::collections::{BTreeMap, HashSet};
 use chrono::Utc;
 use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
-use leptos::either::Either;
 use leptos_fluent::{move_tr, tr};
-use leptos_use::{breakpoints_tailwind, BreakpointsTailwind, use_breakpoints, storage::use_local_storage};
+use leptos_use::{breakpoints_tailwind, BreakpointsTailwind, storage::use_local_storage, use_breakpoints, use_interval_fn};
 use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
@@ -30,7 +29,8 @@ use {
 
 const NOTIF_STATE_STORAGE: &str = "notification_state";
 const NOTIF_TAG: &str = "sharesphere-notif";
-const NOTIF_RETENTION_DAYS: i64 = 31;
+pub const NOTIF_RETENTION_DAYS: i64 = 31;
+const NOTIF_RELOAD_INTERVAL_MS: u64 = 30000;
 
 #[repr(i16)]
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -72,8 +72,7 @@ impl NotifHandler {
         &mut self,
         notif_vec: Vec<Notification>,
         unread_notif_id_set: RwSignal<HashSet<i64>>
-    )
-    where {
+    ) {
         let UseWebNotificationReturn {
             show,
             ..
@@ -135,7 +134,7 @@ impl NotifHandler {
 pub mod ssr {
     use sqlx::PgPool;
     use sharesphere_utils::errors::AppError;
-    use crate::notification::{Notification, NotificationType};
+    use crate::notification::{Notification, NotificationType, NOTIF_RETENTION_DAYS};
 
     pub async fn create_notification(
         post_id: i64,
@@ -229,6 +228,20 @@ pub mod ssr {
 
         Ok(())
     }
+
+    pub async fn delete_stale_notifications(
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            "DELETE FROM notifications
+            WHERE create_timestamp < NOW() - (INTERVAL '1 day' * $1)",
+            NOTIF_RETENTION_DAYS as f64,
+        )
+            .execute(db_pool)
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[server]
@@ -270,6 +283,10 @@ pub fn NotificationButton() -> impl IntoView {
                 move || Suspend::new(async move {
                     match state.user.await {
                         Ok(Some(_)) => {
+                            use_interval_fn(
+                                move || { *state.notif_reload_trigger.write() += 1; },
+                                NOTIF_RELOAD_INTERVAL_MS,
+                            );
                             let notif_link = view! {
                                 <a class="button-rounded-ghost" href=NOTIFICATION_ROUTE>
                                     <NotificationIcon/>
@@ -332,9 +349,9 @@ pub fn NotificationHome() -> impl IntoView {
 pub fn NotificationList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
-        <div class="w-4/5 xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
+        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
-            <div class="flex justify-end">
+            <div class="flex justify-end px-4">
                 <RefreshButton refresh_count=state.notif_reload_trigger/>
                 <ReadAllNotificationsButton/>
             </div>
@@ -354,6 +371,7 @@ pub fn NotificationList() -> impl IntoView {
 /// Button to set all notifications as read
 #[component]
 fn ReadAllNotificationsButton() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let read_all_action = Action::new(move |_: &()| async move {
         set_all_notifications_read().await
     });
@@ -361,7 +379,10 @@ fn ReadAllNotificationsButton() -> impl IntoView {
         <button
             class="button-rounded-ghost w-fit tooltip"
             data-tip=move_tr!("read-all-notifs")
-            on:click=move |_| { read_all_action.dispatch(()); }
+            on:click=move |_| {
+                state.unread_notif_id_set.write().clear();
+                read_all_action.dispatch(());
+            }
         >
             <ReadAllIcon/>
         </button>
@@ -371,13 +392,17 @@ fn ReadAllNotificationsButton() -> impl IntoView {
 /// Button to set all notifications as read
 #[component]
 fn ReadNotificationButton(
+    notif_id: i64,
     read_notif_action: Action<(), Result<(), AppError>>,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     view! {
         <button
-            class="button-rounded-ghost w-fit tooltip"
+            class="button-rounded-ghost w-fit tooltip tooltip-left"
             data-tip=move_tr!("read-notif")
-            on:click=move |_| {
+            on:click=move |ev| {
+                ev.prevent_default();
+                state.unread_notif_id_set.write().remove(&notif_id);
                 read_notif_action.dispatch(());
             }
         >
@@ -436,10 +461,12 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
                     <TimeSinceWidget timestamp=notification.create_timestamp is_grayed_out=notification.is_read/>
                 </div>
             </div>
-            { match notification.is_read {
-                true => Either::Left(view! { <div class="p-1"><ReadIcon/></div> }),
-                false => Either::Right(view! { <ReadNotificationButton read_notif_action/> }),
-            }}
+            <Show
+                when=is_notif_read
+                fallback=move || view! { <ReadNotificationButton notif_id read_notif_action/> }
+            >
+                <div class="p-1 lg:p-2"><ReadIcon/></div>
+            </Show>
         </a>
     }
 }

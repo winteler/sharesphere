@@ -308,7 +308,7 @@ pub fn ModeratorIcon(
 ) -> impl IntoView {
     match is_grayed_out {
         true => Either::Left(view! { <img src="/svg/notifications/moderator_grayed_out.svg" class=class/> }),
-        false => Either::Right(view! { <img src="/svg/toolbar/moderator_grayed_out.svg" class=class/> }),
+        false => Either::Right(view! { <img src="/svg/toolbar/moderator.svg" class=class/> }),
     }
 }
 

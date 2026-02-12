@@ -4697,6 +4697,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
+ "url",
  "web-sys",
 ]
 
@@ -4801,7 +4802,6 @@ dependencies = [
  "gloo-net",
  "http",
  "indoc",
- "lazy_static",
  "leptos",
  "leptos-fluent",
  "leptos-use",

@@ -1,9 +1,9 @@
-use sharesphere_core::notification::NotificationType;
-use sharesphere_core::notification::ssr::{create_notification, get_notifications, set_all_notifications_read, set_notification_read};
+use sharesphere_core::notification::{NotificationType, NOTIF_RETENTION_DAYS};
+use sharesphere_core::notification::ssr::{create_notification, delete_stale_notifications, get_notifications, set_all_notifications_read, set_notification_read};
 
 use crate::common::*;
 use crate::data_factory::*;
-use crate::utils::get_notification;
+use crate::utils::{get_notification, update_notification_timestamp};
 
 mod common;
 mod data_factory;
@@ -76,7 +76,7 @@ async fn test_get_notifications() {
         trigger_user.user_id,
         NotificationType::CommentReply,
         &db_pool
-    ).await.expect("Should create post comment notification");
+    ).await.expect("Should create comment comment notification");
 
     let expected_notif_vec = vec![comment_comment_notif, post_comment_notif];
 
@@ -130,7 +130,7 @@ async fn test_set_all_notifications_read() {
         trigger_user.user_id,
         NotificationType::PostReply,
         &db_pool
-    ).await.expect("Should create post comment notification");
+    ).await.expect("Should create comment comment notification");
 
     set_all_notifications_read(user.user_id, &db_pool).await.expect("Should read all notification");
 
@@ -141,4 +141,37 @@ async fn test_set_all_notifications_read() {
 
     let notif_vec = get_notifications(user.user_id, &db_pool).await.expect("Should get notification vec");
     assert_eq!(notif_vec, expected_notif_vec);
+}
+
+#[tokio::test]
+async fn test_delete_stale_notifications() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+    let trigger_user = create_user("trigger", &db_pool).await;
+
+    let (_, post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+
+    let notif_1 = create_notification(
+        post.post_id,
+        None,
+        trigger_user.user_id,
+        NotificationType::Moderation,
+        &db_pool
+    ).await.expect("Should create post comment notification");
+
+    let notif_2 = create_notification(
+        comment.post_id,
+        Some(comment.comment_id),
+        trigger_user.user_id,
+        NotificationType::PostReply,
+        &db_pool
+    ).await.expect("Should create comment comment notification");
+
+    update_notification_timestamp(notif_2.notification_id, (NOTIF_RETENTION_DAYS + 1) as f64, &db_pool).await.expect("Should update notification timestamp");
+
+    delete_stale_notifications(&db_pool).await.expect("Should delete stale notifications");
+
+    let notif_vec = get_notifications(user.user_id, &db_pool).await.expect("Should get notification vec");
+    assert_eq!(notif_vec.contains(&notif_1), true);
+    assert_eq!(notif_vec.contains(&notif_2), false);
 }

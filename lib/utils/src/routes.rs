@@ -187,9 +187,9 @@ pub fn get_post_path(
 ///
 /// ```
 /// use sharesphere_utils::routes::{get_app_origin, get_post_link};
-/// let origin = get_app_origin().unwrap_or_default();
-/// assert_eq!(get_post_link("test", None, 1), format!("{origin}/spheres/test/posts/1"));
-/// assert_eq!(get_post_link("test", Some(1), 2), format!("{origin}/spheres/test/satellites/1/posts/2"));
+/// let origin = get_app_origin().unwrap_or(String::from("https://sharesphere.space"));
+/// assert_eq!(get_post_link("test", None, 1), Ok(format!("{origin}/spheres/test/posts/1")));
+/// assert_eq!(get_post_link("test", Some(1), 2), Ok(format!("{origin}/spheres/test/satellites/1/posts/2")));
 /// ```
 pub fn get_post_link(
     sphere_name: &str,
@@ -228,9 +228,9 @@ pub fn get_comment_path(
 ///
 /// ```
 /// use sharesphere_utils::routes::{get_app_origin, get_comment_link};
-/// let origin = get_app_origin().unwrap_or_default();
-/// assert_eq!(get_comment_link("test", None, 1, 2), format!("{origin}/spheres/test/posts/1?comment_id=2"));
-/// assert_eq!(get_comment_link("test", Some(1), 2, 3), format!("{origin}/spheres/test/satellites/1/posts/2?comment_id=3"));
+/// let origin = get_app_origin().unwrap_or(String::from("https://sharesphere.space"));
+/// assert_eq!(get_comment_link("test", None, 1, 2), Ok(format!("{origin}/spheres/test/posts/1?comment_id=2")));
+/// assert_eq!(get_comment_link("test", Some(1), 2, 3), Ok(format!("{origin}/spheres/test/satellites/1/posts/2?comment_id=3")));
 /// ```
 pub fn get_comment_link(
     sphere_name: &str,

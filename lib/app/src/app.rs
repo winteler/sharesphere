@@ -55,8 +55,8 @@ pub fn AppMeta() -> impl IntoView {
             content=move || {
                 // this will insert the CSP with nonce on the server, be empty on client
                 use_nonce().map(|nonce| {
-                    let script_src_csp = match expect_context::<UserAgentHeader>().value {
-                        Some(user_agent) if ios_user_agent_regex.captures(user_agent.as_str()).is_some() => {
+                    let script_src_csp = match use_context::<UserAgentHeader>().map(|header| header.value) {
+                        Some(Some(user_agent)) if ios_user_agent_regex.captures(user_agent.as_str()).is_some() => {
                             format!("script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval' 'unsafe-eval';")
                         },
                         _ => format!("script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';")

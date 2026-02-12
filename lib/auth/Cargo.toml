@@ -28,6 +28,7 @@ serde_json.workspace = true
 strum.workspace = true
 strum_macros.workspace = true
 tokio = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
 web-sys.workspace = true
 
 async-trait = { version = "*", optional = true }
@@ -57,4 +58,5 @@ ssr = [
     "dep:reqwest",
     "dep:sqlx",
     "dep:tokio",
+    "dep:url",
 ]

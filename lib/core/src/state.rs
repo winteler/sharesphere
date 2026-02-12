@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use leptos::prelude::*;
-use leptos_use::{use_interval};
 use sharesphere_auth::auth::EndSession;
 use crate::notification::{Notification, get_notifications};
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
@@ -69,7 +68,6 @@ impl GlobalState {
         create_sphere_action: ServerAction<CreateSphere>,
         set_settings_action: ServerAction<SetUserSettings>,
     ) -> Self {
-        let interval_return  = use_interval(600000);
         let notif_reload_trigger = RwSignal::new(0);
 
         Self {
@@ -89,7 +87,7 @@ impl GlobalState {
             unread_notif_id_set: RwSignal::new(HashSet::new()),
             notif_reload_trigger,
             notif_resource: Resource::new(
-                move || (interval_return.counter.get(), notif_reload_trigger.get()),
+                move || notif_reload_trigger.get(),
                 move |_| get_notifications(),
             ),
             user,

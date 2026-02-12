@@ -240,6 +240,31 @@ pub async fn get_notification(
     Ok(notification)
 }
 
+pub async fn update_notification_timestamp(
+    notification_id: i64,
+    day_delta: f64,
+    db_pool: &PgPool,
+) -> Result<Notification, AppError> {
+    let notification = sqlx::query_as::<_, Notification>(
+        "WITH updated_notif AS (
+            UPDATE notifications
+            SET create_timestamp = NOW() - (INTERVAL '1 day' * $1)
+            WHERE notification_id = $2
+            RETURNING *
+        )
+        SELECT n.*, u.username AS trigger_username, s.sphere_name, s.icon_url, s.is_nsfw
+        FROM updated_notif n
+        JOIN USERS u ON u.user_id = n.trigger_user_id
+        JOIN spheres s ON s.sphere_id = n.sphere_id",
+    )
+        .bind(day_delta)
+        .bind(notification_id)
+        .fetch_one(db_pool)
+        .await?;
+
+    Ok(notification)
+}
+
 pub fn get_png_data() -> &'static[u8] {
     &[
         // PNG signature

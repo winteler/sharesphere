@@ -34,7 +34,7 @@ pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_URL";
 pub const OIDC_ISSUER_ADMIN_URL_ENV: &str = "OIDC_ISSUER_ADMIN_URL";
 pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
-pub const AUTH_CALLBACK_ROUTE: &str = "authback";
+pub const AUTH_CALLBACK_ROUTE: &str = "/authback";
 pub const PKCE_KEY: &str = "pkce";
 pub const NONCE_KEY: &str = "nonce";
 pub const OIDC_TOKEN_KEY: &str = "oidc_token";
@@ -49,10 +49,14 @@ pub struct OAuthParams {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use std::sync::{LazyLock};
+
     use openidconnect::core::{CoreTokenResponse};
     use openidconnect::{EndpointMaybeSet, EndpointNotSet, EndpointSet, NonceVerifier, ProviderMetadataWithLogout, RequestTokenError};
     use reqwest::Client;
     use serde_json::Value;
+    use url::Url;
+
     use sharesphere_utils::errors::AppError;
 
     use crate::session::ssr::{get_db_pool, get_session, get_user_lock_cache, AuthSession};
@@ -60,6 +64,14 @@ pub mod ssr {
     use crate::user::ssr::{create_or_update_user, SqlUser};
 
     use super::*;
+
+    static AUTH_REDIRECT: LazyLock<Result<oidc::RedirectUrl, AppError>> = LazyLock::new(|| {
+        Ok(
+            oidc::RedirectUrl::new(
+                Url::parse(&get_app_origin()?)?.join(AUTH_CALLBACK_ROUTE)?.to_string()
+            )?
+        )
+    });
 
     type OidcCoreClient = openidconnect::core::CoreClient<
         EndpointSet,
@@ -95,10 +107,6 @@ pub mod ssr {
         Ok(oidc::ClientSecret::new(env::var(AUTH_CLIENT_SECRET_ENV)?))
     }
 
-    pub fn get_auth_redirect() -> Result<oidc::RedirectUrl, AppError> {
-        Ok(oidc::RedirectUrl::new(get_app_origin()? + AUTH_CALLBACK_ROUTE)?)
-    }
-
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {
         Ok(oidc::PostLogoutRedirectUrl::new(get_app_origin()?)?)
     }
@@ -120,7 +128,7 @@ pub mod ssr {
     }
 
     pub async fn get_oidc_client(http_client: &Client) -> Result<OidcCoreClient, AppError> {
-        let redirect_url = get_auth_redirect()?;
+        let auth_redirect = AUTH_REDIRECT.clone()?;
         let provider_metadata = get_provider_metadata(http_client).await?;
         // TODO cache client with a periodic refresh?
         // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL and token URL.
@@ -130,7 +138,7 @@ pub mod ssr {
             Some(get_oidc_client_secret()?),
         )
             // Set the URL the user will be redirected to after the authorization process.
-            .set_redirect_uri(redirect_url);
+            .set_redirect_uri(auth_redirect);
 
         Ok(client)
     }

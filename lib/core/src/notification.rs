@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, HashSet};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
 use leptos_fluent::{move_tr, tr};
@@ -43,7 +43,7 @@ pub enum NotificationType {
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Notification {
     pub notification_id: i64,
     pub sphere_id: i64,
@@ -68,21 +68,11 @@ struct NotifHandler {
 }
 
 impl NotifHandler {
-    pub fn handle_notifications(
+    fn identify_new_notifications(
         &mut self,
         notif_vec: Vec<Notification>,
-        unread_notif_id_set: RwSignal<HashSet<i64>>
-    ) {
-        let UseWebNotificationReturn {
-            show,
-            ..
-        } = use_web_notification_with_options(
-            UseWebNotificationOptions::default()
-                .renotify(true)
-                .tag(NOTIF_TAG)
-                .icon(LOGO_ICON_PATH)
-        );
-
+        unread_notif_id_set: RwSignal<HashSet<i64>>,
+    ) -> Vec<Notification> {
         let unread_notif_vec: Vec<Notification> = notif_vec
             .into_iter()
             .filter(|notif| !notif.is_read)
@@ -96,18 +86,24 @@ impl NotifHandler {
                 new_notif_vec.push(notif);
             }
         }
+        new_notif_vec
+    }
 
-        // Clear outdated notification
-        let notif_timestamp_threshold = Utc::now() - chrono::Duration::days(NOTIF_RETENTION_DAYS);
-
-        let notif_to_keep = self.timestamp_2_notif_id.split_off(&notif_timestamp_threshold);
+    fn clear_stale_notifications(&mut self, threshold_datetime: DateTime<Utc>) {
+        let notif_to_keep = self.timestamp_2_notif_id.split_off(&threshold_datetime);
 
         for (_, value) in &self.timestamp_2_notif_id {
             self.emitted_notif_id_set.remove(value);
         }
         self.timestamp_2_notif_id = notif_to_keep;
+    }
 
-        // Send notifications to browser
+    fn send_notifications_to_browser(
+        &mut self,
+        new_notif_vec: Vec<Notification>,
+        unread_notif_id_set: RwSignal<HashSet<i64>>,
+        show: impl Fn(ShowOptions) + Clone + Send + Sync,
+    ) {
         if let Some(notif) = new_notif_vec.iter().next() {
             let new_notif_count = new_notif_vec.len();
             let unread_notif_count = unread_notif_id_set.read_untracked().len();
@@ -127,6 +123,27 @@ impl NotifHandler {
                     .body(body)
             );
         }
+    }
+
+    pub fn handle_notifications(
+        &mut self,
+        notif_vec: Vec<Notification>,
+        unread_notif_id_set: RwSignal<HashSet<i64>>
+    ) {
+        let UseWebNotificationReturn {
+            show,
+            ..
+        } = use_web_notification_with_options(
+            UseWebNotificationOptions::default()
+                .renotify(true)
+                .tag(NOTIF_TAG)
+                .icon(LOGO_ICON_PATH)
+        );
+        let notif_timestamp_threshold = Utc::now() - chrono::Duration::days(NOTIF_RETENTION_DAYS);
+
+        let new_notif_vec = self.identify_new_notifications(notif_vec, unread_notif_id_set);
+        self.clear_stale_notifications(notif_timestamp_threshold);
+        self.send_notifications_to_browser(new_notif_vec, unread_notif_id_set, show);
     }
 }
 
@@ -516,5 +533,71 @@ fn get_web_notif_text(notification: &Notification) -> String {
         (NotificationType::Moderation, None) => tr!(
             "web-notif-moderate-comment", {"username" => username, "sphere_name" => sphere_name}
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+    use leptos::prelude::*;
+    use crate::notification::{NotifHandler, Notification, NOTIF_RETENTION_DAYS};
+
+    #[test]
+    fn test_notif_handler_identify_new_notifications() {
+        let owner = Owner::new();
+        owner.set();
+        let mut notif_handler = NotifHandler {
+            emitted_notif_id_set: [2].into(),
+            ..Default::default()
+        };
+
+        let timestamp_1 = chrono::Utc::now();
+        let timestamp_2 = timestamp_1 - chrono::Duration::days(1);
+
+        let unread_notif_id_set = RwSignal::new(HashSet::default());
+        let new_notif = Notification {
+            notification_id: 3,
+            create_timestamp: timestamp_2,
+            ..Default::default()
+        };
+
+        let notif_vec = vec![
+            Notification {
+                notification_id: 1,
+                is_read: true,
+                ..Default::default()
+            },
+            Notification {
+                notification_id: 2,
+                create_timestamp: timestamp_1,
+                ..Default::default()
+            },
+            new_notif.clone(),
+        ];
+
+        let new_notif_vec = notif_handler.identify_new_notifications(notif_vec, unread_notif_id_set);
+        assert_eq!(new_notif_vec.len(), 1);
+        assert_eq!(*new_notif_vec.first().unwrap(), new_notif);
+
+        assert_eq!(unread_notif_id_set.get_untracked(), [2, 3].into());
+
+        assert_eq!(notif_handler.emitted_notif_id_set, [2, 3].into());
+        assert_eq!(notif_handler.timestamp_2_notif_id, [(timestamp_2, 3)].into());
+    }
+
+    #[test]
+    fn test_notif_handler_clear_stale_notifications() {
+        let current_timestamp = chrono::Utc::now();
+        let threshold_timestamp = current_timestamp - chrono::Duration::days(NOTIF_RETENTION_DAYS);
+        let stale_timestamp = current_timestamp - chrono::Duration::days(NOTIF_RETENTION_DAYS + 1);
+
+        let mut notif_handler = NotifHandler {
+            emitted_notif_id_set: [1, 2, 3].into(),
+            timestamp_2_notif_id: [(stale_timestamp, 1), (threshold_timestamp, 2), (current_timestamp, 3)].into(),
+        };
+
+        notif_handler.clear_stale_notifications(threshold_timestamp);
+        assert_eq!(notif_handler.emitted_notif_id_set, [2, 3].into());
+        assert_eq!(notif_handler.timestamp_2_notif_id, [(threshold_timestamp, 2), (current_timestamp, 3)].into());
     }
 }

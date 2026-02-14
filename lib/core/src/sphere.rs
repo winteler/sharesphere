@@ -61,7 +61,7 @@ pub struct SphereWithUserInfo {
 }
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct SphereHeader {
     pub sphere_name: String,
     pub icon_url: Option<String>,

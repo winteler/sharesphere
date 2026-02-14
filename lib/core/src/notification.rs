@@ -142,26 +142,30 @@ pub mod ssr {
         trigger_user_id: i64,
         notification_type: NotificationType,
         db_pool: &PgPool,
-    ) -> Result<Notification, AppError> {
+    ) -> Result<Option<Notification>, AppError> {
         let notification = sqlx::query_as::<_, Notification>(
             "WITH trigger_user AS (
                 SELECT username FROM users WHERE user_id = $3
             ), post_info AS (
                 SELECT sphere_id, satellite_id, creator_id FROM posts WHERE post_id = $1
-            ), new_notification AS (
-                INSERT INTO notifications (sphere_id, satellite_id, post_id, comment_id, user_id, trigger_user_id, notification_type)
-                VALUES (
-                    (SELECT sphere_id FROM post_info),
-                    (SELECT satellite_id FROM post_info),
-                    $1, $2,
+            ), notified_user AS (
+                SELECT
                     CASE
                         WHEN $2 IS NULL THEN
                             (SELECT creator_id FROM post_info)
                         ELSE
                             (SELECT creator_id FROM comments WHERE comment_id = $2)
-                    END,
+                    END AS creator_id
+            ), new_notification AS (
+                INSERT INTO notifications (sphere_id, satellite_id, post_id, comment_id, user_id, trigger_user_id, notification_type)
+                SELECT
+                    p.sphere_id,
+                    p.satellite_id,
+                    $1, $2,
+                    nu.creator_id,
                     $3, $4
-                )
+                FROM post_info p, trigger_user tu, notified_user nu
+                WHERE $3 != nu.creator_id
                 RETURNING *
             )
             SELECT n.*, u.username AS trigger_username, s.sphere_name, s.icon_url, s.is_nsfw
@@ -172,7 +176,7 @@ pub mod ssr {
             .bind(comment_id)
             .bind(trigger_user_id)
             .bind(notification_type as i16)
-            .fetch_one(db_pool)
+            .fetch_optional(db_pool)
             .await?;
 
         Ok(notification)

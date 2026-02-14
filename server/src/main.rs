@@ -10,10 +10,12 @@ use axum::http::HeaderValue;
 use axum_session::{Key, SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer};
 use axum_session_sqlx::SessionPgPool;
+use backoff::{ExponentialBackoff};
 use base64::{Engine, engine::general_purpose};
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
+use tokio_cron_scheduler::{Job, JobScheduler};
 
 use sharesphere_auth::session::ssr::{create_db_pool, is_prod_mode, AuthSession};
 use sharesphere_auth::user::ssr::UserLockCache;
@@ -22,7 +24,8 @@ use sharesphere_auth::user::User;
 use sharesphere_core::post::ssr::update_post_scores;
 
 use sharesphere_app::app::*;
-
+use sharesphere_core::notification::ssr::delete_stale_notifications;
+use sharesphere_utils::errors::AppError;
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
 
@@ -142,23 +145,61 @@ fn add_security_headers(response: &mut Response<Body>) {
     );
 }
 
-async fn update_post_scores_loop(db_pool: PgPool) {
-    let default_interval_seconds = 5 * 60;
-    let wait_interval_seconds = match env::var(POST_SCORE_UPDATE_INTERVAL_S_ENV) {
-        Ok(wait_interval_string) => wait_interval_string.parse().unwrap_or(default_interval_seconds),
-        _ => default_interval_seconds,
+async fn update_post_scores_with_backoff(
+    retry_duration: std::time::Duration,
+    db_pool: PgPool,
+) -> Result<(), AppError> {
+    let backoff_params = ExponentialBackoff {
+        max_elapsed_time: Some(retry_duration),
+        ..Default::default()
     };
-    let interval = tokio::time::Duration::from_secs(wait_interval_seconds); // 5 minutes
+    backoff::future::retry(backoff_params, || async {
+        Ok(update_post_scores(&db_pool).await?)
+    }).await
+}
 
-    loop {
-        let result = update_post_scores(&db_pool).await;
-        if let Err(e) = result {
-            log::error!("Failed to updated posts' ranking timestamps with error: {e}");
-        } else {
-            log::debug!("Successfully updated posts' ranking timestamps");
-        }
-        tokio::time::sleep(interval).await;
-    }
+async fn delete_stale_notifications_with_backoff(
+    retry_duration: std::time::Duration,
+    db_pool: PgPool
+) -> Result<(), AppError> {
+    let backoff_params = ExponentialBackoff {
+        max_elapsed_time: Some(retry_duration),
+        ..Default::default()
+    };
+    backoff::future::retry(backoff_params, || async {
+        Ok(delete_stale_notifications(&db_pool).await?)
+    }).await
+}
+
+async fn schedule_update_post_score_job(scheduler: &mut JobScheduler, db_pool: PgPool) {
+    scheduler.add(
+        Job::new_async("0 */5 * * * *", move |_uuid, _l| {
+            let pool = db_pool.clone();
+            let retry_duration = std::time::Duration::from_mins(3);
+            Box::pin(async move {
+                log::info!("Update post scores.");
+                match update_post_scores_with_backoff(retry_duration, pool).await {
+                    Ok(()) => log::debug!("Successfully updated posts' ranking timestamps"),
+                    Err(e) => log::error!("Failed to update posts' ranking timestamps after {} seconds with error: {e}", retry_duration.as_secs()),
+                }
+            })
+        }).expect("Should create post scores update job")
+    ).await.expect("Should schedule post scores update job");
+}
+
+async fn schedule_delete_stale_notif_job(scheduler: &mut JobScheduler, db_pool: PgPool) {
+    scheduler.add(
+        Job::new_async("0 0 0 * * *", move |_uuid, _l| {
+            let retry_duration = std::time::Duration::from_mins(15);
+            let pool = db_pool.clone();
+            Box::pin(async move {
+                match delete_stale_notifications_with_backoff(retry_duration, pool).await {
+                    Ok(()) => log::debug!("Successfully deleted stale notifications"),
+                    Err(e) => log::error!("Failed to deleted stale notifications after {} seconds with error: {e}", retry_duration.as_secs()),
+                }
+            })
+        }).expect("Should create delete stale notification job")
+    ).await.expect("Should schedule delete stale notification job");
 }
 
 #[tokio::main]
@@ -175,8 +216,10 @@ async fn main() {
         .await
         .expect("Should be able to run SQLx migrations.");
 
-    // Start a task to periodically update post scores
-    tokio::spawn(update_post_scores_loop(pool.clone()));
+    let mut scheduler = JobScheduler::new().await.expect("Should create Job Scheduler.");
+    schedule_update_post_score_job(&mut scheduler, pool.clone()).await;
+    schedule_delete_stale_notif_job(&mut scheduler, pool.clone()).await;
+    scheduler.start().await.expect("Scheduler should start");
 
     let session_config = SessionConfig::default()
         .with_table_name("sessions")

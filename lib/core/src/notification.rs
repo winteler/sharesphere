@@ -99,10 +99,10 @@ impl NotifHandler {
     }
 
     fn send_notifications_to_browser(
-        &mut self,
+        &self,
         new_notif_vec: Vec<Notification>,
         unread_notif_id_set: RwSignal<HashSet<i64>>,
-        show: impl Fn(ShowOptions) + Clone + Send + Sync,
+        build_and_send_notif_fn: impl Fn(String) + Clone + Send + Sync,
     ) {
         if let Some(notif) = new_notif_vec.iter().next() {
             let new_notif_count = new_notif_vec.len();
@@ -117,34 +117,40 @@ impl NotifHandler {
                     "multi-web-notif-with-unread", {"new_notif_count" => new_notif_count, "unread_notif_count" => unread_notif_count}
                 ),
             };
-            show(
-                ShowOptions::default()
-                    .title(SITE_NAME)
-                    .body(body)
-            );
+            build_and_send_notif_fn(body);
         }
     }
 
     pub fn handle_notifications(
         &mut self,
         notif_vec: Vec<Notification>,
-        unread_notif_id_set: RwSignal<HashSet<i64>>
+        unread_notif_id_set: RwSignal<HashSet<i64>>,
+        build_and_send_notif_fn: impl Fn(String) + Clone + Send + Sync,
     ) {
-        let UseWebNotificationReturn {
-            show,
-            ..
-        } = use_web_notification_with_options(
-            UseWebNotificationOptions::default()
-                .renotify(true)
-                .tag(NOTIF_TAG)
-                .icon(LOGO_ICON_PATH)
-        );
         let notif_timestamp_threshold = Utc::now() - chrono::Duration::days(NOTIF_RETENTION_DAYS);
 
         let new_notif_vec = self.identify_new_notifications(notif_vec, unread_notif_id_set);
         self.clear_stale_notifications(notif_timestamp_threshold);
-        self.send_notifications_to_browser(new_notif_vec, unread_notif_id_set, show);
+        self.send_notifications_to_browser(new_notif_vec, unread_notif_id_set, build_and_send_notif_fn);
     }
+}
+
+fn build_and_send_notif(body: String) {
+    let UseWebNotificationReturn {
+        show,
+        ..
+    } = use_web_notification_with_options(
+        UseWebNotificationOptions::default()
+            .renotify(true)
+            .tag(NOTIF_TAG)
+            .icon(LOGO_ICON_PATH)
+    );
+
+    show(
+        ShowOptions::default()
+            .title(SITE_NAME)
+            .body(body)
+    )
 }
 
 #[cfg(feature = "ssr")]
@@ -315,7 +321,7 @@ pub fn NotificationButton() -> impl IntoView {
                             }.into_any();
                             match state.notif_resource.await {
                                 Ok(notif_vec) if notif_vec.iter().any(|notif| !notif.is_read) => {
-                                    set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_id_set);
+                                    set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_id_set, build_and_send_notif);
                                     let unread_notif_count = move || match (state.unread_notif_id_set.read().len(), is_wide_screen.get()) {
                                         (x, true) if x > 99 => String::from("99+"),
                                         (x, false) if x > 9 => String::from("9+"),
@@ -539,8 +545,32 @@ fn get_web_notif_text(notification: &Notification) -> String {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+    use std::sync::LazyLock;
     use leptos::prelude::*;
-    use crate::notification::{NotifHandler, Notification, NOTIF_RETENTION_DAYS};
+    use leptos_fluent::__reexports::fluent_templates::{static_loader, LanguageIdentifier, StaticLoader};
+    use leptos_fluent::{tr, I18n, Language};
+
+    use crate::notification::{get_web_notif_text, NotifHandler, Notification, NOTIF_RETENTION_DAYS};
+
+    const EN_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("en");
+    const FR_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("fr");
+
+    const EN_LANG: Language = Language {
+        id: &EN_IDENTIFIER,
+        name: "English",
+        dir: &leptos_fluent::WritingDirection::Ltr,
+        flag: None,
+    };
+    const FR_LANG: Language = Language {
+        id: &FR_IDENTIFIER,
+        name: "Français",
+        dir: &leptos_fluent::WritingDirection::Ltr,
+        flag: None,
+    };
+    const LANGUAGES: &'static [&Language] = &[
+        &EN_LANG,
+        &FR_LANG,
+    ];
 
     #[test]
     fn test_notif_handler_identify_new_notifications() {
@@ -599,5 +629,68 @@ mod tests {
         notif_handler.clear_stale_notifications(threshold_timestamp);
         assert_eq!(notif_handler.emitted_notif_id_set, [2, 3].into());
         assert_eq!(notif_handler.timestamp_2_notif_id, [(threshold_timestamp, 2), (current_timestamp, 3)].into());
+    }
+
+    #[test]
+    fn test_notif_handler_send_notifications_to_browser() {
+        let owner = Owner::new();
+        owner.set();
+        static_loader! {
+            static TRANSLATIONS = {
+                locales: "../../locales",
+                fallback_language: "en",
+            };
+        }
+        let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
+        let i18n = I18n {
+            language: RwSignal::new(&LANGUAGES[0]),
+            languages: LANGUAGES,
+            translations: Signal::derive(move || compound.clone()),
+        };
+
+        provide_context(i18n);
+
+        let notif_handler = NotifHandler::default();
+
+        let notif_1 = Notification {
+            notification_id: 1,
+            ..Default::default()
+        };
+        let notif_2 = Notification {
+            notification_id: 2,
+            ..Default::default()
+        };
+
+        let mut notif_vec = vec![
+            notif_1.clone(),
+        ];
+        let unread_notif_id_set = RwSignal::new([1].into());
+
+        let expected_body = get_web_notif_text(&notif_1);
+        let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
+        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_id_set, mock_show_fn);
+
+        unread_notif_id_set.write_untracked().insert(2);
+        let expected_body =
+            get_web_notif_text(&notif_1) +
+                tr!(
+                    "web-notif-unread-addon",
+                    {"unread_notif_count" => unread_notif_id_set.read_untracked().len()}
+                ).as_str();
+        let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
+        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_id_set, mock_show_fn);
+
+        notif_vec.push(notif_2);
+        let expected_body = tr!("multi-web-notif", {"new_notif_count" => notif_vec.len()});
+        let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
+        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_id_set, mock_show_fn);
+
+        unread_notif_id_set.write_untracked().insert(4);
+        let expected_body = tr!(
+            "multi-web-notif-with-unread",
+            {"new_notif_count" => notif_vec.len(), "unread_notif_count" => unread_notif_id_set.read_untracked().len()}
+        );
+        let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
+        notif_handler.send_notifications_to_browser(notif_vec, unread_notif_id_set, mock_show_fn);
     }
 }

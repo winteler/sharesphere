@@ -693,4 +693,83 @@ mod tests {
         let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
         notif_handler.send_notifications_to_browser(notif_vec, unread_notif_id_set, mock_show_fn);
     }
+
+    #[test]
+    fn test_notif_handler_handle_notifications() {
+        let owner = Owner::new();
+        owner.set();
+        static_loader! {
+            static TRANSLATIONS = {
+                locales: "../../locales",
+                fallback_language: "en",
+            };
+        }
+        let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
+        let i18n = I18n {
+            language: RwSignal::new(&LANGUAGES[0]),
+            languages: LANGUAGES,
+            translations: Signal::derive(move || compound.clone()),
+        };
+
+        provide_context(i18n);
+
+        let current_timestamp = chrono::Utc::now();
+        let threshold_timestamp = current_timestamp - chrono::Duration::days(NOTIF_RETENTION_DAYS);
+        let stale_timestamp = current_timestamp - chrono::Duration::days(NOTIF_RETENTION_DAYS + 1);
+
+        let mut notif_handler = NotifHandler {
+            emitted_notif_id_set: [1, 2, 3, 4].into(),
+            timestamp_2_notif_id: [
+                (stale_timestamp, 1),
+                (threshold_timestamp, 2),
+                (threshold_timestamp, 3),
+                (current_timestamp, 4),
+            ].into(),
+        };
+
+        let notif_1 = Notification {
+            notification_id: 2,
+            is_read: true,
+            create_timestamp: threshold_timestamp,
+            ..Default::default()
+        };
+        let notif_2 = Notification {
+            notification_id: 3,
+            is_read: true,
+            create_timestamp: threshold_timestamp,
+            ..Default::default()
+        };
+        let notif_3 = Notification {
+            notification_id: 4,
+            create_timestamp: current_timestamp,
+            ..Default::default()
+        };
+        let notif_4 = Notification {
+            notification_id: 5,
+            create_timestamp: current_timestamp,
+            ..Default::default()
+        };
+        let notif_5 = Notification {
+            notification_id: 6,
+            create_timestamp: current_timestamp,
+            ..Default::default()
+        };
+
+        let notif_vec = vec![
+            notif_1,
+            notif_2,
+            notif_3,
+            notif_4,
+            notif_5,
+        ];
+        let unread_notif_id_set = RwSignal::new(HashSet::new());
+
+        let expected_body = tr!(
+            "multi-web-notif-with-unread",
+            {"new_notif_count" => 2, "unread_notif_count" => 3}
+        );
+        let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
+        notif_handler.handle_notifications(notif_vec, unread_notif_id_set, mock_show_fn);
+        assert_eq!(unread_notif_id_set.read_untracked(), [4, 5, 6].into());
+    }
 }

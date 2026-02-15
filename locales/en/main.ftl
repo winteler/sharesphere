@@ -153,9 +153,9 @@ image = Image
 sharesphere-right-sidebar-1 =
     ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics.
 sharesphere-right-sidebar-2 =
-    ShareSphere is a non-profit, add-free, source-available website with a focus on transparency, privacy and community empowerment. You can find more information on the website and its rules below.
+    ShareSphere is an ad-free, source-available website with a focus on transparency, privacy and community empowerment. You can find more information on the website and its rules below.
 about-sharesphere-content =
-    ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. ShareSphere is a non-profit, ad-free, source-available website with a focus on transparency, privacy and community empowerment. ShareSphere's goal is to run by relying solely on donations and to provide a better user experience than ad-based platforms.
+    ShareSphere is the place to exchange with other people about your hobbies, art, news, jokes and many more topics. ShareSphere is an ad-free, source-available website with a focus on transparency, privacy and community empowerment. ShareSphere's goal is to run by relying solely on donations and to provide a better user experience than ad-based platforms.
 about-sharesphere-rules-1 =
     ShareSphere aims to be a place for positive and constructive exchanges. In order to make it so, a{" "}
 about-sharesphere-rules-link =
@@ -234,7 +234,7 @@ origin-goals-title = Origin & Goals
 origin-goals-1 =
     I started thinking about ShareSphere around summer 2023 after several social media platforms I used made changes with a negative impacts on their user base. I already had quite a low opinion of most social networks, thinking they were pretty terrible for the mental health of many of their users and that their ad-based profit model is fundamentally incompatible with a good user experience.
 origin-goals-2 =
-    This gave me the idea to try building a better platform, one that would non-profit, rely on donations instead of ads and would be focus on transparency. Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant.
+    This gave me the idea to try building a better platform, one that would be non-profit, rely on donations instead of ads and would be focus on transparency. Being non-profit and relying on donations is extremely important, as it switches the company's focus from making users mindlessly scroll through content to generate more ad-revenue to providing a great user experience that want to contribute to with donations. Furthermore, not relying on ads means there is a much greater incentive to deal with bots, as inflating the number of users and generated content becomes less relevant.
 origin-goals-3 =
     In such a structure, transparency is key, to show users that their donations are not misused. ShareSphere will always report how much donations it received and how this money is used, for instance for operating costs and salaries. ShareSphere is also source-available, enabling the community to know how the site functions and which information is collected. Finally, ShareSphere aims to have transparent moderation, without shadow bans or unexplained content removal.
 origin-goals-4 =

@@ -446,7 +446,7 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
     let is_notif_read = move || !state.unread_notif_id_set.read().contains(&notif_id);
     let is_moderation = notification.notification_type == NotificationType::Moderation;
     let message = get_notification_text(&notification);
-    let link = get_notification_link(&notification);
+    let link = get_notification_path(&notification);
 
     let read_notif_action = Action::new(move |_: &()| async move {
         set_notification_read(notif_id).await
@@ -498,7 +498,7 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
     }
 }
 
-fn get_notification_link(notification: &Notification) -> String {
+fn get_notification_path(notification: &Notification) -> String {
     match notification.comment_id {
         Some(comment_id) => get_comment_path(
             &notification.sphere_header.sphere_name,
@@ -518,8 +518,8 @@ fn get_notification_text(notification: &Notification) -> Signal<String> {
     match (notification.notification_type, notification.comment_id) {
         (NotificationType::PostReply, _) => move_tr!("notification-post-reply"),
         (NotificationType::CommentReply, _) => move_tr!("notification-comment-reply"),
-        (NotificationType::Moderation, Some(_)) => move_tr!("notification-moderate-post"),
-        (NotificationType::Moderation, None) => move_tr!("notification-moderate-comment"),
+        (NotificationType::Moderation, Some(_)) => move_tr!("notification-moderate-comment"),
+        (NotificationType::Moderation, None) => move_tr!("notification-moderate-post"),
     }
 }
 
@@ -534,10 +534,10 @@ fn get_web_notif_text(notification: &Notification) -> String {
             "web-notif-comment-reply", {"username" => username, "sphere_name" => sphere_name}
         ),
         (NotificationType::Moderation, Some(_)) => tr!(
-            "web-notif-moderate-post", {"username" => username, "sphere_name" => sphere_name}
+            "web-notif-moderate-comment", {"username" => username, "sphere_name" => sphere_name}
         ),
         (NotificationType::Moderation, None) => tr!(
-            "web-notif-moderate-comment", {"username" => username, "sphere_name" => sphere_name}
+            "web-notif-moderate-post", {"username" => username, "sphere_name" => sphere_name}
         ),
     }
 }
@@ -549,8 +549,8 @@ mod tests {
     use leptos::prelude::*;
     use leptos_fluent::__reexports::fluent_templates::{static_loader, LanguageIdentifier, StaticLoader};
     use leptos_fluent::{tr, I18n, Language};
-
-    use crate::notification::{get_web_notif_text, NotifHandler, Notification, NOTIF_RETENTION_DAYS};
+    use sharesphere_utils::routes::{get_comment_path, get_post_path};
+    use crate::notification::{get_notification_path, get_notification_text, get_web_notif_text, NotifHandler, Notification, NotificationType, NOTIF_RETENTION_DAYS};
 
     const EN_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("en");
     const FR_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("fr");
@@ -571,6 +571,21 @@ mod tests {
         &EN_LANG,
         &FR_LANG,
     ];
+
+    fn get_i18n() -> I18n {
+        static_loader! {
+            static TRANSLATIONS = {
+                locales: "../../locales",
+                fallback_language: "en",
+            };
+        }
+        let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
+        I18n {
+            language: RwSignal::new(&LANGUAGES[0]),
+            languages: LANGUAGES,
+            translations: Signal::derive(move || compound.clone()),
+        }
+    }
 
     #[test]
     fn test_notif_handler_identify_new_notifications() {
@@ -635,20 +650,8 @@ mod tests {
     fn test_notif_handler_send_notifications_to_browser() {
         let owner = Owner::new();
         owner.set();
-        static_loader! {
-            static TRANSLATIONS = {
-                locales: "../../locales",
-                fallback_language: "en",
-            };
-        }
-        let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
-        let i18n = I18n {
-            language: RwSignal::new(&LANGUAGES[0]),
-            languages: LANGUAGES,
-            translations: Signal::derive(move || compound.clone()),
-        };
 
-        provide_context(i18n);
+        provide_context(get_i18n());
 
         let notif_handler = NotifHandler::default();
 
@@ -698,20 +701,8 @@ mod tests {
     fn test_notif_handler_handle_notifications() {
         let owner = Owner::new();
         owner.set();
-        static_loader! {
-            static TRANSLATIONS = {
-                locales: "../../locales",
-                fallback_language: "en",
-            };
-        }
-        let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
-        let i18n = I18n {
-            language: RwSignal::new(&LANGUAGES[0]),
-            languages: LANGUAGES,
-            translations: Signal::derive(move || compound.clone()),
-        };
 
-        provide_context(i18n);
+        provide_context(get_i18n());
 
         let current_timestamp = chrono::Utc::now();
         let threshold_timestamp = current_timestamp - chrono::Duration::days(NOTIF_RETENTION_DAYS);
@@ -771,5 +762,172 @@ mod tests {
         let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
         notif_handler.handle_notifications(notif_vec, unread_notif_id_set, mock_show_fn);
         assert_eq!(unread_notif_id_set.read_untracked(), [4, 5, 6].into());
+    }
+
+    #[test]
+    fn test_get_notification_path() {
+        let post_notif = Notification {
+            post_id: 1,
+            comment_id: None,
+            sphere_name: String::from("a"),
+            satellite_id: Some(1),
+            ..Default::default()
+        };
+        assert_eq!(
+            get_notification_path(&post_notif),
+            get_post_path(
+                &post_notif.sphere_name,
+                post_notif.satellite_id,
+                post_notif.post_id
+            )
+        );
+
+        let comment_notif = Notification {
+            post_id: 2,
+            comment_id: Some(1),
+            sphere_name: String::from("b"),
+            ..Default::default()
+        };
+        assert_eq!(
+            get_notification_path(&comment_notif),
+            get_comment_path(
+                &comment_notif.sphere_name,
+                comment_notif.satellite_id,
+                comment_notif.post_id,
+                comment_notif.comment_id.expect("Should have comment_id")
+            )
+        )
+    }
+
+    #[test]
+    fn test_get_notification_text() {
+        let owner = Owner::new();
+        owner.set();
+
+        provide_context(get_i18n());
+
+        let notif_post_reply = Notification {
+            notification_type: NotificationType::PostReply,
+            ..Default::default()
+        };
+        let notif_text = get_notification_text(&notif_post_reply);
+        assert_eq!(
+            *notif_text.read(),
+            tr!("notification-post-reply"),
+        );
+
+        let notif_comment_reply = Notification {
+            notification_type: NotificationType::CommentReply,
+            ..Default::default()
+        };
+        let notif_text = get_notification_text(&notif_comment_reply);
+        assert_eq!(
+            *notif_text.read(),
+            tr!("notification-comment-reply"),
+        );
+
+        let notif_post_moderation = Notification {
+            notification_type: NotificationType::Moderation,
+            comment_id: None,
+            ..Default::default()
+        };
+        let notif_text = get_notification_text(&notif_post_moderation);
+        assert_eq!(
+            *notif_text.read(),
+            tr!("notification-moderate-post"),
+        );
+
+        let notif_comment_moderation = Notification {
+            notification_type: NotificationType::Moderation,
+            comment_id: Some(1),
+            ..Default::default()
+        };
+        let notif_text = get_notification_text(&notif_comment_moderation);
+        assert_eq!(
+            *notif_text.read(),
+            tr!("notification-moderate-comment"),
+        );
+    }
+
+    #[test]
+    fn test_get_web_notif_text() {
+        let owner = Owner::new();
+        owner.set();
+
+        provide_context(get_i18n());
+
+        let notif_post_reply = Notification {
+            notification_type: NotificationType::PostReply,
+            trigger_username: String::from("a"),
+            sphere_name: String::from("i"),
+            ..Default::default()
+        };
+        let notif_text = get_web_notif_text(&notif_post_reply);
+        assert_eq!(
+            notif_text,
+            tr!(
+                "web-notif-post-reply",
+                {
+                    "username" => notif_post_reply.trigger_username,
+                    "sphere_name" => notif_post_reply.sphere_name
+                }
+            ),
+        );
+
+        let notif_comment_reply = Notification {
+            notification_type: NotificationType::CommentReply,
+            trigger_username: String::from("b"),
+            sphere_name: String::from("j"),
+            ..Default::default()
+        };
+        let notif_text = get_web_notif_text(&notif_comment_reply);
+        assert_eq!(
+            notif_text,
+            tr!(
+                "web-notif-comment-reply",
+                {
+                    "username" => notif_comment_reply.trigger_username,
+                    "sphere_name" => notif_comment_reply.sphere_name
+                }
+            ),
+        );
+
+        let notif_post_moderation = Notification {
+            notification_type: NotificationType::Moderation,
+            comment_id: None,
+            trigger_username: String::from("c"),
+            sphere_name: String::from("k"),
+            ..Default::default()
+        };
+        let notif_text = get_web_notif_text(&notif_post_moderation);
+        assert_eq!(
+            notif_text,
+            tr!(
+                "web-notif-moderate-post",
+                {
+                    "username" => notif_post_moderation.trigger_username,
+                    "sphere_name" => notif_post_moderation.sphere_name
+                }
+            ),
+        );
+
+        let notif_comment_moderation = Notification {
+            notification_type: NotificationType::Moderation,
+            comment_id: Some(1),
+            trigger_username: String::from("d"),
+            sphere_name: String::from("l"),
+            ..Default::default()
+        };
+        let notif_text = get_web_notif_text(&notif_comment_moderation);
+        assert_eq!(
+            notif_text,
+            tr!(
+                "web-notif-moderate-comment",
+                {
+                    "username" => notif_comment_moderation.trigger_username,
+                    "sphere_name" => notif_comment_moderation.sphere_name
+                }
+            ),
+        );
     }
 }

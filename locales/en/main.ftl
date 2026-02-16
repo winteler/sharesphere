@@ -31,6 +31,21 @@ rules = Rules
 rules-and-moderation = Rules & Moderation
 image-preview = Image Preview
 
+notifications = Notifications
+notification-post-reply = replied to your post
+notification-comment-reply = replied to your comment
+notification-moderate-post = moderated to your post
+notification-moderate-comment = moderated to your comment
+web-notif-post-reply = {$username} replied to your post on {$sphere_name}.
+web-notif-comment-reply = {$username} replied to your comment on {$sphere_name}.
+web-notif-moderate-post = {$username} moderated to your post on {$sphere_name}.
+web-notif-moderate-comment = {$username} moderated to your comment on {$sphere_name}.
+multi-web-notif = You have {$new_notif_count} new notifications.
+multi-web-notif-with-unread = You have {$new_notif_count} new notifications, {$unread_notif_count} unread in total.
+web-notif-unread-addon = {" "}You have {$unread_notif_count} unread notifications.
+read-all-notifs = Read all
+read-notif = Set read
+
 number-short = N°
 title = Title
 name = Name
@@ -94,7 +109,7 @@ add-rule = Add a rule
 welcome-to-sharesphere = Welcome to ShareSphere!
 about-sharesphere = About ShareSphere
 sphere-cockpit = Sphere Cockpit
-single-comment-tree = Single comment tree view. Back to post.
+single-comment-tree = Single comment view. Back to post.
 
 until = Until
 permanent = Permanent

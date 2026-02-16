@@ -1,6 +1,6 @@
 use std::collections::HashSet;
+use std::sync::{LazyLock};
 use ammonia::Builder;
-use lazy_static::lazy_static;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::{move_tr, tr};
@@ -23,11 +23,13 @@ use crate::icons::LinkIcon;
 const DEFAULT_MEDIA_CLASS: &str = "h-fit w-fit max-h-160 max-w-full object-contain";
 const THUMBNAIL_CLASS: &str = "h-16 w-16 object-contain";
 
-lazy_static! {
-    static ref PROVIDERS: Vec<OEmbedProvider> =
-        serde_json::from_slice(include_bytes!("../embed/providers.json"))
-            .expect("failed to load oEmbed providers");
-}
+static PROVIDERS: LazyLock<Option<Vec<OEmbedProvider>>> = LazyLock::new(|| {
+    let parse_providers = serde_json::from_slice(include_bytes!("../embed/providers.json"));
+    if let Err(e) = &parse_providers {
+        log::error!("failed to parse oEmbed providers: {e}");
+    }
+    parse_providers.ok()
+});
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum EmbedType {
@@ -430,9 +432,12 @@ pub fn url_matches_scheme(mut url: &str, scheme: &str) -> bool {
 
 /// Find the oEmbed provider and endpoint based on the URL using ShareSphere's providers.json
 pub fn find_url_provider(url: &str) -> Option<(&OEmbedProvider, &OEmbedEndpoint)> {
-    PROVIDERS.iter().find_map(|provider| {
-        provider.find_matching_endpoint(url).map(|endpoint| (provider, endpoint))
-    })
+    match &*PROVIDERS {
+        Some(providers) => providers.iter().find_map(|provider| {
+            provider.find_matching_endpoint(url).map(|endpoint| (provider, endpoint))
+        }),
+        None => None,
+    }
 }
 
 

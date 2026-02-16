@@ -145,6 +145,12 @@ impl From<std::string::FromUtf8Error> for AppError {
     }
 }
 
+impl From<url::ParseError> for AppError {
+    fn from(error: url::ParseError) -> Self {
+        AppError::AuthenticationError(error.to_string())
+    }
+}
+
 impl From<std::io::Error> for AppError {
     fn from(value: std::io::Error) -> Self {
         AppError::InternalServerError(value.to_string())
@@ -169,12 +175,6 @@ mod ssr {
     impl From<std::env::VarError> for AppError {
         fn from(error: std::env::VarError) -> Self {
             AppError::InternalServerError(error.to_string())
-        }
-    }
-
-    impl From<url::ParseError> for AppError {
-        fn from(error: url::ParseError) -> Self {
-            AppError::AuthenticationError(error.to_string())
         }
     }
 

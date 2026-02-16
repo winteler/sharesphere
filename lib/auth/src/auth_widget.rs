@@ -12,7 +12,7 @@ use web_sys::FormData;
 
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::form::LabeledSignalCheckbox;
-use sharesphere_utils::icons::{AuthErrorIcon, AuthorIcon, DeleteIcon, LoadingIcon, ModeratorAuthorIcon, SelfAuthorIcon};
+use sharesphere_utils::icons::{AuthErrorIcon, AuthorIcon, DeleteIcon, LoadingIcon, ModeratorIcon, SelfAuthorIcon, SelfModeratorIcon};
 use sharesphere_utils::routes::{get_profile_path};
 use sharesphere_utils::unpack::ActionError;
 use sharesphere_utils::widget::{ModalDialog, ModalFormButtons};
@@ -47,14 +47,16 @@ pub fn LoginWindow() -> impl IntoView {
 /// Component to display the author of a post or comment
 #[component]
 pub fn AuthorWidget(
+    author_id: i64,
     author: String,
     is_moderator: bool,
+    #[prop(optional)]
+    is_grayed_out: bool,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let user_state = expect_context::<UserState>();
     let author_profile_path = get_profile_path(&author);
     let aria_label = format!("Navigate to user {}'s profile with path {}", author, author_profile_path);
-    let author = StoredValue::new(author);
 
     view! {
         <button
@@ -65,24 +67,24 @@ pub fn AuthorWidget(
             }
             aria-label=aria_label
         >
-            { move || if is_moderator {
-                    view! { <ModeratorAuthorIcon/> }.into_any()
-                } else {
-                    view! {
-                        <Transition fallback=move || view! { <LoadingIcon class="content-toolbar-icon-size"/> }>
-                        {
-                            move || Suspend::new(async move {
-                                match &user_state.user.await {
-                                    Ok(Some(user)) if author.with_value(|author| *author == user.username) => view! { <SelfAuthorIcon/> }.into_any(),
-                                    _ => view! { <AuthorIcon/> }.into_any(),
-                                }
-                            })
-                        }
-                        </Transition>
-                    }.into_any()
-                }
+            <Transition fallback=move || view! { <LoadingIcon class="content-toolbar-icon-size"/> }>
+            {
+                move || Suspend::new(async move {
+                    match (&user_state.user.await, is_moderator) {
+                        (Ok(Some(user)), true) if author_id == user.user_id => view! { <SelfModeratorIcon/> }.into_any(),
+                        (Ok(Some(user)), false) if author_id == user.user_id => view! { <SelfAuthorIcon/> }.into_any(),
+                        (_, true) => view! { <ModeratorIcon is_grayed_out/> }.into_any(),
+                        (_, false) => view! { <AuthorIcon is_grayed_out/> }.into_any(),
+                    }
+                })
             }
-            <span class="text-sm">{author.get_value()}</span>
+            </Transition>
+            <span
+                class="text-xs xl:text-sm"
+                class:text-gray-400=is_grayed_out
+            >
+                {author}
+            </span>
         </button>
     }.into_any()
 }

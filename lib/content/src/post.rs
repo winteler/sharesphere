@@ -69,6 +69,7 @@ pub fn Post() -> impl IntoView {
                     <div class="card-body">
                         <div class="flex flex-col gap-1 lg:gap-2">
                             <PostTopWidgetBar
+                                creator_id=post_with_info.post.creator_id
                                 creator_name=post_with_info.post.creator_name.clone()
                                 moderator_name=post_with_info.post.moderator_name.clone()
                                 is_creator_moderator=post_with_info.post.is_creator_moderator
@@ -148,6 +149,7 @@ pub fn PostBody(
 /// Component to encapsulate the widgets displayed at the top of each post
 #[component]
 fn PostTopWidgetBar(
+    creator_id: i64,
     creator_name: String,
     moderator_name: Option<String>,
     is_creator_moderator: bool,
@@ -159,7 +161,11 @@ fn PostTopWidgetBar(
         <div class="flex gap-1">
             {
                 is_active.then_some(view! {
-                    <AuthorWidget author=creator_name is_moderator=is_creator_moderator/>
+                    <AuthorWidget
+                        author_id=creator_id
+                        author=creator_name
+                        is_moderator=is_creator_moderator
+                    />
                 })
             }
             <ModeratorWidget moderator=moderator_name/>
@@ -214,7 +220,15 @@ fn PostBottomWidgetBar(
                     <DeletePostButton post_id author_id/>
                 })}
                 <ModerationInfoButton content=Content::Post(stored_post.get_value())/>
-                <ShareButton link=post_link.clone()/>
+                {
+                    match post_link.clone() {
+                        Ok(post_link) => Either::Left(view! { <ShareButton link=post_link/> }),
+                        Err(e) => {
+                            log::error!("Error while generating post url: {e}");
+                            Either::Right(())
+                        },
+                    }
+                }
             </DotMenu>
         </div>
     }

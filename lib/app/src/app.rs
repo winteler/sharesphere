@@ -7,12 +7,12 @@ use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use leptos_fluent::{leptos_fluent, move_tr};
 use regex::Regex;
 
-use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY, SITE_NAME};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_utils::routes::{USER_ROUTE_PREFIX, USER_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SPHERE_ROUTE_PREFIX, SPHERE_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, POST_ROUTE_PARAM_NAME, PUBLISH_ROUTE, CREATE_POST_SUFFIX, SEARCH_ROUTE, CREATE_SPHERE_SUFFIX, TERMS_AND_CONDITIONS_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, CONTENT_POLICY_ROUTE, ABOUT_SHARESPHERE_ROUTE, POPULAR_ROUTE, FAQ_ROUTE};
+use sharesphere_utils::routes::*;
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
 use sharesphere_utils::widget::{BannerContent, RefreshButton};
 
@@ -25,6 +25,7 @@ use sharesphere_components::navigation_bar::NavigationBar;
 use sharesphere_components::profile::UserProfile;
 use sharesphere_components::search::{Search, SphereSearch};
 use sharesphere_content::post::{CreatePost, Post};
+use sharesphere_core::notification::NotificationHome;
 use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::ranking::PostSortWidget;
 use sharesphere_core::sidebar::{HomeSidebar, LeftSidebar};
@@ -54,8 +55,8 @@ pub fn AppMeta() -> impl IntoView {
             content=move || {
                 // this will insert the CSP with nonce on the server, be empty on client
                 use_nonce().map(|nonce| {
-                    let script_src_csp = match expect_context::<UserAgentHeader>().value {
-                        Some(user_agent) if ios_user_agent_regex.captures(user_agent.as_str()).is_some() => {
+                    let script_src_csp = match use_context::<UserAgentHeader>().map(|header| header.value) {
+                        Some(Some(user_agent)) if ios_user_agent_regex.captures(user_agent.as_str()).is_some() => {
                             format!("script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval' 'unsafe-eval';")
                         },
                         _ => format!("script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';")
@@ -171,7 +172,7 @@ pub fn App() -> impl IntoView {
 
     view! {
         <I18nProvider>
-            <Title text="ShareSphere"/>
+            <Title text=SITE_NAME/>
             <Router>
                 <main
                     class="h-screen w-screen overflow-hidden text-white relative"
@@ -212,6 +213,7 @@ pub fn App() -> impl IntoView {
                                     <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>
                                     <Route path=StaticSegment(CREATE_POST_SUFFIX) view=CreatePost/>
                                 </ParentRoute>
+                                <Route path=StaticSegment(NOTIFICATION_ROUTE) view=NotificationHome/>
                                 <Route path=StaticSegment(SEARCH_ROUTE) view=Search/>
                                 <Route path=StaticSegment(ABOUT_SHARESPHERE_ROUTE) view=AboutShareSphere/>
                                 <Route path=StaticSegment(TERMS_AND_CONDITIONS_ROUTE) view=TermsAndConditions/>
@@ -241,7 +243,6 @@ fn LoginGuardHome() -> impl IntoView {
 #[component]
 fn LoginGuard() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-
     view! {
         <SuspenseUnpack resource=state.user let:user>
         {

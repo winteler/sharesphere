@@ -24,6 +24,7 @@ pub const POST_ROUTE_PREFIX: &str = "/posts";
 pub const POST_ROUTE_PARAM_NAME: &str = "post_name";
 pub const COMMENT_ID_QUERY_PARAM: &str = "comment_id";
 pub const SEARCH_ROUTE: &str = "/search";
+pub const NOTIFICATION_ROUTE: &str = "/notification";
 pub const SEARCH_TAB_QUERY_PARAM: &str = "type";
 pub const ABOUT_SHARESPHERE_ROUTE: &str = "/about_sharesphere";
 pub const TERMS_AND_CONDITIONS_ROUTE: &str = "/terms_and_conditions";
@@ -186,18 +187,19 @@ pub fn get_post_path(
 ///
 /// ```
 /// use sharesphere_utils::routes::{get_app_origin, get_post_link};
-/// let origin = get_app_origin().unwrap_or_default();
-/// assert_eq!(get_post_link("test", None, 1), format!("{origin}/spheres/test/posts/1"));
-/// assert_eq!(get_post_link("test", Some(1), 2), format!("{origin}/spheres/test/satellites/1/posts/2"));
+/// let origin = get_app_origin().unwrap_or(String::from("https://sharesphere.space"));
+/// assert_eq!(get_post_link("test", None, 1), Ok(format!("{origin}/spheres/test/posts/1")));
+/// assert_eq!(get_post_link("test", Some(1), 2), Ok(format!("{origin}/spheres/test/satellites/1/posts/2")));
 /// ```
 pub fn get_post_link(
     sphere_name: &str,
     satellite_id: Option<i64>,
     post_id: i64,
-) -> String {
+) -> Result<String, AppError> {
     let base_url = get_app_origin().unwrap_or_default();
     let post_path = get_post_path(sphere_name, satellite_id, post_id);
-    format!("{base_url}{post_path}")
+    let post_url = url::Url::parse(&base_url)?.join(&post_path)?.to_string();
+    Ok(post_url)
 }
 
 /// # Returns the path to a comment given its id, post_id, sphere and optional satellite
@@ -226,19 +228,20 @@ pub fn get_comment_path(
 ///
 /// ```
 /// use sharesphere_utils::routes::{get_app_origin, get_comment_link};
-/// let origin = get_app_origin().unwrap_or_default();
-/// assert_eq!(get_comment_link("test", None, 1, 2), format!("{origin}/spheres/test/posts/1?comment_id=2"));
-/// assert_eq!(get_comment_link("test", Some(1), 2, 3), format!("{origin}/spheres/test/satellites/1/posts/2?comment_id=3"));
+/// let origin = get_app_origin().unwrap_or(String::from("https://sharesphere.space"));
+/// assert_eq!(get_comment_link("test", None, 1, 2), Ok(format!("{origin}/spheres/test/posts/1?comment_id=2")));
+/// assert_eq!(get_comment_link("test", Some(1), 2, 3), Ok(format!("{origin}/spheres/test/satellites/1/posts/2?comment_id=3")));
 /// ```
 pub fn get_comment_link(
     sphere_name: &str,
     satellite_id: Option<i64>,
     post_id: i64,
     comment_id: i64,
-) -> String {
+) -> Result<String, AppError> {
     let base_url = get_app_origin().unwrap_or_default();
     let comment_path = get_comment_path(sphere_name, satellite_id, post_id, comment_id);
-    format!("{base_url}{comment_path}")
+    let comment_url = url::Url::parse(&base_url)?.join(&comment_path)?.to_string();
+    Ok(comment_url)
 }
 
 /// Get a memo returning the last valid post id from the url. Used to avoid triggering resources when leaving pages

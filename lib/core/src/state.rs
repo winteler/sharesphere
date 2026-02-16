@@ -1,5 +1,7 @@
+use std::collections::HashSet;
 use leptos::prelude::*;
 use sharesphere_auth::auth::EndSession;
+use crate::notification::{Notification, get_notifications};
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
 use sharesphere_utils::errors::AppError;
@@ -27,6 +29,9 @@ pub struct GlobalState {
     pub comment_sort_type: RwSignal<SortType>,
     pub show_left_sidebar: RwSignal<bool>,
     pub show_right_sidebar: RwSignal<bool>,
+    pub unread_notif_id_set: RwSignal<HashSet<i64>>,
+    pub notif_reload_trigger: RwSignal<usize>,
+    pub notif_resource: Resource<Result<Vec<Notification>, AppError>>,
     pub user: Resource<Result<Option<User>, AppError>>,
     pub base_rules: OnceResource<Result<Vec<Rule>, AppError>>,
 }
@@ -63,6 +68,8 @@ impl GlobalState {
         create_sphere_action: ServerAction<CreateSphere>,
         set_settings_action: ServerAction<SetUserSettings>,
     ) -> Self {
+        let notif_reload_trigger = RwSignal::new(0);
+
         Self {
             logout_action,
             delete_user_action,
@@ -77,6 +84,12 @@ impl GlobalState {
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
             show_left_sidebar: RwSignal::new(false),
             show_right_sidebar: RwSignal::new(false),
+            unread_notif_id_set: RwSignal::new(HashSet::new()),
+            notif_reload_trigger,
+            notif_resource: Resource::new(
+                move || notif_reload_trigger.get(),
+                move |_| get_notifications(),
+            ),
             user,
             base_rules: OnceResource::new(get_rule_vec(None))
         }

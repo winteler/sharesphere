@@ -6,23 +6,25 @@ use crate::post::Post;
 
 #[cfg(feature = "ssr")]
 use {
-    sharesphere_utils::{
-        checks::check_string_length,
-        constants::MAX_MOD_MESSAGE_LENGTH,
+    crate::{
+        comment::ssr::{get_comment_by_id, get_comment_sphere},
+        post::ssr::get_post_by_id,
+        rule::ssr::load_rule_by_id,
     },
     sharesphere_auth::{
         auth::ssr::{check_user, reload_user},
         session::ssr::get_db_pool,
     },
-    crate::{
-        post::ssr::get_post_by_id,
-        comment::ssr::{get_comment_by_id, get_comment_sphere},
-        rule::ssr::load_rule_by_id,
+    sharesphere_utils::{
+        checks::check_string_length,
+        constants::MAX_MOD_MESSAGE_LENGTH,
     }
 };
 use sharesphere_utils::icons::HammerIcon;
 use sharesphere_utils::widget::ContentBody;
 use crate::comment::Comment;
+#[cfg(feature = "ssr")]
+use crate::notification::{ssr::create_notification, NotificationType};
 use crate::rule::Rule;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -310,6 +312,8 @@ pub async fn moderate_post(
 
     reload_user(post.creator_id)?;
 
+    create_notification(post.post_id, None, user.user_id, NotificationType::Moderation, &db_pool).await?;
+
     Ok(post)
 }
 
@@ -351,6 +355,8 @@ pub async fn moderate_comment(
     ).await?;
 
     reload_user(comment.creator_id)?;
+
+    create_notification(comment.post_id, Some(comment.comment_id), user.user_id, NotificationType::Moderation, &db_pool).await?;
 
     Ok(comment)
 }

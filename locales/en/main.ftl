@@ -78,8 +78,8 @@ link-url = Url
 link-help = When you input a link, ShareSphere will first try to embed it if its provider implements the OEmbed API or if the link is a file with a recognised format. If not, it will default to display it as a simple link.
 
 home = Home
-subscribed = Subscribed
-popular = Popular
+subscribed-spheres = Subscribed Spheres
+popular-spheres = Popular Spheres
 navigate-sphere = Navigate to Sphere {$sphere_name}
 github-repo = GitHub Repository
 

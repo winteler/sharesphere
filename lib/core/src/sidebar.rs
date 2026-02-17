@@ -143,13 +143,13 @@ pub fn LeftSidebar() -> impl IntoView {
                 <BaseLinks/>
                 <TransitionUnpack resource=subscribed_sphere_vec_resource let:sphere_header_vec>
                     <SphereLinkListCollapse
-                        title=move_tr!("subscribed")
+                        title=move_tr!("subscribed-spheres")
                         sphere_header_vec=sphere_header_vec.clone()
                     />
                 </TransitionUnpack>
                 <TransitionUnpack resource=popular_sphere_vec_resource let:popular_sphere_header_vec>
                     <SphereLinkListCollapse
-                        title=move_tr!("popular")
+                        title=move_tr!("popular-spheres")
                         sphere_header_vec=popular_sphere_header_vec.clone()
                         is_open=false
                     />

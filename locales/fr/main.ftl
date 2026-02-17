@@ -63,7 +63,7 @@ filters = Filtres
 category-filters = Filtres de catégories
 category-none = Aucune
 all = Tous
-only-categories = Catégorisés uniquement
+only-categories = Uniq. catégorisés
 
 infringed-rule = Règle enfreinte
 moderator-message = Message du modérateur
@@ -78,8 +78,8 @@ link-url = Url
 link-help = Lorsque tu entres un lien, ShareSphere va d'abord essayer de l'inscruster si son fournisseur implémente l'API OEmbed ou si le lien est un fichier avec un format reconnu. Si ce n'est pas le cas, un simple lien sera affiché à la place.
 
 home = Accueil
-subscribed = Abonné
-popular = Populaire
+subscribed-spheres = Mes Sphères
+popular-spheres = Sphères populaires
 navigate-sphere = Naviguer vers la Sphère {$sphere_name}
 github-repo = Répertoire GitHub
 

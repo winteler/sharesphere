@@ -447,6 +447,7 @@ pub fn I18nProvider(children: Children) -> impl IntoView {
         locales: "../../locales",
         languages: "../../locales/languages.json",
         default_language: "en",
+        #[cfg(not(feature = "ssr"))]
         check_translations: "../**/*.rs",
         sync_html_tag_lang: true,
         sync_html_tag_dir: true,

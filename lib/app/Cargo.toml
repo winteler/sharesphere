@@ -22,7 +22,7 @@ axum = { workspace = true, optional = true}
 leptos-fluent.workspace = true
 leptos-use.workspace = true
 log.workspace = true
-regex = "1.12.2"
+regex = "1.12.3"
 
 [features]
 default = []

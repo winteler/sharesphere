@@ -4,6 +4,7 @@ use leptos::html;
 use leptos::html::Textarea;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
+use markdown::Options;
 use quick_xml::{Reader, Writer};
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 use crate::constants::{SPOILER_TAG};
@@ -90,7 +91,7 @@ pub fn get_styled_html_from_markdown(
     markdown_input: String,
 ) -> Result<String, AppError> {
     let html_from_markdown =
-        markdown::to_html_with_options(markdown_input.as_str(), &markdown::Options::gfm())
+        markdown::to_html_with_options(markdown_input.as_str(), &Options::gfm())
             .or_else(|e| Err(AppError::new(e)))?;
     log::debug!("Markdown as html: {html_from_markdown}");
 

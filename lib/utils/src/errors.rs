@@ -3,7 +3,6 @@ use std::fmt::Display;
 use std::str::FromStr;
 use http::status::StatusCode;
 use leptos::prelude::*;
-use leptos::{component, view, IntoView};
 use leptos::server_fn::codec::JsonEncoding;
 use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};

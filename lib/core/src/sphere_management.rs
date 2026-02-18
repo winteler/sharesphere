@@ -1,6 +1,6 @@
 use std::env;
 use leptos::prelude::*;
-use server_fn::codec::{MultipartData, MultipartFormData};
+use leptos::server_fn::codec::{MultipartData, MultipartFormData};
 use sharesphere_auth::user::UserBan;
 use sharesphere_utils::errors::AppError;
 
@@ -24,10 +24,10 @@ pub mod ssr {
     use http::StatusCode;
     use image::{ImageReader};
     use leptos::prelude::use_context;
+    use leptos::server_fn::codec::MultipartData;
     use leptos_axum::ResponseOptions;
     use object_store::aws::{AmazonS3, AmazonS3Builder};
     use object_store::{ObjectStore, PutPayload};
-    use server_fn::codec::MultipartData;
     use sqlx::types::Uuid;
     use sqlx::PgPool;
     use url::Url;

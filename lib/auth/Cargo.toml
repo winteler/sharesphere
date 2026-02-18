@@ -37,7 +37,6 @@ async-trait = { version = "*", optional = true }
 default = []
 hydrate = [
     "leptos/hydrate",
-    "leptos-fluent/hydrate",
     "sharesphere_utils/hydrate"
 ]
 ssr = [

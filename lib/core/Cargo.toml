@@ -48,7 +48,6 @@ unic-langid = "0.9.6"
 default = []
 hydrate = [
     "leptos/hydrate",
-    "leptos-fluent/hydrate",
     "sharesphere_utils/hydrate",
     "sharesphere_auth/hydrate",
 ]

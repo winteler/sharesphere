@@ -49,7 +49,6 @@ unic-langid = "0.9.6"
 default = []
 hydrate = [
     "leptos/hydrate",
-    "leptos-fluent/hydrate",
 ]
 ssr = [
     "leptos/ssr",

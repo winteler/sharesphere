@@ -183,14 +183,7 @@ pub fn get_post_path(
     }
 }
 
-/// # Returns the url to a post given its id, sphere and optional satellite
-///
-/// ```
-/// use sharesphere_utils::routes::{get_app_origin, get_post_link};
-/// let origin = get_app_origin().unwrap_or(String::from("https://sharesphere.space"));
-/// assert_eq!(get_post_link("test", None, 1), Ok(format!("{origin}/spheres/test/posts/1")));
-/// assert_eq!(get_post_link("test", Some(1), 2), Ok(format!("{origin}/spheres/test/satellites/1/posts/2")));
-/// ```
+/// Returns the url to a post given its id, sphere and optional satellite
 pub fn get_post_link(
     sphere_name: &str,
     satellite_id: Option<i64>,
@@ -202,7 +195,7 @@ pub fn get_post_link(
     Ok(post_url)
 }
 
-/// # Returns the path to a comment given its id, post_id, sphere and optional satellite
+/// Returns the path to a comment given its id, post_id, sphere and optional satellite
 ///
 /// ```
 /// use sharesphere_utils::routes::get_comment_path;
@@ -225,13 +218,6 @@ pub fn get_comment_path(
 }
 
 /// # Returns the url to a comment given its id, post_id, sphere and optional satellite
-///
-/// ```
-/// use sharesphere_utils::routes::{get_app_origin, get_comment_link};
-/// let origin = get_app_origin().unwrap_or(String::from("https://sharesphere.space"));
-/// assert_eq!(get_comment_link("test", None, 1, 2), Ok(format!("{origin}/spheres/test/posts/1?comment_id=2")));
-/// assert_eq!(get_comment_link("test", Some(1), 2, 3), Ok(format!("{origin}/spheres/test/satellites/1/posts/2?comment_id=3")));
-/// ```
 pub fn get_comment_link(
     sphere_name: &str,
     satellite_id: Option<i64>,
@@ -260,4 +246,30 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
             current_post_id.cloned().unwrap_or_default()
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use sealed_test::prelude::*;
+    use crate::routes::{get_app_origin, get_comment_link, get_post_link, APP_ORIGIN_ENV};
+
+    #[sealed_test]
+    fn test_get_post_link() {
+        unsafe {
+            std::env::set_var(APP_ORIGIN_ENV, "https://sharesphere.space");
+        }
+        let origin = get_app_origin().expect("Should get origin");
+        assert_eq!(get_post_link("test", None, 1), Ok(format!("{origin}/spheres/test/posts/1")));
+        assert_eq!(get_post_link("test", Some(1), 2), Ok(format!("{origin}/spheres/test/satellites/1/posts/2")));
+    }
+
+    #[sealed_test]
+    fn test_get_comment_link() {
+        unsafe {
+            std::env::set_var(APP_ORIGIN_ENV, "https://sharesphere.space");
+        }
+        let origin = get_app_origin().expect("Should get origin");
+        assert_eq!(get_comment_link("test", None, 1, 2), Ok(format!("{origin}/spheres/test/posts/1?comment_id=2")));
+        assert_eq!(get_comment_link("test", Some(1), 2, 3), Ok(format!("{origin}/spheres/test/satellites/1/posts/2?comment_id=3")));
+    }
 }

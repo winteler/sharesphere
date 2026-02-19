@@ -49,7 +49,6 @@ pub struct Notification {
     pub sphere_id: i64,
     #[cfg_attr(feature = "ssr", sqlx(flatten))]
     pub sphere_header: SphereHeader,
-    pub sphere_name: String,
     pub satellite_id: Option<i64>,
     pub post_id: i64,
     pub comment_id: Option<i64>,
@@ -525,7 +524,7 @@ fn get_notification_text(notification: &Notification) -> Signal<String> {
 
 fn get_web_notif_text(notification: &Notification) -> String {
     let username = notification.trigger_username.clone();
-    let sphere_name = notification.sphere_name.clone();
+    let sphere_name = notification.sphere_header.sphere_name.clone();
     match (notification.notification_type, notification.comment_id) {
         (NotificationType::PostReply, _) => tr!(
             "web-notif-post-reply", {"username" => username, "sphere_name" => sphere_name}
@@ -551,6 +550,7 @@ mod tests {
     use leptos_fluent::{tr, I18n, Language};
     use sharesphere_utils::routes::{get_comment_path, get_post_path};
     use crate::notification::{get_notification_path, get_notification_text, get_web_notif_text, NotifHandler, Notification, NotificationType, NOTIF_RETENTION_DAYS};
+    use crate::sphere::SphereHeader;
 
     const EN_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("en");
     const FR_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("fr");
@@ -769,14 +769,14 @@ mod tests {
         let post_notif = Notification {
             post_id: 1,
             comment_id: None,
-            sphere_name: String::from("a"),
+            sphere_header: SphereHeader::new(String::from("a"), None, false),
             satellite_id: Some(1),
             ..Default::default()
         };
         assert_eq!(
             get_notification_path(&post_notif),
             get_post_path(
-                &post_notif.sphere_name,
+                &post_notif.sphere_header.sphere_name,
                 post_notif.satellite_id,
                 post_notif.post_id
             )
@@ -785,13 +785,13 @@ mod tests {
         let comment_notif = Notification {
             post_id: 2,
             comment_id: Some(1),
-            sphere_name: String::from("b"),
+            sphere_header: SphereHeader::new(String::from("b"), None, false),
             ..Default::default()
         };
         assert_eq!(
             get_notification_path(&comment_notif),
             get_comment_path(
-                &comment_notif.sphere_name,
+                &comment_notif.sphere_header.sphere_name,
                 comment_notif.satellite_id,
                 comment_notif.post_id,
                 comment_notif.comment_id.expect("Should have comment_id")
@@ -859,7 +859,7 @@ mod tests {
         let notif_post_reply = Notification {
             notification_type: NotificationType::PostReply,
             trigger_username: String::from("a"),
-            sphere_name: String::from("i"),
+            sphere_header: SphereHeader::new(String::from("i"), None, false),
             ..Default::default()
         };
         let notif_text = get_web_notif_text(&notif_post_reply);
@@ -869,7 +869,7 @@ mod tests {
                 "web-notif-post-reply",
                 {
                     "username" => notif_post_reply.trigger_username,
-                    "sphere_name" => notif_post_reply.sphere_name
+                    "sphere_name" => notif_post_reply.sphere_header.sphere_name
                 }
             ),
         );
@@ -877,7 +877,7 @@ mod tests {
         let notif_comment_reply = Notification {
             notification_type: NotificationType::CommentReply,
             trigger_username: String::from("b"),
-            sphere_name: String::from("j"),
+            sphere_header: SphereHeader::new(String::from("j"), None, false),
             ..Default::default()
         };
         let notif_text = get_web_notif_text(&notif_comment_reply);
@@ -887,7 +887,7 @@ mod tests {
                 "web-notif-comment-reply",
                 {
                     "username" => notif_comment_reply.trigger_username,
-                    "sphere_name" => notif_comment_reply.sphere_name
+                    "sphere_name" => notif_comment_reply.sphere_header.sphere_name
                 }
             ),
         );
@@ -896,7 +896,7 @@ mod tests {
             notification_type: NotificationType::Moderation,
             comment_id: None,
             trigger_username: String::from("c"),
-            sphere_name: String::from("k"),
+            sphere_header: SphereHeader::new(String::from("k"), None, false),
             ..Default::default()
         };
         let notif_text = get_web_notif_text(&notif_post_moderation);
@@ -906,7 +906,7 @@ mod tests {
                 "web-notif-moderate-post",
                 {
                     "username" => notif_post_moderation.trigger_username,
-                    "sphere_name" => notif_post_moderation.sphere_name
+                    "sphere_name" => notif_post_moderation.sphere_header.sphere_name
                 }
             ),
         );
@@ -915,7 +915,7 @@ mod tests {
             notification_type: NotificationType::Moderation,
             comment_id: Some(1),
             trigger_username: String::from("d"),
-            sphere_name: String::from("l"),
+            sphere_header: SphereHeader::new(String::from("l"), None, false),
             ..Default::default()
         };
         let notif_text = get_web_notif_text(&notif_comment_moderation);
@@ -925,7 +925,7 @@ mod tests {
                 "web-notif-moderate-comment",
                 {
                     "username" => notif_comment_moderation.trigger_username,
-                    "sphere_name" => notif_comment_moderation.sphere_name
+                    "sphere_name" => notif_comment_moderation.sphere_header.sphere_name
                 }
             ),
         );

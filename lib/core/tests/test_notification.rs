@@ -29,7 +29,7 @@ async fn test_create_notification() {
         .expect("Should have notification");
 
     assert_eq!(post_comment_notif.sphere_id, sphere.sphere_id);
-    assert_eq!(post_comment_notif.sphere_name, sphere.sphere_name);
+    assert_eq!(post_comment_notif.sphere_header, (&sphere).into());
     assert_eq!(post_comment_notif.post_id, post.post_id);
     assert_eq!(post_comment_notif.comment_id, None);
     assert_eq!(post_comment_notif.user_id, user.user_id);
@@ -50,7 +50,7 @@ async fn test_create_notification() {
         .expect("Should have notification");
 
     assert_eq!(comment_comment_notif.sphere_id, sphere.sphere_id);
-    assert_eq!(comment_comment_notif.sphere_name, sphere.sphere_name);
+    assert_eq!(comment_comment_notif.sphere_header, (&sphere).into());
     assert_eq!(comment_comment_notif.post_id, comment.post_id);
     assert_eq!(comment_comment_notif.comment_id, Some(comment.comment_id));
     assert_eq!(comment_comment_notif.user_id, user.user_id);

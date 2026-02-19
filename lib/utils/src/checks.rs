@@ -197,7 +197,7 @@ mod tests {
     #[sealed_test]
     fn test_validate_redirect_url() {
         unsafe {
-            std::env::set_var(APP_ORIGIN_ENV, "https://sharesphere.space/");
+            std::env::set_var(APP_ORIGIN_ENV, "https://sharesphere.space");
         }
         assert!(validate_redirect_url("https://sharesphere.space/valid/url").is_ok());
         assert!(validate_redirect_url("http://sharesphere.space/valid/url").is_err());

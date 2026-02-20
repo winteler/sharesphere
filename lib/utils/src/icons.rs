@@ -1,5 +1,4 @@
 use leptos::prelude::*;
-use leptos::either::Either;
 use crate::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH};
 
 #[component]
@@ -30,12 +29,16 @@ pub fn AuthErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl
 pub fn AuthorIcon(
     #[prop(default = "content-toolbar-icon-size")]
     class: &'static str,
-    #[prop(optional)]
-    is_grayed_out: bool,
+    #[prop(into, optional)]
+    is_grayed_out: Signal<bool>,
 ) -> impl IntoView {
-    match is_grayed_out {
-        true => Either::Left(view! { <img src="/svg/notifications/author_grayed_out.svg" class=class/> }),
-        false => Either::Right(view! { <img src="/svg/toolbar/author.svg" class=class/> }),
+    view! {
+        <Show
+            when=is_grayed_out
+            fallback=move || view! { <img src="/svg/toolbar/author.svg" class=class/> }
+        >
+            <img src="/svg/notifications/author_grayed_out.svg" class=class/>
+        </Show>
     }
 }
 
@@ -57,12 +60,16 @@ pub fn BoldIcon(#[prop(default = "editor-button-size")] class: &'static str) -> 
 pub fn ClockIcon(
     #[prop(default = "content-toolbar-icon-size")]
     class: &'static str,
-    #[prop(optional)]
-    is_grayed_out: bool,
+    #[prop(into, optional)]
+    is_grayed_out: Signal<bool>,
 ) -> impl IntoView {
-    match is_grayed_out {
-        true => Either::Left(view! { <img src="/svg/notifications/clock_grayed_out.svg" class=class/> }),
-        false => Either::Right(view! { <img src="/svg/toolbar/clock.svg" class=class/> }),
+    view! {
+        <Show
+            when=is_grayed_out
+            fallback=move || view! { <img src="/svg/toolbar/clock.svg" class=class/> }
+        >
+            <img src="/svg/notifications/clock_grayed_out.svg" class=class/>
+        </Show>
     }
 }
 
@@ -303,12 +310,16 @@ pub fn MinusIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static 
 pub fn ModeratorIcon(
     #[prop(default = "content-toolbar-icon-size")]
     class: &'static str,
-    #[prop(optional)]
-    is_grayed_out: bool,
+    #[prop(into, optional)]
+    is_grayed_out: Signal<bool>,
 ) -> impl IntoView {
-    match is_grayed_out {
-        true => Either::Left(view! { <img src="/svg/notifications/moderator_grayed_out.svg" class=class/> }),
-        false => Either::Right(view! { <img src="/svg/toolbar/moderator.svg" class=class/> }),
+    view! {
+        <Show
+            when=is_grayed_out
+            fallback=move || view! { <img src="/svg/toolbar/moderator.svg" class=class/> }
+        >
+            <img src="/svg/notifications/moderator_grayed_out.svg" class=class/>
+        </Show>
     }
 }
 
@@ -336,7 +347,7 @@ pub fn NotFoundIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl 
 #[component]
 pub fn NotificationIcon(#[prop(default = "navbar-icon-size")] class: &'static str) -> impl IntoView {
     view! {
-        <img src="/svg/notification.svg" class=class/>
+        <img src="/svg/notifications/notification.svg" class=class/>
     }
 }
 

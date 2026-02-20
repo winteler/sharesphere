@@ -50,8 +50,8 @@ pub fn AuthorWidget(
     author_id: i64,
     author: String,
     is_moderator: bool,
-    #[prop(optional)]
-    is_grayed_out: bool,
+    #[prop(into, optional)]
+    is_grayed_out: Signal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let user_state = expect_context::<UserState>();
@@ -80,7 +80,7 @@ pub fn AuthorWidget(
             }
             </Transition>
             <span
-                class="text-xs xl:text-sm"
+                class="text-xs lg:text-sm"
                 class:text-gray-400=is_grayed_out
             >
                 {author}

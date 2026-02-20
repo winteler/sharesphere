@@ -645,7 +645,7 @@ pub async fn create_comment(
         Some(_) => NotificationType::CommentReply,
         None => NotificationType::PostReply,
     };
-    create_notification(post_id, Some(comment.comment_id), user.user_id, notif_type, &db_pool).await?;
+    create_notification(post_id, comment.parent_id, Some(comment.comment_id), user.user_id, notif_type, &db_pool).await?;
 
     Ok(CommentWithChildren {
         comment,

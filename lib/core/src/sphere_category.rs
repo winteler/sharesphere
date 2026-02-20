@@ -201,7 +201,7 @@ pub fn SphereCategoryBadge(
     category_header: SphereCategoryHeader,
 ) -> impl IntoView {
     let class = format!(
-        "flex items-center {} px-2 pt-1 pb-1.5 rounded-full text-sm leading-none",
+        "flex items-center {} px-2 pt-1 pb-1.5 rounded-full text-xs lg:text-sm leading-none",
         category_header.category_color.to_bg_class()
     );
     view! {

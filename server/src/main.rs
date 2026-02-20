@@ -177,7 +177,6 @@ async fn schedule_update_post_score_job(scheduler: &mut JobScheduler, db_pool: P
             let pool = db_pool.clone();
             let retry_duration = std::time::Duration::from_mins(3);
             Box::pin(async move {
-                log::info!("Update post scores.");
                 match update_post_scores_with_backoff(retry_duration, pool).await {
                     Ok(()) => log::debug!("Successfully updated posts' ranking timestamps"),
                     Err(e) => log::error!("Failed to update posts' ranking timestamps after {} seconds with error: {e}", retry_duration.as_secs()),

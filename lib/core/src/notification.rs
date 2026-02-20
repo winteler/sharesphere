@@ -30,7 +30,7 @@ use {
 const NOTIF_STATE_STORAGE: &str = "notification_state";
 const NOTIF_TAG: &str = "sharesphere-notif";
 pub const NOTIF_RETENTION_DAYS: i64 = 31;
-const NOTIF_RELOAD_INTERVAL_MS: u64 = 30000;
+const NOTIF_RELOAD_INTERVAL_MS: u64 = 900000;
 
 #[repr(i16)]
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -160,14 +160,15 @@ pub mod ssr {
 
     pub async fn create_notification(
         post_id: i64,
-        comment_id: Option<i64>,
+        notif_comment_id: Option<i64>,
+        link_comment_id: Option<i64>,
         trigger_user_id: i64,
         notification_type: NotificationType,
         db_pool: &PgPool,
     ) -> Result<Option<Notification>, AppError> {
         let notification = sqlx::query_as::<_, Notification>(
             "WITH trigger_user AS (
-                SELECT username FROM users WHERE user_id = $3
+                SELECT username FROM users WHERE user_id = $4
             ), post_info AS (
                 SELECT sphere_id, satellite_id, creator_id FROM posts WHERE post_id = $1
             ), notified_user AS (
@@ -183,11 +184,11 @@ pub mod ssr {
                 SELECT
                     p.sphere_id,
                     p.satellite_id,
-                    $1, $2,
+                    $1, $3,
                     nu.creator_id,
-                    $3, $4
+                    $4, $5
                 FROM post_info p, trigger_user tu, notified_user nu
-                WHERE $3 != nu.creator_id
+                WHERE $4 != nu.creator_id
                 RETURNING *
             )
             SELECT n.*, u.username AS trigger_username, s.sphere_name, s.icon_url, s.is_nsfw
@@ -195,7 +196,8 @@ pub mod ssr {
             WHERE s.sphere_id = n.sphere_id",
         )
             .bind(post_id)
-            .bind(comment_id)
+            .bind(notif_comment_id)
+            .bind(link_comment_id)
             .bind(trigger_user_id)
             .bind(notification_type as i16)
             .fetch_optional(db_pool)
@@ -442,7 +444,7 @@ fn ReadNotificationButton(
 pub fn NotificationItem(notification: Notification) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let notif_id = notification.notification_id;
-    let is_notif_read = move || !state.unread_notif_id_set.read().contains(&notif_id);
+    let is_notif_read = Signal::derive(move || !state.unread_notif_id_set.read().contains(&notif_id));
     let is_moderation = notification.notification_type == NotificationType::Moderation;
     let message = get_notification_text(&notification);
     let link = get_notification_path(&notification);
@@ -458,7 +460,7 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
     view! {
         <a
             href=link
-            class="w-full p-2 my-1 flex justify-between items-center rounded-sm hover:bg-base-200"
+            class="w-full p-2 px-4 my-1 flex justify-between items-center rounded-sm hover:bg-base-200"
             class:text-gray-400=is_notif_read
             on:click=move |_| {
                 state.unread_notif_id_set.write().remove(&notif_id);
@@ -472,7 +474,7 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
                             author_id=notification.trigger_user_id
                             author=notification.trigger_username
                             is_moderator=is_moderation
-                            is_grayed_out=notification.is_read
+                            is_grayed_out=is_notif_read
                         />
                     </div>
                     <span
@@ -484,7 +486,7 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
                 </div>
                 <div class="flex gap-1 items-center">
                     <SphereHeaderLink sphere_header=notification.sphere_header/>
-                    <TimeSinceWidget timestamp=notification.create_timestamp is_grayed_out=notification.is_read/>
+                    <TimeSinceWidget timestamp=notification.create_timestamp is_grayed_out=is_notif_read/>
                 </div>
             </div>
             <Show

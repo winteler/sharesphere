@@ -311,7 +311,7 @@ where
     view! {
         <div class="flex gap-1.5 items-center">
             {children.into_inner()()}
-            <div class="text-xs xl:text-sm">{move || text.get()}</div>
+            <div class="text-xs lg:text-sm">{move || text.get()}</div>
         </div>
     }.into_any()
 }
@@ -331,7 +331,7 @@ pub fn CommentCountWidget(
     count: i32,
 ) -> impl IntoView {
     view! {
-        <div class="flex gap-1.5 items-center text-sm px-1">
+        <div class="flex gap-1.5 items-center text-xs lg:text-sm px-1">
             <CommentIcon/>
             {count}
         </div>
@@ -346,7 +346,7 @@ pub fn ModeratorWidget(
 ) -> impl IntoView {
     view! {
         <Show when=move || moderator.read().is_some()>
-            <div class="flex px-1 gap-1.5 items-center text-sm">
+            <div class="flex px-1 gap-1.5 items-center text-xs lg:text-sm">
                 <ModeratorIcon/>
                 {
                     move || moderator.get().unwrap_or_default()
@@ -402,8 +402,8 @@ pub fn TagsWidget(
 pub fn TimeSinceWidget(
     #[prop(into)]
     timestamp: Signal<chrono::DateTime<chrono::Utc>>,
-    #[prop(optional)]
-    is_grayed_out: bool,
+    #[prop(into, optional)]
+    is_grayed_out: Signal<bool>,
 ) -> impl IntoView {
     let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Lg);
     view! {
@@ -428,7 +428,7 @@ pub fn TimeSinceEditWidget(
     let use_fullname = use_breakpoints(breakpoints_tailwind()).ge(Lg);
     view! {
         <Show when=move || edit_timestamp.read().is_some()>
-            <div class="flex gap-1.5 items-center text-sm px-1">
+            <div class="flex gap-1.5 items-center text-xs lg:text-sm px-1">
                 <EditTimeIcon/>
                 {
                     move || get_elapsed_time_string(edit_timestamp.get().unwrap(), use_fullname.get())
@@ -509,7 +509,7 @@ pub fn ScoreIndicator(score: i32) -> impl IntoView {
     view! {
         <div class="w-fit px-1 flex gap-1 items-center">
             <ScoreIcon/>
-            <div class="text-sm">
+            <div class="text-xs lg:text-sm">
                 {score}
             </div>
         </div>

@@ -20,7 +20,7 @@ use sharesphere_core::comment::{CommentMiniatureList};
 use sharesphere_core::post::{PostListWithInitLoad, POST_BATCH_SIZE};
 use sharesphere_core::profile::{get_user_comment_vec, get_user_post_vec};
 use sharesphere_core::ranking::{CommentSortType, CommentSortWidget, PostSortType, PostSortWidget, SortType};
-use sharesphere_core::sidebar::HomeSidebar;
+use sharesphere_core::sidebar::RightSidebar;
 use sharesphere_core::state::GlobalState;
 use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
 
@@ -114,7 +114,7 @@ pub fn UserProfile() -> impl IntoView {
                 </Transition>
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 

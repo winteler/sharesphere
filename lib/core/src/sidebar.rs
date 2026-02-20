@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 use leptos::html::{Div, Select};
 use leptos_fluent::{move_tr, I18n};
@@ -164,43 +165,29 @@ pub fn LeftSidebar() -> impl IntoView {
     }
 }
 
-/// Home right sidebar component
+/// Sidebar component, main component to avoid issues with multiple on_click_outside
 #[component]
-pub fn HomeSidebar() -> impl IntoView {
+pub fn RightSidebar() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let sphere_state = use_context::<SphereState>();
+
     let sidebar_class = move || match state.show_right_sidebar.get() {
         true => "right_sidebar_base_class max-lg:translate-x-0 transition-transform duration-300 ease-in-out",
         false => "right_sidebar_base_class max-lg:translate-x-100 transition-transform duration-300 ease-in-out",
     };
-    let sidebar_ref = NodeRef::<Div>::new();
+
     #[cfg(feature = "hydrate")]
     {
         // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
-        let _ = on_click_outside(sidebar_ref, move |_| state.show_right_sidebar.set(false));
+        let _ = on_click_outside(state.right_sidebar_ref, move |_| state.show_right_sidebar.set(false));
     }
 
     view! {
-        <div class=sidebar_class node_ref=sidebar_ref>
-            <h1 class="text-xl font-semibold text-center">{move_tr!("welcome-to-sharesphere")}</h1>
-            <div class="flex flex-col gap-2">
-                <p>{move_tr!("sharesphere-right-sidebar-1")}</p>
-                <p>{move_tr!("sharesphere-right-sidebar-2")}</p>
-            </div>
-            <ul class="list-disc list-inside">
-                <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">{move_tr!("about-sharesphere")}</a></li>
-                <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">{move_tr!("terms-and-conditions")}</a></li>
-                <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">{move_tr!("privacy-policy")}</a></li>
-                <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">{move_tr!("content-policy")}</a></li>
-                <li><a href=RULES_ROUTE class="link text-primary">{move_tr!("rules")}</a></li>
-                <li><a href=FAQ_ROUTE class="link text-primary">{move_tr!("faq")}</a></li>
-                <li class="inline-flex items-center">
-                    <a href=GITHUB_REPO_URL class="h-full inline-flex items-center gap-2">
-                        <GithubIcon/>
-                        <div class="link text-primary">{move_tr!("github-repo")}</div>
-                    </a>
-                </li>
-            </ul>
-            <BaseRuleList/>
+        <div class=sidebar_class node_ref=state.right_sidebar_ref>
+        { match sphere_state {
+            Some(sphere_state) => Either::Left(view! { <SphereSidebarContent sphere_state/> }),
+            None => Either::Right(view! { <HomeSidebarContent/> }),
+        }}
         </div>
         <Show when=state.show_right_sidebar>
             <div class="absolute top-0 left-0 h-full w-full bg-base-200/50"/>
@@ -208,40 +195,49 @@ pub fn HomeSidebar() -> impl IntoView {
     }
 }
 
+/// Home right sidebar component
+#[component]
+fn HomeSidebarContent() -> impl IntoView {
+    view! {
+        <h1 class="text-xl font-semibold text-center">{move_tr!("welcome-to-sharesphere")}</h1>
+        <div class="flex flex-col gap-2">
+            <p>{move_tr!("sharesphere-right-sidebar-1")}</p>
+            <p>{move_tr!("sharesphere-right-sidebar-2")}</p>
+        </div>
+        <ul class="list-disc list-inside">
+            <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">{move_tr!("about-sharesphere")}</a></li>
+            <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">{move_tr!("terms-and-conditions")}</a></li>
+            <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">{move_tr!("privacy-policy")}</a></li>
+            <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">{move_tr!("content-policy")}</a></li>
+            <li><a href=RULES_ROUTE class="link text-primary">{move_tr!("rules")}</a></li>
+            <li><a href=FAQ_ROUTE class="link text-primary">{move_tr!("faq")}</a></li>
+            <li class="inline-flex items-center">
+                <a href=GITHUB_REPO_URL class="h-full inline-flex items-center gap-2">
+                    <GithubIcon/>
+                    <div class="link text-primary">{move_tr!("github-repo")}</div>
+                </a>
+            </li>
+        </ul>
+        <BaseRuleList/>
+    }
+}
+
 /// Sphere right sidebar component
 #[component]
-pub fn SphereSidebar() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let sphere_state = expect_context::<SphereState>();
-
-    let sidebar_class = move || match state.show_right_sidebar.get() {
-        true => "right_sidebar_base_class max-lg:translate-x-0 transition-transform duration-300 ease-in-out",
-        false => "right_sidebar_base_class max-lg:translate-x-100 transition-transform duration-300 ease-in-out",
-    };
-    let sidebar_ref = NodeRef::<Div>::new();
-    #[cfg(feature = "hydrate")]
-    {
-        // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
-        let _ = on_click_outside(sidebar_ref, move |_| state.show_right_sidebar.set(false));
-    }
+fn SphereSidebarContent(sphere_state: SphereState) -> impl IntoView {
     view! {
-        <div class=sidebar_class node_ref=sidebar_ref>
-            <div class="flex flex-col gap-2">
-                <div class="text-xl font-semibold text-center text-wrap wrap-anywhere">{sphere_state.sphere_name}</div>
-                <TransitionUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
-                    <div class="pl-4 whitespace-pre-wrap">{sphere_with_user_info.sphere.description.clone()}</div>
-                </TransitionUnpack>
-            </div>
-            <div class="border-b border-primary/80"/>
-            <SphereCategoryList/>
-            <div class="border-b border-primary/80"/>
-            <SphereRuleList rule_resource=sphere_state.sphere_rules_resource/>
-            <div class="border-b border-primary/80"/>
-            <ModeratorList/>
+        <div class="flex flex-col gap-2">
+            <div class="text-xl font-semibold text-center text-wrap wrap-anywhere">{sphere_state.sphere_name}</div>
+            <TransitionUnpack resource=sphere_state.sphere_with_user_info_resource let:sphere_with_user_info>
+                <div class="pl-4 whitespace-pre-wrap">{sphere_with_user_info.sphere.description.clone()}</div>
+            </TransitionUnpack>
         </div>
-        <Show when=state.show_right_sidebar>
-            <div class="absolute top-0 left-0 h-full w-full bg-base-200/50"/>
-        </Show>
+        <div class="border-b border-primary/80"/>
+        <SphereCategoryList/>
+        <div class="border-b border-primary/80"/>
+        <SphereRuleList rule_resource=sphere_state.sphere_rules_resource/>
+        <div class="border-b border-primary/80"/>
+        <ModeratorList/>
     }
 }
 

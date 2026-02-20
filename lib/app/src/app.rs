@@ -28,7 +28,7 @@ use sharesphere_content::post::{CreatePost, Post};
 use sharesphere_core::notification::NotificationHome;
 use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::ranking::PostSortWidget;
-use sharesphere_core::sidebar::{HomeSidebar, LeftSidebar};
+use sharesphere_core::sidebar::{LeftSidebar, RightSidebar};
 use sharesphere_core::sphere::CreateSphere;
 use sharesphere_core::state::GlobalState;
 use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
@@ -235,7 +235,7 @@ pub fn App() -> impl IntoView {
 fn LoginGuardHome() -> impl IntoView {
     view! {
         <LoginGuard/>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 
@@ -284,7 +284,7 @@ fn HomePage() -> impl IntoView {
                 }
             </Transition>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 
@@ -307,7 +307,7 @@ fn HotPage() -> impl IntoView {
             <BannerWithWidgets title=move_tr!("hot") icon_url=Some(String::from(FLAME_ICON_PATH)) banner_url=None refresh_count/>
             <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 

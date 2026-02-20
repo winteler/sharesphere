@@ -15,7 +15,7 @@ use sharesphere_utils::unpack::SuspenseUnpack;
 use sharesphere_utils::widget::{RefreshButton, TimeSinceWidget};
 use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
 
-use crate::sidebar::HomeSidebar;
+use crate::sidebar::RightSidebar;
 use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::state::GlobalState;
 
@@ -368,7 +368,7 @@ pub fn NotificationHome() -> impl IntoView {
             }
         }
         </SuspenseUnpack>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 

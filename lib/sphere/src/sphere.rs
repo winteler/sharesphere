@@ -21,7 +21,7 @@ use sharesphere_core::moderation::ModeratePost;
 use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
 use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, SatelliteState, UpdateSatellite};
-use sharesphere_core::sidebar::SphereSidebar;
+use sharesphere_core::sidebar::RightSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
 use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
@@ -138,7 +138,7 @@ pub fn SphereBanner() -> impl IntoView {
             </TransitionUnpack>
             <Outlet/>
         </div>
-        <SphereSidebar/>
+        <RightSidebar/>
     }.into_any()
 }
 

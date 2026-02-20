@@ -11,7 +11,7 @@ use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use sharesphere_core::comment::CommentMiniatureList;
 use sharesphere_core::post::{PostListWithIndicators};
 use sharesphere_core::search::{get_matching_user_header_vec, is_content_search_valid, search_comments, search_posts, SearchForm, SearchSpheres, SearchState};
-use sharesphere_core::sidebar::HomeSidebar;
+use sharesphere_core::sidebar::RightSidebar;
 use sharesphere_core::state::SphereState;
 use sharesphere_utils::checks::{check_username};
 use sharesphere_utils::constants::{MAX_SEARCH_QUERY_LENGTH, MAX_USERNAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
@@ -110,7 +110,7 @@ pub fn Search() -> impl IntoView
                 />
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 

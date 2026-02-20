@@ -1,5 +1,7 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 use leptos::prelude::*;
+use leptos::html::{Div};
 use sharesphere_auth::auth::EndSession;
 use crate::notification::{Notification, get_notifications};
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
@@ -34,6 +36,7 @@ pub struct GlobalState {
     pub notif_resource: Resource<Result<Vec<Notification>, AppError>>,
     pub user: Resource<Result<Option<User>, AppError>>,
     pub base_rules: OnceResource<Result<Vec<Rule>, AppError>>,
+    pub right_sidebar_ref: NodeRef<Div>,
 }
 
 #[derive(Copy, Clone)]
@@ -91,7 +94,8 @@ impl GlobalState {
                 move |_| get_notifications(),
             ),
             user,
-            base_rules: OnceResource::new(get_rule_vec(None))
+            base_rules: OnceResource::new(get_rule_vec(None)),
+            right_sidebar_ref: NodeRef::new(),
         }
     }
 }

@@ -3,7 +3,7 @@ use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use sharesphere_core::rule::BaseRule;
-use sharesphere_core::sidebar::HomeSidebar;
+use sharesphere_core::sidebar::RightSidebar;
 use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE};
 
 use sharesphere_core::state::GlobalState;
@@ -30,7 +30,7 @@ pub fn AboutShareSphere() -> impl IntoView {
                 <OriginsAndGoals/>
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 
@@ -52,7 +52,7 @@ pub fn TermsAndConditions() -> impl IntoView {
                 <GoverningLaw/>
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 
@@ -74,7 +74,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
                 <PrivacyPolicyChanges/>
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 
@@ -128,7 +128,7 @@ pub fn ContentPolicy() -> impl IntoView {
                 </div>
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 
@@ -192,7 +192,7 @@ pub fn Rules() -> impl IntoView {
                 </Suspense>
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 
@@ -471,7 +471,7 @@ pub fn Faq() -> impl IntoView {
                 />
             </div>
         </div>
-        <HomeSidebar/>
+        <RightSidebar/>
     }
 }
 

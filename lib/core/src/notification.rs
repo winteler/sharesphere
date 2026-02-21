@@ -376,32 +376,29 @@ pub fn NotificationHome() -> impl IntoView {
 #[component]
 pub fn NotificationList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+    let read_notif_map = StoredValue::new(HashMap::new());
 
     view! {
         <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
+            <div class="flex justify-end px-4">
+                <RefreshButton refresh_count=state.notif_reload_trigger/>
+                <ReadAllNotificationsButton read_notif_map=read_notif_map/>
+            </div>
+            <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
             <SuspenseUnpack resource=state.notif_resource let:notif_vec>
             {
-                let mut read_notif_map = HashMap::new();
-                view! {
-                    <div class="flex justify-end px-4">
-                        <RefreshButton refresh_count=state.notif_reload_trigger/>
-                        <ReadAllNotificationsButton read_notif_map=read_notif_map.clone()/>
-                    </div>
-                    <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
-                    {
-                        notif_vec.iter().map(|notification| {
-                            let is_notif_read = RwSignal::new(notification.is_read);
-                            read_notif_map.insert(notification.notification_id, is_notif_read);
-                            view! {
-                                <li><NotificationItem notification=notification.clone() is_notif_read/></li>
-                            }
-                        }).collect_view()
+                read_notif_map.write_value().clear();
+                notif_vec.iter().map(|notification| {
+                    let is_notif_read = RwSignal::new(notification.is_read);
+                    read_notif_map.write_value().insert(notification.notification_id, is_notif_read);
+                    view! {
+                        <li><NotificationItem notification=notification.clone() is_notif_read/></li>
                     }
-                    </ul>
-                }
+                }).collect_view()
             }
             </SuspenseUnpack>
+            </ul>
         </div>
     }
 }
@@ -409,7 +406,7 @@ pub fn NotificationList() -> impl IntoView {
 /// Button to set all notifications as read
 #[component]
 fn ReadAllNotificationsButton(
-    read_notif_map: HashMap<i64, RwSignal<bool>>
+    read_notif_map: StoredValue<HashMap<i64, RwSignal<bool>>>
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let read_all_action = Action::new(move |_: &()| async move {
@@ -421,7 +418,7 @@ fn ReadAllNotificationsButton(
             data-tip=move_tr!("read-all-notifs")
             on:click=move |_| {
                 state.unread_notif_id_set.write().clear();
-                for (_, is_notif_read) in &read_notif_map {
+                for (_, is_notif_read) in &*read_notif_map.write_value() {
                     is_notif_read.set(true);
                 }
                 read_all_action.dispatch(());

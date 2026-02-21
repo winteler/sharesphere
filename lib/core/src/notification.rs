@@ -315,35 +315,31 @@ pub fn NotificationButton() -> impl IntoView {
                                 move || { *state.notif_reload_trigger.write() += 1; },
                                 NOTIF_RELOAD_INTERVAL_MS,
                             );
-                            let notif_link = view! {
-                                <a class="button-rounded-ghost" href=NOTIFICATION_ROUTE>
-                                    <NotificationIcon/>
-                                </a>
-                            }.into_any();
                             match state.notif_resource.await {
-                                Ok(notif_vec) if notif_vec.iter().any(|notif| !notif.is_read) => {
+                                Ok(notif_vec) => {
                                     set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_id_set, build_and_send_notif);
-                                    let unread_notif_count = move || match (state.unread_notif_id_set.read().len(), is_wide_screen.get()) {
-                                        (x, true) if x > 99 => String::from("99+"),
-                                        (x, false) if x > 9 => String::from("9+"),
-                                        (x, _) => x.to_string(),
-                                    };
                                     view! {
                                         <a class="button-rounded-ghost relative flex" href=NOTIFICATION_ROUTE>
                                             <NotificationIcon/>
-                                            <div class="notif_counter">
-                                                {unread_notif_count}
-                                            </div>
+                                            <Show when=move || { state.unread_notif_id_set.read().len() > 0 }>
+                                                <div class="notif_counter">
+                                                    { move || match (state.unread_notif_id_set.read().len(), is_wide_screen.get()) {
+                                                        (x, true) if x > 99 => String::from("99+"),
+                                                        (x, false) if x > 9 => String::from("9+"),
+                                                        (x, _) => x.to_string(),
+                                                    }}
+                                                </div>
+                                            </Show>
                                         </a>
                                     }.into_any()
                                 },
-                                Ok(_) => {
-                                    state.unread_notif_id_set.write().clear();
-                                    notif_link
-                                },
                                 Err(e) => {
                                     log::error!("Failed to fetch notifications: {}", e);
-                                    notif_link
+                                    view! {
+                                        <a class="button-rounded-ghost" href=NOTIFICATION_ROUTE>
+                                            <NotificationIcon/>
+                                        </a>
+                                    }.into_any()
                                 }
                             }
                         },

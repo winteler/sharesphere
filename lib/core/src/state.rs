@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::sync::Arc;
+use std::sync::{Mutex};
 use leptos::prelude::*;
 use leptos::html::{Div};
 use sharesphere_auth::auth::EndSession;
@@ -37,6 +37,7 @@ pub struct GlobalState {
     pub user: Resource<Result<Option<User>, AppError>>,
     pub base_rules: OnceResource<Result<Vec<Rule>, AppError>>,
     pub right_sidebar_ref: NodeRef<Div>,
+    pub right_sidebar_stop_click_listener: StoredValue<Mutex<Option<Box<dyn FnOnce() + Send + Sync>>>>
 }
 
 #[derive(Copy, Clone)]
@@ -96,6 +97,7 @@ impl GlobalState {
             user,
             base_rules: OnceResource::new(get_rule_vec(None)),
             right_sidebar_ref: NodeRef::new(),
+            right_sidebar_stop_click_listener: StoredValue::new(Mutex::new(None)),
         }
     }
 }

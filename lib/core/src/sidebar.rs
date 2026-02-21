@@ -179,7 +179,19 @@ pub fn RightSidebar() -> impl IntoView {
     #[cfg(feature = "hydrate")]
     {
         // only enable with "hydrate" to avoid server side "Dropped SendWrapper" error
-        let _ = on_click_outside(state.right_sidebar_ref, move |_| state.show_right_sidebar.set(false));
+        let stop_new_listener = on_click_outside(state.right_sidebar_ref, move |_| state.show_right_sidebar.set(false));
+        let stop_listener = state.right_sidebar_stop_click_listener.write_value();
+        if let Ok(mut stop_current_listener_guard) = stop_listener.lock() {
+            log::info!(
+                "New Sidebar, stop previous listener for {}.", match sphere_state {
+                    Some(sphere_state) => sphere_state.sphere_name.get_untracked(),
+                    None => String::from("Home"),
+                }
+            );
+            if let Some(stop_closure) = stop_current_listener_guard.replace(Box::new(stop_new_listener)) {
+                stop_closure();
+            }
+        }
     }
 
     view! {

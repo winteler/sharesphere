@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
@@ -11,7 +11,7 @@ use sharesphere_utils::constants::{LOGO_ICON_PATH, SITE_NAME};
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, UnreadIcon};
 use sharesphere_utils::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
-use sharesphere_utils::unpack::SuspenseUnpack;
+use sharesphere_utils::unpack::{SuspenseUnpack};
 use sharesphere_utils::widget::{RefreshButton, TimeSinceWidget};
 use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
 
@@ -376,29 +376,41 @@ pub fn NotificationHome() -> impl IntoView {
 #[component]
 pub fn NotificationList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
+
     view! {
         <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
-            <div class="flex justify-end px-4">
-                <RefreshButton refresh_count=state.notif_reload_trigger/>
-                <ReadAllNotificationsButton/>
-            </div>
-            <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
             <SuspenseUnpack resource=state.notif_resource let:notif_vec>
             {
-                notif_vec.iter().map(|notification| view! {
-                    <li><NotificationItem notification=notification.clone()/></li>
-                }).collect_view()
+                let mut read_notif_map = HashMap::new();
+                view! {
+                    <div class="flex justify-end px-4">
+                        <RefreshButton refresh_count=state.notif_reload_trigger/>
+                        <ReadAllNotificationsButton read_notif_map=read_notif_map.clone()/>
+                    </div>
+                    <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
+                    {
+                        notif_vec.iter().map(|notification| {
+                            let is_notif_read = RwSignal::new(notification.is_read);
+                            read_notif_map.insert(notification.notification_id, is_notif_read);
+                            view! {
+                                <li><NotificationItem notification=notification.clone() is_notif_read/></li>
+                            }
+                        }).collect_view()
+                    }
+                    </ul>
+                }
             }
             </SuspenseUnpack>
-            </ul>
         </div>
     }
 }
 
 /// Button to set all notifications as read
 #[component]
-fn ReadAllNotificationsButton() -> impl IntoView {
+fn ReadAllNotificationsButton(
+    read_notif_map: HashMap<i64, RwSignal<bool>>
+) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let read_all_action = Action::new(move |_: &()| async move {
         set_all_notifications_read().await
@@ -409,6 +421,9 @@ fn ReadAllNotificationsButton() -> impl IntoView {
             data-tip=move_tr!("read-all-notifs")
             on:click=move |_| {
                 state.unread_notif_id_set.write().clear();
+                for (_, is_notif_read) in &read_notif_map {
+                    is_notif_read.set(true);
+                }
                 read_all_action.dispatch(());
             }
         >
@@ -421,6 +436,7 @@ fn ReadAllNotificationsButton() -> impl IntoView {
 #[component]
 fn ReadNotificationButton(
     notif_id: i64,
+    is_notif_read: RwSignal<bool>,
     read_notif_action: Action<(), Result<(), AppError>>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
@@ -431,6 +447,7 @@ fn ReadNotificationButton(
             on:click=move |ev| {
                 ev.prevent_default();
                 state.unread_notif_id_set.write().remove(&notif_id);
+                is_notif_read.set(true);
                 read_notif_action.dispatch(());
             }
         >
@@ -441,10 +458,12 @@ fn ReadNotificationButton(
 
 /// Single notification
 #[component]
-pub fn NotificationItem(notification: Notification) -> impl IntoView {
+pub fn NotificationItem(
+    notification: Notification,
+    is_notif_read: RwSignal<bool>,
+) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let notif_id = notification.notification_id;
-    let is_notif_read = Signal::derive(move || !state.unread_notif_id_set.read().contains(&notif_id));
     let is_moderation = notification.notification_type == NotificationType::Moderation;
     let message = get_notification_text(&notification);
     let link = get_notification_path(&notification);
@@ -491,7 +510,7 @@ pub fn NotificationItem(notification: Notification) -> impl IntoView {
             </div>
             <Show
                 when=is_notif_read
-                fallback=move || view! { <ReadNotificationButton notif_id read_notif_action/> }
+                fallback=move || view! { <ReadNotificationButton notif_id read_notif_action is_notif_read/> }
             >
                 <div class="p-1 lg:p-2"><ReadIcon/></div>
             </Show>

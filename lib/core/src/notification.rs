@@ -569,7 +569,6 @@ fn get_web_notif_text(notification: &Notification) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
     use std::sync::LazyLock;
     use leptos::prelude::*;
     use leptos_fluent::__reexports::fluent_templates::{static_loader, LanguageIdentifier, StaticLoader};
@@ -625,7 +624,7 @@ mod tests {
         let timestamp_1 = chrono::Utc::now();
         let timestamp_2 = timestamp_1 - chrono::Duration::days(1);
 
-        let unread_notif_id_set = RwSignal::new(HashSet::default());
+        let unread_notif_count = RwSignal::new(0);
         let new_notif = Notification {
             notification_id: 3,
             create_timestamp: timestamp_2,
@@ -646,11 +645,11 @@ mod tests {
             new_notif.clone(),
         ];
 
-        let new_notif_vec = notif_handler.identify_new_notifications(notif_vec, unread_notif_id_set);
+        let new_notif_vec = notif_handler.identify_new_notifications(notif_vec, unread_notif_count);
         assert_eq!(new_notif_vec.len(), 1);
         assert_eq!(*new_notif_vec.first().unwrap(), new_notif);
 
-        assert_eq!(unread_notif_id_set.get_untracked(), [2, 3].into());
+        assert_eq!(unread_notif_count.get_untracked(), 2);
 
         assert_eq!(notif_handler.emitted_notif_id_set, [2, 3].into());
         assert_eq!(notif_handler.timestamp_2_notif_id, [(timestamp_2, 3)].into());
@@ -693,34 +692,34 @@ mod tests {
         let mut notif_vec = vec![
             notif_1.clone(),
         ];
-        let unread_notif_id_set = RwSignal::new([1].into());
+        let unread_notif_count = RwSignal::new(1);
 
         let expected_body = get_web_notif_text(&notif_1);
         let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
-        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_id_set, mock_show_fn);
+        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_count, mock_show_fn);
 
-        unread_notif_id_set.write_untracked().insert(2);
+        unread_notif_count.set(2);
         let expected_body =
             get_web_notif_text(&notif_1) +
                 tr!(
                     "web-notif-unread-addon",
-                    {"unread_notif_count" => unread_notif_id_set.read_untracked().len()}
+                    {"unread_notif_count" => unread_notif_count.get_untracked()}
                 ).as_str();
         let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
-        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_id_set, mock_show_fn);
+        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_count, mock_show_fn);
 
         notif_vec.push(notif_2);
         let expected_body = tr!("multi-web-notif", {"new_notif_count" => notif_vec.len()});
         let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
-        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_id_set, mock_show_fn);
+        notif_handler.send_notifications_to_browser(notif_vec.clone(), unread_notif_count, mock_show_fn);
 
-        unread_notif_id_set.write_untracked().insert(4);
+        unread_notif_count.set(3);
         let expected_body = tr!(
             "multi-web-notif-with-unread",
-            {"new_notif_count" => notif_vec.len(), "unread_notif_count" => unread_notif_id_set.read_untracked().len()}
+            {"new_notif_count" => notif_vec.len(), "unread_notif_count" => unread_notif_count.get()}
         );
         let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
-        notif_handler.send_notifications_to_browser(notif_vec, unread_notif_id_set, mock_show_fn);
+        notif_handler.send_notifications_to_browser(notif_vec, unread_notif_count, mock_show_fn);
     }
 
     #[test]
@@ -779,15 +778,15 @@ mod tests {
             notif_4,
             notif_5,
         ];
-        let unread_notif_id_set = RwSignal::new(HashSet::new());
+        let unread_notif_count = RwSignal::new(0);
 
         let expected_body = tr!(
             "multi-web-notif-with-unread",
             {"new_notif_count" => 2, "unread_notif_count" => 3}
         );
         let mock_show_fn = move |body: String| assert_eq!(body, expected_body);
-        notif_handler.handle_notifications(notif_vec, unread_notif_id_set, mock_show_fn);
-        assert_eq!(unread_notif_id_set.read_untracked(), [4, 5, 6].into());
+        notif_handler.handle_notifications(notif_vec, unread_notif_count, mock_show_fn);
+        assert_eq!(unread_notif_count.get_untracked(), 3);
     }
 
     #[test]

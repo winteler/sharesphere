@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap};
 use leptos::prelude::*;
 use sharesphere_auth::auth::EndSession;
 use crate::notification::{Notification, get_notifications};
@@ -29,7 +29,8 @@ pub struct GlobalState {
     pub comment_sort_type: RwSignal<SortType>,
     pub show_left_sidebar: RwSignal<bool>,
     pub show_right_sidebar: RwSignal<bool>,
-    pub unread_notif_id_set: RwSignal<HashSet<i64>>,
+    pub unread_notif_count: RwSignal<usize>,
+    pub is_notif_read_map: StoredValue<HashMap<i64, ArcRwSignal<bool>>>,
     pub notif_reload_trigger: RwSignal<usize>,
     pub notif_resource: Resource<Result<Vec<Notification>, AppError>>,
     pub user: Resource<Result<Option<User>, AppError>>,
@@ -69,7 +70,7 @@ impl GlobalState {
         set_settings_action: ServerAction<SetUserSettings>,
     ) -> Self {
         let notif_reload_trigger = RwSignal::new(0);
-
+        let is_notif_read_map = StoredValue::new(HashMap::new());
         Self {
             logout_action,
             delete_user_action,
@@ -84,11 +85,17 @@ impl GlobalState {
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),
             show_left_sidebar: RwSignal::new(false),
             show_right_sidebar: RwSignal::new(false),
-            unread_notif_id_set: RwSignal::new(HashSet::new()),
+            unread_notif_count: RwSignal::new(0),
+            is_notif_read_map,
             notif_reload_trigger,
             notif_resource: Resource::new(
                 move || notif_reload_trigger.get(),
-                move |_| get_notifications(),
+                move |_| {
+                    is_notif_read_map.write_value().clear();
+                    async move {
+                        get_notifications().await
+                    }
+                },
             ),
             user,
             base_rules: OnceResource::new(get_rule_vec(None))

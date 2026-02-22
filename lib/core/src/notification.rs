@@ -70,13 +70,13 @@ impl NotifHandler {
     fn identify_new_notifications(
         &mut self,
         notif_vec: Vec<Notification>,
-        unread_notif_id_set: RwSignal<HashSet<i64>>,
+        unread_notif_id_set: RwSignal<usize>,
     ) -> Vec<Notification> {
         let unread_notif_vec: Vec<Notification> = notif_vec
             .into_iter()
             .filter(|notif| !notif.is_read)
             .collect();
-        *unread_notif_id_set.write() = unread_notif_vec.iter().map(|notif| notif.notification_id).collect();
+        *unread_notif_id_set.write() = unread_notif_vec.len();
 
         let mut new_notif_vec = Vec::new();
         for notif in unread_notif_vec.into_iter() {
@@ -100,12 +100,12 @@ impl NotifHandler {
     fn send_notifications_to_browser(
         &self,
         new_notif_vec: Vec<Notification>,
-        unread_notif_id_set: RwSignal<HashSet<i64>>,
+        unread_notif_count: RwSignal<usize>,
         build_and_send_notif_fn: impl Fn(String) + Clone + Send + Sync,
     ) {
         if let Some(notif) = new_notif_vec.iter().next() {
             let new_notif_count = new_notif_vec.len();
-            let unread_notif_count = unread_notif_id_set.read_untracked().len();
+            let unread_notif_count = unread_notif_count.get_untracked();
             let body = match (new_notif_count, unread_notif_count) {
                 (1, 1) => get_web_notif_text(notif),
                 (1, _) => get_web_notif_text(notif) + tr!("web-notif-unread-addon", {"unread_notif_count" => unread_notif_count}).as_str(),
@@ -123,14 +123,14 @@ impl NotifHandler {
     pub fn handle_notifications(
         &mut self,
         notif_vec: Vec<Notification>,
-        unread_notif_id_set: RwSignal<HashSet<i64>>,
+        unread_notif_count: RwSignal<usize>,
         build_and_send_notif_fn: impl Fn(String) + Clone + Send + Sync,
     ) {
         let notif_timestamp_threshold = Utc::now() - chrono::Duration::days(NOTIF_RETENTION_DAYS);
 
-        let new_notif_vec = self.identify_new_notifications(notif_vec, unread_notif_id_set);
+        let new_notif_vec = self.identify_new_notifications(notif_vec, unread_notif_count);
         self.clear_stale_notifications(notif_timestamp_threshold);
-        self.send_notifications_to_browser(new_notif_vec, unread_notif_id_set, build_and_send_notif_fn);
+        self.send_notifications_to_browser(new_notif_vec, unread_notif_count, build_and_send_notif_fn);
     }
 }
 
@@ -317,13 +317,13 @@ pub fn NotificationButton() -> impl IntoView {
                             );
                             match state.notif_resource.await {
                                 Ok(notif_vec) => {
-                                    set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_id_set, build_and_send_notif);
+                                    set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_count, build_and_send_notif);
                                     view! {
                                         <a class="button-rounded-ghost relative flex" href=NOTIFICATION_ROUTE>
                                             <NotificationIcon/>
-                                            <Show when=move || { state.unread_notif_id_set.read().len() > 0 }>
+                                            <Show when=move || { state.unread_notif_count.get() > 0 }>
                                                 <div class="notif_counter">
-                                                    { move || match (state.unread_notif_id_set.read().len(), is_wide_screen.get()) {
+                                                    { move || match (state.unread_notif_count.get(), is_wide_screen.get()) {
                                                         (x, true) if x > 99 => String::from("99+"),
                                                         (x, false) if x > 9 => String::from("9+"),
                                                         (x, _) => x.to_string(),
@@ -372,24 +372,24 @@ pub fn NotificationHome() -> impl IntoView {
 #[component]
 pub fn NotificationList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let read_notif_map = StoredValue::new(HashMap::new());
 
     view! {
         <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
             <div class="flex justify-end px-4">
                 <RefreshButton refresh_count=state.notif_reload_trigger/>
-                <ReadAllNotificationsButton read_notif_map=read_notif_map/>
+                <ReadAllNotificationsButton is_notif_read_map=state.is_notif_read_map/>
             </div>
             <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
             <SuspenseUnpack resource=state.notif_resource let:notif_vec>
             {
-                read_notif_map.write_value().clear();
+                let mut is_notif_read_map = state.is_notif_read_map.write_value();
                 notif_vec.iter().map(|notification| {
-                    let is_notif_read = RwSignal::new(notification.is_read);
-                    read_notif_map.write_value().insert(notification.notification_id, is_notif_read);
+                    let is_notif_read = is_notif_read_map
+                        .entry(notification.notification_id)
+                        .or_insert(ArcRwSignal::new(notification.is_read));
                     view! {
-                        <li><NotificationItem notification=notification.clone() is_notif_read/></li>
+                        <li><NotificationItem notification=notification.clone() is_notif_read=is_notif_read.clone()/></li>
                     }
                 }).collect_view()
             }
@@ -402,7 +402,7 @@ pub fn NotificationList() -> impl IntoView {
 /// Button to set all notifications as read
 #[component]
 fn ReadAllNotificationsButton(
-    read_notif_map: StoredValue<HashMap<i64, RwSignal<bool>>>
+    is_notif_read_map: StoredValue<HashMap<i64, ArcRwSignal<bool>>>
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let read_all_action = Action::new(move |_: &()| async move {
@@ -413,8 +413,8 @@ fn ReadAllNotificationsButton(
             class="button-rounded-ghost w-fit tooltip"
             data-tip=move_tr!("read-all-notifs")
             on:click=move |_| {
-                state.unread_notif_id_set.write().clear();
-                for (_, is_notif_read) in &*read_notif_map.write_value() {
+                state.unread_notif_count.set(0);
+                for (_, is_notif_read) in &*is_notif_read_map.write_value() {
                     is_notif_read.set(true);
                 }
                 read_all_action.dispatch(());
@@ -428,20 +428,19 @@ fn ReadAllNotificationsButton(
 /// Button to set all notifications as read
 #[component]
 fn ReadNotificationButton(
-    notif_id: i64,
-    is_notif_read: RwSignal<bool>,
+    is_notif_read: ArcRwSignal<bool>,
+    unread_notif_count: RwSignal<usize>,
     read_notif_action: Action<(), Result<(), AppError>>,
 ) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
+    let is_notif_read = is_notif_read.clone();
     view! {
         <button
             class="button-rounded-ghost w-fit tooltip tooltip-left"
             data-tip=move_tr!("read-notif")
             on:click=move |ev| {
                 ev.prevent_default();
-                state.unread_notif_id_set.write().remove(&notif_id);
-                is_notif_read.set(true);
-                read_notif_action.dispatch(());
+                ev.stop_immediate_propagation();
+                on_read_notif(is_notif_read.clone(), unread_notif_count, read_notif_action);
             }
         >
             <UnreadIcon/>
@@ -453,10 +452,11 @@ fn ReadNotificationButton(
 #[component]
 pub fn NotificationItem(
     notification: Notification,
-    is_notif_read: RwSignal<bool>,
+    is_notif_read: ArcRwSignal<bool>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let notif_id = notification.notification_id;
+    let is_notif_read = StoredValue::new(is_notif_read);
     let is_moderation = notification.notification_type == NotificationType::Moderation;
     let message = get_notification_text(&notification);
     let link = get_notification_path(&notification);
@@ -473,11 +473,8 @@ pub fn NotificationItem(
         <a
             href=link
             class="w-full p-2 px-4 my-1 flex justify-between items-center rounded-sm hover:bg-base-200"
-            class:text-gray-400=is_notif_read
-            on:click=move |_| {
-                state.unread_notif_id_set.write().remove(&notif_id);
-                read_notif_action.dispatch(());
-            }
+            class:text-gray-400=is_notif_read.get_value()
+            on:click=move |_| on_read_notif(is_notif_read.get_value(), state.unread_notif_count, read_notif_action)
         >
             <div class="flex flex-col gap-1">
                 <div class="leading-7">
@@ -486,29 +483,44 @@ pub fn NotificationItem(
                             author_id=notification.trigger_user_id
                             author=notification.trigger_username
                             is_moderator=is_moderation
-                            is_grayed_out=is_notif_read
+                            is_grayed_out=is_notif_read.get_value()
                         />
                     </div>
                     <span
                         class="align-middle px-1"
-                        class:text-gray-400=is_notif_read
+                        class:text-gray-400=is_notif_read.get_value()
                     >
                         {message}
                     </span>
                 </div>
                 <div class="flex gap-1 items-center">
                     <SphereHeaderLink sphere_header=notification.sphere_header/>
-                    <TimeSinceWidget timestamp=notification.create_timestamp is_grayed_out=is_notif_read/>
+                    <TimeSinceWidget timestamp=notification.create_timestamp is_grayed_out=is_notif_read.get_value()/>
                 </div>
             </div>
             <Show
-                when=is_notif_read
-                fallback=move || view! { <ReadNotificationButton notif_id read_notif_action is_notif_read/> }
+                when=move || is_notif_read.get_value().get()
+                fallback=move || view! {
+                    <ReadNotificationButton is_notif_read=is_notif_read.get_value() unread_notif_count=state.unread_notif_count read_notif_action/>
+                }
             >
                 <div class="p-1 lg:p-2"><ReadIcon/></div>
             </Show>
         </a>
     }
+}
+
+fn on_read_notif(
+    is_notif_read: ArcRwSignal<bool>,
+    unread_notif_count: RwSignal<usize>,
+    read_notif_action: Action<(), Result<(), AppError>>,
+) {
+    let mut unread_notif_count = unread_notif_count.write();
+    if !is_notif_read.get() && *unread_notif_count > 0 {
+        *unread_notif_count -= 1;
+    }
+    is_notif_read.set(true);
+    read_notif_action.dispatch(());
 }
 
 fn get_notification_path(notification: &Notification) -> String {

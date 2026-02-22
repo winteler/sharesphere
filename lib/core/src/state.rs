@@ -31,7 +31,6 @@ pub struct GlobalState {
     pub show_right_sidebar: RwSignal<bool>,
     pub unread_notif_count: RwSignal<usize>,
     pub is_notif_read_map: StoredValue<HashMap<i64, ArcRwSignal<bool>>>,
-    pub notif_reload_trigger: RwSignal<usize>,
     pub notif_resource: Resource<Result<Vec<Notification>, AppError>>,
     pub user: Resource<Result<Option<User>, AppError>>,
     pub base_rules: OnceResource<Result<Vec<Rule>, AppError>>,
@@ -69,7 +68,6 @@ impl GlobalState {
         create_sphere_action: ServerAction<CreateSphere>,
         set_settings_action: ServerAction<SetUserSettings>,
     ) -> Self {
-        let notif_reload_trigger = RwSignal::new(0);
         let is_notif_read_map = StoredValue::new(HashMap::new());
         Self {
             logout_action,
@@ -87,9 +85,8 @@ impl GlobalState {
             show_right_sidebar: RwSignal::new(false),
             unread_notif_count: RwSignal::new(0),
             is_notif_read_map,
-            notif_reload_trigger,
             notif_resource: Resource::new(
-                move || notif_reload_trigger.get(),
+                move || (),
                 move |_| {
                     is_notif_read_map.write_value().clear();
                     async move {

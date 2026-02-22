@@ -12,7 +12,7 @@ use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, UnreadIcon};
 use sharesphere_utils::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
 use sharesphere_utils::unpack::{SuspenseUnpack};
-use sharesphere_utils::widget::{RefreshButton, TimeSinceWidget};
+use sharesphere_utils::widget::{RefreshResourceButton, TimeSinceWidget};
 use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
 
 use crate::sidebar::HomeSidebar;
@@ -312,7 +312,7 @@ pub fn NotificationButton() -> impl IntoView {
                     match state.user.await {
                         Ok(Some(_)) => {
                             use_interval_fn(
-                                move || { *state.notif_reload_trigger.write() += 1; },
+                                move || state.notif_resource.refetch(),
                                 NOTIF_RELOAD_INTERVAL_MS,
                             );
                             match state.notif_resource.await {
@@ -377,7 +377,7 @@ pub fn NotificationList() -> impl IntoView {
         <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
             <div class="flex justify-end px-4">
-                <RefreshButton refresh_count=state.notif_reload_trigger/>
+                <RefreshResourceButton resource=state.notif_resource/>
                 <ReadAllNotificationsButton is_notif_read_map=state.is_notif_read_map/>
             </div>
             <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">

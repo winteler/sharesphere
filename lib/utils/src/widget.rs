@@ -1,8 +1,10 @@
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
+use leptos::prelude::codee::{Decoder, Encoder};
 use leptos_fluent::{move_tr};
 use leptos_router::components::Form;
 use leptos_router::hooks::{use_query_map};
@@ -561,6 +563,38 @@ pub fn RefreshButton(
             class=button_class
             data-tip=move_tr!("refresh")
             on:click=move |_| refresh_count.update(|count| *count += 1)
+        >
+            <RefreshIcon/>
+        </button>
+    }
+}
+
+/// Reload button refetching a resource upon clicking
+#[component]
+pub fn RefreshResourceButton<T, Ser>(
+    resource: Resource<T, Ser>,
+    #[prop(optional)]
+    is_tooltip_bottom: bool,
+) -> impl IntoView
+where
+    Ser: Encoder<T> + Decoder<T>,
+    <Ser as Encoder<T>>::Error: Debug,
+    <Ser as Decoder<T>>::Error: Debug,
+    <<Ser as Decoder<T>>::Encoded as FromEncodedStr>::DecodingError: Debug,
+    <Ser as Encoder<T>>::Encoded: IntoEncodedString,
+    <Ser as Decoder<T>>::Encoded: FromEncodedStr,
+    T: Send + Sync + 'static,
+{
+    const BASE_CLASS: &str = "button-rounded-ghost w-fit tooltip";
+    let button_class = match is_tooltip_bottom {
+        true => concatcp!(BASE_CLASS, " tooltip-bottom"),
+        false => BASE_CLASS,
+    };
+    view! {
+        <button
+            class=button_class
+            data-tip=move_tr!("refresh")
+            on:click=move |_| resource.refetch()
         >
             <RefreshIcon/>
         </button>

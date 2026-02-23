@@ -14,17 +14,16 @@ use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sp
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
 
 use sharesphere_auth::auth::{LoginGuardButton, LoginGuardedButton};
-use sharesphere_auth::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel, SetUserSphereRole};
+use sharesphere_auth::role::{get_sphere_role_vec, AuthorizedShow, PermissionLevel};
 use sharesphere_core::filter::{PostFiltersButton, SphereCategoryFilter};
 use sharesphere_core::ranking::{PostSortWidget, SortType};
-use sharesphere_core::moderation::ModeratePost;
 use sharesphere_core::post::{add_sphere_info_to_post_vec, get_post_vec_by_sphere_name, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
-use sharesphere_core::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
-use sharesphere_core::satellite::{CreateSatellite, DisableSatellite, SatelliteState, UpdateSatellite};
+use sharesphere_core::rule::{get_rule_vec};
+use sharesphere_core::satellite::{SatelliteState};
 use sharesphere_core::sidebar::SphereSidebar;
 use sharesphere_core::satellite::get_satellite_vec_by_sphere_name;
-use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, Subscribe, Unsubscribe, UpdateSphereDescription};
-use sharesphere_core::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
+use sharesphere_core::sphere::{get_sphere_with_user_info, is_sphere_available, Subscribe, Unsubscribe};
+use sharesphere_core::sphere_category::{get_sphere_category_vec};
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::checks::check_sphere_name;
 use sharesphere_utils::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
@@ -39,16 +38,6 @@ use crate::sphere_management::MANAGE_SPHERE_ROUTE;
 pub fn SphereBanner() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let sphere_name = get_sphere_name_memo(use_params_map());
-    let create_satellite_action = ServerAction::<CreateSatellite>::new();
-    let update_satellite_action = ServerAction::<UpdateSatellite>::new();
-    let disable_satellite_action = ServerAction::<DisableSatellite>::new();
-    let update_sphere_desc_action = ServerAction::<UpdateSphereDescription>::new();
-    let set_sphere_category_action = ServerAction::<SetSphereCategory>::new();
-    let delete_sphere_category_action = ServerAction::<DeleteSphereCategory>::new();
-    let set_sphere_role_action = ServerAction::<SetUserSphereRole>::new();
-    let add_rule_action = ServerAction::<AddRule>::new();
-    let update_rule_action = ServerAction::<UpdateRule>::new();
-    let remove_rule_action = ServerAction::<RemoveRule>::new();
     let sphere_state = SphereState {
         sphere_name,
         sphere_category_filter: RwSignal::new(SphereCategoryFilter::All),
@@ -62,7 +51,7 @@ pub fn SphereBanner() -> impl IntoView {
         sphere_with_user_info_resource: Resource::new(
             move || (
                 sphere_name.get(),
-                update_sphere_desc_action.version().get(),
+                state.update_sphere_desc_action.version().get(),
                 state.sphere_reload_signal.get(),
             ),
             move |(sphere_name, _, _)| get_sphere_with_user_info(sphere_name)
@@ -70,44 +59,33 @@ pub fn SphereBanner() -> impl IntoView {
         satellite_vec_resource: Resource::new(
             move || (
                 sphere_name.get(),
-                create_satellite_action.version().get(),
-                update_satellite_action.version().get(),
-                disable_satellite_action.version().get(),
+                state.create_satellite_action.version().get(),
+                state.update_satellite_action.version().get(),
+                state.disable_satellite_action.version().get(),
             ),
             move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, true)
         ),
         sphere_categories_resource: Resource::new(
             move || (
                 sphere_name.get(),
-                set_sphere_category_action.version().get(),
-                delete_sphere_category_action.version().get()
+                state.set_sphere_category_action.version().get(),
+                state.delete_sphere_category_action.version().get()
             ),
             move |(sphere_name, _, _)| get_sphere_category_vec(sphere_name)
         ),
         sphere_roles_resource: Resource::new(
-            move || (sphere_name.get(), set_sphere_role_action.version().get()),
+            move || (sphere_name.get(), state.set_sphere_role_action.version().get()),
             move |(sphere_name, _)| get_sphere_role_vec(sphere_name),
         ),
         sphere_rules_resource: Resource::new(
             move || (
                 sphere_name.get(),
-                add_rule_action.version().get(),
-                update_rule_action.version().get(),
-                remove_rule_action.version().get()
+                state.add_rule_action.version().get(),
+                state.update_rule_action.version().get(),
+                state.remove_rule_action.version().get()
             ),
             move |(sphere_name, _, _, _)| get_rule_vec(Some(sphere_name)),
         ),
-        create_satellite_action,
-        update_satellite_action,
-        disable_satellite_action,
-        moderate_post_action: ServerAction::<ModeratePost>::new(),
-        update_sphere_desc_action,
-        set_sphere_category_action,
-        delete_sphere_category_action,
-        set_sphere_role_action,
-        add_rule_action,
-        update_rule_action,
-        remove_rule_action,
     };
     provide_context(sphere_state);
 

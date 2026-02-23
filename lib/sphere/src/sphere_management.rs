@@ -102,6 +102,7 @@ pub fn SphereDescriptionDialog() -> impl IntoView {
 pub fn SphereDescriptionForm(
     sphere_description: String,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let description_data = TextareaData {
@@ -111,7 +112,7 @@ pub fn SphereDescriptionForm(
     let disable_submit = move || description_data.content.read().is_empty();
     view! {
         <ActionForm
-            action=sphere_state.update_sphere_desc_action
+            action=state.update_sphere_desc_action
             attr:class="w-full flex flex-col gap-1"
         >
             <input

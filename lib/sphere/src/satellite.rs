@@ -21,7 +21,7 @@ use sharesphere_core::ranking::{PostSortType, SortType};
 use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphere_name, Satellite, SatelliteState};
 use sharesphere_core::sphere::get_sphere_with_user_info;
 use sharesphere_core::sphere_category::get_sphere_category_vec;
-use sharesphere_core::state::SphereState;
+use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::checks::{check_satellite_name, check_string_length};
 use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
 use crate::sphere::{SphereToolbar};
@@ -303,13 +303,14 @@ pub fn ActiveSatelliteList() -> impl IntoView {
 /// Component to manage satellites
 #[component]
 pub fn SatellitePanel() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let satellite_vec_resource = Resource::new(
         move || (
             sphere_state.sphere_name.get(),
-            sphere_state.create_satellite_action.version().get(),
-            sphere_state.update_satellite_action.version().get(),
-            sphere_state.disable_satellite_action.version().get(),
+            state.create_satellite_action.version().get(),
+            state.update_satellite_action.version().get(),
+            state.disable_satellite_action.version().get(),
         ),
         move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, true)
     );
@@ -381,12 +382,13 @@ pub fn SatellitePanel() -> impl IntoView {
 pub fn DisableSatelliteButton(
     satellite_id: i64
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = sphere_state.sphere_name;
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             <ActionForm
-                action=sphere_state.disable_satellite_action
+                action=state.disable_satellite_action
                 attr:class="h-fit flex justify-center"
             >
                 <input
@@ -408,7 +410,7 @@ pub fn EditSatelliteForm(
     satellite: Satellite,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
-    let sphere_state = expect_context::<SphereState>();
+    let state = expect_context::<GlobalState>();
     let is_nsfw = satellite.is_nsfw;
     let is_spoiler = satellite.is_spoiler;
     let title_ref = NodeRef::<html::Textarea>::new();
@@ -431,7 +433,7 @@ pub fn EditSatelliteForm(
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">{move_tr!("edit-satellite")}</div>
-            <ActionForm action=sphere_state.update_satellite_action>
+            <ActionForm action=state.update_satellite_action>
                 <input
                     name="satellite_id"
                     class="hidden"
@@ -452,6 +454,7 @@ pub fn EditSatelliteForm(
 /// Component to create a satellite
 #[component]
 pub fn CreateSatelliteForm() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let show_dialog = RwSignal::new(false);
     let title_ref = NodeRef::<html::Textarea>::new();
@@ -480,7 +483,7 @@ pub fn CreateSatelliteForm() -> impl IntoView {
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                 <div class="text-center font-bold text-2xl">{move_tr!("create-satellite")}</div>
                 <ActionForm
-                    action=sphere_state.create_satellite_action
+                    action=state.create_satellite_action
                     on:submit=move |_| show_dialog.set(false)
                 >
                     <input

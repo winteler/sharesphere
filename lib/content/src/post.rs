@@ -32,7 +32,6 @@ use crate::ranking::{VotePanel};
 #[component]
 pub fn Post() -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let sphere_state = expect_context::<SphereState>();
     let params = use_params_map();
     let post_id = get_post_id_memo(params);
 
@@ -41,7 +40,7 @@ pub fn Post() -> impl IntoView {
             post_id.get(),
             state.edit_post_action.version().get(),
             state.delete_post_action.version().get(),
-            sphere_state.moderate_post_action.version().get()
+            state.moderate_post_action.version().get()
         ),
         move |(post_id, _, _, _)| {
             log::debug!("Load data for post: {post_id}");

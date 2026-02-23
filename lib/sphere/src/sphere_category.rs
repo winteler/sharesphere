@@ -12,7 +12,7 @@ use sharesphere_utils::unpack::TransitionUnpack;
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::sphere_category::{SphereCategory, SphereCategoryHeader};
-use sharesphere_core::state::SphereState;
+use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH};
 
 /// Component to manage sphere categories
@@ -107,13 +107,14 @@ pub fn SetCategoryForm(
     description_data: TextareaData,
     name_textarea_ref: NodeRef<html::Textarea>,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = sphere_state.sphere_name;
     let disable_submit = move || category_input.read().is_empty() || description_data.content.read().is_empty();
 
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
-            <ActionForm action=sphere_state.set_sphere_category_action>
+            <ActionForm action=state.set_sphere_category_action>
                 <input
                     name="sphere_name"
                     class="hidden"
@@ -163,13 +164,14 @@ pub fn SetCategoryForm(
 pub fn DeleteCategoryButton(
     category_name: String,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = sphere_state.sphere_name;
     let category_name = StoredValue::new(category_name);
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             <ActionForm
-                action=sphere_state.delete_sphere_category_action
+                action=state.delete_sphere_category_action
                 attr:class="h-fit flex justify-center"
             >
                 <input

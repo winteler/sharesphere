@@ -79,7 +79,7 @@ pub fn ModeratePostDialog(
     post_id: i64,
     show_dialog: RwSignal<bool>
 ) -> impl IntoView {
-    let sphere_state = expect_context::<SphereState>();
+    let state = expect_context::<GlobalState>();
 
     let textarea_ref = NodeRef::<html::Textarea>::new();
     let body_data = TextareaData {
@@ -95,7 +95,7 @@ pub fn ModeratePostDialog(
         >
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
                 <div class="text-center font-bold text-2xl">{move_tr!("moderate-post")}</div>
-                <ActionForm action=sphere_state.moderate_post_action>
+                <ActionForm action=state.moderate_post_action>
                     <div class="flex flex-col gap-3 w-full">
                         <input
                             type="text"
@@ -117,7 +117,7 @@ pub fn ModeratePostDialog(
                         />
                     </div>
                 </ActionForm>
-                <ActionError action=sphere_state.moderate_post_action.into()/>
+                <ActionError action=state.moderate_post_action.into()/>
             </div>
         </ModalDialog>
     }.into_any()

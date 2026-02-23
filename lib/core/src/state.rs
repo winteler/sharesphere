@@ -1,12 +1,14 @@
 use std::collections::{HashMap};
 use leptos::prelude::*;
+
 use sharesphere_auth::auth::EndSession;
-use crate::notification::{Notification, get_notifications};
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
 use sharesphere_utils::errors::AppError;
+
 use crate::filter::SphereCategoryFilter;
 use crate::moderation::ModeratePost;
+use crate::notification::{Notification, get_notifications};
 use crate::post::{DeletePost, EditPost};
 use crate::ranking::{CommentSortType, PostSortType, SortType};
 use crate::rule::{get_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
@@ -24,6 +26,17 @@ pub struct GlobalState {
     pub edit_post_action: ServerAction<EditPost>,
     pub delete_post_action: ServerAction<DeletePost>,
     pub create_sphere_action: ServerAction<CreateSphere>,
+    pub create_satellite_action: ServerAction<CreateSatellite>,
+    pub update_satellite_action: ServerAction<UpdateSatellite>,
+    pub disable_satellite_action: ServerAction<DisableSatellite>,
+    pub update_sphere_desc_action: ServerAction<UpdateSphereDescription>,
+    pub set_sphere_category_action: ServerAction<SetSphereCategory>,
+    pub delete_sphere_category_action: ServerAction<DeleteSphereCategory>,
+    pub set_sphere_role_action: ServerAction<SetUserSphereRole>,
+    pub add_rule_action: ServerAction<AddRule>,
+    pub update_rule_action: ServerAction<UpdateRule>,
+    pub remove_rule_action: ServerAction<RemoveRule>,
+    pub moderate_post_action: ServerAction<ModeratePost>,
     pub sphere_reload_signal: RwSignal<usize>,
     pub post_sort_type: RwSignal<SortType>,
     pub comment_sort_type: RwSignal<SortType>,
@@ -47,17 +60,6 @@ pub struct SphereState {
     pub sphere_categories_resource: Resource<Result<Vec<SphereCategory>, AppError>>,
     pub sphere_roles_resource: Resource<Result<Vec<UserSphereRole>, AppError>>,
     pub sphere_rules_resource: Resource<Result<Vec<Rule>, AppError>>,
-    pub create_satellite_action: ServerAction<CreateSatellite>,
-    pub update_satellite_action: ServerAction<UpdateSatellite>,
-    pub disable_satellite_action: ServerAction<DisableSatellite>,
-    pub moderate_post_action: ServerAction<ModeratePost>,
-    pub update_sphere_desc_action: ServerAction<UpdateSphereDescription>,
-    pub set_sphere_category_action: ServerAction<SetSphereCategory>,
-    pub delete_sphere_category_action: ServerAction<DeleteSphereCategory>,
-    pub set_sphere_role_action: ServerAction<SetUserSphereRole>,
-    pub add_rule_action: ServerAction<AddRule>,
-    pub update_rule_action: ServerAction<UpdateRule>,
-    pub remove_rule_action: ServerAction<RemoveRule>,
 }
 
 impl GlobalState {
@@ -78,6 +80,17 @@ impl GlobalState {
             edit_post_action: ServerAction::<EditPost>::new(),
             delete_post_action: ServerAction::<DeletePost>::new(),
             create_sphere_action,
+            create_satellite_action: ServerAction::<CreateSatellite>::new(),
+            update_satellite_action: ServerAction::<UpdateSatellite>::new(),
+            disable_satellite_action: ServerAction::<DisableSatellite>::new(),
+            update_sphere_desc_action: ServerAction::<UpdateSphereDescription>::new(),
+            set_sphere_category_action: ServerAction::<SetSphereCategory>::new(),
+            delete_sphere_category_action: ServerAction::<DeleteSphereCategory>::new(),
+            set_sphere_role_action: ServerAction::<SetUserSphereRole>::new(),
+            add_rule_action: ServerAction::<AddRule>::new(),
+            update_rule_action: ServerAction::<UpdateRule>::new(),
+            remove_rule_action: ServerAction::<RemoveRule>::new(),
+            moderate_post_action: ServerAction::<ModeratePost>::new(),
             sphere_reload_signal: RwSignal::new(0),
             post_sort_type: RwSignal::new(SortType::Post(PostSortType::Hot)),
             comment_sort_type: RwSignal::new(SortType::Comment(CommentSortType::Best)),

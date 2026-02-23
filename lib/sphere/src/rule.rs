@@ -10,7 +10,7 @@ use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons};
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::rule::Rule;
-use sharesphere_core::state::SphereState;
+use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_TITLE_LENGTH};
 
 /// Component to manage sphere rules
@@ -81,12 +81,13 @@ pub fn SphereRulesPanel() -> impl IntoView {
 pub fn DeleteRuleButton(
     rule: StoredValue<Rule>
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = sphere_state.sphere_name;
     view! {
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             <ActionForm
-                action=sphere_state.remove_rule_action
+                action=state.remove_rule_action
                 attr:class="h-fit flex justify-center"
             >
                 <input
@@ -113,6 +114,7 @@ pub fn EditRuleForm(
     rule: StoredValue<Rule>,
     show_form: RwSignal<bool>,
 ) -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let (rule_priority, title, description, is_description_markdown)  = rule.with_value(|rule| (
         rule.priority,
@@ -139,7 +141,7 @@ pub fn EditRuleForm(
     view! {
         <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">"Edit a rule"</div>
-            <ActionForm action=sphere_state.update_rule_action>
+            <ActionForm action=state.update_rule_action>
                 <input
                     name="sphere_name"
                     class="hidden"
@@ -165,6 +167,7 @@ pub fn EditRuleForm(
 /// Component to create a sphere rule
 #[component]
 pub fn CreateRuleForm() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let show_dialog = RwSignal::new(false);
     let priority = RwSignal::new(String::default());
@@ -194,7 +197,7 @@ pub fn CreateRuleForm() -> impl IntoView {
             <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">
             <div class="text-center font-bold text-2xl">{move_tr!("add-rule")}</div>
                 <ActionForm
-                    action=sphere_state.add_rule_action
+                    action=state.add_rule_action
                     on:submit=move |_| show_dialog.set(false)
                 >
                     <input

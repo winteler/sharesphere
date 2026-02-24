@@ -289,23 +289,21 @@ mod tests {
     use quick_xml::errors::SyntaxError;
     use leptos_fluent::{tr, I18n, Language};
     use fluent_templates::{static_loader, StaticLoader};
-    use unic_langid::LanguageIdentifier;
     use crate::errors::{AppError};
 
-    const EN_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("en");
-    const FR_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("fr");
-
     const EN_LANG: Language = Language {
-        id: &EN_IDENTIFIER,
+        id: "en",
         name: "English",
         dir: &leptos_fluent::WritingDirection::Ltr,
         flag: None,
+        script: None,
     };
     const FR_LANG: Language = Language {
-        id: &FR_IDENTIFIER,
+        id: "fr",
         name: "Français",
         dir: &leptos_fluent::WritingDirection::Ltr,
         flag: None,
+        script: None,
     };
     const LANGUAGES: &'static [&Language] = &[
         &EN_LANG,
@@ -355,11 +353,11 @@ mod tests {
             };
         }
         let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
-        let i18n = I18n {
-            language: RwSignal::new(&LANGUAGES[0]),
-            languages: LANGUAGES,
-            translations: Signal::derive(move || compound.clone()),
-        };
+        let i18n = I18n::new(
+            RwSignal::new(&LANGUAGES[0]),
+            LANGUAGES,
+            Signal::derive(move || compound.clone())
+        );
 
         provide_context(i18n);
 

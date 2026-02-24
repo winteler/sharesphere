@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 use sharesphere_core::sphere;
 use sharesphere_core::sphere::ssr::{create_sphere, subscribe, unsubscribe};

@@ -24,7 +24,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/winteler/sharesphere-builder:v0.0.2
+      image: ghcr.io/winteler/sharesphere-builder:v0.0.4
       env:
         LEPTOS_ENV: PROD
         LEPTOS_HASH_FILES: true

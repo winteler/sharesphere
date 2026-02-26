@@ -1,7 +1,6 @@
 use std::env;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_query_map};
-use leptos_router::params::Params;
 use web_sys::MouseEvent;
 
 #[cfg(feature = "ssr")]
@@ -40,12 +39,6 @@ pub const NONCE_KEY: &str = "nonce";
 pub const OIDC_TOKEN_KEY: &str = "oidc_token";
 pub const OIDC_USERNAME_KEY: &str = "oidc_username";
 pub const REDIRECT_URL_KEY: &str = "redirect";
-
-#[derive(Params, Debug, PartialEq, Clone)]
-pub struct OAuthParams {
-    pub code: Option<String>,
-    pub state: Option<String>,
-}
 
 #[cfg(feature = "ssr")]
 pub mod ssr {

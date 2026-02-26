@@ -89,7 +89,7 @@ async fn server_fn_handler(
     path: Path<String>,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
-    log::debug!("{path:?}");
+    log::info!("Serve fn handler for path: {path:?}");
 
     handle_server_fns_with_context(
         move || {
@@ -114,6 +114,7 @@ async fn leptos_routes_handler(
         value: req.headers().get("User-Agent").map(|value: &HeaderValue| value.to_str().unwrap_or_default().to_string())
     };
 
+    log::info!("leptos_routes_handler for uri: {:?}", req.uri());
     let handler = leptos_axum::render_route_with_context(
         app_state.routes.clone(),
         move || {

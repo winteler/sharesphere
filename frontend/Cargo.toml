@@ -16,6 +16,3 @@ console_error_panic_hook.workspace = true
 console_log.workspace = true
 log.workspace = true
 wasm-bindgen.workspace = true
-
-# Added to fix wasm build
-getrandom = { version = "0.3.4", features = ["wasm_js"] }

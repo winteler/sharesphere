@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 use sharesphere_core::comment::ssr::create_comment;
 use sharesphere_core::filter::{CategorySetFilter, SphereCategoryFilter};

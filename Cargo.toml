@@ -20,13 +20,12 @@ lto = true
 codegen-units = 1
 
 [workspace.dependencies]
-leptos = { version = "0.8.12", features = ["nightly", "nonce"] }
+leptos = { version = "0.8.12", features = ["nightly", "nonce", "multipart"] }
 leptos_meta = { version = "0.8.5" }
 leptos_router = { version = "0.8.9", features = ["nightly"] }
 leptos_axum = { version = "0.8.6" }
-server_fn = { version = "0.8.8", features = ["multipart"] }
 
-leptos-fluent = { version = "0.2.19", features = ["json"] }
+leptos-fluent = { version = "0.3.1", features = ["json"] }
 leptos-use = { version = "0.16.3", features = ["signal_debounced", "signal_throttled", "storage", "use_breakpoints", "use_clipboard", "use_interval_fn", "use_permission", "use_web_notification"] }
 
 anyhow = "*"
@@ -54,8 +53,8 @@ tower = { version = "0.5.2", features = ["util"] }
 tower-http = { version = "0.6.7", features = ["fs"] }
 url = "*"
 validator = { version = "0.20.0", features = ["derive"] }
-wasm-bindgen = "=0.2.106"
-web-sys = "0.3.83"
+wasm-bindgen = "=0.2.114"
+web-sys = "0.3.91"
 
 # See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
 

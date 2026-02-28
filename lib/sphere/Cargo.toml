@@ -27,7 +27,6 @@ strum.workspace = true
 default = []
 hydrate = [
     "leptos/hydrate",
-    "leptos-fluent/hydrate",
     "sharesphere_utils/hydrate",
     "sharesphere_auth/hydrate",
     "sharesphere_core/hydrate",

@@ -1,6 +1,6 @@
 use std::env;
 use leptos::prelude::*;
-use server_fn::codec::{MultipartData, MultipartFormData};
+use leptos::server_fn::codec::{MultipartData, MultipartFormData};
 use sharesphere_auth::user::UserBan;
 use sharesphere_utils::errors::AppError;
 
@@ -24,10 +24,10 @@ pub mod ssr {
     use http::StatusCode;
     use image::{ImageReader};
     use leptos::prelude::use_context;
+    use leptos::server_fn::codec::MultipartData;
     use leptos_axum::ResponseOptions;
     use object_store::aws::{AmazonS3, AmazonS3Builder};
-    use object_store::{ObjectStore, PutPayload};
-    use server_fn::codec::MultipartData;
+    use object_store::{ObjectStoreExt, PutPayload};
     use sqlx::types::Uuid;
     use sqlx::PgPool;
     use url::Url;
@@ -151,7 +151,7 @@ pub mod ssr {
     }
 
     /// Gets the current image url for the given `sphere_name` and tries to delete it
-    pub async fn delete_sphere_image<T: ObjectStore>(
+    pub async fn delete_sphere_image<T: ObjectStoreExt>(
         sphere_name: &str,
         image_type: SphereImageType,
         object_store: &T,
@@ -180,7 +180,7 @@ pub mod ssr {
     /// The image will be stored locally on the server with the following path: <store_path><image_category><file_name>.
     /// Returns an error if the sphere name or file cannot be found, if the file does not contain a valid image file or
     /// if directories in the path <store_path><image_category> do not exist.
-    pub async fn store_sphere_image<T: ObjectStore>(
+    pub async fn store_sphere_image<T: ObjectStoreExt>(
         data: MultipartData,
         max_image_size: usize,
         object_store: &T,

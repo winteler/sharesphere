@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 pub use crate::common::*;
 pub use crate::data_factory::*;

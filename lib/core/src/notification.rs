@@ -571,26 +571,25 @@ fn get_web_notif_text(notification: &Notification) -> String {
 mod tests {
     use std::sync::LazyLock;
     use leptos::prelude::*;
-    use leptos_fluent::__reexports::fluent_templates::{static_loader, LanguageIdentifier, StaticLoader};
+    use leptos_fluent::__reexports::fluent_templates::{static_loader, StaticLoader};
     use leptos_fluent::{tr, I18n, Language};
     use sharesphere_utils::routes::{get_comment_path, get_post_path};
     use crate::notification::{get_notification_path, get_notification_text, get_web_notif_text, NotifHandler, Notification, NotificationType, NOTIF_RETENTION_DAYS};
     use crate::sphere::SphereHeader;
 
-    const EN_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("en");
-    const FR_IDENTIFIER: LanguageIdentifier = unic_langid::langid!("fr");
-
     const EN_LANG: Language = Language {
-        id: &EN_IDENTIFIER,
+        id: "en",
         name: "English",
         dir: &leptos_fluent::WritingDirection::Ltr,
         flag: None,
+        script: None,
     };
     const FR_LANG: Language = Language {
-        id: &FR_IDENTIFIER,
+        id: "fr",
         name: "Français",
         dir: &leptos_fluent::WritingDirection::Ltr,
         flag: None,
+        script: None,
     };
     const LANGUAGES: &'static [&Language] = &[
         &EN_LANG,
@@ -605,11 +604,11 @@ mod tests {
             };
         }
         let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
-        I18n {
-            language: RwSignal::new(&LANGUAGES[0]),
-            languages: LANGUAGES,
-            translations: Signal::derive(move || compound.clone()),
-        }
+        I18n::new(
+            RwSignal::new(&LANGUAGES[0]),
+            LANGUAGES,
+            Signal::derive(move || compound.clone()),
+        )
     }
 
     #[test]

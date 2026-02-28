@@ -1,7 +1,7 @@
 use chrono::Days;
 use std::ops::Add;
 use object_store::memory::InMemory;
-use object_store::ObjectStore;
+use object_store::ObjectStoreExt;
 use crate::common::*;
 use crate::data_factory::{add_base_rule, create_sphere_with_post, create_sphere_with_post_and_comment};
 use crate::utils::*;

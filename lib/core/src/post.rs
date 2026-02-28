@@ -1,9 +1,9 @@
 use std::collections::{HashMap};
 use leptos::html;
 use leptos::prelude::*;
+use leptos::server_fn::const_format::concatcp;
 use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
-use server_fn::const_format::concatcp;
 use strum::IntoEnumIterator;
 use validator::{Validate};
 use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};

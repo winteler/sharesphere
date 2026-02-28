@@ -36,12 +36,12 @@ const_format = "0.2.35"
 gloo-net = { version = "0.6.0", features = ["http"] }
 markdown = "1.0.0"
 mime_guess = "2.0.5"
-quick-xml = "0.38.3"
+quick-xml = "0.39.2"
 send_wrapper = { version = "0.6.0", features = ["futures"] }
 
 [dev-dependencies]
-indoc = "2.0.6"
-fluent-templates = "0.13.1"
+indoc = "2.0.7"
+fluent-templates = "0.13.3"
 sealed_test = "1.1.0"
 unic-langid = "0.9.6"
 
@@ -49,7 +49,6 @@ unic-langid = "0.9.6"
 default = []
 hydrate = [
     "leptos/hydrate",
-    "leptos-fluent/hydrate",
 ]
 ssr = [
     "leptos/ssr",

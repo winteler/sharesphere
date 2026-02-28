@@ -24,7 +24,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/winteler/sharesphere-builder:feature-wasm-bindgen-0-2-106
+      image: ghcr.io/winteler/sharesphere-builder:feature-wasm-bindgen-0-2-114
       env:
         LEPTOS_ENV: PROD
         LEPTOS_HASH_FILES: true

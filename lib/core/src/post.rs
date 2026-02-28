@@ -544,11 +544,12 @@ pub mod ssr {
                     -- All subscribed posts, no pagination
                     SELECT
                         p.*,
-                        u.username as creator_name,
+                        u.username AS creator_name,
                         c.category_name,
                         c.category_color,
-                        s.icon_url as sphere_icon_url,
-                        s.sphere_name
+                        s.icon_url AS sphere_icon_url,
+                        s.sphere_name,
+                        FALSE AS is_fallback_post
                     FROM posts p
                     JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s on s.sphere_id = p.sphere_id
@@ -564,7 +565,6 @@ pub mod ssr {
                         (
                             $3 OR NOT p.is_nsfw
                         )
-                    ORDER BY {order_by} DESC
                 ),
                 all_subscribed_posts_count AS (
                     -- Total count of subscribed posts
@@ -584,11 +584,12 @@ pub mod ssr {
                     -- Fallback posts, when running out of subscribed posts
                     SELECT
                         p.*,
-                        u.username as creator_name,
+                        u.username AS creator_name,
                         c.category_name,
                         c.category_color,
                         s.icon_url AS sphere_icon_url,
-                        s.sphere_name
+                        s.sphere_name,
+                        TRUE AS is_fallback_post
                     FROM posts p
                     JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s ON s.sphere_id = p.sphere_id
@@ -613,6 +614,7 @@ pub mod ssr {
                 SELECT * FROM subscribed_posts
                 UNION ALL
                 SELECT * FROM fallback_posts
+                ORDER BY is_fallback_post, {order_by} DESC
                 LIMIT $4"
             ).as_str(),
         )

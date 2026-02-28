@@ -428,18 +428,22 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         assert_eq!(post_vec, full_post_vec[0..num_post]);
     }
 
+    // When subscribed, the subscribed posts should come first, followed by unsubscribed posts
     subscribe(sphere1.sphere_id, user.user_id, &db_pool).await?;
-
     for sort_type in POST_SORT_TYPE_ARRAY {
+        sort_post_vec(&mut sphere1_post_vec, sort_type, false);
+        sort_post_vec(&mut sphere2_post_vec, sort_type, false);
+        let mut expected_vec = sphere1_post_vec.clone();
+        expected_vec.append(&mut sphere2_post_vec.clone());
+
         let post_vec = get_subscribed_post_vec(
             SortType::Post(sort_type),
-            num_post as i64,
+            (num_post + 3) as i64,
             0,
             &user,
             &db_pool,
         ).await?;
-        sort_post_vec(&mut sphere1_post_vec, sort_type, false);
-        assert_eq!(post_vec, sphere1_post_vec);
+        assert_eq!(post_vec, expected_vec[0..num_post+3]);
 
         let post_vec = get_subscribed_post_vec(
             SortType::Post(sort_type),
@@ -448,11 +452,8 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
             &user,
             &db_pool,
         ).await?;
-        sort_post_vec(&mut sphere2_post_vec, sort_type, false);
         assert_eq!(post_vec, sphere2_post_vec);
 
-        let mut expected_vec = sphere1_post_vec.clone();
-        expected_vec.append(&mut sphere2_post_vec.clone());
         let post_vec = get_subscribed_post_vec(
             SortType::Post(sort_type),
             2*num_post as i64,

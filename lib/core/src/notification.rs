@@ -570,8 +570,8 @@ fn get_web_notif_text(notification: &Notification) -> String {
 #[cfg(test)]
 mod tests {
     use std::sync::LazyLock;
+    use fluent_templates::{static_loader, StaticLoader};
     use leptos::prelude::*;
-    use leptos_fluent::__reexports::fluent_templates::{static_loader, StaticLoader};
     use leptos_fluent::{tr, I18n, Language};
     use sharesphere_utils::routes::{get_comment_path, get_post_path};
     use crate::notification::{get_notification_path, get_notification_text, get_web_notif_text, NotifHandler, Notification, NotificationType, NOTIF_RETENTION_DAYS};

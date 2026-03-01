@@ -25,7 +25,7 @@ use sharesphere_utils::widget::ContentBody;
 use crate::comment::Comment;
 #[cfg(feature = "ssr")]
 use crate::notification::{ssr::create_notification, NotificationType};
-use crate::rule::Rule;
+use crate::rule::{get_rule_description, get_rule_title, Rule};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Content {
@@ -72,7 +72,8 @@ pub mod ssr {
                     p.*,
                     u.username as creator_name,
                     $5 as moderator_name,
-                    r.title as infringed_rule_title
+                    r.title as infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule
                 FROM moderated_post p
                 JOIN users u ON u.user_id = p.creator_id
                 JOIN rules r ON r.rule_id = p.infringed_rule_id",
@@ -107,7 +108,8 @@ pub mod ssr {
                     p.*,
                     u.username as creator_name,
                     $5 as moderator_name,
-                    r.title as infringed_rule_title
+                    r.title as infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule
                 FROM moderated_post p
                 JOIN users u ON u.user_id = p.creator_id
                 JOIN rules r ON r.rule_id = p.infringed_rule_id",
@@ -147,7 +149,8 @@ pub mod ssr {
                     c.*,
                     u.username as creator_name,
                     $5 as moderator_name,
-                    r.title as infringed_rule_title
+                    r.title as infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule
                 FROM moderated_comment c
                 JOIN users u ON u.user_id = c.creator_id
                 JOIN rules r ON r.rule_id = c.infringed_rule_id",
@@ -184,7 +187,8 @@ pub mod ssr {
                     c.*,
                     u.username as creator_name,
                     $5 as moderator_name,
-                    r.title as infringed_rule_title
+                    r.title as infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule
                 FROM moderated_comment c
                 JOIN users u ON u.user_id = c.creator_id
                 JOIN rules r ON r.rule_id = c.infringed_rule_id",
@@ -366,7 +370,9 @@ pub async fn moderate_comment(
 pub fn ModeratedBody(
     infringed_rule_title: String,
     moderator_message: String,
+    is_sphere_rule: bool,
 ) -> impl IntoView {
+    let infringed_rule_title = get_rule_title(&infringed_rule_title, is_sphere_rule);
     view! {
         <div class="flex items-stretch w-fit">
             <div class="flex justify-center items-center p-2 rounded-l bg-base-content/20">
@@ -375,7 +381,7 @@ pub fn ModeratedBody(
             <div class="p-2 rounded-r bg-base-300 whitespace-pre text-wrap align-middle">
                 <div class="flex flex-col gap-1">
                     <div>{moderator_message}</div>
-                    <div>{move || format!("{}: {infringed_rule_title}", tr!("infringed-rule"))}</div>
+                    <div>{move || format!("{}: {}", tr!("infringed-rule"), infringed_rule_title.read())}</div>
                 </div>
             </div>
         </div>
@@ -388,7 +394,10 @@ pub fn ModerationInfoDialog(
     moderated_content: Content,
     rule_title: String,
     rule_description: String,
+    is_sphere_rule: bool,
 ) -> impl IntoView {
+    let title = get_rule_title(&rule_title, is_sphere_rule);
+    let description = get_rule_description(&rule_title, &rule_description, is_sphere_rule);
     view! {
         <div class="flex flex-col gap-3">
             <h1 class="text-center font-bold text-2xl">"Ban details"</h1>
@@ -396,7 +405,7 @@ pub fn ModerationInfoDialog(
                 match &moderated_content {
                     Content::Post(post) => view! {
                         <div class="flex flex-col gap-1 p-2 border-b">
-                            <h1 class="font-bold text-2xl pl-6">{move_tr!("content")}</h1>
+                            <h1 class="font-bold text-xl">{move_tr!("content")}</h1>
                             <div>{post.title.clone()}</div>
                             <ContentBody
                                 body=post.body.clone()
@@ -404,21 +413,21 @@ pub fn ModerationInfoDialog(
                             />
                         </div>
                         <div class="flex flex-col gap-1 p-2 border-b">
-                            <h1 class="font-bold text-2xl pl-6">{move_tr!("moderator-message")}</h1>
+                            <h1 class="font-bold text-xl">{move_tr!("moderator-message")}</h1>
                             <div>{post.moderator_message.clone()}</div>
                         </div>
                     }.into_any(),
                     Content::Comment(comment) => {
                         view! {
-                            <div class="flex flex-col gap-1 p-2 border-b">
-                                <div class="font-bold text-2xl pl-6">{move_tr!("content")}</div>
+                            <div class="flex flex-col gap-1 p-2 border-b border-base-content/20">
+                                <div class="font-bold text-xl">{move_tr!("content")}</div>
                                 <ContentBody
                                     body=comment.body.clone()
                                     is_markdown=comment.markdown_body.is_some()
                                 />
                             </div>
                             <div class="flex flex-col gap-1 p-2 border-b">
-                                <div class="font-bold text-2xl pl-6">{move_tr!("moderator-message")}</div>
+                                <div class="font-bold text-xl">{move_tr!("moderator-message")}</div>
                                 <div>{comment.moderator_message.clone()}</div>
                             </div>
                         }.into_any()
@@ -426,9 +435,9 @@ pub fn ModerationInfoDialog(
                 }
             }
             <div class="flex flex-col gap-1 p-2">
-                <h1 class="font-bold text-2xl pl-6">{move_tr!("infringed-rule")}</h1>
-                <div class="text-lg font-semibold">{rule_title.clone()}</div>
-                <div>{rule_description.clone()}</div>
+                <h1 class="font-bold text-xl">{move_tr!("infringed-rule")}</h1>
+                <div class="text-lg font-semibold">{title}</div>
+                <div>{description}</div>
             </div>
         </div>
     }

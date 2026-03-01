@@ -21,8 +21,9 @@ use sharesphere_utils::icons::LoadingIcon;
 use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
 use crate::state::GlobalState;
 
-#[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, PartialEq)]
 pub enum BaseRule {
+    #[default]
     BeRespectful,
     RespectRules,
     NoIllegalContent,
@@ -377,19 +378,10 @@ pub fn RuleList(
 ) -> impl IntoView {
     let rule_elems = rule_vec.into_iter().enumerate().map(|(index, rule)| {
         let is_markdown = rule.markdown_description.is_some();
-        let is_base_rule = rule.sphere_id.is_none();
+        let is_sphere_rule = rule.sphere_id.is_some();
 
-        let title = match is_base_rule {
-            true => BaseRule::from_str(&rule.title).unwrap().get_localized_title(),
-            false => {
-                let title = rule.title.clone();
-                Signal::derive(move || title.clone())
-            },
-        };
-        let description = match is_base_rule {
-            true => BaseRule::from_str(&rule.title).unwrap().get_localized_description(),
-            false => Signal::derive(move || rule.description.clone()),
-        };
+        let title = get_rule_title(&rule.title, is_sphere_rule);
+        let description = get_rule_description(&rule.title, &rule.description, is_sphere_rule);
         let title_view = move || view! {
             <div class="flex gap-2">
                 <div class="text-semibold">{format!("{}.", index+1)}</div>
@@ -412,5 +404,23 @@ pub fn RuleList(
         <div class="flex flex-col pl-1 pt-1 gap-1">
         {rule_elems}
         </div>
+    }
+}
+
+pub fn get_rule_title(rule_title: &str, is_sphere_rule: bool) -> Signal<String> {
+    match is_sphere_rule {
+        true => rule_title.into(),
+        false => BaseRule::from_str(&rule_title).unwrap_or_default().get_localized_title(),
+    }
+}
+
+pub fn get_rule_description(
+    rule_title: &str,
+    rule_description: &str,
+    is_sphere_rule: bool,
+) -> Signal<String> {
+    match is_sphere_rule {
+        true => rule_description.into(),
+        false => BaseRule::from_str(&rule_title).unwrap_or_default().get_localized_description(),
     }
 }

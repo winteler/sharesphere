@@ -1,12 +1,15 @@
+use leptos::prelude::*;
+use leptos_fluent::tr;
+
 use sharesphere_core::rule::ssr::{get_rule_vec, load_rule_by_id};
 use sharesphere_core::sphere::ssr::create_sphere;
 use sharesphere_auth::role::AdminRole;
 use sharesphere_auth::user::User;
-use sharesphere_core::rule::{BaseRule};
+use sharesphere_core::rule::{get_rule_title, get_rule_description, BaseRule};
 use sharesphere_core::rule::ssr::{add_rule, remove_rule, update_rule};
 use sharesphere_utils::errors::AppError;
 
-use crate::common::{create_user, get_db_pool};
+use crate::common::{create_user, get_db_pool, get_i18n};
 use crate::data_factory::{add_base_rule, remove_base_rule, update_base_rule};
 
 mod common;
@@ -235,4 +238,34 @@ async fn test_remove_rule() -> Result<(), AppError> {
     assert_eq!(sphere_rule_vec.first().unwrap().rule_id, common_rule_2.rule_id);
 
     Ok(())
+}
+
+#[test]
+fn test_get_rule_title() {
+    let owner = Owner::new();
+    owner.set();
+
+    provide_context(get_i18n());
+
+    assert_eq!(get_rule_title(BaseRule::BeRespectful.into(), false).get_untracked(), tr!("rule-respectful-title"));
+    assert_eq!(get_rule_title(BaseRule::RespectRules.into(), false).get_untracked(), tr!("rule-respect-rules-title"));
+    assert_eq!(get_rule_title(BaseRule::NoIllegalContent.into(), false).get_untracked(), tr!("rule-no-illegal-content-title"));
+    assert_eq!(get_rule_title(BaseRule::PlatformIntegrity.into(), false).get_untracked(), tr!("rule-platform-integrity-title"));
+    assert_eq!(get_rule_title("test-non-base-rule", false).get_untracked(), tr!("rule-respectful-title"));
+    assert_eq!(get_rule_title("test-non-base-rule", true).get_untracked(), "test-non-base-rule");
+}
+
+#[test]
+fn test_get_rule_description() {
+    let owner = Owner::new();
+    owner.set();
+
+    provide_context(get_i18n());
+
+    assert_eq!(get_rule_description(BaseRule::BeRespectful.into(), "", false).get_untracked(), tr!("rule-respectful-description"));
+    assert_eq!(get_rule_description(BaseRule::RespectRules.into(), "",false).get_untracked(), tr!("rule-respect-rules-description"));
+    assert_eq!(get_rule_description(BaseRule::NoIllegalContent.into(), "", false).get_untracked(), tr!("rule-no-illegal-content-description"));
+    assert_eq!(get_rule_description(BaseRule::PlatformIntegrity.into(), "", false).get_untracked(), tr!("rule-platform-integrity-description"));
+    assert_eq!(get_rule_description("test-non-base-rule", "", false).get_untracked(), tr!("rule-respectful-description"));
+    assert_eq!(get_rule_description("", "test-non-base-rule", true).get_untracked(), "test-non-base-rule");
 }

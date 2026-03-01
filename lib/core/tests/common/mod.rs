@@ -1,7 +1,12 @@
 #![allow(dead_code)]
 
 use std::env;
+use std::sync::LazyLock;
 use std::sync::Mutex;
+
+use fluent_templates::{static_loader, StaticLoader};
+use leptos::prelude::*;
+use leptos_fluent::{I18n, Language};
 
 use sharesphere_auth::user::ssr::create_or_update_user;
 use sharesphere_auth::user::User;
@@ -11,6 +16,26 @@ use sqlx::PgPool;
 pub const TEST_DB_NAME_ENV: &str = "TEST_DATABASE_NAME";
 pub const TEST_DB_URL_ENV: &str = "TEST_DATABASE_URL";
 static DB_NUM: Mutex<i32> = Mutex::new(0);
+
+const EN_LANG: Language = Language {
+    id: "en",
+    name: "English",
+    dir: &leptos_fluent::WritingDirection::Ltr,
+    flag: None,
+    script: None,
+};
+const FR_LANG: Language = Language {
+    id: "fr",
+    name: "Français",
+    dir: &leptos_fluent::WritingDirection::Ltr,
+    flag: None,
+    script: None,
+};
+const LANGUAGES: &'static [&Language] = &[
+    &EN_LANG,
+    &FR_LANG,
+];
+
 async fn get_main_db_pool() -> PgPool {
     let main_db = env::var(TEST_DB_NAME_ENV).expect(&format!("Test DB name should be in env variable {TEST_DB_NAME_ENV}."));
     let main_db_url = env::var(TEST_DB_URL_ENV).expect(&format!("Test DB address should be in env variable {TEST_DB_URL_ENV}.")) + &main_db;
@@ -75,4 +100,19 @@ pub async fn create_user(
         .await
         .expect("Should be possible to create user.");
     User::get(sql_user.user_id, db_pool).await.expect("New user should be available in DB.")
+}
+
+pub fn get_i18n() -> I18n {
+    static_loader! {
+            static TRANSLATIONS = {
+                locales: "../../locales",
+                fallback_language: "en",
+            };
+        }
+    let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
+    I18n::new(
+        RwSignal::new(&LANGUAGES[0]),
+        LANGUAGES,
+        Signal::derive(move || compound.clone())
+    )
 }

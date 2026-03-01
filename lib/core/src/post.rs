@@ -63,6 +63,8 @@ pub struct Post {
     pub infringed_rule_id: Option<i64>,
     #[cfg_attr(feature = "ssr", sqlx(default))]
     pub infringed_rule_title: Option<String>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
+    pub is_sphere_rule: bool,
     pub moderator_id: Option<i64>,
     #[cfg_attr(feature = "ssr", sqlx(default))]
     pub moderator_name: Option<String>,
@@ -266,7 +268,8 @@ pub mod ssr {
                 p.*,
                 COALESCE(u.username, '') as creator_name,
                 m.username as moderator_name,
-                r.title as infringed_rule_title
+                r.title as infringed_rule_title,
+                r.sphere_id IS NOT NULL AS is_sphere_rule
             FROM posts p
             JOIN users u ON u.user_id = p.creator_id AND p.delete_timestamp IS NULL
             LEFT JOIN users m ON m.user_id = p.moderator_id AND p.delete_timestamp IS NULL
@@ -292,6 +295,7 @@ pub mod ssr {
                 COALESCE(u.username, '') as creator_name,
                 m.username as moderator_name,
                 r.title as infringed_rule_title,
+                r.sphere_id IS NOT NULL AS is_sphere_rule,
                 c.category_name,
                 c.category_color,
                 v.vote_id,
@@ -1494,6 +1498,7 @@ mod tests {
             moderator_message: None,
             infringed_rule_id: None,
             infringed_rule_title: None,
+            is_sphere_rule: false,
             moderator_id: None,
             moderator_name: None,
             num_comments: 0,

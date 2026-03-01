@@ -11,7 +11,7 @@ use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::comment::Comment;
 use sharesphere_core::moderation::{Content, ModerateComment, ModerationInfo, ModerationInfoDialog};
-use sharesphere_core::rule::get_rule_by_id;
+use sharesphere_core::rule::{get_rule_by_id, get_rule_title};
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::checks::check_string_length;
 use sharesphere_utils::constants::MAX_MOD_MESSAGE_LENGTH;
@@ -196,9 +196,10 @@ pub fn RuleSelect(
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:rules_vec>
                 {
                     rules_vec.iter().map(|rule| {
+                        let title = get_rule_title(&rule.title, rule.sphere_id.is_some());
                         view! {
                             <option value=rule.rule_id>
-                                {rule.title.clone()}
+                                {title}
                             </option>
                         }
                     }).collect_view()
@@ -339,6 +340,7 @@ pub fn ContentModerationInfo(
                 moderated_content=moderation_info.content.clone()
                 rule_title=moderation_info.rule.title.clone()
                 rule_description=moderation_info.rule.description.clone()
+                is_sphere_rule=moderation_info.rule.sphere_id.is_some()
             />
         </SuspenseUnpack>
     }

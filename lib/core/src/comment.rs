@@ -42,6 +42,8 @@ pub struct Comment {
     pub infringed_rule_id: Option<i64>,
     #[cfg_attr(feature = "ssr", sqlx(default))]
     pub infringed_rule_title: Option<String>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
+    pub is_sphere_rule: bool,
     pub parent_id: Option<i64>,
     pub post_id: i64,
     pub creator_id: i64,
@@ -154,7 +156,8 @@ pub mod ssr {
                 c.*,
                 COALESCE(u.username, '') as creator_name,
                 m.username as moderator_name,
-                r.title as infringed_rule_title
+                r.title as infringed_rule_title,
+                r.sphere_id IS NOT NULL AS is_sphere_rule
             FROM comments c
             LEFT JOIN users u ON u.user_id = c.creator_id AND c.delete_timestamp IS NULL
             LEFT JOIN users m ON m.user_id = c.moderator_id AND c.delete_timestamp IS NULL
@@ -277,6 +280,7 @@ pub mod ssr {
                     COALESCE(u.username, '') as creator_name,
                     m.username as moderator_name,
                     r.title as infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,
@@ -365,6 +369,7 @@ pub mod ssr {
                     COALESCE(u.username, '') as creator_name,
                     m.username as moderator_name,
                     r.title as infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule,
                     v.vote_id,
                     v.user_id as vote_user_id,
                     v.post_id as vote_post_id,
@@ -702,7 +707,7 @@ pub async fn delete_comment(
 #[component]
 pub fn CommentBody(
     #[prop(into)]
-    comment: Signal<Comment>
+    comment: Signal<Comment>,
 ) -> impl IntoView {
     view! {
         {
@@ -723,6 +728,7 @@ pub fn CommentBody(
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
+                        is_sphere_rule=comment.is_sphere_rule
                     />
                 }.into_any(),
                 _ => view! {

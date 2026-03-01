@@ -87,6 +87,7 @@ pub fn Post() -> impl IntoView {
                                 markdown_body=post_with_info.post.markdown_body.clone()
                                 moderator_message=post_with_info.post.moderator_message.clone()
                                 infringed_rule_title=post_with_info.post.infringed_rule_title.clone()
+                                is_sphere_rule=post_with_info.post.is_sphere_rule
                                 delete_timestamp=post_with_info.post.delete_timestamp
                             />
                             <Embed link=post_with_info.post.link.clone()/>
@@ -114,6 +115,7 @@ pub fn PostBody(
     markdown_body: Option<String>,
     moderator_message: Option<String>,
     infringed_rule_title: Option<String>,
+    is_sphere_rule: bool,
     delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 ) -> impl IntoView {
 
@@ -131,6 +133,7 @@ pub fn PostBody(
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
+                        is_sphere_rule
                     />
                 }.into_any(),
                 _ => view! {

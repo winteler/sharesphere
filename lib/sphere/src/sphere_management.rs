@@ -527,6 +527,7 @@ pub fn BanInfoButton(
                                 moderated_content=moderation_info.content.clone()
                                 rule_title=moderation_info.rule.title.clone()
                                 rule_description=moderation_info.rule.description.clone()
+                                is_sphere_rule=moderation_info.rule.sphere_id.is_some()
                             />
                             <button
                                 type="button"

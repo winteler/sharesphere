@@ -172,17 +172,17 @@ pub fn Rules() -> impl IntoView {
                             Ok(rule_vec) => {
                                 Either::Left(rule_vec.iter().enumerate().map(|(index, rule)| {
                                 let rule_enum = BaseRule::from_str(&rule.title).expect("Should get base rule.");
-                                    let title = rule_enum.get_localized_title();
-                                    view! {
-                                        <div class="flex flex-col gap-2">
-                                            <h2 class="text-xl font-semibold">{move || format!("{}. {}", index + 1, title.read())}</h2>
-                                            <ContentBody
-                                                body=rule_enum.get_localized_description()
-                                                is_markdown=rule.markdown_description.is_some()
-                                                attr:class="text-justify"
-                                            />
-                                        </div>
-                                    }
+                                let title = rule_enum.get_localized_title();
+                                view! {
+                                    <div class="flex flex-col gap-2">
+                                        <h2 class="text-xl font-semibold">{move || format!("{}. {}", index + 1, title.read())}</h2>
+                                        <ContentBody
+                                            body=rule_enum.get_localized_description()
+                                            is_markdown=rule.markdown_description.is_some()
+                                            attr:class="text-justify"
+                                        />
+                                    </div>
+                                }
                                 }).collect_view())
                             },
                             Err(e) => Either::Right(view! { <ErrorDisplay error=e.clone()/> } ),

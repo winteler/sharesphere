@@ -2,7 +2,6 @@ use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
-use leptos_router::components::Form;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
 use leptos_use::BreakpointsTailwind::Xxl;
@@ -10,7 +9,7 @@ use sharesphere_utils::colors::{Color, ColorIndicator};
 use sharesphere_utils::editor::{FormMarkdownEditor, TextareaData};
 use sharesphere_utils::errors::ErrorDisplay;
 use sharesphere_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
-use sharesphere_utils::routes::{get_comment_link, get_post_path, COMMENT_ID_QUERY_PARAM};
+use sharesphere_utils::routes::{get_comment_link, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack};
 use sharesphere_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
 
@@ -197,8 +196,6 @@ pub fn CommentBox(
     depth: usize,
     ranking: usize,
 ) -> impl IntoView {
-    let sphere_state = expect_context::<SphereState>();
-    let satellite_state = use_context::<SatelliteState>();
     let comment = RwSignal::new(comment_with_children.comment);
     let child_comments = RwSignal::new(comment_with_children.child_comments);
     let maximize = RwSignal::new(true);
@@ -244,16 +241,13 @@ pub fn CommentBox(
                 >
                 { move || match collapse_children.get() {
                     true => {
-                        let post_path = get_post_path(
-                            &*sphere_state.sphere_name.read_untracked(),
-                            satellite_state.map(|state| state.satellite_id.get_untracked()),
-                            comment.read_untracked().post_id,
-                        );
                         Either::Left(view! {
-                            <Form method="GET" action=post_path attr:class="flex justify-center">
-                                <input name=COMMENT_ID_QUERY_PARAM value=comment.read_untracked().comment_id class="hidden"/>
-                                <button class="button-neutral p-2">{move_tr!("load-replies")}</button>
-                            </Form>
+                            <a
+                                href=format!("?{COMMENT_ID_QUERY_PARAM}={}", comment.read_untracked().comment_id)
+                                class="w-fit mx-auto button-neutral p-2"
+                            >
+                                {move_tr!("load-replies")}
+                            </a>
                         })
                     },
                     false => {

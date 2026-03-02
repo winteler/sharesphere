@@ -1,7 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
-use leptos_router::components::Form;
 use serde::{Deserialize, Serialize};
 use sharesphere_utils::errors::AppError;
 use crate::post::Post;
@@ -749,6 +748,7 @@ pub fn CommentBody(
 pub fn CommentWithContext(
     comment: CommentWithContext
 ) -> impl IntoView {
+    let comment_id = comment.comment.comment_id;
     let score = comment.comment.score;
     let author_id = comment.comment.creator_id;
     let author = comment.comment.creator_name.clone();
@@ -758,23 +758,22 @@ pub fn CommentWithContext(
 
     let post_path = get_post_path(&comment.sphere_header.sphere_name, comment.satellite_id, comment.comment.post_id);
     view! {
-        <Form method="GET" action=post_path>
-            <input name=COMMENT_ID_QUERY_PARAM value=comment.comment.comment_id class="hidden"/>
-            <button class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-200">
-                <CommentBody comment=comment.comment/>
-                <div class="flex gap-1 items-center">
-                    <SphereHeader sphere_header=comment.sphere_header/>
-                    <div class="text-sm">"-"</div>
-                    <div class="text-sm">{comment.post_title}</div>
-                    <IsPinnedWidget is_pinned/>
-                </div>
-                <div class="flex gap-1">
-                    <ScoreIndicator score/>
-                    <AuthorWidget author_id author is_moderator/>
-                    <TimeSinceWidget timestamp/>
-                </div>
-            </button>
-        </Form>
+        <a
+            href=format!("{post_path}?{COMMENT_ID_QUERY_PARAM}={}", comment_id)
+            class="w-full flex flex-col gap-1 pl-1 pt-1 pb-2 my-1 rounded-sm hover:bg-base-200"
+        >
+            <CommentBody comment=comment.comment/>
+            <div class="flex gap-1 items-center">
+                <div class="text-sm">{comment.post_title}</div>
+                <IsPinnedWidget is_pinned/>
+            </div>
+            <div class="flex gap-1">
+                <SphereHeader sphere_header=comment.sphere_header/>
+                <ScoreIndicator score/>
+                <AuthorWidget author_id author is_moderator/>
+                <TimeSinceWidget timestamp/>
+            </div>
+        </a>
     }
 }
 

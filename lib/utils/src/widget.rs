@@ -170,8 +170,8 @@ fn QueryTab(
     is_selected: Signal<bool>,
 ) -> impl IntoView {
     let tab_class = move || match is_selected.get() {
-        true => "w-full p-1 text-center bg-base-content/20 hover:bg-base-content/50",
-        false => "w-full p-1 text-center hover:bg-base-content/50",
+        true => "w-full p-1 px-2 text-sm lg:text-base text-center bg-base-content/20 hover:bg-base-content/50",
+        false => "w-full p-1 px-2 text-sm lg:text-base text-center hover:bg-base-content/50",
     };
     view! {
         <Form method="GET" action="" attr:class="w-full">

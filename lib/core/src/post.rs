@@ -542,22 +542,74 @@ pub mod ssr {
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
         let posts_filters = user.get_posts_filter();
         let order_by = sort_type.to_order_by_code();
-        let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
+        let mut post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             format!(
-                "WITH all_subscribed_posts as (
-                    -- All subscribed posts, no pagination
+                "SELECT
+                    p.*,
+                    u.username AS creator_name,
+                    c.category_name,
+                    c.category_color,
+                    s.icon_url AS sphere_icon_url,
+                    s.sphere_name
+                FROM posts p
+                JOIN users u ON u.user_id = p.creator_id
+                JOIN spheres s on s.sphere_id = p.sphere_id
+                JOIN sphere_subscriptions su ON su.sphere_id = s.sphere_id AND su.user_id = $1
+                LEFT JOIN sphere_categories c on c.category_id = p.category_id
+                WHERE
+                    p.moderator_id IS NULL AND
+                    p.delete_timestamp IS NULL AND
+                    p.satellite_id IS NULL AND
+                    (
+                        $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
+                    ) AND
+                    (
+                        $3 OR NOT p.is_nsfw
+                    )
+                ORDER BY {order_by} DESC
+                LIMIT $4
+                OFFSET $5"
+            ).as_str(),
+        )
+            .bind(user.user_id)
+            .bind(posts_filters.days_hide_spoiler)
+            .bind(posts_filters.show_nsfw)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(db_pool)
+            .await?;
+
+        let loaded_post_count = post_vec.len();
+        // If no posts are returned, fetch posts from not subscribed spheres
+        if loaded_post_count < limit as usize {
+            let mut additional_posts = sqlx::query_as::<_, PostJoinSphereInfo>(
+                format!(
+                    "WITH subscribed_post_count AS (
+                        SELECT COUNT(*) AS total
+                        FROM posts p
+                        JOIN spheres s on s.sphere_id = p.sphere_id
+                        JOIN sphere_subscriptions su ON su.sphere_id = s.sphere_id AND su.user_id = $1
+                        WHERE
+                            p.moderator_id IS NULL AND
+                            p.delete_timestamp IS NULL AND
+                            p.satellite_id IS NULL AND
+                            (
+                                $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
+                            ) AND
+                            (
+                                $3 OR NOT p.is_nsfw
+                            )
+                    )
                     SELECT
                         p.*,
-                        u.username AS creator_name,
+                        u.username as creator_name,
                         c.category_name,
                         c.category_color,
-                        s.icon_url AS sphere_icon_url,
-                        s.sphere_name,
-                        FALSE AS is_fallback_post
+                        s.icon_url as sphere_icon_url,
+                        s.sphere_name
                     FROM posts p
                     JOIN users u ON u.user_id = p.creator_id
                     JOIN spheres s on s.sphere_id = p.sphere_id
-                    JOIN sphere_subscriptions su ON su.sphere_id = s.sphere_id AND su.user_id = $1
                     LEFT JOIN sphere_categories c on c.category_id = p.category_id
                     WHERE
                         p.moderator_id IS NULL AND
@@ -568,67 +620,24 @@ pub mod ssr {
                         ) AND
                         (
                             $3 OR NOT p.is_nsfw
-                        )
-                ),
-                all_subscribed_posts_count AS (
-                    -- Total count of subscribed posts
-                    SELECT COUNT(*) AS total FROM all_subscribed_posts
-                ),
-                subscribed_posts AS (
-                    -- Paginated subscribed posts
-                    SELECT * FROM all_subscribed_posts
-                    LIMIT $4
-                    OFFSET $5
-                ),
-                subscribed_posts_count AS (
-                    -- Count of loaded subscribed posts (after pagination)
-                    SELECT COUNT(*) AS loaded FROM subscribed_posts
-                ),
-                fallback_posts AS (
-                    -- Fallback posts, when running out of subscribed posts
-                    SELECT
-                        p.*,
-                        u.username AS creator_name,
-                        c.category_name,
-                        c.category_color,
-                        s.icon_url AS sphere_icon_url,
-                        s.sphere_name,
-                        TRUE AS is_fallback_post
-                    FROM posts p
-                    JOIN users u ON u.user_id = p.creator_id
-                    JOIN spheres s ON s.sphere_id = p.sphere_id
-                    LEFT JOIN sphere_categories c on c.category_id = p.category_id
-                    WHERE
-                        p.moderator_id IS NULL
-                        AND p.delete_timestamp IS NULL
-                        AND p.satellite_id IS NULL
-                        AND (
-                            $2 IS NULL OR NOT p.is_spoiler OR p.create_timestamp < NOW() - (INTERVAL '1 day' * $2)
-                        )
-                        AND (
-                            $3 OR NOT p.is_nsfw
-                        )
-                        AND NOT EXISTS (
-                            SELECT 1 FROM subscribed_posts sp WHERE sp.post_id = p.post_id
+                        ) AND
+                        s.sphere_id NOT IN (
+                            SELECT sphere_id FROM sphere_subscriptions su where su.user_id = $1
                         )
                     ORDER BY {order_by} DESC
-                    LIMIT GREATEST(0, $4 - (SELECT loaded FROM subscribed_posts_count))
-                    OFFSET GREATEST(0, $5 - (SELECT total FROM all_subscribed_posts_count))
+                    LIMIT $4
+                    OFFSET GREATEST(0, $5 - (SELECT total FROM subscribed_post_count))"
+                    ).as_str(),
                 )
-                SELECT * FROM subscribed_posts
-                UNION ALL
-                SELECT * FROM fallback_posts
-                ORDER BY is_fallback_post, {order_by} DESC
-                LIMIT $4"
-            ).as_str(),
-        )
-            .bind(user.user_id)
-            .bind(posts_filters.days_hide_spoiler)
-            .bind(posts_filters.show_nsfw)
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(db_pool)
-            .await?;
+                    .bind(user.user_id)
+                    .bind(posts_filters.days_hide_spoiler)
+                    .bind(posts_filters.show_nsfw)
+                    .bind(limit - loaded_post_count as i64)
+                    .bind(offset)
+                    .fetch_all(db_pool)
+                    .await?;
+            post_vec.append(&mut additional_posts);
+        }
 
         let post_vec = post_vec.into_iter().map(PostJoinSphereInfo::into_post_with_sphere_info).collect();
 

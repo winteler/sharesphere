@@ -240,7 +240,7 @@
             shrink-0 w-60 lg:w-56 xl:w-65 2xl:w-80 3xl:w-100 h-full
             overflow-y-auto
             p-1 2xl:p-2
-            max-lg:bg-base-300 max-lg:absolute max-lg:z-1 max-lg:top-0 max-lg:left-0;
+            max-lg:bg-base-300 max-lg:absolute max-lg:z-100 max-lg:top-0 max-lg:left-0;
     }
 
     .right_sidebar_base_class {
@@ -249,7 +249,7 @@
             shrink-0 w-60 lg:w-56 xl:w-65 2xl:w-80 3xl:w-100 h-full
             overflow-y-auto
             px-3 py-2
-            max-lg:bg-base-300 max-lg:absolute max-lg:z-1 max-lg:top-0 max-lg:right-0;
+            max-lg:bg-base-300 max-lg:absolute max-lg:z-100 max-lg:top-0 max-lg:right-0;
     }
 
     .input_outline_primary {

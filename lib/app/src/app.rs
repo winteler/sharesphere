@@ -1,10 +1,14 @@
 use leptos::ev::TouchEvent;
-use leptos::html::Div;
+use leptos::html::{Div};
 use leptos::prelude::*;
+
+use leptos::web_sys;
+use leptos::web_sys::HtmlElement;
 use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, Title};
 use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
-use leptos_use::{signal_throttled_with_options, ThrottleOptions};
+use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
 use leptos_fluent::{leptos_fluent, move_tr};
+use leptos_use::BreakpointsTailwind::Sm;
 use regex::Regex;
 
 use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY, SITE_NAME};
@@ -35,6 +39,11 @@ use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, Satell
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
 
+#[cfg(feature = "hydrate")]
+use {
+    leptos::wasm_bindgen::JsValue,
+    leptos::web_sys::js_sys,
+};
 
 #[derive(Clone, Debug)]
 pub struct UserAgentHeader {
@@ -95,6 +104,37 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <App/>
             </body>
         </html>
+    }
+}
+
+/// Tries to put the given element into fullscreen.
+fn request_fullscreen(elem: &HtmlElement) {
+    let _ = elem.request_fullscreen(); // returns a Promise; we ignore errors here
+}
+
+/// Detects whether we were launched from a PWA/home‑screen.
+fn launched_from_home_screen() -> bool {
+    // On iOS the presence of `navigator.standalone` indicates a home‑screen launch.
+    #[cfg(feature = "hydrate")]
+    {
+        let nav = web_sys::window()
+            .and_then(|w| w.navigator().into())
+            .unwrap();
+        let standalone = js_sys::Reflect::get(&nav, &JsValue::from_str("standalone"))
+            .ok()
+            .and_then(|v| v.as_bool());
+        // For Android Chrome we can look at the display mode:
+        // `window.matchMedia('(display-mode: standalone)')`
+        let display_standalone = web_sys::window()
+            .and_then(|w| w.match_media("(display-mode: standalone)").ok())
+            .flatten()
+            .map(|m| m.matches())
+            .unwrap_or(false);
+        standalone.unwrap_or(false) || display_standalone
+    }
+    #[cfg(not(feature = "hydrate"))]
+    {
+        false
     }
 }
 
@@ -170,6 +210,9 @@ pub fn App() -> impl IntoView {
         swipe_id.set(None);
     };
 
+    let screen_width = use_breakpoints(breakpoints_tailwind());
+    let is_mobile = screen_width.lt(Sm);
+
     view! {
         <I18nProvider>
             <Title text=SITE_NAME/>
@@ -178,6 +221,20 @@ pub fn App() -> impl IntoView {
                     class="h-screen w-screen overflow-hidden text-white relative"
                     on:touchstart=on_touch_start
                     on:touchend=on_touch_end
+                    on:click=move |_| {
+                        log::info!("Click, request full screen");
+                        if is_mobile.get() {
+                            log::info!("Is mobile, request full screen");
+                            // Grab the <body> element (or any container you prefer)
+                            if let Some(body) = web_sys::window()
+                                .and_then(|w| w.document())
+                                .and_then(|doc| doc.body())
+                            {
+                                log::info!("Got body, request full screen");
+                                request_fullscreen(&body);
+                            }
+                        }
+                    }
                 >
                     <div class="h-full flex flex-col max-lg:items-center">
                         <NavigationBar/>

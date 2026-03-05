@@ -7,7 +7,7 @@ use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use leptos_fluent::{leptos_fluent, move_tr};
 use regex::Regex;
 
-use sharesphere_utils::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY, SITE_NAME};
+use sharesphere_utils::constants::{POPULAR_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY, SITE_NAME};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
 use sharesphere_utils::icons::*;
@@ -304,7 +304,7 @@ fn HotPage() -> impl IntoView {
             }
             node_ref=div_ref
         >
-            <BannerWithWidgets title=move_tr!("hot") icon_url=Some(String::from(FLAME_ICON_PATH)) banner_url=None refresh_count/>
+            <BannerWithWidgets title=move_tr!("popular") icon_url=Some(String::from(POPULAR_ICON_PATH)) banner_url=None refresh_count/>
             <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
         </div>
         <HomeSidebar/>
@@ -323,7 +323,7 @@ pub fn BannerWithWidgets(
     let state = expect_context::<GlobalState>();
     view! {
         <div class="mt-2 relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
-            <BannerContent title icon_url banner_url/>
+            <BannerContent title icon_url banner_url sphere_icon_class="h-8 w-8 2xl:h-12 2xl:w-12 rounded-none"/>
         </div>
         <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
             <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>

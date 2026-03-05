@@ -805,6 +805,8 @@ pub fn BannerContent(
     title: Signal<String>,
     icon_url: Option<String>,
     banner_url: Option<String>,
+    #[prop(default = "h-8 w-8 2xl:h-12 2xl:w-12")]
+    sphere_icon_class: &'static str,
 ) -> impl IntoView {
     let default_icon_index = title.read_untracked().as_bytes().first().cloned().unwrap_or_default();
     view! {
@@ -815,7 +817,7 @@ pub fn BannerContent(
         />
         <div class="absolute inset-0 flex items-center justify-center">
             <div class="p-3 backdrop-blur-sm bg-black/50 rounded-xs flex items-center gap-3 max-w-full overflow-hidden">
-                <SphereIcon icon_url default_icon_index class="h-8 w-8 2xl:h-12 2xl:w-12"/>
+                <SphereIcon icon_url default_icon_index class=sphere_icon_class/>
                 <span class="text-2xl 2xl:text-4xl inline-block w-fit">{title}</span>
             </div>
         </div>

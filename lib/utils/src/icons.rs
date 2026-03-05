@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use crate::constants::{FLAME_ICON_PATH, LOGO_ICON_PATH};
+use crate::constants::{POPULAR_ICON_PATH, LOGO_ICON_PATH};
 
 #[component]
 pub fn AddCommentIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {
@@ -132,7 +132,7 @@ pub fn FiltersIcon(#[prop(default = "filter-icon-size")] class: &'static str) ->
 #[component]
 pub fn FlameIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
-        <img src=FLAME_ICON_PATH class=class/>
+        <img src="/svg/flame.svg" class=class/>
     }
 }
 
@@ -331,6 +331,13 @@ pub fn NetworkErrorIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> i
 }
 
 #[component]
+pub fn NewLineIcon(#[prop(default = "editor-button-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src="/svg/editor/new_line.svg" class=class/>
+    }
+}
+
+#[component]
 pub fn NotAuthorizedIcon(#[prop(default = "h-28 w-28")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/errors/stormtrooper.svg" class=class/>
@@ -394,6 +401,13 @@ pub fn PlusIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static s
 pub fn PodiumIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/podium.svg" class=class/>
+    }
+}
+
+#[component]
+pub fn PopularIcon(#[prop(default = "filter-icon-size")] class: &'static str) -> impl IntoView {
+    view! {
+        <img src=POPULAR_ICON_PATH class=class/>
     }
 }
 
@@ -538,8 +552,8 @@ pub fn SubscribedIcon(
     show_color: RwSignal<bool>,
 ) -> impl IntoView {
     let svg_path = move || match show_color.get() {
-        true => LOGO_ICON_PATH,
-        false => "/svg/planet_disabled.svg",
+        true => "/svg/toolbar/star.svg",
+        false => "/svg/toolbar/star_disabled.svg",
     };
     view! {
         <img src=svg_path class=class/>

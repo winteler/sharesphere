@@ -5,7 +5,7 @@ use leptos_fluent::{move_tr, I18n};
 use leptos_use::on_click_outside;
 
 use sharesphere_utils::errors::{AppError};
-use sharesphere_utils::icons::{FlameIcon, GithubIcon, HomeIcon};
+use sharesphere_utils::icons::{GithubIcon, HomeIcon, PopularIcon};
 use sharesphere_utils::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, GITHUB_REPO_URL, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sharesphere_utils::unpack::{TransitionUnpack};
 use sharesphere_utils::widget::{Badge, TitleCollapse};
@@ -57,8 +57,8 @@ pub fn BaseLinks() -> impl IntoView {
                 on:click=move |_| state.show_left_sidebar.set(false)
                 class="px-2 py-1 rounded-sm hover:bg-base-content/20"
             >
-                <Badge text=move_tr!("hot")>
-                    <FlameIcon class="filter-icon-size"/>
+                <Badge text=move_tr!("popular")>
+                    <PopularIcon class="filter-icon-size"/>
                 </Badge>
             </a>
         </div>

@@ -78,6 +78,7 @@ link-url = Url
 link-help = Lorsque tu entres un lien, ShareSphere va d'abord essayer de l'inscruster si son fournisseur implémente l'API OEmbed ou si le lien est un fichier avec un format reconnu. Si ce n'est pas le cas, un simple lien sera affiché à la place.
 
 home = Accueil
+popular = Populaire
 subscribed-spheres = Mes Sphères
 popular-spheres = Sphères populaires
 navigate-sphere = Naviguer vers la Sphère {$sphere_name}
@@ -161,6 +162,7 @@ numbered_list = Liste numérotée
 code_block = Bloc de code
 block_quote = Citation
 image = Image
+new_line = Nouvelle ligne
 
 sharesphere-right-sidebar-1 =
     ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets.

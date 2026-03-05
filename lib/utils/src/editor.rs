@@ -27,6 +27,7 @@ pub enum FormatType {
     BlockQuote,
     Link,
     Image,
+    NewLine,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -50,6 +51,7 @@ impl FormatType {
             FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
             FormatType::Link => view!{ <LinkIcon/> }.into_any(),
             FormatType::Image => view!{ <ImageIcon/> }.into_any(),
+            FormatType::NewLine => view!{ <NewLineIcon/> }.into_any(),
         }
     }
 
@@ -67,6 +69,7 @@ impl FormatType {
             FormatType::BlockQuote => move_tr!("block_quote"),
             FormatType::Link => move_tr!("link"),
             FormatType::Image => move_tr!("image"),
+            FormatType::NewLine => move_tr!("new_line"),
         }
     }
 }
@@ -381,7 +384,10 @@ pub fn FormMarkdownEditor(
         }
     };
 
-    Effect::new(move || adjust_textarea_height(data.textarea_ref));
+    Effect::new(move || {
+        data.content.read();
+        adjust_textarea_height(data.textarea_ref);
+    });
 
     let is_border_error = move || !is_empty_ok.get() && data.content.read().is_empty();
 
@@ -439,6 +445,7 @@ pub fn FormMarkdownEditor(
                         <FormatButton format_type=FormatType::BlockQuote data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Link data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Image data is_markdown_mode hide_for_mobile=true/>
+                        <FormatButton format_type=FormatType::NewLine data is_markdown_mode hide_for_mobile=true/>
                     </div>
                     <MarkdownHelpButton/>
                 </div>
@@ -475,41 +482,41 @@ pub fn FormatButton(
         false => "button-ghost tooltip p-2",
     };
     view! {
-        <div class=class data-tip=format_type.to_localized_str()>
-            <button
-                type="button"
-                on:click=move |_| {
-                    if let Some(textarea_ref) = data.textarea_ref.get_untracked() {
-                        let selection_start = textarea_ref.selection_start();
-                        let selection_end = textarea_ref.selection_end();
-                        match (selection_start, selection_end) {
-                            (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
-                                let selection_start = selection_start as usize;
-                                let selection_end = selection_end as usize;
-                                let cursor_position = format_textarea_content(
-                                    &mut data.content.write(),
-                                    selection_start,
-                                    selection_end,
-                                    format_type,
-                                );
-                                textarea_ref.set_value(&*data.content.read_untracked());
-                                if !is_markdown_mode.get_untracked() {
-                                    is_markdown_mode.set(true);
-                                }
-                                let _ = textarea_ref.focus();
-                                if let Some(position) = cursor_position {
-                                    let _ = textarea_ref.set_selection_start(Some(position as u32));
-                                    let _ = textarea_ref.set_selection_end(Some(position as u32));
-                                }
-                            },
-                            _ => log::debug!("Failed to get textarea selections."),
-                        };
-                    }
+        <button
+            type="button"
+            class=class
+            data-tip=format_type.to_localized_str()
+            on:click=move |_| {
+                if let Some(textarea_ref) = data.textarea_ref.get_untracked() {
+                    let selection_start = textarea_ref.selection_start();
+                    let selection_end = textarea_ref.selection_end();
+                    match (selection_start, selection_end) {
+                        (Ok(Some(selection_start)), Ok(Some(selection_end))) => {
+                            let selection_start = selection_start as usize;
+                            let selection_end = selection_end as usize;
+                            let cursor_position = format_textarea_content(
+                                &mut data.content.write(),
+                                selection_start,
+                                selection_end,
+                                format_type,
+                            );
+                            textarea_ref.set_value(&*data.content.read_untracked());
+                            if !is_markdown_mode.get_untracked() {
+                                is_markdown_mode.set(true);
+                            }
+                            let _ = textarea_ref.focus();
+                            if let Some(position) = cursor_position {
+                                let _ = textarea_ref.set_selection_start(Some(position as u32));
+                                let _ = textarea_ref.set_selection_end(Some(position as u32));
+                            }
+                        },
+                        _ => log::debug!("Failed to get textarea selections."),
+                    };
                 }
-            >
-                {format_type.to_view()}
-            </button>
-        </div>
+            }
+        >
+            {format_type.to_view()}
+        </button>
     }.into_any()
 }
 
@@ -561,60 +568,67 @@ fn format_textarea_content(
             content.insert_str(selection_end, "**");
             content.insert_str(selection_start, "**");
             2
-        }
+        },
         FormatType::Italic => {
             content.insert_str(selection_end, "*");
             content.insert_str(selection_start, "*");
             1
-        }
+        },
         FormatType::Strikethrough => {
             content.insert_str(selection_end, "~~");
             content.insert_str(selection_start, "~~");
             2
-        }
+        },
         FormatType::Header1 => {
             content.insert_str(get_line_start_for_position(content, selection_start), "# ");
             2
-        }
+        },
         FormatType::Header2 => {
             content.insert_str(get_line_start_for_position(content, selection_start), "## ");
             3
-        }
+        },
         FormatType::List => {
             content.insert_str(get_line_start_for_position(content, selection_start), "* ");
             2
-        }
+        },
         FormatType::NumberedList => {
             content.insert_str(get_line_start_for_position(content, selection_start), "1. ");
             3
-        }
+        },
         FormatType::CodeBlock => {
             content.insert_str(selection_end, "```");
             content.insert_str(selection_start, "```");
             3
-        }
+        },
         FormatType::Spoiler => {
             content.insert_str(selection_end, SPOILER_TAG);
             content.insert_str(selection_start, SPOILER_TAG);
             SPOILER_TAG.len()
-        }
+        },
         FormatType::BlockQuote => {
             content.insert_str(get_line_start_for_position(content, selection_start), "> ");
             2
-        }
+        },
         FormatType::Link => {
             content.insert_str(
                 selection_start,
                 "[link text](https://www.your_link.com)",
             );
             1
-        }
+        },
         FormatType::Image => {
             content.insert_str(
                 selection_start,
                 "![](https://image_url.png)",
             );
             2
+        },
+        FormatType::NewLine => {
+            content.insert_str(
+                selection_start,
+                "\n&nbsp;\\\n",
+            );
+            1
         }
     };
 
@@ -1034,5 +1048,10 @@ mod tests {
         let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Image);
         assert_eq!(cursor_position, Some(10));
         assert_eq!(content, "This is ![](https://image_url.png)some user text ");
+
+        let mut content = String::from("This is some user text ");
+        let cursor_position = format_textarea_content(&mut content, 8, 8, FormatType::NewLine);
+        assert_eq!(cursor_position, Some(9));
+        assert_eq!(content, "This is \n&nbsp;\\\nsome user text ");
     }
 }

@@ -29,7 +29,7 @@ pub const SCROLL_LOAD_THROTTLE_DELAY: f64 = 3000.0;
 
 
 pub const LOGO_ICON_PATH: &str = "/svg/planet.svg";
-pub const FLAME_ICON_PATH: &str = "/svg/flame.svg";
+pub const POPULAR_ICON_PATH: &str = "/svg/shooting_star.svg";
 
 
 pub const MAX_SPHERE_NAME_LENGTH: usize = 20;

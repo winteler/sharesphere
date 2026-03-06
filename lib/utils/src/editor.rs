@@ -609,26 +609,48 @@ fn format_textarea_content(
             content.insert_str(get_line_start_for_position(content, selection_start), "> ");
             2
         },
-        FormatType::Link => {
+        FormatType::Link if selection_start == selection_end => {
             content.insert_str(
                 selection_start,
                 "[link text](https://www.your_link.com)",
             );
             1
         },
-        FormatType::Image => {
+        FormatType::Link => {
+            content.insert_str(
+                selection_end,
+                ")",
+            );
+            content.insert_str(
+                selection_start,
+                "[link text](",
+            );
+            1
+        },
+        FormatType::Image if selection_start == selection_end => {
             content.insert_str(
                 selection_start,
                 "![](https://image_url.png)",
             );
             2
         },
+        FormatType::Image => {
+            content.insert_str(
+                selection_end,
+                ")",
+            );
+            content.insert_str(
+                selection_start,
+                "![](",
+            );
+            2
+        },
         FormatType::NewLine => {
             content.insert_str(
                 selection_start,
-                "\n&nbsp;\\\n",
+                "\\\n\\\n",
             );
-            1
+            4
         }
     };
 
@@ -1036,7 +1058,7 @@ mod tests {
         let mut content = String::from("This is some user text ");
         let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Link);
         assert_eq!(cursor_position, Some(9));
-        assert_eq!(content, "This is [link text](https://www.your_link.com)some user text ");
+        assert_eq!(content, "This is [link text](some) user text ");
 
         // Image
         let mut content = String::from("This is some user text ");
@@ -1047,11 +1069,11 @@ mod tests {
         let mut content = String::from("This is some user text ");
         let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Image);
         assert_eq!(cursor_position, Some(10));
-        assert_eq!(content, "This is ![](https://image_url.png)some user text ");
+        assert_eq!(content, "This is ![](some) user text ");
 
         let mut content = String::from("This is some user text ");
         let cursor_position = format_textarea_content(&mut content, 8, 8, FormatType::NewLine);
-        assert_eq!(cursor_position, Some(9));
-        assert_eq!(content, "This is \n&nbsp;\\\nsome user text ");
+        assert_eq!(cursor_position, Some(12));
+        assert_eq!(content, "This is \\\n\\\nsome user text ");
     }
 }

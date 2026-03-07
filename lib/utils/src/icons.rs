@@ -43,7 +43,7 @@ pub fn AuthorIcon(
 }
 
 #[component]
-pub fn ReturnIcon(#[prop(default = "h-20 w-20")] class: &'static str) -> impl IntoView {
+pub fn ReturnIcon(#[prop(default = "h-5 w-5 lg:h-6 lg:w-6")] class: &'static str) -> impl IntoView {
     view! {
         <img src="/svg/sphere_icons/back_arrow.svg" class=class/>
     }

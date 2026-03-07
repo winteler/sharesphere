@@ -4,12 +4,12 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use leptos_router::components::{Form, Outlet, A};
-use leptos_router::hooks::{use_params_map};
+use leptos_router::hooks::{use_location, use_params_map};
 use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
 
 use sharesphere_utils::editor::{FormTextEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::icons::{LoadingIcon, MagnifierIcon, NsfwIcon, PlusIcon, SettingsIcon, SubscribedIcon};
+use sharesphere_utils::icons::{LoadingIcon, MagnifierIcon, NsfwIcon, PlusIcon, ReturnIcon, SettingsIcon, SubscribedIcon};
 use sharesphere_utils::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
 
@@ -90,6 +90,10 @@ pub fn SphereBanner() -> impl IntoView {
     provide_context(sphere_state);
 
     let sphere_path = move || get_sphere_path(&sphere_name.get());
+    let is_sphere_sub_page = move || {
+        let path = use_location().pathname.read();
+        path.matches("/").count() > 2
+    };
 
     Effect::new(move || {
         sphere_name.read();
@@ -105,6 +109,11 @@ pub fn SphereBanner() -> impl IntoView {
                         href=sphere_path()
                         class="relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden"
                     >
+                        <Show when=is_sphere_sub_page>
+                            <div class="absolute top-2 left-2 p-2 rounded-full backdrop-blur-sm bg-black/50 hover:bg-base-content/20">
+                                <ReturnIcon/>
+                            </div>
+                        </Show>
                         <BannerContent
                             title=sphere_with_user_info.sphere.sphere_name.clone()
                             icon_url=sphere_with_user_info.sphere.icon_url.clone()

@@ -1487,6 +1487,16 @@
       inset: 50% calc(var(--tt-tail) + 1px) auto auto;
     }
   }
+  .tooltip-right {
+    > .tooltip-content, &[data-tip]:before {
+      transform: translateX(calc(var(--tt-pos, -0.25rem) + 0.25rem)) translateY(-50%);
+      inset: 50% auto auto var(--tt-off);
+    }
+    &:after {
+      transform: translateX(var(--tt-pos, -0.25rem)) translateY(-50%) rotate(90deg);
+      inset: 50% auto auto calc(var(--tt-tail) + 1px);
+    }
+  }
   .inset-0 {
     inset: calc(var(--spacing) * 0);
   }
@@ -1521,9 +1531,6 @@
   }
   .top-1 {
     top: calc(var(--spacing) * 1);
-  }
-  .top-2 {
-    top: calc(var(--spacing) * 2);
   }
   .right-0 {
     right: calc(var(--spacing) * 0);
@@ -2677,6 +2684,12 @@
   .bg-white {
     background-color: var(--color-white);
   }
+  .bg-white\/20 {
+    background-color: color-mix(in srgb, #fff 20%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-white) 20%, transparent);
+    }
+  }
   .bg-yellow-500 {
     background-color: var(--color-yellow-500);
   }
@@ -3107,6 +3120,11 @@
     @media (width < 64rem) {
       padding: 0.1875rem;
       --size: calc(var(--size-selector, 0.25rem) * 5);
+    }
+  }
+  .lg\:top-2 {
+    @media (width >= 64rem) {
+      top: calc(var(--spacing) * 2);
     }
   }
   .lg\:hidden {

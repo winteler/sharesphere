@@ -5,7 +5,7 @@ use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::{use_location, use_params_map};
-use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
+use leptos_use::{signal_debounced, signal_throttled_with_options, use_element_hover, ThrottleOptions};
 
 use sharesphere_utils::editor::{FormTextEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
@@ -89,6 +89,8 @@ pub fn SphereBanner() -> impl IntoView {
     };
     provide_context(sphere_state);
 
+    let link_ref = NodeRef::<html::A>::new();
+    let is_banner_hovered = use_element_hover(link_ref);
     let sphere_path = move || get_sphere_path(&sphere_name.get());
     let is_sphere_sub_page = move || {
         let path = use_location().pathname.read();
@@ -108,11 +110,10 @@ pub fn SphereBanner() -> impl IntoView {
                     <a
                         href=sphere_path()
                         class="relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden"
+                        node_ref=link_ref
                     >
                         <Show when=is_sphere_sub_page>
-                            <div class="absolute top-2 left-2 p-2 rounded-full backdrop-blur-sm bg-black/50 hover:bg-base-content/20">
-                                <ReturnIcon/>
-                            </div>
+                            <SphereReturnIcon is_banner_hovered/>
                         </Show>
                         <BannerContent
                             title=sphere_with_user_info.sphere.sphere_name.clone()
@@ -127,6 +128,21 @@ pub fn SphereBanner() -> impl IntoView {
         </div>
         <SphereSidebar/>
     }.into_any()
+}
+
+/// Icon to indicate clicking will return to the Sphere's main page
+#[component]
+fn SphereReturnIcon(
+    is_banner_hovered: Signal<bool>,
+) -> impl IntoView {
+    view! {
+        <div
+            class="absolute lg:top-2 left-2 p-2 rounded-full backdrop-blur-sm bg-black/50"
+            class=("bg-white/20", is_banner_hovered)
+        >
+            <ReturnIcon/>
+        </div>
+    }
 }
 
 /// Component to display a sphere's contents

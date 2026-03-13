@@ -5,8 +5,8 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends libssl3 ca-certificates rsync && apt-get clean
 
 # Copy binary from builder
-COPY ./target/release/server /usr/local/bin/sharesphere
-COPY ./target/release/hash.txt /usr/local/bin/hash.txt
+COPY ./target/debug/server /usr/local/bin/sharesphere
+COPY ./target/debug/hash.txt /usr/local/bin/hash.txt
 COPY ./target/site /usr/local/bin/site
 
 RUN chmod +x /usr/local/bin/sharesphere

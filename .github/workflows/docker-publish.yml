@@ -26,7 +26,6 @@ jobs:
     container:
       image: ghcr.io/winteler/sharesphere-builder:v0.0.5-wasm-bindgen-0-2-114
       env:
-        LEPTOS_ENV: PROD
         LEPTOS_HASH_FILES: true
         DATABASE_URL: postgresql://sharesphere:sharesphere@postgres:5432/sharesphere
         TEST_DATABASE_NAME: sharesphere
@@ -75,13 +74,13 @@ jobs:
         run: sqlx migrate run --connect-timeout 60
 
       - name: Test ShareSphere
-        run: cargo test -F ssr --release
+        run: cargo test -F ssr
 
       - name: npm
         run: npm install && npm run build
 
       - name: Build ShareSphere
-        run: cargo leptos build --release --precompress
+        run: cargo leptos build
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer

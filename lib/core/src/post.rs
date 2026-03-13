@@ -1083,7 +1083,7 @@ pub async fn create_post(
     let post = ssr::create_post(
         post_location.sphere.as_str(),
         post_location.satellite_id,
-        clear_newlines(post_inputs.title).as_str(),
+        clear_newlines(post_inputs.title, true).as_str(),
         body.as_str(),
         markdown_body.as_deref(),
         link,

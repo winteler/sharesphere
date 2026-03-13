@@ -268,7 +268,7 @@ pub fn LengthLimitedInput(
                 autofocus=autofocus
                 on:input=move |ev| {
                     let input = event_target_value(&ev);
-                    let input = clear_newlines(input);
+                    let input = clear_newlines(input, false);
                     content.set(input.clone());
                     if let Some(textarea_ref) = textarea_ref.get_untracked() {
                         textarea_ref.set_value(&input);
@@ -674,11 +674,18 @@ fn get_line_start_for_position(string: &String, position: usize) -> usize {
 /// ```
 /// use sharesphere_utils::editor::clear_newlines;
 ///
-/// assert_eq!(clear_newlines(String::from("test")), String::from("test"));
-/// assert_eq!(clear_newlines(String::from("test\r\nsecond line\nthird line")), String::from("test  second line third line"));
+/// assert_eq!(clear_newlines(String::from("test"), false), String::from("test"));
+/// assert_eq!(clear_newlines(String::from("test\r\nsecond line\nthird line"), true), String::from("test  second line third line"));
+/// assert_eq!(clear_newlines(String::from("test\r\nsecond line\nthird line"), false), String::from("testsecond linethird line"));
 /// ```
-pub fn clear_newlines(string: String) -> String {
-    string.replace(&['\r', '\n'][..], " ")
+pub fn clear_newlines(string: String, add_whitespace: bool) -> String {
+    string.replace(
+        &['\r', '\n'][..],
+        match add_whitespace {
+            true => " ",
+            false => "",
+        }
+    )
 }
 
 /// Adjust the height of `textarea_ref` so that all its content is displayed without a scrollbar.

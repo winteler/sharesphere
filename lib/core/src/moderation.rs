@@ -29,6 +29,20 @@ use {
     },
 };
 
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ModerationInfo {
+    pub moderator_message: Option<String>,
+    pub infringed_rule_id: Option<i64>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
+    pub infringed_rule_title: Option<String>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
+    pub is_sphere_rule: bool,
+    pub moderator_id: Option<i64>,
+    #[cfg_attr(feature = "ssr", sqlx(default))]
+    pub moderator_name: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Content {
     Post(Post),
@@ -36,7 +50,7 @@ pub enum Content {
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct ModerationInfo {
+pub struct ModeratedContentWithRule {
     pub rule: Rule,
     pub content: Content,
 }
@@ -51,7 +65,7 @@ pub mod ssr {
     use sharesphere_utils::embed::{Link, LinkType};
     use sharesphere_utils::errors::AppError;
     use crate::comment::Comment;
-    use crate::moderation::Content;
+    use crate::moderation::{Content, ModerationInfo};
     use crate::post::Post;
 
     #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, sqlx::FromRow)]
@@ -75,11 +89,8 @@ pub mod ssr {
         pub creator_id: i64,
         pub creator_name: String,
         pub is_creator_moderator: bool,
-        pub moderator_message: Option<String>,
-        pub infringed_rule_id: Option<i64>,
-        pub infringed_rule_title: Option<String>,
-        pub moderator_id: Option<i64>,
-        pub moderator_name: Option<String>,
+        #[cfg_attr(feature = "ssr", sqlx(flatten))]
+        pub moderation_info: ModerationInfo,
         pub num_comments: Option<i32>,
         pub is_pinned: bool,
         pub score: i32,
@@ -100,6 +111,7 @@ pub mod ssr {
                 link_embed: self.link_embed,
                 link_thumbnail_url: self.link_thumbnail_url,
             });
+
             match self.comment_id {
                 Some(comment_id) => Content::Comment(
                     Comment {
@@ -107,16 +119,12 @@ pub mod ssr {
                         body: self.body,
                         markdown_body: self.markdown_body,
                         is_edited: self.is_edited,
-                        moderator_message: self.moderator_message,
-                        infringed_rule_id: self.infringed_rule_id,
-                        infringed_rule_title: self.infringed_rule_title,
                         parent_id: self.parent_id,
                         post_id: self.post_id,
                         creator_id: self.creator_id,
                         creator_name: self.creator_name,
                         is_creator_moderator: self.is_creator_moderator,
-                        moderator_id: self.moderator_id,
-                        moderator_name: self.moderator_name,
+                        moderation_info: self.moderation_info,
                         is_pinned: self.is_pinned,
                         score: self.score,
                         score_minus: self.score_minus,
@@ -140,11 +148,7 @@ pub mod ssr {
                     creator_id: self.creator_id,
                     creator_name: self.creator_name,
                     is_creator_moderator: self.is_creator_moderator,
-                    moderator_message: self.moderator_message,
-                    infringed_rule_id: self.infringed_rule_id,
-                    infringed_rule_title: self.infringed_rule_title,
-                    moderator_id: self.moderator_id,
-                    moderator_name: self.moderator_name,
+                    moderation_info: self.moderation_info,
                     num_comments: self.num_comments.unwrap(),
                     is_pinned: self.is_pinned,
                     score: self.score,
@@ -186,11 +190,12 @@ pub mod ssr {
                     p.sphere_id,
                     p.satellite_id,
                     p.creator_id,
-                    u.username as creator_name,
+                    u.username AS creator_name,
                     p.is_creator_moderator,
                     p.moderator_message,
                     p.infringed_rule_id,
-                    r.title as infringed_rule_title,
+                    r.title AS infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule,
                     p.moderator_id,
                     m.username AS moderator_name,
                     p.num_comments,
@@ -235,7 +240,8 @@ pub mod ssr {
                     c.is_creator_moderator,
                     p.moderator_message,
                     p.infringed_rule_id,
-                    r.title as infringed_rule_title,
+                    r.title AS infringed_rule_title,
+                    r.sphere_id IS NOT NULL AS is_sphere_rule,
                     p.moderator_id,
                     m.username AS moderator_name,
                     NULL AS num_comments,
@@ -479,19 +485,19 @@ pub mod ssr {
 }
 
 #[server]
-pub async fn get_moderation_info(
+pub async fn get_moderated_content_with_rule(
     post_id: i64,
     comment_id: Option<i64>,
-) -> Result<ModerationInfo, AppError> {
+) -> Result<ModeratedContentWithRule, AppError> {
     let db_pool = get_db_pool()?;
     let (rule_id, content) = match comment_id {
         Some(comment_id) => {
             let comment = get_comment_by_id(comment_id, &db_pool).await?;
-            (comment.infringed_rule_id, Content::Comment(comment))
+            (comment.moderation_info.infringed_rule_id, Content::Comment(comment))
         },
         None => {
             let post = get_post_by_id(post_id, &db_pool).await?;
-            (post.infringed_rule_id, Content::Post(post))
+            (post.moderation_info.infringed_rule_id, Content::Post(post))
         },
     };
     let rule = match rule_id {
@@ -499,7 +505,7 @@ pub async fn get_moderation_info(
         None => Err(AppError::InternalServerError(String::from("Content is not moderated, cannot find moderation info.")))
     }?;
 
-    Ok(ModerationInfo {
+    Ok(ModeratedContentWithRule {
         rule,
         content,
     })
@@ -640,7 +646,7 @@ pub fn ModerationInfoDialog(
                         </div>
                         <div class="flex flex-col gap-1 p-2 border-b">
                             <h1 class="font-bold text-xl">{move_tr!("moderator-message")}</h1>
-                            <div>{post.moderator_message.clone()}</div>
+                            <div>{post.moderation_info.moderator_message.clone()}</div>
                         </div>
                     }.into_any(),
                     Content::Comment(comment) => {
@@ -654,7 +660,7 @@ pub fn ModerationInfoDialog(
                             </div>
                             <div class="flex flex-col gap-1 p-2 border-b">
                                 <div class="font-bold text-xl">{move_tr!("moderator-message")}</div>
-                                <div>{comment.moderator_message.clone()}</div>
+                                <div>{comment.moderation_info.moderator_message.clone()}</div>
                             </div>
                         }.into_any()
                     }

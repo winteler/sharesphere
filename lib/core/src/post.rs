@@ -16,9 +16,13 @@ use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_auth::role::IsPinnedCheckbox;
 use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
 use sharesphere_utils::form::LabeledFormCheckbox;
+use sharesphere_utils::icons::{NsfwIcon};
+use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
+use sharesphere_utils::unpack::SuspenseUnpack;
 use sharesphere_utils::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
+use crate::moderation::ModerationInfo;
 use crate::ranking::{SortType, Vote};
 use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::sphere_category::{SphereCategory, SphereCategoryBadge, SphereCategoryDropdown, SphereCategoryHeader};
@@ -35,9 +39,6 @@ use {
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
 };
-use sharesphere_utils::icons::{NsfwIcon};
-use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_utils::unpack::SuspenseUnpack;
 
 pub const POST_BATCH_SIZE: i64 = 50;
 
@@ -59,15 +60,8 @@ pub struct Post {
     pub creator_id: i64,
     pub creator_name: String,
     pub is_creator_moderator: bool,
-    pub moderator_message: Option<String>,
-    pub infringed_rule_id: Option<i64>,
-    #[cfg_attr(feature = "ssr", sqlx(default))]
-    pub infringed_rule_title: Option<String>,
-    #[cfg_attr(feature = "ssr", sqlx(default))]
-    pub is_sphere_rule: bool,
-    pub moderator_id: Option<i64>,
-    #[cfg_attr(feature = "ssr", sqlx(default))]
-    pub moderator_name: Option<String>,
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub moderation_info: ModerationInfo,
     pub num_comments: i32,
     pub is_pinned: bool,
     pub score: i32,
@@ -136,7 +130,7 @@ pub struct PostInheritedAttributes {
 
 impl Post {
     pub fn is_active(&self) -> bool {
-        self.delete_timestamp.is_none() && self.moderator_id.is_none()
+        self.delete_timestamp.is_none() && self.moderation_info.moderator_id.is_none()
     }
 }
 
@@ -1484,7 +1478,7 @@ mod tests {
     use std::collections::HashMap;
     use sharesphere_utils::colors::Color;
     use sharesphere_utils::embed::Link;
-
+    use crate::moderation::ModerationInfo;
     use crate::post::{add_sphere_info_to_post_vec, Post, PostWithSphereInfo};
     use crate::sphere_category::SphereCategoryHeader;
 
@@ -1504,12 +1498,7 @@ mod tests {
             creator_id: 0,
             creator_name: String::default(),
             is_creator_moderator: false,
-            moderator_message: None,
-            infringed_rule_id: None,
-            infringed_rule_title: None,
-            is_sphere_rule: false,
-            moderator_id: None,
-            moderator_name: None,
+            moderation_info: ModerationInfo::default(),
             num_comments: 0,
             is_pinned: false,
             score: 0,

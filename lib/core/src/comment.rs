@@ -24,7 +24,7 @@ use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::{get_post_path, COMMENT_ID_QUERY_PARAM};
 use sharesphere_utils::widget::{ContentBody, IsPinnedWidget, LoadIndicators, ScoreIndicator, TimeSinceWidget};
-use crate::moderation::ModeratedBody;
+use crate::moderation::{ModeratedBody, ModerationInfo};
 #[cfg(feature = "ssr")]
 use crate::notification::{ssr::create_notification, NotificationType};
 
@@ -37,20 +37,13 @@ pub struct Comment {
     pub body: String,
     pub markdown_body: Option<String>,
     pub is_edited: bool,
-    pub moderator_message: Option<String>,
-    pub infringed_rule_id: Option<i64>,
-    #[cfg_attr(feature = "ssr", sqlx(default))]
-    pub infringed_rule_title: Option<String>,
-    #[cfg_attr(feature = "ssr", sqlx(default))]
-    pub is_sphere_rule: bool,
     pub parent_id: Option<i64>,
     pub post_id: i64,
     pub creator_id: i64,
     pub creator_name: String,
     pub is_creator_moderator: bool,
-    pub moderator_id: Option<i64>,
-    #[cfg_attr(feature = "ssr", sqlx(default))]
-    pub moderator_name: Option<String>,
+    #[cfg_attr(feature = "ssr", sqlx(flatten))]
+    pub moderation_info: ModerationInfo,
     pub is_pinned: bool,
     pub score: i32,
     pub score_minus: i32,
@@ -79,7 +72,7 @@ pub struct CommentWithContext {
 
 impl Comment {
     pub fn is_active(&self) -> bool {
-        self.delete_timestamp.is_none() && self.moderator_id.is_none()
+        self.delete_timestamp.is_none() && self.moderation_info.moderator_id.is_none()
     }
 }
 
@@ -712,8 +705,8 @@ pub fn CommentBody(
         {
             move || comment.with(|comment| match (
                 &comment.delete_timestamp,
-                &comment.moderator_message,
-                &comment.infringed_rule_title
+                &comment.moderation_info.moderator_message,
+                &comment.moderation_info.infringed_rule_title
             ) {
                 (Some(_), _, _) => view! {
                     <div class="pl-2 text-left">
@@ -727,7 +720,7 @@ pub fn CommentBody(
                     <ModeratedBody
                         infringed_rule_title=infringed_rule_title.clone()
                         moderator_message=moderator_message.clone()
-                        is_sphere_rule=comment.is_sphere_rule
+                        is_sphere_rule=comment.moderation_info.is_sphere_rule
                     />
                 }.into_any(),
                 _ => view! {

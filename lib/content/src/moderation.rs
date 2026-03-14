@@ -10,7 +10,7 @@ use sharesphere_utils::widget::{ModalDialog, ModalFormButtons};
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::comment::Comment;
-use sharesphere_core::moderation::{Content, ModerateComment, ModerationInfo, ModerationInfoDialog};
+use sharesphere_core::moderation::{Content, ModerateComment, ModeratedContentWithRule, ModerationInfoDialog};
 use sharesphere_core::rule::{get_rule_by_id, get_rule_title};
 use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_utils::checks::check_string_length;
@@ -263,8 +263,8 @@ pub fn ModerationInfoButton(
     let sphere_state = expect_context::<SphereState>();
     let show_button = move || {
         let (is_moderated, creator_id) = match &*content.read() {
-            Content::Post(post) => (post.infringed_rule_id.is_some(), post.creator_id),
-            Content::Comment(comment) => (comment.infringed_rule_id.is_some(), comment.creator_id),
+            Content::Post(post) => (post.moderation_info.infringed_rule_id.is_some(), post.creator_id),
+            Content::Comment(comment) => (comment.moderation_info.infringed_rule_id.is_some(), comment.creator_id),
         };
         let is_author = match &(*state.user.read()) {
             Some(Ok(Some(user))) => user.user_id == creator_id,
@@ -318,13 +318,13 @@ pub fn ContentModerationInfo(
         move || content.get(),
         move |content| async move {
             let rule_id = match &content {
-                Content::Post(post) => post.infringed_rule_id,
-                Content::Comment(comment) => comment.infringed_rule_id
+                Content::Post(post) => post.moderation_info.infringed_rule_id,
+                Content::Comment(comment) => comment.moderation_info.infringed_rule_id
             };
             match rule_id {
                 Some(rule_id) => {
                     let rule = get_rule_by_id(rule_id).await?;
-                    Ok(ModerationInfo {
+                    Ok(ModeratedContentWithRule {
                         content,
                         rule,
                     })

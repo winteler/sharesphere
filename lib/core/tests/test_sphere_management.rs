@@ -159,18 +159,18 @@ async fn test_moderate_post() -> Result<(), AppError> {
     assert!(moderate_post(post.post_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 
     let moderated_post = moderate_post(post.post_id, rule.rule_id, "test", &user, &db_pool).await?;
-    assert_eq!(moderated_post.moderator_id, Some(user.user_id));
-    assert_eq!(moderated_post.moderator_name, Some(user.username));
-    assert_eq!(moderated_post.moderator_message, Some(String::from("test")));
-    assert_eq!(moderated_post.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(moderated_post.infringed_rule_title, Some(rule.title.clone()));
+    assert_eq!(moderated_post.moderation_info.moderator_id, Some(user.user_id));
+    assert_eq!(moderated_post.moderation_info.moderator_name, Some(user.username));
+    assert_eq!(moderated_post.moderation_info.moderator_message, Some(String::from("test")));
+    assert_eq!(moderated_post.moderation_info.infringed_rule_id, Some(rule.rule_id));
+    assert_eq!(moderated_post.moderation_info.infringed_rule_title, Some(rule.title.clone()));
 
     let remoderated_post = moderate_post(post.post_id, rule.rule_id, "global", &global_moderator, &db_pool).await?;
-    assert_eq!(remoderated_post.moderator_id, Some(global_moderator.user_id));
-    assert_eq!(remoderated_post.moderator_name, Some(global_moderator.username));
-    assert_eq!(remoderated_post.moderator_message, Some(String::from("global")));
-    assert_eq!(moderated_post.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(moderated_post.infringed_rule_title, Some(rule.title));
+    assert_eq!(remoderated_post.moderation_info.moderator_id, Some(global_moderator.user_id));
+    assert_eq!(remoderated_post.moderation_info.moderator_name, Some(global_moderator.username));
+    assert_eq!(remoderated_post.moderation_info.moderator_message, Some(String::from("global")));
+    assert_eq!(moderated_post.moderation_info.infringed_rule_id, Some(rule.rule_id));
+    assert_eq!(moderated_post.moderation_info.infringed_rule_title, Some(rule.title));
 
     Ok(())
 }
@@ -189,18 +189,18 @@ async fn test_moderate_comment() -> Result<(), AppError> {
     assert!(moderate_comment(comment.comment_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 
     let moderated_comment = moderate_comment(comment.comment_id, rule.rule_id, "test", &user, &db_pool).await?;
-    assert_eq!(moderated_comment.moderator_id, Some(user.user_id));
-    assert_eq!(moderated_comment.moderator_name, Some(user.username));
-    assert_eq!(moderated_comment.moderator_message, Some(String::from("test")));
-    assert_eq!(moderated_comment.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(moderated_comment.infringed_rule_title, Some(rule.title.clone()));
+    assert_eq!(moderated_comment.moderation_info.moderator_id, Some(user.user_id));
+    assert_eq!(moderated_comment.moderation_info.moderator_name, Some(user.username));
+    assert_eq!(moderated_comment.moderation_info.moderator_message, Some(String::from("test")));
+    assert_eq!(moderated_comment.moderation_info.infringed_rule_id, Some(rule.rule_id));
+    assert_eq!(moderated_comment.moderation_info.infringed_rule_title, Some(rule.title.clone()));
 
     let remoderated_comment = moderate_comment(comment.comment_id, rule.rule_id, "global", &global_moderator, &db_pool).await?;
-    assert_eq!(remoderated_comment.moderator_id, Some(global_moderator.user_id));
-    assert_eq!(remoderated_comment.moderator_name, Some(global_moderator.username));
-    assert_eq!(remoderated_comment.moderator_message, Some(String::from("global")));
-    assert_eq!(remoderated_comment.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(remoderated_comment.infringed_rule_title, Some(rule.title));
+    assert_eq!(remoderated_comment.moderation_info.moderator_id, Some(global_moderator.user_id));
+    assert_eq!(remoderated_comment.moderation_info.moderator_name, Some(global_moderator.username));
+    assert_eq!(remoderated_comment.moderation_info.moderator_message, Some(String::from("global")));
+    assert_eq!(remoderated_comment.moderation_info.infringed_rule_id, Some(rule.rule_id));
+    assert_eq!(remoderated_comment.moderation_info.infringed_rule_title, Some(rule.title));
 
     Ok(())
 }

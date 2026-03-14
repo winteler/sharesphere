@@ -21,7 +21,7 @@ use sharesphere_utils::errors::AppError;
 use sqlx::PgPool;
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
-
+use sharesphere_core::moderation::ModerationInfo;
 use crate::common::*;
 use crate::data_factory::*;
 use crate::utils::{sort_post_vec, test_post_score, POST_SORT_TYPE_ARRAY};
@@ -1612,11 +1612,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_1.creator_id, user.user_id);
     assert_eq!(post_1.creator_name, user.username);
     assert_eq!(post_1.is_creator_moderator, false); // user not refreshed yet
-    assert_eq!(post_1.moderator_message, None);
-    assert_eq!(post_1.infringed_rule_id, None);
-    assert_eq!(post_1.infringed_rule_title, None);
-    assert_eq!(post_1.moderator_id, None);
-    assert_eq!(post_1.moderator_name, None);
+    assert_eq!(post_1.moderation_info, ModerationInfo::default());
     assert_eq!(post_1.num_comments, 0);
     assert_eq!(post_1.is_pinned, false);
     assert_eq!(post_1.score, 0);
@@ -1664,11 +1660,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(post_2.creator_id, user.user_id);
     assert_eq!(post_2.creator_name, user.username);
     assert_eq!(post_2.is_creator_moderator, true);
-    assert_eq!(post_2.moderator_message, None);
-    assert_eq!(post_2.infringed_rule_id, None);
-    assert_eq!(post_2.infringed_rule_title, None);
-    assert_eq!(post_2.moderator_id, None);
-    assert_eq!(post_2.moderator_name, None);
+    assert_eq!(post_2.moderation_info, ModerationInfo::default());
     assert_eq!(post_2.num_comments, 0);
     assert_eq!(post_2.is_pinned, true);
     assert_eq!(post_2.score, 0);
@@ -1707,11 +1699,7 @@ async fn test_create_post() -> Result<(), AppError> {
     assert_eq!(nsfw_post.creator_id, user.user_id);
     assert_eq!(nsfw_post.creator_name, user.username);
     assert_eq!(nsfw_post.is_creator_moderator, true);
-    assert_eq!(nsfw_post.moderator_message, None);
-    assert_eq!(nsfw_post.infringed_rule_id, None);
-    assert_eq!(nsfw_post.infringed_rule_title, None);
-    assert_eq!(nsfw_post.moderator_id, None);
-    assert_eq!(nsfw_post.moderator_name, None);
+    assert_eq!(nsfw_post.moderation_info, ModerationInfo::default());
     assert_eq!(nsfw_post.num_comments, 0);
     assert_eq!(nsfw_post.is_pinned, false);
     assert_eq!(nsfw_post.score, 0);
@@ -1774,11 +1762,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.creator_id, user.user_id);
     assert_eq!(post.creator_name, user.username);
     assert_eq!(post.is_creator_moderator, true);
-    assert_eq!(post.moderator_message, None);
-    assert_eq!(post.infringed_rule_id, None);
-    assert_eq!(post.infringed_rule_title, None);
-    assert_eq!(post.moderator_id, None);
-    assert_eq!(post.moderator_name, None);
+    assert_eq!(post.moderation_info, ModerationInfo::default());
     assert_eq!(post.num_comments, 0);
     assert_eq!(post.is_pinned, false);
     assert_eq!(post.score, 0);
@@ -1825,11 +1809,7 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     assert_eq!(post.creator_id, user.user_id);
     assert_eq!(post.creator_name, user.username);
     assert_eq!(post.is_creator_moderator, true);
-    assert_eq!(post.moderator_message, None);
-    assert_eq!(post.infringed_rule_id, None);
-    assert_eq!(post.infringed_rule_title, None);
-    assert_eq!(post.moderator_id, None);
-    assert_eq!(post.moderator_name, None);
+    assert_eq!(post.moderation_info, ModerationInfo::default());
     assert_eq!(post.num_comments, 0);
     assert_eq!(post.is_pinned, true);
     assert_eq!(post.score, 0);

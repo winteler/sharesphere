@@ -283,7 +283,7 @@ pub fn CommentTopWidgetBar(
     let author = comment.read_untracked().creator_name.clone();
     let timestamp = Signal::derive(move || comment.read().create_timestamp);
     let edit_timestamp = Signal::derive(move || comment.read().edit_timestamp);
-    let moderator = Signal::derive(move || comment.read().moderator_name.clone());
+    let moderator = Signal::derive(move || comment.read().moderation_info.moderator_name.clone());
     let is_active = Signal::derive(move || comment.read().is_active());
     let is_moderator_comment = comment.read_untracked().is_creator_moderator;
     let is_pinned = Signal::derive(move || comment.read().is_pinned);

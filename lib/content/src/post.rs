@@ -70,7 +70,7 @@ pub fn Post() -> impl IntoView {
                             <PostTopWidgetBar
                                 creator_id=post_with_info.post.creator_id
                                 creator_name=post_with_info.post.creator_name.clone()
-                                moderator_name=post_with_info.post.moderator_name.clone()
+                                moderator_name=post_with_info.post.moderation_info.moderator_name.clone()
                                 is_creator_moderator=post_with_info.post.is_creator_moderator
                                 create_timestamp=post_with_info.post.create_timestamp
                                 edit_timestamp=post_with_info.post.edit_timestamp
@@ -85,9 +85,9 @@ pub fn Post() -> impl IntoView {
                             <PostBody
                                 body=post_with_info.post.body.clone()
                                 markdown_body=post_with_info.post.markdown_body.clone()
-                                moderator_message=post_with_info.post.moderator_message.clone()
-                                infringed_rule_title=post_with_info.post.infringed_rule_title.clone()
-                                is_sphere_rule=post_with_info.post.is_sphere_rule
+                                moderator_message=post_with_info.post.moderation_info.moderator_message.clone()
+                                infringed_rule_title=post_with_info.post.moderation_info.infringed_rule_title.clone()
+                                is_sphere_rule=post_with_info.post.moderation_info.is_sphere_rule
                                 delete_timestamp=post_with_info.post.delete_timestamp
                             />
                             <Embed link=post_with_info.post.link.clone()/>

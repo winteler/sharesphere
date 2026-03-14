@@ -23,7 +23,7 @@ use crate::satellite::SatellitePanel;
 use crate::sphere_category::SphereCategoriesDialog;
 
 use sharesphere_auth::auth_widget::LoginWindow;
-use sharesphere_core::moderation::{get_moderation_info, ModerationInfoDialog};
+use sharesphere_core::moderation::{get_moderated_content_with_rule, ModerationInfoDialog};
 use sharesphere_core::search::get_matching_user_header_vec;
 use sharesphere_core::sphere_management::{get_sphere_ban_vec, set_sphere_banner, set_sphere_icon, RemoveUserBan};
 use sharesphere_core::state::{GlobalState, SphereState};
@@ -518,7 +518,7 @@ pub fn BanInfoButton(
             {
                 let ban_detail_resource = Resource::new(
                     move || (),
-                    move |_| get_moderation_info(post_id, comment_id)
+                    move |_| get_moderated_content_with_rule(post_id, comment_id)
                 );
                 view! {
                     <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3">

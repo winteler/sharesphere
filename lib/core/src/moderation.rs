@@ -7,7 +7,7 @@ use sharesphere_utils::icons::HammerIcon;
 use sharesphere_utils::widget::ContentBody;
 
 use crate::comment::{Comment};
-use crate::post::{Post};
+use crate::post::{Post, POST_BATCH_SIZE};
 use crate::rule::{get_rule_description, get_rule_title, Rule};
 
 
@@ -99,7 +99,7 @@ pub mod ssr {
         pub trending_score: Option<f32>,
         pub create_timestamp: chrono::DateTime<chrono::Utc>,
         pub edit_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-        pub scoring_timestamp: chrono::DateTime<chrono::Utc>,
+        pub scoring_timestamp: Option<chrono::DateTime<chrono::Utc>>,
         pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     }
 
@@ -157,7 +157,7 @@ pub mod ssr {
                     trending_score: self.trending_score.unwrap(),
                     create_timestamp: self.create_timestamp,
                     edit_timestamp: self.edit_timestamp,
-                    scoring_timestamp: self.scoring_timestamp,
+                    scoring_timestamp: self.scoring_timestamp.unwrap(),
                     delete_timestamp: self.delete_timestamp,
                 })
             }
@@ -482,6 +482,16 @@ pub mod ssr {
             Err(AppError::InternalServerError(format!("Error while trying to ban user {user_id}. Insufficient permissions or user is a moderator of the sphere.")))
         }
     }
+}
+
+#[server]
+pub async fn get_sphere_content_vec(
+    sphere_name: String,
+    offset: i64,
+) -> Result<Vec<Content>, AppError> {
+    let db_pool = get_db_pool()?;
+    let sphere_content_vec = ssr::get_sphere_contents(&sphere_name, offset, POST_BATCH_SIZE, &db_pool).await?;
+    Ok(sphere_content_vec)
 }
 
 #[server]

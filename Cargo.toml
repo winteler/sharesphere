@@ -20,7 +20,7 @@ lto = true
 codegen-units = 1
 
 [workspace.dependencies]
-leptos = { version = "0.8.12", features = ["nightly", "nonce", "multipart"] }
+leptos = { version = "0.8.13", features = ["nightly", "nonce", "multipart"] }
 leptos_meta = { version = "0.8.5" }
 leptos_router = { version = "0.8.9", features = ["nightly"] }
 leptos_axum = { version = "0.8.6" }

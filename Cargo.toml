@@ -8,8 +8,8 @@ members = [
     "lib/content",
     "lib/components",
     "lib/app",
-    "frontend",
-    "server",
+    "bin/frontend",
+    "bin/server",
 ]
 
 # profile for wasm build, optimizes size

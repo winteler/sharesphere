@@ -210,7 +210,7 @@ async fn main() {
 
     let pool = create_db_pool().await.expect("Failed to create db pool");
 
-    sqlx::migrate!("../migrations/")
+    sqlx::migrate!("./migrations/")
         .run(&pool)
         .await
         .expect("Should be able to run SQLx migrations.");

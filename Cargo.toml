@@ -57,15 +57,15 @@ wasm-bindgen = "=0.2.114"
 web-sys = "0.3.91"
 
 [patch.crates-io]
-leptos = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-leptos_meta = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-leptos_router = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-leptos_dom = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-leptos_server = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-leptos_config = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-leptos_macro = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
-reactive_stores = { git = "https://github.com/leptos-rs/leptos.git", rev = "72e0abc75c7a5cd862b2468f637e9aaec7dab114" }
+leptos = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+leptos_meta = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+leptos_router = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+leptos_axum = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+leptos_dom = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+leptos_server = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+leptos_config = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+leptos_macro = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
+reactive_stores = { git = "https://github.com/leptos-rs/leptos.git", rev = "4f3a26ce88eb1b429d382a871c47e086be96d559" }
 
 # See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
 

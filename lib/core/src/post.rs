@@ -1007,8 +1007,10 @@ pub async fn get_subscribed_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, AppError> {
+    log::info!("get_subscribed_post_vec");
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
+    log::info!("get_subscribed_post_vec, got user and db");
 
     let post_vec = ssr::get_subscribed_post_vec(
         sort_type,

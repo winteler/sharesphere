@@ -416,7 +416,10 @@ fn UserHomePage(
             let result = get_subscribed_post_vec(sort_type, 0).await;
             #[cfg(feature = "hydrate")]
             is_loading.set(false);
-            log::info!("post_vec_resource value: {:?}", result);
+            log::info!("post_vec_resource is_ok: {:?}", result.is_ok());
+            if let Err(e) = &result {
+                log::error!("post_vec_resource error {:?}", e);
+            }
             result
         }
     );

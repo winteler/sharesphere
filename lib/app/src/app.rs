@@ -404,15 +404,19 @@ fn UserHomePage(
     let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let load_error = RwSignal::new(None);
 
+    log::info!("Render UserHomePage");
+
     let post_vec_resource = Resource::new(
         move || (state.post_sort_type.get(), refresh_count.get()),
         move |(sort_type, _)|  async move {
+            log::info!("Load post_vec_resource");
             #[cfg(feature = "hydrate")]
             is_loading.set(true);
             reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
             let result = get_subscribed_post_vec(sort_type, 0).await;
             #[cfg(feature = "hydrate")]
             is_loading.set(false);
+            log::info!("post_vec_resource value: {:?}", result);
             result
         }
     );
@@ -426,9 +430,11 @@ fn UserHomePage(
     let _additional_post_resource = LocalResource::new(
         move || async move {
             if additional_load_count_throttled.get() > 0 {
+                log::info!("Load additional_post_resource");
                 is_loading.set(true);
                 let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
                 let additional_load = get_subscribed_post_vec(state.post_sort_type.get_untracked(), num_post).await;
+                log::info!("additional_post_resource value: {:?}", additional_load);
                 handle_additional_load(additional_load, additional_post_vec, load_error);
                 is_loading.set(false);
             }

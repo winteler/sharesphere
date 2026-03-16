@@ -34,7 +34,6 @@ use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, Satell
 use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
 use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
 
-const IS_TEST_SITE_ENV: &str = "IS_TEST_SITE";
 
 #[derive(Clone, Debug)]
 pub struct UserAgentHeader {
@@ -77,16 +76,15 @@ pub fn AppMeta() -> impl IntoView {
 }
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
-    let is_test_site = std::env::var(IS_TEST_SITE_ENV).is_ok_and(|is_test_site_str| is_test_site_str.to_lowercase() == "true");
     view! {
         <!DOCTYPE html>
         <html lang="en">
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                { match is_test_site {
-                    true => Some(view! { <meta name="robots" content="noindex, nofollow"/> }),
-                    false => None,
+                { match options.env {
+                    Env::DEV => Some(view! { <meta name="robots" content="noindex, nofollow"/> }),
+                    Env::PROD => None,
                 }}
                 <AppMeta/>
                 <AutoReload options=options.clone() />

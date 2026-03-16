@@ -1615,7 +1615,6 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "console_log",
- "getrandom 0.3.4",
  "leptos",
  "log",
  "sharesphere_app",
@@ -4945,6 +4944,7 @@ dependencies = [
  "float-cmp",
  "fluent-templates",
  "futures-util",
+ "getrandom 0.3.4",
  "http",
  "image",
  "infer",

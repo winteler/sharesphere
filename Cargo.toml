@@ -1,6 +1,16 @@
 [workspace]
 resolver = "2"
 members = [
+    "libs/core/common",
+    "libs/core/user",
+    "libs/core/sphere",
+    "libs/core/content",
+    "libs/core/tests",
+    "libs/interfaces/user",
+    "libs/interfaces/sphere",
+    "libs/interfaces/content",
+    "libs/components/common",
+    "libs/components/user",
     "lib/utils",
     "lib/auth",
     "lib/core",
@@ -28,19 +38,30 @@ leptos_axum = { version = "0.8.6" }
 leptos-fluent = { version = "0.3.1", features = ["json"] }
 leptos-use = { version = "0.18.0", features = ["signal_debounced", "signal_throttled", "storage", "use_breakpoints", "use_clipboard", "use_interval_fn", "use_permission", "use_web_notification", "use_element_hover"] }
 
+ammonia = "4.1.2"
 anyhow = "*"
+async-trait = "*"
 axum = {  version = "0.8.8", features = [ "macros" ] }
 axum_session = { version = "0.18.0" }
 axum_session_auth = { version = "0.18.0" }
 axum_session_sqlx = { version = "0.7.0" }
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
+const_format = "0.2.35"
 chrono = { version = "0.4.44", features = [ "alloc", "serde" ] }
+gloo-net = { version = "0.6.0", features = ["http"] }
 http = "1.4.0"
+image = "0.25.9"
+infer = "0.19.0"
 log = "0.4.29"
 lru = "0.16.3"
+markdown = "1.0.0"
+mime_guess = "2.0.5"
+object_store = {  version = "0.13.1", features = ["aws"] }
 openidconnect = "4.0.1"
+quick-xml = "0.39.2"
 reqwest = { version = "0.12.24", features = ["json"] }
+send_wrapper = { version = "0.6.0", features = ["futures"] }
 serde = { version = "*", features = ["derive"] }
 serde_json = "1.0.149"
 simple_logger = "5.2.0"
@@ -55,6 +76,7 @@ url = "*"
 validator = { version = "0.20.0", features = ["derive"] }
 wasm-bindgen = "=0.2.114"
 web-sys = "0.3.91"
+webp = "0.3.1"
 
 # See https://github.com/akesson/cargo-leptos for documentation of all the parameters.
 

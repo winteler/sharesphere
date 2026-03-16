@@ -1003,22 +1003,31 @@ pub async fn get_sorted_post_vec(
 }
 
 #[server]
-pub async fn get_subscribed_post_vec(
+pub async fn get_homepage_post_vec(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<PostWithSphereInfo>, AppError> {
-    log::info!("get_subscribed_post_vec");
-    let user = check_user().await?;
+    log::info!("get_homepage_post_vec");
+    let user = get_user().await?;
     let db_pool = get_db_pool()?;
-    log::info!("get_subscribed_post_vec, got user and db");
+    log::info!("get_homepage_post_vec, got user and db");
 
-    let post_vec = ssr::get_subscribed_post_vec(
-        sort_type,
-        POST_BATCH_SIZE,
-        num_already_loaded as i64,
-        &user,
-        &db_pool,
-    ).await?;
+    let post_vec = match user {
+        Some(user) => ssr::get_subscribed_post_vec(
+            sort_type,
+            POST_BATCH_SIZE,
+            num_already_loaded as i64,
+            &user,
+            &db_pool,
+        ).await?,
+        None => ssr::get_sorted_post_vec(
+            sort_type,
+            POST_BATCH_SIZE,
+            num_already_loaded as i64,
+            None,
+            &db_pool,
+        ).await?,
+    };
 
     Ok(post_vec)
 }

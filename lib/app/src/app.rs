@@ -10,7 +10,6 @@ use regex::Regex;
 use sharesphere_utils::constants::{POPULAR_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY, SITE_NAME};
 use sharesphere_utils::error_template::ErrorTemplate;
 use sharesphere_utils::errors::AppError;
-use sharesphere_utils::icons::*;
 use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_utils::routes::*;
 use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
@@ -26,7 +25,7 @@ use sharesphere_components::profile::UserProfile;
 use sharesphere_components::search::{Search, SphereSearch};
 use sharesphere_content::post::{CreatePost, Post};
 use sharesphere_core::notification::NotificationHome;
-use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
+use sharesphere_core::post::{get_sorted_post_vec, get_homepage_post_vec, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
 use sharesphere_core::ranking::PostSortWidget;
 use sharesphere_core::sidebar::{HomeSidebar, LeftSidebar};
 use sharesphere_core::sphere::CreateSphere;
@@ -268,7 +267,49 @@ fn HomePage() -> impl IntoView {
     let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
+    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let load_error = RwSignal::new(None);
     let div_ref = NodeRef::<Div>::new();
+
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        SCROLL_LOAD_THROTTLE_DELAY,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
+    log::info!("Render UserHomePage");
+
+    let post_vec_resource = Resource::new(
+        move || (state.post_sort_type.get(), refresh_count.get()),
+        move |(sort_type, _)|  async move {
+            log::info!("Load post_vec_resource");
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
+            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
+            let result = get_homepage_post_vec(sort_type, 0).await;
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            log::info!("post_vec_resource is_ok: {:?}", result.is_ok());
+            if let Err(e) = &result {
+                log::error!("post_vec_resource error {:?}", e);
+            }
+            result
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count_throttled.get() > 0 {
+                log::info!("Load additional_post_resource");
+                is_loading.set(true);
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
+                let additional_load = get_homepage_post_vec(state.post_sort_type.get_untracked(), num_post).await;
+                log::info!("additional_post_resource value: {:?}", additional_load);
+                handle_additional_load(additional_load, additional_post_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
 
     view! {
         <div
@@ -279,16 +320,13 @@ fn HomePage() -> impl IntoView {
             node_ref=div_ref
         >
             <BannerWithWidgets title=move_tr!("home") icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None refresh_count/>
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || Suspend::new(async move {
-                        match state.user.await {
-                            Ok(Some(_)) => view! { <UserHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
-                            _ => view! { <DefaultHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
-                        }
-                    })
-                }
-            </Transition>
+            <PostListWithInitLoad
+                post_vec_resource
+                additional_post_vec
+                is_loading
+                load_error
+                add_y_overflow_auto=false
+            />
         </div>
         <HomeSidebar/>
     }
@@ -297,10 +335,44 @@ fn HomePage() -> impl IntoView {
 /// Renders a page with the most popular content of ShareSphere.
 #[component]
 fn HotPage() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
+    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let load_error = RwSignal::new(None);
     let div_ref = NodeRef::<Div>::new();
+
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        SCROLL_LOAD_THROTTLE_DELAY,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
+    let post_vec_resource = Resource::new(
+        move || (state.post_sort_type.get(), refresh_count.get()),
+        move |(sort_type, _)| async move {
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
+            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
+            let result = get_sorted_post_vec(sort_type, 0).await;
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            result
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count_throttled.get() > 0 {
+                is_loading.set(true);
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
+                let additional_load = get_sorted_post_vec(state.post_sort_type.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, additional_post_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
 
     view! {
         <div
@@ -311,7 +383,13 @@ fn HotPage() -> impl IntoView {
             node_ref=div_ref
         >
             <BannerWithWidgets title=move_tr!("popular") icon_url=Some(String::from(POPULAR_ICON_PATH)) banner_url=None refresh_count/>
-            <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
+            <PostListWithInitLoad
+                post_vec_resource
+                additional_post_vec
+                is_loading=is_loading
+                load_error=load_error
+                add_y_overflow_auto=false
+            />
         </div>
         <HomeSidebar/>
     }
@@ -335,123 +413,6 @@ pub fn BannerWithWidgets(
             <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
             <RefreshButton refresh_count is_tooltip_bottom=true/>
         </div>
-    }
-}
-
-/// Renders the home page anonymous users.
-#[component]
-fn DefaultHomePage(
-    refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i32>,
-    is_loading: RwSignal<bool>,
-    div_ref: NodeRef<Div>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
-    let load_error = RwSignal::new(None);
-
-    let post_vec_resource = Resource::new(
-        move || (state.post_sort_type.get(), refresh_count.get()),
-        move |(sort_type, _)| async move {
-            #[cfg(feature = "hydrate")]
-            is_loading.set(true);
-            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
-            let result = get_sorted_post_vec(sort_type, 0).await;
-            #[cfg(feature = "hydrate")]
-            is_loading.set(false);
-            result
-        }
-    );
-
-    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
-        additional_load_count,
-        SCROLL_LOAD_THROTTLE_DELAY,
-        ThrottleOptions::default().leading(true).trailing(false)
-    );
-
-    let _additional_post_resource = LocalResource::new(
-        move || async move {
-            if additional_load_count_throttled.get() > 0 {
-                is_loading.set(true);
-                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
-                let additional_load = get_sorted_post_vec(state.post_sort_type.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, additional_post_vec, load_error);
-                is_loading.set(false);
-            }
-        }
-    );
-
-    view! {
-        <PostListWithInitLoad
-            post_vec_resource
-            additional_post_vec
-            is_loading=is_loading
-            load_error=load_error
-            add_y_overflow_auto=false
-        />
-    }
-}
-
-/// Renders the home page of a given user.
-#[component]
-fn UserHomePage(
-    refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i32>,
-    is_loading: RwSignal<bool>,
-    div_ref: NodeRef<Div>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
-    let load_error = RwSignal::new(None);
-
-    log::info!("Render UserHomePage");
-
-    let post_vec_resource = Resource::new(
-        move || (state.post_sort_type.get(), refresh_count.get()),
-        move |(sort_type, _)|  async move {
-            log::info!("Load post_vec_resource");
-            #[cfg(feature = "hydrate")]
-            is_loading.set(true);
-            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
-            let result = get_subscribed_post_vec(sort_type, 0).await;
-            #[cfg(feature = "hydrate")]
-            is_loading.set(false);
-            log::info!("post_vec_resource is_ok: {:?}", result.is_ok());
-            if let Err(e) = &result {
-                log::error!("post_vec_resource error {:?}", e);
-            }
-            result
-        }
-    );
-
-    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
-        additional_load_count,
-        SCROLL_LOAD_THROTTLE_DELAY,
-        ThrottleOptions::default().leading(true).trailing(false)
-    );
-
-    let _additional_post_resource = LocalResource::new(
-        move || async move {
-            if additional_load_count_throttled.get() > 0 {
-                log::info!("Load additional_post_resource");
-                is_loading.set(true);
-                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
-                let additional_load = get_subscribed_post_vec(state.post_sort_type.get_untracked(), num_post).await;
-                log::info!("additional_post_resource value: {:?}", additional_load);
-                handle_additional_load(additional_load, additional_post_vec, load_error);
-                is_loading.set(false);
-            }
-        }
-    );
-
-    view! {
-        <PostListWithInitLoad
-            post_vec_resource
-            additional_post_vec
-            is_loading
-            load_error
-            add_y_overflow_auto=false
-        />
     }
 }
 

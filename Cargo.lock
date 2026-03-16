@@ -4966,6 +4966,166 @@ dependencies = [
 ]
 
 [[package]]
+name = "sharesphere_core_common"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "const_format",
+ "fluent-templates",
+ "http",
+ "indoc",
+ "leptos",
+ "leptos-fluent",
+ "leptos-use",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "log",
+ "markdown",
+ "openidconnect",
+ "quick-xml 0.39.2",
+ "reqwest",
+ "sealed_test",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
+ "thiserror 2.0.18",
+ "tokio",
+ "url",
+ "validator",
+ "web-sys",
+]
+
+[[package]]
+name = "sharesphere_core_content"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum_session",
+ "axum_session_auth",
+ "axum_session_sqlx",
+ "chrono",
+ "leptos",
+ "leptos-fluent",
+ "leptos-use",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "log",
+ "lru",
+ "openidconnect",
+ "reqwest",
+ "serde",
+ "sharesphere_core_common",
+ "sharesphere_core_embed",
+ "sharesphere_core_sphere",
+ "sharesphere_core_user",
+ "sqlx",
+ "strum 0.28.0",
+ "tokio",
+ "url",
+ "validator",
+]
+
+[[package]]
+name = "sharesphere_core_embed"
+version = "0.1.0"
+dependencies = [
+ "ammonia",
+ "async-trait",
+ "gloo-net",
+ "http",
+ "leptos",
+ "leptos-fluent",
+ "leptos-use",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "log",
+ "mime_guess",
+ "openidconnect",
+ "reqwest",
+ "send_wrapper",
+ "serde",
+ "serde_json",
+ "sharesphere_core_common",
+ "sqlx",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "sharesphere_core_sphere"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum_session",
+ "axum_session_auth",
+ "axum_session_sqlx",
+ "chrono",
+ "http",
+ "image",
+ "infer",
+ "leptos",
+ "leptos-fluent",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "lru",
+ "object_store",
+ "openidconnect",
+ "reqwest",
+ "serde",
+ "sharesphere_core_common",
+ "sharesphere_core_user",
+ "sqlx",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
+ "tokio",
+ "url",
+ "webp",
+]
+
+[[package]]
+name = "sharesphere_core_user"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum_session",
+ "axum_session_auth",
+ "axum_session_sqlx",
+ "chrono",
+ "fluent-templates",
+ "leptos",
+ "leptos-fluent",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "log",
+ "lru",
+ "openidconnect",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sharesphere_core_common",
+ "sqlx",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "sharesphere_sphere"
 version = "0.1.0"
 dependencies = [

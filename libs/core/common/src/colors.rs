@@ -1,6 +1,5 @@
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter};
 
 #[repr(i16)]

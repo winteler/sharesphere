@@ -1,3 +1,4 @@
+use leptos::html;
 use leptos::prelude::*;
 use leptos::html::ElementType;
 use leptos::wasm_bindgen::JsCast;
@@ -19,4 +20,10 @@ where
             None => false,
         }
     }).unwrap_or_default()
+}
+
+pub fn set_checkbox(is_checked: bool, input_ref: NodeRef<html::Input>) {
+    if let Some(input_ref) = input_ref.get() {
+        input_ref.set_checked(is_checked);
+    }
 }

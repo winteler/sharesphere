@@ -8,7 +8,6 @@ description = "Test crate for the sharesphere_core"
 
 [dependencies]
 sharesphere_core_common = { path = "../common", default-features = false}
-sharesphere_core_embed = { path = "../embed", default-features = false}
 sharesphere_core_user = { path = "../user", default-features = false}
 sharesphere_core_sphere = { path = "../sphere", default-features = false}
 sharesphere_core_content = { path = "../content", default-features = false}
@@ -22,7 +21,11 @@ leptos-fluent.workspace = true
 leptos-use.workspace = true
 
 chrono.workspace = true
+http.workspace = true
+image = { workspace = true, optional = true }
+infer = { workspace = true, optional = true }
 log.workspace = true
+object_store = { workspace = true, optional = true }
 serde.workspace = true
 sqlx = { workspace = true, optional = true }
 strum.workspace = true
@@ -30,6 +33,7 @@ strum_macros.workspace = true
 tokio = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 validator.workspace = true
+webp = { workspace = true, optional = true }
 
 [dev-dependencies]
 bytes = "1.11.1"
@@ -51,7 +55,6 @@ ssr = [
     "leptos-fluent/ssr",
     "leptos-use/ssr",
     "sharesphere_core_common/ssr",
-    "sharesphere_core_embed/ssr",
     "sharesphere_core_user/ssr",
     "sharesphere_core_sphere/ssr",
     "sharesphere_core_content/ssr",

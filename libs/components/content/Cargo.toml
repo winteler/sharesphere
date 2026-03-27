@@ -1,0 +1,41 @@
+[package]
+name = "sharesphere_cmp_content"
+version = "0.1.0"
+edition = "2024"
+description = "Crate for components related to posts and comments"
+
+[dependencies]
+sharesphere_core_common = { path = "../../core/common", default-features = false}
+sharesphere_core_user = { path = "../../core/user", default-features = false}
+sharesphere_core_content = { path = "../../core/content", default-features = false}
+sharesphere_iface_content = { path = "../../interfaces/content", default-features = false}
+
+leptos.workspace = true
+leptos_meta.workspace = true
+leptos_router.workspace = true
+
+leptos-fluent.workspace = true
+leptos-use.workspace = true
+
+chrono.workspace = true
+log.workspace = true
+url.workspace = true
+
+[features]
+default = []
+hydrate = [
+    "leptos/hydrate",
+    "sharesphere_iface_content/hydrate",
+]
+ssr = [
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "leptos-fluent/axum",
+    "leptos-fluent/ssr",
+    "leptos-use/ssr",
+    "sharesphere_core_common/ssr",
+    "sharesphere_core_user/ssr",
+    "sharesphere_core_content/ssr",
+    "sharesphere_iface_content/ssr",
+]

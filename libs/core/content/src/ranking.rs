@@ -293,10 +293,36 @@ pub mod ssr {
     }
 }
 
+pub fn update_vote_value(vote: &mut VoteValue, is_upvote: bool) {
+    *vote = match *vote {
+        VoteValue::Up => {
+            if is_upvote {
+                VoteValue::None
+            } else {
+                VoteValue::Down
+            }
+        }
+        VoteValue::None => {
+            if is_upvote {
+                VoteValue::Up
+            } else {
+                VoteValue::Down
+            }
+        }
+        VoteValue::Down => {
+            if is_upvote {
+                VoteValue::Up
+            } else {
+                VoteValue::None
+            }
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use sharesphere_core_common::constants::{BEST_ORDER_BY_COLUMN, HOT_ORDER_BY_COLUMN, RECENT_ORDER_BY_COLUMN, TRENDING_ORDER_BY_COLUMN};
-    use crate::ranking::{CommentSortType, PostSortType, SortType, VoteValue};
+    use crate::ranking::{update_vote_value, CommentSortType, PostSortType, SortType, VoteValue};
 
     #[test]
     fn test_post_sort_type_to_order_by_code() {
@@ -329,5 +355,22 @@ mod tests {
         assert_eq!(VoteValue::from(0), VoteValue::None);
         assert_eq!(VoteValue::from(-1), VoteValue::Down);
         assert_eq!(VoteValue::from(-312), VoteValue::Down);
+    }
+
+    #[test]
+    fn test_update_vote_value() {
+        let mut vote = VoteValue::None;
+        update_vote_value(&mut vote, true);
+        assert_eq!(vote, VoteValue::Up);
+        update_vote_value(&mut vote, true);
+        assert_eq!(vote, VoteValue::None);
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, VoteValue::Down);
+        update_vote_value(&mut vote, true);
+        assert_eq!(vote, VoteValue::Up);
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, VoteValue::Down);
+        update_vote_value(&mut vote, false);
+        assert_eq!(vote, VoteValue::None);
     }
 }

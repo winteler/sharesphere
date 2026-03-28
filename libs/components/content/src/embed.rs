@@ -9,8 +9,8 @@ use serde::{Serialize, de::DeserializeOwned, Deserialize};
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use url::Url;
 
-use crate::errors::{AppError, ErrorDetail};
-use crate::icons::LinkIcon;
+use sharesphere_cmp_common::errors::{AppError, ErrorDetail};
+use sharesphere_cmp_common::icons::LinkIcon;
 
 const DEFAULT_MEDIA_CLASS: &str = "h-fit w-fit max-h-160 max-w-full object-contain";
 const THUMBNAIL_CLASS: &str = "h-16 w-16 object-contain";

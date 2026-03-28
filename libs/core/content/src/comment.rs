@@ -10,8 +10,6 @@ use {
     crate::ranking::{ssr::vote_on_content, VoteValue},
 };
 
-pub const COMMENT_BATCH_SIZE: i64 = 50;
-
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Comment {

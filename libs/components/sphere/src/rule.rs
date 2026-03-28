@@ -2,16 +2,16 @@ use leptos::form::ActionForm;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
-use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
-use sharesphere_utils::icons::{CrossIcon, EditIcon, PlusIcon};
-use sharesphere_utils::unpack::{TransitionUnpack};
-use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons};
+use sharesphere_core_common::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
+use sharesphere_core_common::icons::{CrossIcon, EditIcon, PlusIcon};
+use sharesphere_core_common::unpack::{TransitionUnpack};
+use sharesphere_core_common::widget::{ContentBody, ModalDialog, ModalFormButtons};
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::rule::Rule;
 use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_utils::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_TITLE_LENGTH};
+use sharesphere_core_common::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_TITLE_LENGTH};
 
 /// Component to manage sphere rules
 #[component]

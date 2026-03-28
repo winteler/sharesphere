@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use leptos::server_fn::codec::{MultipartData, MultipartFormData};
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 #[cfg(feature = "ssr")]
 use {
@@ -9,7 +9,7 @@ use {
         auth::{ssr::check_user, ssr::reload_user},
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::checks::{check_sphere_name, check_username},
+    sharesphere_core_common::checks::{check_sphere_name, check_username},
     ssr::{
         MAX_BANNER_SIZE, MAX_ICON_SIZE, OBJECT_CONTAINER_URL_ENV, SphereImageType
     }

@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::unpack::SuspenseUnpack;
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::form::LabeledFormCheckbox;
+use sharesphere_core_common::unpack::SuspenseUnpack;
 
 use crate::user::UserState;
 

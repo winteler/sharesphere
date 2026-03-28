@@ -71,7 +71,7 @@ pub fn get_username_memo(params: Memo<ParamsMap>) -> Memo<String> {
 /// # Returns the path to a sphere given its name
 ///
 /// ```
-/// use sharesphere_utils::routes::get_sphere_path;
+/// use sharesphere_core_common::routes::get_sphere_path;
 ///
 /// assert_eq!(get_sphere_path("test"), "/spheres/test");
 /// ```
@@ -84,7 +84,7 @@ pub fn get_sphere_path(
 /// # Extract the sphere name from the current path, if it exists
 ///
 /// ```
-/// use sharesphere_utils::routes::get_sphere_from_path;
+/// use sharesphere_core_common::routes::get_sphere_from_path;
 ///
 /// assert_eq!(get_sphere_from_path("test"), None);
 /// assert_eq!(get_sphere_from_path("/spheres/test"), Some(String::from("test")));
@@ -119,7 +119,7 @@ pub fn get_sphere_name_memo(params: Memo<ParamsMap>) -> Memo<String> {
 /// # Returns the path to a satellite given its id and sphere name
 ///
 /// ```
-/// use sharesphere_utils::routes::get_satellite_path;
+/// use sharesphere_core_common::routes::get_satellite_path;
 /// use leptos::prelude::*;
 /// let owner = Owner::new();
 /// owner.set();
@@ -164,7 +164,7 @@ pub fn get_create_post_path() -> Signal<String> {
 /// # Returns the path to a post given its id, sphere and optional satellite
 ///
 /// ```
-/// use sharesphere_utils::routes::get_post_path;
+/// use sharesphere_core_common::routes::get_post_path;
 ///
 /// assert_eq!(get_post_path("test", None, 1), "/spheres/test/posts/1");
 /// assert_eq!(get_post_path("test", Some(1), 2), "/spheres/test/satellites/1/posts/2");
@@ -198,7 +198,7 @@ pub fn get_post_link(
 /// Returns the path to a comment given its id, post_id, sphere and optional satellite
 ///
 /// ```
-/// use sharesphere_utils::routes::get_comment_path;
+/// use sharesphere_core_common::routes::get_comment_path;
 ///
 /// assert_eq!(get_comment_path("test", None, 1, 2), "/spheres/test/posts/1?comment_id=2");
 /// assert_eq!(get_comment_path("test", Some(1), 2, 3), "/spheres/test/satellites/1/posts/2?comment_id=3");

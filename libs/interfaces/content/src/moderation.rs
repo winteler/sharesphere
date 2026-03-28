@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 #[cfg(feature = "ssr")]
 use {
@@ -13,7 +13,7 @@ use {
         auth::ssr::{check_user, reload_user},
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::{
+    sharesphere_core_common::{
         checks::check_string_length,
         constants::MAX_MOD_MESSAGE_LENGTH,
     }

@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
 
-use sharesphere_utils::icons::{FiltersIcon};
-use sharesphere_utils::unpack::SuspenseUnpack;
-use sharesphere_utils::widget::{Dropdown};
+use sharesphere_core_common::icons::{FiltersIcon};
+use sharesphere_core_common::unpack::SuspenseUnpack;
+use sharesphere_core_common::widget::{Dropdown};
 use crate::sphere_category::{SphereCategoryBadge};
 use crate::state::SphereState;
 

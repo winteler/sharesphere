@@ -13,13 +13,13 @@ use sharesphere_core::post::{PostListWithIndicators};
 use sharesphere_core::search::{get_matching_user_header_vec, is_content_search_valid, search_comments, search_posts, SearchForm, SearchSpheres, SearchState};
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_core::state::SphereState;
-use sharesphere_utils::checks::{check_username};
-use sharesphere_utils::constants::{MAX_SEARCH_QUERY_LENGTH, MAX_USERNAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
-use sharesphere_utils::icons::MagnifierIcon;
-use sharesphere_utils::routes::{SEARCH_ROUTE, SEARCH_TAB_QUERY_PARAM};
-use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
+use sharesphere_core_common::checks::{check_username};
+use sharesphere_core_common::constants::{MAX_SEARCH_QUERY_LENGTH, MAX_USERNAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_core_common::icons::MagnifierIcon;
+use sharesphere_core_common::routes::{SEARCH_ROUTE, SEARCH_TAB_QUERY_PARAM};
+use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
 
-use sharesphere_utils::widget::{EnumQueryTabs, ToView};
+use sharesphere_core_common::widget::{EnumQueryTabs, ToView};
 use crate::profile::{UserHeaderLink};
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]

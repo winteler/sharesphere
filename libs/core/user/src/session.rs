@@ -6,7 +6,7 @@ pub mod ssr {
     use axum_session_sqlx::SessionPgPool;
     use leptos::prelude::{use_context, config};
 
-    use sharesphere_utils::errors::AppError;
+    use sharesphere_core_common::errors::AppError;
 
     use crate::user::ssr::UserLockCache;
     use crate::user::User;

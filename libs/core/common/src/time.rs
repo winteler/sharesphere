@@ -21,12 +21,6 @@ use crate::constants::{
 use crate::errors::{AppError, ErrorDisplay};
 use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 
-pub const SPHERE_NAME_PARAM: &str = "sphere_name";
-pub const IMAGE_FILE_PARAM: &str = "image";
-
-pub trait ToView {
-    fn to_view(self) -> impl IntoView + 'static;
-}
 
 enum TimeUnit {
     Seconds,

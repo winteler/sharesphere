@@ -6,26 +6,26 @@ use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use validator::{Validate};
-use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
-use sharesphere_utils::checks::{check_post_title, check_sphere_name};
-use sharesphere_utils::embed::{EmbedPreview, EmbedType, Link};
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::routes::get_post_path;
+use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
+use sharesphere_core_common::checks::{check_post_title, check_sphere_name};
+use sharesphere_core_common::embed::{EmbedPreview, EmbedType, Link};
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::routes::get_post_path;
 
 use sharesphere_auth::auth_widget::AuthorWidget;
 use sharesphere_auth::role::IsPinnedCheckbox;
-use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
-use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
+use sharesphere_core_common::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
+use sharesphere_core_common::form::LabeledFormCheckbox;
+use sharesphere_core_common::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
 use crate::ranking::{SortType, Vote};
 use crate::sphere::{SphereHeader, SphereHeaderLink};
 use crate::sphere_category::{SphereCategory, SphereCategoryBadge, SphereCategoryDropdown, SphereCategoryHeader};
 
-use sharesphere_utils::icons::{NsfwIcon};
-use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_utils::unpack::SuspenseUnpack;
+use sharesphere_core_common::icons::{NsfwIcon};
+use sharesphere_core_common::node_utils::has_reached_scroll_load_threshold;
+use sharesphere_core_common::unpack::SuspenseUnpack;
 
 
 /// Component to initially load on the server a vector of post and load additional post on the client upon scrolling

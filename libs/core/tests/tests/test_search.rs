@@ -10,8 +10,8 @@ use sharesphere_core::sphere::SphereHeader;
 use sharesphere_core::sphere_management::ssr::set_sphere_icon_url;
 use sharesphere_auth::user::ssr::set_user_settings;
 use sharesphere_auth::user::{User, UserHeader};
-use sharesphere_utils::embed::Link;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::embed::Link;
+use sharesphere_core_common::errors::AppError;
 use std::collections::BTreeSet;
 
 mod common;

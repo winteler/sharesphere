@@ -7,7 +7,7 @@ use sharesphere_auth::role::AdminRole;
 use sharesphere_auth::user::User;
 use sharesphere_core::rule::{get_rule_title, get_rule_description, BaseRule};
 use sharesphere_core::rule::ssr::{add_rule, remove_rule, update_rule};
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 use crate::common::{create_user, get_db_pool, get_i18n};
 use crate::data_factory::{add_base_rule, remove_base_rule, update_base_rule};

@@ -6,15 +6,15 @@ use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use validator::{Validate};
-use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
-use sharesphere_utils::checks::{check_post_title, check_sphere_name};
-use sharesphere_utils::embed::{EmbedPreview, EmbedType, Link};
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::routes::get_post_path;
+use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
+use sharesphere_core_common::checks::{check_post_title, check_sphere_name};
+use sharesphere_core_common::embed::{EmbedPreview, EmbedType, Link};
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::routes::get_post_path;
 
-use sharesphere_utils::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
-use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
+use sharesphere_core_common::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
+use sharesphere_core_common::form::LabeledFormCheckbox;
+use sharesphere_core_common::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
 
 use crate::filter::SphereCategoryFilter;
 use crate::ranking::{SortType, Vote};
@@ -27,17 +27,15 @@ use {
         auth::{get_user, ssr::check_user},
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::{
+    sharesphere_core_common::{
         editor::clear_newlines,
         editor::ssr::get_html_and_markdown_strings,
     },
     crate::ranking::{VoteValue, ssr::vote_on_content},
 };
-use sharesphere_utils::icons::{NsfwIcon};
-use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_utils::unpack::SuspenseUnpack;
-
-pub const POST_BATCH_SIZE: i64 = 50;
+use sharesphere_core_common::icons::{NsfwIcon};
+use sharesphere_core_common::node_utils::has_reached_scroll_load_threshold;
+use sharesphere_core_common::unpack::SuspenseUnpack;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -176,9 +174,9 @@ pub mod ssr {
     use sqlx::PgPool;
     use sharesphere_auth::role::PermissionLevel;
     use sharesphere_auth::user::User;
-    use sharesphere_utils::colors::Color;
-    use sharesphere_utils::embed::{verify_link_and_get_embed, EmbedType, Link};
-    use sharesphere_utils::errors::AppError;
+    use sharesphere_core_common::colors::Color;
+    use sharesphere_core_common::embed::{verify_link_and_get_embed, EmbedType, Link};
+    use sharesphere_core_common::errors::AppError;
     use crate::filter::SphereCategoryFilter;
     use crate::post::{Post, PostInheritedAttributes, PostTags, PostWithInfo, PostWithSphereInfo};
     use crate::ranking::{SortType, Vote, VoteValue};
@@ -882,8 +880,8 @@ pub mod ssr {
     #[cfg(test)]
     mod tests {
         use sharesphere_auth::user::User;
-        use sharesphere_utils::colors::Color;
-        use sharesphere_utils::embed::{EmbedType, Link, LinkType};
+        use sharesphere_core_common::colors::Color;
+        use sharesphere_core_common::embed::{EmbedType, Link, LinkType};
         use crate::post::ssr::{PostJoinInfo, process_embed_link};
         use crate::post::Post;
         use crate::ranking::{VoteValue};

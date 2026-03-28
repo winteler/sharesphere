@@ -8,8 +8,8 @@ use sharesphere_core::comment::{CommentWithChildren, COMMENT_BATCH_SIZE};
 use sharesphere_core::post::ssr::get_post_by_id;
 use sharesphere_core::ranking::{CommentSortType, SortType};
 use sharesphere_auth::user::User;
-use sharesphere_utils::editor::get_styled_html_from_markdown;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::editor::get_styled_html_from_markdown;
+use sharesphere_core_common::errors::AppError;
 
 mod common;
 mod data_factory;

@@ -2,22 +2,12 @@ use std::cmp::max;
 use std::collections::{HashMap};
 use std::default::Default;
 
-use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::icons::{NsfwIcon, UserIcon};
+use sharesphere_core_common::errors::AppError;
 
-use crate::auth::Login;
 use crate::role::{AdminRole, PermissionLevel};
 
-#[cfg(feature = "ssr")]
-use crate::{
-    auth::ssr::{check_user, delete_user_in_oidc_provider, reload_user},
-    session::ssr::get_db_pool
-};
-
-pub const USER_FETCH_LIMIT: i64 = 100;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum BanStatus {
@@ -71,12 +61,6 @@ pub struct UserBan {
     pub until_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub create_timestamp: chrono::DateTime<chrono::Utc>,
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-}
-
-#[derive(Copy, Clone)]
-pub struct UserState {
-    pub login_action: ServerAction<Login>,
-    pub user: Resource<Result<Option<User>, AppError>>,
 }
 
 impl BanStatus {
@@ -200,7 +184,7 @@ pub mod ssr {
     use lru::LruCache;
     use sqlx::PgPool;
     use tokio::sync::Mutex;
-    use sharesphere_utils::errors::AppError;
+    use sharesphere_core_common::errors::AppError;
 
     use crate::role::ssr::get_user_sphere_role;
     use crate::role::UserSphereRole;

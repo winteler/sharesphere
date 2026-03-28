@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use sharesphere_utils::icons::{MinusIcon, PlusIcon};
+use sharesphere_core_common::icons::{MinusIcon, PlusIcon};
 use sharesphere_auth::auth::{LoginGuardedButton};
 use sharesphere_core::ranking::{Vote, VoteOnContent, VoteValue};
 

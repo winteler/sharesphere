@@ -1,6 +1,6 @@
 
 use leptos::prelude::*;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 #[cfg(feature = "ssr")]
 use {
@@ -8,7 +8,7 @@ use {
         auth::{get_user, ssr::check_user},
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::{
+    sharesphere_core_common::{
         editor::clear_newlines,
         editor::ssr::get_html_and_markdown_strings,
     },

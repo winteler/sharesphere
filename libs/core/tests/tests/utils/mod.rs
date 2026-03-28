@@ -10,7 +10,7 @@ use sharesphere_core::post::{PostWithSphereInfo};
 use sharesphere_core::ranking::{CommentSortType, PostSortType, Vote, VoteValue};
 use sharesphere_core::comment::Comment;
 use sharesphere_core::post::Post;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 use sqlx::PgPool;
 use std::cmp::Ordering;
 use std::convert::Infallible;

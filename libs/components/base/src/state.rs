@@ -4,17 +4,23 @@ use leptos::prelude::*;
 use sharesphere_auth::auth::EndSession;
 use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
 use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
-use sharesphere_utils::errors::AppError;
-
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_user::user::User;
 use crate::filter::SphereCategoryFilter;
 use crate::moderation::ModeratePost;
-use crate::notification::{Notification, get_notifications};
+use sharesphere_cmp_content::notification::{Notification, get_notifications};
 use crate::post::{DeletePost, EditPost};
 use crate::ranking::{CommentSortType, PostSortType, SortType};
 use crate::rule::{get_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
 use crate::satellite::{CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
 use crate::sphere::{CreateSphere, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
 use crate::sphere_category::{DeleteSphereCategory, SetSphereCategory, SphereCategory};
+
+#[derive(Copy, Clone)]
+pub struct UserState {
+    pub login_action: ServerAction<Login>,
+    pub user: Resource<Result<Option<User>, AppError>>,
+}
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {

@@ -10,12 +10,12 @@ use leptos_router::NavigateOptions;
 use serde::de::DeserializeOwned;
 use web_sys::FormData;
 
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::form::LabeledSignalCheckbox;
-use sharesphere_utils::icons::{AuthErrorIcon, AuthorIcon, DeleteIcon, LoadingIcon, ModeratorIcon, SelfAuthorIcon, SelfModeratorIcon};
-use sharesphere_utils::routes::{get_profile_path};
-use sharesphere_utils::unpack::ActionError;
-use sharesphere_utils::widget::{ModalDialog, ModalFormButtons};
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::form::LabeledSignalCheckbox;
+use sharesphere_core_common::icons::{AuthErrorIcon, AuthorIcon, DeleteIcon, LoadingIcon, ModeratorIcon, SelfAuthorIcon, SelfModeratorIcon};
+use sharesphere_core_common::routes::{get_profile_path};
+use sharesphere_core_common::unpack::ActionError;
+use sharesphere_core_common::widget::{ModalDialog, ModalFormButtons};
 use crate::auth::LoginGuardedButton;
 use crate::user::UserState;
 

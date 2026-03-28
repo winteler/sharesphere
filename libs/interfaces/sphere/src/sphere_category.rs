@@ -6,8 +6,8 @@ use {
         auth::ssr::{check_user},
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH},
-    sharesphere_utils::checks::{check_sphere_name, check_string_length},
+    sharesphere_core_common::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH},
+    sharesphere_core_common::checks::{check_sphere_name, check_string_length},
 };
 
 #[server]

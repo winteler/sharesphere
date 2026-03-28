@@ -7,17 +7,17 @@ use leptos_use::{breakpoints_tailwind, BreakpointsTailwind, storage::use_local_s
 use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
-use sharesphere_utils::constants::{LOGO_ICON_PATH, SITE_NAME};
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, UnreadIcon};
-use sharesphere_utils::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
-use sharesphere_utils::unpack::{SuspenseUnpack};
-use sharesphere_utils::widget::{RefreshResourceButton, TimeSinceWidget};
+use sharesphere_core_common::constants::{LOGO_ICON_PATH, SITE_NAME};
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, UnreadIcon};
+use sharesphere_core_common::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
+use sharesphere_core_common::unpack::{SuspenseUnpack};
+use sharesphere_core_common::widget::{RefreshResourceButton, TimeSinceWidget};
 use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
 
 use crate::sidebar::HomeSidebar;
-use crate::sphere::{SphereHeader, SphereHeaderLink};
-use crate::state::GlobalState;
+use sharesphere_cmp_base::sphere::{SphereHeader, SphereHeaderLink};
+use sharesphere_cmp_base::state::GlobalState;
 
 
 /// When logged in, displays a bell button with the number of unread notifications, redirects to the notification page on click.

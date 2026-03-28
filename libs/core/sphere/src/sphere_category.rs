@@ -1,4 +1,3 @@
-use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use sharesphere_core_common::colors::Color;

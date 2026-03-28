@@ -2,18 +2,18 @@ use std::collections::HashMap;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
-use sharesphere_utils::colors::{Color, ColorIndicator, ColorSelect};
-use sharesphere_utils::editor::{adjust_textarea_height, FormTextEditor, LengthLimitedInput, TextareaData};
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::form::FormCheckbox;
-use sharesphere_utils::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
-use sharesphere_utils::unpack::TransitionUnpack;
+use sharesphere_core_common::colors::{Color, ColorIndicator, ColorSelect};
+use sharesphere_core_common::editor::{adjust_textarea_height, FormTextEditor, LengthLimitedInput, TextareaData};
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::form::FormCheckbox;
+use sharesphere_core_common::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
+use sharesphere_core_common::unpack::TransitionUnpack;
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
 use sharesphere_core::sphere_category::{SphereCategory, SphereCategoryHeader};
 use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_utils::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH};
+use sharesphere_core_common::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH};
 
 /// Component to manage sphere categories
 #[component]
@@ -207,8 +207,8 @@ pub fn get_sphere_category_header_map(
 #[cfg(test)]
 mod tests {
     use leptos::prelude::ServerFnErrorErr;
-    use sharesphere_utils::colors::Color;
-    use sharesphere_utils::errors::AppError;
+    use sharesphere_core_common::colors::Color;
+    use sharesphere_core_common::errors::AppError;
 
     use crate::sphere_category::{get_sphere_category_header_map, SphereCategory};
 

@@ -44,5 +44,11 @@ pub const MAX_SEARCH_QUERY_LENGTH: usize = 200;
 pub const MAX_CATEGORY_NAME_LENGTH: usize = 50;
 pub const MAX_CATEGORY_DESCRIPTION_LENGTH: usize = 500;
 
+
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
 pub const IMAGE_FILE_PARAM: &str = "image";
+
+
+pub const USER_FETCH_LIMIT: i64 = 100;
+pub const POST_BATCH_SIZE: i64 = 50;
+pub const COMMENT_BATCH_SIZE: i64 = 50;

@@ -7,11 +7,11 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
-use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
-use sharesphere_utils::routes::{get_profile_path, get_username_memo};
-use sharesphere_utils::unpack::{handle_additional_load, handle_initial_load, reset_additional_load, ActionError};
-use sharesphere_utils::widget::{EnumQueryTabs, ModalDialog, ModalFormButtons, ToView};
+use sharesphere_core_common::form::LabeledFormCheckbox;
+use sharesphere_core_common::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
+use sharesphere_core_common::routes::{get_profile_path, get_username_memo};
+use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load, reset_additional_load, ActionError};
+use sharesphere_core_common::widget::{EnumQueryTabs, ModalDialog, ModalFormButtons, ToView};
 
 use sharesphere_auth::auth::NavigateToUserAccount;
 use sharesphere_auth::user::{UserHeader, UserHeaderWidget};
@@ -22,7 +22,7 @@ use sharesphere_core::profile::{get_user_comment_vec, get_user_post_vec};
 use sharesphere_core::ranking::{CommentSortType, CommentSortWidget, PostSortType, PostSortWidget, SortType};
 use sharesphere_core::sidebar::HomeSidebar;
 use sharesphere_core::state::GlobalState;
-use sharesphere_utils::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_core_common::constants::SCROLL_LOAD_THROTTLE_DELAY;
 
 pub const PROFILE_TAB_QUERY_PARAM: &str = "tab";
 

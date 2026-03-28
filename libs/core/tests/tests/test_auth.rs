@@ -9,7 +9,7 @@ use sharesphere_auth::user::ssr::{create_or_update_user, SqlUser};
 use sharesphere_auth::user::User;
 use sharesphere_core::moderation::ssr::ban_user_from_sphere;
 use sharesphere_core::sphere;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 mod common;
 mod data_factory;

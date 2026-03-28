@@ -5,15 +5,11 @@ use leptos_fluent::{move_tr, tr};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
+use sharesphere_core_common::common::SphereHeader;
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_common::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
+use sharesphere_core_common::routes::{get_comment_path, get_post_path};
 
-use crate::sphere::{SphereHeader, SphereHeaderLink};
-
-const NOTIF_STATE_STORAGE: &str = "notification_state";
-const NOTIF_TAG: &str = "sharesphere-notif";
 pub const NOTIF_RETENTION_DAYS: i64 = 31;
-const NOTIF_RELOAD_INTERVAL_MS: u64 = 900000;
 
 #[repr(i16)]
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -44,7 +40,7 @@ pub struct Notification {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-struct NotifHandler {
+pub struct NotifHandler {
     emitted_notif_id_set: HashSet<i64>,
     timestamp_2_notif_id: BTreeMap<chrono::DateTime<chrono::Utc>, i64>,
 }
@@ -121,6 +117,7 @@ impl NotifHandler {
 pub mod ssr {
     use sqlx::PgPool;
 
+    use sharesphere_core_common::common::SphereHeader;
     use sharesphere_core_common::errors::AppError;
 
     use crate::notification::{Notification, NotificationType, NOTIF_RETENTION_DAYS};
@@ -239,7 +236,7 @@ pub mod ssr {
     }
 }
 
-fn on_read_notif(
+pub fn on_read_notif(
     is_notif_read: ArcRwSignal<bool>,
     unread_notif_count: RwSignal<usize>,
     read_notif_action: Action<(), Result<(), AppError>>,
@@ -252,7 +249,7 @@ fn on_read_notif(
     read_notif_action.dispatch(());
 }
 
-fn get_notification_path(notification: &Notification) -> String {
+pub fn get_notification_path(notification: &Notification) -> String {
     match notification.comment_id {
         Some(comment_id) => get_comment_path(
             &notification.sphere_header.sphere_name,
@@ -268,7 +265,7 @@ fn get_notification_path(notification: &Notification) -> String {
     }
 }
 
-fn get_notification_text(notification: &Notification) -> Signal<String> {
+pub fn get_notification_text(notification: &Notification) -> Signal<String> {
     match (notification.notification_type, notification.comment_id) {
         (NotificationType::PostReply, _) => move_tr!("notification-post-reply"),
         (NotificationType::CommentReply, _) => move_tr!("notification-comment-reply"),
@@ -277,7 +274,7 @@ fn get_notification_text(notification: &Notification) -> Signal<String> {
     }
 }
 
-fn get_web_notif_text(notification: &Notification) -> String {
+pub fn get_web_notif_text(notification: &Notification) -> String {
     let username = notification.trigger_username.clone();
     let sphere_name = notification.sphere_header.sphere_name.clone();
     match (notification.notification_type, notification.comment_id) {
@@ -304,9 +301,11 @@ mod tests {
     use leptos::prelude::*;
     use leptos_fluent::{tr, I18n, Language};
 
+    use sharesphere_core_common::common::SphereHeader;
     use sharesphere_core_common::routes::{get_comment_path, get_post_path};
+
     use crate::notification::{get_notification_path, get_notification_text, get_web_notif_text, NotifHandler, Notification, NotificationType, NOTIF_RETENTION_DAYS};
-    use crate::sphere::SphereHeader;
+
 
     const EN_LANG: Language = Language {
         id: "en",
@@ -330,7 +329,7 @@ mod tests {
     fn get_i18n() -> I18n {
         static_loader! {
             static TRANSLATIONS = {
-                locales: "../../locales",
+                locales: "../../../locales",
                 fallback_language: "en",
             };
         }

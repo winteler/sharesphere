@@ -5,9 +5,9 @@ use leptos_fluent::{move_tr};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
-use sharesphere_utils::errors::{AppError, ErrorDisplay};
-use sharesphere_utils::icons::LoadingIcon;
-use sharesphere_utils::widget::{Collapse, ContentBody, TitleCollapse};
+use sharesphere_core_common::errors::{AppError, ErrorDisplay};
+use sharesphere_core_common::icons::LoadingIcon;
+use sharesphere_core_common::widget::{Collapse, ContentBody, TitleCollapse};
 use crate::state::GlobalState;
 
 

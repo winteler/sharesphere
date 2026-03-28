@@ -6,13 +6,13 @@ use leptos_router::components::Outlet;
 use leptos_router::hooks::use_params_map;
 use leptos_use::{signal_throttled_with_options, ThrottleOptions};
 use url::Url;
-use sharesphere_utils::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
-use sharesphere_utils::embed::EmbedType;
-use sharesphere_utils::form::LabeledFormCheckbox;
-use sharesphere_utils::icons::{CrossIcon, EditIcon, LinkIcon, NsfwIcon, PauseIcon, PlayIcon, PlusIcon};
-use sharesphere_utils::routes::{get_satellite_id_memo, get_satellite_path};
-use sharesphere_utils::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
-use sharesphere_utils::widget::{ContentBody, ModalDialog, ModalFormButtons, SpoilerBadge, TagsWidget};
+use sharesphere_core_common::editor::{FormMarkdownEditor, FormTextEditor, TextareaData};
+use sharesphere_core_common::embed::EmbedType;
+use sharesphere_core_common::form::LabeledFormCheckbox;
+use sharesphere_core_common::icons::{CrossIcon, EditIcon, LinkIcon, NsfwIcon, PauseIcon, PlayIcon, PlusIcon};
+use sharesphere_core_common::routes::{get_satellite_id_memo, get_satellite_path};
+use sharesphere_core_common::unpack::{handle_additional_load, reset_additional_load, ActionError, SuspenseUnpack, TransitionUnpack};
+use sharesphere_core_common::widget::{ContentBody, ModalDialog, ModalFormButtons, SpoilerBadge, TagsWidget};
 
 use sharesphere_auth::role::{AuthorizedShow, PermissionLevel};
 
@@ -22,8 +22,8 @@ use sharesphere_core::satellite::{get_satellite_by_id, get_satellite_vec_by_sphe
 use sharesphere_core::sphere::get_sphere_with_user_info;
 use sharesphere_core::sphere_category::get_sphere_category_vec;
 use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_utils::checks::{check_satellite_name, check_string_length};
-use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_core_common::checks::{check_satellite_name, check_string_length};
+use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
 use crate::sphere::{SphereToolbar};
 use crate::sphere_category::{get_sphere_category_header_map};
 
@@ -548,7 +548,7 @@ fn are_satellite_inputs_invalid(satellite_name: Signal<String>, satellite_body: 
 #[cfg(test)]
 mod test {
     use leptos::prelude::{GetUntracked, Owner, RwSignal, Set};
-    use sharesphere_utils::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH};
+    use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH};
     use crate::satellite::are_satellite_inputs_invalid;
 
     #[test]

@@ -4,12 +4,12 @@ use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use sharesphere_core::rule::BaseRule;
 use sharesphere_core::sidebar::HomeSidebar;
-use sharesphere_utils::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE};
+use sharesphere_core_common::routes::{CONTENT_POLICY_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE};
 
 use sharesphere_core::state::GlobalState;
-use sharesphere_utils::errors::{ErrorDisplay};
-use sharesphere_utils::icons::{LoadingIcon, NsfwIcon, SpoilerIcon};
-use sharesphere_utils::widget::{ContentBody, TitleCollapse};
+use sharesphere_core_common::errors::{ErrorDisplay};
+use sharesphere_core_common::icons::{LoadingIcon, NsfwIcon, SpoilerIcon};
+use sharesphere_core_common::widget::{ContentBody, TitleCollapse};
 
 #[component]
 pub fn AboutShareSphere() -> impl IntoView {

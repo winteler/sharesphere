@@ -225,7 +225,7 @@ pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, AppError> {
 /// # Check if the `scheme` matches the given `url`
 ///
 /// ```
-/// use sharesphere_utils::embed::url_matches_scheme;
+/// use sharesphere_core_common::embed::url_matches_scheme;
 ///
 /// assert_eq!(url_matches_scheme("https://www.youtube.com/watch?v=test", "https://*.youtube.com/watch*"), true);
 /// assert_eq!(url_matches_scheme("https://bsky.app/profile/test/post/testpost", "https://bsky.app/profile/*/post/*"), true);

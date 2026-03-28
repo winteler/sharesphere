@@ -10,6 +10,7 @@ members = [
     "libs/interfaces/sphere",
     "libs/interfaces/content",
     "libs/components/common",
+    "libs/components/base",
     "libs/components/user",
     "libs/components/sphere",
     "libs/components/content",

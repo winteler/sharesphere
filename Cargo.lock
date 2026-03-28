@@ -4700,6 +4700,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "sharesphere_cmp_base"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "const_format",
+ "fluent-templates",
+ "http",
+ "indoc",
+ "leptos",
+ "leptos-fluent",
+ "leptos-use",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "log",
+ "markdown",
+ "openidconnect",
+ "quick-xml 0.39.2",
+ "reqwest",
+ "sealed_test",
+ "serde",
+ "serde_json",
+ "sharesphere_core_common",
+ "sharesphere_core_content",
+ "sharesphere_core_sphere",
+ "sharesphere_core_user",
+ "sqlx",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
+ "thiserror 2.0.18",
+ "tokio",
+ "url",
+ "validator",
+ "web-sys",
+]
+
+[[package]]
 name = "sharesphere_cmp_common"
 version = "0.1.0"
 dependencies = [

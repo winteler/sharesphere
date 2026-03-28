@@ -6,7 +6,7 @@ use sharesphere_core::moderation::ssr::ban_user_from_sphere;
 use sharesphere_core::profile::ssr::{get_user_comment_vec, get_user_post_vec};
 use sharesphere_core::ranking::{CommentSortType, PostSortType, SortType};
 use sharesphere_core::rule::ssr::add_rule;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 use crate::common::{create_test_user, create_user, get_db_pool};
 use crate::data_factory::{create_simple_post, create_sphere_with_post_and_comment};

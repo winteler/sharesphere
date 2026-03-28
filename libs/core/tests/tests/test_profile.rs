@@ -8,8 +8,8 @@ use sharesphere_core::post::{PostTags, PostWithSphereInfo};
 use sharesphere_core::profile::ssr::{get_user_comment_vec, get_user_post_vec};
 use sharesphere_core::ranking::{CommentSortType, PostSortType, SortType, VoteValue};
 use sharesphere_core::satellite::ssr::create_satellite;
-use sharesphere_utils::embed::Link;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::embed::Link;
+use sharesphere_core_common::errors::AppError;
 
 mod common;
 mod data_factory;

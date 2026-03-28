@@ -1,5 +1,5 @@
 use sharesphere_auth::user::User;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 use sharesphere_core::satellite::ssr::{get_active_satellite_vec_by_sphere_name, get_satellite_by_id, get_satellite_vec_by_sphere_name};
 use sharesphere_core::sphere::ssr::create_sphere;

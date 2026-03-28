@@ -5,8 +5,8 @@ use std::default::Default;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use sharesphere_utils::errors::AppError;
-use sharesphere_utils::icons::{NsfwIcon, UserIcon};
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::icons::{NsfwIcon, UserIcon};
 
 use crate::auth::Login;
 use crate::role::{AdminRole, PermissionLevel};

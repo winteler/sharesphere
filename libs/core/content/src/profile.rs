@@ -1,21 +1,16 @@
-use leptos::prelude::*;
-use sharesphere_utils::errors::AppError;
-use crate::comment::{CommentWithContext};
-use crate::post::{PostWithSphereInfo};
+use sharesphere_core_common::errors::AppError;
 use crate::ranking::SortType;
 
 #[cfg(feature = "ssr")]
 use {
-    sharesphere_auth::session::ssr::get_db_pool,
-    sharesphere_utils::checks::check_username,
-    crate::comment::{COMMENT_BATCH_SIZE},
-    crate::post::{POST_BATCH_SIZE},
+    sharesphere_core_common::checks::check_username,
+    sharesphere_core_common::constants::{COMMENT_BATCH_SIZE, POST_BATCH_SIZE},
 };
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-    use sharesphere_utils::errors::AppError;
+    use sharesphere_core_common::errors::AppError;
     use crate::comment::CommentWithContext;
     use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinSphereInfo;

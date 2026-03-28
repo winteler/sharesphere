@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 
 #[cfg(feature = "ssr")]
 use {

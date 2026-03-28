@@ -6,9 +6,9 @@ use {
         auth::ssr::check_user,
         session::ssr::get_db_pool,
     },
-    sharesphere_utils::checks::{check_satellite_name, check_sphere_name, check_string_length},
-    sharesphere_utils::constants::MAX_CONTENT_LENGTH,
-    sharesphere_utils::editor::ssr::get_html_and_markdown_strings,
+    sharesphere_core_common::checks::{check_satellite_name, check_sphere_name, check_string_length},
+    sharesphere_core_common::constants::MAX_CONTENT_LENGTH,
+    sharesphere_core_common::editor::ssr::get_html_and_markdown_strings,
     crate::satellite::ssr::get_active_satellite_vec_by_sphere_name,
 };
 

@@ -1,4 +1,3 @@
-use std::env;
 use leptos::prelude::*;
 use leptos_router::params::Params;
 
@@ -8,10 +7,6 @@ use openidconnect as oidc;
 use {
     openidconnect::{reqwest, OAuth2TokenResponse, TokenResponse},
 };
-
-use sharesphere_core_common::errors::AppError;
-
-use crate::user::User;
 
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_URL";
 pub const OIDC_ISSUER_ADMIN_URL_ENV: &str = "OIDC_ISSUER_ADMIN_URL";

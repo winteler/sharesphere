@@ -15,10 +15,11 @@ use strum::IntoEnumIterator;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
 
-use crate::constants::{
+use sharesphere_core_common::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::errors::{AppError, ErrorDisplay};
+use sharesphere_core_common::errors::{AppError};
+use crate::errors::ErrorDisplay;
 use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";

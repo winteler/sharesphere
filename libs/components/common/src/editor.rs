@@ -7,8 +7,11 @@ use leptos_fluent::move_tr;
 use markdown::Options;
 use quick_xml::{Reader, Writer};
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
-use crate::constants::{SPOILER_TAG};
-use crate::errors::{AppError, ErrorDisplay};
+
+use sharesphere_core_common::constants::{SPOILER_TAG};
+use sharesphere_core_common::errors::{AppError};
+
+use crate::errors::ErrorDisplay;
 use crate::icons::*;
 
 use crate::widget::HelpButton;

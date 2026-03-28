@@ -1,4 +1,4 @@
 pub mod auth;
-pub mod notifications;
+pub mod notification;
 pub mod role;
 pub mod user;

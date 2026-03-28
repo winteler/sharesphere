@@ -1,11 +1,11 @@
 use leptos::prelude::*;
 use leptos_fluent::{move_tr, tr};
 use serde::{Deserialize, Serialize};
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 use crate::post::Post;
 
-use sharesphere_utils::icons::HammerIcon;
-use sharesphere_utils::widget::ContentBody;
+use sharesphere_core_common::icons::HammerIcon;
+use sharesphere_core_common::widget::ContentBody;
 use crate::comment::Comment;
 use crate::rule::{get_rule_description, get_rule_title, Rule};
 

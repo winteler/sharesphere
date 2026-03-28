@@ -7,4 +7,5 @@ pub mod editor;
 pub mod errors;
 pub mod node_utils;
 pub mod routes;
+pub mod time;
 pub mod unpack;

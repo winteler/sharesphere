@@ -2,15 +2,15 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_common::errors::AppError;
 use crate::post::Post;
 use crate::ranking::{SortType, Vote};
 use crate::sphere::SphereHeader;
 
 use sharesphere_auth::auth_widget::AuthorWidget;
-use sharesphere_utils::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_utils::routes::{get_post_path, COMMENT_ID_QUERY_PARAM};
-use sharesphere_utils::widget::{ContentBody, IsPinnedWidget, LoadIndicators, ScoreIndicator, TimeSinceWidget};
+use sharesphere_core_common::node_utils::has_reached_scroll_load_threshold;
+use sharesphere_core_common::routes::{get_post_path, COMMENT_ID_QUERY_PARAM};
+use sharesphere_core_common::widget::{ContentBody, IsPinnedWidget, LoadIndicators, ScoreIndicator, TimeSinceWidget};
 use crate::moderation::ModeratedBody;
 
 

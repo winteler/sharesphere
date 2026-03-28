@@ -20,7 +20,7 @@ use sharesphere_core::rule::{BaseRule};
 use sharesphere_core::rule::ssr::add_rule;
 use sharesphere_core_common::embed::Link;
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_common::widget::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+use sharesphere_cmp_utils::widget::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
 
 mod common;
 mod data_factory;

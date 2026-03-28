@@ -1,41 +1,14 @@
-use std::collections::{HashMap};
-use leptos::html;
-use leptos::prelude::*;
-use leptos::server_fn::const_format::concatcp;
-use leptos_fluent::{move_tr};
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use validator::{Validate};
-use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
+
+use sharesphere_core_common::common::SphereCategoryHeader;
+use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH};
 use sharesphere_core_common::checks::{check_post_title, check_sphere_name};
-use sharesphere_core_common::embed::{EmbedPreview, EmbedType, Link};
-use sharesphere_core_common::errors::AppError;
-use sharesphere_core_common::routes::get_post_path;
 
-use sharesphere_core_common::editor::{FormMarkdownEditor, LengthLimitedInput, TextareaData};
-use sharesphere_core_common::form::LabeledFormCheckbox;
-use sharesphere_core_common::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
-
-use crate::filter::SphereCategoryFilter;
-use crate::ranking::{SortType, Vote};
-use crate::sphere::{SphereHeader, SphereHeaderLink};
-use crate::sphere_category::{SphereCategory, SphereCategoryBadge, SphereCategoryDropdown, SphereCategoryHeader};
-
-#[cfg(feature = "ssr")]
-use {
-    sharesphere_auth::{
-        auth::{get_user, ssr::check_user},
-        session::ssr::get_db_pool,
-    },
-    sharesphere_core_common::{
-        editor::clear_newlines,
-        editor::ssr::get_html_and_markdown_strings,
-    },
-    crate::ranking::{VoteValue, ssr::vote_on_content},
-};
-use sharesphere_core_common::icons::{NsfwIcon};
-use sharesphere_core_common::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_core_common::unpack::SuspenseUnpack;
+use crate::ranking::{ Vote};
+use crate::embed::{EmbedType, Link};
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -79,33 +52,33 @@ pub struct Post {
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
 pub struct PostLocation {
     #[validate(custom(function = "check_sphere_name"))]
-    sphere: String,
+    pub sphere: String,
     #[validate(range(min = 1))]
-    satellite_id: Option<i64>,
+    pub satellite_id: Option<i64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
 pub struct PostDataInputs {
     #[validate(custom(function = "check_post_title"))]
-    title: String,
+    pub title: String,
     #[validate(length(max = MAX_CONTENT_LENGTH))]
-    body: String,
-    is_markdown: bool,
-    embed_type: EmbedType,
+    pub body: String,
+    pub is_markdown: bool,
+    pub embed_type: EmbedType,
     #[validate(length(min = 1, max = MAX_LINK_LENGTH))]
-    link: Option<String>,
+    pub link: Option<String>,
     #[validate(nested)]
-    post_tags: PostTags
+    pub post_tags: PostTags
 }
 
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Validate, Serialize, Deserialize)]
 pub struct PostTags {
-    is_spoiler: bool,
-    is_nsfw: bool,
+    pub is_spoiler: bool,
+    pub is_nsfw: bool,
     #[serde(default)]
-    is_pinned: bool,
+    pub is_pinned: bool,
     #[validate(range(min = 1))]
-    category_id: Option<i64>,
+    pub category_id: Option<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -172,16 +145,17 @@ impl PostWithSphereInfo {
 pub mod ssr {
     use serde::{Deserialize, Serialize};
     use sqlx::PgPool;
-    use sharesphere_auth::role::PermissionLevel;
-    use sharesphere_auth::user::User;
+
     use sharesphere_core_common::colors::Color;
-    use sharesphere_core_common::embed::{verify_link_and_get_embed, EmbedType, Link};
+    use sharesphere_core_common::common::SphereCategoryHeader;
     use sharesphere_core_common::errors::AppError;
+    use sharesphere_core_user::role::PermissionLevel;
+    use sharesphere_core_user::user::User;
+
+    use crate::embed::{verify_link_and_get_embed, EmbedType, Link};
     use crate::filter::SphereCategoryFilter;
     use crate::post::{Post, PostInheritedAttributes, PostTags, PostWithInfo, PostWithSphereInfo};
     use crate::ranking::{SortType, Vote, VoteValue};
-    use crate::sphere::Sphere;
-    use crate::sphere_category::SphereCategoryHeader;
 
     #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
     #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -339,21 +313,21 @@ pub mod ssr {
         Ok(inherited_attributes)
     }
 
-    pub async fn get_post_sphere(
+    pub async fn get_post_sphere_name(
         post_id: i64,
         db_pool: &PgPool,
-    ) -> Result<Sphere, AppError> {
-        let sphere = sqlx::query_as::<_, Sphere>(
-            "SELECT s.*
+    ) -> Result<String, AppError> {
+        let record = sqlx::query!(
+            "SELECT s.sphere_name
             FROM spheres s
             JOIN posts p on p.sphere_id = s.sphere_id
-            WHERE p.post_id = $1"
+            WHERE p.post_id = $1",
+            post_id
         )
-            .bind(post_id)
             .fetch_one(db_pool)
             .await?;
 
-        Ok(sphere)
+        Ok(record.sphere_name)
     }
 
     pub async fn get_post_vec_by_sphere_name(
@@ -735,8 +709,8 @@ pub mod ssr {
             ));
         }
         if post_tags.is_pinned {
-            let sphere = get_post_sphere(post_id, db_pool).await?;
-            user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Moderate)?;
+            let sphere_name = get_post_sphere_name(post_id, db_pool).await?;
+            user.check_sphere_permissions_by_name(&sphere_name, PermissionLevel::Moderate)?;
         }
 
         let post = sqlx::query_as::<_, Post>(
@@ -869,7 +843,7 @@ pub mod ssr {
         Ok(())
     }
 
-    pub(super) async fn process_embed_link(embed_type: EmbedType, link: Option<String>) -> Link {
+    pub async fn process_embed_link(embed_type: EmbedType, link: Option<String>) -> Link {
         let (link, _) = match (embed_type, link) {
             (embed_type, Some(link)) if embed_type != EmbedType::None => verify_link_and_get_embed(embed_type, &link).await,
             _ => (Link::default(), None),
@@ -879,9 +853,10 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use sharesphere_auth::user::User;
         use sharesphere_core_common::colors::Color;
-        use sharesphere_core_common::embed::{EmbedType, Link, LinkType};
+        use sharesphere_core_user::user::User;
+
+        use crate::embed::{EmbedType, Link, LinkType};
         use crate::post::ssr::{PostJoinInfo, process_embed_link};
         use crate::post::Post;
         use crate::ranking::{VoteValue};
@@ -966,14 +941,30 @@ pub mod ssr {
     }
 }
 
+pub fn add_sphere_info_to_post_vec(
+    post_vec: Vec<Post>,
+    sphere_name: String,
+    sphere_category_map: &HashMap<i64, SphereCategoryHeader>,
+    sphere_icon_url: Option<String>,
+) -> Vec<PostWithSphereInfo> {
+    post_vec.into_iter().map(|post| {
+        let category_id = match post.category_id {
+            Some(category_id) => sphere_category_map.get(&category_id).cloned(),
+            None => None,
+        };
+        PostWithSphereInfo::from_post(post, sphere_name.clone(), category_id, sphere_icon_url.clone())
+    }).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use sharesphere_core_common::colors::Color;
-    use sharesphere_core_embed::embed::Link;
 
+    use sharesphere_core_common::colors::Color;
+    use sharesphere_core_common::common::SphereCategoryHeader;
+
+    use crate::embed::Link;
     use crate::post::{add_sphere_info_to_post_vec, Post, PostWithSphereInfo};
-    use crate::sphere_category::SphereCategoryHeader;
 
     fn create_post_with_category(title: &str, category_id: Option<i64>) -> Post {
         Post {

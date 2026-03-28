@@ -10,25 +10,30 @@ use leptos_router::components::Outlet;
 use leptos_use::{signal_debounced};
 use strum::IntoEnumIterator;
 
-use sharesphere_core_common::editor::{FormTextEditor, LengthLimitedInput, TextareaData};
-use sharesphere_core_common::errors::{AppError, ErrorDisplay};
-use sharesphere_core_common::icons::{CrossIcon, LoadingIcon, MagnifierIcon, SaveIcon};
-use sharesphere_core_common::unpack::{SuspenseUnpack, TransitionUnpack};
-use sharesphere_core_common::widget::{EnumDropdown, ModalDialog, IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+use sharesphere_core_common::checks::check_username;
+use sharesphere_core_common::constants::{MAX_SPHERE_DESCRIPTION_LENGTH, MAX_USERNAME_LENGTH};
+use sharesphere_core_common::editor::{TextareaData};
+use sharesphere_core_common::errors::{AppError};
+use sharesphere_core_user::role::PermissionLevel;
 
-use sharesphere_auth::role::{AuthorizedShow, PermissionLevel, SetUserSphereRole};
+use sharesphere_iface_content::moderation::get_moderation_info;
+use sharesphere_iface_sphere::sphere_management::{get_sphere_ban_vec, set_sphere_banner, set_sphere_icon, RemoveUserBan};
+use sharesphere_iface_user::role::SetUserSphereRole;
+use sharesphere_iface_user::user::get_matching_user_header_vec;
+
+use sharesphere_cmp_utils::icons::{CrossIcon, LoadingIcon, MagnifierIcon, SaveIcon};
+use sharesphere_cmp_utils::unpack::{SuspenseUnpack, TransitionUnpack};
+use sharesphere_cmp_utils::widget::{EnumDropdown, ModalDialog, IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+use sharesphere_cmp_utils::editor::{FormTextEditor, LengthLimitedInput};
+use sharesphere_cmp_utils::errors::ErrorDisplay;
+use sharesphere_cmp_common::auth_widget::LoginWindow;
+use sharesphere_cmp_common::role::{AuthorizedShow};
+use sharesphere_cmp_common::state::{GlobalState, SphereState};
+use sharesphere_cmp_base::moderation::ModerationInfoDialog;
 
 use crate::rule::SphereRulesPanel;
 use crate::satellite::SatellitePanel;
 use crate::sphere_category::SphereCategoriesDialog;
-
-use sharesphere_auth::auth_widget::LoginWindow;
-use sharesphere_core::moderation::{get_moderation_info, ModerationInfoDialog};
-use sharesphere_core::search::get_matching_user_header_vec;
-use sharesphere_core::sphere_management::{get_sphere_ban_vec, set_sphere_banner, set_sphere_icon, RemoveUserBan};
-use sharesphere_core::state::{GlobalState, SphereState};
-use sharesphere_core_common::checks::check_username;
-use sharesphere_core_common::constants::{MAX_SPHERE_DESCRIPTION_LENGTH, MAX_USERNAME_LENGTH};
 
 pub const MANAGE_SPHERE_ROUTE: &str = "/manage";
 pub const NONE_STR: &str = "None";

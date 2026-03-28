@@ -9,7 +9,10 @@ use sharesphere_core_common::common::SphereHeader;
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_common::routes::{get_comment_path, get_post_path};
 
+pub const NOTIF_STATE_STORAGE: &str = "notification_state";
+pub const NOTIF_TAG: &str = "sharesphere-notif";
 pub const NOTIF_RETENTION_DAYS: i64 = 31;
+pub const NOTIF_RELOAD_INTERVAL_MS: u64 = 900000;
 
 #[repr(i16)]
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]

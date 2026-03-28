@@ -2,13 +2,14 @@ use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use leptos_router::components::Form;
 
-use sharesphere_core_common::icons::*;
 use sharesphere_core_common::routes::{get_create_post_path, get_current_url, get_profile_path, get_sphere_name, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_SPHERE_ROUTE};
 
-use sharesphere_auth::auth::LoginGuardButton;
-use sharesphere_core::notification::NotificationButton;
-use sharesphere_core::state::GlobalState;
-use sharesphere_core_common::widget::DropdownButton;
+use sharesphere_cmp_utils::icons::*;
+use sharesphere_cmp_utils::widget::DropdownButton;
+use sharesphere_cmp_common::auth_widget::LoginGuardButton;
+use sharesphere_cmp_common::notification::NotificationButton;
+use sharesphere_cmp_common::state::GlobalState;
+
 use crate::search::{SearchButton};
 
 /// Navigation bar component

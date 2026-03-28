@@ -1,17 +1,7 @@
 use std::collections::{HashSet};
-use leptos::html::{Div, Input};
+
 use leptos::prelude::*;
-use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
-
-#[cfg(feature = "hydrate")]
-use leptos_use::on_click_outside;
-
-use sharesphere_core_common::icons::{FiltersIcon};
-use sharesphere_core_common::unpack::SuspenseUnpack;
-use sharesphere_core_common::widget::{Dropdown};
-use crate::sphere_category::{SphereCategoryBadge};
-use crate::state::SphereState;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum SphereCategoryFilter {
@@ -45,9 +35,7 @@ impl CategorySetFilter {
     }
 }
 
-
-
-fn on_change_category_input(
+pub fn on_change_category_input(
     sphere_category_filter: RwSignal<SphereCategoryFilter>,
     category_id: i64,
 ) {
@@ -68,7 +56,7 @@ fn on_change_category_input(
 
 }
 
-fn on_change_all_categories_input(
+pub fn on_change_all_categories_input(
     sphere_category_filter: RwSignal<SphereCategoryFilter>,
 ) {
     let mut category_filter = sphere_category_filter.write();
@@ -82,7 +70,7 @@ fn on_change_all_categories_input(
     };
 }
 
-fn on_change_only_categories_input(
+pub fn on_change_only_categories_input(
     sphere_category_filter: RwSignal<SphereCategoryFilter>,
 ) {
     let mut current_filter = sphere_category_filter.write();

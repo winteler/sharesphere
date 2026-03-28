@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use sharesphere_core_common::colors::Color;
+use sharesphere_core_common::common::SphereCategoryHeader;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -14,13 +15,6 @@ pub struct SphereCategory {
     pub creator_id: i64,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
-}
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct SphereCategoryHeader {
-    pub category_name: String,
-    pub category_color: Color,
 }
 
 impl From<SphereCategory> for SphereCategoryHeader {

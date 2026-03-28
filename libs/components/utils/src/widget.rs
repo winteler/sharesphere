@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::str::FromStr;
+
 use const_format::concatcp;
 use leptos::html;
 use leptos::prelude::*;
@@ -15,10 +16,10 @@ use strum::IntoEnumIterator;
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
 
-use sharesphere_core_common::constants::{
-    SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
-};
 use sharesphere_core_common::errors::{AppError};
+use sharesphere_core_common::time::{get_elapsed_time_string};
+
+use crate::view::ToView;
 use crate::errors::ErrorDisplay;
 use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 

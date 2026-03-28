@@ -8,19 +8,25 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
-use sharesphere_core::comment::CommentMiniatureList;
-use sharesphere_core::post::{PostListWithIndicators};
-use sharesphere_core::search::{get_matching_user_header_vec, is_content_search_valid, search_comments, search_posts, SearchForm, SearchSpheres, SearchState};
-use sharesphere_core::sidebar::HomeSidebar;
-use sharesphere_core::state::SphereState;
 use sharesphere_core_common::checks::{check_username};
 use sharesphere_core_common::constants::{MAX_SEARCH_QUERY_LENGTH, MAX_USERNAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
-use sharesphere_core_common::icons::MagnifierIcon;
 use sharesphere_core_common::routes::{SEARCH_ROUTE, SEARCH_TAB_QUERY_PARAM};
-use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load, TransitionUnpack};
+use sharesphere_core_content::search::{is_content_search_valid, SearchState};
+use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load};
 
-use sharesphere_core_common::widget::{EnumQueryTabs, ToView};
-use crate::profile::{UserHeaderLink};
+use sharesphere_iface_content::search::{get_matching_user_header_vec, search_comments, search_posts};
+
+use sharesphere_cmp_utils::icons::MagnifierIcon;
+use sharesphere_cmp_utils::unpack::{TransitionUnpack};
+use sharesphere_cmp_utils::view::ToView;
+use sharesphere_cmp_utils::widget::{EnumQueryTabs};
+use sharesphere_cmp_common::state::SphereState;
+use sharesphere_cmp_common::user::{UserHeaderLink};
+use sharesphere_cmp_base::comment::CommentMiniatureList;
+use sharesphere_cmp_base::post::{PostListWithIndicators};
+use sharesphere_cmp_base::search::{SearchForm, SearchSpheres};
+
+use crate::sidebar::HomeSidebar;
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum SearchType {

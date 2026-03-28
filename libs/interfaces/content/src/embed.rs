@@ -5,9 +5,12 @@ use {
     http::header::{ACCEPT, USER_AGENT},
     http::{HeaderMap, HeaderValue},
     reqwest::Client,
-    crate::checks::check_string_length,
-    crate::constants::MAX_LINK_LENGTH,
+    sharesphere_core_common::checks::check_string_length,
+    sharesphere_core_common::constants::MAX_LINK_LENGTH,
+    sharesphere_core_content::embed::{clean_html, fetch_api, OEmbedType},
 };
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_content::embed::{OEmbedReply};
 
 #[server]
 pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, AppError> {

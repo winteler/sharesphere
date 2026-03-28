@@ -5,24 +5,17 @@ use leptos_fluent::move_tr;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
 use leptos_use::BreakpointsTailwind::Xxl;
-use sharesphere_core_common::colors::{Color, ColorIndicator};
-use sharesphere_core_common::editor::{FormMarkdownEditor, TextareaData};
-use sharesphere_core_common::errors::ErrorDisplay;
-use sharesphere_core_common::icons::{AddCommentIcon, EditIcon, LoadingIcon};
+
+use sharesphere_core_common::colors::{Color};
+use sharesphere_core_common::editor::{TextareaData};
 use sharesphere_core_common::routes::{get_comment_link, COMMENT_ID_QUERY_PARAM};
-use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load, ActionError, SuspenseUnpack};
-use sharesphere_core_common::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
 
-use sharesphere_auth::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
-use sharesphere_auth::role::IsPinnedCheckbox;
+use sharesphere_cmp_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
+use sharesphere_cmp_utils::unpack::{ActionError, SuspenseUnpack};
+use sharesphere_cmp_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
 
-use sharesphere_core::comment::{get_comment_tree_by_id, get_post_comment_tree, Comment, CommentBody, CommentWithChildren, CreateComment, DeleteComment, EditComment};
-use sharesphere_core::moderation::Content;
-use sharesphere_core::ranking::{CommentSortWidget, Vote};
-use sharesphere_core::satellite::SatelliteState;
-use sharesphere_core::state::{GlobalState, SphereState};
 use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
-use sharesphere_core_common::unpack::handle_dialog_action_result;
+use sharesphere_core_content::comment::CommentWithChildren;
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
 use crate::ranking::{VotePanel};
 

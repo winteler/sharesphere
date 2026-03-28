@@ -1,11 +1,11 @@
 use leptos::either::{EitherOf3};
-use crate::errors::{AppError, ErrorDetail, ErrorDisplay};
-use crate::icons::LoadingIcon;
 use leptos::prelude::*;
-use leptos::html;
-use leptos::html::ElementType;
-use leptos::wasm_bindgen::JsCast;
-use web_sys::Element;
+
+use sharesphere_core_common::errors::{AppError};
+use sharesphere_core_common::unpack::action_has_error;
+
+use crate::errors::{ErrorDetail, ErrorDisplay};
+use crate::icons::LoadingIcon;
 
 /// Component to render a server action's error
 #[component]

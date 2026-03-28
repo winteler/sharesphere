@@ -1,13 +1,11 @@
-use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use sharesphere_core_common::errors::AppError;
-use sharesphere_core_sphere::sphere::SphereHeader;
+use sharesphere_core_common::common::SphereHeader;
 use crate::post::Post;
-use crate::ranking::{SortType, Vote};
+use crate::ranking::{Vote};
 
 #[cfg(feature = "ssr")]
 use {
-    crate::ranking::{ssr::vote_on_content, VoteValue},
+    crate::ranking::{VoteValue},
 };
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -81,12 +79,12 @@ impl CommentWithContext {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
+    use sharesphere_core_common::constants::COMMENT_BATCH_SIZE;
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
-    use sharesphere_core_sphere::sphere::Sphere;
 
-    use crate::post::ssr::{get_post_sphere, increment_post_comment_count};
+    use crate::post::ssr::{get_post_sphere_name, increment_post_comment_count};
     use crate::ranking::{SortType, VoteValue};
 
     use super::*;

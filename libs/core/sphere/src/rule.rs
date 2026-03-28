@@ -1,7 +1,6 @@
 use std::str::FromStr;
 use leptos::prelude::*;
 use leptos_fluent::{move_tr};
-use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, PartialEq)]
@@ -11,21 +10,6 @@ pub enum BaseRule {
     RespectRules,
     NoIllegalContent,
     PlatformIntegrity,
-}
-
-#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
-pub struct Rule {
-    pub rule_id: i64,
-    pub rule_key: i64, // business id to track rule across updates
-    pub sphere_id: Option<i64>,
-    pub priority: i16,
-    pub title: String,
-    pub description: String,
-    pub markdown_description: Option<String>,
-    pub user_id: i64,
-    pub create_timestamp: chrono::DateTime<chrono::Utc>,
-    pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 impl BaseRule {

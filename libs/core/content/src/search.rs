@@ -1,23 +1,9 @@
-use leptos::html;
 use leptos::prelude::*;
-use leptos_fluent::move_tr;
-use leptos_use::{signal_debounced, signal_throttled_with_options, ThrottleOptions};
+use leptos_use::{signal_debounced};
 
-use sharesphere_core_user::user::UserHeader;
 use sharesphere_core_common::checks::check_string_length;
-use sharesphere_core_common::constants::{MAX_SEARCH_QUERY_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_core_common::constants::{MAX_SEARCH_QUERY_LENGTH};
 use sharesphere_core_common::errors::{AppError};
-use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load};
-
-use crate::comment::{CommentWithContext};
-use crate::post::{PostWithSphereInfo};
-
-#[cfg(feature = "ssr")]
-use {
-    sharesphere_core_common::checks::{check_sphere_name, check_sphere_name_with_options, check_username},
-    crate::post::POST_BATCH_SIZE,
-    crate::comment::COMMENT_BATCH_SIZE,
-};
 
 #[derive(Clone, Debug)]
 pub struct SearchState {
@@ -42,9 +28,10 @@ pub mod ssr {
     use std::cmp::min;
     use sqlx::PgPool;
 
+    use sharesphere_core_common::common::{SphereHeader};
+    use sharesphere_core_common::constants::{SPHERE_FETCH_LIMIT, USER_FETCH_LIMIT};
     use sharesphere_core_common::errors::AppError;
-    use sharesphere_core_user::user::{UserHeader, USER_FETCH_LIMIT};
-    use sharesphere_core_sphere::sphere::{SphereHeader, SPHERE_FETCH_LIMIT};
+    use sharesphere_core_user::user::{UserHeader};
 
     use crate::comment::CommentWithContext;
     use crate::post::PostWithSphereInfo;
@@ -216,31 +203,6 @@ pub mod ssr {
             .await?;
 
         Ok(comment_vec)
-    }
-
-    pub async fn get_matching_user_header_vec(
-        username_prefix: &str,
-        show_nsfw: bool,
-        limit: i64,
-        db_pool: &PgPool,
-    ) -> Result<Vec<UserHeader>, AppError> {
-        let user_header_vec = sqlx::query_as!(
-            UserHeader,
-            "SELECT username, is_nsfw
-            FROM users
-            WHERE
-                username LIKE $1 AND
-                ($2 OR NOT is_nsfw) AND
-                delete_timestamp IS NULL
-            ORDER BY username LIMIT $3",
-            format!("{username_prefix}%"),
-            show_nsfw,
-            min(limit, USER_FETCH_LIMIT),
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        Ok(user_header_vec)
     }
 }
 

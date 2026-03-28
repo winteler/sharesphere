@@ -1,11 +1,11 @@
 use leptos::html;
 use leptos::prelude::*;
-use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use strum_macros::{Display, EnumIter};
 
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
+
+use sharesphere_core_common::colors::Color;
 
 use crate::widget::RotatingArrow;
 

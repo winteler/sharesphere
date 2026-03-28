@@ -3,11 +3,12 @@ use sharesphere_core_common::errors::AppError;
 
 #[cfg(feature = "ssr")]
 use {
-    sharesphere_auth::{
-        auth::ssr::check_user,
-        session::ssr::get_db_pool,
-    },
+    sharesphere_core_common::db_utils::ssr::get_db_pool,
+    sharesphere_core_user::auth::ssr::check_user,
+    sharesphere_core_content::ranking::*,
 };
+
+use sharesphere_core_content::ranking::{Vote, VoteValue};
 
 #[server]
 pub async fn vote_on_content(

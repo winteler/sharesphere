@@ -7,24 +7,50 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
-use sharesphere_core_common::form::LabeledFormCheckbox;
-use sharesphere_core_common::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
-use sharesphere_core_common::routes::{get_profile_path, get_username_memo};
-use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load, reset_additional_load, ActionError};
-use sharesphere_core_common::widget::{EnumQueryTabs, ModalDialog, ModalFormButtons, ToView};
+use sharesphere_core_common::constants::{POST_BATCH_SIZE, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_core_common::routes::{get_username_memo};
+use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load, reset_additional_load};
+use sharesphere_core_content::ranking::{CommentSortType, PostSortType, SortType};
 
-use sharesphere_auth::auth::NavigateToUserAccount;
-use sharesphere_auth::user::{UserHeader, UserHeaderWidget};
+use sharesphere_iface_user::auth::NavigateToUserAccount;
+use sharesphere_iface_content::profile::{get_user_comment_vec, get_user_post_vec};
 
-use sharesphere_core::comment::{CommentMiniatureList};
-use sharesphere_core::post::{PostListWithInitLoad, POST_BATCH_SIZE};
-use sharesphere_core::profile::{get_user_comment_vec, get_user_post_vec};
-use sharesphere_core::ranking::{CommentSortType, CommentSortWidget, PostSortType, PostSortWidget, SortType};
-use sharesphere_core::sidebar::HomeSidebar;
-use sharesphere_core::state::GlobalState;
-use sharesphere_core_common::constants::SCROLL_LOAD_THROTTLE_DELAY;
+use sharesphere_cmp_utils::form::LabeledFormCheckbox;
+use sharesphere_cmp_utils::icons::{LoadingIcon, UserIcon, UserSettingsIcon};
+use sharesphere_cmp_utils::unpack::{ActionError};
+use sharesphere_cmp_utils::view::ToView;
+use sharesphere_cmp_utils::widget::{EnumQueryTabs, ModalDialog, ModalFormButtons};
+use sharesphere_cmp_common::state::GlobalState;
+use sharesphere_cmp_base::comment::{CommentMiniatureList};
+use sharesphere_cmp_base::post::{PostListWithInitLoad};
+use sharesphere_cmp_base::ranking::{CommentSortWidget, PostSortWidget};
+
 
 pub const PROFILE_TAB_QUERY_PARAM: &str = "tab";
+
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum ProfileTabs {
+    #[default]
+    Posts,
+    Comments,
+}
+
+#[derive(Clone, Copy, Debug, Default, Display, EnumIter, EnumString, Eq, IntoStaticStr, Hash, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum SelfProfileTabs {
+    #[default]
+    Posts,
+    Comments,
+    Settings,
+}
+
+impl Into<Signal<String>> for ProfileTabs {
+    fn into(self) -> Signal<String> {
+        match self {
+            ProfileTabs::Posts => move_tr!("posts"),
+            ProfileTabs::Comments => move_tr!("comments"),
+        }
+    }
+}
 
 impl ToView for ProfileTabs {
     fn to_view(self) -> impl IntoView + 'static {
@@ -59,20 +85,20 @@ pub fn UserProfile() -> impl IntoView {
                     {move || query_username.get()}
                 </div>
                 <Transition fallback=move || view! {  <LoadingIcon/> }>
-                { 
-                    move || Suspend::new(async move { 
+                {
+                    move || Suspend::new(async move {
                         match state.user.await {
-                            Ok(Some(user)) if user.username == query_username.get() => view! { 
-                                <EnumQueryTabs 
-                                    query_param=PROFILE_TAB_QUERY_PARAM 
+                            Ok(Some(user)) if user.username == query_username.get() => view! {
+                                <EnumQueryTabs
+                                    query_param=PROFILE_TAB_QUERY_PARAM
                                     query_enum_iter=SelfProfileTabs::iter()
-                                /> 
+                                />
                             }.into_any(),
-                            _ => view! { 
-                                <EnumQueryTabs 
-                                    query_param=PROFILE_TAB_QUERY_PARAM 
+                            _ => view! {
+                                <EnumQueryTabs
+                                    query_param=PROFILE_TAB_QUERY_PARAM
                                     query_enum_iter=ProfileTabs::iter()
-                                /> 
+                                />
                             }.into_any(),
                         }
                     })
@@ -80,7 +106,6 @@ pub fn UserProfile() -> impl IntoView {
                 </Transition>
             </div>
         </div>
-        <HomeSidebar/>
     }
 }
 
@@ -284,19 +309,4 @@ pub fn UserAccountButton() -> impl IntoView {
             </button>
         </ActionForm>
     }
-}
-
-/// Component to display a user header and redirect to his profile upon click
-#[component]
-pub fn UserHeaderLink(
-    user_header: UserHeader,
-) -> impl IntoView {
-    let user_profile_path = get_profile_path(&user_header.username);
-    view! {
-        <a href=user_profile_path>
-            <div class="w-full p-2 my-1 rounded-sm hover:bg-base-200">
-                <UserHeaderWidget user_header/>
-            </div>
-        </a>
-    }.into_any()
 }

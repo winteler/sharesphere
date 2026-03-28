@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::sync::{LazyLock};
+
 use ammonia::Builder;
 use leptos::html;
 use leptos::prelude::*;
@@ -14,9 +15,10 @@ use {
     http::header::{ACCEPT, USER_AGENT},
     http::{HeaderMap, HeaderValue},
     reqwest::Client,
-    sharesphere_core_common::checks::check_string_length,
-    sharesphere_core_common::constants::MAX_LINK_LENGTH,
 };
+
+use sharesphere_core_common::checks::check_string_length;
+use sharesphere_core_common::constants::MAX_LINK_LENGTH;
 use sharesphere_core_common::errors::{AppError};
 
 static PROVIDERS: LazyLock<Option<Vec<OEmbedProvider>>> = LazyLock::new(|| {
@@ -324,7 +326,7 @@ where
 }
 
 /// Select the given `link_type` in the given `list_ref` node
-fn select_embed_type(
+pub fn select_embed_type(
     link_type: LinkType,
     link_embed: RwSignal<EmbedType>,
     select_ref: NodeRef<html::Select>

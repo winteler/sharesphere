@@ -2,8 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use sharesphere_core_common::common::SphereHeader;
 
-pub const SPHERE_FETCH_LIMIT: usize = 100;
-
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Sphere {

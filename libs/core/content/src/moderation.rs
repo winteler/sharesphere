@@ -1,20 +1,10 @@
-use leptos::prelude::*;
-use leptos_fluent::{move_tr, tr};
 use serde::{Deserialize, Serialize};
 
-use sharesphere_core_common::errors::AppError;
-use sharesphere_core_sphere::rule::Rule;
+use sharesphere_core_common::common::Rule;
 
 use crate::comment::Comment;
 use crate::post::Post;
 
-#[cfg(feature = "ssr")]
-use {
-    crate::{
-        comment::ssr::{get_comment_by_id, get_comment_sphere},
-        post::ssr::get_post_by_id,
-    }
-};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Content {

@@ -1,25 +1,9 @@
-use std::fmt::Debug;
-use std::marker::PhantomData;
-use std::str::FromStr;
-use const_format::concatcp;
-use leptos::html;
 use leptos::prelude::*;
-use leptos::prelude::codee::{Decoder, Encoder};
 use leptos_fluent::{move_tr};
-use leptos_router::components::Form;
-use leptos_router::hooks::{use_query_map};
-use leptos_use::{breakpoints_tailwind, use_breakpoints, use_clipboard};
-use leptos_use::BreakpointsTailwind::{Lg};
-use strum::IntoEnumIterator;
-
-#[cfg(feature = "hydrate")]
-use leptos_use::on_click_outside;
 
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-use crate::errors::{AppError, ErrorDisplay};
-use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 
 
 enum TimeUnit {
@@ -50,7 +34,7 @@ impl TimeUnit {
     }
 }
 
-fn get_elapsed_time_string(
+pub fn get_elapsed_time_string(
     timestamp: chrono::DateTime<chrono::Utc>,
     use_fullname: bool,
 ) -> Signal<String> {

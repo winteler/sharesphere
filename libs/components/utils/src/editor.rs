@@ -1,20 +1,34 @@
-use std::io::Cursor;
 use leptos::either::Either;
 use leptos::html;
-use leptos::html::Textarea;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
-use markdown::Options;
-use quick_xml::{Reader, Writer};
-use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 
-use sharesphere_core_common::constants::{SPOILER_TAG};
-use sharesphere_core_common::errors::{AppError};
+use sharesphere_core_common::editor::{adjust_textarea_height, clear_newlines, format_textarea_content, get_styled_html_from_markdown, FormatType, TextareaData};
 
 use crate::errors::ErrorDisplay;
 use crate::icons::*;
-
+use crate::view::ToView;
 use crate::widget::HelpButton;
+
+impl ToView for FormatType {
+    fn to_view(self) -> impl IntoView + 'static {
+        match self {
+            FormatType::Bold => view!{ <BoldIcon/> }.into_any(),
+            FormatType::Italic => view!{ <ItalicIcon/> }.into_any(),
+            FormatType::Strikethrough => view!{ <StrikethroughIcon/> }.into_any(),
+            FormatType::Header1 => view!{ <Header1Icon/> }.into_any(),
+            FormatType::Header2 => view!{ <Header2Icon/> }.into_any(),
+            FormatType::List => view!{ <ListBulletIcon/> }.into_any(),
+            FormatType::NumberedList => view!{ <ListNumberIcon/> }.into_any(),
+            FormatType::CodeBlock => view!{ <CodeBlockIcon/> }.into_any(),
+            FormatType::Spoiler => view!{ <SpoilerIcon class="editor-button-size"/> }.into_any(),
+            FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
+            FormatType::Link => view!{ <LinkIcon/> }.into_any(),
+            FormatType::Image => view!{ <ImageIcon/> }.into_any(),
+            FormatType::NewLine => view!{ <NewLineIcon/> }.into_any(),
+        }
+    }
+}
 
 /// Component to indicate the current number of characters in `content` and the maximum length
 #[component]

@@ -8,7 +8,13 @@ description = "Crate for components related to spheres and satellites"
 sharesphere_core_common = { path = "../../core/common", default-features = false}
 sharesphere_core_user = { path = "../../core/user", default-features = false}
 sharesphere_core_sphere = { path = "../../core/sphere", default-features = false}
+sharesphere_core_content = { path = "../../core/content", default-features = false}
+sharesphere_iface_user = { path = "../../interfaces/user", default-features = false}
 sharesphere_iface_sphere = { path = "../../interfaces/sphere", default-features = false}
+sharesphere_iface_content = { path = "../../interfaces/content", default-features = false}
+sharesphere_cmp_utils = { path = "../utils", default-features = false}
+sharesphere_cmp_common = { path = "../common", default-features = false}
+sharesphere_cmp_base = { path = "../base", default-features = false}
 leptos.workspace = true
 leptos_meta.workspace = true
 leptos_router.workspace = true
@@ -28,7 +34,12 @@ strum.workspace = true
 default = []
 hydrate = [
     "leptos/hydrate",
+    "sharesphere_iface_user/hydrate",
     "sharesphere_iface_sphere/hydrate",
+    "sharesphere_iface_content/hydrate",
+    "sharesphere_cmp_utils/hydrate",
+    "sharesphere_cmp_common/hydrate",
+    "sharesphere_cmp_base/hydrate",
 ]
 ssr = [
     "leptos/ssr",
@@ -38,9 +49,15 @@ ssr = [
     "leptos-fluent/ssr",
     "leptos-use/ssr",
     "sharesphere_core_common/ssr",
+    "sharesphere_core_content/ssr",
     "sharesphere_core_user/ssr",
     "sharesphere_core_sphere/ssr",
+    "sharesphere_iface_user/ssr",
     "sharesphere_iface_sphere/ssr",
+    "sharesphere_iface_content/ssr",
+    "sharesphere_cmp_utils/ssr",
+    "sharesphere_cmp_common/ssr",
+    "sharesphere_cmp_base/ssr",
     "dep:leptos_axum",
 ]
 

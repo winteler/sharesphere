@@ -50,5 +50,6 @@ pub const IMAGE_FILE_PARAM: &str = "image";
 
 
 pub const USER_FETCH_LIMIT: i64 = 100;
+pub const SPHERE_FETCH_LIMIT: usize = 100;
 pub const POST_BATCH_SIZE: i64 = 50;
 pub const COMMENT_BATCH_SIZE: i64 = 50;

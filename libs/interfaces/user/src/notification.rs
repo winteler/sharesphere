@@ -1,31 +1,15 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
-use chrono::{DateTime, Utc};
-use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
-use leptos_fluent::{move_tr, tr};
-use leptos_use::{breakpoints_tailwind, BreakpointsTailwind, storage::use_local_storage, use_breakpoints, use_interval_fn};
-use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
-use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString, IntoStaticStr};
-use sharesphere_core_common::constants::{LOGO_ICON_PATH, SITE_NAME};
-use sharesphere_core_common::errors::AppError;
-use sharesphere_core_common::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, UnreadIcon};
-use sharesphere_core_common::routes::{get_comment_path, get_post_path, NOTIFICATION_ROUTE};
-use sharesphere_core_common::unpack::{SuspenseUnpack};
-use sharesphere_core_common::widget::{RefreshResourceButton, TimeSinceWidget};
-use sharesphere_auth::auth_widget::{AuthorWidget, LoginWindow};
-
-use crate::sidebar::HomeSidebar;
-use crate::sphere::{SphereHeader, SphereHeaderLink};
-use crate::state::GlobalState;
 
 #[cfg(feature = "ssr")]
 use {
-    sharesphere_auth::{
+    sharesphere_core_common::db_utils::ssr::get_db_pool,
+    sharesphere_core_user::{
         auth::ssr::check_user,
-        session::ssr::get_db_pool,
     },
 };
+
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_user::notification::*;
 
 #[server]
 pub async fn get_notifications() -> Result<Vec<Notification>, AppError> {

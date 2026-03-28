@@ -1,12 +1,13 @@
 use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_fluent::{move_tr};
-use serde::{Deserialize, Serialize};
 
-use sharesphere_core_common::colors::Color;
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_common::unpack::TransitionUnpack;
-use sharesphere_core_common::widget::{DropdownButton, RotatingArrow};
+use sharesphere_core_common::common::SphereCategoryHeader;
+use sharesphere_core_sphere::sphere_category::SphereCategory;
+
+use sharesphere_cmp_utils::unpack::TransitionUnpack;
+use sharesphere_cmp_utils::widget::{DropdownButton, RotatingArrow};
 
 use crate::filter::SphereCategoryToggle;
 

@@ -1,29 +1,30 @@
 use std::collections::{HashMap};
 use leptos::prelude::*;
 
-use sharesphere_auth::auth::EndSession;
-use sharesphere_auth::role::{PermissionLevel, SetUserSphereRole, UserSphereRole};
-use sharesphere_auth::user::{DeleteUser, SetUserSettings, User};
+use sharesphere_core_common::common::{Rule};
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_user::user::User;
-use crate::filter::SphereCategoryFilter;
-use crate::moderation::ModeratePost;
-use sharesphere_cmp_content::notification::{Notification, get_notifications};
-use crate::post::{DeletePost, EditPost};
-use crate::ranking::{CommentSortType, PostSortType, SortType};
-use crate::rule::{get_rule_vec, AddRule, RemoveRule, Rule, UpdateRule};
-use crate::satellite::{CreateSatellite, DisableSatellite, Satellite, UpdateSatellite};
-use crate::sphere::{CreateSphere, SphereWithUserInfo, Subscribe, Unsubscribe, UpdateSphereDescription};
-use crate::sphere_category::{DeleteSphereCategory, SetSphereCategory, SphereCategory};
-
-#[derive(Copy, Clone)]
-pub struct UserState {
-    pub login_action: ServerAction<Login>,
-    pub user: Resource<Result<Option<User>, AppError>>,
-}
+use sharesphere_core_user::role::{PermissionLevel, UserSphereRole};
+use sharesphere_core_user::user::{User};
+use sharesphere_core_user::notification::{Notification};
+use sharesphere_core_content::filter::SphereCategoryFilter;
+use sharesphere_core_content::ranking::{CommentSortType, PostSortType, SortType};
+use sharesphere_core_sphere::satellite::Satellite;
+use sharesphere_core_sphere::sphere::SphereWithUserInfo;
+use sharesphere_core_sphere::sphere_category::SphereCategory;
+use sharesphere_iface_user::auth::{EndSession, Login};
+use sharesphere_iface_user::role::{SetUserSphereRole};
+use sharesphere_iface_user::user::{DeleteUser, SetUserSettings};
+use sharesphere_iface_user::notification::{get_notifications};
+use sharesphere_iface_content::moderation::{ModeratePost};
+use sharesphere_iface_content::post::{DeletePost, EditPost};
+use sharesphere_iface_sphere::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
+use sharesphere_iface_sphere::satellite::{CreateSatellite, DisableSatellite, UpdateSatellite};
+use sharesphere_iface_sphere::sphere::{CreateSphere, Subscribe, Unsubscribe, UpdateSphereDescription};
+use sharesphere_iface_sphere::sphere_category::{DeleteSphereCategory, SetSphereCategory};
 
 #[derive(Copy, Clone)]
 pub struct GlobalState {
+    pub login_action: ServerAction<Login>,
     pub logout_action: ServerAction<EndSession>,
     pub delete_user_action: ServerAction<DeleteUser>,
     pub set_settings_action: ServerAction<SetUserSettings>,
@@ -68,6 +69,14 @@ pub struct SphereState {
     pub sphere_rules_resource: Resource<Result<Vec<Rule>, AppError>>,
 }
 
+#[derive(Copy, Clone)]
+pub struct SatelliteState {
+    pub satellite_id: Memo<i64>,
+    pub sort_type: RwSignal<SortType>,
+    pub category_id_filter: RwSignal<Option<i64>>,
+    pub satellite_resource: Resource<Result<Satellite, AppError>>,
+}
+
 impl GlobalState {
     pub fn new(
         user: Resource<Result<Option<User>, AppError>>,
@@ -78,6 +87,7 @@ impl GlobalState {
     ) -> Self {
         let is_notif_read_map = StoredValue::new(HashMap::new());
         Self {
+            login_action: ServerAction::<Login>::new(),
             logout_action,
             delete_user_action,
             set_settings_action,

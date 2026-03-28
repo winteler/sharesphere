@@ -1,21 +1,28 @@
-use std::cmp::max;
-use std::collections::{HashMap};
-use std::default::Default;
-
 use leptos::prelude::*;
-use serde::{Deserialize, Serialize};
-
-use sharesphere_core_common::errors::AppError;
-use sharesphere_core_common::icons::{NsfwIcon, UserIcon};
-
-use crate::auth::Login;
-use crate::role::{AdminRole, PermissionLevel};
 
 #[cfg(feature = "ssr")]
-use crate::{
-    auth::ssr::{check_user, delete_user_in_oidc_provider, reload_user},
-    session::ssr::get_db_pool
+use {
+    sharesphere_core_common::db_utils::ssr::get_db_pool,
+    sharesphere_core_user::auth::ssr::{check_user, delete_user_in_oidc_provider, get_user, reload_user},
+    sharesphere_core_common::checks::check_username,
+    sharesphere_core_user::user::*,
 };
+
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_user::user::UserHeader;
+
+#[server]
+pub async fn get_matching_user_header_vec(
+    username_prefix: String,
+    show_nsfw: Option<bool>,
+    load_count: usize,
+) -> Result<Vec<UserHeader>, AppError> {
+    check_username(username_prefix.as_str(), false)?;
+    let db_pool = get_db_pool()?;
+    let show_nsfw = show_nsfw.unwrap_or_default() || get_user().await.unwrap_or(None).map(|user| user.show_nsfw).unwrap_or_default();
+    let user_header_vec = ssr::get_matching_user_header_vec(&username_prefix, show_nsfw, load_count as i64, &db_pool).await?;
+    Ok(user_header_vec)
+}
 
 #[server]
 pub async fn delete_user() -> Result<(), AppError> {

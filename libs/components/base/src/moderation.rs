@@ -1,13 +1,11 @@
 use leptos::prelude::*;
 use leptos_fluent::{move_tr, tr};
-use serde::{Deserialize, Serialize};
-use sharesphere_core_common::errors::AppError;
-use crate::post::Post;
 
-use sharesphere_core_common::icons::HammerIcon;
-use sharesphere_core_common::widget::ContentBody;
-use crate::comment::Comment;
-use crate::rule::{get_rule_description, get_rule_title, Rule};
+use sharesphere_core_content::moderation::Content;
+use sharesphere_core_sphere::rule::{get_rule_description, get_rule_title};
+
+use sharesphere_cmp_utils::icons::HammerIcon;
+use sharesphere_cmp_utils::widget::ContentBody;
 
 /// Displays the body of a moderated post or comment
 #[component]

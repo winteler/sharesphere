@@ -12,10 +12,14 @@ use {
         routes::get_app_origin,
     },
     sharesphere_core_user::{
+        auth::*,
         auth::ssr::{get_oidc_http_client, get_provider_metadata},
         session::ssr::get_session,
     }
 };
+
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_user::user::User;
 
 #[server]
 pub async fn login(redirect_url: String) -> Result<Option<User>, AppError> {
@@ -76,8 +80,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), AppError> {
 
 #[server]
 pub async fn get_user() -> Result<Option<User>, AppError> {
-    let user = ssr::check_oidc_refresh_token().await?;
-    Ok(user)
+    ssr::get_user().await
 }
 
 #[server]

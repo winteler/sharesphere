@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 sharesphere_core_common = { path = "../common", default-features = false}
 sharesphere_core_user = { path = "../user", default-features = false}
-sharesphere_core_sphere = { path = "../sphere", default-features = false}
 
 leptos.workspace = true
 leptos_meta.workspace = true
@@ -16,22 +15,30 @@ leptos_axum = { workspace = true, optional = true }
 leptos-fluent.workspace = true
 leptos-use.workspace = true
 
+ammonia.workspace = true
 anyhow = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
 axum_session = { workspace = true, optional = true }
 axum_session_auth = { workspace = true, optional = true }
 axum_session_sqlx = { workspace = true, optional = true }
 chrono.workspace = true
+gloo-net.workspace = true
+http = { workspace = true, optional = true }
 log.workspace = true
 lru = { workspace = true, optional = true }
+mime_guess.workspace = true
 openidconnect = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
+send_wrapper.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 sqlx = { workspace = true, optional = true }
 strum.workspace = true
+strum_macros.workspace = true
 tokio = { workspace = true, optional = true }
-url = { workspace = true, optional = true }
+url.workspace = true
 validator.workspace = true
+web-sys.workspace = true
 
 [features]
 default = []
@@ -43,7 +50,6 @@ ssr = [
     "leptos-fluent/ssr",
     "sharesphere_core_common/ssr",
     "sharesphere_core_user/ssr",
-    "sharesphere_core_sphere/ssr",
     "dep:anyhow",
     "dep:async-trait",
     "dep:axum_session",
@@ -55,5 +61,4 @@ ssr = [
     "dep:reqwest",
     "dep:sqlx",
     "dep:tokio",
-    "dep:url",
 ]

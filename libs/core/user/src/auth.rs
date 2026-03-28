@@ -126,7 +126,7 @@ pub mod ssr {
     }
 
     pub async fn check_user() -> Result<User, AppError> {
-        let user = check_oidc_refresh_token().await?;
+        let user = get_user().await?;
         user.ok_or(AppError::NotAuthenticated)
     }
 
@@ -165,7 +165,7 @@ pub mod ssr {
         Ok(access_token.to_string())
     }
 
-    pub async fn check_oidc_refresh_token() -> Result<Option<User>, AppError> {
+    pub async fn get_user() -> Result<Option<User>, AppError> {
         let auth_session = get_session()?;
         if let Some(user) = &auth_session.current_user {
             let user_lock = get_user_lock_cache()?.get_user_lock(user.user_id).await;

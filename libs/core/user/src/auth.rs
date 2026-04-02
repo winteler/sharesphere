@@ -12,7 +12,6 @@ pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_URL";
 pub const OIDC_ISSUER_ADMIN_URL_ENV: &str = "OIDC_ISSUER_ADMIN_URL";
 pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
-pub const AUTH_CALLBACK_ROUTE: &str = "/authback";
 pub const PKCE_KEY: &str = "pkce";
 pub const NONCE_KEY: &str = "nonce";
 pub const OIDC_TOKEN_KEY: &str = "oidc_token";
@@ -38,7 +37,7 @@ pub mod ssr {
     use sharesphere_core_common::checks::validate_redirect_url;
     use sharesphere_core_common::db_utils::ssr::get_db_pool;
     use sharesphere_core_common::errors::AppError;
-    use sharesphere_core_common::routes::get_app_origin;
+    use sharesphere_core_common::routes::{get_app_origin, AUTH_CALLBACK_ROUTE};
 
 
     use crate::session::ssr::{get_session, get_user_lock_cache, AuthSession};
@@ -74,19 +73,19 @@ pub mod ssr {
     }
 
     pub fn get_oidc_issuer_url() -> Result<String, AppError> {
-        Ok(env::var(OIDC_ISSUER_URL_ENV)?)
+        Ok(std::env::var(OIDC_ISSUER_URL_ENV)?)
     }
 
     pub fn get_oidc_issuer_admin_url() -> Result<String, AppError> {
-        Ok(env::var(OIDC_ISSUER_ADMIN_URL_ENV)?)
+        Ok(std::env::var(OIDC_ISSUER_ADMIN_URL_ENV)?)
     }
 
     pub fn get_oidc_client_id() -> Result<oidc::ClientId, AppError> {
-        Ok(oidc::ClientId::new(env::var(AUTH_CLIENT_ID_ENV)?))
+        Ok(oidc::ClientId::new(std::env::var(AUTH_CLIENT_ID_ENV)?))
     }
 
     fn get_oidc_client_secret() -> Result<oidc::ClientSecret, AppError> {
-        Ok(oidc::ClientSecret::new(env::var(AUTH_CLIENT_SECRET_ENV)?))
+        Ok(oidc::ClientSecret::new(std::env::var(AUTH_CLIENT_SECRET_ENV)?))
     }
 
     pub fn get_logout_redirect() -> Result<oidc::PostLogoutRedirectUrl, AppError> {

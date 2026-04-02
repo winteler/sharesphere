@@ -3,11 +3,6 @@ use sharesphere_core_common::common::SphereHeader;
 use crate::post::Post;
 use crate::ranking::{Vote};
 
-#[cfg(feature = "ssr")]
-use {
-    crate::ranking::{VoteValue},
-};
-
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Comment {
@@ -79,12 +74,15 @@ impl CommentWithContext {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
+
     use sharesphere_core_common::constants::COMMENT_BATCH_SIZE;
     use sharesphere_core_common::errors::AppError;
+    use sharesphere_core_sphere::sphere::Sphere;
+    use sharesphere_core_sphere::sphere::ssr::get_post_sphere;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
 
-    use crate::post::ssr::{get_post_sphere_name, increment_post_comment_count};
+    use crate::post::ssr::{increment_post_comment_count};
     use crate::ranking::{SortType, VoteValue};
 
     use super::*;

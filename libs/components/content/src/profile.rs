@@ -61,6 +61,16 @@ impl ToView for ProfileTabs {
     }
 }
 
+impl Into<Signal<String>> for SelfProfileTabs {
+    fn into(self) -> Signal<String> {
+        match self {
+            SelfProfileTabs::Posts => move_tr!("posts"),
+            SelfProfileTabs::Comments => move_tr!("comments"),
+            SelfProfileTabs::Settings => move_tr!("settings"),
+        }
+    }
+}
+
 impl ToView for SelfProfileTabs {
     fn to_view(self) -> impl IntoView + 'static {
         match self {

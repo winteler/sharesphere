@@ -6,9 +6,13 @@ use leptos_fluent::move_tr;
 use leptos_router::components::{Form, Outlet, A};
 use leptos_router::hooks::{use_location, use_params_map};
 use leptos_use::{signal_debounced, signal_throttled_with_options, use_element_hover, ThrottleOptions};
-
+use sharesphere_cmp_base::filter::PostFiltersButton;
+use sharesphere_cmp_base::post::PostListWithInitLoad;
+use sharesphere_cmp_base::ranking::PostSortWidget;
+use sharesphere_cmp_common::auth_widget::{LoginGuardButton, LoginGuardedButton};
+use sharesphere_cmp_common::role::AuthorizedShow;
 use sharesphere_core_common::checks::check_sphere_name;
-use sharesphere_core_common::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_SPHERE_NAME_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_core_common::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_SPHERE_NAME_LENGTH, POST_BATCH_SIZE, SCROLL_LOAD_THROTTLE_DELAY};
 use sharesphere_core_common::editor::{TextareaData};
 use sharesphere_core_common::routes::{get_create_post_path, get_satellite_path, get_sphere_name_memo, get_sphere_path, CREATE_POST_ROUTE, CREATE_POST_SPHERE_QUERY_PARAM, CREATE_POST_SUFFIX, PUBLISH_ROUTE, SEARCH_ROUTE};
 use sharesphere_core_common::unpack::{handle_additional_load, reset_additional_load};
@@ -19,11 +23,16 @@ use sharesphere_cmp_utils::form::LabeledFormCheckbox;
 use sharesphere_cmp_utils::icons::{LoadingIcon, MagnifierIcon, NsfwIcon, PlusIcon, ReturnIcon, SettingsIcon, SubscribedIcon};
 use sharesphere_cmp_utils::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
 use sharesphere_cmp_utils::widget::{BannerContent, RefreshButton};
-use sharesphere_cmp_common::state::{GlobalState, SphereState};
+use sharesphere_cmp_common::state::{GlobalState, SatelliteState, SphereState};
+use sharesphere_cmp_utils::errors::ErrorDisplay;
+use sharesphere_core_content::post::{add_sphere_info_to_post_vec, PostWithSphereInfo};
+use sharesphere_core_content::ranking::SortType;
 use sharesphere_core_user::role::PermissionLevel;
+use sharesphere_iface_content::post::get_post_vec_by_sphere_name;
+use sharesphere_iface_sphere::rule::get_rule_vec;
 use sharesphere_iface_user::role::get_sphere_role_vec;
 use sharesphere_iface_sphere::satellite::get_satellite_vec_by_sphere_name;
-use sharesphere_iface_sphere::sphere::get_sphere_with_user_info;
+use sharesphere_iface_sphere::sphere::{get_sphere_with_user_info, is_sphere_available, Subscribe, Unsubscribe};
 use sharesphere_iface_sphere::sphere_category::get_sphere_category_vec;
 use crate::satellite::{ActiveSatelliteList};
 use crate::sphere_category::get_sphere_category_header_map;
@@ -122,7 +131,6 @@ pub fn SphereBanner() -> impl IntoView {
             </TransitionUnpack>
             <Outlet/>
         </div>
-        <SphereSidebar/>
     }.into_any()
 }
 

@@ -2,11 +2,10 @@ use leptos::prelude::*;
 
 #[cfg(feature = "ssr")]
 use {
-    sharesphere_core_common::checks::{check_string_length, check_sphere_name, check_sphere_name_with_options, check_username},
+    sharesphere_core_common::checks::{check_string_length, check_sphere_name, check_sphere_name_with_options},
     sharesphere_core_common::constants::{COMMENT_BATCH_SIZE, MAX_SEARCH_QUERY_LENGTH, POST_BATCH_SIZE},
     sharesphere_core_common::db_utils::ssr::get_db_pool,
     sharesphere_core_user::auth::ssr::get_user,
-    sharesphere_core_user::user::UserHeader,
     sharesphere_core_content::search::*,
 };
 

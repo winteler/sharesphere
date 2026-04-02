@@ -36,11 +36,10 @@ impl BaseRule {
 pub mod ssr {
     use sqlx::PgPool;
 
+    use sharesphere_core_common::common::Rule;
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_user::role::{PermissionLevel};
     use sharesphere_core_user::user::User;
-
-    use crate::rule::Rule;
 
     pub async fn load_rule_by_id(
         rule_id: i64,

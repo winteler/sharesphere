@@ -9,10 +9,12 @@ use leptos::prelude::*;
 use leptos_meta::{HashedStylesheet, Link};
 use tower::util::ServiceExt;
 use tower_http::services::ServeDir;
+
+use sharesphere_core_common::errors::AppError;
+use sharesphere_cmp_utils::errors::ErrorTemplate;
+
 use sharesphere_app::app::{AppMeta, I18nProvider};
-use sharesphere_auth::session::ssr::is_prod_mode;
-use sharesphere_utils::error_template::ErrorTemplate;
-use sharesphere_utils::errors::AppError;
+use sharesphere_core_user::session::ssr::LEPTOS_ENV;
 
 pub async fn file_and_error_handler(
     uri: Uri,
@@ -70,7 +72,7 @@ async fn get_static_file(uri: Uri, root: &str) -> Result<Response<Body>, (Status
         .unwrap_or_else(|err| match err {})
         .into_response();
 
-    if is_prod_mode() {
+    if *LEPTOS_ENV == Env::PROD {
         response.headers_mut().append(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
     }
     

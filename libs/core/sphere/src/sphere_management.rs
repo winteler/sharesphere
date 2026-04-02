@@ -125,7 +125,7 @@ pub mod ssr {
         Ok(user_ban)
     }
 
-    pub(super) fn get_object_store(image_type: SphereImageType) -> Result<AmazonS3, AppError> {
+    pub fn get_object_store(image_type: SphereImageType) -> Result<AmazonS3, AppError> {
         AmazonS3Builder::from_env()
             .with_bucket_name(image_type.get_bucket_name()?.clone())
             .build()

@@ -29,9 +29,8 @@ pub mod ssr {
     use sqlx::PgPool;
 
     use sharesphere_core_common::common::{SphereHeader};
-    use sharesphere_core_common::constants::{SPHERE_FETCH_LIMIT, USER_FETCH_LIMIT};
+    use sharesphere_core_common::constants::{SPHERE_FETCH_LIMIT};
     use sharesphere_core_common::errors::AppError;
-    use sharesphere_core_user::user::{UserHeader};
 
     use crate::comment::CommentWithContext;
     use crate::post::PostWithSphereInfo;

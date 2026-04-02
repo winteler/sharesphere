@@ -1,3 +1,5 @@
+#[cfg(feature = "ssr")]
+use http::StatusCode;
 use leptos::prelude::*;
 
 use sharesphere_core_common::errors::AppError;

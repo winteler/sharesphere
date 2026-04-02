@@ -14,7 +14,8 @@ use sharesphere_core_common::routes::{SEARCH_ROUTE, SEARCH_TAB_QUERY_PARAM};
 use sharesphere_core_content::search::{is_content_search_valid, SearchState};
 use sharesphere_core_common::unpack::{handle_additional_load, handle_initial_load};
 
-use sharesphere_iface_content::search::{get_matching_user_header_vec, search_comments, search_posts};
+use sharesphere_iface_content::search::{search_comments, search_posts};
+use sharesphere_iface_user::user::{get_matching_user_header_vec};
 
 use sharesphere_cmp_utils::icons::MagnifierIcon;
 use sharesphere_cmp_utils::unpack::{TransitionUnpack};

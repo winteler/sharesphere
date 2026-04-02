@@ -1,39 +1,32 @@
 use leptos::ev::TouchEvent;
-use leptos::html::Div;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, Title};
-use leptos_router::{components::{Outlet, ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
-use leptos_use::{signal_throttled_with_options, ThrottleOptions};
-use leptos_fluent::{leptos_fluent, move_tr};
+use leptos_router::{components::{ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
+use leptos_fluent::{leptos_fluent};
 use regex::Regex;
 
-use sharesphere_core_common::constants::{POPULAR_ICON_PATH, LOGO_ICON_PATH, SCROLL_LOAD_THROTTLE_DELAY, SITE_NAME};
-use sharesphere_core_common::error_template::ErrorTemplate;
+use sharesphere_core_common::constants::SITE_NAME;
 use sharesphere_core_common::errors::AppError;
-use sharesphere_cmp_utils::icons::*;
-use sharesphere_core_common::node_utils::has_reached_scroll_load_threshold;
-use sharesphere_core_common::routes::*;
-use sharesphere_cmp_utils::unpack::{handle_additional_load, reset_additional_load, SuspenseUnpack};
-use sharesphere_cmp_utils::widget::{BannerContent, RefreshButton};
+use sharesphere_core_common::routes::{ABOUT_SHARESPHERE_ROUTE, AUTH_CALLBACK_ROUTE, CONTENT_POLICY_ROUTE, CREATE_POST_SUFFIX, CREATE_SPHERE_SUFFIX, FAQ_ROUTE, NOTIFICATION_ROUTE, POPULAR_ROUTE, POST_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, PRIVACY_POLICY_ROUTE, PUBLISH_ROUTE, RULES_ROUTE, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SEARCH_ROUTE, SPHERE_ROUTE_PARAM_NAME, SPHERE_ROUTE_PREFIX, TERMS_AND_CONDITIONS_ROUTE, USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
 
-use sharesphere_auth::auth::*;
-use sharesphere_auth::auth_widget::LoginWindow;
-use sharesphere_auth::user::{DeleteUser, SetUserSettings, UserState};
+use sharesphere_iface_sphere::sphere::CreateSphere;
+use sharesphere_iface_user::auth::{get_user, EndSession};
+use sharesphere_iface_user::user::{DeleteUser, SetUserSettings};
 
-use sharesphere_components::policy::{AboutShareSphere, ContentPolicy, PrivacyPolicy, Rules, TermsAndConditions, Faq};
-use sharesphere_components::navigation_bar::NavigationBar;
-use sharesphere_components::profile::UserProfile;
-use sharesphere_components::search::{Search, SphereSearch};
-use sharesphere_content::post::{CreatePost, Post};
-use sharesphere_core::notification::NotificationHome;
-use sharesphere_core::post::{get_sorted_post_vec, get_subscribed_post_vec, PostListWithInitLoad, PostWithSphereInfo, POST_BATCH_SIZE};
-use sharesphere_core::ranking::PostSortWidget;
-use sharesphere_core::sidebar::{HomeSidebar, LeftSidebar};
-use sharesphere_core::sphere::CreateSphere;
-use sharesphere_core::state::GlobalState;
-use sharesphere_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
-use sharesphere_sphere::sphere::{CreateSphere, SphereBanner, SphereContents};
-use sharesphere_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
+use sharesphere_cmp_common::auth_widget::AuthCallback;
+use sharesphere_cmp_common::state::GlobalState;
+use sharesphere_cmp_content::post::{CreatePost, Post};
+use sharesphere_cmp_content::profile::UserProfile;
+use sharesphere_cmp_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
+use sharesphere_cmp_sphere::sphere::{CreateSphere, SphereContents};
+use sharesphere_cmp_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
+use sharesphere_cmp_ui::navigation_bar::NavigationBar;
+use sharesphere_cmp_ui::policy::{AboutShareSphere, ContentPolicy, Faq, PrivacyPolicy, Rules, TermsAndConditions};
+use sharesphere_cmp_ui::search::{Search, SphereSearch};
+use sharesphere_cmp_ui::sidebar::LeftSidebar;
+use sharesphere_cmp_utils::errors::ErrorTemplate;
+
+use crate::home::{HomePage, HotPage, LoginGuard, LoginGuardHome, NotificationHome, SphereHome};
 
 const IS_TEST_SITE_ENV: &str = "IS_TEST_SITE";
 
@@ -125,10 +118,6 @@ pub fn App() -> impl IntoView {
         },
         move |_| get_user(),
     );
-    let user_state = UserState {
-        login_action: ServerAction::<Login>::new(),
-        user
-    };
     let state = GlobalState::new(
         user,
         logout_action,
@@ -136,7 +125,6 @@ pub fn App() -> impl IntoView {
         create_sphere_action,
         set_settings_action,
     );
-    provide_context(user_state);
     provide_context(state);
 
     let swipe_start_x = RwSignal::new(None);
@@ -198,7 +186,7 @@ pub fn App() -> impl IntoView {
                             }>
                                 <Route path=StaticSegment("") view=HomePage/>
                                 <Route path=StaticSegment(POPULAR_ROUTE) view=HotPage/>
-                                <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereBanner>
+                                <ParentRoute path=(StaticSegment(SPHERE_ROUTE_PREFIX), ParamSegment(SPHERE_ROUTE_PARAM_NAME)) view=SphereHome>
                                     <ParentRoute path=(StaticSegment(SATELLITE_ROUTE_PREFIX), ParamSegment(SATELLITE_ROUTE_PARAM_NAME)) view=SatelliteBanner>
                                         <Route path=(StaticSegment(POST_ROUTE_PREFIX), ParamSegment(POST_ROUTE_PARAM_NAME)) view=Post/>
                                         <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuard>
@@ -236,225 +224,15 @@ pub fn App() -> impl IntoView {
     }
 }
 
-/// Login guard with home sidebar
-#[component]
-fn LoginGuardHome() -> impl IntoView {
-    view! {
-        <LoginGuard/>
-        <HomeSidebar/>
-    }
-}
-
-/// Component to guard pages requiring a login, and enable the user to log in with a redirect
-#[component]
-fn LoginGuard() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    view! {
-        <SuspenseUnpack resource=state.user let:user>
-        {
-            match user {
-                Some(_) => view! { <Outlet/> }.into_any(),
-                None => view! { <LoginWindow/> }.into_any(),
-            }
-        }
-        </SuspenseUnpack>
-    }
-}
-
-/// Renders the home page of ShareSphere.
-#[component]
-fn HomePage() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let refresh_count = RwSignal::new(0);
-    let additional_load_count = RwSignal::new(0);
-    let is_loading = RwSignal::new(false);
-    let div_ref = NodeRef::<Div>::new();
-
-    view! {
-        <div
-            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
-            on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
-                additional_load_count.update(|value| *value += 1);
-            }
-            node_ref=div_ref
-        >
-            <BannerWithWidgets title=move_tr!("home") icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None refresh_count/>
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || Suspend::new(async move {
-                        match state.user.await {
-                            Ok(Some(_)) => view! { <UserHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
-                            _ => view! { <DefaultHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
-                        }
-                    })
-                }
-            </Transition>
-        </div>
-        <HomeSidebar/>
-    }
-}
-
-/// Renders a page with the most popular content of ShareSphere.
-#[component]
-fn HotPage() -> impl IntoView {
-    let refresh_count = RwSignal::new(0);
-    let additional_load_count = RwSignal::new(0);
-    let is_loading = RwSignal::new(false);
-    let div_ref = NodeRef::<Div>::new();
-
-    view! {
-        <div
-            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
-            on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
-                additional_load_count.update(|value| *value += 1);
-            }
-            node_ref=div_ref
-        >
-            <BannerWithWidgets title=move_tr!("popular") icon_url=Some(String::from(POPULAR_ICON_PATH)) banner_url=None refresh_count/>
-            <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
-        </div>
-        <HomeSidebar/>
-    }
-}
-
-/// Component to display the content of a banner
-#[component]
-pub fn BannerWithWidgets(
-    #[prop(into)]
-    title: Signal<String>,
-    icon_url: Option<String>,
-    banner_url: Option<String>,
-    refresh_count: RwSignal<usize>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    view! {
-        <div class="mt-2 relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
-            <BannerContent title icon_url banner_url sphere_icon_class="h-8 w-8 2xl:h-12 2xl:w-12 rounded-none"/>
-        </div>
-        <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
-            <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
-            <RefreshButton refresh_count is_tooltip_bottom=true/>
-        </div>
-    }
-}
-
-/// Renders the home page anonymous users.
-#[component]
-fn DefaultHomePage(
-    refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i32>,
-    is_loading: RwSignal<bool>,
-    div_ref: NodeRef<Div>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
-    let load_error = RwSignal::new(None);
-
-    let post_vec_resource = Resource::new(
-        move || (state.post_sort_type.get(), refresh_count.get()),
-        move |(sort_type, _)| async move {
-            #[cfg(feature = "hydrate")]
-            is_loading.set(true);
-            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
-            let result = get_sorted_post_vec(sort_type, 0).await;
-            #[cfg(feature = "hydrate")]
-            is_loading.set(false);
-            result
-        }
-    );
-
-    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
-        additional_load_count,
-        SCROLL_LOAD_THROTTLE_DELAY,
-        ThrottleOptions::default().leading(true).trailing(false)
-    );
-
-    let _additional_post_resource = LocalResource::new(
-        move || async move {
-            if additional_load_count_throttled.get() > 0 {
-                is_loading.set(true);
-                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
-                let additional_load = get_sorted_post_vec(state.post_sort_type.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, additional_post_vec, load_error);
-                is_loading.set(false);
-            }
-        }
-    );
-
-    view! {
-        <PostListWithInitLoad
-            post_vec_resource
-            additional_post_vec
-            is_loading=is_loading
-            load_error=load_error
-            add_y_overflow_auto=false
-        />
-    }
-}
-
-/// Renders the home page of a given user.
-#[component]
-fn UserHomePage(
-    refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i32>,
-    is_loading: RwSignal<bool>,
-    div_ref: NodeRef<Div>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
-    let load_error = RwSignal::new(None);
-
-    let post_vec_resource = Resource::new(
-        move || (state.post_sort_type.get(), refresh_count.get()),
-        move |(sort_type, _)|  async move {
-            #[cfg(feature = "hydrate")]
-            is_loading.set(true);
-            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
-            let result = get_subscribed_post_vec(sort_type, 0).await;
-            #[cfg(feature = "hydrate")]
-            is_loading.set(false);
-            result
-        }
-    );
-
-    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
-        additional_load_count,
-        SCROLL_LOAD_THROTTLE_DELAY,
-        ThrottleOptions::default().leading(true).trailing(false)
-    );
-
-    let _additional_post_resource = LocalResource::new(
-        move || async move {
-            if additional_load_count_throttled.get() > 0 {
-                is_loading.set(true);
-                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
-                let additional_load = get_subscribed_post_vec(state.post_sort_type.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, additional_post_vec, load_error);
-                is_loading.set(false);
-            }
-        }
-    );
-
-    view! {
-        <PostListWithInitLoad
-            post_vec_resource
-            additional_post_vec
-            is_loading
-            load_error
-            add_y_overflow_auto=false
-        />
-    }
-}
-
 #[component]
 pub fn I18nProvider(children: Children) -> impl IntoView {
     leptos_fluent! {
         children: children(),
-        locales: "../../locales",
-        languages: "../../locales/languages.json",
+        locales: "../../../locales",
+        languages: "../../../locales/languages.json",
         default_language: "en",
         #[cfg(not(feature = "ssr"))]
-        check_translations: "../**/*.rs",
+        check_translations: "../../**/*.rs",
         sync_html_tag_lang: true,
         sync_html_tag_dir: true,
         cookie_name: "lang",

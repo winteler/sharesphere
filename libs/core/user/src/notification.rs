@@ -119,8 +119,7 @@ impl NotifHandler {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-
-    use sharesphere_core_common::common::SphereHeader;
+    
     use sharesphere_core_common::errors::AppError;
 
     use crate::notification::{Notification, NotificationType, NOTIF_RETENTION_DAYS};

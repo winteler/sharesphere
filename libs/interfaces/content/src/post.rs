@@ -5,7 +5,7 @@ use {
     validator::Validate,
     sharesphere_core_common::db_utils::ssr::get_db_pool,
     sharesphere_core_common::checks::{check_sphere_name},
-    sharesphere_core_common::constants::{COMMENT_BATCH_SIZE, POST_BATCH_SIZE},
+    sharesphere_core_common::constants::{POST_BATCH_SIZE},
     sharesphere_core_common::routes::get_post_path,
     sharesphere_core_user::auth::{ssr::get_user, ssr::check_user},
     sharesphere_core_common::{

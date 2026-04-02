@@ -4,13 +4,6 @@ use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
-#[cfg(feature = "ssr")]
-use {
-    crate::{
-        user::ssr::SqlUser,
-    }
-};
-
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
 pub enum AdminRole {

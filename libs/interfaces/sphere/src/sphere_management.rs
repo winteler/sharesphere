@@ -6,7 +6,7 @@ use sharesphere_core_common::errors::AppError;
 use {
     std::path::Path,
     sharesphere_core_common::db_utils::ssr::get_db_pool,
-    sharesphere_core_user::auth::ssr::{check_user, get_user, reload_user},
+    sharesphere_core_user::auth::ssr::{check_user, reload_user},
     sharesphere_core_common::checks::{check_sphere_name, check_username},
     sharesphere_core_sphere::sphere_management::ssr::{
         MAX_BANNER_SIZE, MAX_ICON_SIZE, OBJECT_CONTAINER_URL_ENV, SphereImageType
@@ -47,7 +47,7 @@ pub async fn set_sphere_icon(
     let db_pool = get_db_pool()?;
 
     let image_type = SphereImageType::ICON;
-    let object_container_url = env::var(OBJECT_CONTAINER_URL_ENV)?;
+    let object_container_url = std::env::var(OBJECT_CONTAINER_URL_ENV)?;
     let bucket_name = image_type.get_bucket_name()?;
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_ICON_SIZE, &object_store, &user).await?;
@@ -75,7 +75,7 @@ pub async fn set_sphere_banner(
     let db_pool = get_db_pool()?;
 
     let image_type = SphereImageType::BANNER;
-    let object_container_url = env::var(OBJECT_CONTAINER_URL_ENV)?;
+    let object_container_url = std::env::var(OBJECT_CONTAINER_URL_ENV)?;
     let bucket_name = image_type.get_bucket_name()?;
     let object_store = ssr::get_object_store(image_type)?;
     let (sphere_name, file_name) = ssr::store_sphere_image(data, MAX_BANNER_SIZE, &object_store, &user).await?;

@@ -87,6 +87,23 @@ pub mod ssr {
         Ok(sphere)
     }
 
+    pub async fn get_post_sphere(
+        post_id: i64,
+        db_pool: &PgPool,
+    ) -> Result<Sphere, AppError> {
+        let sphere = sqlx::query_as::<_, Sphere>(
+            "SELECT s.*
+            FROM spheres s
+            JOIN posts p on p.sphere_id = s.sphere_id
+            WHERE p.post_id = $1"
+        )
+            .bind(post_id)
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(sphere)
+    }
+
     pub async fn is_sphere_available(sphere_name: &str, db_pool: &PgPool) -> Result<bool, AppError> {
         let sphere_exist = sqlx::query!(
             "SELECT sphere_id FROM spheres WHERE normalized_sphere_name = normalize_sphere_name($1)",

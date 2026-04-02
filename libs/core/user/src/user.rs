@@ -176,6 +176,7 @@ impl Default for UserPostFilters {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
+    use std::cmp::min;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
@@ -184,6 +185,7 @@ pub mod ssr {
     use lru::LruCache;
     use sqlx::PgPool;
     use tokio::sync::Mutex;
+    use sharesphere_core_common::constants::USER_FETCH_LIMIT;
     use sharesphere_core_common::errors::AppError;
 
     use crate::role::ssr::get_user_sphere_role;

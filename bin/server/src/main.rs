@@ -17,15 +17,16 @@ use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRou
 use sqlx::PgPool;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use sharesphere_auth::session::ssr::{create_db_pool, is_prod_mode, AuthSession};
-use sharesphere_auth::user::ssr::UserLockCache;
-use sharesphere_auth::user::User;
-
-use sharesphere_core::post::ssr::update_post_scores;
+use sharesphere_core_common::db_utils::ssr::{create_db_pool};
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_content::post::ssr::update_post_scores;
+use sharesphere_core_user::user::ssr::UserLockCache;
+use sharesphere_core_user::user::User;
+use sharesphere_core_user::notification::ssr::delete_stale_notifications;
+use sharesphere_core_user::session::ssr::{AuthSession, LEPTOS_ENV};
 
 use sharesphere_app::app::*;
-use sharesphere_core::notification::ssr::delete_stale_notifications;
-use sharesphere_utils::errors::AppError;
+
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
 
@@ -229,7 +230,7 @@ async fn main() {
         // This is how we would Set a Database Key to encrypt as store our per session keys.
         // This MUST be set in order to use SecurityMode::PerSession.
         .with_database_key(get_session_db_key())
-        .with_secure(is_prod_mode());
+        .with_secure(*LEPTOS_ENV == Env::PROD);
 
     let auth_config = AuthConfig::<i64>::default();
     let session_store = SessionStore::<SessionPgPool>::new(

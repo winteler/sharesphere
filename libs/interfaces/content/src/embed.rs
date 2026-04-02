@@ -2,9 +2,6 @@ use leptos::prelude::*;
 
 #[cfg(feature = "ssr")]
 use {
-    http::header::{ACCEPT, USER_AGENT},
-    http::{HeaderMap, HeaderValue},
-    reqwest::Client,
     sharesphere_core_common::checks::check_string_length,
     sharesphere_core_common::constants::MAX_LINK_LENGTH,
     sharesphere_core_content::embed::{clean_html, fetch_api, OEmbedType},

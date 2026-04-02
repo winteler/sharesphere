@@ -2,9 +2,10 @@
 pub mod ssr {
     use std::env;
     use std::sync::{Arc, LazyLock};
-    use sqlx::{postgres::PgPoolOptions, PgPool};
+    use sqlx::{PgPool};
     use axum_session_sqlx::SessionPgPool;
-    use leptos::prelude::{use_context, config};
+    use leptos::config::Env;
+    use leptos::prelude::{use_context};
 
     use sharesphere_core_common::errors::AppError;
 
@@ -14,14 +15,12 @@ pub mod ssr {
     pub const DB_URL_ENV: &str = "DATABASE_URL";
     pub const LEPTOS_ENV_KEY: &str = "LEPTOS_ENV";
 
-    static LEPTOS_ENV: LazyLock<Result<Env, AppError>> = LazyLock::new(|| {
-        let leptos_env = env::var(LEPTOS_ENV_KEY).unwrap_or("dev").to_lowercase();
+    pub static LEPTOS_ENV: LazyLock<Env> = LazyLock::new(|| {
+        let leptos_env = env::var(LEPTOS_ENV_KEY).unwrap().to_lowercase();
         match leptos_env.as_ref() {
-            "dev" | "development" => Ok(Env::DEV),
-            "prod" | "production" => Ok(Env::PROD),
-            _ => Err(AppError::new(format!(
-                "{input} is not a supported leptos environment. Use either `dev` or `prod`.",
-            ))),
+            "dev" | "development" => Env::DEV,
+            "prod" | "production" => Env::PROD,
+            _ => panic!("Unsupported LEPTOS_ENV environment variable. Use either `dev` or `prod`."),
         }
     });
 

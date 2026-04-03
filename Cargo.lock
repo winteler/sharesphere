@@ -5149,11 +5149,6 @@ dependencies = [
 name = "sharesphere_core_sphere"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-trait",
- "axum_session",
- "axum_session_auth",
- "axum_session_sqlx",
  "chrono",
  "http",
  "image",
@@ -5161,12 +5156,8 @@ dependencies = [
  "leptos",
  "leptos-fluent",
  "leptos_axum",
- "leptos_meta",
- "leptos_router",
  "log",
- "lru",
  "object_store",
- "openidconnect",
  "reqwest",
  "sealed_test",
  "serde",
@@ -5189,12 +5180,9 @@ dependencies = [
  "float-cmp",
  "fluent-templates",
  "futures-util",
- "image",
- "infer",
  "leptos",
  "leptos-fluent",
  "leptos-use",
- "leptos_axum",
  "leptos_meta",
  "leptos_router",
  "multer",
@@ -5206,8 +5194,6 @@ dependencies = [
  "sharesphere_core_user",
  "sqlx",
  "tokio",
- "url",
- "webp",
 ]
 
 [[package]]

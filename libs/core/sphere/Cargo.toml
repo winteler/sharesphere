@@ -2,6 +2,7 @@
 name = "sharesphere_core_sphere"
 version = "0.1.0"
 edition = "2024"
+description = "Sphere related structs and functions"
 
 [dependencies]
 sharesphere_core_common = { path = "../common", default-features = false }
@@ -18,7 +19,6 @@ image = { workspace = true, optional = true }
 infer = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 object_store = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
 serde.workspace = true
 sqlx = { workspace = true, optional = true }
 strum.workspace = true
@@ -43,7 +43,6 @@ ssr = [
     "dep:leptos_axum",
     "dep:log",
     "dep:object_store",
-    "dep:reqwest",
     "dep:sqlx",
     "dep:tokio",
     "dep:url",

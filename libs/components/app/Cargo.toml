@@ -44,7 +44,6 @@ hydrate = [
     "sharesphere_cmp_ui/hydrate",
 ]
 ssr = [
-    "dep:axum",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
@@ -61,4 +60,5 @@ ssr = [
     "sharesphere_cmp_sphere/ssr",
     "sharesphere_cmp_content/ssr",
     "sharesphere_cmp_ui/ssr",
+    "dep:axum",
 ]

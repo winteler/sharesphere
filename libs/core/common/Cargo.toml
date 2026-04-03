@@ -6,15 +6,11 @@ description = "Utility structs and functions"
 
 [dependencies]
 leptos.workspace = true
-leptos_meta.workspace = true
 leptos_router.workspace = true
-leptos_axum = { workspace = true, optional = true }
 
 leptos-fluent.workspace = true
-leptos-use.workspace = true
 
 anyhow = { workspace = true, optional = true }
-async-trait = { workspace = true, optional = true }
 chrono.workspace = true
 const_format.workspace = true
 http.workspace = true
@@ -43,14 +39,7 @@ sealed_test = "1.1.0"
 default = []
 ssr = [
     "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptos_router/ssr",
-    "leptos-fluent/axum",
-    "leptos-fluent/ssr",
-    "leptos-use/ssr",
     "dep:anyhow",
-    "dep:async-trait",
-    "dep:leptos_axum",
     "dep:openidconnect",
     "dep:reqwest",
     "dep:sqlx",

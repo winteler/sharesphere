@@ -2,12 +2,12 @@
 name = "sharesphere_core_user"
 version = "0.1.0"
 edition = "2024"
+description = "User related structs and functions"
 
 [dependencies]
 sharesphere_core_common = { path = "../common", default-features = false }
 
 leptos.workspace = true
-leptos_meta.workspace = true
 leptos_router.workspace = true
 leptos_axum = { workspace = true, optional = true }
 
@@ -15,7 +15,6 @@ leptos-fluent.workspace = true
 
 anyhow = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
-axum_session = { workspace = true, optional = true }
 axum_session_auth = { workspace = true, optional = true }
 axum_session_sqlx = { workspace = true, optional = true }
 chrono.workspace = true
@@ -38,14 +37,12 @@ fluent-templates = "0.13.3"
 default = []
 ssr = [
     "leptos/ssr",
-    "leptos_meta/ssr",
     "leptos_router/ssr",
     "leptos-fluent/axum",
     "leptos-fluent/ssr",
     "sharesphere_core_common/ssr",
     "dep:anyhow",
     "dep:async-trait",
-    "dep:axum_session",
     "dep:axum_session_auth",
     "dep:axum_session_sqlx",
     "dep:leptos_axum",

@@ -13,11 +13,7 @@ sharesphere_core_sphere = { path = "../sphere", default-features = false, featur
 sharesphere_core_content = { path = "../content", default-features = false, features = ["ssr"] }
 
 leptos.workspace = true
-leptos_meta.workspace = true
-leptos_router.workspace = true
-
 leptos-fluent.workspace = true
-leptos-use.workspace = true
 
 chrono.workspace = true
 object_store.workspace = true
@@ -35,9 +31,5 @@ rand = "0.10.0"
 [features]
 default = [
     "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptos_router/ssr",
-    "leptos-fluent/axum",
     "leptos-fluent/ssr",
-    "leptos-use/ssr",
 ]

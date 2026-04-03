@@ -8,8 +8,8 @@ use fluent_templates::{static_loader, StaticLoader};
 use leptos::prelude::*;
 use leptos_fluent::{I18n, Language};
 
-use sharesphere_auth::user::ssr::create_or_update_user;
-use sharesphere_auth::user::User;
+use sharesphere_core_user::user::ssr::create_or_update_user;
+use sharesphere_core_user::user::User;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 
@@ -77,7 +77,7 @@ pub async fn get_db_pool() -> PgPool {
         .await
         .expect("Should be able to connect test DB");
 
-    sqlx::migrate!("../../migrations/")
+    sqlx::migrate!("../../../bin/server/migrations/")
         .run(&db_pool)
         .await
         .expect("SQLx migrations should be executed.");
@@ -105,7 +105,7 @@ pub async fn create_user(
 pub fn get_i18n() -> I18n {
     static_loader! {
             static TRANSLATIONS = {
-                locales: "../../locales",
+                locales: "../../../locales",
                 fallback_language: "en",
             };
         }

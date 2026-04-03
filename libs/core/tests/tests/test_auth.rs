@@ -1,15 +1,16 @@
 use chrono::Days;
 use std::ops::Add;
 
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_content::moderation::ssr::ban_user_from_sphere;
+use sharesphere_core_sphere::sphere;
+use sharesphere_core_user::role::ssr::set_user_sphere_role;
+use sharesphere_core_user::role::{AdminRole, PermissionLevel};
+use sharesphere_core_user::user::ssr::{create_or_update_user, SqlUser};
+use sharesphere_core_user::user::User;
+
 use crate::common::{create_user, get_db_pool};
 use crate::data_factory::{add_base_rule, create_sphere_with_post};
-use sharesphere_auth::role::ssr::set_user_sphere_role;
-use sharesphere_auth::role::{AdminRole, PermissionLevel};
-use sharesphere_auth::user::ssr::{create_or_update_user, SqlUser};
-use sharesphere_auth::user::User;
-use sharesphere_core::moderation::ssr::ban_user_from_sphere;
-use sharesphere_core::sphere;
-use sharesphere_core_common::errors::AppError;
 
 mod common;
 mod data_factory;

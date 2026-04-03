@@ -7,8 +7,8 @@ description = "Core crate containing server functions (except those related to a
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sharesphere_utils = { path = "../utils", default-features = false}
-sharesphere_auth = { path = "../auth", default-features = false}
+sharesphere_utils = { path = "../utils", default-features = false }
+sharesphere_auth = { path = "../auth", default-features = false }
 
 leptos.workspace = true
 leptos_meta.workspace = true

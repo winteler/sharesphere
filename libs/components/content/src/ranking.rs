@@ -135,7 +135,7 @@ pub fn get_vote_button_css(vote: RwSignal<VoteValue>, is_upvote: bool) -> Signal
 
 #[cfg(test)]
 mod tests {
-    use crate::ranking::{get_vote_button_css, update_vote_value, VoteValue};
+    use crate::ranking::{get_vote_button_css, VoteValue};
     use leptos::prelude::*;
 
     #[test]

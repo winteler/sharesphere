@@ -7,33 +7,27 @@ description = "Test crate for the sharesphere_core"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sharesphere_core_common = { path = "../common", default-features = false}
-sharesphere_core_user = { path = "../user", default-features = false}
-sharesphere_core_sphere = { path = "../sphere", default-features = false}
-sharesphere_core_content = { path = "../content", default-features = false}
+sharesphere_core_common = { path = "../common", default-features = false, features = ["ssr"] }
+sharesphere_core_user = { path = "../user", default-features = false, features = ["ssr"] }
+sharesphere_core_sphere = { path = "../sphere", default-features = false, features = ["ssr"] }
+sharesphere_core_content = { path = "../content", default-features = false, features = ["ssr"] }
 
 leptos.workspace = true
 leptos_meta.workspace = true
 leptos_router.workspace = true
-leptos_axum = { workspace = true, optional = true }
+leptos_axum.workspace = true
 
 leptos-fluent.workspace = true
 leptos-use.workspace = true
 
 chrono.workspace = true
-http.workspace = true
-image = { workspace = true, optional = true }
-infer = { workspace = true, optional = true }
-log.workspace = true
-object_store = { workspace = true, optional = true }
-serde.workspace = true
-sqlx = { workspace = true, optional = true }
-strum.workspace = true
-strum_macros.workspace = true
-tokio = { workspace = true, optional = true }
-url = { workspace = true, optional = true }
-validator.workspace = true
-webp = { workspace = true, optional = true }
+image.workspace = true
+infer.workspace = true
+object_store.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+url.workspace = true
+webp.workspace = true
 
 [dev-dependencies]
 bytes = "1.11.1"
@@ -42,29 +36,13 @@ fluent-templates = "0.13.3"
 futures-util = "0.3.32"
 multer = "3.1.0"
 rand = "0.10.0"
-sealed_test = "1.1.0"
-unic-langid = "0.9.6"
 
 [features]
-default = []
-ssr = [
+default = [
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "leptos-fluent/axum",
     "leptos-fluent/ssr",
     "leptos-use/ssr",
-    "sharesphere_core_common/ssr",
-    "sharesphere_core_user/ssr",
-    "sharesphere_core_sphere/ssr",
-    "sharesphere_core_content/ssr",
-    "dep:image",
-    "dep:infer",
-    "dep:object_store",
-    "dep:leptos_axum",
-    "dep:sqlx",
-    "dep:tokio",
-    "dep:url",
-    "dep:webp",
 ]
-

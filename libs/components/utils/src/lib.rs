@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 pub mod colors;
 pub mod editor;
 pub mod errors;

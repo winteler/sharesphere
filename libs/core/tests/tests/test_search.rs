@@ -1,18 +1,20 @@
+use std::collections::BTreeSet;
+
+use sharesphere_core_common::common::SphereHeader;
+use sharesphere_core_common::errors::AppError;
+use sharesphere_core_content::comment::ssr::create_comment;
+use sharesphere_core_content::comment::CommentWithContext;
+use sharesphere_core_content::embed::Link;
+use sharesphere_core_content::post::ssr::create_post;
+use sharesphere_core_content::post::{PostTags, PostWithSphereInfo};
+use sharesphere_core_content::search::ssr::{get_matching_sphere_header_vec, search_comments, search_posts, search_spheres};
+use sharesphere_core_sphere::sphere::ssr::create_sphere;
+use sharesphere_core_sphere::sphere_management::ssr::set_sphere_icon_url;
+use sharesphere_core_user::user::ssr::{get_matching_user_header_vec, set_user_settings};
+use sharesphere_core_user::user::{User, UserHeader};
+
 use crate::common::{create_test_user, create_user, get_db_pool};
 use crate::data_factory::{create_simple_post, set_sphere_num_members};
-use sharesphere_core::comment::ssr::create_comment;
-use sharesphere_core::comment::CommentWithContext;
-use sharesphere_core::post::ssr::create_post;
-use sharesphere_core::post::{PostTags, PostWithSphereInfo};
-use sharesphere_core::search::ssr::{get_matching_sphere_header_vec, get_matching_user_header_vec, search_comments, search_posts, search_spheres};
-use sharesphere_core::sphere::ssr::create_sphere;
-use sharesphere_core::sphere::SphereHeader;
-use sharesphere_core::sphere_management::ssr::set_sphere_icon_url;
-use sharesphere_auth::user::ssr::set_user_settings;
-use sharesphere_auth::user::{User, UserHeader};
-use sharesphere_core_common::embed::Link;
-use sharesphere_core_common::errors::AppError;
-use std::collections::BTreeSet;
 
 mod common;
 mod data_factory;

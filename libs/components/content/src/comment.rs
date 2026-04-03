@@ -700,17 +700,20 @@ pub fn EditCommentForm(
     }
 }
 
-/// # Returns the depth for nested comments depending on the platform
-///
-/// ```
-/// use sharesphere_cmp_content::comment::{get_max_comment_depth};
-///
-/// assert_eq!(get_max_comment_depth(false), 15);
-/// assert_eq!(get_max_comment_depth(true), 5);
-/// ```
+/// Returns the depth for nested comments depending on the platform
 fn get_max_comment_depth(is_mobile: bool) -> usize {
     match is_mobile {
         true => 5,
         false => 15,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::comment::get_max_comment_depth;
+    #[test]
+    fn test_permission_level_from_string() {
+        assert_eq!(get_max_comment_depth(false), 15);
+        assert_eq!(get_max_comment_depth(true), 5);
     }
 }

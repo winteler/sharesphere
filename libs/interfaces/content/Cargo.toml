@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-sharesphere_core_common = { path = "../../core/common", default-features = false}
-sharesphere_core_user = { path = "../../core/user", default-features = false}
-sharesphere_core_sphere = { path = "../../core/sphere", default-features = false}
-sharesphere_core_content = { path = "../../core/content", default-features = false}
+sharesphere_core_common = { path = "../../core/common", default-features = false }
+sharesphere_core_user = { path = "../../core/user", default-features = false }
+sharesphere_core_sphere = { path = "../../core/sphere", default-features = false }
+sharesphere_core_content = { path = "../../core/content", default-features = false }
 
 leptos.workspace = true
 leptos_meta.workspace = true

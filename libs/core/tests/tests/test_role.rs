@@ -1,7 +1,7 @@
-use sharesphere_core::sphere;
-use sharesphere_auth::role::ssr::{get_sphere_role_vec, get_user_sphere_role, set_user_admin_role, set_user_sphere_role};
-use sharesphere_auth::role::{AdminRole, PermissionLevel};
-use sharesphere_auth::user::User;
+use sharesphere_core_sphere::sphere;
+use sharesphere_core_user::role::ssr::{get_sphere_role_vec, get_user_sphere_role, set_user_admin_role, set_user_sphere_role};
+use sharesphere_core_user::role::{AdminRole, PermissionLevel};
+use sharesphere_core_user::user::User;
 use sharesphere_core_common::errors::AppError;
 
 use crate::common::{create_user, get_db_pool};

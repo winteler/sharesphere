@@ -3,17 +3,17 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 
-use sharesphere_core_common::editor::{TextareaData};
-use sharesphere_core_user::role::{PermissionLevel};
-use sharesphere_core_common::common::{Rule};
+use sharesphere_core_common::common::Rule;
 use sharesphere_core_common::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_TITLE_LENGTH};
+use sharesphere_core_common::editor::TextareaData;
+use sharesphere_core_user::role::PermissionLevel;
 
+use sharesphere_cmp_common::role::AuthorizedShow;
+use sharesphere_cmp_common::state::{GlobalState, SphereState};
 use sharesphere_cmp_utils::editor::{FormMarkdownEditor, FormTextEditor};
 use sharesphere_cmp_utils::icons::{CrossIcon, EditIcon, PlusIcon};
-use sharesphere_cmp_utils::unpack::{TransitionUnpack};
+use sharesphere_cmp_utils::unpack::TransitionUnpack;
 use sharesphere_cmp_utils::widget::{ContentBody, ModalDialog, ModalFormButtons};
-use sharesphere_cmp_common::role::{AuthorizedShow};
-use sharesphere_cmp_common::state::{GlobalState, SphereState};
 
 /// Component to manage sphere rules
 #[component]
@@ -273,8 +273,8 @@ fn is_invalid_rule_inputs(
 
 #[cfg(test)]
 mod tests {
-    use leptos::prelude::{Owner, RwSignal, Set};
     use crate::rule::is_invalid_rule_inputs;
+    use leptos::prelude::{Owner, RwSignal, Set};
 
     #[test]
     fn test_is_invalid_rule_inputs() {

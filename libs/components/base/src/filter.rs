@@ -7,13 +7,13 @@ use leptos_use::on_click_outside;
 
 use sharesphere_core_content::filter::{on_change_all_categories_input, on_change_category_input, on_change_only_categories_input, SphereCategoryFilter};
 
-use sharesphere_cmp_utils::icons::{FiltersIcon};
-use sharesphere_cmp_utils::unpack::SuspenseUnpack;
-use sharesphere_cmp_utils::widget::{Dropdown};
-use sharesphere_cmp_utils::node_utils::set_checkbox;
 use sharesphere_cmp_common::state::SphereState;
+use sharesphere_cmp_utils::icons::FiltersIcon;
+use sharesphere_cmp_utils::node_utils::set_checkbox;
+use sharesphere_cmp_utils::unpack::SuspenseUnpack;
+use sharesphere_cmp_utils::widget::Dropdown;
 
-use crate::sphere_category::{SphereCategoryBadge};
+use crate::sphere_category::SphereCategoryBadge;
 
 /// Button to open post filters modal window
 #[component]

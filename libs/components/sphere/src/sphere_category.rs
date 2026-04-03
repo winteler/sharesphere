@@ -1,24 +1,24 @@
 use std::collections::HashMap;
+
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 
-use sharesphere_core_common::colors::{Color};
+use sharesphere_core_common::colors::Color;
 use sharesphere_core_common::common::SphereCategoryHeader;
 use sharesphere_core_common::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH};
 use sharesphere_core_common::editor::{adjust_textarea_height, TextareaData};
 use sharesphere_core_common::errors::AppError;
+use sharesphere_core_sphere::sphere_category::SphereCategory;
 use sharesphere_core_user::role::PermissionLevel;
-use sharesphere_core_sphere::sphere_category::{SphereCategory};
 
-use sharesphere_cmp_utils::form::FormCheckbox;
-use sharesphere_cmp_utils::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
-use sharesphere_cmp_utils::unpack::TransitionUnpack;
-use sharesphere_cmp_common::role::{AuthorizedShow};
+use sharesphere_cmp_common::role::AuthorizedShow;
 use sharesphere_cmp_common::state::{GlobalState, SphereState};
 use sharesphere_cmp_utils::colors::{ColorIndicator, ColorSelect};
 use sharesphere_cmp_utils::editor::{FormTextEditor, LengthLimitedInput};
-
+use sharesphere_cmp_utils::form::FormCheckbox;
+use sharesphere_cmp_utils::icons::{CrossIcon, PauseIcon, PlayIcon, SaveIcon};
+use sharesphere_cmp_utils::unpack::TransitionUnpack;
 
 /// Component to manage sphere categories
 #[component]

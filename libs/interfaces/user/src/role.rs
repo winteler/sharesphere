@@ -3,10 +3,10 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     sharesphere_core_common::checks::{check_sphere_name, check_username},
-    sharesphere_core_common::db_utils::ssr::{get_db_pool},
+    sharesphere_core_common::db_utils::ssr::get_db_pool,
     sharesphere_core_user::auth::ssr::{check_user, reload_user},
     sharesphere_core_user::role::*,
-    sharesphere_core_user::user::ssr::{SqlUser},
+    sharesphere_core_user::user::ssr::SqlUser,
 };
 
 use sharesphere_core_common::errors::AppError;

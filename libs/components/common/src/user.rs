@@ -1,10 +1,9 @@
 use leptos::prelude::*;
 
 use sharesphere_core_common::routes::get_profile_path;
-use sharesphere_core_user::user::{UserHeader};
+use sharesphere_core_user::user::UserHeader;
 
 use sharesphere_cmp_utils::icons::{NsfwIcon, UserIcon};
-
 
 /// Component to display a user header
 #[component]

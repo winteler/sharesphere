@@ -6,7 +6,6 @@ use sharesphere_core_common::errors::AppError;
 
 use crate::icons::{AuthErrorIcon, BannedIcon, InternalErrorIcon, InvalidRequestIcon, NetworkErrorIcon, NotAuthorizedIcon, NotFoundIcon, TooHeavyIcon};
 
-
 #[component]
 pub fn AppErrorIcon(
     app_error: AppError,

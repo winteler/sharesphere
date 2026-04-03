@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_fluent::{move_tr};
+use leptos_fluent::move_tr;
 
 use sharesphere_core_user::role::PermissionLevel;
 

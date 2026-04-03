@@ -1,10 +1,11 @@
 use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
+
 use http::status::StatusCode;
 use leptos::prelude::*;
 use leptos::server_fn::codec::JsonEncoding;
-use leptos_fluent::{move_tr};
+use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use validator::{ValidationError, ValidationErrors};
@@ -157,9 +158,9 @@ impl From<std::io::Error> for AppError {
 
 #[cfg(feature = "ssr")]
 mod ssr {
-    use sqlx;
-    use openidconnect::SignatureVerificationError;
     use crate::errors::AppError;
+    use openidconnect::SignatureVerificationError;
+    use sqlx;
 
     impl From<sqlx::Error> for AppError {
         fn from(error: sqlx::Error) -> Self {
@@ -223,12 +224,14 @@ mod ssr {
 mod tests {
     use std::str::FromStr;
     use std::sync::LazyLock;
+
+    use fluent_templates::{static_loader, StaticLoader};
     use http::StatusCode;
     use leptos::prelude::*;
-    use quick_xml::errors::SyntaxError;
     use leptos_fluent::{tr, I18n, Language};
-    use fluent_templates::{static_loader, StaticLoader};
-    use crate::errors::{AppError};
+    use quick_xml::errors::SyntaxError;
+
+    use crate::errors::AppError;
 
     const EN_LANG: Language = Language {
         id: "en",

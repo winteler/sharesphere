@@ -1,11 +1,10 @@
 #![allow(dead_code)]
-
-use std::env;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
 use fluent_templates::{static_loader, StaticLoader};
 use leptos::prelude::*;
+use leptos::server_fn::const_format::formatcp;
 use leptos_fluent::{I18n, Language};
 
 use sharesphere_core_user::user::ssr::create_or_update_user;
@@ -37,8 +36,8 @@ const LANGUAGES: &'static [&Language] = &[
 ];
 
 async fn get_main_db_pool() -> PgPool {
-    let main_db = env::var(TEST_DB_NAME_ENV).expect(&format!("Test DB name should be in env variable {TEST_DB_NAME_ENV}."));
-    let main_db_url = env::var(TEST_DB_URL_ENV).expect(&format!("Test DB address should be in env variable {TEST_DB_URL_ENV}.")) + &main_db;
+    let main_db = std::env::var(TEST_DB_NAME_ENV).expect(&format!("Test DB name should be in env variable {TEST_DB_NAME_ENV}."));
+    let main_db_url = std::env::var(TEST_DB_URL_ENV).expect(&format!("Test DB address should be in env variable {TEST_DB_URL_ENV}.")) + &main_db;
     PgPoolOptions::new()
         .max_connections(5)
         .connect(&main_db_url)
@@ -51,8 +50,12 @@ async fn clear_base_rules(db_pool: &PgPool) {
 }
 
 pub async fn get_db_pool() -> PgPool {
-    let mut db_num = DB_NUM.lock().unwrap();
-    let db_name = format!("test{db_num}");
+    let db_name = {
+        let mut db_num = DB_NUM.lock().unwrap();
+        *db_num += 1;
+        format!("test{db_num}")
+    };
+
     let main_db_pool = get_main_db_pool().await;
     println!("Setup database: {db_name}");
 
@@ -67,9 +70,7 @@ pub async fn get_db_pool() -> PgPool {
         .expect(format!("Should be able to create database {db_name}").as_str());
 
     let test_db_url =
-        env::var(TEST_DB_URL_ENV).expect(format!("Test DB address should be available in env variable {TEST_DB_URL_ENV}.").as_str()) + db_name.as_str();
-
-    *db_num = *db_num + 1;
+        std::env::var(TEST_DB_URL_ENV).expect(formatcp!("Test DB address should be available in env variable {TEST_DB_URL_ENV}.")) + db_name.as_str();
 
     let db_pool = PgPoolOptions::new()
         .max_connections(5)

@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashSet};
+
 use chrono::{DateTime, Utc};
 use leptos::prelude::*;
 use leptos_fluent::{move_tr, tr};
@@ -119,7 +120,7 @@ impl NotifHandler {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-    
+
     use sharesphere_core_common::errors::AppError;
 
     use crate::notification::{Notification, NotificationType, NOTIF_RETENTION_DAYS};

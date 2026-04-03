@@ -1,9 +1,9 @@
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::env;
     use std::io::Cursor;
+
     use http::StatusCode;
-    use image::{ImageReader};
+    use image::ImageReader;
     use leptos::prelude::use_context;
     use leptos::server_fn::codec::MultipartData;
     use leptos_axum::ResponseOptions;
@@ -14,15 +14,15 @@ pub mod ssr {
     use url::Url;
     use webp::Encoder;
 
-    use sharesphere_core_common::constants::IMAGE_TYPE;
-    use sharesphere_core_common::errors::AppError;
-    use sharesphere_core_common::constants::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
     use sharesphere_core_common::checks::check_sphere_name;
+    use sharesphere_core_common::constants::IMAGE_TYPE;
+    use sharesphere_core_common::constants::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+    use sharesphere_core_common::errors::AppError;
     use sharesphere_core_user::role::{AdminRole, PermissionLevel};
     use sharesphere_core_user::user::{User, UserBan};
 
-    use crate::sphere::Sphere;
     use crate::sphere::ssr::get_sphere_by_name;
+    use crate::sphere::Sphere;
 
     pub const OBJECT_CONTAINER_URL_ENV: &str = "OBJECT_CONTAINER_URL";
     pub const ICON_BUCKET_ENV: &str = "ICON_BUCKET";
@@ -44,8 +44,8 @@ pub mod ssr {
     impl SphereImageType {
         pub fn get_bucket_name(&self) -> Result<String, AppError> {
             let bucket_name = match self {
-                SphereImageType::ICON => env::var(ICON_BUCKET_ENV),
-                SphereImageType::BANNER => env::var(BANNER_BUCKET_ENV),
+                SphereImageType::ICON => std::env::var(ICON_BUCKET_ENV),
+                SphereImageType::BANNER => std::env::var(BANNER_BUCKET_ENV),
             }?;
             Ok(bucket_name)
         }
@@ -281,6 +281,7 @@ pub mod ssr {
     #[cfg(test)]
     mod tests {
         use sealed_test::prelude::*;
+
         use crate::sphere::Sphere;
         use crate::sphere_management::ssr::{get_file_name_from_url, SphereImageType, BANNER_BUCKET_ENV, ICON_BUCKET_ENV};
 

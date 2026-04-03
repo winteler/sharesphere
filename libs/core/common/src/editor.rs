@@ -1,13 +1,14 @@
 use std::io::Cursor;
+
 use leptos::html::Textarea;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use markdown::Options;
-use quick_xml::{Reader, Writer};
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
+use quick_xml::{Reader, Writer};
 
-use crate::constants::{SPOILER_TAG};
-use crate::errors::{AppError};
+use crate::constants::SPOILER_TAG;
+use crate::errors::AppError;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FormatType {
@@ -54,8 +55,8 @@ impl FormatType {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use crate::errors::AppError;
     use crate::editor::get_styled_html_from_markdown;
+    use crate::errors::AppError;
 
     pub async fn get_html_and_markdown_strings(body: String, is_markdown: bool) -> Result<(String, Option<String>), AppError> {
         match is_markdown {

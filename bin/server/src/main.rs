@@ -1,28 +1,27 @@
-use std::env;
 use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use axum::{body::Body as AxumBody, extract::{Path, State}, http::Request, response::{IntoResponse, Response}, routing::get, Router};
 use axum::body::Body;
 use axum::http::HeaderValue;
+use axum::{body::Body as AxumBody, extract::{Path, State}, http::Request, response::{IntoResponse, Response}, routing::get, Router};
 use axum_session::{Key, SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer};
 use axum_session_sqlx::SessionPgPool;
-use backoff::{ExponentialBackoff};
-use base64::{Engine, engine::general_purpose};
+use backoff::ExponentialBackoff;
+use base64::{engine::general_purpose, Engine};
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::PgPool;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use sharesphere_core_common::db_utils::ssr::{create_db_pool};
+use sharesphere_core_common::db_utils::ssr::create_db_pool;
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_content::post::ssr::update_post_scores;
-use sharesphere_core_user::user::ssr::UserLockCache;
-use sharesphere_core_user::user::User;
 use sharesphere_core_user::notification::ssr::delete_stale_notifications;
 use sharesphere_core_user::session::ssr::{AuthSession, LEPTOS_ENV};
+use sharesphere_core_user::user::ssr::UserLockCache;
+use sharesphere_core_user::user::User;
 
 use sharesphere_app::app::*;
 
@@ -38,7 +37,7 @@ pub const USER_LOCK_CACHE_SIZE_ENV : &str = "USER_LOCK_CACHE_SIZE";
 pub const POST_SCORE_UPDATE_INTERVAL_S_ENV : &str = "POST_SCORE_UPDATE_INTERVAL_S";
 
 pub fn get_session_key() -> Key {
-    match env::var(SESSION_KEY_ENV) {
+    match std::env::var(SESSION_KEY_ENV) {
         Ok(key) => {
             log::debug!("Got session key from env variable.");
             Key::from(&general_purpose::STANDARD.decode(key).expect("Failed to decode session key"))
@@ -51,7 +50,7 @@ pub fn get_session_key() -> Key {
 }
 
 pub fn get_session_db_key() -> Key {
-    match env::var(SESSION_DB_KEY_ENV) {
+    match std::env::var(SESSION_DB_KEY_ENV) {
         Ok(key) => {
             log::debug!("Got session db key from env variable.");
             Key::from(&general_purpose::STANDARD.decode(key).expect("Failed to decode session db key"))
@@ -65,7 +64,7 @@ pub fn get_session_db_key() -> Key {
 
 pub fn get_user_lock_cache_size() -> NonZeroUsize {
     let default_size = NonZeroUsize::new(1000000).expect("Should initialize NonZeroUsize");
-    match env::var(USER_LOCK_CACHE_SIZE_ENV) {
+    match std::env::var(USER_LOCK_CACHE_SIZE_ENV) {
         Ok(value) => {
             log::debug!("Got session db key from env variable.");
             match NonZeroUsize::from_str(&value) {

@@ -1,6 +1,7 @@
 use const_format::formatcp;
 use url::Url;
 use validator::ValidationError;
+
 use crate::constants::{MAX_SATELLITE_NAME_LENGTH, MAX_SPHERE_NAME_LENGTH, MAX_TITLE_LENGTH, MAX_USERNAME_LENGTH};
 use crate::errors::AppError;
 use crate::routes::get_app_origin;
@@ -191,8 +192,9 @@ fn is_valid_pathname(path: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use sealed_test::prelude::*;
-    use crate::routes::APP_ORIGIN_ENV;
+
     use crate::checks::{is_valid_pathname, validate_redirect_url};
+    use crate::routes::APP_ORIGIN_ENV;
 
     #[sealed_test]
     fn test_validate_redirect_url() {

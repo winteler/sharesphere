@@ -1,6 +1,7 @@
 use std::str::FromStr;
+
 use leptos::prelude::*;
-use leptos_fluent::{move_tr};
+use leptos_fluent::move_tr;
 use strum_macros::{Display, EnumString, IntoStaticStr};
 
 #[derive(Clone, Copy, Debug, Default, Display, EnumString, Eq, IntoStaticStr, PartialEq)]
@@ -38,7 +39,7 @@ pub mod ssr {
 
     use sharesphere_core_common::common::Rule;
     use sharesphere_core_common::errors::AppError;
-    use sharesphere_core_user::role::{PermissionLevel};
+    use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
 
     pub async fn load_rule_by_id(

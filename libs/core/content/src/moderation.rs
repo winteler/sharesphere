@@ -5,7 +5,6 @@ use sharesphere_core_common::common::Rule;
 use crate::comment::Comment;
 use crate::post::Post;
 
-
 #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Content {
     Post(Post),

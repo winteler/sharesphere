@@ -1,9 +1,8 @@
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::env;
     use anyhow::Context;
+    use leptos::prelude::use_context;
     use sqlx::{postgres::PgPoolOptions, PgPool};
-    use leptos::prelude::{use_context};
 
     use crate::errors::AppError;
 
@@ -15,7 +14,7 @@ pub mod ssr {
     pub async fn create_db_pool() -> anyhow::Result<sqlx::Pool<sqlx::Postgres>> {
         PgPoolOptions::new()
             .max_connections(5)
-            .connect(&env::var(DB_URL_ENV)?)
+            .connect(&std::env::var(DB_URL_ENV)?)
             .await
             .with_context(|| "Failed to connect to DB")
     }

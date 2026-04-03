@@ -61,8 +61,8 @@ impl From<String> for AdminRole {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use sharesphere_core_common::errors::AppError;
     use crate::user::{ssr::SqlUser, User};
+    use sharesphere_core_common::errors::AppError;
 
     use super::*;
 

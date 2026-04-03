@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+
 use crate::colors::Color;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]

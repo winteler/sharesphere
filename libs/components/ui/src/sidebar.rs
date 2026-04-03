@@ -1,5 +1,5 @@
-use leptos::prelude::*;
 use leptos::html::{Div, Select};
+use leptos::prelude::*;
 use leptos_fluent::{move_tr, I18n};
 #[cfg(feature = "hydrate")]
 use leptos_use::on_click_outside;
@@ -11,15 +11,15 @@ use sharesphere_core_content::search::SearchState;
 
 use sharesphere_iface_sphere::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers};
 
-use sharesphere_cmp_utils::icons::{GithubIcon, HomeIcon, PopularIcon};
-use sharesphere_cmp_utils::unpack::{TransitionUnpack};
-use sharesphere_cmp_utils::widget::{Badge, TitleCollapse};
-use sharesphere_cmp_common::state::{GlobalState, SphereState};
 use sharesphere_cmp_base::filter::{AllCategoriesToggle, OnlyCategoriesToggle};
 use sharesphere_cmp_base::rule::{BaseRuleList, RuleList};
-use sharesphere_cmp_base::search::{SearchSpheres};
-use sharesphere_cmp_base::sphere::{SphereLinkList};
-use sharesphere_cmp_base::sphere_category::{SphereCategoryCollapseWithFilter};
+use sharesphere_cmp_base::search::SearchSpheres;
+use sharesphere_cmp_base::sphere::SphereLinkList;
+use sharesphere_cmp_base::sphere_category::SphereCategoryCollapseWithFilter;
+use sharesphere_cmp_common::state::{GlobalState, SphereState};
+use sharesphere_cmp_utils::icons::{GithubIcon, HomeIcon, PopularIcon};
+use sharesphere_cmp_utils::unpack::TransitionUnpack;
+use sharesphere_cmp_utils::widget::{Badge, TitleCollapse};
 
 /// Component to display a collapsable list of sphere links
 #[component]

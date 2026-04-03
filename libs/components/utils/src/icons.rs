@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use sharesphere_core_common::constants::{POPULAR_ICON_PATH, LOGO_ICON_PATH};
+use sharesphere_core_common::constants::{LOGO_ICON_PATH, POPULAR_ICON_PATH};
 
 #[component]
 pub fn AddCommentIcon(#[prop(default = "content-toolbar-icon-size")] class: &'static str) -> impl IntoView {

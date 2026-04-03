@@ -1,11 +1,11 @@
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::env;
     use std::sync::{Arc, LazyLock};
-    use sqlx::{PgPool};
+
     use axum_session_sqlx::SessionPgPool;
     use leptos::config::Env;
-    use leptos::prelude::{use_context};
+    use leptos::prelude::use_context;
+    use sqlx::PgPool;
 
     use sharesphere_core_common::errors::AppError;
 
@@ -16,7 +16,7 @@ pub mod ssr {
     pub const LEPTOS_ENV_KEY: &str = "LEPTOS_ENV";
 
     pub static LEPTOS_ENV: LazyLock<Env> = LazyLock::new(|| {
-        let leptos_env = env::var(LEPTOS_ENV_KEY).unwrap().to_lowercase();
+        let leptos_env = std::env::var(LEPTOS_ENV_KEY).unwrap().to_lowercase();
         match leptos_env.as_ref() {
             "dev" | "development" => Env::DEV,
             "prod" | "production" => Env::PROD,

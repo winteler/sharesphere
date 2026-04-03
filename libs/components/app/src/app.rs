@@ -1,8 +1,8 @@
 use leptos::ev::TouchEvent;
 use leptos::prelude::*;
+use leptos_fluent::leptos_fluent;
 use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, Title};
 use leptos_router::{components::{ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
-use leptos_fluent::{leptos_fluent};
 use regex::Regex;
 
 use sharesphere_core_common::constants::SITE_NAME;

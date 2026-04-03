@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
@@ -9,31 +10,31 @@ use url::Url;
 
 use sharesphere_core_common::checks::{check_satellite_name, check_string_length};
 use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH, POST_BATCH_SIZE, SCROLL_LOAD_THROTTLE_DELAY};
-use sharesphere_core_common::editor::{TextareaData};
+use sharesphere_core_common::editor::TextareaData;
 use sharesphere_core_common::routes::{get_satellite_id_memo, get_satellite_path};
 use sharesphere_core_common::unpack::{handle_additional_load, reset_additional_load};
-use sharesphere_core_user::role::PermissionLevel;
 use sharesphere_core_content::embed::EmbedType;
 use sharesphere_core_content::post::{add_sphere_info_to_post_vec, PostWithSphereInfo};
 use sharesphere_core_content::ranking::{PostSortType, SortType};
 use sharesphere_core_sphere::satellite::Satellite;
+use sharesphere_core_user::role::PermissionLevel;
 
 use sharesphere_iface_content::post::{get_post_vec_by_satellite_id, CreatePost};
 use sharesphere_iface_sphere::satellite::{get_satellite_by_id, get_satellite_vec_by_sphere_name};
 use sharesphere_iface_sphere::sphere::get_sphere_with_user_info;
 use sharesphere_iface_sphere::sphere_category::get_sphere_category_vec;
 
+use sharesphere_cmp_base::post::{PostForm, PostListWithInitLoad};
+use sharesphere_cmp_common::role::AuthorizedShow;
+use sharesphere_cmp_common::state::{GlobalState, SatelliteState, SphereState};
 use sharesphere_cmp_utils::editor::{FormMarkdownEditor, FormTextEditor};
 use sharesphere_cmp_utils::form::LabeledFormCheckbox;
 use sharesphere_cmp_utils::icons::{CrossIcon, EditIcon, LinkIcon, NsfwIcon, PauseIcon, PlayIcon, PlusIcon};
 use sharesphere_cmp_utils::unpack::{ActionError, SuspenseUnpack, TransitionUnpack};
 use sharesphere_cmp_utils::widget::{ContentBody, ModalDialog, ModalFormButtons, SpoilerBadge, TagsWidget};
-use sharesphere_cmp_common::role::{AuthorizedShow};
-use sharesphere_cmp_common::state::{GlobalState, SatelliteState, SphereState};
-use sharesphere_cmp_base::post::{PostForm, PostListWithInitLoad};
 
-use crate::sphere::{SphereToolbar};
-use crate::sphere_category::{get_sphere_category_header_map};
+use crate::sphere::SphereToolbar;
+use crate::sphere_category::get_sphere_category_header_map;
 
 /// Component to display a satellite banner
 #[component]
@@ -555,9 +556,9 @@ fn are_satellite_inputs_invalid(satellite_name: Signal<String>, satellite_body: 
 
 #[cfg(test)]
 mod test {
+    use crate::satellite::are_satellite_inputs_invalid;
     use leptos::prelude::{GetUntracked, Owner, RwSignal, Set};
     use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_SATELLITE_NAME_LENGTH};
-    use crate::satellite::are_satellite_inputs_invalid;
 
     #[test]
     fn test_are_satellite_inputs_invalid() {

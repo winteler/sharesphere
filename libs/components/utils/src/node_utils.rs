@@ -1,8 +1,8 @@
 use leptos::html;
-use leptos::prelude::*;
 use leptos::html::ElementType;
+use leptos::prelude::*;
 use leptos::wasm_bindgen::JsCast;
-use web_sys::{HtmlElement};
+use web_sys::HtmlElement;
 
 pub fn has_reached_scroll_load_threshold<NR>(
     node_ref: NodeRef<NR>,

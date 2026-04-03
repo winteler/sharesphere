@@ -1,9 +1,8 @@
-#[cfg(feature = "ssr")]
-use std::env;
 use const_format::concatcp;
 use leptos::prelude::*;
 use leptos_router::hooks::use_location;
 use leptos_router::params::ParamsMap;
+
 use crate::errors::AppError;
 
 pub const APP_ORIGIN_ENV: &str = "APP_ORIGIN";
@@ -37,7 +36,7 @@ pub const GITHUB_REPO_URL: &str = "https://github.com/winteler/sharesphere";
 
 #[cfg(feature = "ssr")]
 pub fn get_app_origin() -> Result<String, AppError> {
-    Ok(env::var(APP_ORIGIN_ENV)?)
+    Ok(std::env::var(APP_ORIGIN_ENV)?)
 }
 
 #[cfg(not(feature = "ssr"))]
@@ -252,6 +251,7 @@ pub fn get_post_id_memo(params: Memo<ParamsMap>) -> Memo<i64> {
 #[cfg(test)]
 mod tests {
     use sealed_test::prelude::*;
+
     use crate::routes::{get_app_origin, get_comment_link, get_post_link, APP_ORIGIN_ENV};
 
     #[sealed_test]

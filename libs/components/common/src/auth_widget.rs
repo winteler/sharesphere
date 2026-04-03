@@ -1,8 +1,8 @@
 use leptos::prelude::*;
-use leptos::server_fn::codec::PostUrl;
-use leptos::server_fn::Http;
 use leptos::server_fn::client::Client;
+use leptos::server_fn::codec::PostUrl;
 use leptos::server_fn::request::ClientReq;
+use leptos::server_fn::Http;
 use leptos::server_fn::ServerFn;
 use leptos_fluent::move_tr;
 use leptos_router::hooks::{use_location, use_navigate, use_query_map};
@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use web_sys::{FormData, MouseEvent};
 
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_common::routes::{get_profile_path};
+use sharesphere_core_common::routes::get_profile_path;
 use sharesphere_core_user::user::User;
 
 use sharesphere_iface_user::auth::authenticate_user;

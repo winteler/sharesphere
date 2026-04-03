@@ -4,8 +4,8 @@ use sharesphere_core_content::ranking::{update_vote_value, Vote, VoteValue};
 
 use sharesphere_iface_content::ranking::VoteOnContent;
 
+use sharesphere_cmp_common::auth_widget::LoginGuardedButton;
 use sharesphere_cmp_utils::icons::{MinusIcon, PlusIcon};
-use sharesphere_cmp_common::auth_widget::{LoginGuardedButton};
 
 /// Dynamic score indicator, that can be updated through the given signal
 #[component]

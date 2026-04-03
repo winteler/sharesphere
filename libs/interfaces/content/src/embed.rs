@@ -6,8 +6,9 @@ use {
     sharesphere_core_common::constants::MAX_LINK_LENGTH,
     sharesphere_core_content::embed::{clean_html, fetch_api, OEmbedType},
 };
+
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_content::embed::{OEmbedReply};
+use sharesphere_core_content::embed::OEmbedReply;
 
 #[server]
 pub async fn get_oembed_data(url: String) -> Result<OEmbedReply, AppError> {

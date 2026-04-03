@@ -4,9 +4,7 @@ use leptos_router::params::Params;
 #[cfg(feature = "ssr")]
 use openidconnect as oidc;
 #[cfg(feature = "ssr")]
-use {
-    openidconnect::{reqwest, OAuth2TokenResponse, TokenResponse},
-};
+use openidconnect::{reqwest, OAuth2TokenResponse, TokenResponse};
 
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_URL";
 pub const OIDC_ISSUER_ADMIN_URL_ENV: &str = "OIDC_ISSUER_ADMIN_URL";
@@ -26,9 +24,9 @@ pub struct OAuthParams {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::sync::{LazyLock};
+    use std::sync::LazyLock;
 
-    use openidconnect::core::{CoreTokenResponse};
+    use openidconnect::core::CoreTokenResponse;
     use openidconnect::{EndpointMaybeSet, EndpointNotSet, EndpointSet, NonceVerifier, ProviderMetadataWithLogout, RequestTokenError};
     use reqwest::Client;
     use serde_json::Value;
@@ -39,10 +37,9 @@ pub mod ssr {
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_common::routes::{get_app_origin, AUTH_CALLBACK_ROUTE};
 
-
     use crate::session::ssr::{get_session, get_user_lock_cache, AuthSession};
-    use crate::user::User;
     use crate::user::ssr::{create_or_update_user, SqlUser};
+    use crate::user::User;
 
     use super::*;
 

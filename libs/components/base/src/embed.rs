@@ -5,13 +5,12 @@ use url::Url;
 
 use sharesphere_core_content::embed::{select_embed_type, verify_link_and_get_embed, EmbedType, Link, LinkType};
 
-use sharesphere_cmp_utils::errors::{ErrorDetail};
+use sharesphere_cmp_utils::errors::ErrorDetail;
 use sharesphere_cmp_utils::icons::LinkIcon;
 use sharesphere_core_common::errors::AppError;
 
 const DEFAULT_MEDIA_CLASS: &str = "h-fit w-fit max-h-160 max-w-full object-contain";
 const THUMBNAIL_CLASS: &str = "h-16 w-16 object-contain";
-
 
 /// Component to safely embed content at the url `link-input`.
 /// It will try to infer the content type using the oembed API. If the provider of the url

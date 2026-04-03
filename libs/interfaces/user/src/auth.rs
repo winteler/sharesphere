@@ -5,14 +5,14 @@ use openidconnect as oidc;
 
 #[cfg(feature = "ssr")]
 use {
-    openidconnect::{TokenResponse},
+    openidconnect::TokenResponse,
     sharesphere_core_common::{
         checks::validate_redirect_url,
         constants::SITE_ROOT,
     },
     sharesphere_core_user::{
-        auth::*,
         auth::ssr::{get_oidc_http_client, get_provider_metadata},
+        auth::*,
         session::ssr::get_session,
     }
 };

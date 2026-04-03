@@ -1,10 +1,9 @@
 use leptos::prelude::*;
-use leptos_fluent::{move_tr};
+use leptos_fluent::move_tr;
 
 use crate::constants::{
     SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_MONTH, SECONDS_IN_YEAR,
 };
-
 
 enum TimeUnit {
     Seconds,

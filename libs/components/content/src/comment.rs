@@ -3,8 +3,20 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use leptos_router::hooks::use_query_map;
-use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
 use leptos_use::BreakpointsTailwind::Xxl;
+use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
+
+use sharesphere_core_common::colors::Color;
+use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
+use sharesphere_core_common::editor::TextareaData;
+use sharesphere_core_common::routes::{get_comment_link, COMMENT_ID_QUERY_PARAM};
+use sharesphere_core_common::unpack::{handle_additional_load, handle_dialog_action_result, handle_initial_load};
+use sharesphere_core_content::comment::{Comment, CommentWithChildren};
+use sharesphere_core_content::moderation::Content;
+use sharesphere_core_content::ranking::Vote;
+
+use sharesphere_iface_content::comment::{get_comment_tree_by_id, get_post_comment_tree, CreateComment, DeleteComment, EditComment};
+
 use sharesphere_cmp_base::comment::CommentBody;
 use sharesphere_cmp_base::ranking::CommentSortWidget;
 use sharesphere_cmp_common::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
@@ -13,22 +25,12 @@ use sharesphere_cmp_common::state::{GlobalState, SatelliteState, SphereState};
 use sharesphere_cmp_utils::colors::ColorIndicator;
 use sharesphere_cmp_utils::editor::FormMarkdownEditor;
 use sharesphere_cmp_utils::errors::ErrorDisplay;
-use sharesphere_core_common::colors::{Color};
-use sharesphere_core_common::editor::{TextareaData};
-use sharesphere_core_common::routes::{get_comment_link, COMMENT_ID_QUERY_PARAM};
-
 use sharesphere_cmp_utils::icons::{AddCommentIcon, EditIcon, LoadingIcon};
 use sharesphere_cmp_utils::unpack::{ActionError, SuspenseUnpack};
-use sharesphere_cmp_utils::widget::{MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, TimeSinceEditWidget, TimeSinceWidget, IsPinnedWidget, DotMenu, ScoreIndicator, Badge, ShareButton, LoadIndicators};
+use sharesphere_cmp_utils::widget::{Badge, DotMenu, IsPinnedWidget, LoadIndicators, MinimizeMaximizeWidget, ModalDialog, ModalFormButtons, ModeratorWidget, ScoreIndicator, ShareButton, TimeSinceEditWidget, TimeSinceWidget};
 
-use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, SCROLL_LOAD_THROTTLE_DELAY};
-use sharesphere_core_common::unpack::{handle_additional_load, handle_dialog_action_result, handle_initial_load};
-use sharesphere_core_content::comment::{Comment, CommentWithChildren};
-use sharesphere_core_content::moderation::Content;
-use sharesphere_core_content::ranking::Vote;
-use sharesphere_iface_content::comment::{get_comment_tree_by_id, get_post_comment_tree, CreateComment, DeleteComment, EditComment};
 use crate::moderation::{ModerateCommentButton, ModerationInfoButton};
-use crate::ranking::{VotePanel};
+use crate::ranking::VotePanel;
 
 const DEPTH_TO_COLOR_MAPPING_SIZE: usize = 6;
 const DEPTH_TO_COLOR_MAPPING: [&str; DEPTH_TO_COLOR_MAPPING_SIZE] = [

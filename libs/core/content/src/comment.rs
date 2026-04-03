@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
+
 use sharesphere_core_common::common::SphereHeader;
+
 use crate::post::Post;
-use crate::ranking::{Vote};
+use crate::ranking::Vote;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -77,12 +79,12 @@ pub mod ssr {
 
     use sharesphere_core_common::constants::COMMENT_BATCH_SIZE;
     use sharesphere_core_common::errors::AppError;
-    use sharesphere_core_sphere::sphere::Sphere;
     use sharesphere_core_sphere::sphere::ssr::get_post_sphere;
+    use sharesphere_core_sphere::sphere::Sphere;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
 
-    use crate::post::ssr::{increment_post_comment_count};
+    use crate::post::ssr::increment_post_comment_count;
     use crate::ranking::{SortType, VoteValue};
 
     use super::*;
@@ -533,10 +535,10 @@ pub mod ssr {
 
     #[cfg(test)]
     mod tests {
-        use sharesphere_core_user::user::User;
         use crate::comment::ssr::CommentWithVote;
         use crate::comment::Comment;
         use crate::ranking::VoteValue;
+        use sharesphere_core_user::user::User;
 
         #[test]
         fn test_comment_join_vote_into_comment_with_children() {

@@ -1,5 +1,5 @@
 use std::cmp::max;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::default::Default;
 
 use serde::{Deserialize, Serialize};
@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use sharesphere_core_common::errors::AppError;
 
 use crate::role::{AdminRole, PermissionLevel};
-
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum BanStatus {
@@ -183,10 +182,10 @@ pub mod ssr {
     use async_trait::async_trait;
     use axum_session_auth::Authentication;
     use lru::LruCache;
-    use sqlx::PgPool;
-    use tokio::sync::Mutex;
     use sharesphere_core_common::constants::USER_FETCH_LIMIT;
     use sharesphere_core_common::errors::AppError;
+    use sqlx::PgPool;
+    use tokio::sync::Mutex;
 
     use crate::role::ssr::get_user_sphere_role;
     use crate::role::UserSphereRole;

@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use validator::{Validate};
+use validator::Validate;
 
+use sharesphere_core_common::checks::{check_post_title, check_sphere_name};
 use sharesphere_core_common::common::SphereCategoryHeader;
 use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH};
-use sharesphere_core_common::checks::{check_post_title, check_sphere_name};
 
-use crate::ranking::{ Vote};
 use crate::embed::{EmbedType, Link};
+use crate::ranking::Vote;
 
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[derive(Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -857,9 +857,9 @@ pub mod ssr {
         use sharesphere_core_user::user::User;
 
         use crate::embed::{EmbedType, Link, LinkType};
-        use crate::post::ssr::{PostJoinInfo, process_embed_link};
+        use crate::post::ssr::{process_embed_link, PostJoinInfo};
         use crate::post::Post;
-        use crate::ranking::{VoteValue};
+        use crate::ranking::VoteValue;
 
         #[test]
         fn test_post_join_vote_into_post_with_info() {

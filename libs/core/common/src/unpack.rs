@@ -1,9 +1,10 @@
-use crate::errors::{AppError};
-use leptos::prelude::*;
 use leptos::html;
 use leptos::html::ElementType;
+use leptos::prelude::*;
 use leptos::wasm_bindgen::JsCast;
 use web_sys::Element;
+
+use crate::errors::AppError;
 
 pub fn action_has_error<
     T: Send + Sync + 'static,
@@ -81,9 +82,9 @@ pub fn handle_dialog_action_result<T: Clone + Send + Sync + 'static>(
 
 #[cfg(test)]
 mod tests {
-    use leptos::prelude::*;
     use crate::errors::AppError;
     use crate::unpack::{handle_additional_load, handle_dialog_action_result, handle_initial_load};
+    use leptos::prelude::*;
 
     #[test]
     fn test_handle_initial_load() {

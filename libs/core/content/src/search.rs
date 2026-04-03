@@ -1,9 +1,9 @@
 use leptos::prelude::*;
-use leptos_use::{signal_debounced};
+use leptos_use::signal_debounced;
 
 use sharesphere_core_common::checks::check_string_length;
-use sharesphere_core_common::constants::{MAX_SEARCH_QUERY_LENGTH};
-use sharesphere_core_common::errors::{AppError};
+use sharesphere_core_common::constants::MAX_SEARCH_QUERY_LENGTH;
+use sharesphere_core_common::errors::AppError;
 
 #[derive(Clone, Debug)]
 pub struct SearchState {
@@ -25,16 +25,16 @@ impl Default for SearchState {
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use std::cmp::min;
     use sqlx::PgPool;
+    use std::cmp::min;
 
-    use sharesphere_core_common::common::{SphereHeader};
-    use sharesphere_core_common::constants::{SPHERE_FETCH_LIMIT};
+    use sharesphere_core_common::common::SphereHeader;
+    use sharesphere_core_common::constants::SPHERE_FETCH_LIMIT;
     use sharesphere_core_common::errors::AppError;
 
     use crate::comment::CommentWithContext;
-    use crate::post::PostWithSphereInfo;
     use crate::post::ssr::PostJoinSphereInfo;
+    use crate::post::PostWithSphereInfo;
 
 
     pub async fn get_matching_sphere_header_vec(
@@ -220,7 +220,7 @@ pub fn is_content_search_valid(search_query: Signal<String>) -> Signal<Option<Ap
 #[cfg(test)]
 mod tests {
     use leptos::prelude::*;
-    
+
     use sharesphere_core_common::constants::MAX_SEARCH_QUERY_LENGTH;
     use sharesphere_core_common::errors::AppError;
 

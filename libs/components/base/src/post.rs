@@ -1,17 +1,16 @@
 use leptos::html;
 use leptos::prelude::*;
 use leptos::server_fn::const_format::concatcp;
-use leptos_fluent::{move_tr};
+use leptos_fluent::move_tr;
 use strum::IntoEnumIterator;
 
+use sharesphere_core_common::common::{SphereCategoryHeader, SphereHeader};
 use sharesphere_core_common::constants::{MAX_CONTENT_LENGTH, MAX_LINK_LENGTH, MAX_TITLE_LENGTH};
-use sharesphere_core_common::editor::{TextareaData};
+use sharesphere_core_common::editor::TextareaData;
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_common::routes::get_post_path;
-use sharesphere_core_content::post::{Post, PostWithSphereInfo};
-
-use sharesphere_core_common::common::{SphereCategoryHeader, SphereHeader};
 use sharesphere_core_content::embed::EmbedType;
+use sharesphere_core_content::post::{Post, PostWithSphereInfo};
 use sharesphere_core_sphere::sphere_category::SphereCategory;
 
 use sharesphere_cmp_common::auth_widget::AuthorWidget;
@@ -19,14 +18,13 @@ use sharesphere_cmp_common::role::IsPinnedCheckbox;
 use sharesphere_cmp_common::sphere::SphereHeaderLink;
 use sharesphere_cmp_utils::editor::{FormMarkdownEditor, LengthLimitedInput};
 use sharesphere_cmp_utils::form::LabeledFormCheckbox;
-use sharesphere_cmp_utils::icons::{NsfwIcon};
+use sharesphere_cmp_utils::icons::NsfwIcon;
 use sharesphere_cmp_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_cmp_utils::unpack::SuspenseUnpack;
 use sharesphere_cmp_utils::widget::{CommentCountWidget, HelpButton, LoadIndicators, ScoreIndicator, SpoilerBadge, TagsWidget, TimeSinceWidget};
 
 use crate::embed::EmbedPreview;
 use crate::sphere_category::{SphereCategoryBadge, SphereCategoryDropdown};
-
 
 /// Component to initially load on the server a vector of post and load additional post on the client upon scrolling
 #[component]

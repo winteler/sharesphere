@@ -8,7 +8,7 @@ use sharesphere_core_common::constants::{LOGO_ICON_PATH, POPULAR_ICON_PATH, POST
 use sharesphere_core_common::unpack::{handle_additional_load, reset_additional_load};
 use sharesphere_core_content::post::PostWithSphereInfo;
 
-use sharesphere_iface_content::post::{get_sorted_post_vec, get_subscribed_post_vec};
+use sharesphere_iface_content::post::{get_homepage_post_vec, get_sorted_post_vec};
 
 use sharesphere_cmp_base::post::PostListWithInitLoad;
 use sharesphere_cmp_base::ranking::PostSortWidget;
@@ -18,7 +18,6 @@ use sharesphere_cmp_common::state::GlobalState;
 use sharesphere_cmp_content::profile::UserProfile;
 use sharesphere_cmp_sphere::sphere::SphereBanner;
 use sharesphere_cmp_ui::sidebar::{HomeSidebar, SphereSidebar};
-use sharesphere_cmp_utils::icons::LoadingIcon;
 use sharesphere_cmp_utils::node_utils::has_reached_scroll_load_threshold;
 use sharesphere_cmp_utils::unpack::SuspenseUnpack;
 use sharesphere_cmp_utils::widget::{BannerContent, RefreshButton};
@@ -55,7 +54,40 @@ pub fn HomePage() -> impl IntoView {
     let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
+    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
+    let load_error = RwSignal::new(None);
     let div_ref = NodeRef::<Div>::new();
+
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        SCROLL_LOAD_THROTTLE_DELAY,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
+
+    let post_vec_resource = Resource::new(
+        move || (state.post_sort_type.get(), refresh_count.get()),
+        move |(sort_type, _)|  async move {
+            #[cfg(feature = "hydrate")]
+            is_loading.set(true);
+            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
+            let result = get_homepage_post_vec(sort_type, 0).await;
+            #[cfg(feature = "hydrate")]
+            is_loading.set(false);
+            result
+        }
+    );
+
+    let _additional_post_resource = LocalResource::new(
+        move || async move {
+            if additional_load_count_throttled.get() > 0 {
+                is_loading.set(true);
+                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
+                let additional_load = get_homepage_post_vec(state.post_sort_type.get_untracked(), num_post).await;
+                handle_additional_load(additional_load, additional_post_vec, load_error);
+                is_loading.set(false);
+            }
+        }
+    );
 
     view! {
         <div
@@ -66,16 +98,13 @@ pub fn HomePage() -> impl IntoView {
             node_ref=div_ref
         >
             <BannerWithWidgets title=move_tr!("home") icon_url=Some(String::from(LOGO_ICON_PATH)) banner_url=None refresh_count/>
-            <Transition fallback=move || view! {  <LoadingIcon/> }>
-                {
-                    move || Suspend::new(async move {
-                        match state.user.await {
-                            Ok(Some(_)) => view! { <UserHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
-                            _ => view! { <DefaultHomePage refresh_count additional_load_count is_loading div_ref/> }.into_any(),
-                        }
-                    })
-                }
-            </Transition>
+            <PostListWithInitLoad
+                post_vec_resource
+                additional_post_vec
+                is_loading
+                load_error
+                add_y_overflow_auto=false
+            />
         </div>
         <HomeSidebar/>
     }
@@ -84,58 +113,19 @@ pub fn HomePage() -> impl IntoView {
 /// Renders a page with the most popular content of ShareSphere.
 #[component]
 pub fn HotPage() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let refresh_count = RwSignal::new(0);
     let additional_load_count = RwSignal::new(0);
     let is_loading = RwSignal::new(false);
-    let div_ref = NodeRef::<Div>::new();
-
-    view! {
-        <div
-            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
-            on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
-                additional_load_count.update(|value| *value += 1);
-            }
-            node_ref=div_ref
-        >
-            <BannerWithWidgets title=move_tr!("popular") icon_url=Some(String::from(POPULAR_ICON_PATH)) banner_url=None refresh_count/>
-            <DefaultHomePage refresh_count additional_load_count is_loading div_ref/>
-        </div>
-        <HomeSidebar/>
-    }
-}
-
-/// Component to display the content of a banner
-#[component]
-pub fn BannerWithWidgets(
-    #[prop(into)]
-    title: Signal<String>,
-    icon_url: Option<String>,
-    banner_url: Option<String>,
-    refresh_count: RwSignal<usize>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    view! {
-        <div class="mt-2 relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
-            <BannerContent title icon_url banner_url sphere_icon_class="h-8 w-8 2xl:h-12 2xl:w-12 rounded-none"/>
-        </div>
-        <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
-            <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
-            <RefreshButton refresh_count is_tooltip_bottom=true/>
-        </div>
-    }
-}
-
-/// Renders the home page anonymous users.
-#[component]
-pub fn DefaultHomePage(
-    refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i32>,
-    is_loading: RwSignal<bool>,
-    div_ref: NodeRef<Div>,
-) -> impl IntoView {
-    let state = expect_context::<GlobalState>();
     let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
     let load_error = RwSignal::new(None);
+    let div_ref = NodeRef::<Div>::new();
+
+    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
+        additional_load_count,
+        SCROLL_LOAD_THROTTLE_DELAY,
+        ThrottleOptions::default().leading(true).trailing(false)
+    );
 
     let post_vec_resource = Resource::new(
         move || (state.post_sort_type.get(), refresh_count.get()),
@@ -148,12 +138,6 @@ pub fn DefaultHomePage(
             is_loading.set(false);
             result
         }
-    );
-
-    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
-        additional_load_count,
-        SCROLL_LOAD_THROTTLE_DELAY,
-        ThrottleOptions::default().leading(true).trailing(false)
     );
 
     let _additional_post_resource = LocalResource::new(
@@ -169,67 +153,44 @@ pub fn DefaultHomePage(
     );
 
     view! {
-        <PostListWithInitLoad
-            post_vec_resource
-            additional_post_vec
-            is_loading=is_loading
-            load_error=load_error
-            add_y_overflow_auto=false
-        />
+        <div
+            class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto px-2 xl:px-4"
+            on:scroll=move |_| if has_reached_scroll_load_threshold(div_ref) && !is_loading.get_untracked() {
+                additional_load_count.update(|value| *value += 1);
+            }
+            node_ref=div_ref
+        >
+            <BannerWithWidgets title=move_tr!("popular") icon_url=Some(String::from(POPULAR_ICON_PATH)) banner_url=None refresh_count/>
+            <PostListWithInitLoad
+                post_vec_resource
+                additional_post_vec
+                is_loading=is_loading
+                load_error=load_error
+                add_y_overflow_auto=false
+            />
+        </div>
+        <HomeSidebar/>
     }
 }
 
-/// Renders the home page of a given user.
+/// Component to display the content of a banner
 #[component]
-pub fn UserHomePage(
+fn BannerWithWidgets(
+    #[prop(into)]
+    title: Signal<String>,
+    icon_url: Option<String>,
+    banner_url: Option<String>,
     refresh_count: RwSignal<usize>,
-    additional_load_count: RwSignal<i32>,
-    is_loading: RwSignal<bool>,
-    div_ref: NodeRef<Div>,
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
-    let additional_post_vec = RwSignal::new(Vec::<PostWithSphereInfo>::new());
-    let load_error = RwSignal::new(None);
-
-    let post_vec_resource = Resource::new(
-        move || (state.post_sort_type.get(), refresh_count.get()),
-        move |(sort_type, _)|  async move {
-            #[cfg(feature = "hydrate")]
-            is_loading.set(true);
-            reset_additional_load(additional_post_vec, additional_load_count, Some(div_ref));
-            let result = get_subscribed_post_vec(sort_type, 0).await;
-            #[cfg(feature = "hydrate")]
-            is_loading.set(false);
-            result
-        }
-    );
-
-    let additional_load_count_throttled: Signal<i32> = signal_throttled_with_options(
-        additional_load_count,
-        SCROLL_LOAD_THROTTLE_DELAY,
-        ThrottleOptions::default().leading(true).trailing(false)
-    );
-
-    let _additional_post_resource = LocalResource::new(
-        move || async move {
-            if additional_load_count_throttled.get() > 0 {
-                is_loading.set(true);
-                let num_post = (POST_BATCH_SIZE as usize) + additional_post_vec.read_untracked().len();
-                let additional_load = get_subscribed_post_vec(state.post_sort_type.get_untracked(), num_post).await;
-                handle_additional_load(additional_load, additional_post_vec, load_error);
-                is_loading.set(false);
-            }
-        }
-    );
-
     view! {
-        <PostListWithInitLoad
-            post_vec_resource
-            additional_post_vec
-            is_loading
-            load_error
-            add_y_overflow_auto=false
-        />
+        <div class="mt-2 relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
+            <BannerContent title icon_url banner_url sphere_icon_class="h-8 w-8 2xl:h-12 2xl:w-12 rounded-none"/>
+        </div>
+        <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">
+            <PostSortWidget sort_signal=state.post_sort_type is_tooltip_bottom=true/>
+            <RefreshButton refresh_count is_tooltip_bottom=true/>
+        </div>
     }
 }
 

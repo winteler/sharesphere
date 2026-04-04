@@ -1,7 +1,7 @@
-# Stage 2: Minimal runtime image
+# Minimal runtime image
 FROM debian:bookworm-slim
 
-# Install any needed runtime libs
+# Install needed runtime libs
 RUN apt-get update && apt-get install -y --no-install-recommends libssl3 ca-certificates rsync && apt-get clean
 
 # Copy binary from builder

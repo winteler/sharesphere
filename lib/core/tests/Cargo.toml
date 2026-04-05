@@ -1,0 +1,35 @@
+[package]
+name = "sharesphere_core_tests"
+version = "0.1.0"
+edition = "2024"
+description = "Test crate for the sharesphere_core"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sharesphere_core_common = { path = "../common", default-features = false, features = ["ssr"] }
+sharesphere_core_user = { path = "../user", default-features = false, features = ["ssr"] }
+sharesphere_core_sphere = { path = "../sphere", default-features = false, features = ["ssr"] }
+sharesphere_core_content = { path = "../content", default-features = false, features = ["ssr"] }
+
+leptos.workspace = true
+leptos-fluent.workspace = true
+
+chrono.workspace = true
+object_store.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+bytes = "1.11.1"
+float-cmp = "0.10.0"
+fluent-templates = "0.13.3"
+futures-util = "0.3.32"
+multer = "3.1.0"
+rand = "0.10.0"
+
+[features]
+default = [
+    "leptos/ssr",
+    "leptos-fluent/ssr",
+]

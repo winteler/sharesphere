@@ -1,0 +1,33 @@
+[package]
+name = "sharesphere_iface_content"
+version = "0.1.0"
+edition = "2024"
+description = "Content related interfaces"
+
+[dependencies]
+sharesphere_core_common = { path = "../../core/common", default-features = false }
+sharesphere_core_user = { path = "../../core/user", default-features = false }
+sharesphere_core_sphere = { path = "../../core/sphere", default-features = false }
+sharesphere_core_content = { path = "../../core/content", default-features = false }
+
+leptos.workspace = true
+leptos_axum = { workspace = true, optional = true }
+
+log.workspace = true
+validator = { workspace = true, optional = true }
+
+[features]
+default = []
+hydrate = [
+    "leptos/hydrate",
+]
+ssr = [
+    "leptos/ssr",
+    "sharesphere_core_common/ssr",
+    "sharesphere_core_user/ssr",
+    "sharesphere_core_sphere/ssr",
+    "sharesphere_core_content/ssr",
+    "dep:leptos_axum",
+    "dep:validator",
+
+]

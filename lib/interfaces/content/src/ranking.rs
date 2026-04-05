@@ -20,15 +20,12 @@ pub async fn vote_on_content(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let vote = ssr::vote_on_content(
+    ssr::vote_on_content(
         vote_value,
         post_id,
         comment_id,
         vote_id,
         &user,
         &db_pool,
-    )
-        .await?;
-
-    Ok(vote)
+    ).await
 }

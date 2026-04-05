@@ -145,17 +145,22 @@ impl PostWithSphereInfo {
 pub mod ssr {
     use serde::{Deserialize, Serialize};
     use sqlx::PgPool;
-
+    use validator::Validate;
     use sharesphere_core_common::colors::Color;
     use sharesphere_core_common::common::SphereCategoryHeader;
+    use sharesphere_core_common::constants::POST_BATCH_SIZE;
+    use sharesphere_core_common::editor::clear_newlines;
+    use sharesphere_core_common::editor::ssr::get_html_and_markdown_strings;
     use sharesphere_core_common::errors::AppError;
+    use sharesphere_core_common::routes::get_post_path;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
 
     use crate::embed::{verify_link_and_get_embed, EmbedType, Link};
     use crate::filter::SphereCategoryFilter;
-    use crate::post::{Post, PostInheritedAttributes, PostTags, PostWithInfo, PostWithSphereInfo};
+    use crate::post::{Post, PostDataInputs, PostInheritedAttributes, PostLocation, PostTags, PostWithInfo, PostWithSphereInfo};
     use crate::ranking::{SortType, Vote, VoteValue};
+    use crate::ranking::ssr::vote_on_content;
 
     #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
     #[derive(Clone, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -451,6 +456,32 @@ pub mod ssr {
         Ok(post_vec)
     }
 
+    pub async fn get_homepage_post_vec(
+        sort_type: SortType,
+        num_already_loaded: usize,
+        user: Option<&User>,
+        db_pool: &PgPool,
+    ) -> Result<Vec<PostWithSphereInfo>, AppError> {
+        let post_vec = match user {
+            Some(user) => get_subscribed_post_vec(
+                sort_type,
+                POST_BATCH_SIZE,
+                num_already_loaded as i64,
+                &user,
+                &db_pool,
+            ).await?,
+            None => get_sorted_post_vec(
+                sort_type,
+                POST_BATCH_SIZE,
+                num_already_loaded as i64,
+                None,
+                &db_pool,
+            ).await?,
+        };
+
+        Ok(post_vec)
+    }
+
     pub async fn get_sorted_post_vec(
         sort_type: SortType,
         limit: i64,
@@ -614,6 +645,39 @@ pub mod ssr {
         Ok(post_vec)
     }
 
+    pub async fn create_post_and_vote(
+        post_location: PostLocation,
+        post_inputs: PostDataInputs,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<String, AppError> {
+        post_location.validate()?;
+        post_inputs.validate()?;
+
+        let (body, markdown_body) = get_html_and_markdown_strings(post_inputs.body, post_inputs.is_markdown).await?;
+
+        let link = process_embed_link(post_inputs.embed_type, post_inputs.link).await;
+
+        let post = create_post(
+            post_location.sphere.as_str(),
+            post_location.satellite_id,
+            clear_newlines(post_inputs.title, true).as_str(),
+            body.as_str(),
+            markdown_body.as_deref(),
+            link,
+            post_inputs.post_tags,
+            &user,
+            &db_pool,
+        ).await?;
+
+        let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
+
+        log::trace!("Created post with id: {}", post.post_id);
+        let new_post_path = get_post_path(&post_location.sphere, post_location.satellite_id, post.post_id);
+
+        Ok(new_post_path)
+    }
+
     pub async fn create_post(
         sphere_name: &str,
         satellite_id: Option<i64>,
@@ -690,6 +754,37 @@ pub mod ssr {
             .fetch_one(db_pool)
             .await?;
 
+        Ok(post)
+    }
+
+    pub async fn edit_post(
+        post_id: i64,
+        post_inputs: PostDataInputs,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Post, AppError> {
+        post_inputs.validate()?;
+        log::trace!("Edit post {post_id}, title = {}", post_inputs.title);
+
+        let (body, markdown_body) = get_html_and_markdown_strings(
+            post_inputs.body,
+            post_inputs.is_markdown,
+        ).await?;
+
+        let link = process_embed_link(post_inputs.embed_type, post_inputs.link).await;
+
+        let post = update_post(
+            post_id,
+            post_inputs.title.as_str(),
+            body.as_str(),
+            markdown_body.as_deref(),
+            link,
+            post_inputs.post_tags,
+            &user,
+            &db_pool,
+        ).await?;
+
+        log::trace!("Updated post with id: {}", post.post_id);
         Ok(post)
     }
 

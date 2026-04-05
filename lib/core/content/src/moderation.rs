@@ -20,14 +20,84 @@ pub struct ModerationInfo {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-
+    use sharesphere_core_common::checks::check_string_length;
+    use sharesphere_core_common::constants::MAX_MOD_MESSAGE_LENGTH;
     use sharesphere_core_common::errors::AppError;
+    use sharesphere_core_sphere::rule::ssr::load_rule_by_id;
+    use sharesphere_core_user::notification::NotificationType;
+    use sharesphere_core_user::notification::ssr::create_notification;
     use sharesphere_core_user::role::{AdminRole, PermissionLevel};
     use sharesphere_core_user::role::ssr::is_user_sphere_moderator;
     use sharesphere_core_user::user::{User, UserBan};
 
     use crate::comment::Comment;
+    use crate::comment::ssr::{get_comment_by_id, get_comment_sphere};
+    use crate::moderation::{Content, ModerationInfo};
     use crate::post::Post;
+    use crate::post::ssr::get_post_by_id;
+
+    pub async fn get_moderation_info(
+        post_id: i64,
+        comment_id: Option<i64>,
+        db_pool: &PgPool,
+    ) -> Result<ModerationInfo, AppError> {
+        let (rule_id, content) = match comment_id {
+            Some(comment_id) => {
+                let comment = get_comment_by_id(comment_id, &db_pool).await?;
+                (comment.infringed_rule_id, Content::Comment(comment))
+            },
+            None => {
+                let post = get_post_by_id(post_id, &db_pool).await?;
+                (post.infringed_rule_id, Content::Post(post))
+            },
+        };
+        let rule = match rule_id {
+            Some(rule_id) => load_rule_by_id(rule_id, &db_pool).await,
+            None => Err(AppError::InternalServerError(String::from("Content is not moderated, cannot find moderation info.")))
+        }?;
+
+        Ok(ModerationInfo {
+            rule,
+            content,
+        })
+    }
+
+    pub async fn moderate_post_and_ban_user(
+        post_id: i64,
+        rule_id: i64,
+        moderator_message: String,
+        ban_duration_days: Option<usize>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Post, AppError> {
+        log::debug!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
+        check_string_length(&moderator_message, "Moderator message", MAX_MOD_MESSAGE_LENGTH, true)?;
+
+        let post = moderate_post(
+            post_id,
+            rule_id,
+            moderator_message.as_str(),
+            &user,
+            &db_pool
+        ).await?;
+
+        ban_user_from_sphere(
+            post.creator_id,
+            post.sphere_id,
+            post.post_id,
+            None,
+            rule_id,
+            &user,
+            ban_duration_days,
+            &db_pool,
+        ).await?;
+
+        if let Err(e) = create_notification(post.post_id, None, None, user.user_id, NotificationType::Moderation, &db_pool).await {
+            log::error!("Failed to notify user for the moderation of post {}, error: {e}", post.post_id);
+        }
+
+        Ok(post)
+    }
 
     pub async fn moderate_post(
         post_id: i64,
@@ -104,6 +174,52 @@ pub mod ssr {
         };
 
         Ok(post)
+    }
+
+    pub async fn moderate_comment_and_ban_user(
+        comment_id: i64,
+        rule_id: i64,
+        moderator_message: String,
+        ban_duration_days: Option<usize>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Comment, AppError> {
+        log::trace!("Moderate comment {comment_id}");
+        check_string_length(&moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH, false)?;
+
+        let comment = moderate_comment(
+            comment_id,
+            rule_id,
+            moderator_message.as_str(),
+            &user,
+            &db_pool
+        ).await?;
+
+        let sphere = get_comment_sphere(comment_id, &db_pool).await?;
+
+        ban_user_from_sphere(
+            comment.creator_id,
+            sphere.sphere_id,
+            comment.post_id,
+            Some(comment.comment_id),
+            rule_id,
+            &user,
+            ban_duration_days,
+            &db_pool
+        ).await?;
+
+        if let Err(e) = create_notification(
+            comment.post_id,
+            Some(comment.comment_id),
+            Some(comment.comment_id),
+            user.user_id,
+            NotificationType::Moderation,
+            &db_pool
+        ).await {
+            log::error!("Failed to notify user for the moderation of comment {}, error: {e}", comment.comment_id);
+        };
+
+        Ok(comment)
     }
 
     pub async fn moderate_comment(

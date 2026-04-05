@@ -76,17 +76,20 @@ impl CommentWithContext {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-
-    use sharesphere_core_common::constants::COMMENT_BATCH_SIZE;
+    use sharesphere_core_common::checks::check_string_length;
+    use sharesphere_core_common::constants::{COMMENT_BATCH_SIZE, MAX_CONTENT_LENGTH};
+    use sharesphere_core_common::editor::ssr::get_html_and_markdown_strings;
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_sphere::sphere::ssr::get_post_sphere;
     use sharesphere_core_sphere::sphere::Sphere;
+    use sharesphere_core_user::notification::NotificationType;
+    use sharesphere_core_user::notification::ssr::create_notification;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
 
     use crate::post::ssr::increment_post_comment_count;
     use crate::ranking::{SortType, VoteValue};
-
+    use crate::ranking::ssr::vote_on_content;
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow, Ord, PartialOrd, Serialize, Deserialize)]
@@ -419,6 +422,54 @@ pub mod ssr {
         Ok(comment_vec)
     }
 
+    pub async fn create_comment_with_notif(
+        post_id: i64,
+        parent_comment_id: Option<i64>,
+        comment: String,
+        is_markdown: bool,
+        is_pinned: Option<bool>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<CommentWithChildren, AppError> {
+        log::trace!("Create comment for post {post_id}");
+        check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
+        let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown).await?;
+
+        let mut comment = create_comment(
+            post_id,
+            parent_comment_id,
+            comment.as_str(),
+            markdown_comment.as_deref(),
+            is_pinned.unwrap_or(false),
+            &user,
+            &db_pool,
+        )
+            .await?;
+
+        let vote = vote_on_content(
+            VoteValue::Up,
+            comment.post_id,
+            Some(comment.comment_id),
+            None,
+            &user,
+            &db_pool,
+        ).await?;
+
+        comment.score = 1;
+
+        let notif_type = match parent_comment_id {
+            Some(_) => NotificationType::CommentReply,
+            None => NotificationType::PostReply,
+        };
+        create_notification(post_id, comment.parent_id, Some(comment.comment_id), user.user_id, notif_type, &db_pool).await?;
+
+        Ok(CommentWithChildren {
+            comment,
+            vote,
+            child_comments: Vec::<CommentWithChildren>::default(),
+        })
+    }
+
     pub async fn create_comment(
         post_id: i64,
         parent_comment_id: Option<i64>,
@@ -464,7 +515,32 @@ pub mod ssr {
         Ok(comment)
     }
 
-    pub async fn update_comment(
+    pub async fn edit_comment(
+        comment_id: i64,
+        comment: String,
+        is_markdown: bool,
+        is_pinned: Option<bool>,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<Comment, AppError> {
+        log::trace!("Edit comment {comment_id}");
+        check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
+
+        let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown).await?;
+
+        let comment = update_comment(
+            comment_id,
+            comment.as_str(),
+            markdown_comment.as_deref(),
+            is_pinned.unwrap_or(false),
+            &user,
+            &db_pool,
+        ).await?;
+
+        Ok(comment)
+    }
+
+    async fn update_comment(
         comment_id: i64,
         comment_body: &str,
         comment_markdown_body: Option<&str>,

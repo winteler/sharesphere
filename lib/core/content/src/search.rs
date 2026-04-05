@@ -27,11 +27,10 @@ impl Default for SearchState {
 pub mod ssr {
     use sqlx::PgPool;
     use std::cmp::min;
-
+    use sharesphere_core_common::checks::{check_sphere_name, check_sphere_name_with_options, check_string_length};
     use sharesphere_core_common::common::SphereHeader;
-    use sharesphere_core_common::constants::SPHERE_FETCH_LIMIT;
+    use sharesphere_core_common::constants::{MAX_SEARCH_QUERY_LENGTH, SPHERE_FETCH_LIMIT};
     use sharesphere_core_common::errors::AppError;
-
     use crate::comment::CommentWithContext;
     use crate::post::ssr::PostJoinSphereInfo;
     use crate::post::PostWithSphereInfo;
@@ -42,6 +41,7 @@ pub mod ssr {
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
+        check_sphere_name_with_options(&sphere_prefix, false)?;
         let sphere_header_vec = sqlx::query_as!(
             SphereHeader,
             "SELECT sphere_name, icon_url, is_nsfw
@@ -64,6 +64,7 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
+        check_string_length(&search_query, "Sphere search", MAX_SEARCH_QUERY_LENGTH, false)?;
         let sphere_vec = sqlx::query_as::<_, SphereHeader>(
             "WITH search AS (
                     SELECT *, 0.5 as rank
@@ -123,6 +124,10 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
+        if let Some(sphere_name) = &sphere_name {
+            check_sphere_name(sphere_name)?;
+        }
+        check_string_length(&search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
         let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             "SELECT
                 p.*,
@@ -169,6 +174,10 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<CommentWithContext>, AppError> {
+        if let Some(sphere_name) = &sphere_name {
+            check_sphere_name(sphere_name)?;
+        }
+        check_string_length(&search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
             "SELECT
                 c.*,

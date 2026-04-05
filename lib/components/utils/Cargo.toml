@@ -16,6 +16,7 @@ leptos-use.workspace = true
 
 chrono.workspace = true
 const_format.workspace = true
+getrandom = { workspace = true, optional = true }
 http.workspace = true
 log.workspace = true
 strum.workspace = true
@@ -25,6 +26,8 @@ web-sys.workspace = true
 default = []
 hydrate = [
     "leptos/hydrate",
+    "getrandom/wasm_js",
+    "dep:getrandom",
 ]
 ssr = [
     "leptos/ssr",

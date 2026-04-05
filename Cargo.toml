@@ -28,13 +28,13 @@ lto = true
 codegen-units = 1
 
 [workspace.dependencies]
-leptos = { version = "0.8.12", features = ["nightly", "nonce", "multipart"] }
-leptos_meta = { version = "0.8.5" }
-leptos_router = { version = "0.8.9", features = ["nightly"] }
-leptos_axum = { version = "0.8.6" }
+leptos = { version = "0.8.17", features = ["nightly", "nonce", "multipart"] }
+leptos_meta = { version = "0.8.6" }
+leptos_router = { version = "0.8.13", features = ["nightly"] }
+leptos_axum = { version = "0.8.8" }
 
 leptos-fluent = { version = "0.3.1", features = ["json"] }
-leptos-use = { version = "0.18.0", features = ["signal_debounced", "signal_throttled", "storage", "use_breakpoints", "use_clipboard", "use_interval_fn", "use_permission", "use_web_notification", "use_element_hover"] }
+leptos-use = { version = "0.18.3", features = ["signal_debounced", "signal_throttled", "storage", "use_breakpoints", "use_clipboard", "use_interval_fn", "use_permission", "use_web_notification", "use_element_hover"] }
 
 ammonia = "4.1.2"
 anyhow = "*"
@@ -47,6 +47,7 @@ console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 const_format = "0.2.35"
 chrono = { version = "0.4.44", features = [ "alloc", "serde" ] }
+getrandom = { version = "0.3.4" } # only to fix build issue with wasm_js feature
 gloo-net = { version = "0.6.0", features = ["http"] }
 http = "1.4.0"
 image = "0.25.9"

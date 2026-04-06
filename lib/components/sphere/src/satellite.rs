@@ -20,7 +20,7 @@ use sharesphere_core_sphere::satellite::Satellite;
 use sharesphere_core_user::role::PermissionLevel;
 
 use sharesphere_iface_content::post::{get_post_vec_by_satellite_id, CreatePost};
-use sharesphere_iface_sphere::satellite::{get_satellite_by_id, get_satellite_vec_by_sphere_name};
+use sharesphere_iface_sphere::satellite::{get_satellite_by_id, get_active_satellite_vec_by_sphere_name};
 use sharesphere_iface_sphere::sphere::get_sphere_with_user_info;
 use sharesphere_iface_sphere::sphere_category::get_sphere_category_vec;
 
@@ -321,7 +321,7 @@ pub fn SatellitePanel() -> impl IntoView {
             state.update_satellite_action.version().get(),
             state.disable_satellite_action.version().get(),
         ),
-        move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, true)
+        move |(sphere_name, _, _, _)| get_active_satellite_vec_by_sphere_name(sphere_name)
     );
     view! {
         // TODO add overflow-y-auto max-h-full?

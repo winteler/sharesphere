@@ -19,7 +19,9 @@ pub struct Satellite {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-
+    use sharesphere_core_common::checks::{check_satellite_name, check_sphere_name, check_string_length};
+    use sharesphere_core_common::constants::MAX_CONTENT_LENGTH;
+    use sharesphere_core_common::editor::ssr::get_html_and_markdown_strings;
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
@@ -57,21 +59,6 @@ pub mod ssr {
         Ok(satellite_vec)
     }
 
-    pub async fn get_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
-        let satellite_vec = sqlx::query_as!(
-            Satellite,
-            "SELECT sa.* FROM satellites sa
-            JOIN spheres s ON s.sphere_id = sa.sphere_id
-            WHERE s.sphere_name = $1
-            ORDER BY satellite_name",
-            sphere_name
-        )
-            .fetch_all(db_pool)
-            .await?;
-
-        Ok(satellite_vec)
-    }
-
     pub async fn get_satellite_sphere(satellite_id: i64, db_pool: &PgPool) -> Result<Sphere, AppError> {
         let sphere = sqlx::query_as::<_, Sphere>(
             "SELECT s.* FROM spheres s
@@ -89,13 +76,18 @@ pub mod ssr {
         sphere_name: &str,
         satellite_name: &str,
         body: &str,
-        markdown_body: Option<&str>,
+        is_markdown: bool,
         is_nsfw: bool,
         is_spoiler: bool,
         user: &User,
         db_pool: &PgPool
     ) -> Result<Satellite, AppError> {
+        check_sphere_name(&sphere_name)?;
+        check_satellite_name(&satellite_name)?;
+        check_string_length(&body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
+
+        let (body, markdown_body) = get_html_and_markdown_strings(&body, is_markdown).await?;
 
         let satellite = sqlx::query_as!(
             Satellite,
@@ -132,14 +124,19 @@ pub mod ssr {
         satellite_id: i64,
         satellite_name: &str,
         body: &str,
-        markdown_body: Option<&str>,
+        is_markdown: bool,
         is_nsfw: bool,
         is_spoiler: bool,
         user: &User,
         db_pool: &PgPool
     ) -> Result<Satellite, AppError> {
+        check_satellite_name(&satellite_name)?;
+        check_string_length(&body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
+
         let sphere = get_satellite_sphere(satellite_id, db_pool).await?;
         user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Manage)?;
+
+        let (body, markdown_body) = get_html_and_markdown_strings(&body, is_markdown).await?;
 
         let satellite = sqlx::query_as!(
             Satellite,

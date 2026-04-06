@@ -425,14 +425,14 @@ pub mod ssr {
     pub async fn create_comment_with_notif(
         post_id: i64,
         parent_comment_id: Option<i64>,
-        comment: String,
+        comment: &str,
         is_markdown: bool,
         is_pinned: Option<bool>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<CommentWithChildren, AppError> {
         log::trace!("Create comment for post {post_id}");
-        check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
+        check_string_length(comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
         let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown).await?;
 
         let mut comment = create_comment(
@@ -517,7 +517,7 @@ pub mod ssr {
 
     pub async fn edit_comment(
         comment_id: i64,
-        comment: String,
+        comment: &str,
         is_markdown: bool,
         is_pinned: Option<bool>,
         user: &User,

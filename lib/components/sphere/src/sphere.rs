@@ -20,7 +20,7 @@ use sharesphere_core_user::role::PermissionLevel;
 
 use sharesphere_iface_content::post::get_post_vec_by_sphere_name;
 use sharesphere_iface_sphere::rule::get_rule_vec;
-use sharesphere_iface_sphere::satellite::get_satellite_vec_by_sphere_name;
+use sharesphere_iface_sphere::satellite::get_active_satellite_vec_by_sphere_name;
 use sharesphere_iface_sphere::sphere::{get_sphere_with_user_info, is_sphere_available, Subscribe, Unsubscribe};
 use sharesphere_iface_sphere::sphere_category::get_sphere_category_vec;
 use sharesphere_iface_user::role::get_sphere_role_vec;
@@ -72,7 +72,7 @@ pub fn SphereBanner() -> impl IntoView {
                 state.update_satellite_action.version().get(),
                 state.disable_satellite_action.version().get(),
             ),
-            move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, true)
+            move |(sphere_name, _, _, _)| get_active_satellite_vec_by_sphere_name(sphere_name)
         ),
         sphere_categories_resource: Resource::new(
             move || (

@@ -46,16 +46,19 @@ impl From<&Sphere> for SphereHeader {
 pub mod ssr {
     use sqlx::PgPool;
 
-    use sharesphere_core_common::checks::check_sphere_name;
+    use sharesphere_core_common::checks::{check_sphere_name, check_string_length};
+    use sharesphere_core_common::constants::MAX_SPHERE_DESCRIPTION_LENGTH;
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_common::errors::AppError::InternalServerError;
+    use sharesphere_core_common::routes::get_sphere_path;
     use sharesphere_core_user::role::ssr::init_sphere_leader;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
 
-    use crate::sphere::{Sphere, SphereHeader, SphereWithUserInfo};
+    use crate::sphere::{ssr, Sphere, SphereHeader, SphereWithUserInfo};
 
     pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
+        check_sphere_name(sphere_name)?;
         let sphere = sqlx::query_as::<_, Sphere>(
             "SELECT * FROM spheres WHERE sphere_name = $1"
         )
@@ -71,6 +74,7 @@ pub mod ssr {
         user_id: Option<i64>,
         db_pool: &PgPool,
     ) -> Result<SphereWithUserInfo, AppError> {
+        check_sphere_name(&sphere_name)?;
         let sphere = sqlx::query_as::<_, SphereWithUserInfo>(
             "SELECT s.*, sub.subscription_id
             FROM spheres s
@@ -105,6 +109,7 @@ pub mod ssr {
     }
 
     pub async fn is_sphere_available(sphere_name: &str, db_pool: &PgPool) -> Result<bool, AppError> {
+        check_sphere_name(sphere_name)?;
         let sphere_exist = sqlx::query!(
             "SELECT sphere_id FROM spheres WHERE normalized_sphere_name = normalize_sphere_name($1)",
             sphere_name,
@@ -157,6 +162,33 @@ pub mod ssr {
         Ok(sphere_header_vec)
     }
 
+    /// creates a sphere, subscribe to it and return the path to the new sphere
+    pub async fn create_sphere_and_subscribe(
+        sphere_name: &str,
+        description: &str,
+        is_nsfw: bool,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<String, AppError> {
+        check_sphere_name(&sphere_name)?;
+        check_string_length(&description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
+        log::trace!("Create Sphere '{sphere_name}', {description}, {is_nsfw}");
+
+        let new_sphere_path = get_sphere_path(&sphere_name);
+
+        let sphere = create_sphere(
+            sphere_name,
+            description,
+            is_nsfw,
+            &user,
+            &db_pool,
+        ).await?;
+
+        ssr::subscribe(sphere.sphere_id, user.user_id, &db_pool).await?;
+
+        Ok(new_sphere_path)
+    }
+
     pub async fn create_sphere(
         name: &str,
         description: &str,
@@ -188,7 +220,10 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Sphere, AppError> {
+        check_sphere_name(&sphere_name)?;
+        check_string_length(&description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
+
         let sphere = sqlx::query_as::<_, Sphere>(
             "UPDATE spheres SET description = $1, timestamp = NOW() WHERE sphere_name = $2 RETURNING *"
         )

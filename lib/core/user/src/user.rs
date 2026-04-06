@@ -186,7 +186,7 @@ pub mod ssr {
     use sharesphere_core_common::errors::AppError;
     use sqlx::PgPool;
     use tokio::sync::Mutex;
-
+    use sharesphere_core_common::checks::check_username;
     use crate::role::ssr::get_user_sphere_role;
     use crate::role::UserSphereRole;
 
@@ -455,6 +455,7 @@ pub mod ssr {
         limit: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<UserHeader>, AppError> {
+        check_username(username_prefix, false)?;
         let user_header_vec = sqlx::query_as!(
             UserHeader,
             "SELECT username, is_nsfw
@@ -477,10 +478,14 @@ pub mod ssr {
     pub async fn set_user_settings(
         is_nsfw: bool,
         show_nsfw: bool,
-        days_hide_spoiler: Option<i32>,
+        days_hide_spoilers: u32,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
+        let days_hide_spoilers = match days_hide_spoilers {
+            x if x > 0 => Some(x as i32),
+            _ => None,
+        };
         sqlx::query!(
             "UPDATE users SET
                 is_nsfw = $1,
@@ -489,7 +494,7 @@ pub mod ssr {
             WHERE user_id = $4",
             is_nsfw,
             show_nsfw,
-            days_hide_spoiler,
+            days_hide_spoilers,
             user.user_id,
         )
             .execute(db_pool)

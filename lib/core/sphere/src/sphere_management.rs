@@ -1,7 +1,7 @@
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use std::io::Cursor;
-
+    use std::path::Path;
     use http::StatusCode;
     use image::ImageReader;
     use leptos::prelude::use_context;
@@ -14,7 +14,7 @@ pub mod ssr {
     use url::Url;
     use webp::Encoder;
 
-    use sharesphere_core_common::checks::check_sphere_name;
+    use sharesphere_core_common::checks::{check_sphere_name, check_username};
     use sharesphere_core_common::constants::IMAGE_TYPE;
     use sharesphere_core_common::constants::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
     use sharesphere_core_common::errors::AppError;
@@ -76,6 +76,8 @@ pub mod ssr {
         username_prefix: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<UserBan>, AppError> {
+        check_sphere_name(&sphere_name)?;
+        check_username(&username_prefix, true)?;
         let user_ban_vec = sqlx::query_as!(
             UserBan,
             "SELECT b.*, u.username, s.sphere_name FROM user_bans b
@@ -123,6 +125,31 @@ pub mod ssr {
             .await?;
 
         Ok(user_ban)
+    }
+
+    pub async fn set_sphere_image<T: ObjectStoreExt>(
+        image_type: SphereImageType,
+        data: MultipartData,
+        object_store: &T,
+        object_container_url: &str,
+        bucket_name: &str,
+        user: &User,
+        db_pool: &PgPool,
+    ) -> Result<(), AppError> {
+        let (sphere_name, file_name) = store_sphere_image(data, MAX_ICON_SIZE, object_store, user).await?;
+        // Clear previous image if it exists
+        if let Err(e) = delete_sphere_image(&sphere_name, image_type, object_store, user, db_pool).await {
+            log::warn!("Failed to delete {image_type:?} image: {:?}", e);
+        }
+
+        let icon_url = file_name.map(|file_name| {
+            Path::new(&object_container_url)
+                .join(bucket_name)
+                .join(&file_name)
+                .to_string_lossy()
+                .to_string()
+        });
+        set_sphere_icon_url(&sphere_name, icon_url.as_deref(), user, db_pool).await
     }
 
     pub fn get_object_store(image_type: SphereImageType) -> Result<AmazonS3, AppError> {

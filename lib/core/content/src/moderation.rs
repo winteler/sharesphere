@@ -65,18 +65,18 @@ pub mod ssr {
     pub async fn moderate_post_and_ban_user(
         post_id: i64,
         rule_id: i64,
-        moderator_message: String,
+        moderator_message: &str,
         ban_duration_days: Option<usize>,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Post, AppError> {
         log::debug!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
-        check_string_length(&moderator_message, "Moderator message", MAX_MOD_MESSAGE_LENGTH, true)?;
+        check_string_length(moderator_message, "Moderator message", MAX_MOD_MESSAGE_LENGTH, true)?;
 
         let post = moderate_post(
             post_id,
             rule_id,
-            moderator_message.as_str(),
+            moderator_message,
             &user,
             &db_pool
         ).await?;
@@ -179,7 +179,7 @@ pub mod ssr {
     pub async fn moderate_comment_and_ban_user(
         comment_id: i64,
         rule_id: i64,
-        moderator_message: String,
+        moderator_message: &str,
         ban_duration_days: Option<usize>,
         user: &User,
         db_pool: &PgPool,
@@ -190,7 +190,7 @@ pub mod ssr {
         let comment = moderate_comment(
             comment_id,
             rule_id,
-            moderator_message.as_str(),
+            moderator_message,
             &user,
             &db_pool
         ).await?;

@@ -38,8 +38,9 @@ impl From<&SphereCategory> for SphereCategoryHeader {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-
+    use sharesphere_core_common::checks::{check_sphere_name, check_string_length};
     use sharesphere_core_common::colors::Color;
+    use sharesphere_core_common::constants::{MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NAME_LENGTH};
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
@@ -52,6 +53,7 @@ pub mod ssr {
         sphere_name: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereCategory>, AppError> {
+        check_sphere_name(&sphere_name)?;
         let sphere_category_vec = sqlx::query_as!(
             SphereCategory,
             "SELECT sc.* FROM sphere_categories sc
@@ -75,6 +77,9 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<SphereCategory, AppError> {
+        check_sphere_name(sphere_name)?;
+        check_string_length(category_name, "Category name", MAX_CATEGORY_NAME_LENGTH, false)?;
+        check_string_length(description, "Category description", MAX_CATEGORY_DESCRIPTION_LENGTH, false)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         let category = sqlx::query_as!(
@@ -109,6 +114,8 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
+        check_sphere_name(&sphere_name)?;
+        check_string_length(&category_name, "Category name", MAX_CATEGORY_NAME_LENGTH, false)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         let result = sqlx::query!(

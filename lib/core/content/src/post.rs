@@ -146,6 +146,7 @@ pub mod ssr {
     use serde::{Deserialize, Serialize};
     use sqlx::PgPool;
     use validator::Validate;
+    use sharesphere_core_common::checks::check_sphere_name;
     use sharesphere_core_common::colors::Color;
     use sharesphere_core_common::common::SphereCategoryHeader;
     use sharesphere_core_common::constants::POST_BATCH_SIZE;
@@ -344,6 +345,7 @@ pub mod ssr {
         user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
+        check_sphere_name(&sphere_name)?;
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
@@ -654,7 +656,7 @@ pub mod ssr {
         post_location.validate()?;
         post_inputs.validate()?;
 
-        let (body, markdown_body) = get_html_and_markdown_strings(post_inputs.body, post_inputs.is_markdown).await?;
+        let (body, markdown_body) = get_html_and_markdown_strings(&post_inputs.body, post_inputs.is_markdown).await?;
 
         let link = process_embed_link(post_inputs.embed_type, post_inputs.link).await;
 
@@ -767,7 +769,7 @@ pub mod ssr {
         log::trace!("Edit post {post_id}, title = {}", post_inputs.title);
 
         let (body, markdown_body) = get_html_and_markdown_strings(
-            post_inputs.body,
+            &post_inputs.body,
             post_inputs.is_markdown,
         ).await?;
 

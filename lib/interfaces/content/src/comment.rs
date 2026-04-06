@@ -66,7 +66,7 @@ pub async fn create_comment(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    ssr::create_comment_with_notif(post_id, parent_comment_id, comment, is_markdown, is_pinned, &user, &db_pool).await
+    ssr::create_comment_with_notif(post_id, parent_comment_id, &comment, is_markdown, is_pinned, &user, &db_pool).await
 }
 
 #[server]
@@ -79,7 +79,7 @@ pub async fn edit_comment(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    ssr::edit_comment(comment_id, comment, is_markdown, is_pinned, &user, &db_pool).await
+    ssr::edit_comment(comment_id, &comment, is_markdown, is_pinned, &user, &db_pool).await
 }
 
 #[server]

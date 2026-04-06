@@ -60,7 +60,7 @@ impl From<String> for AdminRole {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-
+    use sharesphere_core_common::checks::{check_sphere_name, check_username};
     use crate::user::{ssr::SqlUser, User};
     use sharesphere_core_common::errors::AppError;
 
@@ -104,6 +104,7 @@ pub mod ssr {
         sphere_name: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<UserSphereRole>, AppError> {
+        check_sphere_name(&sphere_name)?;
         let sphere_role_vec = sqlx::query_as!(
             UserSphereRole,
             "SELECT r.*, u.username, s.sphere_name FROM user_sphere_roles r
@@ -122,17 +123,20 @@ pub mod ssr {
     }
 
     pub async fn set_user_sphere_role(
-        user_id: i64,
+        username: &str,
         sphere_name: &str,
         permission_level: PermissionLevel,
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserSphereRole, Option<i64>), AppError> {
+        check_username(&username, false)?;
+        check_sphere_name(&sphere_name)?;
+        let assigned_user = SqlUser::get_by_username(&username, &db_pool).await?;
         if permission_level == PermissionLevel::Lead {
-            set_sphere_leader(user_id, sphere_name, grantor, db_pool).await
+            set_sphere_leader(assigned_user.user_id, sphere_name, grantor, db_pool).await
         } else {
             let user_sphere_role = insert_user_sphere_role(
-                user_id,
+                assigned_user.user_id,
                 sphere_name,
                 permission_level,
                 grantor,
@@ -141,6 +145,7 @@ pub mod ssr {
             Ok((user_sphere_role, None))
         }
     }
+
     async fn set_sphere_leader(
         user_id: i64,
         sphere_name: &str,

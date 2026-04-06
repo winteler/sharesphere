@@ -35,7 +35,7 @@ pub async fn moderate_post(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let post = ssr::moderate_post_and_ban_user(post_id, rule_id, moderator_message, ban_duration_days, &user, &db_pool).await?;
+    let post = ssr::moderate_post_and_ban_user(post_id, rule_id, &moderator_message, ban_duration_days, &user, &db_pool).await?;
 
     reload_user(post.creator_id)?;
 
@@ -59,7 +59,7 @@ pub async fn moderate_comment(
     let comment = ssr::moderate_comment_and_ban_user(
         comment_id,
         rule_id,
-        moderator_message,
+        &moderator_message,
         ban_duration_days,
         &user,
         &db_pool

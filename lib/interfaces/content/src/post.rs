@@ -2,7 +2,6 @@ use leptos::prelude::*;
 
 #[cfg(feature = "ssr")]
 use {
-    sharesphere_core_common::checks::check_sphere_name,
     sharesphere_core_common::constants::POST_BATCH_SIZE,
     sharesphere_core_common::db_utils::ssr::get_db_pool,
     sharesphere_core_content::post::*,
@@ -62,7 +61,6 @@ pub async fn get_post_vec_by_sphere_name(
     sort_type: SortType,
     num_already_loaded: usize,
 ) -> Result<Vec<Post>, AppError> {
-    check_sphere_name(&sphere_name)?;
     let user = get_user().await.unwrap_or(None);
     let db_pool = get_db_pool()?;
     ssr::get_post_vec_by_sphere_name(

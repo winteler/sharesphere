@@ -210,7 +210,7 @@ pub fn FormMarkdownEditor(
     let markdown_render = move || {
         match is_markdown_mode.get() {
             true => {
-                get_styled_html_from_markdown(data.content.get())
+                get_styled_html_from_markdown(&*data.content.read())
             },
             false => Ok(String::default())
         }

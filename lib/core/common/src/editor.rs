@@ -58,22 +58,22 @@ pub mod ssr {
     use crate::editor::get_styled_html_from_markdown;
     use crate::errors::AppError;
 
-    pub async fn get_html_and_markdown_strings(body: String, is_markdown: bool) -> Result<(String, Option<String>), AppError> {
+    pub async fn get_html_and_markdown_strings(body: &str, is_markdown: bool) -> Result<(String, Option<&str>), AppError> {
         match is_markdown {
             true => Ok((
-                get_styled_html_from_markdown(body.clone())?,
+                get_styled_html_from_markdown(body)?,
                 Some(body),
             )),
-            false => Ok((body, None)),
+            false => Ok((String::from(body), None)),
         }
     }
 }
 
 pub fn get_styled_html_from_markdown(
-    markdown_input: String,
+    markdown_input: &str,
 ) -> Result<String, AppError> {
     let html_from_markdown =
-        markdown::to_html_with_options(markdown_input.as_str(), &Options::gfm())
+        markdown::to_html_with_options(markdown_input, &Options::gfm())
             .or_else(|e| Err(AppError::new(e)))?;
     log::debug!("Markdown as html: {html_from_markdown}");
 

@@ -36,8 +36,10 @@ impl BaseRule {
 #[cfg(feature = "ssr")]
 pub mod ssr {
     use sqlx::PgPool;
-
+    use sharesphere_core_common::checks::{check_sphere_name, check_string_length};
     use sharesphere_core_common::common::Rule;
+    use sharesphere_core_common::constants::{MAX_MOD_MESSAGE_LENGTH, MAX_TITLE_LENGTH};
+    use sharesphere_core_common::editor::ssr::get_html_and_markdown_strings;
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
@@ -62,6 +64,9 @@ pub mod ssr {
         sphere_name: Option<&str>,
         db_pool: &PgPool,
     ) -> Result<Vec<Rule>, AppError> {
+        if let Some(sphere_name) = sphere_name {
+            check_sphere_name(sphere_name)?;
+        }
         let sphere_rule_vec = sqlx::query_as!(
             Rule,
             "SELECT r.* FROM rules r
@@ -83,11 +88,15 @@ pub mod ssr {
         priority: i16,
         title: &str,
         description: &str,
-        markdown_description: Option<&str>,
+        is_markdown: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
+        check_sphere_name(&sphere_name)?;
+        check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
+        check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
+        let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
 
         sqlx::query!(
             "UPDATE rules
@@ -128,11 +137,16 @@ pub mod ssr {
         priority: i16,
         title: &str,
         description: &str,
-        markdown_description: Option<&str>,
+        is_markdown: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
+        check_sphere_name(&sphere_name)?;
+        check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
+        check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
+
+        let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
 
         let current_rule = sqlx::query_as!(
             Rule,
@@ -197,6 +211,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
+        check_sphere_name(&sphere_name)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         sqlx::query!(

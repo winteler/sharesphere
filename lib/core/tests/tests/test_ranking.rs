@@ -191,7 +191,7 @@ async fn test_vote_on_content_with_ban() {
 
     let (_, _, comment_2) = create_sphere_with_post_and_comment("sphere_2", &mut user, &db_pool).await;
     let sphere_rule = add_rule(
-        &sphere.sphere_name, 0, "test", "test", None, &user, &db_pool
+        &sphere.sphere_name, 0, "test", "test", false, &user, &db_pool
     ).await.expect("Shere rule should be added.");
 
     let user_1 = create_user("1", &db_pool).await;

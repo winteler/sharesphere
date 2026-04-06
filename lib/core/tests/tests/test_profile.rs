@@ -36,7 +36,7 @@ async fn test_get_user_post_vec() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Should create sphere 1 with posts.");
     
-    let satellite = create_satellite(sphere1_name, "1", "test", None, false, false, &user_1, &db_pool).await.expect("Should create satellite 1");
+    let satellite = create_satellite(sphere1_name, "1", "test", false, false, false, &user_1, &db_pool).await.expect("Should create satellite 1");
     let satellite_post = create_post(
         sphere1_name,
         Some(satellite.satellite_id),

@@ -76,8 +76,8 @@ pub mod ssr {
         username_prefix: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<UserBan>, AppError> {
-        check_sphere_name(&sphere_name)?;
-        check_username(&username_prefix, true)?;
+        check_sphere_name(sphere_name)?;
+        check_username(username_prefix, true)?;
         let user_ban_vec = sqlx::query_as!(
             UserBan,
             "SELECT b.*, u.username, s.sphere_name FROM user_bans b

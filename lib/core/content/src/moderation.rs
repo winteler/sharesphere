@@ -185,7 +185,7 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         log::trace!("Moderate comment {comment_id}");
-        check_string_length(&moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH, false)?;
+        check_string_length(moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH, false)?;
 
         let comment = moderate_comment(
             comment_id,

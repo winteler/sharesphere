@@ -82,12 +82,12 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool
     ) -> Result<Satellite, AppError> {
-        check_sphere_name(&sphere_name)?;
-        check_satellite_name(&satellite_name)?;
-        check_string_length(&body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
+        check_sphere_name(sphere_name)?;
+        check_satellite_name(satellite_name)?;
+        check_string_length(body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
-        let (body, markdown_body) = get_html_and_markdown_strings(&body, is_markdown).await?;
+        let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown)?;
 
         let satellite = sqlx::query_as!(
             Satellite,
@@ -130,13 +130,13 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool
     ) -> Result<Satellite, AppError> {
-        check_satellite_name(&satellite_name)?;
-        check_string_length(&body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
+        check_satellite_name(satellite_name)?;
+        check_string_length(body, "Satellite body", MAX_CONTENT_LENGTH as usize, false)?;
 
         let sphere = get_satellite_sphere(satellite_id, db_pool).await?;
         user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Manage)?;
 
-        let (body, markdown_body) = get_html_and_markdown_strings(&body, is_markdown).await?;
+        let (body, markdown_body) = get_html_and_markdown_strings(body, is_markdown)?;
 
         let satellite = sqlx::query_as!(
             Satellite,

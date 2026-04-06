@@ -23,11 +23,11 @@ async fn test_get_user_sphere_role() -> Result<(), AppError> {
     let user_a = User::get(user_a.user_id, &db_pool).await.expect("Should be able to reload user.");
     let user_b = User::get(user_b.user_id, &db_pool).await.expect("Should be able to reload user.");
 
-    set_user_sphere_role(user_b.user_id, &sphere_1.sphere_name, PermissionLevel::Manage, &user_a, &db_pool).await.expect("User should be able to grant Manage permissions.");
-    set_user_sphere_role(user_c.user_id, &sphere_1.sphere_name, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
-    set_user_sphere_role(user_b.user_id, &sphere_2.sphere_name, PermissionLevel::Ban, &user_a, &db_pool).await.expect("User should be able to grant Ban permissions.");
-    set_user_sphere_role(user_c.user_id, &sphere_2.sphere_name, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
-    set_user_sphere_role(user_a.user_id, &sphere_3.sphere_name, PermissionLevel::None, &user_b, &db_pool).await.expect("User should be able to grant Moderate permissions.");
+    set_user_sphere_role(&user_b.username, &sphere_1.sphere_name, PermissionLevel::Manage, &user_a, &db_pool).await.expect("User should be able to grant Manage permissions.");
+    set_user_sphere_role(&user_c.username, &sphere_1.sphere_name, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
+    set_user_sphere_role(&user_b.username, &sphere_2.sphere_name, PermissionLevel::Ban, &user_a, &db_pool).await.expect("User should be able to grant Ban permissions.");
+    set_user_sphere_role(&user_c.username, &sphere_2.sphere_name, PermissionLevel::Moderate, &user_a, &db_pool).await.expect("User should be able to grant Moderate permissions.");
+    set_user_sphere_role(&user_a.username, &sphere_3.sphere_name, PermissionLevel::None, &user_b, &db_pool).await.expect("User should be able to grant Moderate permissions.");
 
     let user_a_sphere_1_role = get_user_sphere_role(user_a.user_id, &sphere_1.sphere_name, &db_pool).await.expect("get_user_sphere_role should return user role.");
     assert_eq!(user_a_sphere_1_role.user_id, user_a.user_id);
@@ -102,14 +102,14 @@ async fn test_get_sphere_role_vec() -> Result<(), AppError> {
 
     let user_a_sphere_role = get_user_sphere_role(user_a.user_id, &sphere.sphere_name, &db_pool).await.expect("User a should have lead role.");
     let (user_b_sphere_role, _) = set_user_sphere_role(
-        user_b.user_id,
+        &user_b.username,
         &sphere.sphere_name,
         PermissionLevel::Manage,
         &user_a,
         &db_pool
     ).await.expect("User should be able to grant Manage permissions.");
     let (user_c_sphere_role, _) = set_user_sphere_role(
-        user_c.user_id,
+        &user_c.username,
         &sphere.sphere_name,
         PermissionLevel::None,
         &user_a,
@@ -149,7 +149,7 @@ async fn test_set_user_sphere_role() {
 
     // test elect moderator
     let (moderate_role, prev_leader_id) = set_user_sphere_role(
-        moderator.user_id,
+        &moderator.username,
         sphere_name,
         PermissionLevel::Moderate,
         &lead_user,
@@ -174,7 +174,7 @@ async fn test_set_user_sphere_role() {
     // test need elect permissions to add moderators
     assert_eq!(
         set_user_sphere_role(
-            ordinary_user.user_id,
+            &ordinary_user.username,
             sphere_name,
             PermissionLevel::Moderate,
             &moderator,
@@ -185,7 +185,7 @@ async fn test_set_user_sphere_role() {
 
     // test change permission level to Manage
     let (manage_role, prev_leader_id) = set_user_sphere_role(
-        moderator.user_id,
+        &moderator.username,
         sphere_name,
         PermissionLevel::Manage,
         &lead_user,
@@ -221,7 +221,7 @@ async fn test_set_user_sphere_role() {
 
     // test can now elect other moderators
     let (moderate_role_2, prev_leader_id) = set_user_sphere_role(
-        ordinary_user.user_id,
+        &ordinary_user.username,
         sphere_name,
         PermissionLevel::Moderate,
         &moderator,
@@ -245,7 +245,7 @@ async fn test_set_user_sphere_role() {
     // test moderator cannot set leader or downgrade higher up moderator
     assert!(
         set_user_sphere_role(
-            ordinary_user.user_id,
+            &ordinary_user.username,
             sphere_name,
             PermissionLevel::Lead,
             &moderator,
@@ -254,7 +254,7 @@ async fn test_set_user_sphere_role() {
     );
     assert_eq!(
         set_user_sphere_role(
-            lead_user.user_id,
+            &lead_user.username,
             sphere_name,
             PermissionLevel::Moderate,
             &moderator,
@@ -265,7 +265,7 @@ async fn test_set_user_sphere_role() {
 
     // test leader can choose another leader
     let (new_lead_role, prev_leader_id) = set_user_sphere_role(
-        ordinary_user.user_id,
+        &ordinary_user.username,
         sphere_name,
         PermissionLevel::Lead,
         &lead_user,

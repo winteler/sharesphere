@@ -20,7 +20,7 @@ mod common;
 mod data_factory;
 
 #[tokio::test]
-async fn test_get_matching_user_header_vec() -> Result<(), AppError> {
+async fn test_get_matching_user_header_vec() {
     let db_pool = get_db_pool().await;
 
     let num_users = 10usize;
@@ -34,7 +34,7 @@ async fn test_get_matching_user_header_vec() -> Result<(), AppError> {
         );
     }
 
-    let user_header_vec = get_matching_user_header_vec("1", false, num_users as i64, &db_pool).await?;
+    let user_header_vec = get_matching_user_header_vec("1", false, num_users as i64, &db_pool).await.expect("Should get user header vec");
 
     let mut previous_username = None;
     for user_header in user_header_vec {
@@ -55,24 +55,20 @@ async fn test_get_matching_user_header_vec() -> Result<(), AppError> {
         );
     }
 
-    let user_header_vec = get_matching_user_header_vec("", false, num_users as i64, &db_pool).await?;
-
-    assert_eq!(user_header_vec.len(), num_users);
+    get_matching_user_header_vec("", false, num_users as i64, &db_pool).await.expect_err("Should get error for empty username prefix");
 
     let nsfw_user = create_user("nsfw", &db_pool).await;
-    set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
+    set_user_settings(true, false, 0, &nsfw_user, &db_pool).await.expect("Should set user settings");
     let nsfw_header_vec = UserHeader {
         username: nsfw_user.username,
         is_nsfw: true,
     };
 
-    let user_header_vec = get_matching_user_header_vec("nsfw", false, num_users as i64, &db_pool).await?;
+    let user_header_vec = get_matching_user_header_vec("nsfw", false, num_users as i64, &db_pool).await.expect("Should get empty user header vec");
     assert!(user_header_vec.is_empty());
-    let user_header_vec = get_matching_user_header_vec("nsfw", true, num_users as i64, &db_pool).await?;
+    let user_header_vec = get_matching_user_header_vec("nsfw", true, num_users as i64, &db_pool).await.expect("Should get user header vec");
     assert_eq!(user_header_vec.len(), 1);
     assert_eq!(user_header_vec.first(), Some(&nsfw_header_vec));
-
-    Ok(())
 }
 
 #[tokio::test]

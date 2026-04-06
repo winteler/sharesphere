@@ -16,7 +16,7 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<PostWithSphereInfo>, AppError> {
-        check_username(&username, false)?;
+        check_username(username, false)?;
         let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             format!(
                 "SELECT
@@ -58,7 +58,7 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<CommentWithContext>, AppError> {
-        check_username(&username, false)?;
+        check_username(username, false)?;
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
             format!(
                 "SELECT

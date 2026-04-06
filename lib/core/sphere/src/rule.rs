@@ -92,11 +92,11 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        check_sphere_name(&sphere_name)?;
-        check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
-        check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
+        check_sphere_name(sphere_name)?;
+        check_string_length(title, "Title", MAX_TITLE_LENGTH as usize, false)?;
+        check_string_length(description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
-        let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
+        let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown)?;
 
         sqlx::query!(
             "UPDATE rules
@@ -141,12 +141,12 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Rule, AppError> {
-        check_sphere_name(&sphere_name)?;
-        check_string_length(&title, "Title", MAX_TITLE_LENGTH as usize, false)?;
-        check_string_length(&description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
+        check_sphere_name(sphere_name)?;
+        check_string_length(title, "Title", MAX_TITLE_LENGTH as usize, false)?;
+        check_string_length(description, "Description", MAX_MOD_MESSAGE_LENGTH, true)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
-        let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown).await?;
+        let (description, markdown_description) = get_html_and_markdown_strings(description, is_markdown)?;
 
         let current_rule = sqlx::query_as!(
             Rule,
@@ -211,7 +211,7 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        check_sphere_name(&sphere_name)?;
+        check_sphere_name(sphere_name)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         sqlx::query!(

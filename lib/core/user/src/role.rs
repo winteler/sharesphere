@@ -104,7 +104,7 @@ pub mod ssr {
         sphere_name: &str,
         db_pool: &PgPool,
     ) -> Result<Vec<UserSphereRole>, AppError> {
-        check_sphere_name(&sphere_name)?;
+        check_sphere_name(sphere_name)?;
         let sphere_role_vec = sqlx::query_as!(
             UserSphereRole,
             "SELECT r.*, u.username, s.sphere_name FROM user_sphere_roles r
@@ -129,9 +129,9 @@ pub mod ssr {
         grantor: &User,
         db_pool: &PgPool,
     ) -> Result<(UserSphereRole, Option<i64>), AppError> {
-        check_username(&username, false)?;
-        check_sphere_name(&sphere_name)?;
-        let assigned_user = SqlUser::get_by_username(&username, &db_pool).await?;
+        check_username(username, false)?;
+        check_sphere_name(sphere_name)?;
+        let assigned_user = SqlUser::get_by_username(username, db_pool).await?;
         if permission_level == PermissionLevel::Lead {
             set_sphere_leader(assigned_user.user_id, sphere_name, grantor, db_pool).await
         } else {

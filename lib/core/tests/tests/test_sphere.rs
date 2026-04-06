@@ -405,7 +405,7 @@ async fn populate_dev_db() -> Result<(), AppError> {
     let mut test_user = create_test_user(&db_pool).await;
 
     let nsfw_user = create_user("nsfw", &db_pool).await;
-    set_user_settings(true, false, None, &nsfw_user, &db_pool).await?;
+    set_user_settings(true, false, 0, &nsfw_user, &db_pool).await?;
 
     let num_users = 50;
 

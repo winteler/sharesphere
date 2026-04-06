@@ -345,7 +345,7 @@ pub mod ssr {
         user: Option<&User>,
         db_pool: &PgPool,
     ) -> Result<Vec<Post>, AppError> {
-        check_sphere_name(&sphere_name)?;
+        check_sphere_name(sphere_name)?;
         let posts_filters = user.map(|user| user.get_posts_filter()).unwrap_or_default();
         let post_vec = sqlx::query_as::<_, Post>(
             format!(
@@ -656,7 +656,7 @@ pub mod ssr {
         post_location.validate()?;
         post_inputs.validate()?;
 
-        let (body, markdown_body) = get_html_and_markdown_strings(&post_inputs.body, post_inputs.is_markdown).await?;
+        let (body, markdown_body) = get_html_and_markdown_strings(&post_inputs.body, post_inputs.is_markdown)?;
 
         let link = process_embed_link(post_inputs.embed_type, post_inputs.link).await;
 
@@ -771,7 +771,7 @@ pub mod ssr {
         let (body, markdown_body) = get_html_and_markdown_strings(
             &post_inputs.body,
             post_inputs.is_markdown,
-        ).await?;
+        )?;
 
         let link = process_embed_link(post_inputs.embed_type, post_inputs.link).await;
 

@@ -38,7 +38,7 @@ async fn test_get_sphere_ban_vec() -> Result<(), AppError> {
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut lead, &db_pool).await;
 
-    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &lead, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", false, &lead, &db_pool).await.expect("Rule should be added.");
 
     let ban_user_1 = ban_user_from_sphere(
         banned_user_1.user_id,
@@ -89,7 +89,7 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut lead, &db_pool).await;
     
-    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &lead, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", false, &lead, &db_pool).await.expect("Rule should be added.");
 
     let ban_user_1 = ban_user_from_sphere(
         banned_user_1.user_id,
@@ -157,7 +157,7 @@ async fn test_moderate_post() -> Result<(), AppError> {
     let unauthorized_user = create_user("user", &db_pool).await;
 
     let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", false, &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_post(post.post_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 
@@ -187,7 +187,7 @@ async fn test_moderate_comment() -> Result<(), AppError> {
     let unauthorized_user = create_user("user", &db_pool).await;
     
     let (sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", None, &user, &db_pool).await.expect("Rule should be added.");
+    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", false, &user, &db_pool).await.expect("Rule should be added.");
 
     assert!(moderate_comment(comment.comment_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
 

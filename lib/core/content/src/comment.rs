@@ -433,7 +433,7 @@ pub mod ssr {
     ) -> Result<CommentWithChildren, AppError> {
         log::trace!("Create comment for post {post_id}");
         check_string_length(comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
-        let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown).await?;
+        let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown)?;
 
         let mut comment = create_comment(
             post_id,
@@ -524,9 +524,9 @@ pub mod ssr {
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
         log::trace!("Edit comment {comment_id}");
-        check_string_length(&comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
+        check_string_length(comment, "Comment", MAX_CONTENT_LENGTH as usize, false)?;
 
-        let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown).await?;
+        let (comment, markdown_comment) = get_html_and_markdown_strings(comment, is_markdown)?;
 
         let comment = update_comment(
             comment_id,
@@ -540,7 +540,7 @@ pub mod ssr {
         Ok(comment)
     }
 
-    async fn update_comment(
+    pub async fn update_comment(
         comment_id: i64,
         comment_body: &str,
         comment_markdown_body: Option<&str>,

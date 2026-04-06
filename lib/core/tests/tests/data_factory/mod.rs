@@ -183,7 +183,7 @@ pub async fn create_sphere_with_satellite(
         &sphere.sphere_name,
         satellite_name,
         "test",
-        None,
+        false,
         is_nsfw_satellite,
         is_spoiler_satellite,
         user,
@@ -215,7 +215,7 @@ pub async fn create_sphere_with_satellite_vec(
             &sphere.sphere_name,
             i.to_string().as_str(),
             "test",
-            None,
+            false,
             false,
             false,
             user,
@@ -359,7 +359,7 @@ pub async fn create_post_with_comment_tree(
 
 /// creates, moderates and returns a post. Expects `user` to have management rights on `sphere_name`
 pub async fn get_moderated_post(sphere_name: &str, user: &User, db_pool: &PgPool) -> PostWithSphereInfo {
-    let rule = add_rule(sphere_name, 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(sphere_name, 0, "1", "2", false, &user, &db_pool).await.expect("Should add rule");
     let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
     let post = moderate_post(post.post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
     PostWithSphereInfo::from_post(post, sphere_name.to_string(), None, None)
@@ -381,7 +381,7 @@ pub async fn get_moderated_and_deleted_posts(sphere_name: &str, user: &User, db_
 
 /// creates, moderates and returns a comment. Expects `user` to have management rights on `sphere_name`
 pub async fn get_moderated_comment(post: &Post, sphere_name: &str, user: &User, db_pool: &PgPool) -> Comment {
-    let rule = add_rule(sphere_name, 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(sphere_name, 0, "1", "2", false, &user, &db_pool).await.expect("Should add rule");
     let comment = create_comment(
         post.post_id,
         None,

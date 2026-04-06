@@ -74,7 +74,7 @@ pub mod ssr {
         user_id: Option<i64>,
         db_pool: &PgPool,
     ) -> Result<SphereWithUserInfo, AppError> {
-        check_sphere_name(&sphere_name)?;
+        check_sphere_name(sphere_name)?;
         let sphere = sqlx::query_as::<_, SphereWithUserInfo>(
             "SELECT s.*, sub.subscription_id
             FROM spheres s
@@ -170,18 +170,18 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<String, AppError> {
-        check_sphere_name(&sphere_name)?;
-        check_string_length(&description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
+        check_sphere_name(sphere_name)?;
+        check_string_length(description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
         log::trace!("Create Sphere '{sphere_name}', {description}, {is_nsfw}");
 
-        let new_sphere_path = get_sphere_path(&sphere_name);
+        let new_sphere_path = get_sphere_path(sphere_name);
 
         let sphere = create_sphere(
             sphere_name,
             description,
             is_nsfw,
-            &user,
-            &db_pool,
+            user,
+            db_pool,
         ).await?;
 
         ssr::subscribe(sphere.sphere_id, user.user_id, &db_pool).await?;
@@ -220,8 +220,8 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Sphere, AppError> {
-        check_sphere_name(&sphere_name)?;
-        check_string_length(&description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
+        check_sphere_name(sphere_name)?;
+        check_string_length(description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
         user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
 
         let sphere = sqlx::query_as::<_, Sphere>(

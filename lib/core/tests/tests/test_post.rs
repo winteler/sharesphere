@@ -383,7 +383,7 @@ async fn test_get_subscribed_post_vec() -> Result<(), AppError> {
         &sphere1.sphere_name,
         "a",
         "satellite",
-        None,
+        false,
         false,
         false,
         &user,
@@ -633,7 +633,7 @@ async fn test_get_sorted_post_vec() -> Result<(), AppError> {
         sphere1_name,
         "a",
         "satellite",
-        None,
+        false,
         false,
         false,
         &user,
@@ -807,7 +807,7 @@ async fn test_get_post_vec_by_sphere_name() -> Result<(), AppError> {
         sphere_name,
         "a",
         "satellite",
-        None,
+        false,
         false,
         false,
         &user,
@@ -1479,7 +1479,7 @@ async fn test_get_post_vec_by_satellite_id_with_filters() {
         &sphere.sphere_name,
         "other_satellite",
         "satellite_body",
-        None,
+        false,
         false,
         false,
         &user,
@@ -1878,7 +1878,7 @@ async fn test_update_post() -> Result<(), AppError> {
 
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
-    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).expect("Should get html from markdown.");
+    let updated_html_body = get_styled_html_from_markdown(updated_markdown_body).expect("Should get html from markdown.");
     let updated_link = Link::new(
         LinkType::Rich,
         Some(String::from("updated_link")),
@@ -1949,7 +1949,7 @@ async fn test_update_post() -> Result<(), AppError> {
     assert_eq!(updated_nsfw_post.delete_timestamp, None);
 
     // Cannot update moderator post
-    let rule = add_rule(&sphere.sphere_name, 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(&sphere.sphere_name, 0, "1", "2", false, &user, &db_pool).await.expect("Should add rule");
     moderate_post(post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
     assert_eq!(
         update_post(
@@ -2012,7 +2012,7 @@ async fn test_update_post_in_satellite() -> Result<(), AppError> {
 
     let updated_title = "updated post";
     let updated_markdown_body = "# Here is a post with markdown";
-    let updated_html_body = get_styled_html_from_markdown(String::from(updated_markdown_body)).expect("Should get html from markdown");
+    let updated_html_body = get_styled_html_from_markdown(updated_markdown_body).expect("Should get html from markdown");
     let updated_link = Link::new(
         LinkType::Video,
         Some(String::from("updated_link")),
@@ -2154,7 +2154,7 @@ async fn test_delete_post() {
             deleted_post.delete_timestamp.unwrap() > deleted_post.create_timestamp
     );
 
-    let rule = add_rule(sphere_name, 0, "1", "2", None, &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(sphere_name, 0, "1", "2", false, &user, &db_pool).await.expect("Should add rule");
     let post = create_simple_post(sphere_name, None, "a", "b", None, &user, &db_pool).await;
     let post = moderate_post(post.post.post_id, rule.rule_id, "reason", &user, &db_pool).await.expect("Should moderate post.");
     assert_eq!(

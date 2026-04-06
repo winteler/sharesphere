@@ -52,7 +52,7 @@ async fn test_delete_user() {
     let banned_user = create_user("banned", &db_pool).await;
 
     let (sphere, _, _) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(&sphere.sphere_name, 0, "Don't", "pet the cat", None, &user, &db_pool).await.expect("Should add rule");
+    let rule = add_rule(&sphere.sphere_name, 0, "Don't", "pet the cat", false, &user, &db_pool).await.expect("Should add rule");
     let post_to_moderate = create_simple_post(&sphere.sphere_name, None, "ban me", "if you can", None, &user, &db_pool).await;
     ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post_to_moderate.post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.expect("Should ban user");
 
@@ -83,30 +83,27 @@ async fn test_set_user_settings() {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
     
-    set_user_settings(true, true, None, &user, &db_pool).await.expect("Should set user settings");
+    set_user_settings(true, true, 0, &user, &db_pool).await.expect("Should set user settings");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
     assert_eq!(user.is_nsfw, true);
     assert_eq!(user.show_nsfw, true);
     assert_eq!(user.days_hide_spoiler, None);
 
-    set_user_settings(true, false, Some(1), &user, &db_pool).await.expect("Should set user settings");
+    set_user_settings(true, false, 1, &user, &db_pool).await.expect("Should set user settings");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
     assert_eq!(user.is_nsfw, true);
     assert_eq!(user.show_nsfw, false);
     assert_eq!(user.days_hide_spoiler, Some(1));
 
-    set_user_settings(false, true, Some(10), &user, &db_pool).await.expect("Should set user settings");
+    set_user_settings(false, true, 10, &user, &db_pool).await.expect("Should set user settings");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
     assert_eq!(user.is_nsfw, false);
     assert_eq!(user.show_nsfw, true);
     assert_eq!(user.days_hide_spoiler, Some(10));
 
-    set_user_settings(false, false, None, &user, &db_pool).await.expect("Should set user preferences");
+    set_user_settings(false, false, 0, &user, &db_pool).await.expect("Should set user preferences");
     let user = User::get(user.user_id, &db_pool).await.expect("Should get user");
     assert_eq!(user.is_nsfw, false);
     assert_eq!(user.show_nsfw, false);
     assert_eq!(user.days_hide_spoiler, None);
-
-    assert!(set_user_settings(false, false, Some(0), &user, &db_pool).await.is_err());
-    assert!(set_user_settings(false, true, Some(-1), &user, &db_pool).await.is_err());
 }

@@ -2,7 +2,7 @@ use sharesphere_core_common::errors::AppError;
 use sharesphere_core_user::user::User;
 
 use sharesphere_core_sphere::satellite::ssr::{create_satellite, disable_satellite, get_satellite_sphere, update_satellite};
-use sharesphere_core_sphere::satellite::ssr::{get_active_satellite_vec_by_sphere_name, get_satellite_by_id, get_satellite_vec_by_sphere_name};
+use sharesphere_core_sphere::satellite::ssr::{get_active_satellite_vec_by_sphere_name, get_satellite_by_id};
 use sharesphere_core_sphere::sphere::ssr::create_sphere;
 
 pub use crate::common::*;
@@ -97,13 +97,13 @@ async fn test_get_satellite_sphere() -> Result<(), AppError> {
 #[tokio::test]
 async fn test_create_satellite() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
-    let mut user = create_test_user(&db_pool).await;
+    let user = create_test_user(&db_pool).await;
 
     let sphere = create_sphere(
         "a",
         "a",
         false,
-        &mut user,
+        &user,
         &db_pool,
     ).await.expect("Sphere should be created");
 
@@ -111,13 +111,13 @@ async fn test_create_satellite() -> Result<(), AppError> {
         "b",
         "b",
         true,
-        &mut user,
+        &user,
         &db_pool,
     ).await.expect("Nsfw sphere should be created");
 
 
     assert_eq!(
-        create_satellite("1", &sphere.sphere_name, "1", None, false, false, &user, &db_pool).await,
+        create_satellite("1", &sphere.sphere_name, "1", false, false, false, &user, &db_pool).await,
         Err(AppError::InsufficientPrivileges)
     );
 
@@ -127,7 +127,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
         &sphere.sphere_name,
         "1",
         "1",
-        Some("1"),
+        true,
         false,
         true,
         &user,
@@ -135,7 +135,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
     ).await.expect("Satellite 1 should be created");
 
     assert_eq!(satellite_1.satellite_name, "1");
-    assert_eq!(satellite_1.body, "1");
+    assert_eq!(satellite_1.body, "<p>1</p>");
     assert_eq!(satellite_1.markdown_body.as_deref(), Some("1"));
     assert_eq!(satellite_1.is_nsfw, false);
     assert_eq!(satellite_1.is_spoiler, true);
@@ -145,7 +145,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
         &sphere.sphere_name,
         "2",
         "2",
-        None,
+        false,
         true,
         false,
         &user,
@@ -163,7 +163,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
         &nsfw_sphere.sphere_name,
         "3",
         "3",
-        None,
+        false,
         false,
         false,
         &user,
@@ -209,7 +209,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
         &nsfw_sphere.sphere_name,
         "2",
         "2",
-        Some("2"),
+        true,
         true,
         true,
         &user,
@@ -217,7 +217,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
     ).await.expect("Nsfw satellite should be created");
 
     assert_eq!(
-        update_satellite(satellite_1.satellite_id, "a", "error", None, false, true, &base_user, &db_pool).await,
+        update_satellite(satellite_1.satellite_id, "a", "error", false, false, true, &base_user, &db_pool).await,
         Err(AppError::InsufficientPrivileges),
     );
 
@@ -225,7 +225,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
         satellite_1.satellite_id,
         "a",
         "a",
-        Some("a"),
+        true,
         false,
         true,
         &user,
@@ -234,7 +234,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
 
     assert_eq!(updated_satellite_1.satellite_id, satellite_1.satellite_id);
     assert_eq!(updated_satellite_1.satellite_name, "a");
-    assert_eq!(updated_satellite_1.body, "a");
+    assert_eq!(updated_satellite_1.body, "<p>a</p>");
     assert_eq!(updated_satellite_1.markdown_body.as_deref(), Some("a"));
     assert_eq!(updated_satellite_1.is_nsfw, false);
     assert_eq!(updated_satellite_1.is_spoiler, true);
@@ -244,7 +244,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
         nsfw_satellite.satellite_id,
         "b",
         "b",
-        None,
+        false,
         false,
         false,
         &user,
@@ -284,9 +284,9 @@ async fn test_disable_satellite() -> Result<(), AppError> {
     assert_eq!(deleted_satellite.is_spoiler, false);
     assert!(deleted_satellite.disable_timestamp.is_some_and(|delete_timestamp| delete_timestamp > deleted_satellite.timestamp));
 
-    let satellite_vec = get_satellite_vec_by_sphere_name(&sphere.sphere_name, &db_pool).await.expect("Should get sphere satellite vec");
+    let satellite_vec = get_active_satellite_vec_by_sphere_name(&sphere.sphere_name, &db_pool).await.expect("Should get sphere satellite vec");
 
-    assert_eq!(satellite_vec.first(), Some(&deleted_satellite));
+    assert!(satellite_vec.is_empty());
 
     Ok(())
 }

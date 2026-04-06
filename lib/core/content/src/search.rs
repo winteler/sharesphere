@@ -64,7 +64,7 @@ pub mod ssr {
         offset: i64,
         db_pool: &PgPool,
     ) -> Result<Vec<SphereHeader>, AppError> {
-        check_string_length(&search_query, "Sphere search", MAX_SEARCH_QUERY_LENGTH, false)?;
+        check_string_length(search_query, "Sphere search", MAX_SEARCH_QUERY_LENGTH, false)?;
         let sphere_vec = sqlx::query_as::<_, SphereHeader>(
             "WITH search AS (
                     SELECT *, 0.5 as rank
@@ -127,7 +127,7 @@ pub mod ssr {
         if let Some(sphere_name) = &sphere_name {
             check_sphere_name(sphere_name)?;
         }
-        check_string_length(&search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
+        check_string_length(search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
         let post_vec = sqlx::query_as::<_, PostJoinSphereInfo>(
             "SELECT
                 p.*,
@@ -177,7 +177,7 @@ pub mod ssr {
         if let Some(sphere_name) = &sphere_name {
             check_sphere_name(sphere_name)?;
         }
-        check_string_length(&search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
+        check_string_length(search_query, "Search query", MAX_SEARCH_QUERY_LENGTH, false)?;
         let comment_vec = sqlx::query_as::<_, CommentWithContext>(
             "SELECT
                 c.*,

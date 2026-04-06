@@ -51,8 +51,8 @@ async fn test_user_get() -> Result<(), AppError> {
     let (sphere_d, post_d) = create_sphere_with_post("d", &mut creator_user, &db_pool).await;
     let (sphere_e, post_e) = create_sphere_with_post("e", &mut creator_user, &db_pool).await;
 
-    set_user_sphere_role(test_user.user_id, &sphere_a.sphere_name, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
-    set_user_sphere_role(test_user.user_id, &sphere_b.sphere_name, PermissionLevel::Manage, &creator_user, &db_pool).await?;
+    set_user_sphere_role(&test_user.username, &sphere_a.sphere_name, PermissionLevel::Moderate, &creator_user, &db_pool).await?;
+    set_user_sphere_role(&test_user.username, &sphere_b.sphere_name, PermissionLevel::Manage, &creator_user, &db_pool).await?;
 
     assert_eq!(
         ban_user_from_sphere(test_user.user_id, sphere_c.sphere_id, post_c.post_id, None, rule.rule_id, &creator_user, Some(0), &db_pool).await.expect("User ban should be created for sphere c."),
@@ -110,9 +110,9 @@ async fn test_user_check_can_set_user_sphere_role() -> Result<(), AppError> {
         .expect("Should be able to reload lead_user.");
 
     // set user roles
-    set_user_sphere_role(manage_mod.user_id, &sphere.sphere_name, PermissionLevel::Manage, &lead_user, &db_pool)
+    set_user_sphere_role(&manage_mod.username, &sphere.sphere_name, PermissionLevel::Manage, &lead_user, &db_pool)
         .await.expect("Moderate role should be assignable by lead_user.");
-    set_user_sphere_role(simple_mod.user_id, &sphere.sphere_name, PermissionLevel::Ban, &lead_user, &db_pool)
+    set_user_sphere_role(&simple_mod.username, &sphere.sphere_name, PermissionLevel::Ban, &lead_user, &db_pool)
         .await.expect("Moderate role should be assignable by lead_user.");
     let manage_mod = User::get(manage_mod.user_id, &db_pool).await.expect("Should be able to get elect mod.");
     let simple_mod = User::get(simple_mod.user_id, &db_pool).await.expect("Should be able to get simple mod.");

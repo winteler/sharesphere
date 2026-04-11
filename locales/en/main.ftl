@@ -107,6 +107,12 @@ moderate-post = Moderate post
 moderate-comment = Moderate comment
 add-rule = Add a rule
 
+not-found-message = There's nothing here.
+search-no-user-found = No matching user.
+search-no-sphere-found = No matching Sphere.
+search-no-post-found = No matching post.
+search-no-comment-found = No matching comment.
+
 welcome-to-sharesphere = Welcome to ShareSphere!
 about-sharesphere = About ShareSphere
 sphere-cockpit = Sphere Cockpit
@@ -399,5 +405,4 @@ global-ban-until-message = You are banned from ShareSphere until {$timestamp}
 permanent-global-ban-message = You are permanently banned from ShareSphere.
 bad-request-message = Sorry, we didn't understand your request.
 unavailable-message = Sorry, we've got noise on the line.
-not-found-message = There's nothing here.
 payload-too-large-message = Payload exceeds the {$mb_limit} MB limit.

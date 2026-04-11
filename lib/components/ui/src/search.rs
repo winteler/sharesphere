@@ -25,7 +25,7 @@ use sharesphere_cmp_common::user::UserHeaderLink;
 use sharesphere_cmp_utils::icons::MagnifierIcon;
 use sharesphere_cmp_utils::unpack::TransitionUnpack;
 use sharesphere_cmp_utils::view::ToView;
-use sharesphere_cmp_utils::widget::EnumQueryTabs;
+use sharesphere_cmp_utils::widget::{EnumQueryTabs, NotFoundWidget};
 
 use crate::sidebar::HomeSidebar;
 
@@ -203,18 +203,26 @@ pub fn SearchPosts() -> impl IntoView
     );
     view! {
         <SearchForm
-            search_state
+            search_state=search_state.clone()
             show_spoiler_checkbox=true
             maxlength=Some(MAX_SEARCH_QUERY_LENGTH)
             input_error
         />
-        <PostListWithIndicators
-            post_vec
-            is_loading
-            load_error
-            additional_load_count
-            list_ref
-        />
+        { move || match (post_vec.read().is_empty(), search_state.search_input_debounced.get_untracked().is_empty()) {
+            (true, true) => None,
+            (true, false) => Some(Either::Left(view! { <NotFoundWidget message=move_tr!("search-no-post-found")/> })),
+            (false, _) => Some(Either::Right(
+                view! {
+                    <PostListWithIndicators
+                        post_vec
+                        is_loading
+                        load_error
+                        additional_load_count
+                        list_ref
+                    />
+                }
+            ))
+        }}
     }
 }
 
@@ -271,18 +279,27 @@ pub fn SearchComments() -> impl IntoView
     );
     view! {
         <SearchForm
-            search_state
+            search_state=search_state.clone()
             show_spoiler_checkbox=false
             maxlength=Some(MAX_SEARCH_QUERY_LENGTH)
             input_error
         />
-        <CommentMiniatureList
-            comment_vec
-            is_loading
-            load_error
-            additional_load_count
-            list_ref
-        />
+        { move || match (comment_vec.read().is_empty(), search_state.search_input_debounced.get_untracked().is_empty()) {
+            (true, true) => None,
+            (true, false) => Some(Either::Left(view! { <NotFoundWidget message=move_tr!("search-no-comment-found")/> })),
+            (false, _) => Some(Either::Right(
+                view! {
+                    <CommentMiniatureList
+                        comment_vec
+                        is_loading
+                        load_error
+                        additional_load_count
+                        list_ref
+                    />
+                }
+            ))
+        }}
+
     }
 }
 
@@ -300,28 +317,29 @@ pub fn SearchUsers() -> impl IntoView
         }
     );
 
-    let input_error = Signal::derive(move || check_username(&*search_state.search_input.read(), true).err());
+    let input_error = Signal::derive(move || check_username(&search_state.search_input.read(), true).err());
 
     view! {
         <SearchForm
-            search_state
+            search_state=search_state.clone()
             show_spoiler_checkbox=false
             maxlength=Some(MAX_USERNAME_LENGTH)
             input_error
         />
         <TransitionUnpack resource=search_user_resource let:user_header_vec>
-        { match user_header_vec.is_empty() {
-            true => None,
-            false => {
+        { match (user_header_vec.is_empty(), search_state.search_input_debounced.read_untracked().is_empty())  {
+            (true, true) => None,
+            (true, false) => Some(Either::Left(view! { <NotFoundWidget message=move_tr!("search-no-user-found")/> })),
+            (false, _) => {
                 let user_header_link_list = user_header_vec.iter().map(|user_header| view! {
                     <li><UserHeaderLink user_header=user_header.clone()/></li>
                 }).collect_view();
-                Some(view! {
+                Some(Either::Right(view! {
                     <ul class="flex flex-col self-center p-2 overflow-y-auto max-h-full w-4/5 lg:w-full 2xl:w-1/2 divide-y divide-base-content/20">
                         {user_header_link_list}
                     </ul>
-                })
-            }
+                }))
+            },
         }}
         </TransitionUnpack>
     }

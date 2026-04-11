@@ -1487,16 +1487,6 @@
       inset: 50% calc(var(--tt-tail) + 1px) auto auto;
     }
   }
-  .tooltip-right {
-    > .tooltip-content, &[data-tip]:before {
-      transform: translateX(calc(var(--tt-pos, -0.25rem) + 0.25rem)) translateY(-50%);
-      inset: 50% auto auto var(--tt-off);
-    }
-    &:after {
-      transform: translateX(var(--tt-pos, -0.25rem)) translateY(-50%) rotate(90deg);
-      inset: 50% auto auto calc(var(--tt-tail) + 1px);
-    }
-  }
   .inset-0 {
     inset: calc(var(--spacing) * 0);
   }
@@ -2181,6 +2171,9 @@
   .h-10 {
     height: calc(var(--spacing) * 10);
   }
+  .h-12 {
+    height: calc(var(--spacing) * 12);
+  }
   .h-16 {
     height: calc(var(--spacing) * 16);
   }
@@ -2817,6 +2810,10 @@
     font-size: var(--text-5xl);
     line-height: var(--tw-leading, var(--text-5xl--line-height));
   }
+  .text-base {
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+  }
   .text-lg {
     font-size: var(--text-lg);
     line-height: var(--tw-leading, var(--text-lg--line-height));
@@ -3249,6 +3246,11 @@
       line-height: var(--tw-leading, var(--text-sm--line-height));
     }
   }
+  .xl\:h-16 {
+    @media (width >= 80rem) {
+      height: calc(var(--spacing) * 16);
+    }
+  }
   .xl\:w-2\/3 {
     @media (width >= 80rem) {
       width: calc(2/3 * 100%);
@@ -3264,6 +3266,11 @@
       width: calc(4/5 * 100%);
     }
   }
+  .xl\:w-16 {
+    @media (width >= 80rem) {
+      width: calc(var(--spacing) * 16);
+    }
+  }
   .xl\:px-3 {
     @media (width >= 80rem) {
       padding-inline: calc(var(--spacing) * 3);
@@ -3272,6 +3279,18 @@
   .xl\:px-4 {
     @media (width >= 80rem) {
       padding-inline: calc(var(--spacing) * 4);
+    }
+  }
+  .xl\:text-base {
+    @media (width >= 80rem) {
+      font-size: var(--text-base);
+      line-height: var(--tw-leading, var(--text-base--line-height));
+    }
+  }
+  .xl\:text-lg {
+    @media (width >= 80rem) {
+      font-size: var(--text-lg);
+      line-height: var(--tw-leading, var(--text-lg--line-height));
     }
   }
   .\32 xl\:h-12 {
@@ -3325,6 +3344,11 @@
       line-height: var(--tw-leading, var(--text-4xl--line-height));
     }
   }
+  .\33 xl\:h-22 {
+    @media (width >= 136rem) {
+      height: calc(var(--spacing) * 22);
+    }
+  }
   .\33 xl\:h-32 {
     @media (width >= 136rem) {
       height: calc(var(--spacing) * 32);
@@ -3338,6 +3362,23 @@
   .\33 xl\:w-2\/5 {
     @media (width >= 136rem) {
       width: calc(2/5 * 100%);
+    }
+  }
+  .\33 xl\:w-22 {
+    @media (width >= 136rem) {
+      width: calc(var(--spacing) * 22);
+    }
+  }
+  .\33 xl\:text-lg {
+    @media (width >= 136rem) {
+      font-size: var(--text-lg);
+      line-height: var(--tw-leading, var(--text-lg--line-height));
+    }
+  }
+  .\33 xl\:text-xl {
+    @media (width >= 136rem) {
+      font-size: var(--text-xl);
+      line-height: var(--tw-leading, var(--text-xl--line-height));
     }
   }
 }

@@ -20,7 +20,7 @@ use sharesphere_core_common::errors::AppError;
 use sharesphere_core_common::time::get_elapsed_time_string;
 
 use crate::errors::ErrorDisplay;
-use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
+use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NotFoundIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 use crate::view::ToView;
 
 pub const SPHERE_NAME_PARAM: &str = "sphere_name";
@@ -736,6 +736,28 @@ pub fn HelpButton<C: IntoView + 'static>(
             >
                 <HelpIcon class=icon_class/>
             </button>
+        </div>
+    }
+}
+
+/// Component to indicate no matching content was found
+#[component]
+pub fn NotFoundWidget(
+    message: Signal<String>,
+    #[prop(default = true)]
+    is_main_content: bool
+) -> impl IntoView {
+    let (icon_class, not_found_class, message_class) = match is_main_content {
+        true => ("h-28 w-28", "text-2xl", "text-xl"),
+        false => ("h-12 w-12 xl:h-16 xl:w-16 3xl:h-22 3xl:w-22", "text-base xl:text-lg 3xl:text-xl", "text-sm xl:text-base 3xl:text-lg"),
+    };
+    view! {
+        <div class="w-full py-2 flex items-center gap-2 justify-center">
+            <NotFoundIcon class=icon_class/>
+            <div class="flex flex-col">
+                <h2 class=not_found_class>{move_tr!("not-found-message")}</h2>
+                <h3 class=message_class>{message}</h3>
+            </div>
         </div>
     }
 }

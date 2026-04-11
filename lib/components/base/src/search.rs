@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
@@ -13,7 +14,7 @@ use sharesphere_iface_content::search::search_spheres;
 use sharesphere_cmp_utils::editor::LengthLimitedInput;
 use sharesphere_cmp_utils::errors::ErrorDetail;
 use sharesphere_cmp_utils::form::LabeledSignalCheckbox;
-
+use sharesphere_cmp_utils::widget::NotFoundWidget;
 use crate::sphere::InfiniteSphereLinkList;
 
 #[component]
@@ -79,23 +80,32 @@ pub fn SearchSpheres(
     view! {
         <div class=class>
             <SearchForm
-                search_state
+                search_state=search_state.clone()
                 show_spoiler_checkbox=false
                 class=form_class
                 autofocus
                 maxlength=Some(MAX_SPHERE_NAME_LENGTH)
                 input_error
             />
-            <div class=list_class>
-                <InfiniteSphereLinkList
-                    sphere_header_vec
-                    is_loading
-                    load_error
-                    additional_load_count
-                    is_dropdown_style
-                    list_ref
-                />
-            </div>
+            { move || match (sphere_header_vec.read().is_empty(), search_state.search_input_debounced.get_untracked().is_empty()) {
+                (true, true) => None,
+                (true, false) => Some(Either::Left(view! { <NotFoundWidget is_main_content=!is_dropdown_style message=move_tr!("search-no-sphere-found")/> })),
+                (false, _) => Some(Either::Right(
+                    view! {
+                        <div class=list_class>
+                            <InfiniteSphereLinkList
+                                sphere_header_vec
+                                is_loading
+                                load_error
+                                additional_load_count
+                                is_dropdown_style
+                                list_ref
+                            />
+                        </div>
+                    }
+                ))
+            }}
+
         </div>
     }
 }

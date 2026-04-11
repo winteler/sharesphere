@@ -2,16 +2,19 @@ use rand::RngExt;
 
 use sharesphere_core_common::constants::COMMENT_BATCH_SIZE;
 use sharesphere_core_common::editor::get_styled_html_from_markdown;
+use sharesphere_core_common::editor::ssr::get_html_and_markdown_strings;
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_content::comment::ssr::{create_comment, delete_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree, update_comment};
+use sharesphere_core_content::comment::ssr::{create_comment, create_comment_with_notif, delete_comment, edit_comment, get_comment_by_id, get_comment_sphere, get_comment_tree_by_id, get_post_comment_tree, update_comment};
 use sharesphere_core_content::comment::CommentWithChildren;
 use sharesphere_core_content::post::ssr::get_post_by_id;
-use sharesphere_core_content::ranking::{CommentSortType, SortType};
+use sharesphere_core_content::ranking::{CommentSortType, SortType, VoteValue};
+use sharesphere_core_user::notification::NotificationType;
+use sharesphere_core_user::notification::ssr::get_notifications;
 use sharesphere_core_user::user::User;
 
 use crate::common::*;
 use crate::data_factory::*;
-use crate::utils::{get_vote_from_comment_num, sort_comment_tree, COMMENT_SORT_TYPE_ARRAY};
+use crate::utils::{get_user_comment_vote, get_vote_from_comment_num, sort_comment_tree, COMMENT_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -359,6 +362,100 @@ async fn test_get_comment_tree_by_id() {
 }
 
 #[tokio::test]
+async fn test_create_comment_with_notif() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+    let base_user = create_user("base", &db_pool).await;
+
+    let (_sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
+
+    let comment_body = "a";
+    let (html_comment_body, _) = get_html_and_markdown_strings(comment_body, true).expect("Should get html body");
+
+    let comment_1 = create_comment_with_notif(
+        post.post_id,
+        None,
+        comment_body,
+        false,
+        false,
+        &base_user,
+        &db_pool
+    ).await.expect("Should create comment with post notif");
+
+    let expected_comment_1 = get_comment_by_id(comment_1.comment.comment_id, &db_pool).await.expect("Should get comment 1");
+    let expected_vote_1 = get_user_comment_vote(&comment_1.comment, base_user.user_id, &db_pool).await.expect("Should get vote 1");
+
+    assert_eq!(comment_1.comment, expected_comment_1);
+    assert_eq!(comment_1.vote.as_ref(), Some(&expected_vote_1));
+    assert_eq!(expected_vote_1.post_id, expected_comment_1.post_id);
+    assert_eq!(expected_vote_1.comment_id, Some(expected_comment_1.comment_id));
+    assert_eq!(expected_vote_1.user_id, base_user.user_id);
+    assert_eq!(expected_vote_1.value, VoteValue::Up);
+
+    assert_eq!(expected_comment_1.post_id, post.post_id);
+    assert_eq!(expected_comment_1.parent_id, None);
+    assert_eq!(expected_comment_1.body, comment_body);
+    assert_eq!(expected_comment_1.markdown_body, None);
+    assert_eq!(expected_comment_1.is_pinned, false);
+
+    let comment_2 = create_comment_with_notif(
+        post.post_id,
+        None,
+        comment_body,
+        true,
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Should create comment without notif");
+
+    let expected_comment_2 = get_comment_by_id(comment_2.comment.comment_id, &db_pool).await.expect("Should get comment 2");
+    let expected_vote_2 = get_user_comment_vote(&comment_2.comment, user.user_id, &db_pool).await.expect("Should get vote 2");
+
+
+    assert_eq!(comment_2.comment, expected_comment_2);
+    assert_eq!(comment_2.vote.as_ref(), Some(&expected_vote_2));
+
+    assert_eq!(expected_comment_2.post_id, post.post_id);
+    assert_eq!(expected_comment_2.parent_id, None);
+    assert_eq!(expected_comment_2.body, html_comment_body);
+    assert_eq!(expected_comment_2.markdown_body.as_deref(), Some(comment_body));
+    assert_eq!(expected_comment_2.is_pinned, true);
+
+    let comment_3 = create_comment_with_notif(
+        post.post_id,
+        Some(comment_1.comment.comment_id),
+        comment_body,
+        false,
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Should create comment with comment notif");
+
+    let user_notif_vec = get_notifications(user.user_id, &db_pool).await.expect("Should get user notifications");
+    let base_user_notif_vec = get_notifications(base_user.user_id, &db_pool).await.expect("Should get base user notifications");
+
+    assert_eq!(user_notif_vec.len(), 1);
+    assert_eq!(base_user_notif_vec.len(), 1);
+
+    let user_notif = user_notif_vec.first().expect("Should get user notif");
+    let base_user_notif = base_user_notif_vec.first().expect("Should get base user notif");
+
+    assert_eq!(user_notif.notification_type, NotificationType::PostReply);
+    assert_eq!(user_notif.post_id, comment_1.comment.post_id);
+    assert_eq!(user_notif.comment_id, Some(comment_1.comment.comment_id));
+    assert_eq!(user_notif.user_id, user.user_id);
+    assert_eq!(user_notif.trigger_user_id, base_user.user_id);
+    assert_eq!(user_notif.is_read, false);
+
+    assert_eq!(base_user_notif.notification_type, NotificationType::CommentReply);
+    assert_eq!(base_user_notif.post_id, comment_3.comment.post_id);
+    assert_eq!(base_user_notif.comment_id, Some(comment_3.comment.comment_id));
+    assert_eq!(base_user_notif.user_id, base_user.user_id);
+    assert_eq!(base_user_notif.trigger_user_id, user.user_id);
+    assert_eq!(base_user_notif.is_read, false);
+}
+
+#[tokio::test]
 async fn test_create_comment() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
@@ -424,6 +521,49 @@ async fn test_create_comment() -> Result<(), AppError> {
     assert_eq!(post.num_comments, 2);
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_edit_comment() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (_, _, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
+
+    let comment_body = "a";
+    let (html_comment_body, _) = get_html_and_markdown_strings(comment_body, true).expect("Should get html body");
+
+    let comment = edit_comment(
+        comment.comment_id,
+        comment_body,
+        false,
+        true,
+        &user,
+        &db_pool
+    ).await.expect("Should edit comment");
+
+    let expected_comment = get_comment_by_id(comment.comment_id, &db_pool).await.expect("Should get comment");
+
+    assert_eq!(comment, expected_comment);
+    assert_eq!(comment.body, comment_body);
+    assert_eq!(comment.markdown_body, None);
+    assert_eq!(comment.is_pinned, true);
+
+    let comment = edit_comment(
+        comment.comment_id,
+        comment_body,
+        true,
+        false,
+        &user,
+        &db_pool
+    ).await.expect("Should edit comment");
+
+    let expected_comment = get_comment_by_id(comment.comment_id, &db_pool).await.expect("Should get comment");
+
+    assert_eq!(comment, expected_comment);
+    assert_eq!(comment.body, html_comment_body);
+    assert_eq!(comment.markdown_body.as_deref(), Some(comment_body));
+    assert_eq!(comment.is_pinned, false);
 }
 
 #[tokio::test]

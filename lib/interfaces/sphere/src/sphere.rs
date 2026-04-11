@@ -63,7 +63,7 @@ pub async fn create_sphere(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let new_sphere_path = ssr::create_sphere_and_subscribe(
+    let (_, new_sphere_path) = ssr::create_sphere_and_subscribe(
         &sphere_name,
         &description,
         is_nsfw,

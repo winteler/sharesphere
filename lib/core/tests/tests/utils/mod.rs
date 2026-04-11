@@ -168,6 +168,28 @@ pub fn test_comment_tree(
     }
 }
 
+pub async fn get_user_post_vote(
+    post_id: i64,
+    user_id: i64,
+    db_pool: &PgPool,
+) -> Result<Vote, AppError> {
+    let vote = sqlx::query_as!(
+            Vote,
+            "SELECT *
+            FROM votes
+            WHERE
+                post_id = $1 AND
+                comment_id IS NULL AND
+                user_id = $2",
+            post_id,
+            user_id,
+        )
+        .fetch_one(db_pool)
+        .await?;
+
+    Ok(vote)
+}
+
 pub async fn get_user_comment_vote(
     comment: &Comment,
     user_id: i64,

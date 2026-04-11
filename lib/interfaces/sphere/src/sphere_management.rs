@@ -53,7 +53,9 @@ pub async fn set_sphere_icon(
         &bucket_name,
         &user,
         &db_pool,
-    ).await
+    ).await?;
+
+    Ok(())
 }
 
 #[server(input = MultipartFormData)]
@@ -75,5 +77,7 @@ pub async fn set_sphere_banner(
         &bucket_name,
         &user,
         &db_pool,
-    ).await
+    ).await?;
+
+    Ok(())
 }

@@ -469,15 +469,15 @@ pub mod ssr {
                 sort_type,
                 POST_BATCH_SIZE,
                 num_already_loaded as i64,
-                &user,
-                &db_pool,
+                user,
+                db_pool,
             ).await?,
             None => get_sorted_post_vec(
                 sort_type,
                 POST_BATCH_SIZE,
                 num_already_loaded as i64,
                 None,
-                &db_pool,
+                db_pool,
             ).await?,
         };
 
@@ -652,7 +652,7 @@ pub mod ssr {
         post_inputs: PostDataInputs,
         user: &User,
         db_pool: &PgPool,
-    ) -> Result<String, AppError> {
+    ) -> Result<(Post, Option<Vote>, String), AppError> {
         post_location.validate()?;
         post_inputs.validate()?;
 
@@ -665,19 +665,19 @@ pub mod ssr {
             post_location.satellite_id,
             clear_newlines(post_inputs.title, true).as_str(),
             body.as_str(),
-            markdown_body.as_deref(),
+            markdown_body,
             link,
             post_inputs.post_tags,
-            &user,
-            &db_pool,
+            user,
+            db_pool,
         ).await?;
 
-        let _vote = vote_on_content(VoteValue::Up, post.post_id, None, None, &user, &db_pool).await?;
+        let vote = vote_on_content(VoteValue::Up, post.post_id, None, None, user, db_pool).await?;
 
         log::trace!("Created post with id: {}", post.post_id);
         let new_post_path = get_post_path(&post_location.sphere, post_location.satellite_id, post.post_id);
 
-        Ok(new_post_path)
+        Ok((post, vote, new_post_path))
     }
 
     pub async fn create_post(

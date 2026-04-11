@@ -427,7 +427,7 @@ pub mod ssr {
         parent_comment_id: Option<i64>,
         comment: &str,
         is_markdown: bool,
-        is_pinned: Option<bool>,
+        is_pinned: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<CommentWithChildren, AppError> {
@@ -439,10 +439,10 @@ pub mod ssr {
             post_id,
             parent_comment_id,
             comment.as_str(),
-            markdown_comment.as_deref(),
-            is_pinned.unwrap_or(false),
-            &user,
-            &db_pool,
+            markdown_comment,
+            is_pinned,
+            user,
+            db_pool,
         )
             .await?;
 
@@ -451,8 +451,8 @@ pub mod ssr {
             comment.post_id,
             Some(comment.comment_id),
             None,
-            &user,
-            &db_pool,
+            user,
+            db_pool,
         ).await?;
 
         comment.score = 1;
@@ -519,7 +519,7 @@ pub mod ssr {
         comment_id: i64,
         comment: &str,
         is_markdown: bool,
-        is_pinned: Option<bool>,
+        is_pinned: bool,
         user: &User,
         db_pool: &PgPool,
     ) -> Result<Comment, AppError> {
@@ -531,10 +531,10 @@ pub mod ssr {
         let comment = update_comment(
             comment_id,
             comment.as_str(),
-            markdown_comment.as_deref(),
-            is_pinned.unwrap_or(false),
-            &user,
-            &db_pool,
+            markdown_comment,
+            is_pinned,
+            user,
+            db_pool,
         ).await?;
 
         Ok(comment)

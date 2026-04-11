@@ -102,7 +102,7 @@ pub async fn create_post(
     let user = check_user().await?;
     let db_pool = get_db_pool()?;
 
-    let new_post_path = ssr::create_post_and_vote(post_location, post_inputs, &user, &db_pool).await?;
+    let (_, _, new_post_path) = ssr::create_post_and_vote(post_location, post_inputs, &user, &db_pool).await?;
 
     leptos_axum::redirect(new_post_path.as_str());
     Ok(())

@@ -196,7 +196,7 @@ async fn test_vote_on_content_with_ban() {
 
     let user_1 = create_user("1", &db_pool).await;
     ban_user_from_sphere(
-        user_1.user_id, sphere.sphere_id, comment.post_id, Some(comment.comment_id), sphere_rule.rule_id, &user, None, &db_pool
+        user_1.user_id, sphere.sphere_id, comment.post_id, Some(comment.comment_id), sphere_rule.rule_id, None, &user, &db_pool
     ).await.expect("User should be banned.");
 
     ranking::ssr::vote_on_content(

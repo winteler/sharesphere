@@ -55,7 +55,7 @@ pub mod ssr {
     use sharesphere_core_user::role::PermissionLevel;
     use sharesphere_core_user::user::User;
 
-    use crate::sphere::{ssr, Sphere, SphereHeader, SphereWithUserInfo};
+    use crate::sphere::{Sphere, SphereHeader, SphereWithUserInfo};
 
     pub async fn get_sphere_by_name(sphere_name: &str, db_pool: &PgPool) -> Result<Sphere, AppError> {
         check_sphere_name(sphere_name)?;
@@ -169,14 +169,14 @@ pub mod ssr {
         is_nsfw: bool,
         user: &User,
         db_pool: &PgPool,
-    ) -> Result<String, AppError> {
+    ) -> Result<(Sphere, String), AppError> {
         check_sphere_name(sphere_name)?;
         check_string_length(description, "Sphere description", MAX_SPHERE_DESCRIPTION_LENGTH, false)?;
         log::trace!("Create Sphere '{sphere_name}', {description}, {is_nsfw}");
 
         let new_sphere_path = get_sphere_path(sphere_name);
 
-        let sphere = create_sphere(
+        let mut sphere = create_sphere(
             sphere_name,
             description,
             is_nsfw,
@@ -184,9 +184,11 @@ pub mod ssr {
             db_pool,
         ).await?;
 
-        ssr::subscribe(sphere.sphere_id, user.user_id, &db_pool).await?;
+        subscribe(sphere.sphere_id, user.user_id, db_pool).await?;
 
-        Ok(new_sphere_path)
+        sphere.num_members = 1;
+
+        Ok((sphere, new_sphere_path))
     }
 
     pub async fn create_sphere(

@@ -24,7 +24,7 @@ pub mod ssr {
     use sharesphere_core_common::constants::MAX_MOD_MESSAGE_LENGTH;
     use sharesphere_core_common::errors::AppError;
     use sharesphere_core_sphere::rule::ssr::load_rule_by_id;
-    use sharesphere_core_user::notification::NotificationType;
+    use sharesphere_core_user::notification::{Notification, NotificationType};
     use sharesphere_core_user::notification::ssr::create_notification;
     use sharesphere_core_user::role::{AdminRole, PermissionLevel};
     use sharesphere_core_user::role::ssr::is_user_sphere_moderator;
@@ -43,16 +43,16 @@ pub mod ssr {
     ) -> Result<ModerationInfo, AppError> {
         let (rule_id, content) = match comment_id {
             Some(comment_id) => {
-                let comment = get_comment_by_id(comment_id, &db_pool).await?;
+                let comment = get_comment_by_id(comment_id, db_pool).await?;
                 (comment.infringed_rule_id, Content::Comment(comment))
             },
             None => {
-                let post = get_post_by_id(post_id, &db_pool).await?;
+                let post = get_post_by_id(post_id, db_pool).await?;
                 (post.infringed_rule_id, Content::Post(post))
             },
         };
         let rule = match rule_id {
-            Some(rule_id) => load_rule_by_id(rule_id, &db_pool).await,
+            Some(rule_id) => load_rule_by_id(rule_id, db_pool).await,
             None => Err(AppError::InternalServerError(String::from("Content is not moderated, cannot find moderation info.")))
         }?;
 
@@ -69,7 +69,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         user: &User,
         db_pool: &PgPool,
-    ) -> Result<Post, AppError> {
+    ) -> Result<(Post, Option<UserBan>, Option<Notification>), AppError> {
         log::debug!("Moderate post {post_id}, ban duration = {ban_duration_days:?}");
         check_string_length(moderator_message, "Moderator message", MAX_MOD_MESSAGE_LENGTH, true)?;
 
@@ -77,26 +77,37 @@ pub mod ssr {
             post_id,
             rule_id,
             moderator_message,
-            &user,
-            &db_pool
+            user,
+            db_pool
         ).await?;
 
-        ban_user_from_sphere(
+        let user_ban = ban_user_from_sphere(
             post.creator_id,
             post.sphere_id,
             post.post_id,
             None,
             rule_id,
-            &user,
             ban_duration_days,
-            &db_pool,
+            user,
+            db_pool,
         ).await?;
 
-        if let Err(e) = create_notification(post.post_id, None, None, user.user_id, NotificationType::Moderation, &db_pool).await {
-            log::error!("Failed to notify user for the moderation of post {}, error: {e}", post.post_id);
-        }
+        let notif = match create_notification(
+            post.post_id,
+            None,
+            None,
+            user.user_id,
+            NotificationType::Moderation,
+            db_pool,
+        ).await {
+            Ok(notif) => notif,
+            Err(e) => {
+                log::error!("Failed to notify user for the moderation of post {}, error: {e}", post.post_id);
+                None
+            },
+        };
 
-        Ok(post)
+        Ok((post, user_ban, notif))
     }
 
     pub async fn moderate_post(
@@ -183,7 +194,7 @@ pub mod ssr {
         ban_duration_days: Option<usize>,
         user: &User,
         db_pool: &PgPool,
-    ) -> Result<Comment, AppError> {
+    ) -> Result<(Comment, Option<UserBan>, Option<Notification>), AppError> {
         log::trace!("Moderate comment {comment_id}");
         check_string_length(moderator_message, "Moderation message", MAX_MOD_MESSAGE_LENGTH, false)?;
 
@@ -191,35 +202,39 @@ pub mod ssr {
             comment_id,
             rule_id,
             moderator_message,
-            &user,
-            &db_pool
+            user,
+            db_pool
         ).await?;
 
         let sphere = get_comment_sphere(comment_id, &db_pool).await?;
 
-        ban_user_from_sphere(
+        let user_ban = ban_user_from_sphere(
             comment.creator_id,
             sphere.sphere_id,
             comment.post_id,
             Some(comment.comment_id),
             rule_id,
-            &user,
             ban_duration_days,
-            &db_pool
+            user,
+            db_pool
         ).await?;
 
-        if let Err(e) = create_notification(
+        let notif = match create_notification(
             comment.post_id,
             Some(comment.comment_id),
             Some(comment.comment_id),
             user.user_id,
             NotificationType::Moderation,
-            &db_pool
+            db_pool
         ).await {
-            log::error!("Failed to notify user for the moderation of comment {}, error: {e}", comment.comment_id);
+            Ok(notif) => notif,
+            Err(e) => {
+                log::error!("Failed to notify user for the moderation of comment {}, error: {e}", comment.comment_id);
+                None
+            },
         };
 
-        Ok(comment)
+        Ok((comment, user_ban, notif))
     }
 
     pub async fn moderate_comment(
@@ -307,38 +322,40 @@ pub mod ssr {
         post_id: i64,
         comment_id: Option<i64>,
         rule_id: i64,
-        user: &User,
         ban_duration_days: Option<usize>,
+        user: &User,
         db_pool: &PgPool,
     ) -> Result<Option<UserBan>, AppError> {
         if user.check_sphere_permissions_by_id(sphere_id, PermissionLevel::Moderate).is_ok() &&
             user.user_id != user_id &&
-            !is_user_sphere_moderator(user_id, sphere_id, &db_pool).await?
+            !is_user_sphere_moderator(user_id, sphere_id, db_pool).await?
         {
             let user_ban = match ban_duration_days {
                 Some(0) => None,
                 ban_duration => {
-                    Some(sqlx::query_as!(
-                        UserBan,
-                        "WITH ban AS (
-                            INSERT INTO user_bans (user_id, sphere_id, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
-                             VALUES (
-                                $1, $2, $3, $4, $5, $6, NOW() + $7 * interval '1 day'
-                            ) RETURNING *
+                    Some(
+                        sqlx::query_as!(
+                            UserBan,
+                            "WITH ban AS (
+                                INSERT INTO user_bans (user_id, sphere_id, post_id, comment_id, infringed_rule_id, moderator_id, until_timestamp)
+                                 VALUES (
+                                    $1, $2, $3, $4, $5, $6, NOW() + $7 * interval '1 day'
+                                ) RETURNING *
+                            )
+                            SELECT b.*, u.username, s.sphere_name FROM ban b
+                            JOIN users u ON u.user_id = b.user_id
+                            JOIN spheres s ON s.sphere_id = b.sphere_id",
+                            user_id,
+                            sphere_id,
+                            post_id,
+                            comment_id,
+                            rule_id,
+                            user.user_id,
+                            ban_duration.map(|duration| duration as f64),
                         )
-                        SELECT b.*, u.username, s.sphere_name FROM ban b
-                        JOIN users u ON u.user_id = b.user_id
-                        JOIN spheres s ON s.sphere_id = b.sphere_id",
-                        user_id,
-                        sphere_id,
-                        post_id,
-                        comment_id,
-                        rule_id,
-                        user.user_id,
-                        ban_duration.map(|duration| duration as f64),
+                            .fetch_one(db_pool)
+                            .await?
                     )
-                        .fetch_one(db_pool)
-                        .await?)
                 }
             };
             Ok(user_ban)

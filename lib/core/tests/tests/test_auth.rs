@@ -55,13 +55,13 @@ async fn test_user_get() -> Result<(), AppError> {
     set_user_sphere_role(&test_user.username, &sphere_b.sphere_name, PermissionLevel::Manage, &creator_user, &db_pool).await?;
 
     assert_eq!(
-        ban_user_from_sphere(test_user.user_id, sphere_c.sphere_id, post_c.post_id, None, rule.rule_id, &creator_user, Some(0), &db_pool).await.expect("User ban should be created for sphere c."),
+        ban_user_from_sphere(test_user.user_id, sphere_c.sphere_id, post_c.post_id, None, rule.rule_id, Some(0), &creator_user, &db_pool).await.expect("User ban should be created for sphere c."),
         None
     );
-    let sphere_ban_d = ban_user_from_sphere(test_user.user_id, sphere_d.sphere_id, post_d.post_id, None, rule.rule_id, &creator_user, Some(1), &db_pool)
+    let sphere_ban_d = ban_user_from_sphere(test_user.user_id, sphere_d.sphere_id, post_d.post_id, None, rule.rule_id, Some(1), &creator_user, &db_pool)
         .await?
         .expect("User should have ban for sphere d.");
-    ban_user_from_sphere(test_user.user_id, sphere_e.sphere_id, post_e.post_id, None, rule.rule_id, &creator_user, None, &db_pool).await
+    ban_user_from_sphere(test_user.user_id, sphere_e.sphere_id, post_e.post_id, None, rule.rule_id, None, &creator_user, &db_pool).await
         .expect("User ban should be created for sphere e.")
         .expect("User should have ban for sphere e.");
 

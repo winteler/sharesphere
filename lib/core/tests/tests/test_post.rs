@@ -6,13 +6,15 @@ use sqlx::PgPool;
 
 use sharesphere_core_common::colors::Color;
 use sharesphere_core_common::editor::get_styled_html_from_markdown;
+use sharesphere_core_common::editor::ssr::get_html_and_markdown_strings;
 use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::routes::get_post_path;
 use sharesphere_core_content::comment::ssr::create_comment;
 use sharesphere_core_content::embed::{Link, LinkType};
 use sharesphere_core_content::filter::{CategorySetFilter, SphereCategoryFilter};
 use sharesphere_core_content::moderation::ssr::moderate_post;
-use sharesphere_core_content::post::ssr::{create_post, delete_post, get_post_by_id, get_post_inherited_attributes, get_post_vec_by_satellite_id, get_post_vec_by_sphere_name, get_post_with_info_by_id, get_sorted_post_vec, get_subscribed_post_vec, update_post, update_post_scores};
-use sharesphere_core_content::post::{PostTags, PostWithSphereInfo};
+use sharesphere_core_content::post::ssr::{create_post, create_post_and_vote, delete_post, edit_post, get_homepage_post_vec, get_post_by_id, get_post_inherited_attributes, get_post_vec_by_satellite_id, get_post_vec_by_sphere_name, get_post_with_info_by_id, get_sorted_post_vec, get_subscribed_post_vec, update_post, update_post_scores};
+use sharesphere_core_content::post::{PostDataInputs, PostLocation, PostTags, PostWithSphereInfo};
 use sharesphere_core_content::ranking::ssr::vote_on_content;
 use sharesphere_core_content::ranking::{PostSortType, SortType, VoteValue};
 use sharesphere_core_sphere::rule::ssr::add_rule;
@@ -25,7 +27,7 @@ use sharesphere_core_user::user::User;
 
 use crate::common::*;
 use crate::data_factory::*;
-use crate::utils::{sort_post_vec, test_post_score, POST_SORT_TYPE_ARRAY};
+use crate::utils::{get_user_post_vote, sort_post_vec, test_post_score, POST_SORT_TYPE_ARRAY};
 
 mod common;
 mod data_factory;
@@ -1579,6 +1581,168 @@ async fn test_get_post_vec_by_satellite_id_with_filters() {
 }
 
 #[tokio::test]
+async fn test_get_homepage_post_vec() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+    let mut other_user = create_user("other", &db_pool).await;
+
+    let num_posts = 10;
+
+    let (sphere_1, _, mut sphere_1_post_vec) = create_sphere_with_posts(
+        "1",
+        Some("url"),
+        num_posts,
+        Some((0..num_posts).map(|i| i as i32).collect()),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
+        &mut user,
+        &db_pool,
+    ).await.expect("Sphere 1 with posts should be created");
+
+    let (_, _, mut sphere_2_post_vec) = create_sphere_with_posts(
+        "2",
+        None,
+        num_posts,
+        Some((0..num_posts).map(|i| 20 + i as i32).collect()),
+        (0..num_posts).map(|i| (i % 2) == 0).collect(),
+        &mut other_user,
+        &db_pool,
+    ).await.expect("Sphere 2 with posts should be created");
+
+    let mut combined_post_vec = sphere_1_post_vec.clone();
+    combined_post_vec.append(&mut sphere_2_post_vec.clone());
+
+    subscribe(sphere_1.sphere_id, user.user_id, &db_pool).await.expect("User should subscribe to sphere 1");
+
+    for sort_type in POST_SORT_TYPE_ARRAY {
+        let subscribed_post_vec = get_homepage_post_vec(
+            SortType::Post(sort_type),
+            0,
+            Some(&user),
+            &db_pool,
+        )
+            .await
+            .expect("Should load subscribed posts");
+        sort_post_vec(&mut sphere_1_post_vec, sort_type, false);
+        sort_post_vec(&mut sphere_2_post_vec, sort_type, false);
+        assert_eq!(subscribed_post_vec[0..num_posts], sphere_1_post_vec);
+        assert_eq!(subscribed_post_vec[num_posts..], sphere_2_post_vec);
+
+        let anonymous_post_vec = get_homepage_post_vec(
+            SortType::Post(sort_type),
+            0,
+            None,
+            &db_pool,
+        )
+            .await
+            .expect("Should load anonymous posts");
+        sort_post_vec(&mut combined_post_vec, sort_type, false);
+        assert_eq!(anonymous_post_vec, combined_post_vec);
+    }
+}
+
+#[tokio::test]
+async fn test_create_post_and_vote() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere, satellite) = create_sphere_with_satellite("a", "satellite", false, false, &mut user, &db_pool).await.expect("Should create sphere");
+    let post_1_title = "1";
+    let post_1_body = "test";
+    let post_1_location = PostLocation {
+        sphere: sphere.sphere_name.clone(),
+        satellite_id: None,
+    };
+    let post_1_inputs = PostDataInputs {
+        title: post_1_title.to_string(),
+        body: post_1_body.to_string(),
+        is_markdown: false,
+        embed_type: Default::default(),
+        link: None,
+        post_tags: Default::default(),
+    };
+
+    let (post_1, vote_1, post_1_path) = create_post_and_vote(
+        post_1_location,
+        post_1_inputs,
+        &user,
+        &db_pool,
+    ).await.expect("Should create post 1 and vote");
+
+    let vote_1 = vote_1.expect("Vote 1 should be some");
+
+    let expected_post_1 = get_post_by_id(post_1.post_id, &db_pool).await.expect("Should load post by id");
+    let expected_vote_1 = get_user_post_vote(post_1.post_id, user.user_id, &db_pool).await.expect("Should load vote by id");
+
+    assert_eq!(post_1.title, expected_post_1.title);
+    assert_eq!(post_1.body, expected_post_1.body);
+    assert_eq!(post_1.sphere_id, expected_post_1.sphere_id);
+    assert_eq!(post_1.satellite_id, expected_post_1.satellite_id);
+    assert_eq!(expected_post_1.score, 1);
+
+    assert_eq!(post_1.title, post_1_title);
+    assert_eq!(post_1.body, post_1_body);
+    assert_eq!(post_1.markdown_body, None);
+    assert_eq!(post_1.sphere_id, sphere.sphere_id);
+    assert_eq!(post_1.satellite_id, None);
+
+    assert_eq!(vote_1, expected_vote_1);
+    assert_eq!(vote_1.post_id, post_1.post_id);
+    assert_eq!(vote_1.comment_id, None);
+    assert_eq!(vote_1.user_id, user.user_id);
+    assert_eq!(vote_1.value, VoteValue::Up);
+
+    assert_eq!(post_1_path, get_post_path(&sphere.sphere_name, None, post_1.post_id));
+
+    let post_2_title = "2";
+    let post_2_body = "test_2";
+    let (post_2_html_body, post_2_markdown_body) = get_html_and_markdown_strings(post_2_body, true).expect("Should get html body");
+    let post_2_location = PostLocation {
+        sphere: sphere.sphere_name.clone(),
+        satellite_id: Some(satellite.satellite_id),
+    };
+    let post_2_inputs = PostDataInputs {
+        title: post_2_title.to_string(),
+        body: post_2_body.to_string(),
+        is_markdown: true,
+        embed_type: Default::default(),
+        link: None,
+        post_tags: Default::default(),
+    };
+
+    let (post_2, vote_2, post_path) = create_post_and_vote(
+        post_2_location,
+        post_2_inputs,
+        &user,
+        &db_pool,
+    ).await.expect("Should create post 2 and vote");
+
+    let vote_2 = vote_2.expect("Vote 2 should be some");
+
+    let expected_post_2 = get_post_by_id(post_2.post_id, &db_pool).await.expect("Should load post by id");
+    let expected_vote_2 = get_user_post_vote(post_2.post_id, user.user_id, &db_pool).await.expect("Should load vote by id");
+
+    assert_eq!(post_2.title, expected_post_2.title);
+    assert_eq!(post_2.body, expected_post_2.body);
+    assert_eq!(post_2.sphere_id, expected_post_2.sphere_id);
+    assert_eq!(post_2.satellite_id, expected_post_2.satellite_id);
+    assert_eq!(expected_post_2.score, 1);
+
+    assert_eq!(post_2.title, post_2_title);
+    assert_eq!(post_2.body, post_2_html_body);
+    assert_eq!(post_2.markdown_body.as_deref(), post_2_markdown_body);
+    assert_eq!(post_2.sphere_id, sphere.sphere_id);
+    assert_eq!(post_2.satellite_id, Some(satellite.satellite_id));
+
+    assert_eq!(vote_2, expected_vote_2);
+    assert_eq!(vote_2.post_id, post_2.post_id);
+    assert_eq!(vote_2.comment_id, None);
+    assert_eq!(vote_2.user_id, user.user_id);
+    assert_eq!(vote_2.value, VoteValue::Up);
+
+    assert_eq!(post_path, get_post_path(&sphere.sphere_name, Some(satellite.satellite_id), post_2.post_id));
+}
+
+#[tokio::test]
 async fn test_create_post() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_test_user(&db_pool).await;
@@ -1855,6 +2019,61 @@ async fn test_create_post_in_satellite() -> Result<(), AppError> {
     );
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_edit_post() {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere, post) = create_sphere_with_post("a", &mut user, &db_pool).await;
+
+    let post_inputs_vec = vec![
+        PostDataInputs {
+            title: String::from("1"),
+            body: String::from("test"),
+            is_markdown: false,
+            embed_type: Default::default(),
+            link: None,
+            post_tags: Default::default(),
+        },
+        PostDataInputs {
+            title: String::from("2"),
+            body: String::from("markdown_body"),
+            is_markdown: true,
+            embed_type: Default::default(),
+            link: None,
+            post_tags: PostTags {
+                is_spoiler: true,
+                is_nsfw: true,
+                is_pinned: true,
+                category_id: None,
+            },
+        },
+    ];
+
+    for post_inputs in post_inputs_vec {
+        let post = edit_post(
+            post.post_id,
+            post_inputs.clone(),
+            &user,
+            &db_pool,
+        ).await.expect("Should create post 1 and vote");
+
+        let expected_post = get_post_by_id(post.post_id, &db_pool).await.expect("Should load post by id");
+
+        let (expected_body, expected_markdown_body) = get_html_and_markdown_strings(&post_inputs.body, post_inputs.is_markdown).expect("Should get expected body");
+
+        assert_eq!(post, expected_post);
+        assert_eq!(post.title, post_inputs.title);
+        assert_eq!(post.body, expected_body);
+        assert_eq!(post.markdown_body.as_deref(), expected_markdown_body);
+        assert_eq!(post.link, Link::default());
+        assert_eq!(post.is_pinned, post_inputs.post_tags.is_pinned);
+        assert_eq!(post.is_spoiler, post_inputs.post_tags.is_spoiler);
+        assert_eq!(post.is_nsfw, post_inputs.post_tags.is_nsfw);
+        assert_eq!(post.sphere_id, sphere.sphere_id);
+    }
 }
 
 #[tokio::test]

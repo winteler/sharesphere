@@ -54,7 +54,7 @@ async fn test_delete_user() {
     let (sphere, _, _) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
     let rule = add_rule(&sphere.sphere_name, 0, "Don't", "pet the cat", false, &user, &db_pool).await.expect("Should add rule");
     let post_to_moderate = create_simple_post(&sphere.sphere_name, None, "ban me", "if you can", None, &user, &db_pool).await;
-    ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post_to_moderate.post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.expect("Should ban user");
+    ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post_to_moderate.post.post_id, None, rule.rule_id, Some(1), &user, &db_pool).await.expect("Should ban user");
 
     delete_user(&banned_user, &db_pool).await.expect("Should delete user");
 

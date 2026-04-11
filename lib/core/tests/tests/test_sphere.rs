@@ -5,7 +5,7 @@ use sharesphere_core_common::db_utils::ssr::create_db_pool;
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_common::errors::AppError::InsufficientPrivileges;
 use sharesphere_core_sphere::sphere;
-use sharesphere_core_sphere::sphere::ssr::update_sphere_description;
+use sharesphere_core_sphere::sphere::ssr::{create_sphere_and_subscribe, get_sphere_by_name, get_subscribed_sphere_headers, update_sphere_description};
 use sharesphere_core_sphere::sphere::ssr::{create_sphere, subscribe, unsubscribe};
 use sharesphere_core_user::role::PermissionLevel;
 use sharesphere_core_user::user::ssr::set_user_settings;
@@ -237,6 +237,30 @@ async fn test_get_sphere_with_user_info() -> Result<(), AppError> {
     assert!(sphere_with_subscription.subscription_id.is_none());
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_create_sphere_and_subscribe() {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+
+    let sphere_name = "cCase_s_case123-";
+    let sphere_description = "a";
+
+    let (sphere, _) = create_sphere_and_subscribe(sphere_name, sphere_description, false, &user, &db_pool).await.expect("Should create sphere and subscribe");
+
+    let expected_sphere = get_sphere_by_name(sphere_name, &db_pool).await.expect("Should load sphere");
+
+    assert_eq!(sphere, expected_sphere);
+    assert_eq!(sphere.sphere_name, sphere_name);
+    assert_eq!(sphere.description, sphere_description);
+    assert_eq!(sphere.num_members, 1);
+
+    let subscription_vec = get_subscribed_sphere_headers(user.user_id, &db_pool).await.expect("Should get subscribed sphere headers");
+    let sphere_subscription = subscription_vec.first().expect("Should get sphere subscription");
+    assert_eq!(sphere_subscription.sphere_name, sphere_name);
+    assert_eq!(sphere_subscription.is_nsfw, false);
+    assert_eq!(sphere_subscription.icon_url, None);
 }
 
 #[tokio::test]

@@ -1,28 +1,18 @@
-use std::ops::Add;
-
-use chrono::Days;
 use object_store::memory::InMemory;
 use object_store::ObjectStoreExt;
-
 use sharesphere_core_common::constants::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
 use sharesphere_core_common::errors::AppError;
-use sharesphere_core_content::comment::ssr::create_comment;
-use sharesphere_core_content::embed::Link;
-use sharesphere_core_content::moderation::ssr::moderate_comment;
-use sharesphere_core_content::moderation::ssr::{ban_user_from_sphere, moderate_post};
-use sharesphere_core_content::post::ssr::create_post;
-use sharesphere_core_content::post::PostTags;
+use sharesphere_core_content::moderation::ssr::{ban_user_from_sphere};
 use sharesphere_core_sphere::rule::ssr::add_rule;
-use sharesphere_core_sphere::rule::BaseRule;
 use sharesphere_core_sphere::sphere::ssr::{create_sphere, get_sphere_by_name};
-use sharesphere_core_sphere::sphere_management::ssr::{delete_sphere_image, get_sphere_ban_vec, remove_user_ban, set_sphere_banner_url, set_sphere_icon_url, store_sphere_image, SphereImageType, MAX_ICON_SIZE};
+use sharesphere_core_sphere::sphere_management::ssr::{delete_sphere_image, get_sphere_ban_vec, remove_user_ban, set_sphere_banner_url, set_sphere_icon_url, set_sphere_image, store_sphere_image, SphereImageType, MAX_ICON_SIZE};
 use sharesphere_core_sphere::sphere_management::ssr::{BANNER_FILE_INFER_ERROR_STR, INCORRECT_BANNER_FILE_TYPE_STR, MISSING_BANNER_FILE_STR, MISSING_SPHERE_STR};
 use sharesphere_core_user::role::ssr::{is_user_sphere_moderator, set_user_admin_role};
 use sharesphere_core_user::role::AdminRole;
 use sharesphere_core_user::user::User;
 
 use crate::common::*;
-use crate::data_factory::{add_base_rule, create_sphere_with_post, create_sphere_with_post_and_comment};
+use crate::data_factory::{create_sphere_with_post};
 use crate::utils::*;
 
 mod common;
@@ -46,8 +36,8 @@ async fn test_get_sphere_ban_vec() -> Result<(), AppError> {
         post.post_id,
         None,
         rule.rule_id,
-        &lead,
         Some(1),
+        &lead,
         &db_pool
     ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
     let banned_user_vec = get_sphere_ban_vec(&sphere.sphere_name, "", &db_pool).await.expect("Should load sphere bans");
@@ -60,8 +50,8 @@ async fn test_get_sphere_ban_vec() -> Result<(), AppError> {
         post.post_id,
         None,
         rule.rule_id,
-        &lead,
         Some(7),
+        &lead,
         &db_pool
     ).await.expect("User 2 should be banned").expect("User 2 ban should be Some.");
     let banned_user_vec = get_sphere_ban_vec(&sphere.sphere_name, "", &db_pool).await.expect("Should load sphere bans");
@@ -97,8 +87,8 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
         post.post_id,
         None,
         rule.rule_id,
-        &lead,
         Some(1),
+        &lead,
         &db_pool
     ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
     let banned_user_vec = get_sphere_ban_vec(&sphere.sphere_name, "", &db_pool).await.expect("Should load sphere bans");
@@ -117,8 +107,8 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
         post.post_id,
         None,
         rule.rule_id,
-        &lead,
         Some(1),
+        &lead,
         &db_pool
     ).await.expect("User 1 should be banned").expect("User 1 ban should be Some.");
     let banned_user_vec = get_sphere_ban_vec(&sphere.sphere_name, "", &db_pool).await.expect("Should load sphere bans");
@@ -149,154 +139,6 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_moderate_post() -> Result<(), AppError> {
-    let db_pool = get_db_pool().await;
-    let mut user = create_user("test", &db_pool).await;
-    let mut global_moderator = create_user("mod", &db_pool).await;
-    global_moderator.admin_role = AdminRole::Moderator;
-    let unauthorized_user = create_user("user", &db_pool).await;
-
-    let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", false, &user, &db_pool).await.expect("Rule should be added.");
-
-    assert!(moderate_post(post.post_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
-
-    let moderated_post = moderate_post(post.post_id, rule.rule_id, "test", &user, &db_pool).await?;
-    assert_eq!(moderated_post.moderator_id, Some(user.user_id));
-    assert_eq!(moderated_post.moderator_name, Some(user.username));
-    assert_eq!(moderated_post.moderator_message, Some(String::from("test")));
-    assert_eq!(moderated_post.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(moderated_post.infringed_rule_title, Some(rule.title.clone()));
-
-    let remoderated_post = moderate_post(post.post_id, rule.rule_id, "global", &global_moderator, &db_pool).await?;
-    assert_eq!(remoderated_post.moderator_id, Some(global_moderator.user_id));
-    assert_eq!(remoderated_post.moderator_name, Some(global_moderator.username));
-    assert_eq!(remoderated_post.moderator_message, Some(String::from("global")));
-    assert_eq!(moderated_post.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(moderated_post.infringed_rule_title, Some(rule.title));
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_moderate_comment() -> Result<(), AppError> {
-    let db_pool = get_db_pool().await;
-    let mut user = create_user("test", &db_pool).await;
-    let mut global_moderator = create_user("mod", &db_pool).await;
-    global_moderator.admin_role = AdminRole::Moderator;
-    let unauthorized_user = create_user("user", &db_pool).await;
-    
-    let (sphere, _post, comment) = create_sphere_with_post_and_comment("sphere", &mut user, &db_pool).await;
-    let rule = add_rule(&sphere.sphere_name, 0, "test", "test", false, &user, &db_pool).await.expect("Rule should be added.");
-
-    assert!(moderate_comment(comment.comment_id, rule.rule_id, "unauthorized", &unauthorized_user, &db_pool).await.is_err());
-
-    let moderated_comment = moderate_comment(comment.comment_id, rule.rule_id, "test", &user, &db_pool).await?;
-    assert_eq!(moderated_comment.moderator_id, Some(user.user_id));
-    assert_eq!(moderated_comment.moderator_name, Some(user.username));
-    assert_eq!(moderated_comment.moderator_message, Some(String::from("test")));
-    assert_eq!(moderated_comment.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(moderated_comment.infringed_rule_title, Some(rule.title.clone()));
-
-    let remoderated_comment = moderate_comment(comment.comment_id, rule.rule_id, "global", &global_moderator, &db_pool).await?;
-    assert_eq!(remoderated_comment.moderator_id, Some(global_moderator.user_id));
-    assert_eq!(remoderated_comment.moderator_name, Some(global_moderator.username));
-    assert_eq!(remoderated_comment.moderator_message, Some(String::from("global")));
-    assert_eq!(remoderated_comment.infringed_rule_id, Some(rule.rule_id));
-    assert_eq!(remoderated_comment.infringed_rule_title, Some(rule.title));
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_ban_user_from_sphere() -> Result<(), AppError> {
-    let db_pool = get_db_pool().await;
-    let mut user = create_user("test", &db_pool).await;
-    let mut global_moderator = create_user("mod", &db_pool).await;
-    let mut admin = create_user("admin", &db_pool).await;
-    // set user role in the DB, needed to test that global Moderators/Admin cannot be banned
-    global_moderator.admin_role = AdminRole::Moderator;
-    admin.admin_role = AdminRole::Admin;
-    set_user_admin_role(global_moderator.user_id, AdminRole::Moderator, &admin, &db_pool).await?;
-    set_user_admin_role(admin.user_id, AdminRole::Admin, &admin, &db_pool).await?;
-    let unauthorized_user = create_user("user", &db_pool).await;
-    let banned_user = create_user("banned", &db_pool).await;
-
-    let (sphere, post) = create_sphere_with_post("sphere", &mut user, &db_pool).await;
-    let rule = add_base_rule(0, BaseRule::BeRespectful.into(), "test", None, &admin, &db_pool).await.expect("Rule should be added.");
-
-    // unauthorized used cannot ban
-    assert!(ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &unauthorized_user, None, &db_pool).await.is_err());
-    // ban with 0 days has no effect
-    assert_eq!(ban_user_from_sphere(unauthorized_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(0), &db_pool).await?, None);
-    let post = create_post(
-        &sphere.sphere_name, None,"a", "b", None, Link::default(),PostTags::default(), &unauthorized_user, &db_pool
-    ).await?;
-
-    // cannot ban moderators
-    assert!(ban_user_from_sphere(user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &global_moderator, Some(1), &db_pool).await.is_err());
-    assert!(ban_user_from_sphere(global_moderator.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.is_err());
-    assert!(ban_user_from_sphere(admin.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool).await.is_err());
-    assert!(ban_user_from_sphere(user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &admin, Some(1), &db_pool).await.is_err());
-
-    // sphere moderator can ban ordinary users
-    let user_ban = ban_user_from_sphere(
-        unauthorized_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &user, Some(1), &db_pool
-    ).await?.expect("User ban from sphere should be possible.");
-    assert_eq!(user_ban.user_id, unauthorized_user.user_id);
-    assert_eq!(user_ban.sphere_id, Some(sphere.sphere_id));
-    assert_eq!(user_ban.sphere_name, Some(sphere.sphere_name.clone()));
-    assert_eq!(user_ban.moderator_id, user.user_id);
-    assert_eq!(user_ban.until_timestamp, Some(user_ban.create_timestamp.add(Days::new(1))));
-
-    // banned user cannot create new content
-    let unauthorized_user = User::get(unauthorized_user.user_id, &db_pool).await.expect("Should be able to reload user.");
-    assert!(
-        matches!(
-            create_post(
-                &sphere.sphere_name, None,"c", "d", None, Link::default(), PostTags::default(), &unauthorized_user, &db_pool
-            ).await,
-            Err(AppError::SphereBanUntil(_)),
-        )
-    );
-    assert!(
-        matches!(
-            create_comment(post.post_id, None, "a", None, false, &unauthorized_user, &db_pool).await,
-            Err(AppError::SphereBanUntil(_)),
-        )
-    );
-
-    // global moderator can ban ordinary users
-    let user_ban = ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &global_moderator, Some(2), &db_pool).await?.expect("User ban from sphere should be possible.");
-    assert_eq!(user_ban.user_id, banned_user.user_id);
-    assert_eq!(user_ban.sphere_id, Some(sphere.sphere_id));
-    assert_eq!(user_ban.sphere_name, Some(sphere.sphere_name.clone()));
-    assert_eq!(user_ban.moderator_id, global_moderator.user_id);
-    assert_eq!(user_ban.until_timestamp, Some(user_ban.create_timestamp.add(Days::new(2))));
-
-    // global moderator can ban ordinary users
-    let user_ban = ban_user_from_sphere(banned_user.user_id, sphere.sphere_id, post.post_id, None, rule.rule_id, &admin, None, &db_pool).await?.expect("User ban from sphere should be possible.");
-    assert_eq!(user_ban.user_id, banned_user.user_id);
-    assert_eq!(user_ban.sphere_id, Some(sphere.sphere_id));
-    assert_eq!(user_ban.sphere_name, Some(sphere.sphere_name.clone()));
-    assert_eq!(user_ban.moderator_id, admin.user_id);
-    assert_eq!(user_ban.until_timestamp, None);
-
-    // banned user cannot create new content
-    let banned_user = User::get(banned_user.user_id, &db_pool).await.expect("Should be possible to reload banned user.");
-    assert_eq!(
-        create_post(&sphere.sphere_name, None,"c", "d", None, Link::default(), PostTags::default(), &banned_user, &db_pool).await,
-        Err(AppError::PermanentSphereBan),
-    );
-    assert_eq!(
-        create_comment(post.post_id, None, "a", None, false, &banned_user, &db_pool).await,
-        Err(AppError::PermanentSphereBan),
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn test_is_user_sphere_moderator() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let user = create_user("test", &db_pool).await;
@@ -318,6 +160,78 @@ async fn test_is_user_sphere_moderator() -> Result<(), AppError> {
     assert!(is_user_sphere_moderator(ordinary_user.user_id + 1, sphere.sphere_id, &db_pool).await.is_err());
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_set_sphere_image() {
+    let db_pool = get_db_pool().await;
+    let user = create_test_user(&db_pool).await;
+    let sphere = create_sphere("sphere", "a", false, &user, &db_pool).await.expect("Should create sphere");
+    let user = User::get(user.user_id, &db_pool).await.expect("Should get user after sphere creation");
+    let object_store = InMemory::new();
+    let container_url = "https://objectstorage.com";
+    let icon_bucket_name = "icon_bucket";
+    let banner_bucket_name = "banner_bucket";
+
+    let icon_url = set_sphere_image(
+        SphereImageType::ICON,
+        get_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+        &object_store,
+        container_url,
+        icon_bucket_name,
+        &user,
+        &db_pool,
+    ).await.expect("Should set sphere icon");
+
+    let banner_url = set_sphere_image(
+        SphereImageType::BANNER,
+        get_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+        &object_store,
+        container_url,
+        banner_bucket_name,
+        &user,
+        &db_pool,
+    ).await.expect("Should set sphere banner");
+
+    let updated_sphere = get_sphere_by_name(&sphere.sphere_name, &db_pool).await.expect("Should get sphere");
+
+    assert_eq!(updated_sphere.icon_url, icon_url);
+    assert_eq!(updated_sphere.banner_url, banner_url);
+
+    let icon_url = updated_sphere.icon_url.expect("Sphere icon should be set");
+    let banner_url = updated_sphere.banner_url.expect("Sphere icon should be set");
+
+    let icon_filename = icon_url.split('/').next_back().expect("Should get icon filename");
+    let banner_filename = banner_url.split('/').next_back().expect("Should get icon filename");
+
+    assert_eq!(icon_url, format!("{container_url}/{icon_bucket_name}/{icon_filename}"));
+    assert_eq!(banner_url, format!("{container_url}/{banner_bucket_name}/{banner_filename}"));
+
+    assert!(object_store.get(&object_store::path::Path::from(icon_filename)).await.is_ok());
+    assert!(object_store.get(&object_store::path::Path::from(banner_filename)).await.is_ok());
+
+    let updated_icon_url = set_sphere_image(
+        SphereImageType::ICON,
+        get_multipart_image_with_string(IMAGE_FILE_PARAM, SPHERE_NAME_PARAM, &sphere.sphere_name).await,
+        &object_store,
+        container_url,
+        icon_bucket_name,
+        &user,
+        &db_pool,
+    ).await.expect("Should update sphere icon");
+
+    assert!(object_store.get(&object_store::path::Path::from(icon_filename)).await.is_err());
+
+    let updated_sphere = get_sphere_by_name(&sphere.sphere_name, &db_pool).await.expect("Should get sphere");
+    assert_eq!(updated_sphere.icon_url, updated_icon_url);
+
+    let icon_url = updated_icon_url.expect("Updated sphere icon should be set");
+    let icon_filename = icon_url.split('/').next_back().expect("Should get updated icon filename");
+
+    assert_eq!(icon_url, format!("{container_url}/{icon_bucket_name}/{icon_filename}"));
+
+    assert!(object_store.get(&object_store::path::Path::from(icon_filename)).await.is_ok());
+    assert!(object_store.get(&object_store::path::Path::from(banner_filename)).await.is_ok());
 }
 
 #[tokio::test]

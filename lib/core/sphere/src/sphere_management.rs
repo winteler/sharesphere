@@ -135,21 +135,26 @@ pub mod ssr {
         bucket_name: &str,
         user: &User,
         db_pool: &PgPool,
-    ) -> Result<(), AppError> {
+    ) -> Result<Option<String>, AppError> {
         let (sphere_name, file_name) = store_sphere_image(data, MAX_ICON_SIZE, object_store, user).await?;
         // Clear previous image if it exists
         if let Err(e) = delete_sphere_image(&sphere_name, image_type, object_store, user, db_pool).await {
             log::warn!("Failed to delete {image_type:?} image: {:?}", e);
         }
 
-        let icon_url = file_name.map(|file_name| {
+        let image_url = file_name.map(|file_name| {
             Path::new(&object_container_url)
                 .join(bucket_name)
                 .join(&file_name)
                 .to_string_lossy()
                 .to_string()
         });
-        set_sphere_icon_url(&sphere_name, icon_url.as_deref(), user, db_pool).await
+        match image_type {
+            SphereImageType::ICON => set_sphere_icon_url(&sphere_name, image_url.as_deref(), user, db_pool).await?,
+            SphereImageType::BANNER => set_sphere_banner_url(&sphere_name, image_url.as_deref(), user, db_pool).await?,
+        };
+        
+        Ok(image_url)
     }
 
     pub fn get_object_store(image_type: SphereImageType) -> Result<AmazonS3, AppError> {
@@ -167,8 +172,8 @@ pub mod ssr {
         user: &User,
         db_pool: &PgPool,
     ) -> Result<(), AppError> {
-        user.check_sphere_permissions_by_name(&sphere_name, PermissionLevel::Manage)?;
-        let sphere = get_sphere_by_name(&sphere_name, db_pool).await?;
+        user.check_sphere_permissions_by_name(sphere_name, PermissionLevel::Manage)?;
+        let sphere = get_sphere_by_name(sphere_name, db_pool).await?;
         if let Some(current_image_url) = image_type.get_sphere_image_url(&sphere) {
             if let Ok(Some(current_image_name)) = get_file_name_from_url(current_image_url) {
                 let object_path = object_store::path::Path::from(current_image_name);

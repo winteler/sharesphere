@@ -754,7 +754,7 @@ pub fn NotFoundWidget(
     view! {
         <div class="w-full py-2 flex items-center gap-2 justify-center">
             <NotFoundIcon class=icon_class/>
-            <div class="flex flex-col">
+            <div class="flex flex-col max-w-2/3">
                 <h2 class=not_found_class>{move_tr!("not-found-message")}</h2>
                 <h3 class=message_class>{message}</h3>
             </div>

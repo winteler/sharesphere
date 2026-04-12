@@ -2318,6 +2318,9 @@
   .w-screen {
     width: 100vw;
   }
+  .max-w-2\/3 {
+    max-width: calc(2/3 * 100%);
+  }
   .max-w-full {
     max-width: 100%;
   }

@@ -177,7 +177,7 @@ sharesphere-right-sidebar-2 =
 about-sharesphere-content =
     ShareSphere est l'endroit pour échanger avec d'autres personnes à propos de tes loisirs, l'actualité, l'art, l'humour et bien d'autres sujets. ShareSphere est un site web en source-disponible et sans publicité focalisé sur la transparence, le respect de la vie privée et l'autonomie de ses communautés. L'objectif de ShareSphere est de fonctionner uniquement à l'aide de donations afin de fournir une meilleure expérience utilisateur que les plateformes basées sur la publicité.
 about-sharesphere-rules-1 =
-    Sharesphere s'efforce d'être un lien d'échanges positifs et constructifs. Pour ce faire, un{" "}
+    ShareSphere s'efforce d'être un lien d'échanges positifs et constructifs. Pour ce faire, un{" "}
 about-sharesphere-rules-link =
     ensemble de règles
 about-sharesphere-rules-2 =

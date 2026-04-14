@@ -1,4 +1,3 @@
-# Stage 2: Minimal runtime image
 FROM debian:bookworm-slim
 
 # Install any needed runtime libs

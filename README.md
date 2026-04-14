@@ -34,26 +34,51 @@ If you find a part of this project particularly useful, feel free to open an iss
 ---
 We welcome contributions! Whether you have ideas for features, improvements, or components that could be open-sourced, feel free to open an issue or start a discussion!
 
-## Setting up Sharesphere
+## Setting up ShareSphere
+
+### Installing the Rust toolchain
 
 1. [Install Rust](https://www.rust-lang.org/tools/install)
 2. `rustup toolchain install nightly --allow-downgrade` - make sure you have Rust nightly
 3. `rustup target add wasm32-unknown-unknown` - add the ability to compile Rust to WebAssembly
-4. `cargo install cargo-leptos` - install `cargo-laptos` binary
-5. `npm install` - install `TailwindCSS` and `DaisyUI`
-6. Add a `.env` file in the repo's root folder with your Postgres connection, e.g. `DATABASE_URL=postgres://<user>:<password>@<postgres_url>/<schema_name>`
-7. `cargo install sqlx-cli --no-default-features --features rustls,postgres` - Install sqlx-cli
-8. `sqlx migrate run` - perform migrations on the DB
-9. Set the following environment variables:
-   * OIDC_ISSUER_ADDR - url of the keycloak instance
-   * AUTH_CLIENT_ID - ID of the client in Keycloak
-   * AUTH_CLIENT_SECRET - Secret of the client in Keycloak
-   * DATABASE_URL - Database url
-   * SESSION_KEY - Key to persist session data
-   * SESSION_DB_KEY - DB key to persist session data
-   * TEST_DATABASE_URL - Test DB url, used in integration tests
+4. `cargo install cargo-leptos` - install the `cargo-leptos` binary
+5. `cargo install sqlx-cli --no-default-features --features rustls,postgres` - Install sqlx-cli
 
-## Running Sharesphere
+### Install TailwindCSS and DaisyUI
+
+1. [Install npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+2. `npm install` - install `TailwindCSS` and `DaisyUI`
+
+### Setup Postgres DB and Keycloak
+
+To build and run ShareSphere, you will need a Postgres database and a Keycloak realm with a client for ShareSphere. You can find a docker-compose file to start them in the `setup` folder.
+
+1. Create a Postgres DB and Keycloak instance, for instance using `setup/docker-compose.yml` with `podman-compose up` inside the `setup` folder.
+2. Create a ShareSphere realm in Keycloak, you can import the `dev-sharesphere-realm-export-2026-04-12.json` for a quicker setup.
+   * Don't forget to reset the password of the `sharesphere-app` client in the `sharesphere` realm.
+3. Add a `.env` file in the repo's root folder with your Postgres connection, e.g. `DATABASE_URL=postgres://<user>:<password>@<postgres_url>/<schema_name>`
+4. Run `sqlx migrate run --source bin/server/migrations/` - perform migrations on the DB 
+5. Set the following environment variables:
+    * OIDC_ISSUER_ADDR - url of the keycloak instance
+    * AUTH_CLIENT_ID - ID of the ShareSphere client in Keycloak
+    * AUTH_CLIENT_SECRET - Secret of the ShareSphere client in Keycloak
+    * DATABASE_URL - Postgres database url
+    * SESSION_KEY - Key to persist session data
+    * SESSION_DB_KEY - DB key to persist session data
+    * TEST_DATABASE_URL - Test DB url, used in integration tests
+    * LEPTOS_ENV - Used to set some headers, use "DEV" for a development environment
+
+### Additional environment variables
+
+If you want to store icons and banners for Spheres, you can configure an S3 storage with the following environment variables:
+* AWS_ACCESS_KEY_ID
+* AWS_SECRET_ACCESS_KEY
+* AWS_ENDPOINT
+* OBJECT_CONTAINER_URL
+* ICON_BUCKET
+* BANNER_BUCKET
+
+## Running ShareSphere
 
 ```bash
 cargo leptos watch

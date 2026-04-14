@@ -62,12 +62,12 @@ pub async fn get_db_pool() -> PgPool {
     sqlx::query(format!("DROP DATABASE IF EXISTS {db_name} WITH (FORCE)").as_str())
         .execute(&main_db_pool)
         .await
-        .expect(format!("Should be able to delete database: {db_name}").as_str());
+        .unwrap_or_else(|_| panic!("Should be able to delete database: {db_name}"));
 
     sqlx::query(format!("CREATE DATABASE {db_name}").as_str())
         .execute(&main_db_pool)
         .await
-        .expect(format!("Should be able to create database {db_name}").as_str());
+        .unwrap_or_else(|_| panic!("Should be able to create database {db_name}"));
 
     let test_db_url =
         std::env::var(TEST_DB_URL_ENV).expect(formatcp!("Test DB address should be available in env variable {TEST_DB_URL_ENV}.")) + db_name.as_str();
@@ -112,7 +112,7 @@ pub fn get_i18n() -> I18n {
         }
     let compound: Vec<&LazyLock<StaticLoader>> = vec![&TRANSLATIONS];
     I18n::new(
-        RwSignal::new(&LANGUAGES[0]),
+        RwSignal::new(LANGUAGES[0]),
         LANGUAGES,
         Signal::derive(move || compound.clone())
     )

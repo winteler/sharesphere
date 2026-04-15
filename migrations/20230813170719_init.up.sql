@@ -62,7 +62,7 @@ CREATE TABLE spheres (
     ) STORED,
     search_sphere_name TEXT UNIQUE NOT NULL GENERATED ALWAYS AS (
         format_for_search(sphere_name)
-        ) STORED,
+    ) STORED,
     description TEXT NOT NULL CHECK (LENGTH(description) <= 1000),
     sphere_document tsvector GENERATED ALWAYS AS (
         to_tsvector('simple', description)
@@ -195,10 +195,10 @@ CREATE TABLE posts (
     score INT NOT NULL DEFAULT 0,
     score_minus INT NOT NULL DEFAULT 0,
     recommended_score REAL NOT NULL GENERATED ALWAYS AS (
-        score_mapping(score) * EXP(LN(256) * (1 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24 * 2)))
+        LOG10(score_mapping(score)) - 3 * EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24 * 2)
     ) STORED,
     trending_score REAL NOT NULL GENERATED ALWAYS AS (
-        score_mapping(score) * EXP(LN(1024) * (1 - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 24)))
+        LOG10(score_mapping(score)) - EXTRACT(EPOCH FROM (scoring_timestamp - create_timestamp))/(3600 * 2)
     ) STORED,
     create_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edit_timestamp TIMESTAMPTZ,

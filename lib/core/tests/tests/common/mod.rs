@@ -78,7 +78,7 @@ pub async fn get_db_pool() -> PgPool {
         .await
         .expect("Should be able to connect test DB");
 
-    sqlx::migrate!("../../../bin/server/migrations/")
+    sqlx::migrate!("../../../migrations/")
         .run(&db_pool)
         .await
         .expect("SQLx migrations should be executed.");

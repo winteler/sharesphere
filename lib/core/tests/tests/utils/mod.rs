@@ -72,24 +72,21 @@ fn post_score_mapping(score: i32) -> f64 {
 }
 
 pub fn test_post_score(post: &Post) {
-    let second_delta = post
+    let ms_delta = post
         .scoring_timestamp
         .signed_duration_since(post.create_timestamp)
         .num_milliseconds();
-    let num_days_old = (post
-        .scoring_timestamp
-        .signed_duration_since(post.create_timestamp)
-        .num_milliseconds() as f64)
-        / 86400000.0;
+    let num_hours_old = (ms_delta as f64) / 3600000.0;
+    let num_days_old = (ms_delta as f64) / 86400000.0;
 
     println!(
-        "Scoring timestamp: {}, create timestamp: {}, second delta: {second_delta}, num_days_old: {num_days_old}",
+        "Scoring timestamp: {}, create timestamp: {}, ms delta: {ms_delta}, num_days_old: {num_days_old}",
         post.scoring_timestamp,
         post.create_timestamp,
     );
 
-    let expected_recommended_score = post_score_mapping(post.score) * f64::exp(f64::ln(256.0) * (1.0 - num_days_old/2.0));
-    let expected_trending_score = post_score_mapping(post.score) * f64::exp(f64::ln(1024.0) * (1.0 - num_days_old));
+    let expected_recommended_score = f64::log10(post_score_mapping(post.score)) - 3.0 * num_days_old/2.0;
+    let expected_trending_score = f64::log10(post_score_mapping(post.score)) - num_hours_old/2.0;
 
     println!("Recommended: {}, expected: {}", post.recommended_score, expected_recommended_score);
     assert!(approx_eq!(f32, post.recommended_score, expected_recommended_score as f32, epsilon = f32::EPSILON, ulps = 5));

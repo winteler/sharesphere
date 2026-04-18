@@ -24,10 +24,15 @@ leptos_meta.workspace = true
 leptos_router.workspace = true
 
 axum = { workspace = true, optional = true}
+const_format.workspace = true
 leptos-fluent.workspace = true
 leptos-use.workspace = true
 log.workspace = true
 regex = "1.12.3"
+
+[build-dependencies]
+serde_json.workspace = true
+url.workspace = true
 
 [features]
 default = []

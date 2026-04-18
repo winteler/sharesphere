@@ -4860,6 +4860,7 @@ name = "sharesphere_app"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "const_format",
  "leptos",
  "leptos-fluent",
  "leptos-use",
@@ -4867,6 +4868,7 @@ dependencies = [
  "leptos_router",
  "log",
  "regex",
+ "serde_json",
  "sharesphere_cmp_base",
  "sharesphere_cmp_common",
  "sharesphere_cmp_content",
@@ -4878,6 +4880,7 @@ dependencies = [
  "sharesphere_iface_content",
  "sharesphere_iface_sphere",
  "sharesphere_iface_user",
+ "url",
 ]
 
 [[package]]

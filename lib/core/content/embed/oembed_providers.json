@@ -1,0 +1,279 @@
+[
+    {
+        "provider_name": "Apple Podcasts",
+        "provider_url": "https://podcasts.apple.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://podcasts.apple.com/*"
+                ],
+                "url": "https://podcasts.apple.com/api/oembed",
+                "discovery": true,
+                "formats": [
+                    "json"
+                ]
+            }
+        ]
+    },
+    {
+        "provider_name": "Bluesky Social",
+        "provider_url": "https://bsky.app",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://bsky.app/profile/*/post/*"
+                ],
+                "url": "https://embed.bsky.app/oembed",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "Dailymotion",
+        "provider_url": "https://www.dailymotion.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://www.dailymotion.com/video/*",
+                    "https://geo.dailymotion.com/player.html?video=*"
+                ],
+                "url": "https://www.dailymotion.com/services/oembed",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "Framatube",
+        "provider_url": "https://framatube.org/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://framatube.org/w/*"
+                ],
+                "url": "https://framatube.org/services/oembed"
+            }
+        ]
+    },
+    {
+        "provider_name": "GIPHY",
+        "provider_url": "https://giphy.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://giphy.com/gifs/*",
+                    "https://giphy.com/clips/*",
+                    "https://media.giphy.com/media/*/giphy.gif"
+                ],
+                "url": "https://giphy.com/services/oembed",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "Kickstarter",
+        "provider_url": "https://www.kickstarter.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://www.kickstarter.com/projects/*"
+                ],
+                "url": "https://www.kickstarter.com/services/oembed"
+            }
+        ]
+    },
+    {
+        "provider_name": "Miro",
+        "provider_url": "https://miro.com/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://miro.com/app/board/*"
+                ],
+                "url": "https://miro.com/api/v1/oembed",
+                "discovery": true
+            },
+            {
+                "schemes": [
+                    "https://miro.com/video-player/*"
+                ],
+                "url": "https://miro.com/video-player/oembed",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "Nebula",
+        "provider_url": "https://nebula.tv",
+        "endpoints": [
+            {
+                "url": "https://nebula.tv/api/oembed",
+                "formats": [
+                    "json"
+                ],
+                "schemes": [
+                    "https://nebula.tv/videos/*"
+                ]
+            }
+        ]
+    },
+    {
+        "provider_name": "PeerTube.TV",
+        "provider_url": "https://peertube.tv/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://peertube.tv/w/*"
+                ],
+                "url": "https://peertube.tv/services/oembed"
+            }
+        ]
+    },
+    {
+        "provider_name": "Pinterest",
+        "provider_url": "https://www.pinterest.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://www.pinterest.com/*"
+                ],
+                "url": "https://www.pinterest.com/oembed.json",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "Reddit",
+        "provider_url": "https://reddit.com/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://reddit.com/r/*/comments/*/*",
+                    "https://www.reddit.com/r/*/comments/*/*"
+                ],
+                "url": "https://www.reddit.com/oembed"
+            }
+        ]
+    },
+    {
+        "provider_name": "Spotify",
+        "provider_url": "https://spotify.com/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://open.spotify.com/*",
+                    "https://spotify.link/*"
+                ],
+                "url": "https://open.spotify.com/oembed",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "Streamable",
+        "provider_url": "https://streamable.com/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://streamable.com/*"
+                ],
+                "url": "https://api.streamable.com/oembed.json",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "TED",
+        "provider_url": "https://www.ted.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://ted.com/talks/*",
+                    "https://www.ted.com/talks/*"
+                ],
+                "url": "https://www.ted.com/services/v1/oembed.json",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "The New York Times",
+        "provider_url": "https://www.nytimes.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://www.nytimes.com/svc/oembed",
+                    "https://nytimes.com/*",
+                    "https://*.nytimes.com/*"
+                ],
+                "url": "https://www.nytimes.com/svc/oembed/json/",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "TikTok",
+        "provider_url": "https://www.tiktok.com/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://www.tiktok.com/*",
+                    "https://www.tiktok.com/*/video/*"
+                ],
+                "url": "https://www.tiktok.com/oembed"
+            }
+        ]
+    },
+    {
+        "provider_name": "Tumblr",
+        "provider_url": "https://www.tumblr.com",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://*.tumblr.com/post/*"
+                ],
+                "url": "https://www.tumblr.com/oembed/1.0"
+            }
+        ]
+    },
+    {
+        "provider_name": "Vimeo",
+        "provider_url": "https://vimeo.com/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://vimeo.com/*",
+                    "https://vimeo.com/album/*/video/*",
+                    "https://vimeo.com/channels/*/*",
+                    "https://vimeo.com/groups/*/videos/*",
+                    "https://vimeo.com/ondemand/*/*",
+                    "https://player.vimeo.com/video/*",
+                    "https://vimeo.com/event/*/*"
+                ],
+                "url": "https://vimeo.com/api/oembed.json",
+                "discovery": true
+            }
+        ]
+    },
+    {
+        "provider_name": "YouTube",
+        "provider_url": "https://www.youtube.com/",
+        "endpoints": [
+            {
+                "schemes": [
+                    "https://*.youtube.com/watch*",
+                    "https://*.youtube.com/v/*",
+                    "https://youtu.be/*",
+                    "https://*.youtube.com/playlist?list=*",
+                    "https://youtube.com/playlist?list=*",
+                    "https://*.youtube.com/shorts*",
+                    "https://youtube.com/shorts*",
+                    "https://*.youtube.com/embed/*",
+                    "https://*.youtube.com/live*",
+                    "https://youtube.com/live*"
+                ],
+                "url": "https://www.youtube.com/oembed",
+                "discovery": true
+            }
+        ]
+    }
+]

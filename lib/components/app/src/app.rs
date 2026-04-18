@@ -1,11 +1,12 @@
 use leptos::ev::TouchEvent;
 use leptos::prelude::*;
+use const_format::formatcp;
 use leptos_fluent::leptos_fluent;
 use leptos_meta::{provide_meta_context, HashedStylesheet, Link, Meta, MetaTags, Title};
 use leptos_router::{components::{ParentRoute, Route, Router, Routes}, ParamSegment, StaticSegment};
 use regex::Regex;
 
-use sharesphere_core_common::constants::SITE_NAME;
+use sharesphere_core_common::constants::{SITE_NAME};
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_common::routes::{ABOUT_SHARESPHERE_ROUTE, AUTH_CALLBACK_ROUTE, CONTENT_POLICY_ROUTE, CREATE_POST_SUFFIX, CREATE_SPHERE_SUFFIX, FAQ_ROUTE, NOTIFICATION_ROUTE, POPULAR_ROUTE, POST_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, PRIVACY_POLICY_ROUTE, PUBLISH_ROUTE, RULES_ROUTE, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SEARCH_ROUTE, SPHERE_ROUTE_PARAM_NAME, SPHERE_ROUTE_PREFIX, TERMS_AND_CONDITIONS_ROUTE, USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
 
@@ -29,6 +30,8 @@ use sharesphere_cmp_utils::errors::ErrorTemplate;
 use crate::home::{HomePage, HotPage, LoginGuard, LoginGuardHome, NotificationHome, SphereHome};
 
 const IS_TEST_SITE_ENV: &str = "IS_TEST_SITE";
+const OEMBED_CONNECT_SRC: &str = env!("OEMBED_CONNECT_SRC");
+const OEMBED_FRAME_SRC: &str = env!("OEMBED_FRAME_SRC");
 
 #[derive(Clone, Debug)]
 pub struct UserAgentHeader {
@@ -38,9 +41,10 @@ pub struct UserAgentHeader {
 #[component]
 pub fn AppMeta() -> impl IntoView {
     let connect_src_csp = match cfg!(debug_assertions) {
-        true => "connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/;",
-        false => "connect-src 'self'",
+        true => formatcp!("connect-src 'self' https: ws://localhost:3001/ ws://127.0.0.1:3001/ {OEMBED_CONNECT_SRC};"),
+        false => formatcp!("connect-src 'self' {OEMBED_CONNECT_SRC};"),
     };
+    let frame_src_csp = formatcp!("frame-src 'self' {OEMBED_FRAME_SRC};");
     let ios_user_agent_regex = Regex::new("(iPhone|iPad|iPod|iOS).*AppleWebKit").expect("iOS regex should be valid");
 
     view! {
@@ -60,7 +64,7 @@ pub fn AppMeta() -> impl IntoView {
                         {script_src_csp}
                         img-src 'self' https: data:;
                         media-src 'self' https:;
-                        frame-src 'self' https:;
+                        {frame_src_csp}
                         style-src 'self' 'nonce-{nonce}';
                         {connect_src_csp}"
                     )

@@ -22,7 +22,7 @@ use sharesphere_core_common::constants::MAX_LINK_LENGTH;
 use sharesphere_core_common::errors::{AppError};
 
 static PROVIDERS: LazyLock<Option<Vec<OEmbedProvider>>> = LazyLock::new(|| {
-    let parse_providers = serde_json::from_slice(include_bytes!("../embed/providers.json"));
+    let parse_providers = serde_json::from_slice(include_bytes!("../embed/oembed_providers.json"));
     if let Err(e) = &parse_providers {
         log::error!("failed to parse oEmbed providers: {e}");
     }

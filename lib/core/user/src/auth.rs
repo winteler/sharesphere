@@ -51,6 +51,14 @@ pub mod ssr {
         )
     });
 
+    static OIDC_ISSUER_URL: LazyLock<Result<String, AppError>> = LazyLock::new(|| {
+        Ok(std::env::var(OIDC_ISSUER_URL_ENV)?)
+    });
+
+    static OIDC_ISSUER_ADMIN_URL: LazyLock<Result<String, AppError>> = LazyLock::new(|| {
+        Ok(std::env::var(OIDC_ISSUER_ADMIN_URL_ENV)?)
+    });
+
     type OidcCoreClient = openidconnect::core::CoreClient<
         EndpointSet,
         EndpointNotSet,
@@ -69,12 +77,20 @@ pub mod ssr {
         }
     }
 
-    pub fn get_oidc_issuer_url() -> Result<String, AppError> {
-        Ok(std::env::var(OIDC_ISSUER_URL_ENV)?)
+    pub fn get_auth_redirect() -> Result<&'static oidc::RedirectUrl, AppError> {
+        AUTH_REDIRECT.as_ref().map_err(AppError::clone)
     }
 
-    pub fn get_oidc_issuer_admin_url() -> Result<String, AppError> {
-        Ok(std::env::var(OIDC_ISSUER_ADMIN_URL_ENV)?)
+    pub fn get_oidc_issuer_url() -> Result<&'static String, AppError> {
+        OIDC_ISSUER_URL.as_ref().map_err(AppError::clone)
+    }
+
+    pub fn get_oidc_token_endpoint() -> Result<String, AppError> {
+        OIDC_ISSUER_URL.as_ref().map(|issuer_url| format!("{issuer_url}/protocol/openid-connect/token")).map_err(AppError::clone)
+    }
+
+    pub fn get_oidc_delete_user_endpoint(user_oidc_id: &str) -> Result<String, AppError> {
+        OIDC_ISSUER_ADMIN_URL.as_ref().map(|issuer_url| format!("{issuer_url}/users/{user_oidc_id}")).map_err(AppError::clone)
     }
 
     pub fn get_oidc_client_id() -> Result<oidc::ClientId, AppError> {
@@ -100,23 +116,28 @@ pub mod ssr {
     }
 
     pub async fn get_provider_metadata(http_client: &Client) -> Result<ProviderMetadataWithLogout, AppError> {
-        let issuer_url = oidc::IssuerUrl::new(get_oidc_issuer_url()?)?;
+        let issuer_url = oidc::IssuerUrl::new(get_oidc_issuer_url()?.clone())?;
+        log::info!("discover async with issuer url: {issuer_url:?}");
         let provider_metadata = ProviderMetadataWithLogout::discover_async(issuer_url.clone(), http_client).await?;
+
         Ok(provider_metadata)
     }
 
     pub async fn get_oidc_client(http_client: &Client) -> Result<OidcCoreClient, AppError> {
-        let auth_redirect = AUTH_REDIRECT.clone()?;
+        log::info!("get auth redirect");
+        let auth_redirect = get_auth_redirect()?;
+        log::info!("get provider metadata");
         let provider_metadata = get_provider_metadata(http_client).await?;
         // TODO cache client with a periodic refresh?
         // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL and token URL.
+        log::info!("get client");
         let client = oidc::core::CoreClient::from_provider_metadata(
             provider_metadata.clone(),
             get_oidc_client_id()?,
             Some(get_oidc_client_secret()?),
         )
             // Set the URL the user will be redirected to after the authorization process.
-            .set_redirect_uri(auth_redirect);
+            .set_redirect_uri(auth_redirect.clone());
 
         Ok(client)
     }
@@ -141,7 +162,8 @@ pub mod ssr {
 
     async fn get_oidc_provider_token(http_client: &Client) -> Result<String, AppError> {
 
-        let token_url = format!("{}/protocol/openid-connect/token", get_oidc_issuer_url()?);
+        let token_url = get_oidc_token_endpoint()?;
+        log::info!("Token url: {}", token_url.as_str());
         let client_id = get_oidc_client_id()?;
         let client_secret = get_oidc_client_secret()?;
         let params = [
@@ -149,10 +171,12 @@ pub mod ssr {
             ("client_secret", client_secret.secret()),
             ("grant_type", "client_credentials"),
         ];
-        let token_response = http_client.post(&token_url)
+        let token_response = http_client.post(token_url)
             .form(&params)
             .send().await?
             .json::<Value>().await?;
+
+        log::info!("Token response: {:?}", token_response);
 
         let access_token = token_response["access_token"]
             .as_str()
@@ -302,9 +326,12 @@ pub mod ssr {
     }
 
     pub async fn redirect_to_oidc_provider(redirect_url: String) -> Result<(), AppError> {
+        log::info!("validate redirect uri");
         validate_redirect_url(&redirect_url)?;
+        log::info!("get oidc client");
         let client = get_oidc_client(&get_oidc_http_client()?).await?;
         // Generate the full authorization URL.
+        log::info!("authorize_url");
         let (auth_url, _csrf_token, nonce) = client
             .authorize_url(
                 oidc::core::CoreAuthenticationFlow::AuthorizationCode,
@@ -326,7 +353,7 @@ pub mod ssr {
         let issuer_url = get_oidc_issuer_url()?;
         let client = Client::new();
         // Fetch the discovery endpoint data
-        let response = client.get(&issuer_url).send().await.map_err(AppError::new)?.json::<Value>().await.map_err(AppError::new)?;
+        let response = client.get(issuer_url.clone()).send().await.map_err(AppError::new)?.json::<Value>().await.map_err(AppError::new)?;
 
         // Obtain the account service url from it
         let account_service_url = response.get("account-service").and_then(|v| v.as_str()).ok_or(AppError::new("Account-service missing from provider"))?;
@@ -342,11 +369,13 @@ pub mod ssr {
         auth_session.session.remove(OIDC_TOKEN_KEY);
         auth_session.logout_user();
         // delete user in provider if admin endpoint defined
+        log::info!("build oidc client");
         let http_client = Client::builder().build()?;
+        log::info!("get access token");
         let access_token = get_oidc_provider_token(&http_client).await?;
-        let delete_user_endpoint = format!("{}/users/{}", get_oidc_issuer_admin_url()?, user.oidc_id);
+        let delete_user_endpoint = get_oidc_delete_user_endpoint(&user.oidc_id)?;
 
-        let response = http_client.delete(&delete_user_endpoint)
+        let response = http_client.delete(delete_user_endpoint.as_str())
             .header("Authorization", format!("Bearer {}", access_token))
             .send()
             .await?;

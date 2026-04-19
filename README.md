@@ -51,22 +51,26 @@ We welcome contributions! Whether you have ideas for features, improvements, or 
 
 ### Setup Postgres DB and Keycloak
 
-To build and run ShareSphere, you will need a Postgres database and a Keycloak realm with a client for ShareSphere. You can find a docker-compose file to start them in the `setup` folder.
+To build and run ShareSphere, you will need a Postgres database and a Keycloak realm with a client for ShareSphere. You can find a docker-compose file to start them in the `setup` folder. Please note that the docker-compose file creates a database for Keycloak but you should create a separate one for ShareSphere itself.
 
 1. Create a Postgres DB and Keycloak instance, for instance using `setup/docker-compose.yml` with `podman-compose up` inside the `setup` folder.
 2. Create a ShareSphere realm in Keycloak, you can import the `dev-sharesphere-realm-export-2026-04-12.json` for a quicker setup.
    * Don't forget to reset the password of the `sharesphere-app` client in the `sharesphere` realm.
 3. Add a `.env` file in the repo's root folder with your Postgres connection, e.g. `DATABASE_URL=postgres://<user>:<password>@<postgres_url>/<schema_name>`
-4. Run `sqlx migrate run --source bin/server/migrations/` - perform migrations on the DB 
+4. Run `sqlx migrate run` - perform migrations on the DB 
 5. Set the following environment variables:
     * OIDC_ISSUER_ADDR - url of the keycloak instance
     * AUTH_CLIENT_ID - ID of the ShareSphere client in Keycloak
     * AUTH_CLIENT_SECRET - Secret of the ShareSphere client in Keycloak
     * DATABASE_URL - Postgres database url
+    * TEST_DATABASE_URL - Prefix of the test database url for the integration tests in the form of postgres://(user):(pwd)@(ip address):(port)/ 
+    * TEST_DATABASE_NAME - Name of the root test database (will be appended to TEST_DATABASE_URL), the integration tests will connect to this database and create new databases to run each test in isolation.
     * SESSION_KEY - Key to persist session data
     * SESSION_DB_KEY - DB key to persist session data
     * TEST_DATABASE_URL - Test DB url, used in integration tests
     * LEPTOS_ENV - Used to set some headers, use "DEV" for a development environment
+
+To populate your development database, you can run `cargo test populate_dev_db -- --ignored` which will create some Spheres, posts and comments in your database (given by DATABASE_URL).
 
 ### Additional environment variables
 

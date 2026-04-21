@@ -33,6 +33,7 @@ pub async fn delete_user() -> Result<(), AppError> {
         log::error!("Failed to delete user ({}, {}): {e}", user.user_id, user.oidc_id);
     }
 
+    leptos_axum::redirect("/");
     Ok(())
 }
 

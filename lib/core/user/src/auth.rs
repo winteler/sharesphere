@@ -7,6 +7,7 @@ use openidconnect as oidc;
 use openidconnect::{reqwest, OAuth2TokenResponse, TokenResponse};
 
 pub const OIDC_ISSUER_URL_ENV: &str = "OIDC_ISSUER_URL";
+pub const OIDC_ISSUER_REALM_ENV: &str = "OIDC_ISSUER_REALM";
 pub const OIDC_ISSUER_ADMIN_URL_ENV: &str = "OIDC_ISSUER_ADMIN_URL";
 pub const AUTH_CLIENT_ID_ENV: &str = "AUTH_CLIENT_ID";
 pub const AUTH_CLIENT_SECRET_ENV: &str = "AUTH_CLIENT_SECRET";
@@ -51,18 +52,16 @@ pub mod ssr {
         )
     });
 
-    static OIDC_ISSUER_URL: LazyLock<Result<String, AppError>> = LazyLock::new(|| {
-        let mut oidc_issuer_url = std::env::var(OIDC_ISSUER_URL_ENV)?;
-        trim_trailing_slash(&mut oidc_issuer_url);
-        Url::parse(&oidc_issuer_url)?;
-        Ok(oidc_issuer_url)
+    static OIDC_ISSUER_URL: LazyLock<Result<String, AppError>> = LazyLock::new(||  {
+        check_oidc_url(std::env::var(OIDC_ISSUER_URL_ENV)?)
+    });
+
+    static OIDC_ISSUER_REALM: LazyLock<Result<String, AppError>> = LazyLock::new(|| {
+        Ok(std::env::var(OIDC_ISSUER_REALM_ENV)?)
     });
 
     static OIDC_ISSUER_ADMIN_URL: LazyLock<Result<String, AppError>> = LazyLock::new(|| {
-        let mut oidc_issuer_admin_url = std::env::var(OIDC_ISSUER_ADMIN_URL_ENV)?;
-        trim_trailing_slash(&mut oidc_issuer_admin_url);
-        Url::parse(&oidc_issuer_admin_url)?;
-        Ok(oidc_issuer_admin_url)
+        check_oidc_url(std::env::var(OIDC_ISSUER_ADMIN_URL_ENV)?)
     });
 
     type OidcCoreClient = openidconnect::core::CoreClient<
@@ -89,6 +88,12 @@ pub mod ssr {
         }
     }
 
+    fn check_oidc_url(mut oidc_url: String) -> Result<String, AppError> {
+        trim_trailing_slash(&mut oidc_url);
+        Url::parse(&oidc_url)?;
+        Ok(oidc_url)
+    }
+
     pub fn get_auth_redirect() -> Result<&'static oidc::RedirectUrl, AppError> {
         AUTH_REDIRECT.as_ref().map_err(AppError::clone)
     }
@@ -98,11 +103,19 @@ pub mod ssr {
     }
 
     pub fn get_oidc_token_endpoint() -> Result<String, AppError> {
-        OIDC_ISSUER_URL.as_ref().map(|issuer_url| format!("{issuer_url}/protocol/openid-connect/token")).map_err(AppError::clone)
+        match (OIDC_ISSUER_ADMIN_URL.as_ref(), OIDC_ISSUER_REALM.as_ref()) {
+            (Ok(admin_url), Ok(realm)) => Ok(format!("{admin_url}/realms/{realm}/protocol/openid-connect/token")),
+            (Err(e), _) => Err(e.clone()),
+            (_, Err(e)) => Err(e.clone()),
+        }
     }
 
     pub fn get_oidc_delete_user_endpoint(user_oidc_id: &str) -> Result<String, AppError> {
-        OIDC_ISSUER_ADMIN_URL.as_ref().map(|issuer_admin_url| format!("{issuer_admin_url}/users/{user_oidc_id}")).map_err(AppError::clone)
+        match (OIDC_ISSUER_ADMIN_URL.as_ref(), OIDC_ISSUER_REALM.as_ref()) {
+            (Ok(admin_url), Ok(realm)) => Ok(format!("{admin_url}/admin/realms/{realm}/users/{user_oidc_id}")),
+            (Err(e), _) => Err(e.clone()),
+            (_, Err(e)) => Err(e.clone()),
+        }
     }
 
     pub fn get_oidc_client_id() -> Result<oidc::ClientId, AppError> {
@@ -383,6 +396,30 @@ pub mod ssr {
         match response.status().is_success() {
             true => Ok(()),
             false => Err(AppError::new(format!("Failed to delete user: {:?}", response.text().await?))),
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_trim_trailing_slash() {
+            let mut test_string = String::from("https://test.com/a/");
+            trim_trailing_slash(&mut test_string);
+            assert_eq!(test_string, "https://test.com/a");
+            trim_trailing_slash(&mut test_string);
+            assert_eq!(test_string, "https://test.com/a");
+        }
+
+        #[test]
+        fn test_get_oidc_url_from_env() {
+            let valid_url = String::from("https://login.sharesphere.space/realms/sharesphere");
+            let trimmed_url = String::from("https://login.sharesphere.space/realms/sharesphere/");
+            let invalid_url = String::from("invalid");
+            assert_eq!(check_oidc_url(valid_url.clone()), Ok(valid_url));
+            assert_eq!(check_oidc_url(trimmed_url.clone()).as_deref(), Ok(trimmed_url.trim_end_matches('/')));
+            assert!(check_oidc_url(invalid_url).is_err());
         }
     }
 }

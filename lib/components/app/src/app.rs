@@ -17,7 +17,6 @@ use sharesphere_iface_user::user::{DeleteUser, SetUserSettings};
 use sharesphere_cmp_common::auth_widget::AuthCallback;
 use sharesphere_cmp_common::state::GlobalState;
 use sharesphere_cmp_content::post::{CreatePost, Post};
-use sharesphere_cmp_content::profile::UserProfile;
 use sharesphere_cmp_sphere::satellite::{CreateSatellitePost, SatelliteBanner, SatelliteContent};
 use sharesphere_cmp_sphere::sphere::{CreateSphere, SphereContents};
 use sharesphere_cmp_sphere::sphere_management::{SphereCockpit, SphereCockpitGuard, MANAGE_SPHERE_ROUTE};
@@ -27,7 +26,7 @@ use sharesphere_cmp_ui::search::{Search, SphereSearch};
 use sharesphere_cmp_ui::sidebar::LeftSidebar;
 use sharesphere_cmp_utils::errors::ErrorTemplate;
 
-use crate::home::{HomePage, HotPage, LoginGuard, LoginGuardHome, NotificationHome, SphereHome};
+use crate::home::{HomePage, HotPage, LoginGuard, LoginGuardHome, NotificationHome, ProfileHome, SphereHome};
 
 const IS_TEST_SITE_ENV: &str = "IS_TEST_SITE";
 const OEMBED_CONNECT_SRC: &str = env!("OEMBED_CONNECT_SRC");
@@ -205,7 +204,7 @@ pub fn App() -> impl IntoView {
                                     <Route path=StaticSegment(SEARCH_ROUTE) view=SphereSearch/>
                                     <Route path=StaticSegment("") view=SphereContents/>
                                 </ParentRoute>
-                                <Route path=(StaticSegment(USER_ROUTE_PREFIX), ParamSegment(USER_ROUTE_PARAM_NAME)) view=UserProfile/>
+                                <Route path=(StaticSegment(USER_ROUTE_PREFIX), ParamSegment(USER_ROUTE_PARAM_NAME)) view=ProfileHome/>
                                 <Route path=StaticSegment(AUTH_CALLBACK_ROUTE) view=AuthCallback/>
                                 <ParentRoute path=StaticSegment(PUBLISH_ROUTE) view=LoginGuardHome>
                                     <Route path=StaticSegment(CREATE_SPHERE_SUFFIX) view=CreateSphere/>

@@ -24,12 +24,10 @@ pub fn SphereRulesPanel() -> impl IntoView {
         <div class="shrink-0 flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">{move_tr!("rules")}</div>
             <div class="w-full flex flex-col">
-                <div class="border-b border-base-content/20 pl-1">
-                    <div class="w-5/6 flex gap-1">
-                        <div class="w-1/12 py-2 font-bold">{move_tr!("number-short")}</div>
-                        <div class="w-5/12 py-2 font-bold">{move_tr!("title")}</div>
-                        <div class="w-6/12 py-2 font-bold">{move_tr!("description")}</div>
-                    </div>
+                <div class="border-b border-base-content/20 pl-1 flex gap-1">
+                    <div class="w-1/12 py-2 font-bold">{move_tr!("number-short")}</div>
+                    <div class="w-4/12 py-2 font-bold">{move_tr!("title")}</div>
+                    <div class="w-6/12 py-2 font-bold">{move_tr!("description")}</div>
                 </div>
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
                 {
@@ -42,23 +40,20 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                 let rule = StoredValue::new(rule);
                                 let show_edit_form = RwSignal::new(false);
                                 view! {
-                                    <div class="flex gap-1 justify-between rounded-sm pl-1 pt-1">
-                                        <div class="w-5/6 flex gap-1">
-                                            <div class="w-1/12 select-none">{rule.read_value().priority}</div>
-                                            <div class="w-5/12 select-none">{rule.read_value().title.clone()}</div>
-                                            <div class="w-6/12 select-none">
-                                                <ContentBody body=rule.read_value().description.clone() is_markdown=rule.read_value().markdown_description.is_some()/>
-                                            </div>
+                                    <div class="flex gap-1 justify-start rounded-sm pl-1 pt-1">
+                                        <div class="w-1/12 select-none">{rule.read_value().priority}</div>
+                                        <div class="w-4/12 select-none">{rule.read_value().title.clone()}</div>
+                                        <div class="w-6/12 select-none">
+                                            <ContentBody body=rule.read_value().description.clone() is_markdown=rule.read_value().markdown_description.is_some()/>
                                         </div>
-                                        <div class="flex gap-1 justify-end align-start">
-                                            <button
-                                                class="button-secondary h-fit"
-                                                on:click=move |_| show_edit_form.update(|value| *value = !*value)
-                                            >
-                                                <EditIcon/>
-                                            </button>
-                                            <DeleteRuleButton rule/>
-                                        </div>
+                                        <div class="flex-grow"></div>
+                                        <button
+                                            class="button-secondary h-fit"
+                                            on:click=move |_| show_edit_form.update(|value| *value = !*value)
+                                        >
+                                            <EditIcon/>
+                                        </button>
+                                        <DeleteRuleButton rule/>
                                     </div>
                                     <ModalDialog
                                         class="w-full max-w-xl"

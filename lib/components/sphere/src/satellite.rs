@@ -328,12 +328,10 @@ pub fn SatellitePanel() -> impl IntoView {
         <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
             <div class="text-xl text-center">{move_tr!("satellites")}</div>
             <div class="w-full flex flex-col gap-1">
-                <div class="border-b border-base-content/20 pl-1">
-                    <div class="w-5/6 flex gap-1">
-                        <div class="w-3/6 py-2 font-bold">{move_tr!("satellites")}</div>
-                        <div class="w-20 py-2 font-bold text-center">{move_tr!("active")}</div>
-                        <div class="w-20 py-2 font-bold text-center">{move_tr!("link")}</div>
-                    </div>
+                <div class="border-b border-base-content/20 pl-1 flex items-center gap-1">
+                    <div class="w-3/6 py-2 lg:pl-2 font-bold">{move_tr!("satellites")}</div>
+                    <div class="w-20 py-2 font-bold text-center">{move_tr!("active")}</div>
+                    <div class="w-20 py-2 font-bold text-center">{move_tr!("link")}</div>
                 </div>
                 <TransitionUnpack resource=satellite_vec_resource let:satellite_vec>
                 {
@@ -343,32 +341,29 @@ pub fn SatellitePanel() -> impl IntoView {
                         let satellite_link = get_satellite_path(sphere_state.sphere_name.into(), satellite.satellite_id);
                         let satellite = satellite.clone();
                         view! {
-                            <div class="flex gap-1 justify-between rounded-sm pl-1">
-                                <div class="w-5/6 flex gap-1">
-                                    <div class="w-3/6 select-none">{satellite_name}</div>
-                                    <div class="w-20 flex justify-center items-center">
-                                    {
-                                        match satellite.disable_timestamp.is_none() {
-                                            true => view! { <PlayIcon/> }.into_any(),
-                                            false => view! { <PauseIcon/> }.into_any(),
-                                        }
+                            <div class="flex justify-start gap-1 rounded-sm pl-1">
+                                <div class="w-3/6 lg:pl-2 select-none">{satellite_name}</div>
+                                <div class="w-20 flex justify-center items-center">
+                                {
+                                    match satellite.disable_timestamp.is_none() {
+                                        true => view! { <PlayIcon/> }.into_any(),
+                                        false => view! { <PauseIcon/> }.into_any(),
                                     }
-                                    </div>
-                                    <div class="w-20 flex justify-center items-center">
-                                        <a href=satellite_link class="button-rounded-ghost">
-                                            <LinkIcon/>
-                                        </a>
-                                    </div>
+                                }
                                 </div>
-                                <div class="flex gap-1 justify-end">
-                                    <button
-                                        class="button-secondary"
-                                        on:click=move |_| show_edit_form.update(|value| *value = !*value)
-                                    >
-                                        <EditIcon/>
-                                    </button>
-                                    <DisableSatelliteButton satellite_id=satellite.satellite_id/>
+                                <div class="w-20 flex justify-center items-center">
+                                    <a href=satellite_link class="button-rounded-ghost">
+                                        <LinkIcon/>
+                                    </a>
                                 </div>
+                                <div class="flex-grow"></div>
+                                <button
+                                    class="button-secondary"
+                                    on:click=move |_| show_edit_form.update(|value| *value = !*value)
+                                >
+                                    <EditIcon/>
+                                </button>
+                                <DisableSatelliteButton satellite_id=satellite.satellite_id/>
                             </div>
                             <ModalDialog
                                 class="w-full max-w-xl"

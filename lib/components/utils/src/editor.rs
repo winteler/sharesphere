@@ -66,6 +66,9 @@ pub fn LengthLimitedInput(
     /// Set autofocus
     #[prop(default = false)]
     autofocus: bool,
+    /// Set autocomplete
+    #[prop(default = false)]
+    autocomplete: bool,
     /// Optional minimum text length
     #[prop(default = None)]
     minlength: Option<usize>,
@@ -87,8 +90,18 @@ pub fn LengthLimitedInput(
             _ => true,
         }
     };
+    let autocomplete = match autocomplete {
+        true => "on",
+        false => "off",
+    };
 
-    Effect::new(move || adjust_textarea_height(textarea_ref));
+    Effect::new(move || {
+        let content = content.read();
+        if let Some(textarea_ref) = textarea_ref.get_untracked() {
+            textarea_ref.set_value(&content);
+        }
+        adjust_textarea_height(textarea_ref);
+    });
 
     view! {
         <div class=format!("flex flex-col gap-1 {class}")>
@@ -98,14 +111,11 @@ pub fn LengthLimitedInput(
                 class="input_primary resize-none"
                 class=("input_error", move || !is_length_ok())
                 autofocus=autofocus
+                autocomplete=autocomplete
                 on:input=move |ev| {
                     let input = event_target_value(&ev);
                     let input = clear_newlines(input, false);
                     content.set(input.clone());
-                    if let Some(textarea_ref) = textarea_ref.get_untracked() {
-                        textarea_ref.set_value(&input);
-                    }
-                    adjust_textarea_height(textarea_ref);
                 }
                 rows=1
                 minlength=minlength.map(|l| l as i32).unwrap_or(-1)

@@ -294,12 +294,11 @@ pub fn SphereImageForm(
 /// Component to manage moderators
 #[component]
 pub fn ModeratorPanel() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
     let sphere_state = expect_context::<SphereState>();
     let sphere_name = sphere_state.sphere_name;
     let username_input = RwSignal::new(String::default());
     let select_ref = NodeRef::<html::Select>::new();
-
-    let set_role_action = ServerAction::<SetUserSphereRole>::new();
 
     view! {
         // TODO add overflow-y-auto max-h-full?
@@ -307,25 +306,26 @@ pub fn ModeratorPanel() -> impl IntoView {
             <div class="text-xl text-center">{move_tr!("moderators")}</div>
             <div class="w-full flex flex-col gap-1">
                 <div class="flex gap-1 border-b border-base-content/20">
-                    <div class="w-2/5 px-4 py-2 text-left font-bold">{move_tr!("username")}</div>
+                    <div class="w-3/5 px-4 py-2 text-left font-bold">{move_tr!("username")}</div>
                     <div class="w-2/5 px-4 py-2 text-left font-bold">{move_tr!("role")}</div>
                 </div>
                 <TransitionUnpack resource=sphere_state.sphere_roles_resource let:sphere_role_vec>
                 {
-                    sphere_role_vec.iter().enumerate().map(|(index, role)| {
+                    sphere_role_vec.iter().map(|role| {
                         let username = role.username.clone();
+                        let role_index = role.permission_level as i32;
                         view! {
                             <div
-                                class="flex gap-1 py-1 rounded-sm hover:bg-base-200 active:scale-95 transition duration-250"
+                                class="flex gap-1 py-1 rounded-sm hover:bg-base-content/20 active:scale-98 transition duration-250"
                                 on:click=move |_| {
                                     username_input.set(username.clone());
                                     match select_ref.get_untracked() {
-                                        Some(select_ref) => select_ref.set_selected_index(index as i32),
+                                        Some(select_ref) => select_ref.set_selected_index(role_index),
                                         None => log::error!("Form permission level select failed to load."),
                                     };
                                 }
                             >
-                                <div class="w-2/5 px-4 select-none">{role.username.clone()}</div>
+                                <div class="w-3/5 px-4 select-none">{role.username.clone()}</div>
                                 <div class="w-2/5 px-4 select-none">{role.permission_level.to_string()}</div>
                             </div>
                         }
@@ -337,7 +337,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                 sphere_name
                 username_input
                 select_ref
-                set_role_action
+                set_role_action=state.set_sphere_role_action
             />
         </div>
     }
@@ -373,8 +373,9 @@ pub fn PermissionLevelForm(
                     value=sphere_name
                 />
                 <div class="w-full flex gap-1 items-center">
-                    <div class="dropdown dropdown-end w-2/5">
+                    <div class="dropdown w-3/5">
                         <LengthLimitedInput
+                            name="username"
                             placeholder={move_tr!("username")}
                             content=username_input
                             minlength=Some(1)
@@ -385,7 +386,7 @@ pub fn PermissionLevelForm(
                             {
                                 let user_header_vec = user_header_vec.clone();
                                 view ! {
-                                    <ul tabindex="0" class="dropdown-content z-1 menu p-2 shadow-sm bg-base-200 rounded-box w-2/5">
+                                    <ul tabindex="0" class="menu dropdown-content z-1 p-2 shadow-sm bg-base-300 rounded-box w-full">
                                         <For
                                             each=move || user_header_vec.clone().into_iter()
                                             key=|user_header| user_header.username.clone()
@@ -413,6 +414,7 @@ pub fn PermissionLevelForm(
                         class="select_input w-fit bg-base-200"
                         select_ref
                     />
+                    <div class="flex-grow"></div>
                     <button
                         type="submit"
                         class="button-secondary p-3"
@@ -472,7 +474,7 @@ pub fn BanPanel() -> impl IntoView {
                             <div class="flex">
                                 <div class="w-2/5 px-6">{user_ban.username.clone()}</div>
                                 <div class="w-2/5 px-6">{duration_string}</div>
-                                <div class="w-1/5 flex justify-end gap-1">
+                                <div class="flex-grow flex justify-end gap-1">
                                     <BanInfoButton
                                         post_id=user_ban.post_id
                                         comment_id=user_ban.comment_id

@@ -16,12 +16,12 @@ use sharesphere_core_user::user::User;
 use sharesphere_iface_content::moderation::ModeratePost;
 use sharesphere_iface_content::post::{DeletePost, EditPost};
 use sharesphere_iface_sphere::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
-use sharesphere_iface_sphere::satellite::{CreateSatellite, DisableSatellite, UpdateSatellite};
-use sharesphere_iface_sphere::sphere::{CreateSphere, Subscribe, Unsubscribe, UpdateSphereDescription};
-use sharesphere_iface_sphere::sphere_category::{DeleteSphereCategory, SetSphereCategory};
+use sharesphere_iface_sphere::satellite::{get_active_satellite_vec_by_sphere_name, CreateSatellite, DisableSatellite, UpdateSatellite};
+use sharesphere_iface_sphere::sphere::{get_sphere_with_user_info, CreateSphere, Subscribe, Unsubscribe, UpdateSphereDescription};
+use sharesphere_iface_sphere::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_iface_user::auth::{EndSession, Login};
 use sharesphere_iface_user::notification::get_notifications;
-use sharesphere_iface_user::role::SetUserSphereRole;
+use sharesphere_iface_user::role::{get_sphere_role_vec, SetUserSphereRole};
 use sharesphere_iface_user::user::{DeleteUser, SetUserSettings};
 
 #[derive(Copy, Clone)]
@@ -127,6 +127,63 @@ impl GlobalState {
             ),
             user,
             base_rules: OnceResource::new(get_rule_vec(None))
+        }
+    }
+}
+
+impl SphereState {
+    pub fn new(
+        sphere_name: Memo<String>,
+        state: GlobalState,
+    ) -> Self  {
+        Self {
+            sphere_name,
+            sphere_category_filter: RwSignal::new(SphereCategoryFilter::All),
+            post_refresh_count: RwSignal::new(0),
+            permission_level: Signal::derive(
+                move || match &(*state.user.read()) {
+                    Some(Ok(Some(user))) => user.get_sphere_permission_level(&*sphere_name.read()),
+                    _ => PermissionLevel::None,
+                }
+            ),
+            sphere_with_user_info_resource: Resource::new(
+                move || (
+                    sphere_name.get(),
+                    state.update_sphere_desc_action.version().get(),
+                    state.sphere_reload_signal.get(),
+                ),
+                move |(sphere_name, _, _)| get_sphere_with_user_info(sphere_name)
+            ),
+            satellite_vec_resource: Resource::new(
+                move || (
+                    sphere_name.get(),
+                    state.create_satellite_action.version().get(),
+                    state.update_satellite_action.version().get(),
+                    state.disable_satellite_action.version().get(),
+                ),
+                move |(sphere_name, _, _, _)| get_active_satellite_vec_by_sphere_name(sphere_name)
+            ),
+            sphere_categories_resource: Resource::new(
+                move || (
+                    sphere_name.get(),
+                    state.set_sphere_category_action.version().get(),
+                    state.delete_sphere_category_action.version().get()
+                ),
+                move |(sphere_name, _, _)| get_sphere_category_vec(sphere_name)
+            ),
+            sphere_roles_resource: Resource::new(
+                move || (sphere_name.get(), state.set_sphere_role_action.version().get()),
+                move |(sphere_name, _)| get_sphere_role_vec(sphere_name),
+            ),
+            sphere_rules_resource: Resource::new(
+                move || (
+                    sphere_name.get(),
+                    state.add_rule_action.version().get(),
+                    state.update_rule_action.version().get(),
+                    state.remove_rule_action.version().get()
+                ),
+                move |(sphere_name, _, _, _)| get_rule_vec(Some(sphere_name)),
+            ),
         }
     }
 }

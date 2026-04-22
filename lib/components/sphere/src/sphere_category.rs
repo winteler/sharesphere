@@ -41,15 +41,17 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
             <div class="flex flex-col gap-1 items-center w-full h-fit bg-base-200 p-2 rounded-sm">
                 <div class="text-xl text-center">{move_tr!("sphere-categories")}</div>
                 <div class="w-full flex flex-col">
-                    <div class="border-b border-base-content/20 lg:pl-2">
+                    <div class="border-b border-base-content/20">
                         <div class="w-19/20 flex gap-1 p-1">
-                            <div class="w-3/12 py-2 font-bold">{move_tr!("category")}</div>
+                            <div class="w-3/12 py-2 lg:pl-2 font-bold">{move_tr!("category")}</div>
                             <div class="w-12 lg:w-16 py-2 flex justify-center font-bold">{move_tr!("color")}</div>
                             <div class="w-3/6 py-2 font-bold">{move_tr!("description")}</div>
-                            <div class="w-7 lg:w-16 py-2 font-bold lg:text-center"><div class="max-lg:hidden">{move_tr!("active")}</div></div>
+                            <div class="w-7 lg:w-16 py-2 font-bold lg:text-center">
+                                <div class="max-lg:hidden">{move_tr!("active")}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-1 lg:pl-2">
+                    <div class="flex flex-col gap-1">
                         <TransitionUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
                         {
                             sphere_category_vec.iter().map(|sphere_category| {
@@ -77,7 +79,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                                 activated_input.set(is_active);
                                             }
                                         >
-                                            <div class="w-3/12 select-none text-sm">{category_name.clone()}</div>
+                                            <div class="w-3/12 lg:pl-2 select-none text-sm">{category_name.clone()}</div>
                                             <div class="w-12 lg:w-16 flex justify-center"><ColorIndicator color/></div>
                                             <div class="w-3/6 select-none whitespace-pre-wrap text-sm">{description.clone()}</div>
                                             <div class="w-7 lg:w-16 flex justify-center">
@@ -125,7 +127,7 @@ pub fn SetCategoryForm(
                     class="hidden"
                     value=sphere_name
                 />
-                <div class="w-full flex gap-1 justify-between items-stretch lg:pl-2">
+                <div class="w-full flex gap-1 justify-between items-stretch">
                     <div class="w-19/20 flex items-center gap-1 lg:p-1">
                         <LengthLimitedInput
                             name="category_name"

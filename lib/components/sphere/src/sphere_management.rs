@@ -69,7 +69,7 @@ pub fn SphereCockpitGuard() -> impl IntoView {
 #[component]
 pub fn SphereCockpit() -> impl IntoView {
     view! {
-        <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-4/5 3xl:w-2/3 mx-auto">
+        <div class="flex flex-col gap-5 overflow-y-auto w-full 2xl:w-4/5 3xl:w-2/3 mx-auto pb-5">
             <div class="text-2xl text-center">{move_tr!("sphere-cockpit")}</div>
             <SphereDescriptionDialog/>
             <SphereIconDialog/>
@@ -209,36 +209,34 @@ pub fn SphereImageForm(
     let preview_url = RwSignal::new(String::new());
     let on_file_change = move |ev| {
         let input: HtmlInputElement = event_target::<HtmlInputElement>(&ev);
-        if let Some(files) = input.files() {
-            if let Some(file) = files.get(0) {
-                // Try to create a FileReader, returning early if it fails
-                let reader = match FileReader::new() {
-                    Ok(reader) => reader,
-                    Err(_) => {
-                        log::error!("Failed to create file reader.");
-                        return
-                    }, // Return early if FileReader creation fails
-                };
+        if let Some(files) = input.files() && let Some(file) = files.get(0) {
+            // Try to create a FileReader, returning early if it fails
+            let reader = match FileReader::new() {
+                Ok(reader) => reader,
+                Err(_) => {
+                    log::error!("Failed to create file reader.");
+                    return
+                }, // Return early if FileReader creation fails
+            };
 
-                // Set up the onload callback for FileReader
-                let preview_url_clone = preview_url.clone();
-                let onload_callback = Closure::wrap(Box::new(move |e: Event| {
-                    if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
-                        if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
-                            preview_url_clone.set(result); // Update the preview URL
-                        }
+            // Set up the onload callback for FileReader
+            let preview_url_clone = preview_url.clone();
+            let onload_callback = Closure::wrap(Box::new(move |e: Event| {
+                if let Some(reader) = e.target().and_then(|t| t.dyn_into::<FileReader>().ok()) {
+                    if let Ok(Some(result)) = reader.result().and_then(|r| Ok(r.as_string())) {
+                        preview_url_clone.set(result); // Update the preview URL
                     }
-                }) as Box<dyn FnMut(_)>);
+                }
+            }) as Box<dyn FnMut(_)>);
 
-                reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
-                onload_callback.forget(); // Prevent the closure from being dropped
+            reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
+            onload_callback.forget(); // Prevent the closure from being dropped
 
-                // Start reading the file as a Data URL, returning early if it fails
-                if let Err(e) = reader.read_as_data_url(&file) {
-                    let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
-                    log::error!("Error while getting preview of local image: {error_message}");
-                };
-            }
+            // Start reading the file as a Data URL, returning early if it fails
+            if let Err(e) = reader.read_as_data_url(&file) {
+                let error_message = e.as_string().unwrap_or_else(|| format!("{:?}", e));
+                log::error!("Error while getting preview of local image: {error_message}");
+            };
         }
     };
 
@@ -306,8 +304,8 @@ pub fn ModeratorPanel() -> impl IntoView {
             <div class="text-xl text-center">{move_tr!("moderators")}</div>
             <div class="w-full flex flex-col gap-1">
                 <div class="flex gap-1 border-b border-base-content/20">
-                    <div class="w-3/5 px-4 py-2 text-left font-bold">{move_tr!("username")}</div>
-                    <div class="w-2/5 px-4 py-2 text-left font-bold">{move_tr!("role")}</div>
+                    <div class="w-3/5 p-2 text-left font-bold">{move_tr!("username")}</div>
+                    <div class="w-2/5 p-2 text-left font-bold">{move_tr!("role")}</div>
                 </div>
                 <TransitionUnpack resource=sphere_state.sphere_roles_resource let:sphere_role_vec>
                 {
@@ -316,7 +314,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                         let role_index = role.permission_level as i32;
                         view! {
                             <div
-                                class="flex gap-1 py-1 rounded-sm hover:bg-base-content/20 active:scale-98 transition duration-250"
+                                class="flex gap-1 py-1 rounded-sm hover:bg-base-content/20 active:scale-y-90 transition duration-250"
                                 on:click=move |_| {
                                     username_input.set(username.clone());
                                     match select_ref.get_untracked() {
@@ -325,8 +323,8 @@ pub fn ModeratorPanel() -> impl IntoView {
                                     };
                                 }
                             >
-                                <div class="w-3/5 px-4 select-none">{role.username.clone()}</div>
-                                <div class="w-2/5 px-4 select-none">{role.permission_level.to_string()}</div>
+                                <div class="w-3/5 px-2 text-sm select-none">{role.username.clone()}</div>
+                                <div class="w-2/5 px-2 text-sm select-none">{role.permission_level.to_string()}</div>
                             </div>
                         }
                     }).collect_view()
@@ -452,14 +450,14 @@ pub fn BanPanel() -> impl IntoView {
             <div class="text-xl text-center">{move_tr!("banned-users")}</div>
             <div class="w-full flex flex-col gap-1">
                 <div class="flex flex-col border-b border-base-content/20">
-                    <div class="flex">
+                    <div class="flex gap-4 items-center">
                         <LengthLimitedInput
                             content=username_input
-                            class="px-6 w-2/5"
+                            class="w-2/5"
                             placeholder=move_tr!("username")
                             maxlength=Some(MAX_USERNAME_LENGTH)
                         />
-                        <div class="w-2/5 px-6 py-2 text-left font-bold">{move_tr!("until")}</div>
+                        <div class="w-2/5 py-2 text-left font-bold">{move_tr!("until")}</div>
                     </div>
                 </div>
                 <TransitionUnpack resource=banned_users_resource show_error_detail=true let:banned_user_vec>
@@ -471,9 +469,9 @@ pub fn BanPanel() -> impl IntoView {
                         };
                         let ban_id = user_ban.ban_id;
                         view! {
-                            <div class="flex">
-                                <div class="w-2/5 px-6">{user_ban.username.clone()}</div>
-                                <div class="w-2/5 px-6">{duration_string}</div>
+                            <div class="flex gap-4 items-center">
+                                <div class="w-2/5 px-2 text-sm">{user_ban.username.clone()}</div>
+                                <div class="w-2/5 text-sm">{duration_string}</div>
                                 <div class="flex-grow flex justify-end gap-1">
                                     <BanInfoButton
                                         post_id=user_ban.post_id
@@ -515,7 +513,7 @@ pub fn BanInfoButton(
             class="button-secondary"
             on:click=move |_| show_dialog.update(|value| *value = !*value)
         >
-            <MagnifierIcon/>
+            <MagnifierIcon class="content-toolbar-icon-size"/>
         </button>
         <ModalDialog
             class="w-full max-w-xl"

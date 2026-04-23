@@ -16,7 +16,7 @@ use sharesphere_core_user::user::User;
 use sharesphere_iface_content::moderation::ModeratePost;
 use sharesphere_iface_content::post::{DeletePost, EditPost};
 use sharesphere_iface_sphere::rule::{get_rule_vec, AddRule, RemoveRule, UpdateRule};
-use sharesphere_iface_sphere::satellite::{get_active_satellite_vec_by_sphere_name, CreateSatellite, DisableSatellite, UpdateSatellite};
+use sharesphere_iface_sphere::satellite::{get_satellite_vec_by_sphere_name, ActivateSatellite, CreateSatellite, DeactivateSatellite, UpdateSatellite};
 use sharesphere_iface_sphere::sphere::{get_sphere_with_user_info, CreateSphere, Subscribe, Unsubscribe, UpdateSphereDescription};
 use sharesphere_iface_sphere::sphere_category::{get_sphere_category_vec, DeleteSphereCategory, SetSphereCategory};
 use sharesphere_iface_user::auth::{EndSession, Login};
@@ -37,7 +37,8 @@ pub struct GlobalState {
     pub create_sphere_action: ServerAction<CreateSphere>,
     pub create_satellite_action: ServerAction<CreateSatellite>,
     pub update_satellite_action: ServerAction<UpdateSatellite>,
-    pub disable_satellite_action: ServerAction<DisableSatellite>,
+    pub activate_satellite_action: ServerAction<ActivateSatellite>,
+    pub deactivate_satellite_action: ServerAction<DeactivateSatellite>,
     pub update_sphere_desc_action: ServerAction<UpdateSphereDescription>,
     pub set_sphere_category_action: ServerAction<SetSphereCategory>,
     pub delete_sphere_category_action: ServerAction<DeleteSphereCategory>,
@@ -100,7 +101,8 @@ impl GlobalState {
             create_sphere_action,
             create_satellite_action: ServerAction::<CreateSatellite>::new(),
             update_satellite_action: ServerAction::<UpdateSatellite>::new(),
-            disable_satellite_action: ServerAction::<DisableSatellite>::new(),
+            activate_satellite_action: ServerAction::<ActivateSatellite>::new(),
+            deactivate_satellite_action: ServerAction::<DeactivateSatellite>::new(),
             update_sphere_desc_action: ServerAction::<UpdateSphereDescription>::new(),
             set_sphere_category_action: ServerAction::<SetSphereCategory>::new(),
             delete_sphere_category_action: ServerAction::<DeleteSphereCategory>::new(),
@@ -159,9 +161,9 @@ impl SphereState {
                     sphere_name.get(),
                     state.create_satellite_action.version().get(),
                     state.update_satellite_action.version().get(),
-                    state.disable_satellite_action.version().get(),
+                    state.deactivate_satellite_action.version().get(),
                 ),
-                move |(sphere_name, _, _, _)| get_active_satellite_vec_by_sphere_name(sphere_name)
+                move |(sphere_name, _, _, _)| get_satellite_vec_by_sphere_name(sphere_name, false)
             ),
             sphere_categories_resource: Resource::new(
                 move || (

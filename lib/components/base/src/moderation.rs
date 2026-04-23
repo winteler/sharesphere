@@ -79,7 +79,10 @@ pub fn ModerationInfoDialog(
             <div class="flex flex-col gap-1 p-2">
                 <h1 class="font-bold text-xl">{move_tr!("infringed-rule")}</h1>
                 <div class="text-lg font-semibold">{title}</div>
-                <div>{description}</div>
+                <ContentBody
+                    body=description
+                    is_markdown=!is_sphere_rule
+                />
             </div>
         </div>
     }

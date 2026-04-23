@@ -302,7 +302,7 @@ pub fn ModerationInfoButton(
                         <ContentModerationInfo content=content/>
                         <button
                             type="button"
-                            class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-95 transition duration-250"
+                            class="p-1 h-full rounded-xs bg-error hover:bg-error/75 active:scale-y-90 transition duration-250"
                             on:click=move |_| show_dialog.set(false)
                         >
                             {move_tr!("close")}

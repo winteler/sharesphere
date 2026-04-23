@@ -149,7 +149,7 @@ pub fn FormTextEditor(
     #[prop(into, default = Signal::derive(|| false))]
     is_empty_ok: Signal<bool>,
 ) -> impl IntoView {
-    let class = format!("flex flex-col max-w-full p-1 lg:p-2 input_border_primary {class}");
+    let class = format!("flex flex-col max-w-full h-full p-1 lg:p-2 input_border_primary {class}");
 
     let is_border_error = move || !is_empty_ok.get() && data.content.read().is_empty();
 
@@ -159,8 +159,11 @@ pub fn FormTextEditor(
         <div
             class=class
             class=("input_border_error", is_border_error)
+            on:click=move |_| if let Some(textarea_ref) = data.textarea_ref.get() {
+                let _ = textarea_ref.focus();
+            }
         >
-            <div class="w-full rounded-t-lg">
+            <div class="w-full h-full rounded-t-lg flex items-center">
                 <label for=name class="sr-only">
                     {placeholder}
                 </label>
@@ -295,7 +298,7 @@ pub fn FormMarkdownEditor(
             <Show when=is_markdown_mode>
                 { move || match markdown_render() {
                     Ok(markdown_as_html) => Either::Left(view! {
-                        <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary bg-base-100 break-words"
+                        <div class="w-full max-w-full min-h-24 max-h-96 overflow-auto overscroll-auto p-2 border border-primary bg-base-100 break-words text-sm"
                             inner_html=markdown_as_html
                         />
                     }),

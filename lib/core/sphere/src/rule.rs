@@ -245,7 +245,7 @@ pub mod ssr {
 pub fn get_rule_title(rule_title: &str, is_sphere_rule: bool) -> Signal<String> {
     match is_sphere_rule {
         true => rule_title.into(),
-        false => BaseRule::from_str(&rule_title).unwrap_or_default().get_localized_title(),
+        false => BaseRule::from_str(rule_title).unwrap_or_default().get_localized_title(),
     }
 }
 
@@ -256,6 +256,6 @@ pub fn get_rule_description(
 ) -> Signal<String> {
     match is_sphere_rule {
         true => rule_description.into(),
-        false => BaseRule::from_str(&rule_title).unwrap_or_default().get_localized_description(),
+        false => BaseRule::from_str(rule_title).unwrap_or_default().get_localized_description(),
     }
 }

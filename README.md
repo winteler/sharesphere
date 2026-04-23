@@ -99,7 +99,7 @@ Will generate your server binary in target/server/release and your site package 
 
 ### Unit & integration tests
 ```bash
-cargo test -F ssr
+cargo test
 ```
 
 ### End-to-end tests

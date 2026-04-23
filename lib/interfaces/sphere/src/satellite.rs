@@ -20,11 +20,12 @@ pub async fn get_satellite_by_id(
 }
 
 #[server]
-pub async fn get_active_satellite_vec_by_sphere_name(
+pub async fn get_satellite_vec_by_sphere_name(
     sphere_name: String,
+    include_inactive: bool,
 ) -> Result<Vec<Satellite>, AppError> {
     let db_pool = get_db_pool()?;
-    ssr::get_active_satellite_vec_by_sphere_name(&sphere_name, &db_pool).await
+    ssr::get_satellite_vec_by_sphere_name(&sphere_name, include_inactive, &db_pool).await
 }
 
 #[server]
@@ -76,12 +77,25 @@ pub async fn update_satellite(
 }
 
 #[server]
-pub async fn disable_satellite(
+pub async fn activate_satellite(
     satellite_id: i64,
 ) -> Result<Satellite, AppError> {
     let db_pool = get_db_pool()?;
     let user = check_user().await?;
-    ssr::disable_satellite(
+    ssr::activate_satellite(
+        satellite_id,
+        &user,
+        &db_pool
+    ).await
+}
+
+#[server]
+pub async fn deactivate_satellite(
+    satellite_id: i64,
+) -> Result<Satellite, AppError> {
+    let db_pool = get_db_pool()?;
+    let user = check_user().await?;
+    ssr::deactivate_satellite(
         satellite_id,
         &user,
         &db_pool

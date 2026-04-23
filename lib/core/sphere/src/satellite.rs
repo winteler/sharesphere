@@ -42,16 +42,23 @@ pub mod ssr {
         Ok(satellite)
     }
 
-    pub async fn get_active_satellite_vec_by_sphere_name(sphere_name: &str, db_pool: &PgPool) -> Result<Vec<Satellite>, AppError> {
+    pub async fn get_satellite_vec_by_sphere_name(
+        sphere_name: &str,
+        include_inactive: bool,
+        db_pool: &PgPool
+    ) -> Result<Vec<Satellite>, AppError> {
         let satellite_vec = sqlx::query_as!(
             Satellite,
             "SELECT sa.* FROM satellites sa
             JOIN spheres s ON s.sphere_id = sa.sphere_id
             WHERE
                 s.sphere_name = $1 AND
-                sa.disable_timestamp IS NULL
-            ORDER BY sa.satellite_name",
-            sphere_name
+                (
+                    $2 OR sa.disable_timestamp IS NULL
+                )
+            ORDER BY sa.disable_timestamp DESC NULLS FIRST, sa.satellite_name",
+            sphere_name,
+            include_inactive,
         )
             .fetch_all(db_pool)
             .await?;
@@ -162,7 +169,29 @@ pub mod ssr {
         Ok(satellite)
     }
 
-    pub async fn disable_satellite(
+    pub async fn activate_satellite(
+        satellite_id: i64,
+        user: &User,
+        db_pool: &PgPool
+    ) -> Result<Satellite, AppError> {
+        let sphere = get_satellite_sphere(satellite_id, db_pool).await?;
+        user.check_sphere_permissions_by_name(&sphere.sphere_name, PermissionLevel::Manage)?;
+
+        let satellite = sqlx::query_as!(
+            Satellite,
+            "UPDATE satellites
+            SET disable_timestamp = NULL
+            WHERE satellite_id = $1
+            RETURNING *",
+            satellite_id,
+        )
+            .fetch_one(db_pool)
+            .await?;
+
+        Ok(satellite)
+    }
+
+    pub async fn deactivate_satellite(
         satellite_id: i64,
         user: &User,
         db_pool: &PgPool

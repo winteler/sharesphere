@@ -1,8 +1,8 @@
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_user::user::User;
 
-use sharesphere_core_sphere::satellite::ssr::{create_satellite, disable_satellite, get_satellite_sphere, update_satellite};
-use sharesphere_core_sphere::satellite::ssr::{get_active_satellite_vec_by_sphere_name, get_satellite_by_id};
+use sharesphere_core_sphere::satellite::ssr::{activate_satellite, create_satellite, deactivate_satellite, get_satellite_sphere, update_satellite};
+use sharesphere_core_sphere::satellite::ssr::{get_satellite_vec_by_sphere_name, get_satellite_by_id};
 use sharesphere_core_sphere::sphere::ssr::create_sphere;
 
 pub use crate::common::*;
@@ -47,7 +47,7 @@ async fn test_get_satellite_by_id() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_get_active_satellite_vec_by_sphere_name() -> Result<(), AppError> {
+async fn test_get_satellite_vec_by_sphere_name() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
@@ -57,16 +57,46 @@ async fn test_get_active_satellite_vec_by_sphere_name() -> Result<(), AppError> 
         &mut user,
         &db_pool,
     ).await.expect("Error creating sphere and satellites");
-    
-    let satellite = expected_satellite_vec.pop().expect("Should pop satellite");
-    
-    disable_satellite(satellite.satellite_id, &user, &db_pool).await.expect("Should disable satellite");
 
-    let satellite_vec = get_active_satellite_vec_by_sphere_name(
+    let satellite_vec = get_satellite_vec_by_sphere_name(
         &sphere.sphere_name,
+        false,
         &db_pool
     ).await.expect("Satellite vec should be loaded");
+    assert_eq!(satellite_vec, expected_satellite_vec);
 
+    let satellite_vec = get_satellite_vec_by_sphere_name(
+        &sphere.sphere_name,
+        true,
+        &db_pool
+    ).await.expect("Satellite vec should be loaded");
+    assert_eq!(satellite_vec, expected_satellite_vec);
+
+    let deactivated_satellite = expected_satellite_vec.pop().expect("Should pop satellite");
+    
+    deactivate_satellite(deactivated_satellite.satellite_id, &user, &db_pool).await.expect("Should disable satellite");
+
+    let satellite_vec = get_satellite_vec_by_sphere_name(
+        &sphere.sphere_name,
+        false,
+        &db_pool
+    ).await.expect("Satellite vec should be loaded");
+    assert_eq!(satellite_vec, expected_satellite_vec);
+
+    let satellite_vec = get_satellite_vec_by_sphere_name(
+        &sphere.sphere_name,
+        false,
+        &db_pool
+    ).await.expect("Satellite vec should be loaded");
+    assert_eq!(satellite_vec, expected_satellite_vec);
+
+    let deactivated_satellite = get_satellite_by_id(deactivated_satellite.satellite_id, &db_pool).await.expect("Disabled satellite should be loaded");
+    expected_satellite_vec.push(deactivated_satellite);
+    let satellite_vec = get_satellite_vec_by_sphere_name(
+        &sphere.sphere_name,
+        true,
+        &db_pool
+    ).await.expect("Satellite vec should be loaded");
     assert_eq!(satellite_vec, expected_satellite_vec);
 
     Ok(())
@@ -263,7 +293,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_disable_satellite() -> Result<(), AppError> {
+async fn test_activate_satellite() -> Result<(), AppError> {
     let db_pool = get_db_pool().await;
     let mut user = create_test_user(&db_pool).await;
 
@@ -276,15 +306,62 @@ async fn test_disable_satellite() -> Result<(), AppError> {
         &db_pool,
     ).await.expect("Sphere with satellite should be created");
 
-    let deleted_satellite = disable_satellite(satellite.satellite_id, &user, &db_pool).await.expect("Satellite should be deleted");
+    let activated_satellite = activate_satellite(satellite.satellite_id, &user, &db_pool).await.expect("Should activate satellite without error");
+    assert_eq!(satellite, activated_satellite);
 
-    assert_eq!(deleted_satellite.satellite_name, "1");
-    assert_eq!(deleted_satellite.body, "test");
-    assert_eq!(deleted_satellite.is_nsfw, false);
-    assert_eq!(deleted_satellite.is_spoiler, false);
-    assert!(deleted_satellite.disable_timestamp.is_some_and(|delete_timestamp| delete_timestamp > deleted_satellite.timestamp));
+    let deactivated_satellite = deactivate_satellite(satellite.satellite_id, &user, &db_pool).await.expect("Satellite should be disabled");
 
-    let satellite_vec = get_active_satellite_vec_by_sphere_name(&sphere.sphere_name, &db_pool).await.expect("Should get sphere satellite vec");
+    assert_eq!(deactivated_satellite.satellite_id, satellite.satellite_id);
+    assert_eq!(deactivated_satellite.sphere_id, sphere.sphere_id);
+    assert_eq!(deactivated_satellite.satellite_name, "1");
+    assert!(deactivated_satellite.disable_timestamp.is_some_and(|delete_timestamp| delete_timestamp > deactivated_satellite.timestamp));
+
+    let reactivated_satellite = activate_satellite(satellite.satellite_id, &user, &db_pool).await.expect("Satellite should be reactivated");
+
+    assert_eq!(reactivated_satellite.satellite_id, satellite.satellite_id);
+    assert_eq!(reactivated_satellite.sphere_id, sphere.sphere_id);
+    assert_eq!(reactivated_satellite.satellite_name, "1");
+    assert!(reactivated_satellite.disable_timestamp.is_none());
+
+    let satellite_vec = get_satellite_vec_by_sphere_name(
+        &sphere.sphere_name,
+        false,
+        &db_pool,
+    ).await.expect("Should get sphere satellite vec");
+
+    assert_eq!(satellite_vec.len(), 1);
+    assert_eq!(satellite_vec.first(), Some(&reactivated_satellite));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_deactivate_satellite() -> Result<(), AppError> {
+    let db_pool = get_db_pool().await;
+    let mut user = create_test_user(&db_pool).await;
+
+    let (sphere, satellite) = create_sphere_with_satellite(
+        "1",
+        "1",
+        false,
+        false,
+        &mut user,
+        &db_pool,
+    ).await.expect("Sphere with satellite should be created");
+
+    let deactivated_satellite = deactivate_satellite(satellite.satellite_id, &user, &db_pool).await.expect("Satellite should be disabled");
+
+    assert_eq!(deactivated_satellite.satellite_name, "1");
+    assert_eq!(deactivated_satellite.body, "test");
+    assert_eq!(deactivated_satellite.is_nsfw, false);
+    assert_eq!(deactivated_satellite.is_spoiler, false);
+    assert!(deactivated_satellite.disable_timestamp.is_some_and(|delete_timestamp| delete_timestamp > deactivated_satellite.timestamp));
+
+    let satellite_vec = get_satellite_vec_by_sphere_name(
+        &sphere.sphere_name,
+        false,
+        &db_pool,
+    ).await.expect("Should get sphere satellite vec");
 
     assert!(satellite_vec.is_empty());
 

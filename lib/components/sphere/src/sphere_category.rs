@@ -43,7 +43,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                 <div class="w-full flex flex-col">
                     <div class="border-b border-base-content/20">
                         <div class="w-19/20 flex gap-1 p-1">
-                            <div class="w-3/12 py-2 lg:pl-2 font-bold">{move_tr!("category")}</div>
+                            <div class="w-3/12 p-2 font-bold">{move_tr!("category")}</div>
                             <div class="w-12 lg:w-16 py-2 flex justify-center font-bold">{move_tr!("color")}</div>
                             <div class="w-3/6 py-2 font-bold">{move_tr!("description")}</div>
                             <div class="w-7 lg:w-16 py-2 font-bold lg:text-center">
@@ -51,7 +51,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 pt-1">
                         <TransitionUnpack resource=sphere_state.sphere_categories_resource let:sphere_category_vec>
                         {
                             sphere_category_vec.iter().map(|sphere_category| {
@@ -64,7 +64,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                         class="flex justify-between items-center lg:gap-1"
                                     >
                                         <div
-                                            class="w-19/20 flex items-center gap-1 p-1 rounded-sm hover:bg-base-content/20 active:scale-95 transition duration-250"
+                                            class="w-19/20 flex items-center gap-1 p-1 rounded-sm hover:bg-base-content/20 active:scale-y-90 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
                                                 color_input.set(color);
@@ -79,7 +79,7 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                                 activated_input.set(is_active);
                                             }
                                         >
-                                            <div class="w-3/12 lg:pl-2 select-none text-sm">{category_name.clone()}</div>
+                                            <div class="w-3/12 px-2 py-1 select-none text-sm">{category_name.clone()}</div>
                                             <div class="w-12 lg:w-16 flex justify-center"><ColorIndicator color/></div>
                                             <div class="w-3/6 select-none whitespace-pre-wrap text-sm">{description.clone()}</div>
                                             <div class="w-7 lg:w-16 flex justify-center">
@@ -156,7 +156,7 @@ pub fn SetCategoryForm(
                     <button
                         type="submit"
                         disabled=disable_submit
-                        class="button-secondary self-center "
+                        class="button-secondary self-center"
                     >
                         <SaveIcon/>
                     </button>

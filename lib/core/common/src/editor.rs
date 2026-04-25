@@ -24,7 +24,6 @@ pub enum FormatType {
     BlockQuote,
     Link,
     Image,
-    NewLine,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -48,7 +47,6 @@ impl FormatType {
             FormatType::BlockQuote => move_tr!("block_quote"),
             FormatType::Link => move_tr!("link"),
             FormatType::Image => move_tr!("image"),
-            FormatType::NewLine => move_tr!("new_line"),
         }
     }
 }
@@ -72,9 +70,10 @@ pub mod ssr {
 pub fn get_styled_html_from_markdown(
     markdown_input: &str,
 ) -> Result<String, AppError> {
-    let html_from_markdown =
-        markdown::to_html_with_options(markdown_input, &Options::gfm())
-            .or_else(|e| Err(AppError::new(e)))?;
+    let html_from_markdown = markdown::to_html_with_options(
+        markdown_input,
+        &Options::gfm()
+    ).map_err(AppError::new)?;
     log::debug!("Markdown as html: {html_from_markdown}");
 
     // Add styling, will be done by parsing the html which is a bit ugly. Would be better
@@ -86,35 +85,45 @@ pub fn get_styled_html_from_markdown(
 pub fn style_html_user_content(user_content: &str) -> Result<String, AppError> {
     let mut reader = Reader::from_str(user_content);
     let mut writer = Writer::new(Cursor::new(Vec::new()));
+    let mut is_in_block = false;
 
     loop {
         match reader.read_event() {
             Ok(Event::Start(e)) => {
-                let mut elem = e.clone().into_owned();
-
+                let mut elem = e.into_owned();
                 match elem.name().as_ref() {
-                    b"h1" => elem.push_attribute(("class", "text-4xl my-2")),
-                    b"h2" => elem.push_attribute(("class", "text-2xl my-2")),
-                    b"h3" => elem.push_attribute(("class", "text-xl my-2")),
+                    b"h1" => elem.push_attribute(("class", "text-4xl mb-3")),
+                    b"h2" => elem.push_attribute(("class", "text-2xl mb-3")),
+                    b"h3" => elem.push_attribute(("class", "text-xl mb-2.5")),
+                    b"p" if !is_in_block => elem.push_attribute(("class", "mb-2.5")),
                     b"a" => elem.push_attribute(("class", "link text-primary")),
-                    b"ul" => elem.push_attribute(("class", "list-inside list-disc")),
-                    b"ol" => elem.push_attribute(("class", "list-inside list-decimal")),
+                    b"ul" => elem.push_attribute(("class", "list-inside list-disc mb-2.5")),
+                    b"ol" => elem.push_attribute(("class", "list-inside list-decimal mb-2.5")),
                     b"code" => {
-                        elem.push_attribute(("class", "block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5"))
+                        elem.push_attribute(("class", "block w-fit rounded-md bg-black px-1 py-0.5 mx-0.5 mb-2.5"))
                     }
-                    b"table" => elem.push_attribute(("class", "table")),
-                    b"blockquote" => elem.push_attribute((
-                        "class",
-                        "w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600",
-                    )),
+                    b"table" => elem.push_attribute(("class", "table mb-2.5")),
+                    b"blockquote" => {
+                        is_in_block = true;
+                        elem.push_attribute((
+                            "class",
+                            "w-fit p-1 mb-2.5 border-s-4 rounded-sm border-slate-400 bg-slate-600",
+                        ))
+                    },
                     _ => (),
                 }
 
                 // writes the event to the writer
                 writer.write_event(Event::Start(elem))?;
             }
+            Ok(Event::End(e)) => {
+                if e.name().as_ref() == b"blockquote" {
+                    is_in_block = false;
+                }
+                writer.write_event(Event::End(e))?;
+            }
             Ok(Event::Empty(e)) => {
-                let mut elem = e.clone().into_owned();
+                let mut elem = e.into_owned();
 
                 if elem.name().as_ref() == b"hr" {
                     elem.push_attribute(("class", "my-2"))
@@ -205,8 +214,8 @@ pub fn format_textarea_content(
             2
         },
         FormatType::Italic => {
-            content.insert_str(selection_end, "*");
-            content.insert_str(selection_start, "*");
+            content.insert(selection_end, '*');
+            content.insert(selection_start, '*');
             1
         },
         FormatType::Strikethrough => {
@@ -252,10 +261,7 @@ pub fn format_textarea_content(
             1
         },
         FormatType::Link => {
-            content.insert_str(
-                selection_end,
-                ")",
-            );
+            content.insert(selection_end, ')');
             content.insert_str(
                 selection_start,
                 "[link text](",
@@ -270,23 +276,13 @@ pub fn format_textarea_content(
             2
         },
         FormatType::Image => {
-            content.insert_str(
-                selection_end,
-                ")",
-            );
+            content.insert(selection_end, ')');
             content.insert_str(
                 selection_start,
                 "![](",
             );
             2
         },
-        FormatType::NewLine => {
-            content.insert_str(
-                selection_start,
-                "\\\n\\\n",
-            );
-            4
-        }
     };
 
     (
@@ -297,7 +293,7 @@ pub fn format_textarea_content(
 }
 
 /// Given the input String, returns the starting byte index of the line containing the [position] byte index.
-fn get_line_start_for_position(string: &String, position: usize) -> usize {
+fn get_line_start_for_position(string: &str, position: usize) -> usize {
     match string[..position].rfind('\n') {
         Some(line_start) => line_start + 1,
         None => 0,
@@ -342,8 +338,8 @@ mod tests {
     use crate::editor::ssr::get_html_and_markdown_strings;
     use crate::editor::{format_textarea_content, get_styled_html_from_markdown, style_html_user_content, FormatType};
 
-    #[tokio::test]
-    async fn test_get_html_and_markdown_strings() -> Result<(), ServerFnError> {
+    #[test]
+    fn test_get_html_and_markdown_strings() -> Result<(), ServerFnError> {
         let text_body = "hello world";
         let markdown_body = "#this is a header";
         
@@ -359,7 +355,7 @@ mod tests {
             true
         ).expect("Should get text body");
         assert_eq!(html_markdown_body, get_styled_html_from_markdown(markdown_body).expect("Should get html body"));
-        assert_eq!(markdown_markdown_body.as_deref(), Some(markdown_body));
+        assert_eq!(markdown_markdown_body, Some(markdown_body));
         
         Ok(())
     }
@@ -368,15 +364,15 @@ mod tests {
     fn test_style_html_user_content() -> Result<(), ServerFnError> {
         assert_eq!(
             style_html_user_content("<h1></h1>")?,
-            r#"<h1 class="text-4xl my-2"></h1>"#
+            r#"<h1 class="text-4xl mb-3"></h1>"#
         );
         assert_eq!(
             style_html_user_content("<h2></h2>")?,
-            r#"<h2 class="text-2xl my-2"></h2>"#
+            r#"<h2 class="text-2xl mb-3"></h2>"#
         );
         assert_eq!(
             style_html_user_content("<h3></h3>")?,
-            r#"<h3 class="text-xl my-2"></h3>"#
+            r#"<h3 class="text-xl mb-2.5"></h3>"#
         );
         assert_eq!(
             style_html_user_content("<a></a>")?,
@@ -384,34 +380,34 @@ mod tests {
         );
         assert_eq!(
             style_html_user_content("<ul></ul>")?,
-            r#"<ul class="list-inside list-disc"></ul>"#
+            r#"<ul class="list-inside list-disc mb-2.5"></ul>"#
         );
         assert_eq!(
             style_html_user_content("<ol></ol>")?,
-            r#"<ol class="list-inside list-decimal"></ol>"#
+            r#"<ol class="list-inside list-decimal mb-2.5"></ol>"#
         );
         assert_eq!(
             style_html_user_content("<code></code>")?,
-            r#"<code class="block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5"></code>"#
+            r#"<code class="block w-fit rounded-md bg-black px-1 py-0.5 mx-0.5 mb-2.5"></code>"#
         );
         assert_eq!(
             style_html_user_content("<table></table>")?,
-            r#"<table class="table"></table>"#
+            r#"<table class="table mb-2.5"></table>"#
         );
         assert_eq!(
             style_html_user_content("<blockquote></blockquote>")?,
-            r#"<blockquote class="w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600"></blockquote>"#
+            r#"<blockquote class="w-fit p-1 mb-2.5 border-s-4 rounded-sm border-slate-400 bg-slate-600"></blockquote>"#
         );
         assert_eq!(style_html_user_content("<hr/>")?, r#"<hr class="my-2"/>"#);
         assert_eq!(
             style_html_user_content("<p>Test, || This is a spoiler || this is not a spoiler</p>")?,
-            r#"<p>Test, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">This is a spoiler</span></label> this is not a spoiler</p>"#
+            r#"<p class="mb-2.5">Test, <label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">This is a spoiler</span></label> this is not a spoiler</p>"#
         );
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_get_styled_html_from_markdown() -> Result<(), ServerFnError> {
+    #[test]
+    fn test_get_styled_html_from_markdown() -> Result<(), ServerFnError> {
         let markdown = indoc! {r#"
             # Here is a comment with markdown
             ## header 2
@@ -420,9 +416,9 @@ mod tests {
             ---
         "#};
         let expected_html = indoc! {r#"
-            <h1 class="text-4xl my-2">Here is a comment with markdown</h1>
-            <h2 class="text-2xl my-2">header 2</h2>
-            <h3 class="text-xl my-2">header 3</h3>
+            <h1 class="text-4xl mb-3">Here is a comment with markdown</h1>
+            <h2 class="text-2xl mb-3">header 2</h2>
+            <h3 class="text-xl mb-2.5">header 3</h3>
             <h4>header 4</h4>
             <hr  class="my-2"/>
         "#};
@@ -435,7 +431,7 @@ mod tests {
             `code blocks`
         "#};
         let expected_html = indoc! {r#"
-            <p><code class="block w-fit rounded-md bg-black p-0.5 px-1 mx-0.5">code blocks</code></p>
+            <p class="mb-2.5"><code class="block w-fit rounded-md bg-black px-1 py-0.5 mx-0.5 mb-2.5">code blocks</code></p>
         "#};
         assert_eq!(
             get_styled_html_from_markdown(markdown)?,
@@ -446,7 +442,7 @@ mod tests {
             || Spoilers ||
         "#};
         let expected_html = indoc! {r#"
-            <p><label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">Spoilers</span></label></p>
+            <p class="mb-2.5"><label><input type="checkbox" class="spoiler-checkbox hidden"/><span class="transition-all duration-300 ease-in-out rounded-md bg-white p-0.5 px-1 mx-0.5 text-white spoiler-text">Spoilers</span></label></p>
         "#};
         assert_eq!(
             get_styled_html_from_markdown(markdown)?,
@@ -457,7 +453,7 @@ mod tests {
             **bold**, *italic*, combined emphasis with **asterisks and _underscores_**.
         "#};
         let expected_html = indoc! {r#"
-            <p><strong>bold</strong>, <em>italic</em>, combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p>
+            <p class="mb-2.5"><strong>bold</strong>, <em>italic</em>, combined emphasis with <strong>asterisks and <em>underscores</em></strong>.</p>
         "#};
         assert_eq!(
             get_styled_html_from_markdown(markdown)?,
@@ -468,7 +464,7 @@ mod tests {
             Strikethrough uses two tildes. ~~Scratch this.~~
         "#};
         let expected_html = indoc! {r#"
-            <p>Strikethrough uses two tildes. <del>Scratch this.</del></p>
+            <p class="mb-2.5">Strikethrough uses two tildes. <del>Scratch this.</del></p>
         "#};
         assert_eq!(
             get_styled_html_from_markdown(markdown)?,
@@ -479,7 +475,7 @@ mod tests {
             > We can also do blockquotes
         "#};
         let expected_html = indoc! {r#"
-            <blockquote class="w-fit p-1 my-1 border-s-4 rounded-sm border-slate-400 bg-slate-600">
+            <blockquote class="w-fit p-1 mb-2.5 border-s-4 rounded-sm border-slate-400 bg-slate-600">
             <p>We can also do blockquotes</p>
             </blockquote>
         "#};
@@ -497,11 +493,11 @@ mod tests {
             * and as many elements as we want
         "#};
         let expected_html = indoc! {r#"
-            <ol class="list-inside list-decimal">
+            <ol class="list-inside list-decimal mb-2.5">
             <li>lists</li>
             <li>with numbers</li>
             </ol>
-            <ul class="list-inside list-disc">
+            <ul class="list-inside list-disc mb-2.5">
             <li>lists</li>
             <li>without numbers</li>
             <li>and as many elements as we want</li>
@@ -517,7 +513,7 @@ mod tests {
             Also, a bit more work is needed to add an empty line.
         "#};
         let expected_html = indoc! {r#"
-            <p><br />
+            <p class="mb-2.5"><br />
             Also, a bit more work is needed to add an empty line.</p>
         "#};
         assert_eq!(
@@ -529,7 +525,7 @@ mod tests {
             Finally, we can add links [link text](https://www.example.com), images ![alt text](https://github.com/adam-p/markdown-here/raw/master/src/utils/images/icon48.png "Logo Title Text 1")
         "#};
         let expected_html = indoc! {r#"
-            <p>Finally, we can add links <a href="https://www.example.com" class="link text-primary">link text</a>, images <img src="https://github.com/adam-p/markdown-here/raw/master/src/utils/images/icon48.png" alt="alt text" title="Logo Title Text 1" /></p>
+            <p class="mb-2.5">Finally, we can add links <a href="https://www.example.com" class="link text-primary">link text</a>, images <img src="https://github.com/adam-p/markdown-here/raw/master/src/utils/images/icon48.png" alt="alt text" title="Logo Title Text 1" /></p>
         "#};
         assert_eq!(
             get_styled_html_from_markdown(markdown)?,
@@ -544,7 +540,7 @@ mod tests {
             | zebra stripes | are neat      |    $1 |
         "#};
         let expected_html = indoc! {r#"
-            <table class="table">
+            <table class="table mb-2.5">
             <thead>
             <tr>
             <th>Tables</th>
@@ -579,8 +575,8 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_format_textarea_content() {
+    #[test]
+    fn test_format_textarea_content() {
         // Bold
         let mut content = String::from("This is some user text ");
         let cursor_position = format_textarea_content(&mut content, 23, 23, FormatType::Bold);
@@ -712,10 +708,5 @@ mod tests {
         let cursor_position = format_textarea_content(&mut content, 8, 12, FormatType::Image);
         assert_eq!(cursor_position, Some(10));
         assert_eq!(content, "This is ![](some) user text ");
-
-        let mut content = String::from("This is some user text ");
-        let cursor_position = format_textarea_content(&mut content, 8, 8, FormatType::NewLine);
-        assert_eq!(cursor_position, Some(12));
-        assert_eq!(content, "This is \\\n\\\nsome user text ");
     }
 }

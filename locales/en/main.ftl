@@ -171,7 +171,6 @@ numbered_list = Numbered list
 code_block = Code block
 block_quote = Quote
 image = Image
-new_line = New line
 
 sharesphere-right-sidebar-1 =
     ShareSphere is the place to exchange with other people about your hobbies, news, art, jokes and many more topics.

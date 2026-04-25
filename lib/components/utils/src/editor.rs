@@ -25,7 +25,6 @@ impl ToView for FormatType {
             FormatType::BlockQuote => view!{ <QuoteIcon/> }.into_any(),
             FormatType::Link => view!{ <LinkIcon/> }.into_any(),
             FormatType::Image => view!{ <ImageIcon/> }.into_any(),
-            FormatType::NewLine => view!{ <NewLineIcon/> }.into_any(),
         }
     }
 }
@@ -290,7 +289,6 @@ pub fn FormMarkdownEditor(
                         <FormatButton format_type=FormatType::BlockQuote data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Link data is_markdown_mode/>
                         <FormatButton format_type=FormatType::Image data is_markdown_mode hide_for_mobile=true/>
-                        <FormatButton format_type=FormatType::NewLine data is_markdown_mode hide_for_mobile=true/>
                     </div>
                     <MarkdownHelpButton/>
                 </div>

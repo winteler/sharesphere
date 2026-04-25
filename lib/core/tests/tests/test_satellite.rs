@@ -165,7 +165,7 @@ async fn test_create_satellite() -> Result<(), AppError> {
     ).await.expect("Satellite 1 should be created");
 
     assert_eq!(satellite_1.satellite_name, "1");
-    assert_eq!(satellite_1.body, "<p>1</p>");
+    assert_eq!(satellite_1.body, "<p class=\"mb-2.5\">1</p>");
     assert_eq!(satellite_1.markdown_body.as_deref(), Some("1"));
     assert_eq!(satellite_1.is_nsfw, false);
     assert_eq!(satellite_1.is_spoiler, true);
@@ -264,7 +264,7 @@ async fn test_update_satellite() -> Result<(), AppError> {
 
     assert_eq!(updated_satellite_1.satellite_id, satellite_1.satellite_id);
     assert_eq!(updated_satellite_1.satellite_name, "a");
-    assert_eq!(updated_satellite_1.body, "<p>a</p>");
+    assert_eq!(updated_satellite_1.body, "<p class=\"mb-2.5\">a</p>");
     assert_eq!(updated_satellite_1.markdown_body.as_deref(), Some("a"));
     assert_eq!(updated_satellite_1.is_nsfw, false);
     assert_eq!(updated_satellite_1.is_spoiler, true);

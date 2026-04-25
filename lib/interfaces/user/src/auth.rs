@@ -55,7 +55,7 @@ pub async fn authenticate_user(auth_code: String) -> Result<(), AppError> {
     validate_redirect_url(&redirect_url)?;
 
     if let Some(user) = auth_session.current_user {
-        log::info!("User {} was already authenticated", user.username);
+        log::debug!("User {} was already authenticated", user.username);
     } else {
         let http_client = get_oidc_http_client()?;
         let client = ssr::get_oidc_client(&http_client).await?;

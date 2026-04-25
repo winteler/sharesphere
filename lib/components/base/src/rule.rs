@@ -45,8 +45,8 @@ pub fn RuleList(
         let description = get_rule_description(&rule.title, &rule.description, is_sphere_rule);
         let title_view = move || view! {
             <div class="flex gap-2">
-                <div class="text-semibold">{format!("{}.", index+1)}</div>
-                <div class="text-left text-semibold">{title}</div>
+                <div class="font-semibold">{format!("{}.", index+1)}</div>
+                <div class="text-left font-semibold">{title}</div>
             </div>
         };
         view! {

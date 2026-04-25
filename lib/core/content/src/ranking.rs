@@ -105,25 +105,29 @@ pub mod ssr {
             } else if vote_value != VoteValue::None {
                 log::debug!("Update vote {vote_id} with value {vote_value:?}");
                 let vote = sqlx::query_as!(
-                        Vote,
-                        "UPDATE votes SET value = $1
-                        WHERE
-                            vote_id = $2 AND
-                            post_id = $3 AND
-                            comment_id IS NOT DISTINCT FROM $4 AND
-                            user_id = $5 AND
-                            NOT EXISTS (
-                                SELECT * FROM user_bans b
-                                JOIN posts p ON p.sphere_id = b.sphere_id
-                                WHERE p.post_id = $3 AND b.user_id = $5
-                            )
-                        RETURNING *",
-                        vote_value as i16,
-                        vote_id,
-                        post_id,
-                        comment_id,
-                        user.user_id,
-                    )
+                    Vote,
+                    "UPDATE votes SET value = $1
+                    WHERE
+                        vote_id = $2 AND
+                        post_id = $3 AND
+                        comment_id IS NOT DISTINCT FROM $4 AND
+                        user_id = $5 AND
+                        NOT EXISTS (
+                            SELECT * FROM user_bans b
+                            JOIN posts p ON p.sphere_id = b.sphere_id
+                            WHERE
+                                p.post_id = $3 AND
+                                b.user_id = $5 AND
+                                b.delete_timestamp IS NULL AND
+                                (b.until_timestamp <= NOW() OR b.until_timestamp IS NULL)
+                        )
+                    RETURNING *",
+                    vote_value as i16,
+                    vote_id,
+                    post_id,
+                    comment_id,
+                    user.user_id,
+                )
                     .fetch_one(db_pool)
                     .await?;
                 (current_vote.value, Some(vote))
@@ -143,21 +147,25 @@ pub mod ssr {
                 (current_vote.value, None)
             }
         } else {
-            log::debug!("Create vote for post {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
+            log::debug!("Create vote for content {post_id}, comment {comment_id:?}, user {} with value {vote_value:?}", user.user_id);
             let vote = sqlx::query_as!(
-                    Vote,
-                    "INSERT INTO votes (post_id, comment_id, user_id, value) 
-                    SELECT $1, $2, $3, $4
-                    WHERE NOT EXISTS (
-                        SELECT * FROM user_bans b
-                        JOIN posts p ON p.sphere_id = b.sphere_id
-                        WHERE p.post_id = $1 AND b.user_id = $3
-                    ) RETURNING *",
-                    post_id,
-                    comment_id,
-                    user.user_id,
-                    vote_value as i16,
-                )
+                Vote,
+                "INSERT INTO votes (post_id, comment_id, user_id, value)
+                SELECT $1, $2, $3, $4
+                WHERE NOT EXISTS (
+                    SELECT * FROM user_bans b
+                    JOIN posts p ON p.sphere_id = b.sphere_id
+                    WHERE
+                        p.post_id = $1 AND
+                        b.user_id = $3 AND
+                        b.delete_timestamp IS NULL AND
+                        (b.until_timestamp <= NOW() OR b.until_timestamp IS NULL)
+                ) RETURNING *",
+                post_id,
+                comment_id,
+                user.user_id,
+                vote_value as i16,
+            )
                 .fetch_one(db_pool)
                 .await?;
             (VoteValue::None, Some(vote))

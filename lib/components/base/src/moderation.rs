@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_fluent::{move_tr, tr};
+use leptos_fluent::{move_tr};
 
 use sharesphere_core_content::moderation::Content;
 use sharesphere_core_sphere::rule::{get_rule_description, get_rule_title};
@@ -16,14 +16,15 @@ pub fn ModeratedBody(
 ) -> impl IntoView {
     let infringed_rule_title = get_rule_title(&infringed_rule_title, is_sphere_rule);
     view! {
-        <div class="flex items-stretch w-fit">
-            <div class="flex justify-center items-center p-2 rounded-l bg-base-content/20">
+        <div class="flex">
+            <div class="shrink-0 flex justify-center items-center p-2 rounded-l bg-base-content/20">
                 <HammerIcon/>
             </div>
-            <div class="p-2 rounded-r bg-base-300 whitespace-pre text-wrap align-middle">
-                <div class="flex flex-col gap-1">
-                    <div>{moderator_message}</div>
-                    <div>{move || format!("{}: {}", tr!("infringed-rule"), infringed_rule_title.read())}</div>
+            <div class="p-2 rounded-r bg-base-300">
+                <div class="w-full flex flex-col">
+                    <div class="max-w-full whitespace-normal break-words">{moderator_message}</div>
+                    <div class="font-semibold pt-1">{move_tr!("infringed-rule")}</div>
+                    <div class="max-w-full whitespace-normal break-words">{infringed_rule_title}</div>
                 </div>
             </div>
         </div>

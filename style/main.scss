@@ -3047,11 +3047,11 @@
   .wrap-anywhere {
     overflow-wrap: anywhere;
   }
+  .whitespace-normal {
+    white-space: normal;
+  }
   .whitespace-nowrap {
     white-space: nowrap;
-  }
-  .whitespace-pre {
-    white-space: pre;
   }
   .whitespace-pre-wrap {
     white-space: pre-wrap;
@@ -3318,9 +3318,19 @@
       translate: var(--tw-translate-x) var(--tw-translate-y);
     }
   }
+  .max-lg\:flex-col {
+    @media (width < 64rem) {
+      flex-direction: column;
+    }
+  }
   .max-lg\:items-center {
     @media (width < 64rem) {
       align-items: center;
+    }
+  }
+  .max-lg\:gap-1 {
+    @media (width < 64rem) {
+      gap: calc(var(--spacing) * 1);
     }
   }
   .max-lg\:checkbox-sm {
@@ -3419,6 +3429,16 @@
   .lg\:grid-cols-4 {
     @media (width >= 64rem) {
       grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .lg\:items-center {
+    @media (width >= 64rem) {
+      align-items: center;
+    }
+  }
+  .lg\:justify-between {
+    @media (width >= 64rem) {
+      justify-content: space-between;
     }
   }
   .lg\:justify-start {

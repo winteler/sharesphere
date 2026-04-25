@@ -193,10 +193,10 @@ pub fn RuleSelect(
 ) -> impl IntoView {
     let sphere_state = expect_context::<SphereState>();
     view! {
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col gap-1 w-full">
             <span class="text-xl font-semibold">{move_tr!("infringed-rule")}</span>
             <select
-                class="select_input"
+                class="select_input max-w-full"
                 name=name
             >
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:rules_vec>

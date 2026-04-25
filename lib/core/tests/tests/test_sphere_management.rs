@@ -2,7 +2,10 @@ use object_store::memory::InMemory;
 use object_store::ObjectStoreExt;
 use sharesphere_core_common::constants::{IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
 use sharesphere_core_common::errors::AppError;
+use sharesphere_core_content::comment::ssr::create_comment_with_notif;
 use sharesphere_core_content::moderation::ssr::{ban_user_from_sphere};
+use sharesphere_core_content::post::{PostDataInputs, PostLocation};
+use sharesphere_core_content::post::ssr::create_post_and_vote;
 use sharesphere_core_sphere::rule::ssr::add_rule;
 use sharesphere_core_sphere::sphere::ssr::{create_sphere, get_sphere_by_name};
 use sharesphere_core_sphere::sphere_management::ssr::{delete_sphere_image, get_sphere_ban_vec, remove_user_ban, set_sphere_banner_url, set_sphere_icon_url, set_sphere_image, store_sphere_image, SphereImageType, MAX_ICON_SIZE};
@@ -100,6 +103,26 @@ async fn test_remove_user_ban() -> Result<(), AppError> {
 
     let banned_user_vec = get_sphere_ban_vec(&sphere.sphere_name, "", &db_pool).await.expect("Should load sphere bans");
     assert!(banned_user_vec.is_empty());
+
+    // Check user can again create posts and comments
+    let (post, _, _) = create_post_and_vote(
+        PostLocation {
+            sphere: sphere.sphere_name.clone(),
+            satellite_id: None,
+        },
+        PostDataInputs {
+            title: "a".to_string(),
+            body: "b".to_string(),
+            is_markdown: false,
+            embed_type: Default::default(),
+            link: None,
+            post_tags: Default::default(),
+        },
+        &banned_user_1,
+        &db_pool,
+    ).await.expect("Should create post and vote");
+
+    create_comment_with_notif(post.post_id, None, "c", false, false, &banned_user_1, &db_pool).await.expect("Should create comment");
 
     let ban_user_1 = ban_user_from_sphere(
         banned_user_1.user_id,

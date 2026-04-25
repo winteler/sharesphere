@@ -56,10 +56,10 @@ pub fn ColorSelect(
             {label_view}
             <div class="h-full w-full relative">
                 <div
-                    class="h-full flex items-center lg:gap-1 pr-2 hover:bg-base-content/20 input_border_primary"
+                    class="h-full flex justify-evenly items-center lg:gap-1 hover:bg-base-content/20 input_border_primary"
                     on:click=move |_| show_dropdown.update(|value| *value = !*value)
                 >
-                    <div class="px-2 py-1 h-fit w-fit">
+                    <div class="p-1 h-fit w-fit">
                         <ColorIndicator color=color_input/>
                     </div>
                     <RotatingArrow point_up=show_dropdown class="h-2 w-2"/>

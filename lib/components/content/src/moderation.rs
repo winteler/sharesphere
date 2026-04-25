@@ -292,7 +292,7 @@ pub fn ModerationInfoButton(
                     class=button_class
                     on:click=move |_| show_dialog.update(|value| *value = !*value)
                 >
-                    <MagnifierIcon/>
+                    <MagnifierIcon class="content-toolbar-icon-size"/>
                 </button>
                 <ModalDialog
                     class="w-full max-w-xl"

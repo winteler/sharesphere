@@ -42,12 +42,14 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                 <div class="text-xl text-center">{move_tr!("sphere-categories")}</div>
                 <div class="w-full flex flex-col">
                     <div class="border-b border-base-content/20">
-                        <div class="w-19/20 flex gap-1 p-1">
-                            <div class="w-3/12 p-2 font-bold">{move_tr!("category")}</div>
-                            <div class="w-12 lg:w-16 py-2 flex justify-center font-bold">{move_tr!("color")}</div>
-                            <div class="w-3/6 py-2 font-bold">{move_tr!("description")}</div>
-                            <div class="w-7 lg:w-16 py-2 font-bold lg:text-center">
-                                <div class="max-lg:hidden">{move_tr!("active")}</div>
+                        <div class="w-19/20 flex items-center gap-1">
+                            <div class="w-3/10 lg:w-1/3 px-1 py-2 font-bold">{move_tr!("category")}</div>
+                            <div class="w-12 lg:w-20 py-2 font-bold text-center">
+                                <div class="max-lg:hidden">{move_tr!("color")}</div>
+                            </div>
+                            <div class="w-1/3 lg:w-2/5 px-1 py-2 font-bold">{move_tr!("description")}</div>
+                            <div class="w-16 py-2 font-bold lg:text-center max-lg:hidden">
+                                <div>{move_tr!("active")}</div>
                             </div>
                         </div>
                     </div>
@@ -61,10 +63,10 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                 let is_active = sphere_category.is_active;
                                 view! {
                                     <div
-                                        class="flex justify-between items-center lg:gap-1"
+                                        class="flex justify-between items-center"
                                     >
                                         <div
-                                            class="w-19/20 flex items-center gap-1 p-1 rounded-sm hover:bg-base-content/20 active:scale-y-90 transition duration-250"
+                                            class="w-19/20 flex items-center gap-1 py-1 rounded-sm hover:bg-base-content/20 active:scale-y-90 transition duration-250"
                                             on:click=move |_| {
                                                 category_input.set(category_name.clone());
                                                 color_input.set(color);
@@ -79,13 +81,13 @@ pub fn SphereCategoriesDialog() -> impl IntoView {
                                                 activated_input.set(is_active);
                                             }
                                         >
-                                            <div class="w-3/12 px-2 py-1 select-none text-sm">{category_name.clone()}</div>
-                                            <div class="w-12 lg:w-16 flex justify-center"><ColorIndicator color/></div>
-                                            <div class="w-3/6 select-none whitespace-pre-wrap text-sm">{description.clone()}</div>
+                                            <div class="w-3/10 lg:w-1/3 px-2 py-1 select-none text-sm">{category_name.clone()}</div>
+                                            <div class="w-12 lg:w-20 flex justify-center"><ColorIndicator color/></div>
+                                            <div class="w-1/3 lg:w-2/5 px-2 select-none whitespace-pre-wrap text-sm">{description.clone()}</div>
                                             <div class="w-7 lg:w-16 flex justify-center">
                                             {
                                                 match is_active {
-                                                    true => view! { <PlayIcon/> }.into_any(),
+                                                    true => view! { <div class="bg-secondary rounded-full p-1 lg:p-1.5"><PlayIcon/></div> }.into_any(),
                                                     false => view! { <PauseIcon/> }.into_any(),
                                                 }
                                             }
@@ -127,23 +129,23 @@ pub fn SetCategoryForm(
                     class="hidden"
                     value=sphere_name
                 />
-                <div class="w-full flex gap-1 justify-between items-stretch">
-                    <div class="w-19/20 flex items-center gap-1 lg:p-1">
+                <div class="w-full py-1 flex justify-between">
+                    <div class="w-19/20 flex items-center gap-1">
                         <LengthLimitedInput
                             name="category_name"
                             placeholder=move_tr!("category")
                             content=category_input
-                            class="w-3/12 text-sm"
+                            class="w-3/10 lg:w-1/3 text-sm"
                             minlength=Some(1)
                             maxlength=Some(MAX_CATEGORY_NAME_LENGTH)
                             textarea_ref=name_textarea_ref
                         />
-                        <ColorSelect name="category_color" color_input class="h-full w-12 lg:w-16 flex justify-center"/>
+                        <ColorSelect name="category_color" color_input class="h-full w-12 lg:w-20 flex justify-center"/>
                         <FormTextEditor
                             name="description"
                             placeholder=move_tr!("description")
                             data=description_data
-                            class="w-3/6"
+                            class="w-1/3 lg:w-2/5"
                             maxlength=Some(MAX_CATEGORY_DESCRIPTION_LENGTH)
                         />
                         <FormCheckbox

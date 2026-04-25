@@ -1,4 +1,3 @@
-use chrono::SecondsFormat;
 use leptos::ev::{Event, SubmitEvent};
 use leptos::html;
 use leptos::prelude::*;
@@ -304,8 +303,8 @@ pub fn ModeratorPanel() -> impl IntoView {
             <div class="text-xl text-center">{move_tr!("moderators")}</div>
             <div class="w-full flex flex-col gap-1">
                 <div class="flex gap-1 border-b border-base-content/20">
-                    <div class="w-3/5 p-2 text-left font-bold">{move_tr!("username")}</div>
-                    <div class="w-2/5 p-2 text-left font-bold">{move_tr!("role")}</div>
+                    <div class="w-2/5 lg:w-1/2 p-2 text-left font-bold">{move_tr!("username")}</div>
+                    <div class="w-1/4 p-2 text-left font-bold">{move_tr!("role")}</div>
                 </div>
                 <TransitionUnpack resource=sphere_state.sphere_roles_resource let:sphere_role_vec>
                 {
@@ -323,8 +322,8 @@ pub fn ModeratorPanel() -> impl IntoView {
                                     };
                                 }
                             >
-                                <div class="w-3/5 px-2 text-sm select-none">{role.username.clone()}</div>
-                                <div class="w-2/5 px-2 text-sm select-none">{role.permission_level.to_string()}</div>
+                                <div class="w-2/5 lg:w-1/2 px-2 text-sm select-none">{role.username.clone()}</div>
+                                <div class="w-1/4 px-2 text-sm select-none">{role.permission_level.to_string()}</div>
                             </div>
                         }
                     }).collect_view()
@@ -371,7 +370,7 @@ pub fn PermissionLevelForm(
                     value=sphere_name
                 />
                 <div class="w-full flex gap-1 items-center">
-                    <div class="dropdown w-3/5">
+                    <div class="dropdown w-2/5 lg:w-1/2">
                         <LengthLimitedInput
                             name="username"
                             placeholder={move_tr!("username")}
@@ -464,7 +463,7 @@ pub fn BanPanel() -> impl IntoView {
                 {
                     banned_user_vec.iter().map(|user_ban| {
                         let duration_string = match user_ban.until_timestamp {
-                            Some(until_timestamp) => until_timestamp.to_rfc3339_opts(SecondsFormat::Secs, true).into(),
+                            Some(until_timestamp) => until_timestamp.format("%Y-%m-%d %H:%M UTC").to_string().into(),
                             None => move_tr!("permanent"),
                         };
                         let ban_id = user_ban.ban_id;
@@ -472,13 +471,13 @@ pub fn BanPanel() -> impl IntoView {
                             <div class="flex gap-4 items-center">
                                 <div class="w-2/5 px-2 text-sm">{user_ban.username.clone()}</div>
                                 <div class="w-2/5 text-sm">{duration_string}</div>
-                                <div class="flex-grow flex justify-end gap-1">
+                                <div class="flex-grow flex justify-end items-center gap-1">
                                     <BanInfoButton
                                         post_id=user_ban.post_id
                                         comment_id=user_ban.comment_id
                                     />
                                     <AuthorizedShow sphere_name permission_level=PermissionLevel::Ban>
-                                        <ActionForm action=unban_action>
+                                        <ActionForm action=unban_action attr:class="flex justify-center items-center">
                                             <input
                                                 name="ban_id"
                                                 class="hidden"

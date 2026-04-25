@@ -27,7 +27,7 @@ pub fn SphereRulesPanel() -> impl IntoView {
                 <div class="border-b border-base-content/20 pl-1 flex gap-1">
                     <div class="w-1/12 py-2 font-bold">{move_tr!("number-short")}</div>
                     <div class="w-4/12 py-2 font-bold">{move_tr!("title")}</div>
-                    <div class="w-6/12 py-2 font-bold">{move_tr!("description")}</div>
+                    <div class="w-5/12 lg:w-1/2 py-2 font-bold">{move_tr!("description")}</div>
                 </div>
                 <TransitionUnpack resource=sphere_state.sphere_rules_resource let:sphere_rule_vec>
                 {
@@ -41,9 +41,9 @@ pub fn SphereRulesPanel() -> impl IntoView {
                                 let show_edit_form = RwSignal::new(false);
                                 view! {
                                     <div class="flex gap-1 justify-start rounded-sm pl-1 pt-1">
-                                        <div class="w-1/12 select-none">{rule.read_value().priority}</div>
-                                        <div class="w-4/12 select-none">{rule.read_value().title.clone()}</div>
-                                        <div class="w-6/12 select-none">
+                                        <div class="w-1/12 select-none text-sm">{rule.read_value().priority}</div>
+                                        <div class="w-4/12 select-none text-sm">{rule.read_value().title.clone()}</div>
+                                        <div class="w-5/12 lg:w-5/12 select-none text-sm">
                                             <ContentBody body=rule.read_value().description.clone() is_markdown=rule.read_value().markdown_description.is_some()/>
                                         </div>
                                         <div class="flex-grow"></div>
@@ -85,7 +85,7 @@ pub fn DeleteRuleButton(
         <AuthorizedShow sphere_name permission_level=PermissionLevel::Manage>
             <ActionForm
                 action=state.remove_rule_action
-                attr:class="h-fit flex justify-center"
+                attr:class="w-fit h-fit flex justify-center button-error"
             >
                 <input
                     name="sphere_name"
@@ -97,7 +97,7 @@ pub fn DeleteRuleButton(
                     class="hidden"
                     value=rule.with_value(|rule| rule.priority)
                 />
-                <button class="button-error">
+                <button>
                     <CrossIcon/>
                 </button>
             </ActionForm>

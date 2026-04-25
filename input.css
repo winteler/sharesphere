@@ -276,13 +276,13 @@
 
     .input_primary {
         @apply
-            p-3 text-sm rounded-none border border-1 border-primary
+            p-2 py-3 lg:p-3 text-sm rounded-none border border-1 border-primary
             outline outline-offset-0 outline-primary outline-0 focus-within:outline-2
     }
 
     .input_error {
         @apply
-            p-3 text-sm rounded-none border border-1 border-error
+            p-2 py-3 lg:p-3 text-sm rounded-none border border-1 border-error
             outline outline-offset-0 outline-error outline-0 focus-within:outline-2
     }
 

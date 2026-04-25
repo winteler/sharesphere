@@ -149,7 +149,7 @@ pub fn FormTextEditor(
     #[prop(into, default = Signal::derive(|| false))]
     is_empty_ok: Signal<bool>,
 ) -> impl IntoView {
-    let class = format!("flex flex-col max-w-full h-full p-1 lg:p-2 input_border_primary {class}");
+    let class = format!("flex flex-col max-w-full h-full input_border_primary {class}");
 
     let is_border_error = move || !is_empty_ok.get() && data.content.read().is_empty();
 
@@ -171,7 +171,7 @@ pub fn FormTextEditor(
                     id=name
                     name=name
                     placeholder=placeholder
-                    class="w-full box-border outline-hidden border-none resize-none text-sm"
+                    class="w-full p-2 py-3 lg:p-3 box-border outline-hidden border-none resize-none text-sm"
                     rows=1
                     on:input=move |ev| {
                         data.content.set(event_target_value(&ev));

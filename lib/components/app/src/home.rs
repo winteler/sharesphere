@@ -184,7 +184,7 @@ fn BannerWithWidgets(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
-        <div class="mt-2 relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
+        <div class="mt-2 relative flex-none rounded-sm w-full h-16 2xl:h-24 4xl:h-32 flex items-center justify-center max-w-full overflow-hidden">
             <BannerContent title icon_url banner_url sphere_icon_class="h-8 w-8 2xl:h-12 2xl:w-12 rounded-none"/>
         </div>
         <div class="sticky top-0 bg-base-100 py-2 flex justify-between items-center">

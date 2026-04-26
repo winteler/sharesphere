@@ -126,7 +126,7 @@ pub fn PostBody(
 ) -> impl IntoView {
 
     view! {
-        <div class="pb-2">
+        <div class="pb-2 2xl:w-3/4 4xl:w-2/3 5xl:w-3/5">
         {
             match (&delete_timestamp, &moderator_message, &infringed_rule_title) {
                 (Some(_), _, _) => view! {
@@ -343,7 +343,7 @@ pub fn CreatePost() -> impl IntoView {
     // TODO: make sphere input into a component with a callback argument when clicking?
 
     view! {
-        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+        <div class="w-full xl:w-3/5 4xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=create_post_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">{move_tr!("share-post")}</h2>
@@ -508,7 +508,7 @@ pub fn EditPostForm(
     Effect::new(move || adjust_textarea_height(link_textarea_ref));
 
     view! {
-        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full xl:w-3/5 3xl:w-2/5">
+        <div class="bg-base-100 shadow-xl p-3 rounded-xs flex flex-col gap-3 w-full xl:w-3/5 4xl:w-2/5">
             <div class="text-center font-bold text-2xl">{move_tr!("edit-post")}</div>
             <ActionForm action=state.edit_post_action>
                 <div class="flex flex-col gap-3 w-full">

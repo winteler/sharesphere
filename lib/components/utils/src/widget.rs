@@ -749,7 +749,7 @@ pub fn NotFoundWidget(
 ) -> impl IntoView {
     let (icon_class, not_found_class, message_class) = match is_main_content {
         true => ("h-28 w-28", "text-2xl", "text-xl"),
-        false => ("h-12 w-12 xl:h-16 xl:w-16 3xl:h-22 3xl:w-22", "text-base xl:text-lg 3xl:text-xl", "text-sm xl:text-base 3xl:text-lg"),
+        false => ("h-12 w-12 xl:h-16 xl:w-16 4xl:h-22 4xl:w-22", "text-base xl:text-lg 4xl:text-xl", "text-sm xl:text-base 4xl:text-lg"),
     };
     view! {
         <div class="w-full py-2 flex items-center gap-2 justify-center">

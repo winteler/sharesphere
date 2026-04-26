@@ -1,3 +1,4 @@
+use const_format::formatcp;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
@@ -13,12 +14,25 @@ use sharesphere_cmp_utils::widget::{ContentBody, IsPinnedWidget, LoadIndicators,
 
 use crate::moderation::ModeratedBody;
 
+pub const COMMENT_MAX_DEPTH_MOBILE: usize = 5;
+pub const COMMENT_MAX_DEPTH_SMALL_SCREEN: usize = 10;
+pub const COMMENT_MAX_DEPTH: usize = 15;
+
 /// Displays the body of a comment
 #[component]
 pub fn CommentBody(
     #[prop(into)]
     comment: Signal<Comment>,
+    #[prop(optional)]
+    depth: usize,
 ) -> impl IntoView {
+    const BASE_CLASS: &str = "pl-2 text-left text-sm";
+    let class = match depth {
+        d if d <= COMMENT_MAX_DEPTH_MOBILE => formatcp!("{BASE_CLASS} 2xl:w-3/4 4xl:w-2/3 5xl:w-3/5"),
+        d if d > COMMENT_MAX_DEPTH_MOBILE && d <= COMMENT_MAX_DEPTH_SMALL_SCREEN => formatcp!("{BASE_CLASS} 4xl:w-3/4 5xl:w-2/3"),
+        _ => BASE_CLASS,
+    };
+
     view! {
         {
             move || comment.with(|comment| match (
@@ -27,7 +41,7 @@ pub fn CommentBody(
                 &comment.infringed_rule_title
             ) {
                 (Some(_), _, _) => view! {
-                    <div class="pl-2 text-left">
+                    <div>
                         <ContentBody
                             body=move_tr!("deleted")
                             is_markdown=false
@@ -42,7 +56,7 @@ pub fn CommentBody(
                     />
                 }.into_any(),
                 _ => view! {
-                    <div class="pl-2 text-left">
+                    <div class=class>
                         <ContentBody
                             body=comment.body.clone()
                             is_markdown=comment.markdown_body.is_some()

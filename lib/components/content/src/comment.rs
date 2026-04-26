@@ -3,7 +3,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_fluent::move_tr;
 use leptos_router::hooks::use_query_map;
-use leptos_use::BreakpointsTailwind::Xxl;
+use leptos_use::BreakpointsTailwind::{Lg, Xxl};
 use leptos_use::{breakpoints_tailwind, signal_throttled_with_options, use_breakpoints, ThrottleOptions};
 
 use sharesphere_core_common::colors::Color;
@@ -17,7 +17,7 @@ use sharesphere_core_content::ranking::Vote;
 
 use sharesphere_iface_content::comment::{get_comment_tree_by_id, get_post_comment_tree, CreateComment, DeleteComment, EditComment};
 
-use sharesphere_cmp_base::comment::CommentBody;
+use sharesphere_cmp_base::comment::{CommentBody, COMMENT_MAX_DEPTH, COMMENT_MAX_DEPTH_MOBILE, COMMENT_MAX_DEPTH_SMALL_SCREEN};
 use sharesphere_cmp_base::ranking::CommentSortWidget;
 use sharesphere_cmp_common::auth_widget::{AuthorWidget, DeleteButton, LoginGuardedOpenModalButton};
 use sharesphere_cmp_common::role::IsPinnedCheckbox;
@@ -79,7 +79,8 @@ pub fn CommentTreeVec(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let load_error = RwSignal::new(None);
-    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
+    let is_small_screen = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
+    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Lg);
 
     let _initial_comments_resource = LocalResource::new(
         move || async move {
@@ -87,7 +88,7 @@ pub fn CommentTreeVec(
             let initial_load = get_post_comment_tree(
                 post_id.get(),
                 state.comment_sort_type.get(),
-                Some(get_max_comment_depth(is_mobile.get_untracked())),
+                Some(get_max_comment_depth(is_mobile.get_untracked(), is_small_screen.get_untracked())),
                 0
             ).await;
             handle_initial_load(initial_load, comment_vec, load_error, None);
@@ -109,7 +110,7 @@ pub fn CommentTreeVec(
                 let additional_load = get_post_comment_tree(
                     post_id.get(),
                     state.comment_sort_type.get_untracked(),
-                    Some(get_max_comment_depth(is_mobile.get_untracked())),
+                    Some(get_max_comment_depth(is_mobile.get_untracked(), is_small_screen.get_untracked())),
                     num_post
                 ).await;
                 handle_additional_load(additional_load, comment_vec, load_error);
@@ -159,7 +160,8 @@ pub fn CommentTree(
 ) -> impl IntoView {
     let state = expect_context::<GlobalState>();
     let load_error = RwSignal::new(None);
-    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
+    let is_small_screen = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
+    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Lg);
 
     // we set a signal with a local resource instead of using the resource directly to reuse the components from the ordinary comment tree
     let _comment_resource = LocalResource::new(
@@ -168,7 +170,7 @@ pub fn CommentTree(
             let comment_tree = get_comment_tree_by_id(
                 comment_id,
                 state.comment_sort_type.get(),
-                Some(get_max_comment_depth(is_mobile.get_untracked())),
+                Some(get_max_comment_depth(is_mobile.get_untracked(), is_small_screen.get_untracked())),
             ).await;
             handle_initial_load(comment_tree.map(|comment| vec![comment]), comment_vec, load_error, None);
             is_loading.set(false);
@@ -217,8 +219,9 @@ pub fn CommentBox(
         DEPTH_TO_COLOR_MAPPING[(depth + ranking) % DEPTH_TO_COLOR_MAPPING.len()]
     );
 
-    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
-    let collapse_children = Memo::new(move |_| depth >= get_max_comment_depth(is_mobile.get()) && !child_comments.read().is_empty());
+    let is_small_screen = use_breakpoints(breakpoints_tailwind()).lt(Xxl);
+    let is_mobile = use_breakpoints(breakpoints_tailwind()).lt(Lg);
+    let collapse_children = Memo::new(move |_| depth >= get_max_comment_depth(is_mobile.get(), is_small_screen.get()) && !child_comments.read().is_empty());
 
     view! {
         <div class="flex lg:gap-1 pt-4">
@@ -234,7 +237,7 @@ pub fn CommentBox(
             <div class="flex flex-col gap-1 pl-1">
                 <Show when=maximize>
                     <CommentTopWidgetBar comment/>
-                    <CommentBody comment/>
+                    <CommentBody comment depth/>
                 </Show>
                 <CommentBottomWidgetBar
                     comment=comment
@@ -703,19 +706,26 @@ pub fn EditCommentForm(
 }
 
 /// Returns the depth for nested comments depending on the platform
-fn get_max_comment_depth(is_mobile: bool) -> usize {
-    match is_mobile {
-        true => 5,
-        false => 15,
+fn get_max_comment_depth(
+    is_mobile: bool,
+    is_small_screen: bool,
+) -> usize {
+    match (is_mobile, is_small_screen) {
+        (true, _) => COMMENT_MAX_DEPTH_MOBILE,
+        (false, true) => COMMENT_MAX_DEPTH_SMALL_SCREEN,
+        (false, false) => COMMENT_MAX_DEPTH,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::comment::get_max_comment_depth;
+    use sharesphere_cmp_base::comment::{COMMENT_MAX_DEPTH, COMMENT_MAX_DEPTH_MOBILE, COMMENT_MAX_DEPTH_SMALL_SCREEN};
+    use crate::comment::{get_max_comment_depth};
     #[test]
     fn test_permission_level_from_string() {
-        assert_eq!(get_max_comment_depth(false), 15);
-        assert_eq!(get_max_comment_depth(true), 5);
+        assert_eq!(get_max_comment_depth(false, false), COMMENT_MAX_DEPTH);
+        assert_eq!(get_max_comment_depth(false, true), COMMENT_MAX_DEPTH_SMALL_SCREEN);
+        assert_eq!(get_max_comment_depth(true, true), COMMENT_MAX_DEPTH_MOBILE);
+        assert_eq!(get_max_comment_depth(true, false), COMMENT_MAX_DEPTH_MOBILE);
     }
 }

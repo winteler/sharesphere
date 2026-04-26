@@ -98,7 +98,7 @@ pub fn NotificationList() -> impl IntoView {
     let state = expect_context::<GlobalState>();
 
     view! {
-        <div class="w-full xl:w-3/5 3xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
+        <div class="w-full xl:w-3/5 4xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
             <div class="flex justify-end px-4">
                 <RefreshResourceButton resource=state.notif_resource/>

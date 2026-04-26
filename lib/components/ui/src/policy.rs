@@ -18,7 +18,7 @@ use crate::sidebar::HomeSidebar;
 pub fn AboutShareSphere() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 4xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">{move_tr!("about-sharesphere")}</h1>
                 <p class="text-justify">
                     {move_tr!("about-sharesphere-content")}
@@ -41,7 +41,7 @@ pub fn AboutShareSphere() -> impl IntoView {
 pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 4xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">{move_tr!("terms-and-conditions")}</h1>
                 <ShareSphereInfo/>
                 <AcceptanceOfTerms/>
@@ -63,7 +63,7 @@ pub fn TermsAndConditions() -> impl IntoView {
 pub fn PrivacyPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 4xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">{move_tr!("privacy-policy")}</h1>
                 <ShareSphereInfo/>
                 <AboutPrivacyPolicy/>
@@ -85,7 +85,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
 pub fn ContentPolicy() -> impl IntoView {
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 w-4/5 lg:w-1/2 4xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">{move_tr!("content-policy")}</h1>
                 <p class="text-justify">
                     {move_tr!("content-policy-intro")}
@@ -165,7 +165,7 @@ pub fn Rules() -> impl IntoView {
     let state = expect_context::<GlobalState>();
     view! {
         <div class="w-full overflow-y-auto">
-            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 3xl:w-2/5 mx-auto py-4">
+            <div class="flex flex-col gap-4 items-center w-4/5 lg:w-1/2 4xl:w-2/5 mx-auto py-4">
                 <h1 class="text-3xl font-bold text-center">{move_tr!("rules")}</h1>
                 <p class="text-justify">{move_tr!("rules-intro")}</p>
                 <Suspense fallback=move || view! { <LoadingIcon/> }.into_any()>

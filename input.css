@@ -36,7 +36,9 @@
 }
 
 @theme {
-    --breakpoint-3xl: 136rem;
+    --breakpoint-3xl: 112rem;
+    --breakpoint-4xl: 128rem;
+    --breakpoint-5xl: 144rem;
 
     --spacing-input-lg: 2.8125rem;
     --spacing-124: 31rem;
@@ -237,7 +239,7 @@
     .left_sidebar_base_class {
         @apply
             flex flex-col justify-between gap-1
-            shrink-0 w-60 lg:w-56 xl:w-65 2xl:w-80 3xl:w-100 h-full
+            shrink-0 w-60 lg:w-56 xl:w-65 2xl:w-80 4xl:w-100 h-full
             overflow-y-auto
             p-1 2xl:p-2
             max-lg:bg-base-300 max-lg:absolute max-lg:z-100 max-lg:top-0 max-lg:left-0;
@@ -246,7 +248,7 @@
     .right_sidebar_base_class {
         @apply
             flex flex-col justify-start gap-2
-            shrink-0 w-60 lg:w-56 xl:w-65 2xl:w-80 3xl:w-100 h-full
+            shrink-0 w-60 lg:w-56 xl:w-65 2xl:w-80 4xl:w-100 h-full
             overflow-y-auto
             px-3 py-2
             max-lg:bg-base-300 max-lg:absolute max-lg:z-100 max-lg:top-0 max-lg:right-0;

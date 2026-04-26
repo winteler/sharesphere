@@ -66,7 +66,7 @@ pub fn SphereBanner() -> impl IntoView {
                 view! {
                     <a
                         href=sphere_path()
-                        class="relative flex-none rounded-sm w-full h-16 2xl:h-24 3xl:h-32 flex items-center justify-center max-w-full overflow-hidden"
+                        class="relative flex-none rounded-sm w-full h-16 2xl:h-24 4xl:h-32 flex items-center justify-center max-w-full overflow-hidden"
                         node_ref=link_ref
                     >
                         <Show when=is_sphere_sub_page>
@@ -329,7 +329,7 @@ pub fn CreateSphere() -> impl IntoView {
     });
 
     view! {
-        <div class="w-full 2xl:w-3/5 3xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
+        <div class="w-full 2xl:w-3/5 4xl:w-2/5 p-2 mx-auto flex flex-col gap-2 overflow-auto">
             <ActionForm action=state.create_sphere_action>
                 <div class="flex flex-col gap-2 w-full">
                     <h2 class="py-4 text-4xl text-center">{move_tr!("create-sphere")}</h2>

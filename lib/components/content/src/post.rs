@@ -126,7 +126,7 @@ pub fn PostBody(
 ) -> impl IntoView {
 
     view! {
-        <div class="pb-2 2xl:w-3/4 4xl:w-2/3 5xl:w-3/5">
+        <div class="pb-2 lg:w-19/20 xl:w-9/10 2xl:w-17/20 3xl:w-4/5 4xl:w-3/4 5xl:w-7/10">
         {
             match (&delete_timestamp, &moderator_message, &infringed_rule_title) {
                 (Some(_), _, _) => view! {

@@ -28,9 +28,11 @@ pub fn CommentBody(
 ) -> impl IntoView {
     const BASE_CLASS: &str = "pl-2 text-left text-sm";
     let class = match depth {
-        d if d <= COMMENT_MAX_DEPTH_MOBILE => formatcp!("{BASE_CLASS} 2xl:w-3/4 4xl:w-2/3 5xl:w-3/5"),
-        d if d > COMMENT_MAX_DEPTH_MOBILE && d <= COMMENT_MAX_DEPTH_SMALL_SCREEN => formatcp!("{BASE_CLASS} 4xl:w-3/4 5xl:w-2/3"),
-        _ => BASE_CLASS,
+        d if d <= COMMENT_MAX_DEPTH_MOBILE => formatcp!("{BASE_CLASS} lg:w-19/20 xl:w-9/10 2xl:w-17/20 3xl:w-4/5 4xl:w-3/4 5xl:w-7/10"),
+        d if d <= (COMMENT_MAX_DEPTH_MOBILE + COMMENT_MAX_DEPTH_SMALL_SCREEN)/2 => formatcp!("{BASE_CLASS} xl:w-19/20 2xl:w-9/10 3xl:w-17/20 4xl:w-4/5 5xl:w-3/4"),
+        d if d <= COMMENT_MAX_DEPTH_SMALL_SCREEN => formatcp!("{BASE_CLASS} 2xl:w-19/20 3xl:w-9/10 4xl:w-17/20 5xl:w-4/5"),
+        d if d <= (COMMENT_MAX_DEPTH_SMALL_SCREEN + COMMENT_MAX_DEPTH)/2 => formatcp!("{BASE_CLASS} 3xl:w-19/20 4xl:w-9/10 5xl:w-17/20"),
+        _ => formatcp!("{BASE_CLASS} 4xl:w-19/20 5xl:w-9/10"),
     };
 
     view! {

@@ -7,6 +7,7 @@ use leptos_use::on_click_outside;
 use sharesphere_core_common::common::{Rule, SphereHeader};
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_common::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, GITHUB_REPO_URL, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
+use sharesphere_core_common::traits::ToLocalizedStr;
 use sharesphere_core_content::search::SearchState;
 
 use sharesphere_iface_sphere::sphere::{get_popular_sphere_headers, get_subscribed_sphere_headers};
@@ -303,7 +304,7 @@ pub fn ModeratorList() -> impl IntoView {
                         view! {
                             <div class="flex py-1 pl-4">
                                 <div class="w-1/2 select-none">{role.username.clone()}</div>
-                                <div class="w-1/2 select-none">{role.permission_level.to_string()}</div>
+                                <div class="w-1/2 select-none">{role.permission_level.to_localized_str()}</div>
                             </div>
                         }
                     }).collect_view()

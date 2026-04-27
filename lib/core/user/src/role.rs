@@ -1,8 +1,10 @@
 use std::str::FromStr;
-
+use leptos::prelude::Signal;
+use leptos_fluent::move_tr;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use strum_macros::{Display, EnumString, IntoStaticStr};
+use sharesphere_core_common::traits::ToLocalizedStr;
 
 #[derive(Clone, Copy, Debug, Display, EnumString, Eq, IntoStaticStr, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::Type))]
@@ -35,12 +37,6 @@ pub struct UserSphereRole {
     pub delete_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl From<String> for PermissionLevel {
-    fn from(value: String) -> PermissionLevel {
-        PermissionLevel::from_str(&value).unwrap_or(PermissionLevel::None)
-    }
-}
-
 impl AdminRole {
     pub fn get_permission_level(self) -> PermissionLevel {
         match self {
@@ -54,6 +50,24 @@ impl AdminRole {
 impl From<String> for AdminRole {
     fn from(value: String) -> AdminRole {
         AdminRole::from_str(&value).unwrap_or(AdminRole::None)
+    }
+}
+
+impl From<String> for PermissionLevel {
+    fn from(value: String) -> PermissionLevel {
+        PermissionLevel::from_str(&value).unwrap_or(PermissionLevel::None)
+    }
+}
+
+impl ToLocalizedStr for PermissionLevel {
+    fn to_localized_str(&self) -> Signal<String> {
+        match self {
+            PermissionLevel::None => move_tr!("role-none"),
+            PermissionLevel::Moderate => move_tr!("role-moderate"),
+            PermissionLevel::Ban => move_tr!("role-ban"),
+            PermissionLevel::Manage => move_tr!("role-manage"),
+            PermissionLevel::Lead => move_tr!("role-lead"),
+        }
     }
 }
 

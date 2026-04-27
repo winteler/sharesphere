@@ -107,6 +107,12 @@ moderate-post = Modérer le poste
 moderate-comment = Modérer le commentaire
 add-rule = Ajouter une règle
 
+role-none = Aucun
+role-moderate = Sentinelle
+role-ban = Magistrat
+role-manage = Intendant
+role-lead = Pionnier
+
 not-found-message = Il n'y a rien ici.
 search-no-user-found = Pas d'utilisateur correspondant.
 search-no-sphere-found = Pas de Sphère correspondante.

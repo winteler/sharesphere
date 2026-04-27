@@ -15,7 +15,7 @@ enum TimeUnit {
 }
 
 impl TimeUnit {
-    pub fn to_localized_str(&self, count: i64, use_fullname: bool) -> Signal<String> {
+    pub fn to_localized_string(&self, count: i64, use_fullname: bool) -> Signal<String> {
         match (use_fullname, self) {
             (false, TimeUnit::Seconds) => move_tr!("time-seconds-short", {"count" => count}),
             (false, TimeUnit::Minutes) => move_tr!("time-minutes-short", {"count" => count}),
@@ -40,11 +40,11 @@ pub fn get_elapsed_time_string(
     let elapsed_time = chrono::Utc::now().signed_duration_since(timestamp);
     let seconds = elapsed_time.num_seconds();
     match seconds {
-        seconds if seconds < SECONDS_IN_MINUTE => TimeUnit::Seconds.to_localized_str(seconds, use_fullname),
-        seconds if seconds < SECONDS_IN_HOUR => TimeUnit::Minutes.to_localized_str(seconds / SECONDS_IN_MINUTE, use_fullname),
-        seconds if seconds < SECONDS_IN_DAY => TimeUnit::Hours.to_localized_str(seconds / SECONDS_IN_HOUR, use_fullname),
-        seconds if seconds < SECONDS_IN_MONTH => TimeUnit::Days.to_localized_str(seconds / SECONDS_IN_DAY, use_fullname),
-        seconds if seconds < SECONDS_IN_YEAR => TimeUnit::Months.to_localized_str(seconds / SECONDS_IN_MONTH, use_fullname),
-        _ => TimeUnit::Years.to_localized_str(seconds / SECONDS_IN_YEAR, use_fullname),
+        seconds if seconds < SECONDS_IN_MINUTE => TimeUnit::Seconds.to_localized_string(seconds, use_fullname),
+        seconds if seconds < SECONDS_IN_HOUR => TimeUnit::Minutes.to_localized_string(seconds / SECONDS_IN_MINUTE, use_fullname),
+        seconds if seconds < SECONDS_IN_DAY => TimeUnit::Hours.to_localized_string(seconds / SECONDS_IN_HOUR, use_fullname),
+        seconds if seconds < SECONDS_IN_MONTH => TimeUnit::Days.to_localized_string(seconds / SECONDS_IN_DAY, use_fullname),
+        seconds if seconds < SECONDS_IN_YEAR => TimeUnit::Months.to_localized_string(seconds / SECONDS_IN_MONTH, use_fullname),
+        _ => TimeUnit::Years.to_localized_string(seconds / SECONDS_IN_YEAR, use_fullname),
     }
 }

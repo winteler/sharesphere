@@ -9,6 +9,7 @@ use quick_xml::{Reader, Writer};
 
 use crate::constants::SPOILER_TAG;
 use crate::errors::AppError;
+use crate::traits::ToLocalizedStr;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FormatType {
@@ -32,8 +33,8 @@ pub struct TextareaData {
     pub textarea_ref: NodeRef<Textarea>
 }
 
-impl FormatType {
-    pub fn to_localized_str(&self) -> Signal<String> {
+impl ToLocalizedStr for FormatType {
+    fn to_localized_str(&self) -> Signal<String> {
         match self {
             FormatType::Bold => move_tr!("bold"),
             FormatType::Italic => move_tr!("italic"),

@@ -13,6 +13,7 @@ use sharesphere_core_common::checks::check_username;
 use sharesphere_core_common::constants::{MAX_SPHERE_DESCRIPTION_LENGTH, MAX_USERNAME_LENGTH};
 use sharesphere_core_common::editor::TextareaData;
 use sharesphere_core_common::errors::AppError;
+use sharesphere_core_common::traits::ToLocalizedStr;
 use sharesphere_core_user::role::PermissionLevel;
 
 use sharesphere_iface_content::moderation::get_moderation_info;
@@ -28,7 +29,7 @@ use sharesphere_cmp_utils::editor::{FormTextEditor, LengthLimitedInput};
 use sharesphere_cmp_utils::errors::ErrorDisplay;
 use sharesphere_cmp_utils::icons::{CrossIcon, LoadingIcon, MagnifierIcon, SaveIcon};
 use sharesphere_cmp_utils::unpack::{SuspenseUnpack, TransitionUnpack};
-use sharesphere_cmp_utils::widget::{EnumDropdown, ModalDialog, IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
+use sharesphere_cmp_utils::widget::{LocalizedEnumDropdown, ModalDialog, IMAGE_FILE_PARAM, SPHERE_NAME_PARAM};
 
 use crate::rule::SphereRulesPanel;
 use crate::satellite::SatellitePanel;
@@ -323,7 +324,7 @@ pub fn ModeratorPanel() -> impl IntoView {
                                 }
                             >
                                 <div class="w-2/5 lg:w-1/2 px-2 text-sm select-none">{role.username.clone()}</div>
-                                <div class="w-1/4 px-2 text-sm select-none">{role.permission_level.to_string()}</div>
+                                <div class="w-1/4 px-2 text-sm select-none">{role.permission_level.to_localized_str()}</div>
                             </div>
                         }
                     }).collect_view()
@@ -405,7 +406,7 @@ pub fn PermissionLevelForm(
                             </TransitionUnpack>
                         </Show>
                     </div>
-                    <EnumDropdown
+                    <LocalizedEnumDropdown
                         name="permission_level"
                         enum_iter=PermissionLevel::iter()
                         class="select_input w-fit bg-base-200"

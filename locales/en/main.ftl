@@ -107,6 +107,12 @@ moderate-post = Moderate post
 moderate-comment = Moderate comment
 add-rule = Add a rule
 
+role-none = None
+role-moderate = Sentinel
+role-ban = Arbiter
+role-manage = Steward
+role-lead = Pioneer
+
 not-found-message = There's nothing here.
 search-no-user-found = No matching user.
 search-no-sphere-found = No matching Sphere.

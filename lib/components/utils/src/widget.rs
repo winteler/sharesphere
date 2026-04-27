@@ -18,7 +18,7 @@ use leptos_use::on_click_outside;
 
 use sharesphere_core_common::errors::AppError;
 use sharesphere_core_common::time::get_elapsed_time_string;
-
+use sharesphere_core_common::traits::ToLocalizedStr;
 use crate::errors::ErrorDisplay;
 use crate::icons::{ArrowUpIcon, ClockIcon, CommentIcon, DotMenuIcon, EditTimeIcon, HelpIcon, LoadingIcon, MaximizeIcon, MinimizeIcon, ModeratorIcon, NotFoundIcon, NsfwIcon, PinnedIcon, RefreshIcon, ScoreIcon, ShareIcon, SphereIcon, SpoilerIcon};
 use crate::view::ToView;
@@ -244,6 +244,32 @@ where
         >
         {
             enum_iter.into_iter().map(|enum_val| view! {<option>{enum_val.into()}</option>}.into_any()).collect_view()
+        }
+        </select>
+    }.into_any()
+}
+
+/// Component to create a dropdown based on a given strum::EnumIter, display text using ToLocalizedStr Trait
+#[component]
+pub fn LocalizedEnumDropdown<I, T>(
+    name: &'static str,
+    enum_iter: I,
+    #[prop(default = "select_input w-fit")]
+    class: &'static str,
+    select_ref: NodeRef<html::Select>,
+) -> impl IntoView
+where
+    I: IntoIterator<Item = T>,
+    T: FromStr + Into<&'static str> + IntoEnumIterator + ToLocalizedStr
+{
+    view! {
+        <select
+            name=name
+            class=class
+            node_ref=select_ref
+        >
+        {
+            enum_iter.into_iter().map(|enum_val| view! {<option value=enum_val.into()>{enum_val.to_localized_str()}</option>}.into_any()).collect_view()
         }
         </select>
     }.into_any()

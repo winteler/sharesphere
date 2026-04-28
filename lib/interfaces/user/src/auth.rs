@@ -88,6 +88,7 @@ pub async fn end_session(redirect_url: String) -> Result<(), AppError> {
     validate_redirect_url(&redirect_url)?;
     let http_client = get_oidc_http_client()?;
     let auth_session = get_session()?;
+    let user = &auth_session.current_user;
     let token_response: oidc::core::CoreTokenResponse =
         auth_session
             .session
@@ -110,6 +111,9 @@ pub async fn end_session(redirect_url: String) -> Result<(), AppError> {
     leptos_axum::redirect(logout_request.http_get_url().to_string().as_str());
 
     auth_session.session.remove(OIDC_TOKEN_KEY);
+    if let Some(user) = user {
+        auth_session.cache_clear_user(user.user_id);
+    }
     auth_session.logout_user();
 
     Ok(())

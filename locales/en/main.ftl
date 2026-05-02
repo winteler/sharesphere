@@ -45,6 +45,11 @@ multi-web-notif-with-unread = You have {$new_notif_count} new notifications, {$u
 web-notif-unread-addon = {" "}You have {$unread_notif_count} unread notifications.
 read-all-notifs = Read all
 read-notif = Set read
+notif-not-supported = Browser notifications are not supported.
+notif-permission-granted = Notifications permission granted.
+notif-permission-unknown = Notifications permission unknown, trying to request...
+notif-permission-prompt =Missing notifications permission, requesting...
+notif-permission-denied = Notifications permission denied.
 
 number-short = N°
 title = Title

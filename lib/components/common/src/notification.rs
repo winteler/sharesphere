@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
-use leptos_fluent::move_tr;
-use leptos_use::{breakpoints_tailwind, storage::use_local_storage, use_breakpoints, use_interval_fn, BreakpointsTailwind};
-use leptos_use::{use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
+use leptos_fluent::{move_tr, tr};
+use leptos_use::{breakpoints_tailwind, storage::use_local_storage, use_breakpoints, use_interval_fn, use_timeout_fn, BreakpointsTailwind};
+use leptos_use::{use_permission, use_web_notification_with_options, ShowOptions, UseWebNotificationOptions, UseWebNotificationReturn};
 
 use sharesphere_core_common::constants::{LOGO_ICON_PATH, SITE_NAME};
 use sharesphere_core_common::errors::AppError;
@@ -13,15 +13,21 @@ use sharesphere_core_user::notification::{get_notification_path, get_notificatio
 
 use sharesphere_iface_user::notification::{set_all_notifications_read, set_notification_read};
 
-use sharesphere_cmp_utils::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, UnreadIcon};
+use sharesphere_cmp_utils::icons::{LoadingIcon, NotificationIcon, ReadAllIcon, ReadIcon, RefreshIcon, UnreadIcon};
 use sharesphere_cmp_utils::unpack::SuspenseUnpack;
-use sharesphere_cmp_utils::widget::{RefreshResourceButton, TimeSinceWidget};
+use sharesphere_cmp_utils::widget::{TimeSinceWidget};
 
 use crate::auth_widget::AuthorWidget;
 use crate::sphere::SphereHeaderLink;
 use crate::state::GlobalState;
 
-pub fn build_and_send_notif(body: String) {
+/// When logged in, displays a bell button with the number of unread notifications, redirects to the notification page on click.
+#[component]
+pub fn NotificationButton() -> impl IntoView {
+    let state = expect_context::<GlobalState>();
+    let (_, set_notif_handler, _) = use_local_storage::<NotifHandler, JsonSerdeCodec>(NOTIF_STATE_STORAGE);
+    let is_wide_screen = use_breakpoints(breakpoints_tailwind()).ge(BreakpointsTailwind::Lg);
+
     let UseWebNotificationReturn {
         show,
         ..
@@ -30,21 +36,12 @@ pub fn build_and_send_notif(body: String) {
             .renotify(true)
             .tag(NOTIF_TAG)
             .icon(LOGO_ICON_PATH)
+            .title(SITE_NAME)
     );
 
-    show(
-        ShowOptions::default()
-            .title(SITE_NAME)
-            .body(body)
-    )
-}
-
-/// When logged in, displays a bell button with the number of unread notifications, redirects to the notification page on click.
-#[component]
-pub fn NotificationButton() -> impl IntoView {
-    let state = expect_context::<GlobalState>();
-    let (_, set_notif_handler, _) = use_local_storage::<NotifHandler, JsonSerdeCodec>(NOTIF_STATE_STORAGE);
-    let is_wide_screen = use_breakpoints(breakpoints_tailwind()).ge(BreakpointsTailwind::Lg);
+    let send_notif_fn = StoredValue::new(move |body: String| {
+        show(ShowOptions::default().body(body));
+    });
 
     view! {
         <Transition fallback=move || view! {  <LoadingIcon/> }>
@@ -58,7 +55,7 @@ pub fn NotificationButton() -> impl IntoView {
                             );
                             match state.notif_resource.await {
                                 Ok(notif_vec) => {
-                                    set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_count, build_and_send_notif);
+                                    set_notif_handler.write().handle_notifications(notif_vec, state.unread_notif_count, send_notif_fn.get_value());
                                     view! {
                                         <a class="button-rounded-ghost relative flex" href=NOTIFICATION_ROUTE>
                                             <NotificationIcon/>
@@ -101,7 +98,7 @@ pub fn NotificationList() -> impl IntoView {
         <div class="w-full xl:w-3/5 4xl:w-2/5 p-2 xl:px-4 mx-auto flex flex-col gap-2">
             <h2 class="py-4 text-4xl text-center">{move_tr!("notifications")}</h2>
             <div class="flex justify-end px-4">
-                <RefreshResourceButton resource=state.notif_resource/>
+                <RefreshNotificationsButton resource=state.notif_resource/>
                 <ReadAllNotificationsButton is_notif_read_map=state.is_notif_read_map/>
             </div>
             <ul class="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-auto divide-y divide-base-content/20">
@@ -120,6 +117,77 @@ pub fn NotificationList() -> impl IntoView {
             </SuspenseUnpack>
             </ul>
         </div>
+    }
+}
+
+/// Button to set all notifications as read
+#[component]
+fn RefreshNotificationsButton(
+    resource: Resource<Result<Vec<Notification>, AppError>>
+) -> impl IntoView {
+    let button_class = "button-rounded-ghost w-fit tooltip tooltip-bottom";
+
+    let notif_permission = use_permission("notifications");
+    let UseWebNotificationReturn {
+        is_supported,
+        ..
+    } = use_web_notification_with_options(
+        UseWebNotificationOptions::default()
+            .renotify(true)
+            .tag(NOTIF_TAG)
+            .icon(LOGO_ICON_PATH)
+            .title(SITE_NAME)
+    );
+    let show_notif_toast = RwSignal::new(false);
+    let notif_toast_message = move || match (is_supported.get(), notif_permission.get()) {
+        (false, _) => tr!("notif-not-supported"),
+        (true, leptos_use::PermissionState::Granted) => tr!("notif-permission-granted"),
+        (true, leptos_use::PermissionState::Unknown) => tr!("notif-permission-unknown"),
+        (true, leptos_use::PermissionState::Prompt) => tr!("notif-permission-prompt"),
+        (true, leptos_use::PermissionState::Denied) => tr!("notif-permission-denied"),
+    };
+    let toast_class = move || match (is_supported.get(), notif_permission.get()) {
+        (false, _) | (_, leptos_use::PermissionState::Denied) => "alert alert-error",
+        (true, leptos_use::PermissionState::Prompt) | (true, leptos_use::PermissionState::Unknown) => "alert alert-warning",
+        (true, leptos_use::PermissionState::Granted) => "alert alert-success",
+    };
+
+    let toast_fade_timeout_fn = use_timeout_fn(
+        move |_| show_notif_toast.set(false),
+        10000.0
+    );
+
+    view! {
+        <button
+            class=button_class
+            data-tip=move_tr!("refresh")
+            on:click=move |_| {
+                match (is_supported.get_untracked(), notif_permission.get_untracked()) {
+                    (true, leptos_use::PermissionState::Granted) => show_notif_toast.set(false),
+                    (_, permission_state) if permission_state != leptos_use::PermissionState::Denied => {
+                        log::info!("Notifications permission missing: {}, requesting...", permission_state);
+                        leptos::task::spawn_local(async move {
+                            if let Ok(notification_permission) = web_sys::Notification::request_permission() {
+                                let _ = notification_permission.await;
+                            }
+                        });
+                        show_notif_toast.set(true);
+                        (toast_fade_timeout_fn.start)(());
+                    },
+                    _ => log::warn!("Notifications permission denied."),
+                };
+                resource.refetch();
+            }
+        >
+            <RefreshIcon/>
+        </button>
+        <Show when=show_notif_toast>
+            <div class="toast toast-center">
+                <div class=toast_class>
+                    <span>{notif_toast_message}</span>
+                </div>
+            </div>
+        </Show>
     }
 }
 

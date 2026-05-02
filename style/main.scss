@@ -3097,6 +3097,13 @@
       --alert-color: var(--color-success);
     }
   }
+  .alert-warning {
+    @layer daisyui.l1.l2 {
+      color: var(--color-warning-content);
+      --alert-border-color: var(--color-warning);
+      --alert-color: var(--color-warning);
+    }
+  }
   .file-input-primary {
     @layer daisyui.l1.l2 {
       --btn-color: var(--color-primary);

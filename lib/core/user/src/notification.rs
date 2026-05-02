@@ -86,7 +86,7 @@ impl NotifHandler {
         unread_notif_count: RwSignal<usize>,
         build_and_send_notif_fn: impl Fn(String) + Clone + Send + Sync,
     ) {
-        if let Some(notif) = new_notif_vec.iter().next() {
+        if let Some(notif) = new_notif_vec.first() {
             let new_notif_count = new_notif_vec.len();
             let unread_notif_count = unread_notif_count.get_untracked();
             let body = match (new_notif_count, unread_notif_count) {

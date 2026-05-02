@@ -45,6 +45,11 @@ multi-web-notif-with-unread = Tu as {$new_notif_count} nouvelles notifications, 
 web-notif-unread-addon = {" "}Tu as {$unread_notif_count} notifications non-lues.
 read-all-notifs = Lire tout
 read-notif = Marqué lu
+notif-not-supported = Les notifications ne sont pas prises en charge par le navigateur.
+notif-permission-granted = Autorisation d'envoi des notifications accordée.
+notif-permission-unknown = Statut d'autorisation des notifications inconnu, tentative de requête...
+notif-permission-prompt = Autorisation d'envoi des notifications manquante, demande en cours...
+notif-permission-denied = Autorisation d'envoi des notifications refusée.
 
 number-short = N°
 title = Titre

@@ -224,7 +224,7 @@ pub fn CommentBox(
     let collapse_children = Memo::new(move |_| depth >= get_max_comment_depth(is_mobile.get(), is_small_screen.get()) && !child_comments.read().is_empty());
 
     view! {
-        <div class="flex lg:gap-1 pt-4">
+        <div class="w-full flex lg:gap-1 pt-4">
             <div
                 class=sidebar_css
                 on:click=move |_| maximize.update(|value: &mut bool| *value = !*value)
@@ -234,7 +234,7 @@ pub fn CommentBox(
                     <div class=color_bar_css.clone()/>
                 </Show>
             </div>
-            <div class="flex flex-col gap-1 pl-1">
+            <div class="grow flex flex-col gap-1 pl-1">
                 <Show when=maximize>
                     <CommentTopWidgetBar comment/>
                     <CommentBody comment depth/>
@@ -245,7 +245,7 @@ pub fn CommentBox(
                     child_comments
                 />
                 <div
-                    class="flex flex-col"
+                    class="w-full flex flex-col"
                     class:hidden=move || !*maximize.read()
                 >
                 { move || match collapse_children.get() {

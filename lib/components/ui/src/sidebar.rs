@@ -6,7 +6,7 @@ use leptos_use::on_click_outside;
 
 use sphare_core_common::common::{Rule, SphereHeader};
 use sphare_core_common::errors::AppError;
-use sphare_core_common::routes::{ABOUT_SHARESPHERE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, GITHUB_REPO_URL, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
+use sphare_core_common::routes::{ABOUT_SPHARE_ROUTE, CONTENT_POLICY_ROUTE, FAQ_ROUTE, GITHUB_REPO_URL, POPULAR_ROUTE, PRIVACY_POLICY_ROUTE, RULES_ROUTE, TERMS_AND_CONDITIONS_ROUTE};
 use sphare_core_common::traits::ToLocalizedStr;
 use sphare_core_content::search::SearchState;
 
@@ -191,7 +191,7 @@ pub fn HomeSidebar() -> impl IntoView {
                 <p>{move_tr!("sphare-right-sidebar-2")}</p>
             </div>
             <ul class="list-disc list-inside">
-                <li><a href=ABOUT_SHARESPHERE_ROUTE class="link text-primary">{move_tr!("about-sphare")}</a></li>
+                <li><a href=ABOUT_SPHARE_ROUTE class="link text-primary">{move_tr!("about-sphare")}</a></li>
                 <li><a href=TERMS_AND_CONDITIONS_ROUTE class="link text-primary">{move_tr!("terms-and-conditions")}</a></li>
                 <li><a href=PRIVACY_POLICY_ROUTE class="link text-primary">{move_tr!("privacy-policy")}</a></li>
                 <li><a href=CONTENT_POLICY_ROUTE class="link text-primary">{move_tr!("content-policy")}</a></li>

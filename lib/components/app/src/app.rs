@@ -8,7 +8,7 @@ use regex::Regex;
 
 use sphare_core_common::constants::{SITE_NAME};
 use sphare_core_common::errors::AppError;
-use sphare_core_common::routes::{ABOUT_SHARESPHERE_ROUTE, AUTH_CALLBACK_ROUTE, CONTENT_POLICY_ROUTE, CREATE_POST_SUFFIX, CREATE_SPHERE_SUFFIX, FAQ_ROUTE, NOTIFICATION_ROUTE, POPULAR_ROUTE, POST_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, PRIVACY_POLICY_ROUTE, PUBLISH_ROUTE, RULES_ROUTE, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SEARCH_ROUTE, SPHERE_ROUTE_PARAM_NAME, SPHERE_ROUTE_PREFIX, TERMS_AND_CONDITIONS_ROUTE, USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
+use sphare_core_common::routes::{ABOUT_SPHARE_ROUTE, AUTH_CALLBACK_ROUTE, CONTENT_POLICY_ROUTE, CREATE_POST_SUFFIX, CREATE_SPHERE_SUFFIX, FAQ_ROUTE, NOTIFICATION_ROUTE, POPULAR_ROUTE, POST_ROUTE_PARAM_NAME, POST_ROUTE_PREFIX, PRIVACY_POLICY_ROUTE, PUBLISH_ROUTE, RULES_ROUTE, SATELLITE_ROUTE_PARAM_NAME, SATELLITE_ROUTE_PREFIX, SEARCH_ROUTE, SPHERE_ROUTE_PARAM_NAME, SPHERE_ROUTE_PREFIX, TERMS_AND_CONDITIONS_ROUTE, USER_ROUTE_PARAM_NAME, USER_ROUTE_PREFIX};
 
 use sphare_iface_sphere::sphere::CreateSphere;
 use sphare_iface_user::auth::{get_user, EndSession};
@@ -212,7 +212,7 @@ pub fn App() -> impl IntoView {
                                 </ParentRoute>
                                 <Route path=StaticSegment(NOTIFICATION_ROUTE) view=NotificationHome/>
                                 <Route path=StaticSegment(SEARCH_ROUTE) view=Search/>
-                                <Route path=StaticSegment(ABOUT_SHARESPHERE_ROUTE) view=AboutSphare/>
+                                <Route path=StaticSegment(ABOUT_SPHARE_ROUTE) view=AboutSphare/>
                                 <Route path=StaticSegment(TERMS_AND_CONDITIONS_ROUTE) view=TermsAndConditions/>
                                 <Route path=StaticSegment(PRIVACY_POLICY_ROUTE) view=PrivacyPolicy/>
                                 <Route path=StaticSegment(CONTENT_POLICY_ROUTE) view=ContentPolicy/>
